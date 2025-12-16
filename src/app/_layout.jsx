@@ -1,10 +1,10 @@
+import { AuthProvider, useAuth } from '@/src/core/context/AuthProvider';
 import { Redirect, Stack } from 'expo-router';
-import { AuthProvider, useAuth } from '@/src/core/context/AuthProvider'
 
 export default function RootLayout() {
     console.log("Welcome to Thrail: Find thrill in your trails!");
     console.log("2025");
-    
+
     return (
         <AuthProvider>
             <RootNavLayout/>
@@ -15,9 +15,10 @@ export default function RootLayout() {
 
 const RootNavLayout = () => {
     const { user, isLoading } = useAuth();
-    
+    console.log("No user logged in, yet!");
+    console.log(user)
+
     if(user === null){
-        console.log("No user logged in, yet!");
         return(
             <Redirect href={'/(auth)/landing'}/>
         )
