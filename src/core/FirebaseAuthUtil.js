@@ -1,5 +1,5 @@
 import { auth } from '@/src/core/config/Firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 
 export const signUp = async (email, password) => {
     try{
@@ -27,4 +27,12 @@ export const logIn = async (email, password) => {
     } catch (error) {
         console.error('Firebase log in error: ', error);
     }
+}
+
+export const forgotPassword = async (email) => {
+    if(!email){
+        throw new Error('Email is required');
+    }
+
+    await sendPasswordResetEmail(auth, email)
 }
