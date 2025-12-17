@@ -1,11 +1,10 @@
-import { View, Text, Pressable } from 'react-native'
-import React, { useEffect } from 'react'
-import { useRouter } from 'expo-router';
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
+import { useRouter } from 'expo-router';
+import React from 'react';
 
 export default function landing(){
     const router = useRouter();
-    
+        
     const onLogIn = () => {
         router.push('/(auth)/login');
     }
