@@ -26,6 +26,14 @@ export default function AuthLayout(){
                     headerShown: false,
                 }}
             />
+
+            <Stack.Screen
+                name = 'preference'
+                options = {{
+                    title: 'Preference',
+                    headerShown: false,
+                }}
+            />
         </Stack>
     )
 }
