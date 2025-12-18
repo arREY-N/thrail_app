@@ -22,7 +22,6 @@ const LandingScreen = ({ onLogIn, onSignUp }) => {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.innerContainer}>
 
                     <View style={styles.topSection}>
                         <View style={styles.circleContainer}>
