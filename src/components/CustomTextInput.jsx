@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Colors } from '../constants/colors';
 
-const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEntry, }) => {
+const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEntry, keyboardType, ...props }) => {
 
     const [isFocused, setIsFocused] = useState(false);
 
@@ -20,10 +20,12 @@ const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEn
                 value={value}
                 onChangeText={onChangeText}
                 secureTextEntry={secureTextEntry}
-                keyboardType={keyboardType}
+                keyboardType={keyboardType || 'default'} 
 
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
+
+                {...props} 
             />
         </View>
     );
@@ -48,7 +50,6 @@ const styles = StyleSheet.create({
         padding: 14,
         fontSize: 16,
         color: Colors.BLACK,
-        
         outlineStyle: 'none', 
     },
 });
