@@ -1,64 +1,65 @@
 import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 
-import { Colors } from "@/src/constants/colors";
 import CustomButton from "../../../components/CustomButton";
 import CustomText from "../../../components/CustomText";
 import ScreenWrapper from "../../../components/ScreenWrapper";
-import DecorativeCircle from "./components/DecorativeCircle";
-import MountainGraphic from "./components/MountainGraphic";
+import DecorativeCircle from "../components/DecorativeCircle";
+import MountainGraphic from "../components/MountainGraphic";
+
+import { Colors } from "@/src/constants/colors";
 
 const LandingScreen = ({ onLogIn, onSignUp }) => {
-    const { height } = useWindowDimensions();
 
-    const isShortScreen = height < 600;
+    const { height } = useWindowDimensions();
+    const isShortScreen = height < 800;
 
     return (
         <ScreenWrapper backgroundColor={Colors.Background}>
             
             <ScrollView 
+                style={styles.container} 
                 contentContainerStyle={[
                     styles.scrollContainer, 
-                    { minHeight: isShortScreen ? 600 : '100%' } 
+                    { minHeight: isShortScreen ? 850 : '100%' } 
                 ]}
                 showsVerticalScrollIndicator={false}
             >
 
-                    <View style={styles.topSection}>
-                        <View style={styles.circleContainer}>
-                            <DecorativeCircle title="Book" style={styles.bookPosition} />
-                            <DecorativeCircle title="Explore" style={styles.explorePosition} />
-                            <DecorativeCircle title="Hike" style={styles.hikePosition} />
-                        </View>
-                        <MountainGraphic />
+                <View style={[styles.topSection, { minHeight: 400 }]}>
+                    <View style={styles.circleContainer}>
+                        <DecorativeCircle title="Book" style={styles.bookPosition} />
+                        <DecorativeCircle title="Explore" style={styles.explorePosition} />
+                        <DecorativeCircle title="Hike" style={styles.hikePosition} />
                     </View>
+                    <MountainGraphic />
+                </View>
 
-                    <View style={styles.cardSection}>
-                        <View style={styles.contentConstrainer}>
-                            <CustomText variant="h2" color={Colors.WHITE} style={styles.centerText}>
-                                    Welcome To Thrail
-                                </CustomText>
-                            
-                            <View style={styles.titleContainer}>
-                                <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
-                                    Your Next Trail
-                                </CustomText>
-                                <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
-                                    Begins Here
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.buttonContainer}>
-                                <CustomButton title="Create Account" onPress={onSignUp} variant="primary" />
-                                <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
-                            </View>
-
-                            <CustomText variant="caption" style={styles.footerText}>
-                                By continuing, you agree to our <CustomText variant="caption" style={styles.linkText}>[Terms of Service]</CustomText> and <CustomText variant="caption" style={styles.linkText}>[Privacy Policy]</CustomText>.
+                <View style={[styles.cardSection, { minHeight: 450 }]}>
+                    <View style={styles.contentConstrainer}>
+                        <CustomText variant="h2" color={Colors.WHITE} style={styles.centerText}>
+                                Welcome To Thrail
                             </CustomText>
-
+                        
+                        <View style={styles.titleContainer}>
+                            <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
+                                Your Next Trail
+                            </CustomText>
+                            <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
+                                Begins Here
+                            </CustomText>
                         </View>
+
+                        <View style={styles.buttonContainer}>
+                            <CustomButton title="Create Account" onPress={onSignUp} variant="primary" />
+                            <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
+                        </View>
+
+                        <CustomText variant="caption" style={styles.footerText}>
+                            By continuing, you agree to our <CustomText variant="caption" style={styles.linkText}>[Terms of Service]</CustomText> and <CustomText variant="caption" style={styles.linkText}>[Privacy Policy]</CustomText>.
+                        </CustomText>
                     </View>
                 </View>
+
             </ScrollView>
         </ScreenWrapper>
     );
@@ -67,16 +68,17 @@ const LandingScreen = ({ onLogIn, onSignUp }) => {
 
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1, 
+        width: '100%',
+    },
     scrollContainer: {
         flexGrow: 1,
-    },
-    innerContainer: {
-        flex: 1,
         width: '100%',
     },
     
     topSection: {
-        flex: 0.45, 
+        height: '45%',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
     },
 
     cardSection: {
-        flex: 0.55,
+        flex: 1,
         backgroundColor: Colors.Gray, 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
@@ -123,9 +125,9 @@ const styles = StyleSheet.create({
     buttonContainer: {
         width: '100%',
         marginTop: 20,
+        gap: 16,
     },
 
-    
     centerText: {
         textAlign: 'center',
     },
