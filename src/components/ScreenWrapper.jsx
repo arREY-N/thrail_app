@@ -1,24 +1,22 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { Colors } from '../constants/colors';
 import { useBreakpoints } from '../hooks/useBreakpoints';
 
 const ScreenWrapper = ({ children, style, backgroundColor = Colors.Background }) => {
     
-    const { isMobile, isTablet, isDesktop } = useBreakpoints();
+    const { isMobile } = useBreakpoints();
 
     let containerWidthStyle = {};
 
     if (isMobile) {
         containerWidthStyle = { width: '100%', maxWidth: '100%' }; 
-    } else if (isTablet) {
-        containerWidthStyle = { width: '100%', maxWidth: 600 }; 
     } else {
-        containerWidthStyle = { width: '100%', maxWidth: 1440 }; 
+        containerWidthStyle = { width: '100%' }; 
     }
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+        <View style={[styles.container, { backgroundColor }]}>
             <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
 
             <KeyboardAvoidingView 
@@ -29,13 +27,13 @@ const ScreenWrapper = ({ children, style, backgroundColor = Colors.Background })
                     {children}
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
+    container: {
+        flex: 1, 
     },
     keyboardContainer: {
         flex: 1,
