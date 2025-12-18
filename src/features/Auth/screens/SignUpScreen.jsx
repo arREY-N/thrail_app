@@ -1,157 +1,151 @@
 import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-const SignUpScreen = ({onLogin, onBackPress, onContinuePress, onSignUp}) => {
+import CustomButton from '../../../components/CustomButton';
+import CustomText from '../../../components/CustomText';
+import ScreenWrapper from '../../../components/ScreenWrapper';
+
+import { Colors } from '../../../constants/colors';
+import { AuthStyles } from '../styles/AuthStyles';
+
+const SignUpScreen = ({ onLogIn, onBack, onSignUp, error }) => {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    const [emailFocused, setEmailFocused] = useState(false);
+    const [usernameFocused, setUsernameFocused] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
+    const [confirmFocused, setConfirmFocused] = useState(false);
+
+    const { height } = useWindowDimensions();
+    const isShortScreen = height < 700;
+
     return (
-        <View style={styles.container}>
-        
-        <View style={styles.header}> 
-          <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-            <Feather name="chevron-left" size={28} color="black" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Thrail</Text>
-          <View style={{ width: 28 }} />
-        </View>
+        <ScreenWrapper backgroundColor={Colors.Background}>
+            
+            <ScrollView
+                style={AuthStyles.container}
+                contentContainerStyle={[
+                    AuthStyles.scrollContent,
+                    { minHeight: isShortScreen ? 700 : '100%' }
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
 
-        <View style={styles.content}>
-          <Text style={styles.pageTitle}>Sign Up</Text>
+                <View style={AuthStyles.header}> 
+                    <TouchableOpacity onPress={onBack} style={AuthStyles.backButton}>
+                        <Feather name="chevron-left" size={28} color={Colors.BLACK} />
+                    </TouchableOpacity>
+                    <CustomText style={AuthStyles.headerTitle}>Thrail</CustomText>
+                    <View style={{ width: 28 }} />
+                </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#888"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-          </View>
+                <View style={AuthStyles.contentContainer}>
+                    <View style={AuthStyles.formConstrainer}>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-                style={styles.input}
-                placeholder="Username"
-                placeholderTextColor="#888"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-            />
-          </View>
+                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                            Sign Up
+                        </CustomText>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#888"
-                value={password}
-                onChangeText={setPassword}
-            />
-          </View>
+                        {error && (
+                            <View style={AuthStyles.errorContainer}>
+                                <Feather name="alert-circle" size={18} color="#D32F2F" />
+                                <CustomText style={AuthStyles.errorText}>
+                                    {error}
+                                </CustomText>
+                            </View>
+                        )}
 
-          <View style={styles.inputContainer}>
-            <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                placeholderTextColor="#888"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-            />
-          </View>
+                        <View style={[AuthStyles.inputContainer, emailFocused && AuthStyles.inputFocused]}>
+                            <TextInput
+                                style={AuthStyles.input}
+                                placeholder="Email"
+                                placeholderTextColor={Colors.GRAY_MEDIUM}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                onFocus={() => setEmailFocused(true)}
+                                onBlur={() => setEmailFocused(false)}
+                            />
+                        </View>
 
-          <View style={styles.buttonContainer}>
-            <Pressable style={styles.continueButton} onPress={() => onSignUp(email, password)}>
-                <Text style={styles.continueButtonText}>Continue</Text>
-            </Pressable>
+                        <View style={[AuthStyles.inputContainer, usernameFocused && AuthStyles.inputFocused]}>
+                            <TextInput
+                                style={AuthStyles.input}
+                                placeholder="Username"
+                                placeholderTextColor={Colors.GRAY_MEDIUM}
+                                value={username}
+                                onChangeText={setUsername}
+                                autoCapitalize="none"
+                                onFocus={() => setUsernameFocused(true)}
+                                onBlur={() => setUsernameFocused(false)}
+                            />
+                        </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={onLogin}>
-                <Text style={styles.loginButtonText}>Log In</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-  );
+                        <View style={[AuthStyles.inputContainer, passwordFocused && AuthStyles.inputFocused]}>
+                            <TextInput
+                                style={AuthStyles.input}
+                                placeholder="Password"
+                                placeholderTextColor={Colors.GRAY_MEDIUM}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                                onFocus={() => setPasswordFocused(true)}
+                                onBlur={() => setPasswordFocused(false)}
+                            />
+                            <TouchableOpacity 
+                                onPress={() => setShowPassword(!showPassword)}
+                                style={AuthStyles.eyeIcon}
+                            >
+                                <Feather 
+                                    name={showPassword ? "eye" : "eye-off"} 
+                                    size={20} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[AuthStyles.inputContainer, confirmFocused && AuthStyles.inputFocused]}>
+                            <TextInput
+                                style={AuthStyles.input}
+                                placeholder="Confirm Password"
+                                placeholderTextColor={Colors.GRAY_MEDIUM}
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                                secureTextEntry={!showConfirmPassword}
+                                onFocus={() => setConfirmFocused(true)}
+                                onBlur={() => setConfirmFocused(false)}
+                            />
+                            <TouchableOpacity 
+                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                style={AuthStyles.eyeIcon}
+                            >
+                                <Feather 
+                                    name={showConfirmPassword ? "eye" : "eye-off"} 
+                                    size={20} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={AuthStyles.buttonContainer}>
+                            <CustomButton title="Continue" onPress={() => onSignUp(email, password)} variant="primary" />
+                            <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
+                        </View>
+
+                    </View>
+                </View>
+            </ScrollView>
+        </ScreenWrapper>
+    );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        width: '100%',
-        maxWidth: 412,       
-        alignSelf: 'center', 
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 8,
-        paddingBottom: 8,
-        backgroundColor: '#e0e0e0',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    content: {
-        flex: 1,
-        padding: 32,
-        paddingTop: 32,
-    },
-    pageTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 30,
-    },
-    inputContainer: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#888',
-        borderRadius: 8,
-        marginBottom: 16, 
-        paddingHorizontal: 16,
-        height: 50,
-        justifyContent: 'center',
-    },
-    input: {
-        fontSize: 16,
-        color: 'black',
-        height: '100%',
-        outlineStyle: 'none',
-    },
-    buttonContainer: {
-        marginTop: 16,
-        gap: 16,
-    },
-    continueButton: {
-        backgroundColor: '#808080', 
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    continueButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    loginButton: {
-        backgroundColor: '#C0C0C0', 
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    loginButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    }
-})
-
-export default SignUpScreen
+export default SignUpScreen;
