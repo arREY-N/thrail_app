@@ -1,10 +1,12 @@
-import { auth } from '@/src/core/config/Firebase';
+import { auth, db } from '@/src/core/config/Firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 const AuthContext = createContext({
     user: null,
-    isLoading: true
+    isLoading: true,
+    profile: null
 });
 
 export function useAuth(){
@@ -14,21 +16,39 @@ export function useAuth(){
 export function AuthProvider({children}){
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-
-    console.log('Auth check')
+    const [profile, setProfile] = useState(null);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
-            setIsLoading(false); 
-        });
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if(!firebaseUser){
+                setUser(null);
+                setIsLoading(false); 
+                setProfile(null);
+                return;
+            }
 
+            const ref = doc(db, 'users', firebaseUser.uid);
+            
+            const unsubscribeProfile = onSnapshot(ref, (snap) => {
+                console.log('Ref:  ', ref);
+                
+                if(snap.exists()){
+                    console.log('Snap exists: ', snap.data());
+                    
+                    setProfile(snap.data())
+                }
+                setUser(firebaseUser);
+                setIsLoading(false);
+            })
+            return unsubscribeProfile;
+        });
         return unsubscribe;
     }, []);
 
     const value = {
         user,
-        isLoading
+        isLoading,
+        profile
     }
 
     return <AuthContext.Provider value={value}>{ children }</AuthContext.Provider>
