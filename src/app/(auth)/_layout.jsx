@@ -34,6 +34,30 @@ export default function AuthLayout(){
                     headerShown: false,
                 }}
             />
+
+            <Stack.Screen
+                name = 'privacy'
+                options = {{
+                    title: 'Privacy Policy',
+                    headerShown: true,
+                }}
+            />
+
+            <Stack.Screen
+                name = 'terms'
+                options = {{
+                    title: 'Terms and Conditions',
+                    headerShown: true,
+                }}
+            />
+
+            <Stack.Screen
+                name = 'information'
+                options = {{
+                    title: 'User Information',
+                    headerShown: false,
+                }}
+            />
         </Stack>
     )
 }

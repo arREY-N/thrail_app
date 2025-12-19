@@ -1,8 +1,10 @@
 import { forgotPassword, logIn } from '@/src/core/FirebaseAuthUtil';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
 export default function login(){
+    const router = useRouter();
     const [error, setError] = useState(null);
 
     const onLogIn = async (email, password) => {
@@ -23,7 +25,15 @@ export default function login(){
         }
     }
 
+    const onBackPress = () => {
+        router.back();
+    }
+
     return (
-        <LogInScreen onLogIn={onLogIn} error={error}/>
+        <LogInScreen 
+            onLogIn={onLogIn} 
+            error={error} 
+            onForgotPassword={onForgotPassword}
+            onBackPress={onBackPress}/>
     )
 }

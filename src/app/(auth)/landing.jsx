@@ -12,6 +12,18 @@ export default function landing(){
     const onSignUp = () => {
         router.push('/(auth)/signup');
     }
+    
+    const onPrivacy = () => {
+        router.push('/(auth)/privacy');
+    }
 
-    return <LandingScreen onLogIn={onLogIn} onSignUp={onSignUp}/>
+    const onTerms = () => {
+        router.push('/(auth)/terms')
+    }
+
+    return <LandingScreen 
+                onLogIn={onLogIn} 
+                onSignUp={onSignUp}
+                onPrivacy={onPrivacy}
+                onTerms={onTerms}/>
 }
