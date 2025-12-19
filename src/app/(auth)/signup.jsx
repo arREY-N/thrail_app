@@ -1,19 +1,26 @@
-import { onSignUp } from '@/src/core/domain/authDomain';
+import { useAccount } from '@/src/core/context/AccountProvider';
+import { saveSignUp } from '@/src/core/domain/authDomain';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-
+ 
 export default function signup(){
     const router = useRouter();
     const [error, setError] = useState(null);
-
+    const { setAccount } = useAccount();
+    
     const onSignUpPress = async (email, password, username, confirmPassword) => {
         setError(null);
         try{
-            await onSignUp(email, username, password, confirmPassword);
-            router.replace('/(auth)/information');
+            saveSignUp(
+                email, 
+                password, 
+                username, 
+                confirmPassword,
+                setAccount,
+            );
+            router.push('/(auth)/information');
         } catch (err) {
-            console.log("Error here: ", err)
             setError(err.message);
         }
     }
