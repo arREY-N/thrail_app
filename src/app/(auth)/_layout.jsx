@@ -1,63 +1,66 @@
+import { AccountProvider } from '@/src/core/context/AccountProvider';
 import { Stack } from "expo-router";
 
 export default function AuthLayout(){
-    return(
-        <Stack>
-            <Stack.Screen
-                name = 'login'
-                options = {{
-                    title: 'Log in',
-                    headerShown: false,
-                }}
-            />
+    return(     
+        <AccountProvider>
+            <Stack>
+                <Stack.Screen
+                    name = 'login'
+                    options = {{
+                        title: 'Log in',
+                        headerShown: false,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'signup'
-                options = {{
-                    title: 'Sign up',
-                    headerShown: false,
-                }}
-            />
+                <Stack.Screen
+                    name = 'signup'
+                    options = {{
+                        title: 'Sign up',
+                        headerShown: false,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'landing'
-                options = {{
-                    title: 'Landing',
-                    headerShown: false,
-                }}
-            />
+                <Stack.Screen
+                    name = 'landing'
+                    options = {{
+                        title: 'Landing',
+                        headerShown: false,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'preference'
-                options = {{
-                    title: 'Preference',
-                    headerShown: false,
-                }}
-            />
+                <Stack.Screen
+                    name = 'preference'
+                    options = {{
+                        title: 'Preference',
+                        headerShown: false,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'privacy'
-                options = {{
-                    title: 'Privacy Policy',
-                    headerShown: true,
-                }}
-            />
+                <Stack.Screen
+                    name = 'privacy'
+                    options = {{
+                        title: 'Privacy Policy',
+                        headerShown: true,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'terms'
-                options = {{
-                    title: 'Terms and Conditions',
-                    headerShown: true,
-                }}
-            />
+                <Stack.Screen
+                    name = 'terms'
+                    options = {{
+                        title: 'Terms and Conditions',
+                        headerShown: true,
+                    }}
+                />
 
-            <Stack.Screen
-                name = 'information'
-                options = {{
-                    title: 'User Information',
-                    headerShown: false,
-                }}
-            />
-        </Stack>
+                <Stack.Screen
+                    name = 'information'
+                    options = {{
+                        title: 'User Information',
+                        headerShown: false,
+                    }}
+                />
+            </Stack>
+        </AccountProvider>
     )
 }
