@@ -1,6 +1,6 @@
 import CustomTextInput from "@/src/components/CustomTextInput";
 import { useAuth } from "@/src/core/context/AuthProvider";
-import { updateUserProfile } from "@/src/core/FirebaseAuthUtil";
+import { onUpdateUserProfile } from "@/src/core/domain/authDomain";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -18,20 +18,14 @@ export default function information(){
         setError(null);
 
         try {
-            if(!number || !firstname || !lastname || !birthday || !address){
-                throw new Error('Please fill up all the necessary information.')
-            }
-            
-            await updateUserProfile(
-                user.uid,
-                {
-                    firstname,
-                    lastname,
-                    number,
-                    birthday,
-                    address
-                } 
-            );
+            await onUpdateUserProfile(
+                user.uid, 
+                firstname,
+                lastname,
+                number,
+                birthday,
+                address
+            )
         } catch (err) {
             console.log(err.message);
             setError(err.message);
