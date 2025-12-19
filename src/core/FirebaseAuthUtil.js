@@ -3,7 +3,16 @@ import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
-export const signUp = async (email, password, username) => {
+export const signUp = async (
+    email, 
+    password, 
+    username,
+    phoneNumber,
+    lastname,
+    firstname,
+    birthday,
+    address
+) => {
     try{
         const userCredential = await createUserWithEmailAndPassword(
             auth, 
@@ -17,12 +26,11 @@ export const signUp = async (email, password, username) => {
             uid: user.uid,
             email: user.email,
             username: username,
-            firstname: '',
-            lastname: '',
-            number: null,
-            birthday: '',
-            address: '',
-            basicInformation: false,
+            firstname: firstname,
+            lastname: lastname,
+            phoneNumber: phoneNumber,
+            birthday: birthday,
+            address: address,
             onBoardingComplete: false,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -45,20 +53,6 @@ export const finishOnboarding = async (uid) =>{
             updatedAt: serverTimestamp(),
         },
         {merge: true},
-    );
-}
-
-export const updateUserProfile = async (uid, data) => {
-    const ref = doc(db, 'users', uid);
-
-    await setDoc(
-        ref,
-        {
-            ...data,
-            basicInformation: true,
-            updatedAt: serverTimestamp(),
-        },
-        {merge: true}
     );
 }
 
