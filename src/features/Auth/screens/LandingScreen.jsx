@@ -1,28 +1,23 @@
-import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import CustomButton from "../../../components/CustomButton";
 import CustomText from "../../../components/CustomText";
+import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from "../../../components/ScreenWrapper";
 import DecorativeCircle from "../components/DecorativeCircle";
 import MountainGraphic from "../components/MountainGraphic";
 
-import { Colors } from "@/src/constants/colors";
+import { Colors } from '../../../constants/colors';
 
-const LandingScreen = ({ onLogIn, onSignUp, onTerms, onPrivacy  }) => {
-
-    const { height } = useWindowDimensions();
-    const isShortScreen = height < 800;
+const LandingScreen = ({ onLogInPress, onSignUpPress, onTermsPress, onPrivacyPress  }) => {
 
     return (
         <ScreenWrapper backgroundColor={Colors.Background}>
             
-            <ScrollView 
+            <ResponsiveScrollView 
+                minHeight={600} 
                 style={styles.container} 
-                contentContainerStyle={[
-                    styles.scrollContainer, 
-                    { minHeight: isShortScreen ? 850 : '100%' } 
-                ]}
-                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContainer}
             >
 
                 <View style={[styles.topSection, { minHeight: 400 }]}>
@@ -50,17 +45,33 @@ const LandingScreen = ({ onLogIn, onSignUp, onTerms, onPrivacy  }) => {
                         </View>
 
                         <View style={styles.buttonContainer}>
-                            <CustomButton title="Create Account" onPress={onSignUp} variant="primary" />
-                            <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
+                            <CustomButton title="Create Account" onPress={onSignUpPress} variant="primary" />
+                            <CustomButton title="Log In" onPress={onLogInPress} variant="secondary" />
                         </View>
 
                         <CustomText variant="caption" style={styles.footerText}>
-                            By continuing, you agree to our <CustomText variant="caption" style={styles.linkText}>[Terms of Service]</CustomText> and <CustomText variant="caption" style={styles.linkText}>[Privacy Policy]</CustomText>.
+                            By continuing, you agree to our{' '}
+                            <CustomText 
+                                variant="caption" 
+                                style={styles.linkText}
+                                onPress={onTermsPress}
+                            >
+                                [Terms of Service]
+                            </CustomText>
+                            {' '}and{' '}
+                            <CustomText 
+                                variant="caption" 
+                                style={styles.linkText}
+                                onPress={onPrivacyPress}
+                            >
+                                [Privacy Policy]
+                            </CustomText>
+                            .
                         </CustomText>
+                        
                     </View>
                 </View>
-
-            </ScrollView>
+            </ResponsiveScrollView>
         </ScreenWrapper>
     );
 };
