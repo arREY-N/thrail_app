@@ -8,7 +8,7 @@ import MountainGraphic from "../components/MountainGraphic";
 
 import { Colors } from "@/src/constants/colors";
 
-const LandingScreen = ({ onLogIn, onSignUp }) => {
+const LandingScreen = ({ onLogIn, onSignUp, onTerms, onPrivacy  }) => {
 
     const { height } = useWindowDimensions();
     const isShortScreen = height < 800;
