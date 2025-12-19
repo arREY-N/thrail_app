@@ -1,4 +1,3 @@
-import { onSignUp } from '@/src/core/domain/authDomain';
 import { forgotPassword, logIn } from '@/src/core/FirebaseAuthUtil';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { useRouter } from 'expo-router';
@@ -36,10 +35,10 @@ export default function login(){
 
     return (
         <LogInScreen 
-            onLogIn={onLogIn} 
-            onSignUp={onSignUp} 
+            onLogInPress={onLogIn} 
+            onSignUpPress={onSignUpPress} 
             error={error} 
-            onForgotPassword={onForgotPassword}
+            onForgotPasswordPress={onForgotPassword}
             onBackPress={onBackPress}/>
     )
 }

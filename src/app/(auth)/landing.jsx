@@ -21,9 +21,11 @@ export default function landing(){
         router.push('/(auth)/terms')
     }
 
-    return <LandingScreen 
-                onLogIn={onLogIn} 
-                onSignUp={onSignUp}
-                onPrivacy={onPrivacy}
-                onTerms={onTerms}/>
+    return (
+        <LandingScreen 
+            onLogInPress={onLogIn} 
+            onSignUpPress={onSignUp}
+            onPrivacyPress={onPrivacy}
+            onTermsPress={onTerms}/>
+    )
 }

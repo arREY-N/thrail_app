@@ -32,8 +32,8 @@ export default function signup(){
     
     return (
         <SignUpScreen 
-            onSignUp={onSignUpPress} 
-            onLogIn={onLogIn} 
+            onSignUpPress={onSignUpPress} 
+            onLogInPress={onLogIn} 
             onBackPress={onBackPress}
             onGmailSignUp={onGmailSignUp}
             error={error}/>
