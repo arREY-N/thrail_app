@@ -10,10 +10,6 @@ export default function signup(){
     const onSignUpPress = async (email, password, username, confirmPassword) => {
         setError(null);
         try{
-            // for backend testing only, remove when UI props are fixed
-            const username = "test_username";
-            const confirmPassword = password;
-
             onSignUp(email, username, password, confirmPassword);
             router.replace('/(auth)/information');
         } catch (err) {
