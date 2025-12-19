@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     titleContainer: {
-        
+        marginBottom: 32,
     },
     buttonContainer: {
         width: '100%',
