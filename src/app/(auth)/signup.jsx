@@ -1,4 +1,4 @@
-import { signUp } from '@/src/core/FirebaseAuthUtil';
+import { onSignUp } from '@/src/core/domain/authDomain';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -7,26 +7,16 @@ export default function signup(){
     const router = useRouter();
     const [error, setError] = useState(null);
 
-    const onSignUp = async (email, username, password, confirmPassword) => {
+    const onSignUpPress = async (email, password, username, confirmPassword) => {
         setError(null);
         try{
-            if(!email || !username || !password || !confirmPassword){
-                throw new Error('Please fill up all the necessary information.')
-            }
+            // for backend testing only, remove when UI props are fixed
+            const username = "test_username";
+            const confirmPassword = password;
 
-            if(password !== confirmPassword){
-                throw new Error('Password does not match')
-            }
-
-            const user = await signUp(email, password, username);
-            
-            if(!user) {
-                throw new Error('Sign up failed.');
-            }
-
+            onSignUp(email, username, password, confirmPassword);
             router.replace('/(auth)/information');
         } catch (err) {
-            console.error('Sign up error:', err.message)
             setError(err.message);
         }
     }
@@ -45,7 +35,7 @@ export default function signup(){
     
     return (
         <SignUpScreen 
-            onSignUp={onSignUp} 
+            onSignUp={onSignUpPress} 
             onLogin={onLogIn} 
             onBackPress={onBackPress}
             onGmailSignUp={onGmailSignUp}
