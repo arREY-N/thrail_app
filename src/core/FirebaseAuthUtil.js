@@ -71,8 +71,9 @@ export const logIn = async (email, password) => {
         );
 
         return userCredential.user;
-    } catch (error) {
-        throw new Error(getAuthErrorMessage(error))
+    } catch (err) {
+        console.error('Error logging in: ', err.message);
+        throw new Error(getAuthErrorMessage(err))
     }
 }
 
@@ -81,5 +82,10 @@ export const forgotPassword = async (email) => {
         throw new Error('Email is required');
     }
 
-    await sendPasswordResetEmail(auth, email)
+    try {
+        await sendPasswordResetEmail(auth, email)
+    } catch (err) {
+        console.error('Error sending password reset email: ', err.message);
+        throw new Error(getAuthErrorMessage(err));
+    }
 }
