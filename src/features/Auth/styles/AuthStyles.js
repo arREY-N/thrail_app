@@ -66,32 +66,6 @@ export const AuthStyles = StyleSheet.create({
         flex: 1,
     },
 
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_MEDIUM,
-        borderRadius: 8,
-        marginBottom: 16,
-        paddingHorizontal: 12,
-        height: 54,
-    },
-    inputFocused: {
-        borderColor: Colors.BLACK,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        color: Colors.BLACK,
-        height: '100%',
-        outlineStyle: 'none',
-        minWidth: 0,
-    },
-    eyeIcon: {
-        padding: 16,
-    },
-
     buttonContainer: {
         width: '100%',
         gap: 0,
