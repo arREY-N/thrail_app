@@ -1,28 +1,28 @@
-import { useAuth } from "@/src/core/context/AuthProvider";
-import { onUpdateUserProfile } from "@/src/core/domain/authDomain";
+import { useAccount } from "@/src/core/context/AccountProvider";
+import { onSignUp } from "@/src/core/domain/authDomain";
 import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
 export default function information(){
-    const { user } = useAuth(); 
     const [error, setError] = useState(null);
     const router = useRouter();
+    const { account } = useAccount();
 
-    const onContinuePress = async (number, firstname, lastname, birthday, address) => {
+    const onContinuePress = async (phoneNumber, firstname, lastname, birthday, address) => {
         setError(null);
-
         try {
-            await onUpdateUserProfile(
-                user.uid, 
-                number,
+            await onSignUp(
+                account.email, 
+                account.username, 
+                account.password,
+                phoneNumber,
                 firstname,
                 lastname,
                 birthday,
                 address
-            )
+            );
         } catch (err) {
-            console.log(err.message);
             setError(err.message);
         }
     }
