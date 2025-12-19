@@ -15,9 +15,9 @@ export default function information(){
         try {
             await onUpdateUserProfile(
                 user.uid, 
+                number,
                 firstname,
                 lastname,
-                number,
                 birthday,
                 address
             )
@@ -35,6 +35,6 @@ export default function information(){
         <InformationScreen
             onContinuePress={onContinuePress}
             onBackPress={onBackPress}
-        />
+            error={error}/>
     )
 }
