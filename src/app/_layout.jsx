@@ -20,8 +20,6 @@ const RootNavLayout = () => {
 
     if(!user) return <Redirect href={'/(auth)/landing'}/>
     
-    if(!profile?.basicInformation) return <Redirect href={'/(auth)/information'}/>
-    
     if(!profile?.onBoardingComplete) return <Redirect href={'/(auth)/preference'}/>
     
     return <Redirect href={'/(tabs)/home'}/>
