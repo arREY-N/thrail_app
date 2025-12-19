@@ -30,6 +30,10 @@ export default function login(){
         router.back();
     }
 
+    const onSignUpPress = () => {
+        router.replace('/(auth)/signup');
+    }
+
     return (
         <LogInScreen 
             onLogIn={onLogIn} 

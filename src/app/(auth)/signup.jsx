@@ -10,9 +10,10 @@ export default function signup(){
     const onSignUpPress = async (email, password, username, confirmPassword) => {
         setError(null);
         try{
-            onSignUp(email, username, password, confirmPassword);
+            await onSignUp(email, username, password, confirmPassword);
             router.replace('/(auth)/information');
         } catch (err) {
+            console.log("Error here: ", err)
             setError(err.message);
         }
     }
