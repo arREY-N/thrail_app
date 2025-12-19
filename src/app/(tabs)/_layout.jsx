@@ -1,8 +1,14 @@
+import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export default function TabLayout() {
+    const { loadTrails } = useTrailsStore();
 
+    useEffect(() => {
+        loadTrails();
+    }, [])
+    
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
             <Tabs.Screen

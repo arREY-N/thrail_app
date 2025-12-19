@@ -14,17 +14,15 @@ export default function RootLayout() {
 }
 
 const RootNavLayout = () => {
-    const { user, isLoading } = useAuth();
-    console.log("No user logged in, yet!");
-    console.log(user)
+    const { user, profile, isLoading } = useAuth();
 
-    if(user === null){
-        return(
-            <Redirect href={'/(auth)/landing'}/>
-        )
-    } else {
-        return(
-            <Redirect href={'/(tabs)/home'}/>
-        )
-    }
+    if(isLoading) return null;
+
+    if(!user) return <Redirect href={'/(auth)/landing'}/>
+    
+    if(!profile?.basicInformation) return <Redirect href={'/(auth)/information'}/>
+    
+    if(!profile?.onBoardingComplete) return <Redirect href={'/(auth)/preference'}/>
+    
+    return <Redirect href={'/(tabs)/home'}/>
 }
