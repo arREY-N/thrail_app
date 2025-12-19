@@ -9,7 +9,7 @@ import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const SignUpScreen = ({ onLogIn, onBack, onSignUp, error }) => {
+const SignUpScreen = ({ onLogIn, onBackPress, onSignUp, error }) => {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -40,7 +40,7 @@ const SignUpScreen = ({ onLogIn, onBack, onSignUp, error }) => {
             >
 
                 <View style={AuthStyles.header}> 
-                    <TouchableOpacity onPress={onBack} style={AuthStyles.backButton}>
+                    <TouchableOpacity onPress={onBackPress} style={AuthStyles.backButton}>
                         <Feather name="chevron-left" size={28} color={Colors.BLACK} />
                     </TouchableOpacity>
                     <CustomText style={AuthStyles.headerTitle}>Thrail</CustomText>
