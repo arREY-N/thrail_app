@@ -9,7 +9,7 @@ export default function information(){
     const [error, setError] = useState(null);
     const router = useRouter();
 
-    const onContinuePress = async () => {
+    const onContinuePress = async (number, firstname, lastname, birthday, address) => {
         setError(null);
 
         try {
