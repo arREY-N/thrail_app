@@ -6,7 +6,7 @@
  * @property {string} username
  * @property {string} firstname
  * @property {string} lastname
- * @property {number|null} number
+ * @property {string} phoneNumber
  * @property {string} birthday
  * @property {string} address
  * @property {boolean} basicInformation
