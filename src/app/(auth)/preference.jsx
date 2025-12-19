@@ -1,15 +1,20 @@
 import { useAuth } from "@/src/core/context/AuthProvider";
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 export default function preference(){
     const router = useRouter();
     const { user } = useAuth();
-    
+    const [error, setError] = useState();
+
     const onFinishedPreference = async () => {
-        console.log('Finished onboarding', user.uid);
-        await finishOnboarding(user.uid);
+        try {
+            await finishOnboarding(user.uid);
+        } catch (err) {
+            setError(err.message);
+        }
     }
 
     // const [preference, setPreference] = useState({
