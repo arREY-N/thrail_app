@@ -1,42 +1,30 @@
 import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ScrollView, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
+import CustomTextInput from '../../../components/CustomTextInput';
+import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const SignUpScreen = ({ onLogIn, onBackPress, onSignUp, error }) => {
+const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
+
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-    const [emailFocused, setEmailFocused] = useState(false);
-    const [usernameFocused, setUsernameFocused] = useState(false);
-    const [passwordFocused, setPasswordFocused] = useState(false);
-    const [confirmFocused, setConfirmFocused] = useState(false);
-
-    const { height } = useWindowDimensions();
-    const isShortScreen = height < 700;
-
     return (
         <ScreenWrapper backgroundColor={Colors.Background}>
             
-            <ScrollView
-                style={AuthStyles.container}
-                contentContainerStyle={[
-                    AuthStyles.scrollContent,
-                    { minHeight: isShortScreen ? 700 : '100%' }
-                ]}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+            <ResponsiveScrollView 
+                minHeight={600} 
+                style={AuthStyles.container} 
+                contentContainerStyle={AuthStyles.scrollContent}
             >
 
                 <View style={AuthStyles.header}> 
@@ -62,88 +50,51 @@ const SignUpScreen = ({ onLogIn, onBackPress, onSignUp, error }) => {
                                 </CustomText>
                             </View>
                         )}
+                        
+                        <CustomTextInput
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
 
-                        <View style={[AuthStyles.inputContainer, emailFocused && AuthStyles.inputFocused]}>
-                            <TextInput
-                                style={AuthStyles.input}
-                                placeholder="Email"
-                                placeholderTextColor={Colors.GRAY_MEDIUM}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                onFocus={() => setEmailFocused(true)}
-                                onBlur={() => setEmailFocused(false)}
-                            />
-                        </View>
+                        <CustomTextInput
+                            placeholder="Username"
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                        />
 
-                        <View style={[AuthStyles.inputContainer, usernameFocused && AuthStyles.inputFocused]}>
-                            <TextInput
-                                style={AuthStyles.input}
-                                placeholder="Username"
-                                placeholderTextColor={Colors.GRAY_MEDIUM}
-                                value={username}
-                                onChangeText={setUsername}
-                                autoCapitalize="none"
-                                onFocus={() => setUsernameFocused(true)}
-                                onBlur={() => setUsernameFocused(false)}
-                            />
-                        </View>
+                        <CustomTextInput
+                            placeholder="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                        />
 
-                        <View style={[AuthStyles.inputContainer, passwordFocused && AuthStyles.inputFocused]}>
-                            <TextInput
-                                style={AuthStyles.input}
-                                placeholder="Password"
-                                placeholderTextColor={Colors.GRAY_MEDIUM}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                                onFocus={() => setPasswordFocused(true)}
-                                onBlur={() => setPasswordFocused(false)}
-                            />
-                            <TouchableOpacity 
-                                onPress={() => setShowPassword(!showPassword)}
-                                style={AuthStyles.eyeIcon}
-                            >
-                                <Feather 
-                                    name={showPassword ? "eye" : "eye-off"} 
-                                    size={20} 
-                                    color={Colors.GRAY_MEDIUM} 
-                                />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={[AuthStyles.inputContainer, confirmFocused && AuthStyles.inputFocused]}>
-                            <TextInput
-                                style={AuthStyles.input}
-                                placeholder="Confirm Password"
-                                placeholderTextColor={Colors.GRAY_MEDIUM}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry={!showConfirmPassword}
-                                onFocus={() => setConfirmFocused(true)}
-                                onBlur={() => setConfirmFocused(false)}
-                            />
-                            <TouchableOpacity 
-                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                                style={AuthStyles.eyeIcon}
-                            >
-                                <Feather 
-                                    name={showConfirmPassword ? "eye" : "eye-off"} 
-                                    size={20} 
-                                    color={Colors.GRAY_MEDIUM} 
-                                />
-                            </TouchableOpacity>
-                        </View>
+                        <CustomTextInput
+                            placeholder="Confirm Password"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry
+                        />
 
                         <View style={AuthStyles.buttonContainer}>
-                            <CustomButton title="Continue" onPress={() => onSignUp(email, password, username, confirmPassword)} variant="primary" />
-                            <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
+                            <CustomButton 
+                                title="Continue" 
+                                onPress={() => onSignUpPress(email, password, username, confirmPassword)} 
+                                variant="primary" 
+                            />
+                            <CustomButton 
+                                title="Log In" 
+                                onPress={onLogInPress} 
+                                variant="secondary" 
+                            />
                         </View>
-
                     </View>
                 </View>
-            </ScrollView>
+            </ResponsiveScrollView>
         </ScreenWrapper>
     );
 };
