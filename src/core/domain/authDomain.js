@@ -22,7 +22,7 @@ export async function onSignUp(
         }
     } catch (err) {
         console.error('Sign up error: ', err.message)
-        throw new Error(err);
+        throw new Error(err.message);
     }
 }
 
