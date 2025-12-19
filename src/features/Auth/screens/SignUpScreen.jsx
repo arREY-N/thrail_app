@@ -137,7 +137,7 @@ const SignUpScreen = ({ onLogIn, onBack, onSignUp, error }) => {
                         </View>
 
                         <View style={AuthStyles.buttonContainer}>
-                            <CustomButton title="Continue" onPress={() => onSignUp(email, password)} variant="primary" />
+                            <CustomButton title="Continue" onPress={() => onSignUp(email, password, username, confirmPassword)} variant="primary" />
                             <CustomButton title="Log In" onPress={onLogIn} variant="secondary" />
                         </View>
 
