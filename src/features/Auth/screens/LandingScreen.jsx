@@ -85,19 +85,20 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
-        width: '100%',
     },
     
     topSection: {
-        height: '45%',
+        height: '42%',
+        minHeight: 300,
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
         position: 'relative',
+        backgroundColor: Colors.Background,
     },
     circleContainer: {
         position: 'absolute',
-        top: '15%',
+        top: '10%',
         width: '100%',
         height: 200,
         zIndex: 10,
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     titleContainer: {
-        marginBottom: 32,
+        
     },
     buttonContainer: {
         width: '100%',
