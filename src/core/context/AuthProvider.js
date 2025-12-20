@@ -35,12 +35,8 @@ export function AuthProvider({children}){
 
             const ref = doc(db, 'users', firebaseUser.uid);
             
-            const unsubscribeProfile = onSnapshot(ref, (snap) => {
-                console.log('Ref:  ', ref);
-                
+            const unsubscribeProfile = onSnapshot(ref, (snap) => {                
                 if(snap.exists()){
-                    console.log('Snap exists: ', snap.data());
-                    
                     setProfile(snap.data())
                 }
                 setUser(firebaseUser);
