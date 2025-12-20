@@ -1,29 +1,16 @@
 import { signUp } from '@/src/core/FirebaseAuthUtil';
 
-export async function onSignUp(
-    email, 
-    username, 
-    password,
-    phoneNumber,
-    lastname,
-    firstname,
-    birthday,
-    address
-) {
+export async function onSignUp(account) {
     try{
-        if(!phoneNumber || !firstname || !lastname || !birthday || !address){
-            throw new Error('Please fill up all the necessary information.')
-        }
-
         const user = await signUp(
-            email, 
-            password, 
-            username, 
-            phoneNumber, 
-            lastname, 
-            firstname, 
-            birthday, 
-            address
+            account.email, 
+            account.password, 
+            account.username, 
+            account.phoneNumber, 
+            account.lastname, 
+            account.firstname, 
+            account.birthday, 
+            account.address
         );
         
         if(!user) {
@@ -31,17 +18,16 @@ export async function onSignUp(
         }
 
     } catch (err) {
-        console.error('Sign up error: ', err.message)
-        throw new Error(err.message);
+        console.error('Sign up error: ', err);
+        throw new Error(err);
     }
 }
 
-export function saveSignUp(
+export function validateSignUp(
     email, 
     password, 
     username, 
     confirmPassword,
-    setAccount
 ){  
     if(!email || !password || !username || !confirmPassword) throw new Error('Please fill up all information');
     
@@ -58,14 +44,14 @@ export function saveSignUp(
     if(password !== confirmPassword) throw new Error('Passwords does not match.');
 
     if(username.length < 6) throw new Error('Username must be at least 6 characters');
-
-    setAccount(prev => ({
-        ...prev,
-        email,
-        password,
-        username,
-    }))
 }
-// if(!number || !firstname || !lastname || !birthday || !address){
-//     throw new Error('Please fill up all the necessary information.')
-// }
+
+export function validateInfo(
+    phoneNumber,
+    firstname,
+    lastname,
+    birthday,
+    address
+){
+
+}
