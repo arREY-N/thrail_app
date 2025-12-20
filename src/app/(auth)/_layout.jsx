@@ -60,6 +60,14 @@ export default function AuthLayout(){
                         headerShown: false,
                     }}
                 />
+
+                <Stack.Screen 
+                    name = 'tac'
+                    options={{
+                        title: 'Terms and Conditions',
+                        headerShown: false,
+                    }}
+                />
             </Stack>
         </AccountProvider>
     )
