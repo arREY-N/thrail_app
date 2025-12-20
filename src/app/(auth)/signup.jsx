@@ -1,5 +1,5 @@
 import { useAccount } from '@/src/core/context/AccountProvider';
-import { saveSignUp } from '@/src/core/domain/authDomain';
+import { validateSignUp } from '@/src/core/domain/authDomain';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -7,18 +7,20 @@ import React, { useState } from 'react';
 export default function signup(){
     const router = useRouter();
     const [error, setError] = useState(null);
-    const { setAccount } = useAccount();
+    const { account, updateAccount } = useAccount();
     
-    const onSignUpPress = async (email, password, username, confirmPassword) => {
+    const onSignUpPress = (email, password, username, confirmPassword) => {
         setError(null);
-        try{
-            saveSignUp(
+        try{ 
+            validateSignUp(email, password, username, confirmPassword);
+
+            updateAccount({
                 email, 
                 password, 
                 username, 
                 confirmPassword,
-                setAccount,
-            );
+            });
+
             router.push('/(auth)/information');
         } catch (err) {
             setError(err.message);
@@ -38,7 +40,8 @@ export default function signup(){
     }
     
     return (
-        <SignUpScreen 
+        // account={account} add account props to handle auto fill  
+        <SignUpScreen
             onSignUpPress={onSignUpPress} 
             onLogInPress={onLogIn} 
             onBackPress={onBackPress}
