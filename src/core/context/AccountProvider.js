@@ -69,6 +69,13 @@ export function AccountProvider({children}){
         address: '', 
     });
 
+    const updateAccount = (info) => {
+        setAccount(a => ({
+            ...a,
+            ...info
+        }))
+    }
+
     const setAnswer = (question, newAnswer) => {
         setQuestions(prev => {
             let saveAnswer = newAnswer;
@@ -120,10 +127,14 @@ export function AccountProvider({children}){
         })
     }
 
+    const resetPreferences = () => {
+        setPreferences(userPreferences);
+    }
+
     const value = {
-        account, setAccount, resetAccount,
+        account, updateAccount, resetAccount,
         questions, setAnswer,
-        preferences, savePreference,
+        preferences, savePreference, resetPreferences
     }
 
     return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
