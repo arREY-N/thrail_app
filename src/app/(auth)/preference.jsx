@@ -1,42 +1,55 @@
+import { useAccount } from "@/src/core/context/AccountProvider";
 import { useAuth } from "@/src/core/context/AuthProvider";
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function preference(){
     const router = useRouter();
     const { user } = useAuth();
     const [error, setError] = useState();
+    const { questions, setAnswer, savePreference, resetPreferences } = useAccount(); 
 
     const onFinishedPreference = async () => {
         try {
-            await finishOnboarding(user.uid);
+            const finalPreferences = savePreference();
+            await finishOnboarding(user.uid, finalPreferences);
+            resetPreferences();
         } catch (err) {
             setError(err.message);
         }
     }
 
-    // const [preference, setPreference] = useState({
-    //     q1: {
-    //         question: 'Question A:',
-    //         type: 'boolean',
-    //         answer: null,
-    //         followUp: q1_a,
-    //     },
-    //     q1_a: {
-    //         question: 'Question A1',
-    //         type: ''
-    //     },
-    //     q2: {
-    //         question: 'Question B: ',
-    //         type: 'select',
-    //     }
-    // });
-
     return(
         <View>
+            {error && <Text>{error}</Text>}
             <Text>Preference Screen (Test Screen Only)</Text>
+            {
+                Object.entries(questions).map(([id, value]) => { // iterates through the preferences object
+                    return( // ito yung UI to display each qustion
+                        // dapat may 'key' lagi pag nag i-iterate ng objects
+                        <View style={styles.prefQuestion} key={id}>
+                            {/**value[question] = looks for the specific question */} 
+                            <Text>{ value['question']} </Text>
+                            {
+                                // value['options'] = looks for the options don sa question
+                                value['options'].map(opt => {
+                                    return (
+                                        // setAnswer( question id, then yung sagot)
+                                        <Pressable onPress={() => setAnswer(id, opt)}>
+                                            <Text>{opt}</Text>
+                                        </Pressable>
+                                    )
+                                })
+                            }
+                            {/** test lang kung na-s-save yung answer */}
+                            <Text>Answer: {value['answer']}</Text>
+                        </View>
+                    )
+                })
+            }
+
             <Pressable onPress={onFinishedPreference}>
                 <Text>Finish Onboarding</Text>
             </Pressable>
@@ -47,3 +60,9 @@ export default function preference(){
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    prefQuestion: {
+        marginVertical: 10
+    }
+})
