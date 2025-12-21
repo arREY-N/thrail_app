@@ -9,6 +9,12 @@ export default function BookLayout(){
                     title: 'Book',
                 }}
             />
+            <Stack.Screen
+                name='booking'
+                options={{
+                    title: 'Booking',
+                }}
+            />
         </Stack>
     )
 }
