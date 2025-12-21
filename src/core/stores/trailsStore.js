@@ -27,7 +27,7 @@ export const useTrailsStore = create((set, get) => ({
         }
     },
 
-    refresehTrails: async () => {
+    refreshTrails: async () => {
         set({isLoading: true, error: null});
 
         try {
