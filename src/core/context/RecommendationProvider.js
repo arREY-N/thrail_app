@@ -28,6 +28,7 @@ export function RecommendationProvider({children}){
 
             if(!latest || !latest.trails) {                
                 setRecommendedTrails([]);
+                setLoaded(true);
                 return;
             }
             
