@@ -1,7 +1,7 @@
 import { useAccount } from "@/src/core/context/AccountProvider";
 import { useAuth } from "@/src/core/context/AuthProvider";
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
-import PreferenceScreen from "@/src/features/Auth/screens/Prefence";
+import PreferenceScreen from "@/src/features/Auth/screens/PrefenceScreen";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
