@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
+import ErrorMessage from '@/src/components/ErrorMessage';
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
@@ -11,7 +12,7 @@ import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
+const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, onGmailSignUp, error }) => {
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -42,14 +43,7 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
                             Sign Up
                         </CustomText>
 
-                        {error && (
-                            <View style={AuthStyles.errorContainer}>
-                                <Feather name="alert-circle" size={18} color="#D32F2F" />
-                                <CustomText style={AuthStyles.errorText}>
-                                    {error}
-                                </CustomText>
-                            </View>
-                        )}
+                        <ErrorMessage error={error} />
                         
                         <CustomTextInput
                             placeholder="Email"
@@ -82,9 +76,14 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
 
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
-                                title="Continue" 
+                                title="Continue with Email" 
                                 onPress={() => onSignUpPress(email, password, username, confirmPassword)} 
                                 variant="primary" 
+                            />
+                            <CustomButton
+                                title={"Continue with Google"}
+                                onPress={onGmailSignUp}
+                                variant="primary"
                             />
                             <CustomButton 
                                 title="Log In" 

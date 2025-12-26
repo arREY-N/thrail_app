@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
@@ -43,14 +44,7 @@ const InformationScreen = ({ onContinuePress, onBackPress, error }) => {
                             Sign Up
                         </CustomText>
 
-                        {error && (
-                            <View style={AuthStyles.errorContainer}>
-                                <Feather name="alert-circle" size={18} color="#D32F2F" />
-                                <CustomText style={AuthStyles.errorText}>
-                                    {error}
-                                </CustomText>
-                            </View>
-                        )}
+                        <ErrorMessage error={error} />
 
                         <CustomTextInput
                             placeholder="Phone Number"
