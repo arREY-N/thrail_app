@@ -22,6 +22,8 @@ export const signUp = async (
 
         const user = userCredential.user;
 
+        console.log('user: ', user);
+        
         await setDoc(doc(db, 'users', user.uid), {
             uid: user.uid,
             email: user.email,
@@ -37,6 +39,9 @@ export const signUp = async (
         },
         {merge: true});
 
+        console.log('New user: ', user);
+        
+
         return user;
     } catch (error){
         throw new Error(getAuthErrorMessage(error));
@@ -48,6 +53,8 @@ export const finishOnboarding = async (uid, preferences) =>{
 
     if(!uid || !preferences) throw new Error('Missing UID or preference object');
 
+    console.log('DB: ', db);
+    
     await setDoc(
         ref, 
         {
