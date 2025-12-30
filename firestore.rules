@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    match /users/{userId}{
+    	allow read: if request.auth != null;
+      allow create: 
+      	if request.auth != null
+        && request.auth.uid == userId;
+      allow update, delete: 
+      	if request.auth != null 
+        && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/recommendations/{recoId}{
+    	allow read: 
+      	if request.auth != null 
+        && request.auth.uid == userId;
+        
+      allow create, update:
+      	if request.auth != null 
+        && request.auth.token.role == 'superadmin';
+    }
+    
+    match /business/{businessId} {
+    	allow read: if request.auth != null;
+      allow create, delete: 
+      	if request.auth != null 
+        && request.auth.token.role == 'superadmin';
+    	allow update:
+      	if request.auth != null 
+        && request.auth.token.role == 'admin' 
+        && request.auth.token.businessId == businessId
+    }
+    
+    match /mountain/{mountainId} {
+    	allow read: if request.auth != null;
+      allow create, update, delete: 
+      	if request.auth != null
+        && request.auth.token.role == 'superadmin';
+    }
+    
+    match /offers/{offerId} {
+	    allow read: if request.auth != null;
+      
+  	  allow create:
+    		if request.auth != null
+        && 
+        (
+        	request.auth.token.role == 'superadmin' || 
+          (
+          	request.auth.token.role == 'admin'
+         		&& request.auth.token.businessId == request.resource.data.businessId   
+          )
+				)
+        
+      allow update, delete:
+    		if request.auth != null
+        && 
+        (
+        	request.auth.token.role == 'superadmin' || 
+          (
+          	request.auth.token.role == 'admin'
+         		&& request.auth.token.businessId == resource.data.businessId   
+          )
+				)
+    }
+    
+    match /province/{provinceId} {
+    	allow read: if request.auth != null;
+      allow create, update, delete:
+      	if request.auth != null
+        && request.auth.token.role == 'superadmin'
+    }
+    
+    match /trail/{trailId}{
+    	allow read: if request.auth != null;
+      allow create, update, delete:
+      	if request.auth != null
+        && request.auth.token.role == 'superadmin'
+    }  
+  }
+}

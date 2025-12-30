@@ -8,7 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "fire": "firebase emulators:start --only functions,auth,firestore --import=./emulator_data --export-on-exit"
   },
   "dependencies": {
     "@expo-google-fonts/roboto": "^0.4.2",
@@ -29,6 +30,7 @@
     "expo-system-ui": "~6.0.9",
     "expo-web-browser": "~15.0.10",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
