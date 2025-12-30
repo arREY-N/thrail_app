@@ -23,29 +23,46 @@ export function AuthProvider({children}){
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [profile, setProfile] = useState(null);
+    const [role, setRole] = useState(null);
 
     useEffect(() => {
+        let unsubscribeProfile = null;
+
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if(firebaseUser) {
+                setUser(firebaseUser);
+                const idTokenResult = await firebaseUser.getIdTokenResult(true);
+                const userRole = idTokenResult.claims?.role || null;
+                setRole(userRole);
+                
+                const ref = doc(db, 'users', firebaseUser.uid);
+                unsubscribeProfile = onSnapshot(ref, (snap) => {                
+                    if(snap.exists()){
+                        setProfile({
+                            uid: snap.id,
+                            ...snap.data()
+                        });
+                        setIsLoading(false);
+                    }
+                });
+            }
+            
             if(!firebaseUser){
+                if(unsubscribeProfile){
+                    unsubscribeProfile();
+                }
                 setUser(null);
                 setIsLoading(false); 
                 setProfile(null);
-                return;
+                setRole(null);
             }
-
-            const ref = doc(db, 'users', firebaseUser.uid);
             
-            const unsubscribeProfile = onSnapshot(ref, (snap) => {                
-                if(snap.exists()){
-                    setProfile({
-                        uid: snap.id,
-                        ...snap.data()
-                    })
+            return () => {
+                unsubscribe();
+                if(unsubscribeProfile){
+                    unsubscribeProfile();
                 }
-                setUser(firebaseUser);
-                setIsLoading(false);
-            })
-            return unsubscribeProfile;
+            };
         });
         return unsubscribe;
     }, []);
@@ -53,7 +70,8 @@ export function AuthProvider({children}){
     const value = {
         user,
         isLoading,
-        profile
+        profile,
+        role
     }
 
     return <AuthContext.Provider value={value}>{ children }</AuthContext.Provider>
