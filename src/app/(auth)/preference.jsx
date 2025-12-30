@@ -14,6 +14,7 @@ export default function preference(){
     const onFinishedPreference = async () => {
         try {
             const finalPreferences = savePreference();
+            console.log('Trying to save preference');
             await finishOnboarding(user.uid, finalPreferences);
             resetPreferences();
         } catch (err) {
