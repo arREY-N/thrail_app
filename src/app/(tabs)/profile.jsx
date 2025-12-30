@@ -7,9 +7,13 @@ import React from 'react';
 export default function profile(){
     const { resetRecommendations } = useRecommendation();
 
-    const onSignOut = () => {
-        signOut(auth);
-        resetRecommendations();
+    const onSignOut = async () => {
+        try{
+            await signOut(auth);
+            resetRecommendations();
+        } catch (err) {
+            console.error('Error:', err);
+        }
     }
 
     return <ProfileScreen onSignOut={onSignOut}/>
