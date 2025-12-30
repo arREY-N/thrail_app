@@ -15,30 +15,27 @@ export async function fetchUserRecommendations(uid){
         }));
     } catch (err) {
         console.error('Error: fetching recommendations: ', err);
-        throw new Error(err);
+        return [];
     }
 }
 
 export async function fetchMonthRecommendation(uid, recoID){
-    
     try{
-        console.log(`user/${uid}/recommendation/${recoID}`);
-        
-        const ref = doc(db, 'users', uid, 'recommendation', recoID);
-        
+        if(!uid || !recoID) throw new Error('UID or Recommendation ID missing.');
+
+        const ref = doc(db, 'users', uid, 'recommendations', recoID);    
         const snapshot = await getDoc(ref);
         
         if(!snapshot.exists()) {
-            console.log('snap does not exists');    
-            return null;
+            throw new Error('Current recommendation is not yet ready')
         }
-
+        
         return {
             id: snapshot.id,
             ...snapshot.data(),
         }
     } catch (err) {
-        console.error('Error fetching recommendation ', recoID);
-        throw new Error(err);
+        console.error('Error: ', err);
+        return [];
     }
 }
