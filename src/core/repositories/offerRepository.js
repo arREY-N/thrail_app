@@ -1,5 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 
 const offersCollection = collection(db, 'offer');
 
@@ -39,5 +39,19 @@ export async function fetchOfferById(id){
         }
     } catch (err) {
         throw new Error('Failed to fetch offer ', id)
+    }
+}
+
+
+export async function createNewOffer(offer){
+    try {
+        const docRef = await addDoc(collection(db, 'offers'), {
+            ...offer,
+            createdAt: serverTimestamp(),
+        });
+        
+        return docRef.id;
+    } catch (err) {
+        throw new Error(err ?? 'Failed creating offer')
     }
 }

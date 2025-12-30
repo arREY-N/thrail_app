@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { fetchAllOffers } from "../repositories/offerRepository";
+import { createNewOffer, fetchAllOffers } from "../repositories/offerRepository";
 
 /**
  * Offers shared store
@@ -39,6 +39,27 @@ export const useOffersStore = create((set, get) => ({
                 error: err.message ?? 'Failed to load offers',
                 isLoading: false
             });
+        }
+    },
+
+    addOffer: async (offerData) => {
+        set({isLoading: true, error: null});
+
+        try {
+            const newOffer = await createNewOffer(offerData);
+            
+            set(state => ({
+                offers: [
+                    { newOffer, ...offerData},
+                    ...state.offers,
+                ],
+                isLoading: false
+            }));
+        } catch (err) {
+            set({
+                error: err.message ?? 'Failed to create new offer',
+                isLoading: false
+            })
         }
     }
 }))
