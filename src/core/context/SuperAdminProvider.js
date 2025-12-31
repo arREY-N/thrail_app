@@ -1,3 +1,4 @@
+import { fetchAllApplications } from '@/src/core/repositories/applictionRepository';
 import { fetchAllUsers } from '@/src/core/repositories/userRepository';
 import { createContext, useContext, useState } from "react";
 
@@ -15,6 +16,7 @@ export function useSuperAdmin(){
 
 export function SuperAdminProvider({children}){
     const [users, setUsers] = useState([]);
+    const [applications, setApplications] = useState([]);
     const [loaded, setLoaded] = useState(false);
 
     const fetchUsers = async () => {
@@ -34,10 +36,29 @@ export function SuperAdminProvider({children}){
         }
     }
 
+    const fetchApplications = async () => {
+        setLoaded(false);
+        try {
+            const applications = await fetchAllApplications();
+
+            if(!applications){
+                setApplications([]);
+                return;
+            }
+            setApplications(applications);
+        } catch(err) {
+            throw new Error('Failed fetching all applications')
+        } finally {
+            setLoaded(true);
+        }
+    }
+
     const value = {
         users, 
         loaded,
-        fetchUsers
+        fetchUsers,
+        applications,
+        fetchApplications
     }
 
     return <SuperAdminContext.Provider value={value}>{children}</SuperAdminContext.Provider>
