@@ -1,12 +1,14 @@
 import { auth } from '@/src/core/config/Firebase';
 import { useSuperAdmin } from '@/src/core/context/SuperAdminProvider';
+import { useRouter } from 'expo-router';
 import { signOut } from "firebase/auth";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useEffect } from 'react';
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function home(){
     const { users, fetchUsers, loaded } = useSuperAdmin();
+    const router = useRouter();
 
     useEffect(() => {
         fetchUsers();        
@@ -31,41 +33,55 @@ export default function home(){
 
             console.log(`Admin created ${result.businessId}`);
         } catch (err) {
-            throw new Error('Failed to create new business admin');
+            console.error('Failed to create new business admin', err);
         }
     }
 
+    // const createBusinessPress = async ({email, businessName}) => {
+    //     try{
+    //         createBusiness()            
+    //     } catch (err) {
+    //         setError(err);
+    //     } finally {
+    //         setBusinessName('')
+    //         setEmail('');
+    //     }
+    // }
+
+    const onManageBusinessPress = () => {
+        console.log('Manage Business');
+        router.push('/(superadmin)/business');
+    }
+
     return(
-        <View>
+        <ScrollView>
             <Text>Super admin screen</Text>
             <Pressable onPress={onSignOut}>
                 <Text>Sign out</Text>
+            </Pressable>
+
+            <Pressable onPress={onManageBusinessPress}>
+                <Text>Manage Businesses</Text>
             </Pressable>
             {
                 loaded ? 
                     users.map((u) => {
                         return(
-                            <View key={u.id}>
+                            <View key={u.id} style={styles.user}>
                                 <Text>User: {u.email}</Text>
                                 <Text>Role: {u.role}</Text>
-                                <Pressable onPress={() => createBusinessAdmin(u.id)}>
-                                    <Text>Make Admin</Text>
-                                </Pressable>
                             </View>
-                            
                         )
                     })
                     :
                     <Text>Loading users</Text> 
             }
-        </View>
+        </ScrollView>
     )
 }
 
-const addNewAdmin = ({accounts}) => {
-    return(
-        <View>
-            
-        </View>
-    )
-}
+const styles =  StyleSheet.create({
+    user: {
+        marginVertical: 10
+    }
+})
