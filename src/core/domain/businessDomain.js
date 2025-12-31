@@ -1,10 +1,21 @@
-import { app } from '@/src/core/config/Firebase';
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { createBusinessApplication } from '@/src/core/repositories/businessRepository';
 
-const functions = getFunctions(app);
-const createAdminFn = httpsCallable(functions, 'createAdmin');
+export const applyBusiness = async ({
+    email, 
+    businessName, 
+    businessAddress
+}) => {
+    if(!email || !businessName || !businessAddress) return new Error('Please fill up all information');
 
-async function createAdmin(email, password, businessId){
-    const res = await createAdminFn({email, password, businessId});
-    console.log('Admin created UID: ', res.data.uid);
-}
+    try {
+        const applicationId = await createBusinessApplication({
+            email, 
+            businessName, 
+            businessAddress
+        });
+
+        return applicationId;
+    } catch (err) {
+        throw new Error(err);
+    }
+} 

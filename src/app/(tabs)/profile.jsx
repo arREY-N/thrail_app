@@ -1,13 +1,15 @@
 import { auth } from '@/src/core/config/Firebase';
 import { useRecommendation } from '@/src/core/context/RecommendationProvider';
-import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
+import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import React from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 export default function profile(){
     const { resetRecommendations } = useRecommendation();
+    const router = useRouter();
 
-    const onSignOut = async () => {
+    const onSignOutPress = async () => {
         try{
             await signOut(auth);
             resetRecommendations();
@@ -16,5 +18,29 @@ export default function profile(){
         }
     }
 
-    return <ProfileScreen onSignOut={onSignOut}/>
+    const onApplyPress = () => {
+        console.log('Apply');
+        router.push('/(business)/apply');
+    }
+
+    return (
+        <ProfileScreenTest 
+            onSignOut={onSignOutPress}
+            onApplyPress={onApplyPress}/>
+    )
+}
+
+const ProfileScreenTest = ({onSignOut, onApplyPress}) => {
+    return (
+        <View>
+            <Text>profile</Text>
+            <Pressable onPress={onSignOut}>
+                <Text>Sign out</Text>
+            </Pressable>
+
+            <Pressable onPress={onApplyPress}>
+                <Text>Apply for a business acconunt</Text>
+            </Pressable>
+        </View>
+    )
 }

@@ -34,13 +34,28 @@ export async function fetchBusinessAccount(id){
 
 export async function createBusinessAccount(businessData){
     try{
-        const refData = await addDoc(collection(db, 'business'), {
+        const refData = await addDoc(collection(db, 'businesses'), {
             ...businessData,
             createdAt: serverTimestamp()
         })
 
         console.log('ID: ', refData.id);
         
+        return refData.id;
+    } catch (err) {
+        throw new Error(err);
+    }
+}
+
+export async function createBusinessApplication(businessData){
+    try{
+        const refData = await addDoc(collection(db, 'applications'), {
+            ...businessData,
+            approved: false,
+            createdAt: serverTimestamp()
+        })
+
+        console.log('Application received: ', refData.id);
         return refData.id;
     } catch (err) {
         throw new Error(err);
