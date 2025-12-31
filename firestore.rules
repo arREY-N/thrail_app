@@ -12,6 +12,16 @@ service cloud.firestore {
       	if request.auth != null 
         && request.auth.uid == userId;
     }
+
+    match /applications/{appId}{
+        allow read: if request.auth != null;
+        allow create:
+            if request.auth != null
+            && request.auth.token.role == 'user';
+        allow update, delete:
+            if request.auth != null
+            && request.auth.token.role == 'superadmin';
+    }
     
     match /users/{userId}/recommendations/{recoId}{
     	allow read: 
