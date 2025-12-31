@@ -1,5 +1,5 @@
 import { auth, db } from '@/src/core/config/Firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onIdTokenChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -28,13 +28,22 @@ export function AuthProvider({children}){
     useEffect(() => {
         let unsubscribeProfile = null;
 
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
             if(firebaseUser) {
-                setUser(firebaseUser);
                 const idTokenResult = await firebaseUser.getIdTokenResult(true);
                 const userRole = idTokenResult.claims?.role || null;
-                setRole(userRole);
                 
+                if(!userRole){
+                    console.log('Role not available yet, retrying in 2 seconds...');
+                    setUser(firebaseUser);
+                    setTimeout(() => firebaseUser.getIdToken(true), 2000);
+                    return;
+
+                }
+
+                setRole(userRole);
+                setUser(firebaseUser);
+
                 const ref = doc(db, 'users', firebaseUser.uid);
                 unsubscribeProfile = onSnapshot(ref, (snap) => {                
                     if(snap.exists()){
