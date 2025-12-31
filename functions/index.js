@@ -7,6 +7,7 @@ const { onUserCreated } = require("firebase-functions/v2/identity");
 const { user } = require("firebase-functions/v1/auth");
 const { onCall } = require('firebase-functions/v2/https'); 
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const crypto = require('crypto');
 
 admin.initializeApp();
 
@@ -48,7 +49,7 @@ exports.createAdmin = onCall(async (request) => {
     
     if(!caller) throw new Error('Authentication required');
 
-    if(caller.token.role !== 'superadmin') throw new Error('Permission denied, only superadmin can create admin accounts');
+    if(caller.token.role !== 'admin') throw new Error('Permission denied, only admin can create admin accounts');
 
     try{
         await admin.auth().setCustomUserClaims(businessId, {
@@ -76,3 +77,63 @@ exports.createAdmin = onCall(async (request) => {
         throw new Error(error.message);
     }
 });
+
+exports.createBusiness = onCall(async (request) => {
+    const { email, businessName } = request.data;
+    const caller = request.auth;
+    const db = admin.firestore();
+
+    const generatedEmail = `${businessName}@thrail.com`;
+    const tempPass = crypto.randomBytes(8).toString('hex');
+
+    if(!caller) throw new Error('Authentication Required');
+
+    if(caller.token.role !== 'superadmin') throw new Error('Permission denied, only superadmin can create admin accounts');
+
+    if(!email) throw new Error('Business email required');
+
+    try {
+        const userRecord = await admin.auth().createUser({
+            email: generatedEmail,
+            ownerEmail: email,
+            password: tempPass,
+            businessName: businessName
+        });
+
+        await admin.auth().setCustomUserClaims(userRecord.uid, {
+            role: 'business'
+        });
+
+        await admin.firestore()
+            .collection('businesses')
+            .doc(userRecord.uid)
+            .set({
+                businessId: userRecord.uid,
+                email: generatedEmail,
+                ownerEmail: email,
+                role: 'business',
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp()
+            })
+
+        const businessRef = db.collection('businesses').doc(userRecord.uid);
+        const doc = await businessRef.get();
+
+        if(!doc.exists){
+            throw new HttpsError('not-found', 'Business document does not exists');
+        }
+
+        const data = doc.data();
+
+        console.log('Doc: ', data);
+
+        return { 
+            businessId: data.businessId,
+            businessName: businessName,
+            businessEmail: data.email,
+            tempPass: tempPass
+        }
+    } catch (err) {
+        throw new HttpsError('Failed creating business account', err);
+    }
+})
