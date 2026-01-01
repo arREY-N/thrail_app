@@ -1,9 +1,9 @@
 import { db } from '@/src/core/config/Firebase';
 import { addDoc, collection, getDoc, getDocs, serverTimestamp } from "firebase/firestore";
 
-export async function fetchBusinesses(){
+export async function fetchAllBusinesses(){
     try{
-        const ref = collection(db, 'business');
+        const ref = collection(db, 'businesses');
 
         const snapshot = await getDocs(ref);
 
@@ -12,7 +12,7 @@ export async function fetchBusinesses(){
             ...docsnap.data()
         })); 
     } catch (err) {
-        throw new Error(err.message);
+        throw new Error(err);
     }
 } 
 
