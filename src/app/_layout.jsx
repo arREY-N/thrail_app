@@ -34,7 +34,7 @@ const RootNavLayout = () => {
 
     if(role === 'superadmin') return <Redirect href={'/(superadmin)/home'}/>;
     
-    if(role === 'admin') return <Redirect href={'/(business)/home'}/>;
+    if(role === 'business') return <Redirect href={'/(business)/home'}/>;
 
     if(role === 'user'){
         if(profile && !profile.onBoardingComplete) return <Redirect href={'/(auth)/preference'}/>
