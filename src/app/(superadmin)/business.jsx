@@ -13,15 +13,25 @@ export default function business(){
     const [email, setEmail] = useState('');
     const [businessName, setBusinessName] = useState('');
     const [error, setError] = useState(null);
-    const { applications, fetchApplications } = useSuperAdmin();
-
-    useEffect(() => {
+    const { 
+        applications, 
+        fetchApplications,
+        loaded, 
+        businesses, 
+        fetchBusinesses 
+    } = useSuperAdmin();
+    
+    useEffect(() => {   
         fetchApplications();
-    }, [])
-    const approveApplicationPress = async ({email, businessName}) => {
+        fetchBusinesses();
+    }, []);
+
+    const approveApplicationPress = async (applicationData) => {
         setError(null);
         try{
-            createBusiness({email, businessName});            
+            createBusiness(applicationData);            
+            console.log(`Business created: \n${email}\n${businessName}`);
+            
         } catch (err) {
             setError(err);
         } finally {
@@ -37,16 +47,38 @@ export default function business(){
             {
                 applications.map(a => {
                     return (
-                        <View style={styles.application}>
+                        <View style={styles.application} key={a.id}>
                             <Text>{a.businessName}</Text>
                             <Text>{a.email}</Text>
+            
+                            <Pressable onPress={() => approveApplicationPress({
+                                appId: a.id,
+                                email: a.email, 
+                                businessName: a.businessName})}>
+                                <Text>Approve Request</Text>
+                            </Pressable>
                         </View>   
                     )
                 })
             }
-            <Pressable onPress={() => approveApplicationPress({email, businessName})}>
-                <Text>Create New Business</Text>
-            </Pressable>
+
+            <View style={styles.users}>
+                <Text>--BUSINESSES--</Text>
+                {
+                    loaded ? 
+                        businesses.map((b) => {
+                            return(
+                                <View key={b.id} style={styles.user}>
+                                    <Text>Owner: {b.ownerEmail}</Text>
+                                    <Text>Email: {b.email}</Text>
+                                    <Text>Created: {new Date(b.createdAt).toDateString()}</Text>
+                                </View>
+                            )
+                        })
+                        :
+                        <Text>Loading users</Text> 
+                }
+            </View>    
         </ScrollView>
     )
 }
@@ -54,5 +86,8 @@ export default function business(){
 const styles = StyleSheet.create({
     application: {
         marginVertical: 5
+    },
+    users: {
+        
     }
 })

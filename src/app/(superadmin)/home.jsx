@@ -1,18 +1,11 @@
 import { auth } from '@/src/core/config/Firebase';
-import { useSuperAdmin } from '@/src/core/context/SuperAdminProvider';
 import { useRouter } from 'expo-router';
 import { signOut } from "firebase/auth";
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text } from "react-native";
 
 export default function home(){
-    const { users, fetchUsers, loaded } = useSuperAdmin();
     const router = useRouter();
-
-    useEffect(() => {
-        fetchUsers();        
-    },[])
 
     const onSignOut = async () => {
         try{
@@ -37,20 +30,14 @@ export default function home(){
         }
     }
 
-    // const createBusinessPress = async ({email, businessName}) => {
-    //     try{
-    //         createBusiness()            
-    //     } catch (err) {
-    //         setError(err);
-    //     } finally {
-    //         setBusinessName('')
-    //         setEmail('');
-    //     }
-    // }
-
     const onManageBusinessPress = () => {
         console.log('Manage Business');
         router.push('/(superadmin)/business');
+    }
+
+    const onManageTrailsPress = () => {
+        console.log('Manage trails');
+        router.push('/(superadmin)/trail');
     }
 
     return(
@@ -63,25 +50,10 @@ export default function home(){
             <Pressable onPress={onManageBusinessPress}>
                 <Text>Manage Businesses</Text>
             </Pressable>
-            {
-                loaded ? 
-                    users.map((u) => {
-                        return(
-                            <View key={u.id} style={styles.user}>
-                                <Text>User: {u.email}</Text>
-                                <Text>Role: {u.role}</Text>
-                            </View>
-                        )
-                    })
-                    :
-                    <Text>Loading users</Text> 
-            }
+
+            <Pressable onPress={onManageTrailsPress}>
+                <Text>Manage Trails</Text>
+            </Pressable>
         </ScrollView>
     )
 }
-
-const styles =  StyleSheet.create({
-    user: {
-        marginVertical: 10
-    }
-})

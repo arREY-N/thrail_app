@@ -1,12 +1,13 @@
-import { getFunctions } from "firebase/functions";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
-export const createBusiness = async ({email, businessName}) => {
+export const createBusiness = async ({appId, email, businessName}) => {
     const functions = getFunctions();
 
     const createBusiness = httpsCallable(functions, 'createBusiness');
 
     try{
         const result = await createBusiness({
+            appId,
             email,
             businessName
         });
