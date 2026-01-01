@@ -14,6 +14,20 @@ export default function AuthLayout(){
                             headerShown: true,
                         }}
                     />
+                    <Stack.Screen
+                        name = 'business'
+                        options = {{
+                            title: 'Businesses',
+                            headerShown: true,
+                        }}
+                    />
+                    <Stack.Screen
+                        name = 'trail'
+                        options = {{
+                            title: 'Trails',
+                            headerShown: true,
+                        }}
+                    />
                 </Stack>
             </SuperAdminProvider>
         </AccountProvider>
