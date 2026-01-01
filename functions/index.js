@@ -8,12 +8,20 @@ const { user } = require("firebase-functions/v1/auth");
 const { onCall } = require('firebase-functions/v2/https'); 
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const crypto = require('crypto');
+const { log } = require("console");
 
 admin.initializeApp();
 
 setGlobalOptions({ maxInstances: 10 });
 
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
+    const account = await admin.auth().getUser(user.uid);
+
+    if(account.customClaims && account.customClaims.role === 'business'){
+        console.log(`Skip default role attachement for business accounts.`);
+        return null;
+    }
+
     try{
         await admin.auth().setCustomUserClaims(user.uid, {role: 'user'});
         console.log(`Default user role assigned to UID: ${user.uid}`);
@@ -79,9 +87,16 @@ exports.createAdmin = onCall(async (request) => {
 });
 
 exports.createBusiness = onCall(async (request) => {
-    const { email, businessName } = request.data;
+    const { appId, email, businessName } = request.data;
     const caller = request.auth;
     const db = admin.firestore();
+
+    console.log('App Id: ', appId);
+
+    const application = db.collection('applications').doc(appId);
+    const app = await application.get();
+
+    if(app.data().approved) throw new Error('Application already approved');
 
     const generatedEmail = `${businessName}@thrail.com`;
     const tempPass = crypto.randomBytes(8).toString('hex');
@@ -118,6 +133,13 @@ exports.createBusiness = onCall(async (request) => {
 
         const businessRef = db.collection('businesses').doc(userRecord.uid);
         const doc = await businessRef.get();
+
+        await admin.firestore()
+            .collection('applications')
+            .doc(appId)
+            .set({
+                approved: true
+            }, {merge: true});
 
         if(!doc.exists){
             throw new HttpsError('not-found', 'Business document does not exists');
