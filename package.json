@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "fire": "firebase emulators:start --only functions,auth,firestore --import=./emulator_data --export-on-exit"
+    "fire": "firebase emulators:start --only functions,auth,firestore --import=./firebase-export-17672708981025aTbVs --export-on-exit"
   },
   "dependencies": {
     "@expo-google-fonts/roboto": "^0.4.2",
