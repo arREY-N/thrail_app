@@ -1,7 +1,7 @@
 import { db } from '@/src/core/config/Firebase';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 
-const trailsCollection = collection(db, 'trail');
+const trailsCollection = collection(db, 'trails');
 
 /**
  * Fetch all trails
@@ -17,7 +17,7 @@ export async function fetchAllTrails(){
             ...docsnap.data(),
         }));
     } catch (err) {
-        throw new Error('Failed to fetch trails');
+        throw new Error(err);
     }
 }
 
@@ -38,7 +38,49 @@ export async function fetchTrailById(id){
             ...snap.data()
         }
     } catch (err) {
-        throw new Error('Failed to fetch trail ', id)
+        throw new Error(err)
     }
 }
 
+export async function createTrail(trailData){
+    try {
+        const doc = await addDoc(trailsCollection, trailData);
+
+        return {
+            id: doc.id,
+            ...trailData
+        }
+    } catch (err) {
+        throw new Error(err)
+    }
+}
+
+export async function saveTrail(trailData){
+    try {
+        const docRef = trailData.id 
+        ? doc(db, 'trails', trailData.id)
+        : doc(collection(db, 'trails'));
+
+        console.log('DocRef: ', docRef.id ?? null);
+        console.log('Trail: ', trailData.id);
+
+        await setDoc(docRef, { ...trailData, id:docRef.id }, { merge: true });
+
+        return {
+            ...trailData,
+            id: docRef.id,
+        }
+    } catch (err) {
+        throw new Error(err);
+    }
+}
+
+export async function deleteTrail(id){
+    try {
+        const docRef = doc(db, 'trails', id);
+        await deleteDoc(docRef);
+        return id;
+    } catch (err) {
+        throw new Error(err);
+    }
+}
