@@ -9,4 +9,6 @@ export const Colors = {
     SecondaryColor: '#D9D9D9',
 
     Background:     '#FAFAFA',
+
+    MODAL_OVERLAY:  'rgba(17, 24, 39, 0.5)',
 };
