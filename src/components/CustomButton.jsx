@@ -38,11 +38,12 @@ const CustomButton = ({
 
 const styles = StyleSheet.create({
     baseButton: {
-        paddingVertical: 14,
+        paddingVertical: 16,
         borderRadius: 12,
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 16,
         shadowColor: Colors.BLACK,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
