@@ -1,11 +1,25 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../src/constants/colors';
 
-const CustomButton = ({ title, onPress, variant = 'primary', style }) => {
+const CustomButton = ({ 
+    title, 
+    onPress, 
+    variant = 'primary',
+    style,
+    textStyle 
+}) => {
     
-    const buttonStyle = variant === 'primary' ? styles.primary : styles.secondary;
-    const textStyle = variant === 'primary' ? styles.textPrimary : styles.textSecondary;
+    let buttonStyle = styles.primary;
+    let labelStyle = styles.textPrimary;
+
+    if (variant === 'secondary') {
+        buttonStyle = styles.secondary;
+        labelStyle = styles.textSecondary;
+    } else if (variant === 'outline') {
+        buttonStyle = styles.outline;
+        labelStyle = styles.textOutline;
+    }
 
     return (
         <Pressable 
@@ -17,18 +31,18 @@ const CustomButton = ({ title, onPress, variant = 'primary', style }) => {
                 pressed && styles.pressed
             ]}
         >
-            <Text style={[styles.baseText, textStyle]}>{title}</Text>
+            <Text style={[styles.baseText, labelStyle, textStyle]}>{title}</Text>
         </Pressable>
     );
 };
 
 const styles = StyleSheet.create({
     baseButton: {
-        paddingVertical: 16,
+        paddingVertical: 14,
         borderRadius: 12,
         width: '100%',
         alignItems: 'center',
-        marginBottom: 16,
+        justifyContent: 'center',
         shadowColor: Colors.BLACK,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -46,6 +60,8 @@ const styles = StyleSheet.create({
 
     primary: {
         backgroundColor: Colors.PrimaryColor,
+        borderWidth: 1,
+        borderColor: Colors.PrimaryColor,
     },
     textPrimary: {
         color: Colors.WHITE,
@@ -56,6 +72,16 @@ const styles = StyleSheet.create({
     },
     textSecondary: {
         color: Colors.BLACK, 
+    },
+
+    outline: {
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT, 
+        elevation: 0, 
+    },
+    textOutline: {
+        color: Colors.Gray,
     },
 });
 
