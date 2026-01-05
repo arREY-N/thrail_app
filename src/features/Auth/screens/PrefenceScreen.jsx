@@ -3,9 +3,9 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import ErrorMessage from '@/src/components/ErrorMessage';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
+import ErrorMessage from '../../../components/ErrorMessage';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
@@ -15,35 +15,36 @@ import SelectionOption from '../components/SelectionOption';
 const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
     const router = useRouter();
     const [stepIndex, setStepIndex] = useState(0);
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
-    const FLOW_YES = ['q1', 'q5', 'q2', 'q4', 'q3'];
-    const FLOW_NO  = ['q1', 'q4', 'q3'];
+    const FLOW_YES = ['q1', 'q2', 'q3', 'q4', 'q5'];
+    
+    const FLOW_NO  = ['q1', 'q4', 'q5'];
 
     const hikedBeforeAnswer = questions['q1']?.answer; 
     const currentFlow = hikedBeforeAnswer === 'No' ? FLOW_NO : FLOW_YES;
     const currentStepKey = currentFlow[stepIndex];
+    const currentQuestionData = questions[currentStepKey];
 
-    const handleSingleSelect = (questionId, value) => {
-        setAnswer(questionId, value);
-    };
-
-    const handleMultiSelect = (questionId, value) => {
-        const currentList = questions[questionId]?.answer || [];
-        let newList;
-        if (currentList.includes(value)) {
-            newList = currentList.filter(item => item !== value);
-        } else {
-            newList = [...currentList, value];
-        }
-        setAnswer(questionId, newList);
+    const handleSelect = (value) => {
+        setAnswer(currentStepKey, value);
     };
 
     const handleNext = () => {
         if (stepIndex >= currentFlow.length - 1) {
-            onFinish();
+            setShowConfirmation(true); 
         } else {
             setStepIndex(prev => prev + 1);
         }
+    };
+
+    const handleConfirmSave = () => {
+        setShowConfirmation(false);
+        onFinish();
+    };
+
+    const handleEdit = () => {
+        setShowConfirmation(false);
     };
 
     const handleBack = () => {
@@ -54,91 +55,86 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
         }
     };
 
+    const isSelected = (optionValue) => {
+        const currentAnswer = currentQuestionData?.answer;
+        
+        if (currentAnswer === null || currentAnswer === undefined) return false;
+
+        if (Array.isArray(currentAnswer)) {
+            return currentAnswer.includes(optionValue);
+        } else {
+            return currentAnswer === optionValue;
+        }
+    };
+
     const renderContent = () => {
-        const currentAnswer = questions[currentStepKey]?.answer;
+        const dynamicOptions = currentQuestionData?.options || [];
 
         switch (currentStepKey) {
-            
-            case 'q1': 
-                return (
-                    <>
-                        <CustomText style={styles.question}>Have you hiked before?</CustomText>
-                        <SelectionOption 
-                            label="Yes" 
-                            selected={currentAnswer === 'Yes'} 
-                            onPress={() => handleSingleSelect('q1', 'Yes')}
-                        />
-                        <SelectionOption 
-                            label="No" 
-                            selected={currentAnswer === 'No'} 
-                            onPress={() => handleSingleSelect('q1', 'No')}
-                        />
-                    </>
-                );
-
-            case 'q2': 
-                return (
-                    <>
-                        <CustomText style={styles.question}>What is your hiking experience level?</CustomText>
-                        {['Beginner', 'Regular', 'Experienced'].map(opt => (
-                            <SelectionOption 
-                                key={opt}
-                                label={opt} 
-                                selected={currentAnswer === opt} 
-                                onPress={() => handleSingleSelect('q2', opt)}
-                            />
-                        ))}
-                    </>
-                );
-
-            case 'q3': 
+            case 'q1':
+            case 'q3':
                 return (
                     <>
                         <CustomText style={styles.question}>
-                            Which province(s) in Region IV-A (CALABARZON) would you like to explore?
+                            {currentQuestionData.question}
                         </CustomText>
-                        <CustomText style={styles.subLabel}>(Select All that apply)</CustomText>
-                        
-                        <View style={styles.gridContainer}>
-                            {['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'].map(opt => (
-                                <View key={opt} style={styles.gridItem}>
-                                    <SelectionOption 
-                                        label={opt} 
-                                        selected={currentAnswer?.includes(opt)} 
-                                        onPress={() => handleMultiSelect('q3', opt)}
-                                    />
-                                </View>
+                        <View style={styles.optionsWrapper}>
+                            {dynamicOptions.map(opt => (
+                                <SelectionOption 
+                                    key={opt}
+                                    label={opt} 
+                                    selected={isSelected(opt)} 
+                                    onPress={() => handleSelect(opt)}
+                                />
                             ))}
                         </View>
                     </>
                 );
 
-            case 'q4': 
+            case 'q2':
+            case 'q4':
                 return (
                     <>
-                        <CustomText style={styles.question}>How long do you prefer your hikes to be?</CustomText>
-                        <CustomText style={styles.subLabel}>(Select All that apply)</CustomText>
-                        
-                        {['1-3 hours', 'Half-day', 'Full-day', 'Overnight', 'Multi-day'].map(opt => (
-                            <SelectionOption 
-                                key={opt}
-                                label={opt} 
-                                selected={currentAnswer?.includes(opt)} 
-                                onPress={() => handleMultiSelect('q4', opt)}
-                            />
-                        ))}
+                        <CustomText style={styles.question}>
+                            {currentQuestionData.question}
+                        </CustomText>
+                        <CustomText style={styles.subLabel}>
+                            (Select all that apply)
+                        </CustomText>
+                        <View style={styles.optionsWrapper}>
+                            {dynamicOptions.map(opt => (
+                                <SelectionOption 
+                                    key={opt}
+                                    label={opt} 
+                                    selected={isSelected(opt)} 
+                                    onPress={() => handleSelect(opt)}
+                                />
+                            ))}
+                        </View>
                     </>
                 );
 
-            case 'q5': 
+            case 'q5':
                 return (
                     <>
-                        <CustomText style={styles.question}>Which mountain(s) have you hiked?</CustomText>
-                        <CustomTextInput 
-                            placeholder="Type/Select the mountain(s)"
-                            value={currentAnswer || ''}
-                            onChangeText={(text) => handleSingleSelect('q5', text)}
-                        />
+                        <CustomText style={styles.question}>
+                            {currentQuestionData.question}
+                        </CustomText>
+                        <CustomText style={styles.subLabel}>
+                            (Select all that apply)
+                        </CustomText>
+                        
+                        <View style={styles.gridContainer}>
+                            {dynamicOptions.map(opt => (
+                                <View key={opt} style={styles.gridItem}>
+                                    <SelectionOption 
+                                        label={opt} 
+                                        selected={isSelected(opt)} 
+                                        onPress={() => handleSelect(opt)}
+                                    />
+                                </View>
+                            ))}
+                        </View>
                     </>
                 );
             
@@ -149,6 +145,15 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
 
     return (
         <ScreenWrapper backgroundColor={Colors.Background}>
+            
+            <ConfirmationModal
+                visible={showConfirmation}
+                title="Save Hiking Preferences?"
+                message="Are you ready to submit your preferences and find your trail?"
+                onConfirm={handleConfirmSave}
+                onClose={handleEdit}
+            />
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                     <Feather name="chevron-left" size={28} color={Colors.WHITE} />
@@ -161,10 +166,10 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                 minHeight={600} 
                 style={styles.container} 
                 contentContainerStyle={styles.contentContainer}
+                keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.formConstrainer}>
                     <CustomText variant="h2" style={styles.pageTitle}>Preference</CustomText>
-                    
 
                     <ErrorMessage error={error} />
 
@@ -229,10 +234,9 @@ const styles = StyleSheet.create({
         fontSize: 24, 
         fontWeight: 'bold' 
     },
-    
     questionArea: { 
         flex: 1, 
-        marginBottom: 30 
+        marginBottom: 30,
     },
     question: { 
         fontSize: 18, 
@@ -240,12 +244,16 @@ const styles = StyleSheet.create({
         marginBottom: 15, 
         color: Colors.BLACK 
     },
-    subLabel: { fontSize: 14, 
+    subLabel: { 
+        fontSize: 14, 
         fontStyle: 'italic', 
         marginBottom: 15, 
         color: Colors.GRAY_MEDIUM 
     },
-    
+    optionsWrapper: { 
+        width: '100%', 
+        flexDirection: 'column' 
+    },
     gridContainer: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
@@ -254,15 +262,13 @@ const styles = StyleSheet.create({
     gridItem: { 
         width: '48%' 
     },
-
     footer: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginTop: 'auto', 
+        marginTop: 30, 
         marginBottom: 30 
     },
-    
     prevText: { 
         color: Colors.PrimaryColor, 
         fontWeight: '600', 
