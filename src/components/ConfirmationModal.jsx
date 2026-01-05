@@ -36,7 +36,7 @@ const ConfirmationModal = ({
             <CustomButton 
                 title={cancelText}
                 onPress={onClose}
-                variant="outline"
+                variant="secondary"
                 style={styles.modalButton}
             />
 
