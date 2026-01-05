@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Colors } from '../constants/colors';
+import { Colors } from '../../src/constants/colors';
 
 const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEntry, keyboardType, ...props }) => {
 

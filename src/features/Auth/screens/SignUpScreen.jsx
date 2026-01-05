@@ -2,10 +2,10 @@ import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
-import ErrorMessage from '@/src/components/ErrorMessage';
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
+import ErrorMessage from '../../../components/ErrorMessage';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
