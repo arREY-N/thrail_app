@@ -13,6 +13,7 @@ import { Colors } from '../../../constants/colors';
 import SelectionOption from '../components/SelectionOption';
 
 const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
+
     const router = useRouter();
     const [stepIndex, setStepIndex] = useState(0);
     const [showConfirmation, setShowConfirmation] = useState(false);

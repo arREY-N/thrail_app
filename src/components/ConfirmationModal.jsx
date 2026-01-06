@@ -14,6 +14,7 @@ const ConfirmationModal = ({
   cancelText = "Cancel",
   confirmText = "Confirm"
 }) => {
+
   return (
     <Modal
       transparent

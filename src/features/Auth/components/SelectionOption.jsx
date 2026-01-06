@@ -6,6 +6,7 @@ import CustomText from '../../../components/CustomText';
 import { Colors } from '../../../constants/colors';
 
 const SelectionOption = ({ label, selected, onPress }) => {
+
     return (
         <TouchableOpacity 
             style={[
