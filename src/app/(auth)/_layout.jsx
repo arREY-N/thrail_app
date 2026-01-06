@@ -41,7 +41,7 @@ export default function AuthLayout(){
                     name = 'privacy'
                     options = {{
                         title: 'Privacy Policy',
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
 
@@ -49,7 +49,7 @@ export default function AuthLayout(){
                     name = 'terms'
                     options = {{
                         title: 'Terms and Conditions',
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
 
