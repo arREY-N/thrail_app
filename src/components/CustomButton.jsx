@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     primary: {
         backgroundColor: Colors.PRIMARY,
         borderWidth: 1,
-        borderColor: Colors.PrimaryColor,
+        borderColor: Colors.PRIMARY,
     },
     textPrimary: {
         color: Colors.WHITE,
