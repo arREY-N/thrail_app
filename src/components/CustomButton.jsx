@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     },
 
     primary: {
-        backgroundColor: Colors.PrimaryColor,
+        backgroundColor: Colors.PRIMARY,
         borderWidth: 1,
         borderColor: Colors.PrimaryColor,
     },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     },
 
     secondary: {
-        backgroundColor: Colors.SecondaryColor, 
+        backgroundColor: Colors.SECONDARY, 
     },
     textSecondary: {
         color: Colors.BLACK, 

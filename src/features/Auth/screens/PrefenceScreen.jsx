@@ -144,7 +144,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
     };
 
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ConfirmationModal
                 visible={showConfirmation}
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 15,
         paddingBottom: 15,
-        backgroundColor: Colors.PrimaryColor,
+        backgroundColor: Colors.PRIMARY,
         width: '100%',
     },
     headerTitle: { 
@@ -270,12 +270,12 @@ const styles = StyleSheet.create({
         marginBottom: 30 
     },
     prevText: { 
-        color: Colors.PrimaryColor, 
+        color: Colors.PRIMARY, 
         fontWeight: '600', 
         fontSize: 16 
     },
     nextButton: {
-        backgroundColor: Colors.PrimaryColor, 
+        backgroundColor: Colors.PRIMARY, 
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,

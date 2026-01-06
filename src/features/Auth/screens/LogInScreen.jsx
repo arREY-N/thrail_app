@@ -18,7 +18,7 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
     const [password, setPassword] = useState('');
 
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ResponsiveScrollView 
                 minHeight={600} 

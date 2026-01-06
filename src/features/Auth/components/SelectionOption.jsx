@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
     },
 
     selectedContainer: {
-        borderColor: Colors.PrimaryColor, 
-        backgroundColor: Colors.Background,
+        borderColor: Colors.PRIMARY, 
+        backgroundColor: Colors.BACKGROUND,
     },
     label: {
         fontSize: 16,
@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
     },
     selectedIcon: {
-        backgroundColor: Colors.PrimaryColor, 
-        borderColor: Colors.PrimaryColor,
+        backgroundColor: Colors.PRIMARY, 
+        borderColor: Colors.PRIMARY,
     },
 });
 

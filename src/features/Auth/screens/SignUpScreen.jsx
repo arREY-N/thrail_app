@@ -20,7 +20,7 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, onGmailSignUp,
     const [confirmPassword, setConfirmPassword] = useState('');
 
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ResponsiveScrollView 
                 minHeight={600} 

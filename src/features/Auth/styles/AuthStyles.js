@@ -51,9 +51,9 @@ export const AuthStyles = StyleSheet.create({
     errorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFEBEE',
+        backgroundColor: Colors.ERROR_BG,
         borderWidth: 1,
-        borderColor: '#FFCDD2',
+        borderColor: Colors.ERROR_BORDER,
         padding: 10,
         borderRadius: 8,
         marginBottom: 20,
@@ -61,7 +61,7 @@ export const AuthStyles = StyleSheet.create({
         gap: 8,
     },
     errorText: {
-        color: '#D32F2F',
+        color: Colors.ERROR,
         fontSize: 14,
         flex: 1,
     },
