@@ -1,9 +1,17 @@
-import { Text, View } from "react-native"
+import { useRouter } from "expo-router";
 
-export default function privacy(){
-    return(
-        <View>
-            <Text>Privacy Screen</Text>
-        </View>
-    )
+import PrivacyScreen from "../../features/Auth/screens/PrivacyScreen";
+
+export default function Privacy() {
+    const router = useRouter();
+
+    const onBackPress = () => {
+        router.back();
+    }
+
+    return (
+        <PrivacyScreen 
+            onBackPress={onBackPress}
+        />
+    );
 }
