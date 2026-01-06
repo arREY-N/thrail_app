@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { AntDesign, Feather } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
@@ -12,10 +12,11 @@ import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswordPress, error }) => {
+const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswordPress, onGooglePress, error }) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -25,7 +26,6 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-
                 <View style={AuthStyles.header}> 
                     <TouchableOpacity onPress={onBackPress} style={AuthStyles.backButton}>
                         <Feather name="chevron-left" size={28} color={Colors.BLACK} />
@@ -58,9 +58,24 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                             secureTextEntry
                         />
 
-                        <TouchableOpacity onPress={onForgotPasswordPress} style={AuthStyles.forgotContainer}>
-                            <CustomText style={AuthStyles.forgotText}>Forgot Password</CustomText>
-                        </TouchableOpacity>
+                        <View style={AuthStyles.optionsRow}>
+                            <TouchableOpacity 
+                                style={AuthStyles.rememberMeContainer} 
+                                onPress={() => setRememberMe(!rememberMe)}
+                                activeOpacity={0.7}
+                            >
+                                <Feather 
+                                    name={rememberMe ? "check-square" : "square"} 
+                                    size={20} 
+                                    color={rememberMe ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                                />
+                                <CustomText style={AuthStyles.rememberText}>Remember Me</CustomText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={onForgotPasswordPress}>
+                                <CustomText style={AuthStyles.forgotText}>Forgot Password?</CustomText>
+                            </TouchableOpacity>
+                        </View>
 
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
@@ -68,12 +83,32 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                                 onPress={() => onLogInPress(email, password)} 
                                 variant="primary" 
                             />
-                            <CustomButton 
-                                title="Sign Up" 
-                                onPress={onSignUpPress} 
-                                variant="secondary" 
-                            />
                         </View>
+
+                        <View style={AuthStyles.dividerContainer}>
+                            <View style={AuthStyles.line} />
+                            <CustomText style={AuthStyles.dividerText}>or continue with</CustomText>
+                            <View style={AuthStyles.line} />
+                        </View>
+
+                        <TouchableOpacity 
+                            style={AuthStyles.googleButton} 
+                            onPress={onGooglePress}
+                            activeOpacity={0.8}
+                        >
+                            <AntDesign name="google" size={20} color={Colors.Gray} />
+                            <CustomText style={AuthStyles.googleButtonText}>Log in with Google</CustomText>
+                        </TouchableOpacity>
+
+                        <View style={AuthStyles.footerContainer}>
+                            <CustomText style={AuthStyles.footerText}>
+                                Don't have an account?{' '}
+                            </CustomText>
+                            <TouchableOpacity onPress={onSignUpPress}>
+                                <CustomText style={AuthStyles.signUpLink}>Sign Up</CustomText>
+                            </TouchableOpacity>
+                        </View>
+
                     </View>
                 </View>
             </ResponsiveScrollView>
