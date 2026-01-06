@@ -1,12 +1,12 @@
-import { Feather } from '@expo/vector-icons';
 import { useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
 import ErrorMessage from '../../../components/ErrorMessage';
+import Header from '../../../components/Header';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
@@ -21,58 +21,56 @@ const InformationScreen = ({ onContinuePress, onBackPress, error }) => {
     const [address, setAddress] = useState('');
     
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-
-                <View style={AuthStyles.header}> 
-                    <TouchableOpacity onPress={onBackPress} style={AuthStyles.backButton}>
-                        <Feather name="chevron-left" size={28} color={Colors.BLACK} />
-                    </TouchableOpacity>
-                    <CustomText style={AuthStyles.headerTitle}>Thrail</CustomText>
-                    <View style={{ width: 28 }} />
-                </View>
+                <Header onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
                         <CustomText variant="h1" style={AuthStyles.pageTitle}>
-                            Sign Up
+                            Personal Details
                         </CustomText>
 
                         <ErrorMessage error={error} />
 
                         <CustomTextInput
-                            placeholder="Phone Number"
+                            label="Phone Number"
+                            placeholder="0912 345 6789"
                             value={number}
                             onChangeText={setNumber}
                             keyboardType="phone-pad"
                         />
 
                         <CustomTextInput
-                            placeholder="First Name"
+                            label="First Name"
+                            placeholder="e.g. Juan"
                             value={firstname}
                             onChangeText={setFirstname}
                         />
 
                         <CustomTextInput
-                            placeholder="Last Name"
+                            label="Last Name"
+                            placeholder="e.g. Dela Cruz"
                             value={lastname}
                             onChangeText={setLastname}
                         />
 
                         <CustomTextInput
-                            placeholder="Birthday (MM/DD/YYYY)"
+                            label="Birthday"
+                            placeholder="MM/DD/YYYY"
                             value={birthday}
                             onChangeText={setBirthday}
                         />
 
                         <CustomTextInput
-                            placeholder="Address"
+                            label="Address"
+                            placeholder="City, Province"
                             value={address}
                             onChangeText={setAddress}
                         />
@@ -80,7 +78,7 @@ const InformationScreen = ({ onContinuePress, onBackPress, error }) => {
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
                                 title="Continue" 
-                                onPress={() => onContinuePress( number,firstname, lastname, birthday, address)}
+                                onPress={() => onContinuePress(number, firstname, lastname, birthday, address)}
                                 variant="primary" 
                             />
                         </View>

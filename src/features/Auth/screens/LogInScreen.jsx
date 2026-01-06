@@ -6,13 +6,21 @@ import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
 import ErrorMessage from '../../../components/ErrorMessage';
+import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswordPress, onGooglePress, error }) => {
+const LogInScreen = ({ 
+    onLogInPress, 
+    onSignUpPress, 
+    onBackPress, 
+    onForgotPasswordPress, 
+    onGooglePress, 
+    error 
+}) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -26,13 +34,7 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <View style={AuthStyles.header}> 
-                    <TouchableOpacity onPress={onBackPress} style={AuthStyles.backButton}>
-                        <Feather name="chevron-left" size={28} color={Colors.BLACK} />
-                    </TouchableOpacity>
-                    <CustomText style={AuthStyles.headerTitle}>Thrail</CustomText>
-                    <View style={{ width: 28 }} />
-                </View>
+                <Header onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
@@ -44,7 +46,8 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                         <ErrorMessage error={error} />
                         
                         <CustomTextInput
-                            placeholder="Email"
+                            label="Email Address"
+                            placeholder="name@example.com"
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
@@ -52,7 +55,8 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                         />
 
                         <CustomTextInput
-                            placeholder="Password"
+                            label="Password"
+                            placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -96,7 +100,7 @@ const LogInScreen = ({ onLogInPress, onSignUpPress, onBackPress, onForgotPasswor
                             onPress={onGooglePress}
                             activeOpacity={0.8}
                         >
-                            <AntDesign name="google" size={20} color={Colors.Gray} />
+                            <AntDesign name="google" size={20} color={Colors.BLACK} />
                             <CustomText style={AuthStyles.googleButtonText}>Log in with Google</CustomText>
                         </TouchableOpacity>
 

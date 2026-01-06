@@ -2,12 +2,25 @@ import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Colors } from '../../src/constants/colors';
+import { Colors } from '../constants/colors';
 
-const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEntry, keyboardType, ...props }) => {
+const CustomTextInput = ({ 
+    label, 
+    placeholder, 
+    value, 
+    onChangeText, 
+    secureTextEntry, 
+    keyboardType,
+    isPasswordVisible, 
+    onTogglePassword,  
+    ...props 
+}) => {
 
     const [isFocused, setIsFocused] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+    const [internalShowPassword, setInternalShowPassword] = useState(false);
+
+    const showPassword = onTogglePassword ? isPasswordVisible : internalShowPassword;
+    const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
 
     return (
         <View style={styles.container}>
@@ -15,12 +28,15 @@ const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEn
             
             <View style={[
                 styles.inputContainer,
-                { borderColor: isFocused ? Colors.BLACK : Colors.GRAY_MEDIUM }
+                { 
+                    borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
+                    backgroundColor: isFocused ? Colors.WHITE : Colors.FAFAFA
+                }
             ]}>
                 
                 <TextInput 
                     style={styles.input}
-                    placeholder={placeholder || 'Placeholder'}
+                    placeholder={placeholder}
                     placeholderTextColor={Colors.GRAY_MEDIUM}
                     value={value}
                     onChangeText={onChangeText}
@@ -36,7 +52,7 @@ const CustomTextInput = ({ label, placeholder, value, onChangeText, secureTextEn
 
                 {secureTextEntry && (
                     <TouchableOpacity 
-                        onPress={() => setShowPassword(!showPassword)}
+                        onPress={togglePassword}
                         style={styles.eyeIcon}
                     >
                         <Feather 
@@ -61,28 +77,25 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: Colors.BLACK,
+        marginLeft: 2,
     },
-    
     inputContainer: {
         width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.WHITE,
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: 12,
         height: 54,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
     },
-    
     input: {
         flex: 1,
         fontSize: 16,
         color: Colors.BLACK,
         height: '100%',
         outlineStyle: 'none', 
-        minWidth: 0,
     },
-    
     eyeIcon: {
         padding: 8,
     },

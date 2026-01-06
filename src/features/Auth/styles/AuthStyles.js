@@ -14,37 +14,17 @@ export const AuthStyles = StyleSheet.create({
         flex: 1,
         width: '100%',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingTop: 40,
+        paddingHorizontal: 16, 
+        paddingTop: 32, 
     },
     formConstrainer: {
         width: '100%',
         maxWidth: 400,
     },
 
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 15,
-        paddingBottom: 15,
-        backgroundColor: Colors.GRAY_LIGHT,
-        width: '100%',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.BLACK,
-    },
-    backButton: {
-        padding: 4,
-        marginLeft: -4,
-    },
-
     pageTitle: {
         textAlign: 'center',
-        marginBottom: 30,
+        marginBottom: 32, 
         fontSize: 28,
         fontWeight: 'bold',
         color: Colors.BLACK,
@@ -56,9 +36,9 @@ export const AuthStyles = StyleSheet.create({
         backgroundColor: Colors.ERROR_BG,
         borderWidth: 1,
         borderColor: Colors.ERROR_BORDER,
-        padding: 10,
+        padding: 12,
         borderRadius: 8,
-        marginBottom: 20,
+        marginBottom: 24, 
         width: '100%',
         gap: 8,
     },
@@ -73,8 +53,7 @@ export const AuthStyles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         width: '100%',
-        marginBottom: 24,
-        marginTop: 4,
+        marginBottom: 16, 
     },
     rememberMeContainer: {
         flexDirection: 'row',
@@ -93,14 +72,15 @@ export const AuthStyles = StyleSheet.create({
 
     buttonContainer: {
         width: '100%',
-        marginBottom: 24,
+        marginBottom: 24, 
+        marginTop: 8,
     },
 
     dividerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        marginBottom: 24,
+        marginBottom: 24, 
     },
     line: {
         flex: 1,
@@ -108,7 +88,7 @@ export const AuthStyles = StyleSheet.create({
         backgroundColor: Colors.GRAY_LIGHT,
     },
     dividerText: {
-        marginHorizontal: 10,
+        marginHorizontal: 16, 
         color: Colors.GRAY_MEDIUM,
         fontSize: 14,
     },
@@ -120,11 +100,11 @@ export const AuthStyles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        paddingVertical: 14,
+        paddingVertical: 16,
         borderRadius: 12,
         width: '100%',
-        gap: 10,
-        marginBottom: 40,
+        gap: 12,
+        marginBottom: 40, 
     },
     googleButtonText: {
         fontSize: 16,
