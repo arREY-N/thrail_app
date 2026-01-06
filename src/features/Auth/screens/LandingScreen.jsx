@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.Gray, 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
+        paddingHorizontal: 16,
         padding: 32,
         alignItems: 'center',
         justifyContent: 'center',
