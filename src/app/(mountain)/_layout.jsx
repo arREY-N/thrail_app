@@ -9,6 +9,12 @@ export default function MountainLayout(){
                     title: 'Mountain',
                 }}
                 />
+            <Stack.Screen
+                name='[id]'
+                options={{
+                    title: 'Trail',
+                }}
+                />
         </Stack>
     )
 }
