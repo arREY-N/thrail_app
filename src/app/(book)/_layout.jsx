@@ -3,18 +3,16 @@ import { Stack } from "expo-router";
 export default function BookLayout(){
     return(
         <Stack>
-            <Stack.Screen
-                name='book'
+            <Stack.Screen 
+                name='[id]'
                 options={{
-                    title: 'Book',
-                }}
-            />
-            <Stack.Screen
-                name='booking'
+                    title: 'Book'
+                }}/>
+            <Stack.Screen 
+                name='userBooking'
                 options={{
-                    title: 'Booking',
-                }}
-            />
+                    title: 'Booked Offers'
+                }}/>
         </Stack>
     )
 }
