@@ -33,6 +33,22 @@ service cloud.firestore {
         && request.auth.token.role == 'superadmin';
     }
     
+    match /payments/{paymentId}{
+    	allow read, create: 
+            if request.auth != null;
+    }
+    
+    match /users/{userId}/bookings/{bookingId}{
+    	allow read: 
+      	    if request.auth != null;
+        allow create: 
+      	    if request.auth != null
+            && request.auth.uid == userId;
+        allow update, delete: 
+      	    if request.auth != null 
+            && request.auth.uid == userId;
+    }
+    
     match /businesses/{businessId} {
     	allow read: if request.auth != null;
         allow create, delete: 
@@ -40,10 +56,57 @@ service cloud.firestore {
             && request.auth.token.role == 'superadmin';
         allow update:
             if request.auth != null 
-            && request.auth.token.role == 'admin' 
-            && request.auth.token.businessId == businessId
+            && (
+                    (
+                        request.auth.token.role == 'admin' 
+                        && 
+                        (request.auth.token.businessId == businessId || request.auth.token.owner == businessId)
+                    )
+                    ||
+                    request.auth.token.role == 'superadmin'
+            ) 
     }
     
+    match /businesses/{businessId}/admins/{adminId} {
+    	allow read: if request.auth != null;
+        allow create, delete: 
+            if request.auth != null 
+            && request.auth.token.role == 'superadmin';
+        allow update:
+            if request.auth != null 
+            && (
+                    (
+                        request.auth.token.role == 'admin' 
+                        && 
+                        (request.auth.token.businessId == businessId || request.auth.token.owner == businessId)
+                    )
+                    ||
+                    request.auth.token.role == 'superadmin'
+            ) 
+    }
+    
+    match /businesses/{businessId}/offers/{offerId} {
+    	allow read: if request.auth != null;
+        allow create, delete: 
+            if request.auth != null 
+            && request.auth.token.role == 'admin'
+            && (request.auth.token.businessId == businessId || request.auth.token.owner == businessId);
+        allow update:
+            if request.auth != null 
+            && request.auth.token.role == 'admin' 
+            && (request.auth.token.businessId == businessId || request.auth.token.owner == businessId)
+    }
+    
+    match /{path=**}/offers/{offerId} {
+    	allow read: if request.auth != null;
+        allow create, delete: 
+            if request.auth != null 
+            && request.auth.token.role == 'admin';
+        allow update:
+            if request.auth != null 
+            && request.auth.token.role == 'admin';
+    }
+
     match /mountain/{mountainId} {
     	allow read: if request.auth != null;
       allow create, update, delete: 
