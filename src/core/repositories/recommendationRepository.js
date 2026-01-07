@@ -3,19 +3,17 @@ import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 
 export async function fetchUserRecommendations(uid){
     try {
-        const ref = collection(db, 'user', uid, 'recomendation');
-    
+        const ref = collection(db, 'users', uid, 'recommendations');
         const snapshot = await getDocs(ref);
 
         if (snapshot.empty) return [];
-    
+        
         return snapshot.docs.map((docsnap) => ({
             id: docsnap.id,
             ...docsnap.data(),
         }));
     } catch (err) {
-        console.error('Error: fetching recommendations: ', err);
-        return [];
+        throw new Error(err.message);
     }
 }
 

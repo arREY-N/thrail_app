@@ -1,12 +1,11 @@
 import { db } from '@/src/core/config/Firebase';
-import { addDoc, collection, getDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
-export async function fetchAllBusinesses(){
+export async function fetchBusinesses(){
     try{
         const ref = collection(db, 'businesses');
-
         const snapshot = await getDocs(ref);
-
         return snapshot.docs.map((docsnap) => ({
             id: docsnap.id,
             ...docsnap.data()
@@ -16,11 +15,12 @@ export async function fetchAllBusinesses(){
     }
 } 
 
-export async function fetchBusinessAccount(id){
+export async function fetchBusiness(id){
     try{
-        const ref = collection(db, 'business', id);
+        const ref = doc(db, 'businesses', id);
+        
         const snap = await getDoc(ref);
-
+        
         if(!snap.exists()) return null;
         
         return {
@@ -32,32 +32,67 @@ export async function fetchBusinessAccount(id){
     }
 }
 
-export async function createBusinessAccount(businessData){
-    try{
-        const refData = await addDoc(collection(db, 'businesses'), {
-            ...businessData,
-            createdAt: serverTimestamp()
-        })
+export async function createBusiness(businessData){
+    const functions = getFunctions();
 
-        console.log('ID: ', refData.id);
+    const createBusiness = httpsCallable(functions, 'createBusiness');
+
+    try{
+        const result = await createBusiness({
+            ...businessData,
+            active: true,
+        });
         
-        return refData.id;
+        return result.data;
     } catch (err) {
         throw new Error(err);
     }
 }
 
-export async function createBusinessApplication(businessData){
+export async function deactivateBusiness(id){
     try{
-        const refData = await addDoc(collection(db, 'applications'), {
-            ...businessData,
-            approved: false,
-            createdAt: serverTimestamp()
-        })
+        const docRef = doc(db, 'businesses', id);
+        const docsnap = await getDoc(docRef);
 
-        console.log('Application received: ', refData.id);
-        return refData.id;
+        await setDoc(docRef, {
+            active: false,
+        }, {merge: true});
+
+        return {
+            ...docsnap.data(),
+            active: false
+        }
     } catch (err) {
-        throw new Error(err);
+        throw new Error(err.message);
+    }
+}
+
+export async function fetchBusinessAdmins(businessId){
+    try {
+        const ref = collection(db, 'businesses', businessId, 'admins');
+        const snapshot = await getDocs(ref);
+    
+        return snapshot.docs.map((docsnap) => ({
+            id: docsnap.id,
+            ...docsnap.data()
+        }));
+    } catch (err) {
+        throw new Error(err.message);
+    }
+}
+
+export async function createBusinessAdmin({userId, businessId}){
+    const functions = getFunctions();
+
+    const createAdmin = httpsCallable(functions, 'createAdmin');
+
+    try {
+        if(!userId || !businessId) throw new Error('Missing user or business id');
+
+        const uid = await createAdmin({userId, businessId})
+        
+        if(!uid) throw new Error('Admin creation failed');
+    } catch (err) {
+        throw new Error(err.message)
     }
 }

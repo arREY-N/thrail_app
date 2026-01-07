@@ -1,25 +1,18 @@
-import { getFunctions, httpsCallable } from "firebase/functions";
+// import { getFunctions, httpsCallable } from "firebase/functions";
 
-export const createBusiness = async ({appId, email, businessName}) => {
-    const functions = getFunctions();
+// export const createBusiness = async (businessData) => {
+//     const functions = getFunctions();
 
-    const createBusiness = httpsCallable(functions, 'createBusiness');
+//     const createBusiness = httpsCallable(functions, 'createBusiness');
 
-    try{
-        const result = await createBusiness({
-            appId,
-            email,
-            businessName
-        });
-
-        const data = result.data;
-
-        console.log(`Business Account created 
-            \nName: ${data.businessName}
-            \nBusiness Email: ${data.businessEmail}
-            \nTemporary Password: ${data.tempPass}`);
+//     try{
+//         const result = await createBusiness(businessData);
+//         const data = result.data;
+//         console.log(`Business Account created 
+//             \nName: ${data.businessName}
+//             \nID: ${data.businessId}`);
         
-    } catch (err) {
-        console.error('Failed creating business account', err);
-    }
-}
+//     } catch (err) {
+//         console.error('Failed creating business account', err);
+//     }
+// }

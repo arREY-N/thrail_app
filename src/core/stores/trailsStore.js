@@ -1,10 +1,17 @@
 import { deleteTrail, fetchAllTrails, saveTrail } from '@/src/core/repositories/trailRepository';
 import { create } from "zustand";
 
-export const useTrailsStore = create((set, get) => ({
+const init = {
     trails: [],
     isLoading: false,
     error: null,
+}
+
+
+export const useTrailsStore = create((set, get) => ({
+    ...init,
+
+    reset: () => set(init),
 
     loadTrails: async () => {
         if(get().trails.length > 0) return;

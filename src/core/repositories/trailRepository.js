@@ -61,9 +61,6 @@ export async function saveTrail(trailData){
         ? doc(db, 'trails', trailData.id)
         : doc(collection(db, 'trails'));
 
-        console.log('DocRef: ', docRef.id ?? null);
-        console.log('Trail: ', trailData.id);
-
         await setDoc(docRef, { ...trailData, id:docRef.id }, { merge: true });
 
         return {
