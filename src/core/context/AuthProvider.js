@@ -48,7 +48,7 @@ export function AuthProvider({children}){
                 unsubscribeProfile = onSnapshot(ref, (snap) => {                
                     if(snap.exists()){
                         setProfile({
-                            uid: snap.id,
+                            id: snap.id,
                             ...snap.data()
                         });
                         setIsLoading(false);

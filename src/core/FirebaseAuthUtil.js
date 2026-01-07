@@ -52,8 +52,6 @@ export const finishOnboarding = async (uid, preferences) =>{
     const ref = doc(db, 'users', uid);
 
     if(!uid || !preferences) throw new Error('Missing UID or preference object');
-
-    console.log('DB: ', db);
     
     await setDoc(
         ref, 
