@@ -1,6 +1,6 @@
+import { BOOKING_STATUS } from '@/src/constants/status';
 import { db } from '@/src/core/config/Firebase';
 import { collection, doc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
-
 
 export async function fetchUserBookings(userId){
     try {
@@ -39,5 +39,29 @@ export async function createBooking(bookingData){
     } catch (err) {
         console.log(err.message);
         throw new Error(err.message || 'Failed creating booking');
+    }
+}
+
+export async function cancelBooking({cancelledBy, bookingData}){
+    try {
+        console.log(bookingData);
+        const { id, userId, } = bookingData;
+
+        const bookingRef = doc(db, 'users', userId, 'bookings', id);
+        await setDoc(bookingRef, {
+            status: BOOKING_STATUS.CANCELLED,
+            cancelledBy,
+            updatedAt: serverTimestamp()
+        }, {merge: true})
+        
+        return {
+            ...bookingData,
+            status: BOOKING_STATUS.CANCELLED,
+            cancelledBy,
+            updatedAt: new Date()
+        }
+    } catch (err) {
+        console.log(err.message);
+        throw new Error(err.message || 'Failed cancelling booking');
     }
 }

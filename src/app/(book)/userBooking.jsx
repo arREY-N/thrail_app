@@ -1,10 +1,24 @@
+import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBookingsStore } from '@/src/core/stores/bookingsStore';
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function userBooking(){
     const userBookings = useBookingsStore((state) => state.userBookings);
     const bookingsIsLoading = useBookingsStore((state) => state.isLoading);
     const bookingErrors = useBookingsStore((state) => state.error);
+    const cancelBooking = useBookingsStore((state) => state.cancelBooking);
+    const profile = useAuthStore((state) => state.profile);
+
+    const onCancelBookingPress = (bookingData) => {
+        try {
+            cancelBooking({
+                cancelledBy: profile.role,
+                bookingData
+            });
+        } catch (err) {
+            console.log(err.message);
+        }
+    }
 
     return(
         !bookingsIsLoading ? 
@@ -12,6 +26,7 @@ export default function userBooking(){
                 bookings={userBookings}
                 isLoading={bookingsIsLoading}
                 error={bookingErrors}
+                onCancelBookingPress={onCancelBookingPress}
             /> :
             <Text>Loading</Text>
     )
@@ -19,10 +34,11 @@ export default function userBooking(){
 
 const TESTBOOKING = ({
     bookings,
-    error
+    error,
+    onCancelBookingPress,
 }) => {
     return (
-        <View>
+        <ScrollView>
             { error && <Text>{error}</Text>}
             <Text>User bookings</Text>
             { bookings?.length > 0 ? bookings.map(b => {
@@ -33,11 +49,19 @@ const TESTBOOKING = ({
                             <Text>Provider: {b.businessName}</Text>
                             <Text>Price: {b.price}</Text>
                             <Text>Payment: {b.mode}</Text>
+
+                            { (b.status === null || b.status !== 'CANCELLED') ? 
+                                <Pressable onPress={() => onCancelBookingPress(b)}>
+                                    <Text>CANCEL BOOKING</Text>
+                                </Pressable> :
+                                <Text>Status: CANCELLED-{b.cancelledBy}</Text>
+                            }
                         </View>
                     )
                 }): <Text style={styles.loading}>Empty, book new hikes!</Text>
             }
-        </View>
+            <View style={{margin: 50}}/>
+        </ScrollView>
     )
 }
 
