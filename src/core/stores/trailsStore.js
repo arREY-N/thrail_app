@@ -1,16 +1,18 @@
-import { fetchAllTrails } from '@/src/core/repositories/trailRepository';
+import { deleteTrail, fetchAllTrails, saveTrail } from '@/src/core/repositories/trailRepository';
 import { create } from "zustand";
-/**
- * Trails shared store
- */
-export const useTrailsStore = create((set, get) => ({
+
+const init = {
     trails: [],
     isLoading: false,
     error: null,
+}
 
-    /**
-     * Load trails only once
-     */
+
+export const useTrailsStore = create((set, get) => ({
+    ...init,
+
+    reset: () => set(init),
+
     loadTrails: async () => {
         if(get().trails.length > 0) return;
 
@@ -38,6 +40,48 @@ export const useTrailsStore = create((set, get) => ({
                 error: err.message ?? 'Failed to load trails',
                 isLoading: false
             });
+        }
+    },
+
+    createTrail: async (trailData) => {
+        set({isLoading: true, error: null});
+
+        try {
+            const newTrail = await saveTrail(trailData);
+            
+            set((state) => {
+                const exists = state.trails.some(t => t.id === newTrail.id)
+                
+                return {
+                    trails: exists 
+                        ? state.trails.map(t => t.id === newTrail.id ? newTrail : t)
+                        : [...state.trails, newTrail],
+                    isLoading: false,
+                };
+            })
+        } catch (err) {
+            set({
+                error: err.message ?? 'Failed to create new trail',
+                isLoading: false
+            })
+        }
+    },
+
+    removeTrail: async (id) => {
+        set({isLoading: true, error: null});
+
+        try{
+            const trailId = await deleteTrail(id);
+
+            set((state) => ({
+                trails: state.trails.filter(t => t.id !== trailId),
+                isLoading: false
+            }))
+        } catch (err) {
+            set({
+                error: err.message ?? 'Failed to delete trail',
+                isLoading: false
+            })
         }
     }
 }));
