@@ -1,32 +1,16 @@
 import { auth } from '@/src/core/config/Firebase';
 import { useRouter } from 'expo-router';
 import { signOut } from "firebase/auth";
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Pressable, ScrollView, Text } from "react-native";
 
 export default function home(){
     const router = useRouter();
 
-    const onSignOut = async () => {
+    const onSignOutPress = async () => {
         try{
             await signOut(auth);
         } catch (err) {
             console.error('Error:', err);
-        }
-    }
-
-    const createBusinessAdmin = async (businessId) => {
-        const functions = getFunctions();
-        
-        const createAdmin = httpsCallable(functions, 'createAdmin');
-        try{
-            const result = await createAdmin({
-                businessId
-            });
-
-            console.log(`Admin created ${result.businessId}`);
-        } catch (err) {
-            console.error('Failed to create new business admin', err);
         }
     }
 
@@ -40,10 +24,31 @@ export default function home(){
         router.push('/(superadmin)/trail');
     }
 
+    const onManageUsersPress = () => {
+        console.log('Manage users');
+        router.push('/(superadmin)/user');
+    }
+
+    return(
+        <TESTHOME 
+            onSignOutPress={onSignOutPress}
+            onManageBusinessPress={onManageBusinessPress}
+            onManageTrailsPress={onManageTrailsPress}
+            onManageUsersPress={onManageUsersPress}
+        />
+    )
+}
+
+const TESTHOME = ({
+    onSignOutPress,
+    onManageBusinessPress,
+    onManageTrailsPress,
+    onManageUsersPress
+}) => {
     return(
         <ScrollView>
             <Text>Super admin screen</Text>
-            <Pressable onPress={onSignOut}>
+            <Pressable onPress={onSignOutPress}>
                 <Text>Sign out</Text>
             </Pressable>
 
@@ -53,6 +58,10 @@ export default function home(){
 
             <Pressable onPress={onManageTrailsPress}>
                 <Text>Manage Trails</Text>
+            </Pressable>
+
+            <Pressable onPress={onManageUsersPress}>
+                <Text>Manage Users</Text>
             </Pressable>
         </ScrollView>
     )
