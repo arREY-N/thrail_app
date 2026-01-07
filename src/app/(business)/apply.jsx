@@ -1,49 +1,55 @@
 import CustomTextInput from '@/src/components/CustomTextInput';
-import { useAuth } from '@/src/core/context/AuthProvider';
-import { applyBusiness } from '@/src/core/domain/businessDomain';
-import { useEffect, useState } from 'react';
+import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
+import { useAuthStore } from '@/src/core/stores/authStore';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text } from 'react-native';
 
-/**
- * Display business accounts
- * Display business admins
- * Approve business account creation request
- * Monitor business status 
- */
 export default function apply(){
-    const [email, setEmail] = useState('');
-    const [businessName, setBusinessName] = useState('');
-    const [businessAddress, setBusinessAddress] = useState('');
-    const [error, setError] = useState(null);
-    const [sucess, setSucess] = useState(null);
-    const { user } = useAuth();
+    const [system, setSystem] = useState(null);
+    const profile = useAuthStore((state) => state.profile);
 
-    useEffect(() => {
-        setEmail(user?.email);
-    }, [user]);
+    const provinces = ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'];
+    const createApplication = useApplicationsStore((state) => state.createApplication);
+    const error = useApplicationsStore((state) => state.error);
 
-    const applyPress = async ({email, businessName}) => {
-        setError(null);
-        setSucess(null);
-        try{
-            const appId = await applyBusiness({email, businessName, businessAddress});
-            setSucess(`Request successfully sent`);            
+    const onApplyPress = async (businessData) => {
+        setSystem(null);
+        
+        try{           
+            const appId = await createApplication({
+                ...businessData,
+                userId: profile.id, 
+            });
+
+            setSystem(`Application ${appId} sent`);            
         } catch (err) {
-            setError(err);
-        } finally {
-            setBusinessName('')
-            setEmail('');
+            setSystem(error ? error.message : err.message );
         }
     }
 
-    return(
+    return (
+        <ApplyScreen
+            system={system}
+            provinces={provinces}
+            onApplyPress={onApplyPress}/>
+    )
+}
+
+const ApplyScreen = ({
+    system,
+    provinces,
+    onApplyPress
+}) => {
+    const [email, setEmail] = useState('');
+    const [businessName, setBusinessName] = useState('');
+    const [businessAddress, setBusinessAddress] = useState('');
+    const [province, setProvince] = useState('');
+    
+    return (
         <ScrollView>
             <Text>Business Application Screen</Text>
             {
-                error && <Text>{error}</Text>
-            }
-            {
-                sucess && <Text>{sucess}</Text>
+                system && <Text>{system}</Text>
             }
             <CustomTextInput
                 placeholder="Email"
@@ -67,7 +73,29 @@ export default function apply(){
                 autoCapitalize="none"
             />
 
-            <Pressable onPress={() => applyPress({email, businessName})}>
+            <CustomTextInput
+                placeholder="Business Province"
+                value={province}
+                onChangeText={null}
+                autoCapitalize="none"
+            />
+
+            {
+                provinces.map(p => {
+                    return (
+                        <Pressable onPress={() => setProvince(p)}>
+                            <Text>{p}</Text>
+                        </Pressable> 
+                    )
+                })
+            }
+
+            <Pressable onPress={() => onApplyPress({
+                email, 
+                businessName, 
+                businessAddress,
+                province
+                })}>
                 <Text>Create New Business</Text>
             </Pressable>
         </ScrollView>
