@@ -1,19 +1,19 @@
 import CustomButton from "@/src/components/CustomButton";
 import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Text, View } from "react-native";
 
 export default function trail(){
     const { id } = useLocalSearchParams();
-    const { trails } = useTrailsStore();
+    const trails = useTrailsStore((state) => state.trails);
     const { onDownloadPress } = useAppNavigation();
+    const router = useRouter();
 
     const trail = trails.find((t) => t.id === id ? t : null);
 
     const onBookPress = (id) => {
-        console.log('Booking: ', id);
-        //router.push('/(book)/book')
+        router.push(`/(offer)/${id}`)
     }
 
     const onHikePress = (id) => {
@@ -23,14 +23,33 @@ export default function trail(){
     if(!trail) return <Text>Trail {id} not found</Text>
     
     return(
+        <TESTTRAIL 
+            trail={trail}
+            onDownloadPress={onDownloadPress}
+            onBookPress={onBookPress}
+            onHikePress={onHikePress}
+        />
+    )    
+}
+
+const TESTTRAIL = ({
+    trail,
+    onDownloadPress,
+    onBookPress,
+    onHikePress
+}) => {
+    return(
         <View>
             <Text>Trail View</Text>
             <Text>ID: {trail?.id}</Text>
             <Text>Name: {trail?.name}</Text>
-            <Text>Location: {trail?.location?.join(',')}</Text>
-            <CustomButton title={'Download'} onPress={() => onDownloadPress(id)}/>
-            <CustomButton title={'Book'} onPress={() => onBookPress(id)}/>
-            <CustomButton title={'Hike'} onPress={() => onHikePress(id)}/>
+            <Text>Province: {trail?.province?.join(',')}</Text>
+            <Text>Address: {trail?.address}</Text>
+            
+            <CustomButton title={'Download'} onPress={() => onDownloadPress(trail?.id)}/>
+            <CustomButton title={'Book'} onPress={() => onBookPress(trail?.id)}/>
+            <CustomButton title={'Hike'} onPress={() => onHikePress(trail?.id)}/>
         </View>
-    )    
+
+    )
 }

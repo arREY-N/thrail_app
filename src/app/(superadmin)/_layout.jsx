@@ -1,35 +1,52 @@
-import { AccountProvider } from '@/src/core/context/AccountProvider';
 import { SuperAdminProvider } from '@/src/core/context/SuperAdminProvider';
-import { Stack } from "expo-router";
+import { useAuthStore } from '@/src/core/stores/authStore';
+import { Stack, useRouter } from "expo-router";
+import { useEffect } from 'react';
 
-export default function AuthLayout(){
+export default function SuperAdminLayout(){
+    const router = useRouter();
+
+    const user = useAuthStore((state) => state.user);
+    const isLoading = useAuthStore((state) => state.isLoading);
+
+    useEffect(() => {
+        if(!user && !isLoading) {
+            router.replace('/(auth)/landing');
+        } 
+    }, [user, isLoading]);
+    
     return(     
-        <AccountProvider>
-            <SuperAdminProvider>
-                <Stack>
-                    <Stack.Screen
-                        name = 'home'
-                        options = {{
-                            title: 'Superadmin Home',
-                            headerShown: true,
-                        }}
-                    />
-                    <Stack.Screen
-                        name = 'business'
-                        options = {{
-                            title: 'Businesses',
-                            headerShown: true,
-                        }}
-                    />
-                    <Stack.Screen
-                        name = 'trail'
-                        options = {{
-                            title: 'Trails',
-                            headerShown: true,
-                        }}
-                    />
-                </Stack>
-            </SuperAdminProvider>
-        </AccountProvider>
+        <SuperAdminProvider>
+            <Stack>
+                <Stack.Screen
+                    name = 'home'
+                    options = {{
+                        title: 'Superadmin Home',
+                        headerShown: true,
+                    }}
+                />
+                <Stack.Screen
+                    name = 'business'
+                    options = {{
+                        title: 'Businesses',
+                        headerShown: true,
+                    }}
+                />
+                <Stack.Screen
+                    name = 'trail'
+                    options = {{
+                        title: 'Trails',
+                        headerShown: true,
+                    }}
+                />
+                <Stack.Screen
+                    name = 'user'
+                    options = {{
+                        title: 'Users',
+                        headerShown: true,
+                    }}
+                />
+            </Stack>
+        </SuperAdminProvider>
     )
 }

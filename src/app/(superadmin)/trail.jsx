@@ -2,7 +2,7 @@ import CustomButton from "@/src/components/CustomButton";
 import CustomTextInput from "@/src/components/CustomTextInput";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 
 export default function trail(){
@@ -13,9 +13,15 @@ export default function trail(){
     const [name, setName] = useState(trail?.name);
     const [length, setLength] = useState(trail?.length);
     const [province, setProvince] = useState(trail?.province ?? []);
-    const [address, setAddress] = useState(trail?.province);
-    const { trails, createTrail, removeTrail } = useTrailsStore();
+    const [address, setAddress] = useState(trail?.address);
+    const { createTrail, removeTrail } = useTrailsStore();
+    const trails = useTrailsStore((state) => state.trails);
+    const loadTrails = useTrailsStore((state) => state.loadTrails);
 
+    useEffect(() => {
+        loadTrails();
+    }, [])
+    
     const onCreateTrailPress = (trailData) => {
         try {
             if(!trailData.name || !trailData.length || !trailData.province || !trailData.address){
@@ -33,14 +39,13 @@ export default function trail(){
 
     const onUpdateTrailPress = (id) => {
         try{
-            console.log('ID: ',id);
             const selTrail = trails.find(t => t.id === id);
             if(!selTrail) throw new Error('Trail not found');
             setTrail(selTrail)
             setName(selTrail.name);
             setLength(selTrail.length);
             setProvince(selTrail.province ?? []);
-            setAddress(selTrail.province);
+            setAddress(selTrail.address);
         } catch (err) {
             setError(err.message);
         }

@@ -1,25 +1,25 @@
 import CustomButton from '@/src/components/CustomButton';
-import { useAuth } from '@/src/core/context/AuthProvider';
-import { useRecommendation } from '@/src/core/context/RecommendationProvider';
-import { useWeather } from '@/src/core/context/WeatherProvider';
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
-import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { useAuthStore } from '@/src/core/stores/authStore';
+import useBookingsStore from '@/src/core/stores/bookingsStore';
+import { useWeatherStore } from '@/src/core/stores/weatherStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Text, View } from 'react-native';
 
 export default function home(){
     const router = useRouter();
-    const { locationTemp } = useWeather();
-    const { loadLatestRecommendation, recommendedTrails, isLoaded } = useRecommendation();
-    const { trails } = useTrailsStore();
-    const { profile, role } = useAuth();
     const { onMountainPress, onDownloadPress } = useAppNavigation();
-
+    
+    const locationWeather = useWeatherStore((state) => state.locationWeather);
+    const loadWeather = useWeatherStore((state) => state.loadWeather);
+    const profile = useAuthStore((state) => state.profile);
+    const loadUserBookings = useBookingsStore((state) => state.loadUserBookings);
+    
     useEffect(() => {
-        if(!profile || !profile.uid) return;
-        loadLatestRecommendation(profile.uid, trails);
-        console.log('Role: ', role);
+        if(!profile || !profile.id) return;    
+        loadWeather();
+        loadUserBookings(profile.id);
     }, [profile]);
     
     const onWeatherPress = () => {
@@ -44,21 +44,21 @@ export default function home(){
 
     const onBookingPress = () => {
         console.log('View booking')
-        router.push('/(book)/booking')
+        router.push('/(book)/userBooking')
     }
 
     return (
         <TESTHOME 
-            locationTemp={locationTemp} 
+            locationTemp={locationWeather} 
             onWeatherPress={onWeatherPress}
             onViewAllRecommendationPress={onViewAllRecommendationPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}
-            recommendedTrails={recommendedTrails}
+            recommendedTrails={null}
             onMountainPress={onMountainPress}
             onDownloadPress={onDownloadPress}
             onViewAllTrendingPress={onViewAllTrendingPress}
-            isLoaded={isLoaded}/>
+            isLoaded={false}/>
     )
     // return <HomeScreen/>
 }
@@ -77,10 +77,10 @@ const TESTHOME = ({
 }) => {
     return (
         <View>
-            <Text>Location: {locationTemp.location}</Text>
-            <Text>Temperature: {locationTemp.temperature}°C</Text>
-            <Text>Day: {locationTemp.day}°C</Text>
-            <Text>Night: {locationTemp.night}°C</Text>
+            <Text>Location: {locationTemp?.location}</Text>
+            <Text>Temperature: {locationTemp?.temperature}°C</Text>
+            <Text>Day: {locationTemp?.day}°C</Text>
+            <Text>Night: {locationTemp?.night}°C</Text>
 
             <CustomButton title={'Weather Button'} onPress={onWeatherPress}/>
             <CustomButton title={'View all recommendations'} onPress={onViewAllRecommendationPress}/>

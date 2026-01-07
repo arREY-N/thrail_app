@@ -1,18 +1,17 @@
-import { auth } from '@/src/core/config/Firebase';
-import { useRecommendation } from '@/src/core/context/RecommendationProvider';
+import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRouter } from 'expo-router';
-import { signOut } from 'firebase/auth';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function profile(){
-    const { resetRecommendations } = useRecommendation();
     const router = useRouter();
 
+    const signOut = useAuthStore((state) => state.signOut);
+    const profile = useAuthStore((state) => state.profile);
+    
     const onSignOutPress = async () => {
         try{
-            await signOut(auth);
-            resetRecommendations();
+            await signOut();
         } catch (err) {
             console.error('Error:', err);
         }
@@ -26,14 +25,28 @@ export default function profile(){
     return (
         <ProfileScreenTest 
             onSignOut={onSignOutPress}
-            onApplyPress={onApplyPress}/>
+            onApplyPress={onApplyPress}
+            profile={profile}/>
     )
 }
 
-const ProfileScreenTest = ({onSignOut, onApplyPress}) => {
+const ProfileScreenTest = ({
+    onSignOut, 
+    onApplyPress,
+    profile,
+}) => {
     return (
         <View>
             <Text>profile</Text>
+
+            <View style={styles.profileInfo}>
+                <Text>USER INFORMATION</Text>
+                <Text>  Name: {profile?.firstname} {profile?.lastname} </Text>
+                <Text>  Username: {profile?.username}</Text>
+                <Text>  Email: {profile?.email} </Text>
+                <Text>  Created: {profile?.createdAt?.toDate().toLocaleDateString()}</Text>
+            </View>
+
             <Pressable onPress={onSignOut}>
                 <Text>Sign out</Text>
             </Pressable>
@@ -44,3 +57,9 @@ const ProfileScreenTest = ({onSignOut, onApplyPress}) => {
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    profileInfo: {
+        margin: 10
+    }
+})
