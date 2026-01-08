@@ -5,7 +5,7 @@ export default function mountain(){
     const router = useRouter();
 
     const onBook = () => {
-        router.push('/(book)/book')
+        router.push('/(offer)/book')
     }
 
     return(

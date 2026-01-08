@@ -1,6 +1,6 @@
 import { useAccount } from "@/src/core/context/AccountProvider";
-import { useAuth } from "@/src/core/context/AuthProvider";
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
+import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
@@ -8,7 +8,7 @@ import PreferenceScreen from "@/src/features/Auth/screens/PrefenceScreen";
 
 export default function preference(){
     const router = useRouter();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
     const [error, setError] = useState();
 
     const { questions, setAnswer, savePreference, resetPreferences } = useAccount(); 
@@ -16,6 +16,7 @@ export default function preference(){
     const onFinishedPreference = async () => {
         try {
             const finalPreferences = savePreference();
+            console.log('Trying to save preference');
             await finishOnboarding(user.uid, finalPreferences);
             resetPreferences();
         } catch (err) {

@@ -1,7 +1,31 @@
 import { AccountProvider } from '@/src/core/context/AccountProvider';
-import { Stack } from "expo-router";
+import { useAuthStore } from '@/src/core/stores/authStore';
+import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { useEffect } from 'react';
 
 export default function AuthLayout(){
+    const user = useAuthStore((state) => state.user);
+    const role = useAuthStore((state) => state.role);
+    const profile = useAuthStore((state) => state.profile);
+    const router = useRouter();
+    const isLoading = useAuthStore((state) => state.isLoading);
+    const rootNavigationState = useRootNavigationState();
+
+    useEffect(() => {
+        if(!rootNavigationState?.key) return;
+
+        if(user && role){
+            if(role === 'superadmin') router.replace('/(superadmin)/home');
+            else if(role === 'admin') router.replace('/(admin)/home');
+            else if(role === 'user'){
+                if(!profile) return;
+
+                if(!profile.onBoardingComplete) router.replace('/(auth)/preference');
+                else router.replace('/(tabs)/home')
+            }
+        }
+    }, [user, role, profile, isLoading]);
+
     return(     
         <AccountProvider>
             <Stack>

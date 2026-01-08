@@ -1,9 +1,9 @@
 import { Text, View } from "react-native";
 
-export default function booking(){
+export default function information(){
     return(
         <View>
-            <Text>Booking Page</Text>
+            <Text>Business Information Page</Text>
         </View>
     )
 }

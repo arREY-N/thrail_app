@@ -7,7 +7,7 @@ export function useRecommendation(){
     const context = useContext(RecommendationContext);
 
     if(!context){
-        throw new Error('useRecommendation must be within inside a RecommendationProvider');
+        throw new Error('useRecommendation must be within a RecommendationProvider');
     }
 
     return context;
@@ -25,12 +25,14 @@ export function RecommendationProvider({children}){
             const yearMonth = `${now.getFullYear()}-${month}`;
             const latest = await fetchMonthRecommendation(uid, yearMonth);
             setRecommendation(latest);
-
             if(!latest || !latest.trails) {                
                 setRecommendedTrails([]);
                 setLoaded(true);
                 return;
             }
+
+            console.log('Latest:', latest);
+            
             
             const mappedTrails = latest.trails
                 .map(t => {

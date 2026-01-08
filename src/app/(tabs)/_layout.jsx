@@ -1,50 +1,38 @@
+import { useAuthStore } from '@/src/core/stores/authStore';
+import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 
-export default function TabLayout() {
-    const { loadTrails } = useTrailsStore();
-
+export default function UserLayout() {
+    const router = useRouter();
+    
+    const user = useAuthStore((state) => state.user);
+    const isLoading = useAuthStore((state) => state.isLoading);
+    const profile = useAuthStore((state) => state.profile);
+    
+    const loadTrails = useTrailsStore((state) => state.loadTrails);
+    const loadRecommendations = useRecommendationsStore((state) => state.loadRecommendations)
+    
     useEffect(() => {
-        loadTrails();
-    }, [])
+        if(!user && !isLoading){
+            router.replace('/(auth)/landing');
+            return;
+        }
+
+        if(user && profile){
+            loadTrails();
+            loadRecommendations(profile.id);
+        }
+    }, [user, isLoading, profile])
     
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
-            <Tabs.Screen
-                name="home"
-                options={{
-                title: 'Home',
-                }}
-            />
-
-            <Tabs.Screen
-                name="community"
-                options={{
-                title: 'Community',
-                }}
-            />
-           
-            <Tabs.Screen
-                name="explore"
-                options={{
-                title: 'Explore',
-                }}
-            />
-           
-            <Tabs.Screen
-                name="hike"
-                options={{
-                title: 'Hike',
-                }}
-            />
-            
-            <Tabs.Screen
-                name="profile"
-                options={{
-                title: 'Profile',
-                }}
-            />
+            <Tabs.Screen name="home"/>
+            <Tabs.Screen name="community"/>
+            <Tabs.Screen name="explore"/>
+            <Tabs.Screen name="hike"/>
+            <Tabs.Screen name="profile"/>
         </Tabs>
     );
 }

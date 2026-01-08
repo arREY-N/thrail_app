@@ -1,5 +1,5 @@
 import { auth, db } from '@/src/core/config/Firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onIdTokenChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -23,29 +23,55 @@ export function AuthProvider({children}){
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [profile, setProfile] = useState(null);
+    const [role, setRole] = useState(null);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        let unsubscribeProfile = null;
+
+        const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+            if(firebaseUser) {
+                const idTokenResult = await firebaseUser.getIdTokenResult(true);
+                const userRole = idTokenResult.claims?.role || null;
+                
+                if(!userRole){
+                    console.log('Role not available yet, retrying in 2 seconds...');
+                    setUser(firebaseUser);
+                    setTimeout(() => firebaseUser.getIdToken(true), 2000);
+                    return;
+
+                }
+
+                setRole(userRole);
+                setUser(firebaseUser);
+
+                const ref = doc(db, 'users', firebaseUser.uid);
+                unsubscribeProfile = onSnapshot(ref, (snap) => {                
+                    if(snap.exists()){
+                        setProfile({
+                            id: snap.id,
+                            ...snap.data()
+                        });
+                        setIsLoading(false);
+                    }
+                });
+            }
+            
             if(!firebaseUser){
+                if(unsubscribeProfile){
+                    unsubscribeProfile();
+                }
                 setUser(null);
                 setIsLoading(false); 
                 setProfile(null);
-                return;
+                setRole(null);
             }
-
-            const ref = doc(db, 'users', firebaseUser.uid);
             
-            const unsubscribeProfile = onSnapshot(ref, (snap) => {                
-                if(snap.exists()){
-                    setProfile({
-                        uid: snap.id,
-                        ...snap.data()
-                    })
+            return () => {
+                unsubscribe();
+                if(unsubscribeProfile){
+                    unsubscribeProfile();
                 }
-                setUser(firebaseUser);
-                setIsLoading(false);
-            })
-            return unsubscribeProfile;
+            };
         });
         return unsubscribe;
     }, []);
@@ -53,7 +79,8 @@ export function AuthProvider({children}){
     const value = {
         user,
         isLoading,
-        profile
+        profile,
+        role
     }
 
     return <AuthContext.Provider value={value}>{ children }</AuthContext.Provider>

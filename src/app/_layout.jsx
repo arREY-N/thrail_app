@@ -1,32 +1,22 @@
-import { AuthProvider, useAuth } from '@/src/core/context/AuthProvider';
-import { RecommendationProvider } from '@/src/core/context/RecommendationProvider';
-import { WeatherProvider } from '@/src/core/context/WeatherProvider';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { useAuthStore } from '../core/stores/authStore';
 
 export default function RootLayout() {
-    console.log("Welcome to Thrail: Find thrill in your trails!");
-    console.log("2025");
+    const initialize = useAuthStore((state) => state.initialize);
 
-    return (
-        <AuthProvider>
-            <RecommendationProvider>
-                <WeatherProvider>
-                    <RootNavLayout/>
-                    <Stack screenOptions={{headerShown: false}}/>
-                </WeatherProvider>
-            </RecommendationProvider>
-        </AuthProvider>
-    );
-}
+    useEffect(() => {
+        const unsub = initialize();
+        return () => unsub();
+    }, []);
 
-const RootNavLayout = () => {
-    const { user, profile, isLoading } = useAuth();
-
-    if(isLoading) return null;
-
-    if(!user) return <Redirect href={'/(auth)/landing'}/>
-    
-    if(!profile?.onBoardingComplete) return <Redirect href={'/(auth)/preference'}/>
-    
-    return <Redirect href={'/(tabs)/home'}/>
+    return(
+        <Stack screenOptions = {{headerShown: false}}>
+            <Stack.Screen name="index"/>
+            <Stack.Screen name="(auth)"/>
+            <Stack.Screen name="(tabs)"/>
+            <Stack.Screen name="(superadmin)"/>
+            <Stack.Screen name="(admin)"/>
+        </Stack>
+    )
 }
