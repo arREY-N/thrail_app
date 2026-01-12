@@ -1,26 +1,23 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { resetData } from '@/src/core/stores/dataStore';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import LoadingScreen from '../loading';
 
 export default function home(){
-    const [system, setSystem] = useState(null);
     const router = useRouter();
 
-    const businessAccount = useBusinessesStore((state) => state.businessAccount);
-    const signOut = useAuthStore((state) => state.signOut);
-    const profile = useAuthStore((state) => state.profile);
-    
+    const businessAccount = useBusinessesStore(s => s.businessAccount);
+    const signOut = useAuthStore(s => s.signOut);
+    const profile = useAuthStore(s => s.profile);
+    const error = useAuthStore(s => s.error); 
+    const role = useAuthStore(s => s.role);
+
     const onSignOutPress = async () => {
-        try{
-            resetData();
-            await signOut();
-        } catch (err) {
-            console.error('Error:', err);
-        }
+        resetData();
+        await signOut();
     }
 
     const onManageAdminsPress = () => {
@@ -41,7 +38,8 @@ export default function home(){
             onSignOutPress={onSignOutPress}
             onManageAdminsPress={onManageAdminsPress}
             onManageOffersPress={onManageOffersPress}
-            adminProfile={profile}/>
+            adminProfile={profile}
+            error={error}/>
     );
 }
 
@@ -51,10 +49,12 @@ const TESTHOME =({
     onManageAdminsPress,
     onManageOffersPress,
     adminProfile,
+    error,
 }) => {
     return (
         <View>
             <Text>Admin screen</Text>
+            { error && <Text>{error}</Text>}
             <View style={styles.adminInfo}>
                 <Text>BUSINESS INFORMATION</Text>
                 <Text>  Business Name: {businessAccount?.businessName}</Text>
