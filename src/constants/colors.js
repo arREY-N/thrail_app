@@ -5,8 +5,16 @@ export const Colors = {
     GRAY_MEDIUM:    '#A2A2A2', 
     GRAY_LIGHT:     '#D9D9D9',
 
-    PrimaryColor:   '#A2A2A2',
-    SecondaryColor: '#D9D9D9',
+    PRIMARY:        '#A2A2A2',
+    SECONDARY:      '#D9D9D9',
+    BACKGROUND:     '#FAFAFA',
 
-    Background:     '#FAFAFA',
+    ERROR:          '#D32F2F',
+    ERROR_BG:       '#FFEBEE',
+    ERROR_BORDER:   '#FFCDD2',
+
+    SUCCESS:        '#388E3C',
+    WARNING:        '#FBC02D',
+
+    MODAL_OVERLAY:  'rgba(17, 24, 39, 0.5)',
 };

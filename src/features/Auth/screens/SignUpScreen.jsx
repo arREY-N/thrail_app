@@ -1,39 +1,36 @@
-import { Feather } from '@expo/vector-icons';
+import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../../../components/CustomButton';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
+import ErrorMessage from '../../../components/ErrorMessage';
+import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
+const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, onGmailSignUp, error }) => {
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    
+    const [showPasswords, setShowPasswords] = useState(false);
 
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-
-                <View style={AuthStyles.header}> 
-                    <TouchableOpacity onPress={onBackPress} style={AuthStyles.backButton}>
-                        <Feather name="chevron-left" size={28} color={Colors.BLACK} />
-                    </TouchableOpacity>
-                    <CustomText style={AuthStyles.headerTitle}>Thrail</CustomText>
-                    <View style={{ width: 28 }} />
-                </View>
+                <Header onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
@@ -42,17 +39,11 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
                             Sign Up
                         </CustomText>
 
-                        {error && (
-                            <View style={AuthStyles.errorContainer}>
-                                <Feather name="alert-circle" size={18} color="#D32F2F" />
-                                <CustomText style={AuthStyles.errorText}>
-                                    {error}
-                                </CustomText>
-                            </View>
-                        )}
+                        <ErrorMessage error={error} />
                         
                         <CustomTextInput
-                            placeholder="Email"
+                            label="Email Address"
+                            placeholder="name@example.com"
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
@@ -60,38 +51,65 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, error }) => {
                         />
 
                         <CustomTextInput
-                            placeholder="Username"
+                            label="Username"
+                            placeholder="Choose a username"
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize="none"
                         />
 
                         <CustomTextInput
-                            placeholder="Password"
+                            label="Password"
+                            placeholder="Type your password"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
+                            isPasswordVisible={showPasswords}
+                            onTogglePassword={() => setShowPasswords(!showPasswords)}
                         />
 
                         <CustomTextInput
-                            placeholder="Confirm Password"
+                            label="Confirm Password"
+                            placeholder="Retype your password"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             secureTextEntry
+                            isPasswordVisible={showPasswords}
+                            onTogglePassword={() => setShowPasswords(!showPasswords)}
                         />
 
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
-                                title="Continue" 
+                                title="Continue with Email" 
                                 onPress={() => onSignUpPress(email, password, username, confirmPassword)} 
                                 variant="primary" 
                             />
-                            <CustomButton 
-                                title="Log In" 
-                                onPress={onLogInPress} 
-                                variant="secondary" 
-                            />
                         </View>
+
+                        <View style={AuthStyles.dividerContainer}>
+                            <View style={AuthStyles.line} />
+                            <CustomText style={AuthStyles.dividerText}>or continue with</CustomText>
+                            <View style={AuthStyles.line} />
+                        </View>
+
+                        <TouchableOpacity 
+                            style={AuthStyles.googleButton} 
+                            onPress={onGmailSignUp}
+                            activeOpacity={0.8}
+                        >
+                            <AntDesign name="google" size={20} color={Colors.BLACK} />
+                            <CustomText style={AuthStyles.googleButtonText}>Continue with Google</CustomText>
+                        </TouchableOpacity>
+
+                        <View style={AuthStyles.footerContainer}>
+                            <CustomText style={AuthStyles.footerText}>
+                                Already have an account?{' '}
+                            </CustomText>
+                            <TouchableOpacity onPress={onLogInPress}>
+                                <CustomText style={AuthStyles.signUpLink}>Log In</CustomText>
+                            </TouchableOpacity>
+                        </View>
+
                     </View>
                 </View>
             </ResponsiveScrollView>

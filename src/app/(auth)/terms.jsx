@@ -1,9 +1,17 @@
-import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
-export default function terms(){
-    return(
-        <View>
-            <Text>Terms and condition</Text>
-        </View>
-    )
+import TermsReadOnlyScreen from "../../features/Auth/screens/TermsReadOnlyScreen";
+
+export default function Terms() {
+    const router = useRouter();
+
+    const onBackPress = () => {
+        router.back();
+    }
+
+    return (
+        <TermsReadOnlyScreen 
+            onBackPress={onBackPress}
+        />
+    );
 }
