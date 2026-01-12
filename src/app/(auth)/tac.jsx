@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+
+import TermsScreen from "../../../src/features/Auth/screens/TermsScreen";
 
 export default function tac(){
     const router = useRouter();
@@ -24,22 +25,11 @@ export default function tac(){
     }
 
     return(
-        <View>
-            { error && <Text>{error.message}</Text>}
-            { (isLoading || (user && !profile)) && <Text>Loading</Text>}
-            <Text>TAC</Text>
-
-            <Pressable onPress={onAcceptPress}>
-                <Text>Accept</Text>
-            </Pressable>
-
-            <Pressable onPress={onDeclinePress}>
-                <Text>Decline</Text>
-            </Pressable>
-
-            <Pressable onPress={onBackPress}>
-                <Text>Back</Text>
-            </Pressable>
-        </View>
+        <TermsScreen 
+            onAcceptPress={onAcceptPress}
+            onDeclinePress={onDeclinePress}
+            onBackPress={onBackPress}
+            error={error}
+        />
     )
 }

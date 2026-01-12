@@ -12,7 +12,7 @@ import { Colors } from '../../../constants/colors';
 const LandingScreen = ({ onLogInPress, onSignUpPress, onTermsPress, onPrivacyPress  }) => {
 
     return (
-        <ScreenWrapper backgroundColor={Colors.Background}>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ResponsiveScrollView 
                 minHeight={600} 
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         position: 'relative',
-        backgroundColor: Colors.Background,
+        backgroundColor: Colors.BACKGROUND,
     },
     circleContainer: {
         position: 'absolute',
@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.Gray, 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
+        paddingHorizontal: 16,
         padding: 32,
         alignItems: 'center',
         justifyContent: 'center',

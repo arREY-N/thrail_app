@@ -1,6 +1,6 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../src/constants/colors';
 import { useBreakpoints } from '../hooks/useBreakpoints';
 
 const ScreenWrapper = ({ children, style, backgroundColor = Colors.Background }) => {

@@ -1,8 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../src/constants/colors';
 
-const CustomText = ({ children, variant = 'body', color, style, ...props }) => {
+const CustomText = ({ 
+    children, 
+    variant = 'body', 
+    color, 
+    style, 
+    ...props 
+}) => {
     
     let variantStyle;
     switch (variant) {
