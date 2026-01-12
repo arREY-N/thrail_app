@@ -11,7 +11,13 @@ export default function signup(){
     const isLoading = useAuthStore(s => s.isLoading);
 
     const onSignUpPress = async (email, password, username, confirmPassword) => {
-        editAccount({email, password, username, confirmPassword})    
+        editAccount({
+            email, 
+            password, 
+            username, 
+            confirmPassword
+        })    
+        
         const validated = await validateSignUp();
         if(validated) router.push('/(auth)/information');
     }
@@ -28,8 +34,7 @@ export default function signup(){
         setError('Function to be added soon.');
     }
     
-    return (
-        // account={account} add account props to handle auto fill  
+    return (  
         <SignUpScreen
             onSignUpPress={onSignUpPress} 
             onLogInPress={onLogIn} 
