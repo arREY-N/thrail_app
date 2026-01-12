@@ -8,8 +8,6 @@ export default function tac(){
     const error = useAuthStore(s => s.error);
     const isLoading = useAuthStore(s => s.isLoading);
     const signUp = useAuthStore(s => s.signUp);
-    const profile = useAuthStore(s => s.profile);
-    const user = useAuthStore(s => s.user);
 
     const onAcceptPress = async () => {
         await signUp();
@@ -26,6 +24,7 @@ export default function tac(){
 
     return(
         <TermsScreen 
+            isLoading={isLoading}
             onAcceptPress={onAcceptPress}
             onDeclinePress={onDeclinePress}
             onBackPress={onBackPress}
