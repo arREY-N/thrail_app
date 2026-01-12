@@ -1,52 +1,52 @@
 import { auth, db } from '@/src/core/config/Firebase';
 import { getAuthErrorMessage } from '@/src/core/error/autherror';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
-export const signUp = async (
-    email, 
-    password, 
-    username,
-    phoneNumber,
-    lastname,
-    firstname,
-    birthday,
-    address
-) => {
-    try{
-        const userCredential = await createUserWithEmailAndPassword(
-            auth, 
-            email, 
-            password
-        );
+// export const signUp = async (
+//     email, 
+//     password, 
+//     username,
+//     phoneNumber,
+//     lastname,
+//     firstname,
+//     birthday,
+//     address
+// ) => {
+//     try{
+//         const userCredential = await createUserWithEmailAndPassword(
+//             auth, 
+//             email, 
+//             password
+//         );
 
-        const user = userCredential.user;
+//         const user = userCredential.user;
 
-        console.log('user: ', user);
+//         console.log('user: ', user);
         
-        await setDoc(doc(db, 'users', user.uid), {
-            uid: user.uid,
-            email: user.email,
-            username: username,
-            firstname: firstname,
-            lastname: lastname,
-            phoneNumber: phoneNumber,
-            birthday: birthday,
-            address: address,
-            onBoardingComplete: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        },
-        {merge: true});
+//         await setDoc(doc(db, 'users', user.uid), {
+//             uid: user.uid,
+//             email: user.email,
+//             username: username,
+//             firstname: firstname,
+//             lastname: lastname,
+//             phoneNumber: phoneNumber,
+//             birthday: birthday,
+//             address: address,
+//             onBoardingComplete: false,
+//             createdAt: serverTimestamp(),
+//             updatedAt: serverTimestamp(),
+//         },
+//         {merge: true});
 
-        console.log('New user: ', user);
+//         console.log('New user: ', user);
         
 
-        return user;
-    } catch (error){
-        throw new Error(getAuthErrorMessage(error));
-    }
-}
+//         return user;
+//     } catch (error){
+//         throw new Error(getAuthErrorMessage(error));
+//     }
+// }
 
 export const finishOnboarding = async (uid, preferences) =>{
     const ref = doc(db, 'users', uid);
