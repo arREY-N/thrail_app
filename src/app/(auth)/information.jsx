@@ -1,32 +1,18 @@
-import { useAccount } from "@/src/core/context/AccountProvider";
-import { validateInfo } from "@/src/core/domain/authDomain";
+import { useAuthStore } from "@/src/core/stores/authStore";
 import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 
 
 export default function information(){
-    const [error, setError] = useState(null);
+    const error = useAuthStore(s => s.error);
     const router = useRouter();
-    const { account, updateAccount } = useAccount();
+    const validateInfo = useAuthStore(s => s.validateInfo);
+    const editAccount = useAuthStore(s => s.editAccount);
 
-    const onContinuePress = (phoneNumber, firstname, lastname, birthday, address) => {
-        setError(null);
-        try {
-            validateInfo(phoneNumber, firstname, lastname, birthday, address);
-            
-            updateAccount({
-                phoneNumber,
-                firstname,
-                lastname,
-                birthday,
-                address
-            });
-
-            router.push('/(auth)/tac');
-        } catch (err) {
-            setError(err.message);
-        }
+    const onContinuePress = (number,firstname, lastname, birthday, address) => {
+        editAccount({number,firstname, lastname, birthday, address});
+        validateInfo();
+        router.push('/(auth)/tac');
     }
 
     const onBackPress = () => {
@@ -34,7 +20,6 @@ export default function information(){
     }
 
     return(
-        // account={account} add account props to handle auto fill
         <InformationScreen
             onContinuePress={onContinuePress}
             onBackPress={onBackPress}

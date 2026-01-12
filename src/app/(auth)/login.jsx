@@ -2,29 +2,23 @@ import { forgotPassword } from '@/src/core/FirebaseAuthUtil';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 
 export default function login(){
     const router = useRouter();
-    const [error, setError] = useState(null);
+    const error = useAuthStore(s => s.error);
     const logIn = useAuthStore((state) => state.logIn)
-
+    const profile = useAuthStore(s => s.profile);
+    const isLoading = useAuthStore(s => s.isLoading);
+    
     const onLogIn = async (email, password) => {
-        setError(null);
-        try{
-            const res = await logIn(email, password);
-        } catch (err) {
-            setError(err.message);
-        }
+        const res = await logIn(email, password);
+        console.log(res);
+        console.log('Profile: ', profile ?? '-');
     }
 
     const onForgotPassword = async (email) => {
-        setError(null);
-        try{
-            await forgotPassword(email)
-        }catch(error){
-            setError(error.message)
-        }
+        await forgotPassword(email)
     }
 
     const onBackPress = () => {
@@ -41,6 +35,7 @@ export default function login(){
             onSignUpPress={onSignUpPress} 
             error={error} 
             onForgotPasswordPress={onForgotPassword}
-            onBackPress={onBackPress}/>
+            onBackPress={onBackPress}
+            isLoading={isLoading}/>
     )
 }

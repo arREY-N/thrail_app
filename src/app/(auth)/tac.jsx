@@ -1,20 +1,17 @@
-import { useAccount } from "@/src/core/context/AccountProvider";
-import { onSignUp } from "@/src/core/domain/authDomain";
+import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 export default function tac(){
     const router = useRouter();
-    const [error, setError] = useState();
-    const { account } = useAccount(); 
-    
+    const error = useAuthStore(s => s.error);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const signUp = useAuthStore(s => s.signUp);
+    const profile = useAuthStore(s => s.profile);
+    const user = useAuthStore(s => s.user);
+
     const onAcceptPress = async () => {
-        try {
-            await onSignUp(account);
-        } catch (err) {
-            setError(err)
-        }
+        await signUp();
     }
 
     const onDeclinePress = async () => {
@@ -29,6 +26,7 @@ export default function tac(){
     return(
         <View>
             { error && <Text>{error.message}</Text>}
+            { (isLoading || (user && !profile)) && <Text>Loading</Text>}
             <Text>TAC</Text>
 
             <Pressable onPress={onAcceptPress}>
