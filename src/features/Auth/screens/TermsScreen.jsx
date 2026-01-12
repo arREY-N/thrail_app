@@ -42,22 +42,18 @@ const TermsScreen = ({ onAcceptPress, onDeclinePress, onBackPress, error }) => {
                                 </CustomText>
                             </ScrollView>
                         </View>
-                        
-                        <View style={{ height: 24 }} />
 
                         <CustomText style={styles.agreementText}>
                             By clicking "Accept", you acknowledge that you have read and agree to the Terms & Conditions and Privacy Policy.
                         </CustomText>
 
-                        <View style={{ height: 32 }} />
-
-                        <View style={AuthStyles.buttonContainer}>
+                        <View style={[AuthStyles.buttonContainer, styles.buttonGap]}>
                             <CustomButton 
                                 title="Accept" 
                                 onPress={onAcceptPress} 
-                                variant="primary" 
+                                variant="primary"
                             />
-                            <View style={{ height: 16 }} />
+
                             <CustomButton 
                                 title="Decline" 
                                 onPress={onDeclinePress} 
@@ -81,6 +77,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         padding: 16,
+        marginBottom: 24,
     },
     legalText: {
         fontSize: 14,
@@ -93,6 +90,10 @@ const styles = StyleSheet.create({
         color: Colors.GRAY,
         lineHeight: 20,
         paddingHorizontal: 8,
+        marginBottom: 32,
+    },
+    buttonGap: {
+        gap: 16, 
     }
 });
 
