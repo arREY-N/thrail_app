@@ -9,10 +9,15 @@ export default function information(){
     const validateInfo = useAuthStore(s => s.validateInfo);
     const editAccount = useAuthStore(s => s.editAccount);
 
-    const onContinuePress = (number,firstname, lastname, birthday, address) => {
-        editAccount({number,firstname, lastname, birthday, address});
-        validateInfo();
-        router.push('/(auth)/tac');
+    const onContinuePress = (phoneNumber,firstname, lastname, birthday, address) => {
+        editAccount({
+            phoneNumber,
+            firstname, 
+            lastname, 
+            birthday, 
+            address
+        });
+        if(validateInfo()) router.push('/(auth)/tac');
     }
 
     const onBackPress = () => {
