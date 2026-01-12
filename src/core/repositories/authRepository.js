@@ -1,6 +1,6 @@
 import { auth, db } from '@/src/core/config/Firebase';
 import { getAuthErrorMessage } from '@/src/core/error/autherror';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from "firebase/functions";
 
@@ -21,8 +21,6 @@ export async function checkUserCredentials(userCredentials){
 
         if(unavailable.length > 0) 
             throw new Error(`${unavailable.join(', ')} already in use`);
-
-        return true
     } catch (err) {
         const errorMessage = err.message || 'Failed checking credentials'; 
         console.log(errorMessage);
@@ -72,6 +70,22 @@ export const signUp = async (accountData) => {
 
         return user;
     } catch (error){
+        console.log(error.message);
         throw new Error(getAuthErrorMessage(error));
+    }
+}
+
+export const logIn = async ({email, password}) => {
+    try {
+        const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+        return userCredential;
+    } catch (err) {
+        console.log(err.message);
+        throw new Error(getAuthErrorMessage(err));
     }
 }
