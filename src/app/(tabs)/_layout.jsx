@@ -1,8 +1,11 @@
+import { Tabs, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
-import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+
+import CustomNavBar from '../../components/CustomNavBar';
 
 export default function UserLayout() {
     const router = useRouter();
@@ -27,7 +30,10 @@ export default function UserLayout() {
     }, [user, isLoading, profile])
     
     return (
-        <Tabs screenOptions= {{ headerShown: false }}>
+        <Tabs 
+            screenOptions= {{ headerShown: false }}
+            tabBar={(props) => <CustomNavBar {...props} />}
+        >
             <Tabs.Screen name="home"/>
             <Tabs.Screen name="community"/>
             <Tabs.Screen name="explore"/>
