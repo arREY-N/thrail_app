@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
-import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
@@ -17,7 +17,7 @@ const PrivacyScreen = ({ onBackPress }) => {
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>

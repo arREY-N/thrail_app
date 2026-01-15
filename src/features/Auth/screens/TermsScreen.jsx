@@ -1,9 +1,9 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import CustomButton from '../../../components/CustomButton';
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
@@ -19,7 +19,7 @@ const TermsScreen = ({ onAcceptPress, onDeclinePress, onBackPress, error }) => {
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>

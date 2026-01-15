@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
@@ -155,7 +155,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                 onClose={handleEdit}
             />
 
-            <Header onBackPress={handleBack} />
+            <CustomHeader onBackPress={handleBack} />
 
             <ResponsiveScrollView 
                 minHeight={600} 
