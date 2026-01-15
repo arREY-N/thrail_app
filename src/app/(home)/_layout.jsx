@@ -6,7 +6,8 @@ export default function HomeLayout(){
             <Stack.Screen
                 name='weather'
                 options={{
-                    title: 'Weather'
+                    title: 'Weather',
+                    headerShown: false
                 }}
             />
             
