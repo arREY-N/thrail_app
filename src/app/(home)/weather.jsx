@@ -1,18 +1,21 @@
 import { useWeatherStore } from "@/src/core/stores/weatherStore";
-import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
+
+import WeatherScreen from "../../features/Home/screens/WeatherScreen";
 
 export default function weather() {
+    const router = useRouter();
+
     const locationWeather = useWeatherStore((state) => state.locationWeather);
 
-    return(
-        <View>
-            <Text>Weather page</Text>
-            <View>
-                <Text>Location: {locationWeather.location}</Text>
-                <Text>Temperature: {locationWeather.temperature}°C</Text>
-                <Text>Day: {locationWeather.day}°C</Text>
-                <Text>Night: {locationWeather.night}°C</Text>
-            </View>
-        </View>
-    )
+    const handleBack = () => {
+        router.back();
+    };
+
+    return (
+        <WeatherScreen 
+            locationWeather={locationWeather} 
+            onBackPress={handleBack} 
+        />
+    );
 }
