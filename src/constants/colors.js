@@ -4,6 +4,7 @@ export const Colors = {
     Gray:           '#686868',
     GRAY_MEDIUM:    '#A2A2A2', 
     GRAY_LIGHT:     '#D9D9D9',
+    YELLOW:          '#FBC02D',
 
     PRIMARY:        '#A2A2A2',
     SECONDARY:      '#D9D9D9',
