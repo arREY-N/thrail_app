@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
-import { Tabs, useRouter } from 'expo-router';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 
 export default function UserLayout() {
@@ -17,7 +17,7 @@ export default function UserLayout() {
     useEffect(() => {
         if(!user && !isLoading){
             console.log('NO USER');
-            router.replace('/');
+            return;
         }
 
         if(user && profile){
@@ -25,7 +25,10 @@ export default function UserLayout() {
             loadRecommendations(profile.id);
         }
     }, [user])
-    
+
+    if(!user && !isLoading){
+        return <Redirect href={'/'}/>
+    }
 
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
