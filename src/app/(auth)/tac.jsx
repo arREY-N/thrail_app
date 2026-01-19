@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/src/core/stores/authStore";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 
 import TermsScreen from "../../../src/features/Auth/screens/TermsScreen";
 
@@ -11,6 +11,7 @@ export default function tac(){
 
     const onAcceptPress = async () => {
         await signUp();
+        return <Redirect href={'/(auth)/preference'}/>
     }
 
     const onDeclinePress = async () => {
