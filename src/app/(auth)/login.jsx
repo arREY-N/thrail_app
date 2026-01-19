@@ -3,18 +3,23 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { Text, View } from 'react-native';
 
 export default function login(){
     const router = useRouter();
     const error = useAuthStore(s => s.error);
-    const logIn = useAuthStore((state) => state.logIn)
     const profile = useAuthStore(s => s.profile);
     const isLoading = useAuthStore(s => s.isLoading);
+    const user = useAuthStore(s => s.user);
+    const remember = useAuthStore(s => s.remember);
+
+    const logIn = useAuthStore(s => s.logIn);
+    const onRememberMePress = useAuthStore(s => s.rememberMe)
+    
+    const lock = (isLoading || (user && !profile));
     
     const onLogIn = async (email, password) => {
-        const res = await logIn(email, password);
-        console.log(res);
-        console.log('Profile: ', profile ?? '-');
+        await logIn(email, password);
     }
 
     const onForgotPassword = async (email) => {
@@ -30,12 +35,16 @@ export default function login(){
     }
 
     return (
-        <LogInScreen 
-            onLogInPress={onLogIn} 
-            onSignUpPress={onSignUpPress} 
-            error={error} 
-            onForgotPasswordPress={onForgotPassword}
-            onBackPress={onBackPress}
-            isLoading={isLoading}/>
+        <View>
+            { lock && <Text>LOADING</Text> }
+            <LogInScreen 
+                onLogInPress={onLogIn} 
+                onSignUpPress={onSignUpPress} 
+                error={error} 
+                onForgotPasswordPress={onForgotPassword}
+                onBackPress={onBackPress}
+                onRememberMePress={onRememberMePress}
+                remember={remember}/>
+        </View>
     )
 }
