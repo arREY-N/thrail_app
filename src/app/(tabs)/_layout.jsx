@@ -16,16 +16,17 @@ export default function UserLayout() {
     
     useEffect(() => {
         if(!user && !isLoading){
-            router.replace('/(auth)/landing');
-            return;
+            console.log('NO USER');
+            router.replace('/');
         }
 
         if(user && profile){
             loadTrails();
             loadRecommendations(profile.id);
         }
-    }, [user, isLoading, profile])
+    }, [user])
     
+
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
             <Tabs.Screen name="home"/>

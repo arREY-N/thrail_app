@@ -2,37 +2,32 @@ import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { useAuthStore } from "../core/stores/authStore";
 import LoadingScreen from "./loading";
+import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
 
 export default function index() {
     const router = useRouter();
 
-    const isLoading = useAuthStore((state) => state.isLoading);
-    const user = useAuthStore((state) => state.user);
-    const profile = useAuthStore((state) => state.profile);
-    const role = useAuthStore((state) => state.role);
-    const rootNavigationState = useRootNavigationState();
+    const onLogIn = () => {
+        router.push('/(auth)/login');
+    }
 
-    useEffect(() => {
-        if(!rootNavigationState?.key) return;
+    const onSignUp = () => {
+        router.push('/(auth)/signup');
+    }
+    
+    const onPrivacy = () => {
+        router.push('/(auth)/privacy');
+    }
 
-        if(isLoading) return;
-        
-        if(!user) {
-            router.replace('/(auth)/landing');
-        } else if(role === 'superadmin') {
-            router.replace('/(superadmin)/home');
-        } else if(role === 'admin') {
-            router.replace('/(admin)/home');
-        } else if(role === 'user'){
-            if(profile) {
-                if(!profile.onBoardingComplete){
-                    router.replace('/(auth)/preference');
-                } else {
-                    router.replace('/(tabs)/home');
-                }
-            }
-        }
-    }, [user, role, isLoading, profile, rootNavigationState?.key])
+    const onTerms = () => {
+        router.push('/(auth)/terms')
+    }
 
-    return <LoadingScreen/>;
+    return (
+        <LandingScreen 
+            onLogInPress={onLogIn} 
+            onSignUpPress={onSignUp}
+            onPrivacyPress={onPrivacy}
+            onTermsPress={onTerms}/>
+    )
 }
