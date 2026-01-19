@@ -39,7 +39,10 @@ export const useBookingsStore = create((set, get) => ({
         try {
             console.log('Store: ', bookingData);
 
-            const bookingId = await createBooking({cancelledBy, bookingData});
+            const bookingId = await createBooking({
+                ...bookingData,
+                ...cancelledBy
+            });
 
             set((state) => {
                 console.log({ bookingId, ...bookingData })
