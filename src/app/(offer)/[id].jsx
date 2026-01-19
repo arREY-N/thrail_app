@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
     const { id } = useLocalSearchParams();
-    const [system, setSystem] = useState('');
+    const [system, setSystem] = useState();
     const router = useRouter();
     const loadTrailOffers = useOffersStore((state) => state.loadTrailOffers);
     const trailOffers = useOffersStore((state) => state.trailOffers);
