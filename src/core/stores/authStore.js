@@ -1,6 +1,6 @@
 import { auth, db } from '@/src/core/config/Firebase';
-import { checkUserCredentials, signUp, logIn } from '@/src/core/repositories/authRepository';
-import { onIdTokenChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { checkUserCredentials, logIn, signUp } from '@/src/core/repositories/authRepository';
+import { onIdTokenChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { create } from "zustand";
 import { validateInfo, validateSignUp } from '../domain/authDomain';
@@ -20,12 +20,13 @@ const accountTemplate = {
 const init = {
     user: null,
     profile: null,
-    isLoading: true,
+    isLoading: false,
     role: null,
     error: null,
     _unsubscribe: null,
     businessId: null,
-    account: accountTemplate
+    account: accountTemplate,
+    remember: true,
 }
 
 export const useAuthStore = create((set, get) => ({
@@ -41,9 +42,11 @@ export const useAuthStore = create((set, get) => ({
         const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
             console.log('change token')
             const currentUnsub = get()._unsubscribe;
+
             if(currentUnsub) {
+                console.log('currentUnsub');
                 currentUnsub();
-                set({_unsubscribe: null});
+                set({ _unsubscribe: null });
             }
 
             if(firebaseUser) {
@@ -64,24 +67,29 @@ export const useAuthStore = create((set, get) => ({
                 set({ user: firebaseUser, role: userRole, businessId});
                 
                 const ref = doc(db, 'users', firebaseUser.uid);
-                const unsubProfile = onSnapshot(ref, (snap) =>{
-                    if(snap.exists()){
-                        set({
-                            profile: { id: firebaseUser.uid, ...snap.data() },
-                            isLoading: false
-                        });
+                const unsubProfile = onSnapshot(ref, 
+                    (snap) => {
+                        if(snap.exists()){
+                            set({
+                                profile: { id: firebaseUser.uid, ...snap.data() },
+                                isLoading: false
+                            });
+                        }
+                    },
+                    (error) => {
+                        console.log('Firestore listener error: ', error);
                     }
-                })
+                )
 
                 set({_unsubscribe: unsubProfile});
             } else {
+                console.log('no user');
                 set({
                     user: null,
                     profile: null,
                     role: null,
                     isLoading: false,
                     businessId: null,
-                    _unsubscribe: null
                 });
             }
         });
@@ -119,22 +127,14 @@ export const useAuthStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try{
-            console.log('Signing out');
-            
-            const unsubProfile = get()._unsubscribe;
-            if(unsubProfile) await unsubProfile();
-
             set({
                 user: null,
                 profile: null,
                 role: null,
                 isLoading: false,
-                businessId: null,
-                _unsubscribe: null
+                businessId: null
             })
-            
             await signOut(auth);
-            console.log('Sign out');
         } catch (err) {
             set({
                 error: err.message ?? 'Failed signing out',
@@ -195,5 +195,16 @@ export const useAuthStore = create((set, get) => ({
                 account: {...state.account, ...userData}
             }
         })
+    },
+
+    rememberMe: () => {
+        set((state) => {
+            return {
+                error: 'Function to be added soon',
+                remember: !state.remember
+            }
+        })
+
+        return get().remember;
     }
 }))
