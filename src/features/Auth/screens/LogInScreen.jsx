@@ -18,13 +18,14 @@ const LogInScreen = ({
     onSignUpPress, 
     onBackPress, 
     onForgotPasswordPress, 
+    onRememberMePress,
     onGooglePress, 
-    error 
+    error,
+    remember,
 }) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -65,13 +66,13 @@ const LogInScreen = ({
                         <View style={AuthStyles.optionsRow}>
                             <TouchableOpacity 
                                 style={AuthStyles.rememberMeContainer} 
-                                onPress={() => setRememberMe(!rememberMe)}
+                                onPress={() => onRememberMePress()}
                                 activeOpacity={0.7}
                             >
                                 <Feather 
-                                    name={rememberMe ? "check-square" : "square"} 
+                                    name={remember ? "check-square" : "square"} 
                                     size={20} 
-                                    color={rememberMe ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                                    color={remember ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
                                 />
                                 <CustomText style={AuthStyles.rememberText}>Remember Me</CustomText>
                             </TouchableOpacity>
