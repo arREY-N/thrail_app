@@ -21,10 +21,9 @@ export async function checkUserCredentials(userCredentials){
 
         if(unavailable.length > 0) 
             throw new Error(`${unavailable.join(', ')} already in use`);
-    } catch (err) {
-        const errorMessage = err.message || 'Failed checking credentials'; 
-        console.log(errorMessage);
-        throw new Error(errorMessage);
+    } catch (err) { 
+        console.log(err.message);
+        throw new Error(getAuthErrorMessage(err));
     }
 }
 
