@@ -50,6 +50,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
 
     const handleBack = () => {
         if (stepIndex === 0) {
+            console.log('Cancel preference for now?');
             router.replace('/'); 
         } else {
             setStepIndex(prev => prev - 1);
