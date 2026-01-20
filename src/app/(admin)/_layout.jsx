@@ -27,7 +27,7 @@ export default function AdminLayout(){
         <BusinessProvider>
             <Stack>
                 <Stack.Screen
-                    name = 'home'
+                    name = 'index'
                     options = {{
                         title: 'Admin Home',
                         headerShown: true,

@@ -26,7 +26,7 @@ export default function SuperAdminLayout(){
         <SuperAdminProvider>
             <Stack>
                 <Stack.Screen
-                    name = 'home'
+                    name = 'index'
                     options = {{
                         title: 'Superadmin Home',
                         headerShown: true,

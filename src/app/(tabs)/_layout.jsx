@@ -24,15 +24,13 @@ export default function UserLayout() {
             loadTrails();
             loadRecommendations(profile.id);
         }
-    }, [user])
+    }, [user]);
 
-    if(!user && !isLoading){
-        return <Redirect href={'/'}/>
-    }
+    if(!user && !isLoading) return <Redirect href={'/(auth)/landing'}/>
 
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
-            <Tabs.Screen name="home"/>
+            <Tabs.Screen name="index"/>
             <Tabs.Screen name="community"/>
             <Tabs.Screen name="explore"/>
             <Tabs.Screen name="hike"/>
