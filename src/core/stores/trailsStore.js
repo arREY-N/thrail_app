@@ -1,4 +1,5 @@
-import { deleteTrail, fetchAllTrails, saveTrail } from '@/src/core/repositories/trailRepository';
+import { deleteTrail, fetchAllTrails, getTrailMap, saveTrail } from '@/src/core/repositories/trailRepository';
+import { getTrailWeather } from '@/src/core/repositories/weatherRepository';
 import { create } from "zustand";
 
 const trailTemplate = {
@@ -8,11 +9,19 @@ const trailTemplate = {
     address: '',
 }
 
+const hikingTrailTemplate = {
+    trail: null,
+    map: null,
+    weather: null,
+    hiking: false,
+}
+
 const init = {
     trails: [],
     isLoading: false,
     error: null,
     trail: trailTemplate,
+    hikingTrail: hikingTrailTemplate
 }
 
 
@@ -33,6 +42,48 @@ export const useTrailsStore = create((set, get) => ({
         set({
             trail: selectedTrail,
             isLoading: false
+        })
+    },
+
+    hikeTrail: async (id) => {
+        set({ isLoading: true, error: null });
+
+        try {
+            const trail = get().trails.find(t => t.id === id);
+
+            if(!trail) throw new Error('Trail not found');
+
+            const map = await getTrailMap(id);
+            const weather = await getTrailWeather(trail.province);
+
+            set({
+                hikingTrail: {
+                    trail,
+                    map, 
+                    weather,
+                    hiking: false
+                },
+                isLoading: false
+            })
+        } catch (err) {
+            set({
+                isLoading: false,
+                error: err.message || 'Failed setting trail'
+            })
+        }
+    },
+
+    setOnHike: () => {
+        const hiking = get().hikingTrail.hiking;
+        console.log(hiking);
+
+        set((state) => {
+            return {
+                hikingTrail: {
+                    ...state.hikingTrail,
+                    hiking: !hiking
+                }
+            }
         })
     },
 
