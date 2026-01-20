@@ -62,7 +62,7 @@ export default function book(){
             }
 
             await createBooking({bookingData: bookingRec});
-            router.replace('/(tabs)/home');
+            router.replace('/(tabs)');
         } catch (err) {
             console.log(err.message);
             setSystem(err.message)        
