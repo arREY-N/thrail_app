@@ -13,16 +13,17 @@ export default function AuthLayout(){
         console.log('profile changed', profile ?? '--');
 
         if(user && role && profile){
-            if(role === 'superadmin') router.replace('/(superadmin)/home');
-            else if(role === 'admin') router.replace('/(admin)/home');
+            if(role === 'superadmin') router.replace('/(superadmin)');
+            else if(role === 'admin') router.replace('/(admin)');
             else if(role === 'user'){
                 if(!profile) return;
                 if(!profile.onBoardingComplete) router.replace('/(auth)/preference');
-                else router.replace('/(tabs)/home')
+                else router.replace('/(tabs)')
             }
         } 
     }, [user, role, profile]);
 
+    
     return(     
         <AccountProvider>
             <Stack>
