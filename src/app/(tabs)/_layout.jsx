@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
-import { Redirect, Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 
 export default function UserLayout() {
@@ -26,7 +26,7 @@ export default function UserLayout() {
         }
     }, [user]);
 
-    if(!user && !isLoading) return <Redirect href={'/(auth)/landing'}/>
+    if(!user && !isLoading) router.replace('/(auth)/landing');
 
     return (
         <Tabs screenOptions= {{ headerShown: false }}>
