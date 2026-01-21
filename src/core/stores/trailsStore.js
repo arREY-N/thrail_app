@@ -1,3 +1,4 @@
+import { validateTrailData } from '@/src/core/domain/trailDomain';
 import { deleteTrail, fetchAllTrails, getTrailMap, saveTrail } from '@/src/core/repositories/trailRepository';
 import { getTrailWeather } from '@/src/core/repositories/weatherRepository';
 import { create } from "zustand";
@@ -29,9 +30,14 @@ export const useTrailsStore = create((set, get) => ({
     ...init,
 
     selectTrail: async (id) => {
-        const selectedTrail = get().trails.find(t => t.id === id);
-        
         set({isLoading: true, error: null});
+
+        if(!id){
+            get().initTrail();
+            return;
+        }
+
+        const selectedTrail = get().trails.find(t => t.id === id);
 
         if(!selectedTrail) 
             set({
@@ -139,6 +145,9 @@ export const useTrailsStore = create((set, get) => ({
         try {
             // validate if get().trail has complete data
             console.log((get().trail));
+
+            validateTrailData(get().trail);
+
             const newTrail = await saveTrail(get().trail);
             
             set((state) => {
@@ -160,6 +169,26 @@ export const useTrailsStore = create((set, get) => ({
         }
     },
 
+    updateTrail: (id) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+            const selectedTrail = get().trails.find(t => t.id === id);
+
+            if(!selectedTrail) throw new Error('Trail not found');
+
+            set({
+                isLoading: false,
+                trail: selectedTrail
+            });
+        } catch (err) {
+            set({
+                isLoading: false,
+                error: err.message
+            })
+        }
+    },
+
     removeTrail: async (id) => {
         set({isLoading: true, error: null});
 
@@ -176,6 +205,6 @@ export const useTrailsStore = create((set, get) => ({
                 isLoading: false
             })
         }
-    }
+    },
 }));
 
