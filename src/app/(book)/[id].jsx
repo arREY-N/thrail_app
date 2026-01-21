@@ -93,7 +93,7 @@ const TESTBOOK = ({
     return (
         <View>    
             <Text>Book</Text>
-            { system && <Text> {system}</Text> }
+            { system && <Text>{system}</Text> }
             <View style={styles.card}>
                 <Text>Offer Information</Text>
                 <Text>OfferID: {offer.id}</Text>
