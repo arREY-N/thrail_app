@@ -29,8 +29,8 @@ export function validateInfo(userInfo){
     
     if(!lastname.trim()) throw new Error('Last name is required');
     
-    if(!birthday.trim()) throw new Error('Birthday name is required');
+    if(!birthday.trim()) throw new Error('Birthday is required');
     
-    if(!address.trim()) throw new Error('Address name is required');
+    if(!address.trim()) throw new Error('Address is required');
     
 }

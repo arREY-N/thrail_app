@@ -17,6 +17,9 @@ export const getAuthErrorMessage = (error) => {
 
         case 'auth/user-not-found':
             return 'User not found'
+        
+        case 'backend/invalid-credentials':
+            return error.message;
 
         default:
             return `Something went wrong. Please try again. \n${error.message}`
