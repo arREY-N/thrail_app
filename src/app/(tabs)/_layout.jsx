@@ -34,10 +34,10 @@ export default function UserLayout() {
             screenOptions= {{ headerShown: false }}
             tabBar={(props) => <CustomNavBar {...props} />}
         >
-            <Tabs.Screen name="home"/>
-            <Tabs.Screen name="community"/>
+            <Tabs.Screen name="home"/>            
             <Tabs.Screen name="explore"/>
             <Tabs.Screen name="hike"/>
+            <Tabs.Screen name="community"/>
             <Tabs.Screen name="profile"/>
         </Tabs>
     );

@@ -17,21 +17,21 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                     icon: <Feather name="home" size={22} color={color} />,
                     label: "Home"
                 };
-            case 'community':
-                return {
-                    icon: <Feather name="users" size={22} color={color} />,
-                    label: "Community"
-                };
             case 'explore':
                 return {
                     icon: <FontAwesome6 name="mountain" size={20} color={diamondColor} />,
-                    label: "Explore",
-                    isSpecial: true 
+                    label: "Explore"                   
                 };
             case 'hike':              
                 return {
                     icon: <FontAwesome5 name="compass" size={20} color={color} />,
-                    label: "Hike"
+                    label: "Hike",
+                    isSpecial: true 
+                };
+            case 'community':
+                return {
+                    icon: <Feather name="users" size={22} color={color} />,
+                    label: "Community"
                 };
             case 'profile':
                 return {
