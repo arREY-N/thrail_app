@@ -82,7 +82,7 @@ export default function home(){
             onMountainPress={onMountainPress}
             onDownloadPress={onDownloadPress}
 
-            recommendedTrails={null} 
+            recommendedTrails={DUMMY_DATA} 
             isLoaded={false}
         />
     );
