@@ -1,47 +1,60 @@
-import { Feather, FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Feather, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { Colors } from '../constants/colors';
-import CustomText from './CustomText';
+import { Colors } from "../constants/colors";
+import CustomText from "./CustomText";
 
 const CustomNavBar = ({ state, descriptors, navigation }) => {
-    
     const getTabConfig = (routeName, isFocused) => {
         const color = isFocused ? Colors.BLACK : Colors.WHITE;
         const diamondColor = isFocused ? Colors.BLACK : Colors.WHITE;
 
         switch (routeName) {
-            case 'home':
+            case "index":
                 return {
                     icon: <Feather name="home" size={22} color={color} />,
-                    label: "Home"
+                    label: "Home",
                 };
-            case 'explore':
+            case "explore":
                 return {
-                    icon: <FontAwesome6 name="mountain" size={20} color={diamondColor} />,
-                    label: "Explore"                   
+                    icon: (
+                        <FontAwesome6
+                            name="mountain"
+                            size={20}
+                            color={diamondColor}
+                        />
+                    ),
+                    label: "Explore",
                 };
-            case 'hike':              
+            case "hike":
                 return {
-                    icon: <FontAwesome5 name="compass" size={20} color={color} />,
+                    icon: (
+                        <FontAwesome5 name="compass" size={20} color={color} />
+                    ),
                     label: "Hike",
-                    isSpecial: true 
+                    isSpecial: true,
                 };
-            case 'community':
+            case "community":
                 return {
                     icon: <Feather name="users" size={22} color={color} />,
-                    label: "Community"
+                    label: "Community",
                 };
-            case 'profile':
+            case "profile":
                 return {
-                    icon: <FontAwesome5 name="user-circle" size={22} color={color} />,
-                    label: "Profile"
+                    icon: (
+                        <FontAwesome5
+                            name="user-circle"
+                            size={22}
+                            color={color}
+                        />
+                    ),
+                    label: "Profile",
                 };
             default:
                 return {
                     icon: <Feather name="square" size={22} color={color} />,
-                    label: "Tab"
+                    label: "Tab",
                 };
         }
     };
@@ -55,7 +68,7 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
 
                 const onPress = () => {
                     const event = navigation.emit({
-                        type: 'tabPress',
+                        type: "tabPress",
                         target: route.key,
                         canPreventDefault: true,
                     });
@@ -71,7 +84,7 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                             <TouchableOpacity
                                 onPress={onPress}
                                 activeOpacity={0.9}
-                                style={styles.diamondTouchArea} 
+                                style={styles.diamondTouchArea}
                             >
                                 <View style={styles.diamondShape}>
                                     <View style={styles.diamondIconFix}>
@@ -79,15 +92,17 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                                     </View>
                                 </View>
                             </TouchableOpacity>
-                            
-                            <CustomText 
-                                variant="caption" 
+
+                            <CustomText
+                                variant="caption"
                                 style={[
-                                    styles.label, 
-                                    { 
-                                        color: isFocused ? Colors.BLACK : Colors.WHITE,
-                                        fontWeight: isFocused ? '700' : '400' 
-                                    }
+                                    styles.label,
+                                    {
+                                        color: isFocused
+                                            ? Colors.BLACK
+                                            : Colors.WHITE,
+                                        fontWeight: isFocused ? "700" : "400",
+                                    },
                                 ]}
                             >
                                 {config.label}
@@ -107,21 +122,25 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                         style={styles.tabItem}
                         activeOpacity={0.7}
                     >
-                        <View style={[
-                            styles.iconWrapper, 
-                            isFocused && { transform: [{ scale: 1.1 }] }
-                        ]}>
+                        <View
+                            style={[
+                                styles.iconWrapper,
+                                isFocused && { transform: [{ scale: 1.1 }] },
+                            ]}
+                        >
                             {config.icon}
                         </View>
 
-                        <CustomText 
-                            variant="caption" 
+                        <CustomText
+                            variant="caption"
                             style={[
                                 styles.label,
-                                { 
-                                    color: isFocused ? Colors.BLACK : Colors.WHITE,
-                                    fontWeight: isFocused ? '700' : '400'
-                                }
+                                {
+                                    color: isFocused
+                                        ? Colors.BLACK
+                                        : Colors.WHITE,
+                                    fontWeight: isFocused ? "700" : "400",
+                                },
                             ]}
                         >
                             {config.label}
@@ -135,60 +154,60 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
 
 const styles = StyleSheet.create({
     barContainer: {
-        flexDirection: 'row',
+        flexDirection: "row",
         backgroundColor: Colors.PRIMARY,
-        height: 80, 
-        alignItems: 'flex-end', 
-        justifyContent: 'space-between',
+        height: 80,
+        alignItems: "flex-end",
+        justifyContent: "space-between",
         paddingHorizontal: 8,
-        paddingBottom: 16, 
+        paddingBottom: 16,
         borderTopWidth: 1,
         borderTopColor: Colors.WHITE,
     },
-    
+
     tabItem: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-end', 
-        height: 50, 
+        alignItems: "center",
+        justifyContent: "flex-end",
+        height: 50,
     },
     iconWrapper: {
-        marginBottom: 4, 
+        marginBottom: 4,
     },
     label: {
         fontSize: 12,
         lineHeight: 16,
-        textAlign: 'center',
+        textAlign: "center",
     },
 
     diamondWrapper: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-end', 
-        height: 50, 
-        zIndex: 10, 
+        alignItems: "center",
+        justifyContent: "flex-end",
+        height: 50,
+        zIndex: 10,
     },
     diamondTouchArea: {
-        position: 'absolute',
-        top: -40, 
-        justifyContent: 'center',
-        alignItems: 'center',
+        position: "absolute",
+        top: -40,
+        justifyContent: "center",
+        alignItems: "center",
     },
     diamondShape: {
-        width: 50, 
+        width: 50,
         height: 50,
         backgroundColor: Colors.SECONDARY,
-        borderRadius: 14, 
-        transform: [{ rotate: '45deg' }], 
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: 14,
+        transform: [{ rotate: "45deg" }],
+        justifyContent: "center",
+        alignItems: "center",
     },
     diamondIconFix: {
         width: 50,
         height: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-        transform: [{ rotate: '-45deg' }], 
+        justifyContent: "center",
+        alignItems: "center",
+        transform: [{ rotate: "-45deg" }],
     },
 });
 
