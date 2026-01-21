@@ -1,21 +1,17 @@
-import { useAccount } from "@/src/core/context/AccountProvider";
-import { onSignUp } from "@/src/core/domain/authDomain";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useAuthStore } from "@/src/core/stores/authStore";
+import { Redirect, useRouter } from "expo-router";
 
 import TermsScreen from "../../../src/features/Auth/screens/TermsScreen";
 
 export default function tac(){
     const router = useRouter();
-    const [error, setError] = useState();
-    const { account } = useAccount(); 
-    
+    const error = useAuthStore(s => s.error);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const signUp = useAuthStore(s => s.signUp);
+
     const onAcceptPress = async () => {
-        try {
-            await onSignUp(account);
-        } catch (err) {
-            setError(err.message);
-        }
+        await signUp();
+        return <Redirect href={'/(auth)/preference'}/>
     }
 
     const onDeclinePress = async () => {
@@ -29,6 +25,7 @@ export default function tac(){
 
     return(
         <TermsScreen 
+            isLoading={isLoading}
             onAcceptPress={onAcceptPress}
             onDeclinePress={onDeclinePress}
             onBackPress={onBackPress}

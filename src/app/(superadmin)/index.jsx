@@ -48,6 +48,7 @@ const TESTHOME = ({
     return(
         <ScrollView>
             <Text>Super admin screen</Text>
+            <Text>SKIP</Text>
             <Pressable onPress={onSignOutPress}>
                 <Text>Sign out</Text>
             </Pressable>

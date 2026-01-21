@@ -17,7 +17,7 @@ export default function trail(){
     }
 
     const onHikePress = (id) => {
-        console.log('Hiking: ', id);
+        router.push(`(hike)/${id}`);
     }
 
     if(!trail) return <Text>Trail {id} not found</Text>

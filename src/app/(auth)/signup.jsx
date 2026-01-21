@@ -1,30 +1,25 @@
-import { useAccount } from '@/src/core/context/AccountProvider';
-import { validateSignUp } from '@/src/core/domain/authDomain';
+import { useAuthStore } from '@/src/core/stores/authStore';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
  
 export default function signup(){
     const router = useRouter();
-    const [error, setError] = useState(null);
-    const { account, updateAccount } = useAccount();
-    
-    const onSignUpPress = (email, password, username, confirmPassword) => {
-        setError(null);
-        try{ 
-            validateSignUp(email, password, username, confirmPassword);
+    const error = useAuthStore(s => s.error)
+    const validateSignUp = useAuthStore(s => s.validateSignUp);
+    const editAccount = useAuthStore(s => s.editAccount);
+    const isLoading = useAuthStore(s => s.isLoading);
 
-            updateAccount({
-                email, 
-                password, 
-                username, 
-                confirmPassword,
-            });
-
-            router.push('/(auth)/information');
-        } catch (err) {
-            setError(err.message);
-        }
+    const onSignUpPress = async (email, password, username, confirmPassword) => {
+        editAccount({
+            email, 
+            password, 
+            username, 
+            confirmPassword
+        })    
+        
+        const validated = await validateSignUp();
+        if(validated) router.push('/(auth)/information');
     }
 
     const onLogIn = () => {
@@ -39,13 +34,13 @@ export default function signup(){
         setError('Function to be added soon.');
     }
     
-    return (
-        // account={account} add account props to handle auto fill  
+    return (  
         <SignUpScreen
             onSignUpPress={onSignUpPress} 
             onLogInPress={onLogIn} 
             onBackPress={onBackPress}
             onGmailSignUp={onGmailSignUp}
-            error={error}/>
+            error={error}
+            isLoading={isLoading}/>
     )
 }

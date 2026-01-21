@@ -8,6 +8,7 @@ const { onCall } = require('firebase-functions/v2/https');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const crypto = require('crypto');
 const { log } = require("console");
+const { request } = require("http");
 
 admin.initializeApp();
 
@@ -239,4 +240,26 @@ exports.deleteUser = onCall(async (request) => {
     } catch (err) {
         throw new HttpsError('internal', err.message);
     }
+})
+
+exports.checkEmail = onCall(async (request) => {
+    const { email, username } = request.data;
+    
+    if(!email.trim()) throw new HttpsError('invalid-argument', 'No email provided');
+    
+    if(!username.trim()) throw new HttpsError('invalid-argument', 'No username provided');
+    
+    const authPromise = admin.auth().getUserByEmail(email).catch(() => null);
+    const firestorePromise = admin.firestore()
+        .collection('users')
+        .where('username', '==', username.toLowerCase())
+        .limit(1)
+        .get();
+
+    const [userRecord, userQuery] = await Promise.all([authPromise, firestorePromise])
+
+    return { 
+        usernameAvailable: userQuery.empty, 
+        emailAvailable: !userRecord 
+    };
 })

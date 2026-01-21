@@ -1,57 +1,36 @@
-import { signUp } from '@/src/core/FirebaseAuthUtil';
-
-export async function onSignUp(account) {
-    try{
-        const user = await signUp(
-            account.email, 
-            account.password, 
-            account.username, 
-            account.phoneNumber, 
-            account.lastname, 
-            account.firstname, 
-            account.birthday, 
-            account.address
-        );
-        
-        if(!user) {
-            throw new Error('Sign up failed.');
-        }
-
-    } catch (err) {
-        console.error('Sign up error: ', err);
-        throw new Error(err);
-    }
-}
-
-export function validateSignUp(
-    email, 
-    password, 
-    username, 
-    confirmPassword,
-){  
+export function validateSignUp(signUpData){  
+    const { email, password, username, confirmPassword } = signUpData; 
+    
     if(!email || !password || !username || !confirmPassword) throw new Error('Please fill up all information');
     
-    if(password.length < 8) throw new Error('Password must be at least 8 characters');
+    if(
+        password.length < 8 ||
+        !/[A-Z]/.test(password) ||
+        !/[a-z]/.test(password) ||
+        !/\d/.test(password) ||
+        !/[!@#$%^&*]/.test(password)
+    ) throw new Error('Password must be at least 8 characters consists of an uppercase, lowercase, special, and numerical characters');
 
-    if(!/[A-Z]/.test(password)) throw new Error('Password must have at least 1 uppercase character');
-    
-    if(!/[a-z]/.test(password)) throw new Error('Password must have at least 1 lowercase character');
-
-    if(!/\d/.test(password)) throw new Error('Password must have at least 1 number');
-    
-    if(!/[!@#$%^&*]/.test(password)) throw new Error('Password must have at least 1 special character');
 
     if(password !== confirmPassword) throw new Error('Passwords does not match.');
 
     if(username.length < 6) throw new Error('Username must be at least 6 characters');
 }
 
-export function validateInfo(
-    phoneNumber,
-    firstname,
-    lastname,
-    birthday,
-    address
-){
+export function validateInfo(userInfo){
+    const { phoneNumber, firstname, lastname, birthday, address } = userInfo
 
+    if(!phoneNumber && !firstname && !lastname && !birthday && !address) 
+        throw new Error('Please fill up all information');
+
+    if(!/^(09|\+639)\d{9}$/.test(phoneNumber)) throw new Error('Invalid phone number');
+
+    if(!firstname.trim()) throw new Error('First name is required');
+    
+    if(!lastname.trim()) throw new Error('Last name is required');
+    
+    if(!birthday.trim()) throw new Error('Birthday name is required');
+    
+    if(!address.trim()) throw new Error('Address name is required');
+    
 }

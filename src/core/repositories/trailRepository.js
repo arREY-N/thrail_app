@@ -81,3 +81,9 @@ export async function deleteTrail(id){
         throw new Error(err);
     }
 }
+
+export async function getTrailMap(id){
+    console.log('Map for ', id);
+
+    return { map: 'Map to be added'}
+}

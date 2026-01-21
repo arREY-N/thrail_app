@@ -15,6 +15,9 @@ export const getAuthErrorMessage = (error) => {
         case 'auth/email-already-in-use':
             return 'Email already in-use. Log in instead'
 
+        case 'auth/user-not-found':
+            return 'User not found'
+
         default:
             return `Something went wrong. Please try again. \n${error.message}`
     }

@@ -3,90 +3,100 @@ import CustomTextInput from "@/src/components/CustomTextInput";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function trail(){
     const provinces = ["Cavite", "Laguna", "Rizal", "Batangas", "Quezon"];
     const router = useRouter();
-    const [trail, setTrail] = useState(null);
-    const [error, setError] = useState(null);
-    const [name, setName] = useState(trail?.name);
-    const [length, setLength] = useState(trail?.length);
-    const [province, setProvince] = useState(trail?.province ?? []);
-    const [address, setAddress] = useState(trail?.address);
-    const { createTrail, removeTrail } = useTrailsStore();
-    const trails = useTrailsStore((state) => state.trails);
-    const loadTrails = useTrailsStore((state) => state.loadTrails);
+    const system = useTrailsStore(s => s.error);
+    const [editing, setEditing] = useState(false);
 
+    const onRemovePress = useTrailsStore(s => s.removeTrail);
+    const onCreateTrailPress = useTrailsStore(s => s.createTrail);
+    const onEditTrailPress = useTrailsStore(s => s.editTrail);
+    const selectTrail = useTrailsStore(s => s.selectTrail);
+    const trails = useTrailsStore(s => s.trails);
+    const loadTrails = useTrailsStore(s => s.loadTrails);
+    const trail = useTrailsStore(s => s.trail);
+    
     useEffect(() => {
         loadTrails();
     }, [])
-    
-    const onCreateTrailPress = (trailData) => {
-        try {
-            if(!trailData.name || !trailData.length || !trailData.province || !trailData.address){
-                throw new Error('Name, Length, Province, and Address are required fields');
-            }
-            createTrail({...trailData, id:trail?.id});
-            setName('');
-            setLength();
-            setProvince([]);
-            setAddress('');
-        } catch (err) {
-            setError(err.message);
-        }
+
+    const onSetProvince = (key) => {
+        const province = trail.province.find(p => p === key)
+            ? trail.province.filter(p => p !== key)    
+            : [...trail.province, key];
+        onEditTrailPress({province})
     }
 
     const onUpdateTrailPress = (id) => {
-        try{
-            const selTrail = trails.find(t => t.id === id);
-            if(!selTrail) throw new Error('Trail not found');
-            setTrail(selTrail)
-            setName(selTrail.name);
-            setLength(selTrail.length);
-            setProvince(selTrail.province ?? []);
-            setAddress(selTrail.address);
-        } catch (err) {
-            setError(err.message);
-        }
+        selectTrail(id);
+        setEditing(true);
     }
 
-    const onRemovePress = (id) => {
-        try {
-            console.log('Remove: ', id);
-            removeTrail(id);
-        } catch (err) {
-            setError(err.message);
-        }
+    const onCancelEditPress = () => {
+        selectTrail();
+        setEditing(false);
     }
-
+    
     return (
+        <TESTCREATETRAIL 
+            onCreateTrailPress={onCreateTrailPress}
+            onEditTrailPress={onEditTrailPress}
+            onUpdateTrailPress={onUpdateTrailPress}
+            onSetProvince={onSetProvince}
+            onRemovePress={onRemovePress}
+            onCancelEditPress={onCancelEditPress}
+            trail={trail}
+            trails={trails}
+            provinces={provinces}
+            system={system}
+            editing={editing}
+        />
+    )
+}
+
+const TESTCREATETRAIL = ({
+    onCreateTrailPress,
+    onEditTrailPress,
+    onUpdateTrailPress,
+    onSetProvince,
+    onRemovePress,
+    onCancelEditPress,
+    trail,
+    trails,
+    provinces,
+    system,
+    editing
+}) => {
+    return(
         <ScrollView>
             <Text>Trails</Text>
 
-            {error && <Text>{error}</Text>}
+            {system && <Text>{system}</Text>}
             <CustomTextInput
                 placeholder="Name"
-                value={name ?? ''}
-                onChangeText={setName}
+                value={trail.name ?? ''}
+                onChangeText={(name) => onEditTrailPress({name})}
             />
 
             <CustomTextInput
                 placeholder="Length"
-                value={length ?? ''}
-                onChangeText={setLength}
+                value={trail.length ?? ''}
+                onChangeText={(length) => onEditTrailPress({length})}
             />
 
             <CustomTextInput
                 placeholder="Province"
-                value={province ?? ''}
-                onChangeText={setProvince}
+                value={trail.province.join(', ') ?? ''}
+                onChangeText={null}
             />
 
             {
                 provinces.map((key, index) => {
                     return (
-                        <Pressable onPress={() => setProvince((p) => [...p, key])}>
+                        <Pressable key={index} onPress={() => onSetProvince(key)}>
                             <Text>{key}</Text>
                         </Pressable>
                     )
@@ -95,26 +105,35 @@ export default function trail(){
 
             <CustomTextInput
                 placeholder="Address"
-                value={address ?? ''}
-                onChangeText={setAddress}
+                value={trail.address ?? ''}
+                onChangeText={(address) => onEditTrailPress({address})}
             />
             
             <CustomButton
                 title="Publish" 
-                onPress={() => onCreateTrailPress({name, length, province, address})}
+                onPress={() => onCreateTrailPress()}
                 variant="primary" 
             />
+
+            { editing && 
+                <CustomButton
+                    title="Cancel" 
+                    onPress={() => onCancelEditPress()}
+                    variant="primary" 
+                />
+            }
 
             {
                 trails.map((t) => {
                     const locs = t.province ?? [];                    
                     return(
                         <ScrollView key={t.id} style={styles.trail}>
+                            <Text>{t.name}</Text>
+                            {
+                                locs?.map(l => <Text>{l}</Text>)
+                            }
                             <Pressable onPress={() => onUpdateTrailPress(t.id)} key={t.id}>
-                                <Text>{t.name}</Text>
-                                {
-                                    locs?.map(l => <Text>{l}</Text>)
-                                }
+                                <Text>Edit Trail</Text>
                             </Pressable>
                             <Pressable onPress={() => onRemovePress(t.id)}>
                                 <Text>Remove Trail</Text>
@@ -123,8 +142,9 @@ export default function trail(){
                     )
                 })
             }
+
+            <View style={{margin: 50}}/>
         </ScrollView>
-        // <ExploreScreen/>
     )
 }
 

@@ -10,7 +10,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
     const { id } = useLocalSearchParams();
-    const [system, setSystem] = useState('');
+    const systemOffers = useOffersStore(s => s.error);
+    const systemPayments = usePaymentsStore(s => s.error);
+    const systemBookings = useBookingsStore(s => s.error);
+
     const router = useRouter();
 
     const trailOffers = useOffersStore((state) => state.trailOffers);
@@ -58,8 +61,8 @@ export default function book(){
                 offerId: offer.id,
             }
 
-            await createBooking(bookingRec);
-            router.replace('/(tabs)/home');
+            await createBooking({bookingData: bookingRec});
+            router.replace('/(tabs)');
         } catch (err) {
             console.log(err.message);
             setSystem(err.message)        
@@ -72,10 +75,10 @@ export default function book(){
                 offer={offer}
                 profile={profile}
                 onPayPress={onPayPress}
-                system={system}
+                system={systemBookings || systemOffers || systemPayments}
             /> : 
             
-            <Text style={styles.loading}>LOADING...</Text>
+            <Text style={styles.loading}>LOADING</Text>
     )
 }
 
@@ -90,7 +93,7 @@ const TESTBOOK = ({
     return (
         <View>    
             <Text>Book</Text>
-            { system && <Text> {system}</Text> }
+            { system && <Text>{system}</Text> }
             <View style={styles.card}>
                 <Text>Offer Information</Text>
                 <Text>OfferID: {offer.id}</Text>
@@ -102,7 +105,7 @@ const TESTBOOK = ({
             <View style={styles.card}>
                 <Text>User Information</Text>
                 <Text>User ID: {profile.id} </Text>
-                <Text>User: {profile.firname} {profile.lastname}</Text>
+                <Text>User: {profile.firstname} {profile.lastname}</Text>
                 <Text>Username: {profile.username}</Text>
             </View>
             

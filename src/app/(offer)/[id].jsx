@@ -1,28 +1,25 @@
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
     const { id } = useLocalSearchParams();
-    const [system, setSystem] = useState('');
     const router = useRouter();
-    const loadTrailOffers = useOffersStore((state) => state.loadTrailOffers);
-    const trailOffers = useOffersStore((state) => state.trailOffers);
-    const offerIsLoading = useOffersStore((state) => state.isLoading)
-    const userBookings = useBookingsStore((state) => state.userBookings);
+
+    const system = useBookingsStore(s => s.error);
+    const loadTrailOffers = useOffersStore(s => s.loadTrailOffers);
+    const trailOffers = useOffersStore(s => s.trailOffers);
+    const offerIsLoading = useOffersStore(s => s.isLoading)
+    const checkBookings = useBookingsStore(s => s.checkBookings);
 
     useEffect(() => {        
         loadTrailOffers(id);
     }, [id]);
 
     const onBookNowPress = (id) => {
-        if(userBookings.some(u => u.offerId === id)){
-            setSystem('Already booked this offer');
-            return;
-        }
-        setSystem('');
+        if(!checkBookings(id)) return;
         router.push(`/(book)/${id}`);
     }
     
@@ -50,7 +47,7 @@ const TESTBOOK = ({
                 offers?.length > 0 &&
                     offers.map((o) => {
                         return (
-                            <View style={styles.offers}>
+                            <View style={styles.offers} key={o.id}>
                                 <Text>OfferID: {o.id}</Text>
                                 <Text>Trail ID: {o.trailId}</Text>
                                 <Text>Provider: {o.businessName}</Text>

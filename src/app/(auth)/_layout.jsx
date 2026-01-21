@@ -1,31 +1,29 @@
 import { AccountProvider } from '@/src/core/context/AccountProvider';
 import { useAuthStore } from '@/src/core/stores/authStore';
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect } from 'react';
 
 export default function AuthLayout(){
-    const user = useAuthStore((state) => state.user);
-    const role = useAuthStore((state) => state.role);
-    const profile = useAuthStore((state) => state.profile);
+    const user = useAuthStore(s => s.user);
+    const role = useAuthStore(s => s.role);
+    const profile = useAuthStore(s => s.profile);
     const router = useRouter();
-    const isLoading = useAuthStore((state) => state.isLoading);
-    const rootNavigationState = useRootNavigationState();
 
     useEffect(() => {
-        if(!rootNavigationState?.key) return;
+        console.log('profile changed', profile ?? '--');
 
-        if(user && role){
-            if(role === 'superadmin') router.replace('/(superadmin)/home');
-            else if(role === 'admin') router.replace('/(admin)/home');
+        if(user && role && profile){
+            if(role === 'superadmin') router.replace('/(superadmin)');
+            else if(role === 'admin') router.replace('/(admin)');
             else if(role === 'user'){
                 if(!profile) return;
-
                 if(!profile.onBoardingComplete) router.replace('/(auth)/preference');
-                else router.replace('/(tabs)/home')
+                else router.replace('/(tabs)')
             }
-        }
-    }, [user, role, profile, isLoading]);
+        } 
+    }, [user, role, profile]);
 
+    
     return(     
         <AccountProvider>
             <Stack>

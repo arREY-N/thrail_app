@@ -13,7 +13,6 @@ export default function personnel(){
     const businessAccount = useBusinessesStore((state) => state.businessAccount);
     const createBusinessAdmin = useBusinessesStore((state) => state.createBusinessAdmin);
     const reloadBusinessAdmins = useBusinessesStore((state) => state.reloadBusinessAdmins);
-    const businessIsLoading = useBusinessesStore((state) => state.isLoading);
     
     const [searchedUsers, setSearchedUsers] = useState([]);
 
@@ -30,19 +29,22 @@ export default function personnel(){
     
     const onFindUserPress = async (email) => {
         const user = await loadUserByEmail(email);
-        console.log(user);
-        setSearchedUsers((prev) => {
-            return prev.some(u => u.id == user.id) 
-                ? prev 
-                : [...prev, user]
-        });
+        if(user){
+            setSearchedUsers((prev) => {
+                return prev.some(u => u.id == user?.id) 
+                    ? prev 
+                    : [...prev, user]
+            });
+        } 
     }
 
     const onMakeAdminPress = async (userId) => {
         await createBusinessAdmin({userId, businessId: businessAccount.id})
+        setSearchedUsers([]);
     }
 
     const onReloadPress = async () => {
+        console.log('Reload');
         await reloadBusinessAdmins(businessAccount.id);
     }
     
@@ -83,9 +85,13 @@ const TESTPERSONNEL = ({
                     </Pressable>
 
                     {
-                        searchedUsers.map((s) => {
+                        searchedUsers.length > 0
+                        ? searchedUsers.map((s) => {
                             return(
-                                <Pressable onPress={() => onMakeAdminPress(s.id)}>
+                                <Pressable onPress={() => {
+                                    onMakeAdminPress(s.id)
+                                    setEmail('');
+                                }}>
                                     <Text>ID: {s.id}</Text>
                                     <Text>Username: {s.username}</Text>
                                     <Text>Email: {s.email}</Text>
@@ -93,6 +99,7 @@ const TESTPERSONNEL = ({
                                 </Pressable>
                             )
                         })
+                        : <Text>NO USER FOUND</Text>
                     }
                 </View> : <></>
            }

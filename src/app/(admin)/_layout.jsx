@@ -1,36 +1,33 @@
 import { BusinessProvider } from '@/src/core/context/BusinessProvider';
 import { useAuthStore } from '@/src/core/stores/authStore';
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect } from 'react';
+import LoadingScreen from '../loading';
+import UnauthorizedScreen from '../unauthorized';
 
 export default function AdminLayout(){
+    const router = useRouter();
+    
     const user = useAuthStore((state) => state.user);
     const role = useAuthStore((state) => state.role);
     const isLoading = useAuthStore((state) => state.isLoading);
-    const router = useRouter();
-    const rootNavigationState = useRootNavigationState();
     
-    useEffect(() => {
-        if(!rootNavigationState?.key) return;
-        
-        if(isLoading) return;
-
-        if(!user) {
+    useEffect(() => { 
+        if(!isLoading && !user) {
             router.replace('/(auth)/landing');
             return
         }
+    }, [user]);
+    
+    if(!role) return <LoadingScreen/>;
 
-        if(role && role === 'user'){
-            router.replace('/(tabs)/home');
-            return;
-        }        
-    }, [user, role, rootNavigationState?.key, isLoading]);
+    if(role === 'user') return <UnauthorizedScreen/>
 
-    return(     
+    return(
         <BusinessProvider>
             <Stack>
                 <Stack.Screen
-                    name = 'home'
+                    name = 'index'
                     options = {{
                         title: 'Admin Home',
                         headerShown: true,

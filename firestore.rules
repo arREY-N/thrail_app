@@ -4,7 +4,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
   
     match /users/{userId}{
-    	allow read: if request.auth != null;
+    	allow read: if request.auth != null && (
+            request.auth.uid == userId 
+            || request.auth.token.role == 'admin' 
+            || request.auth.token.role == 'superadmin' 
+            );
       allow create: 
       	if request.auth != null
         && request.auth.uid == userId;

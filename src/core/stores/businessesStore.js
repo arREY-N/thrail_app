@@ -157,8 +157,12 @@ export const useBusinessesStore = create((set, get) => ({
         try{
             await createBusinessAdmin({userId, businessId});
 
-            set({
-                isLoading: false
+            const businessAdmin = await fetchBusinessAdmins(userId);
+            set((state) => {
+                return {
+                    businessAdmins: [...state.businessAdmins, businessAdmin],
+                    isLoading: false
+                }
             })
         } catch (err) {
             set({
@@ -168,16 +172,25 @@ export const useBusinessesStore = create((set, get) => ({
         }
     },
 
-    reloadBusinessAdmins: async (businessId) => {
+    reloadBusinessAdmins: async (providedBusinessId = null) => {
         set({isLoading: true, error: null});
 
         try {
-            const businesses = await fetchBusinesses();
-            set({businesses, isLoading: false})
+            const targetID = providedBusinessId || get().businessAccount.id;
+            console.log('Target ID: ', targetID);
+            if(!targetID) throw new Error('Missing Business ID');
+
+            const businessAdmins = await fetchBusinessAdmins(targetID);
+            console.log(businessAdmins);
+            set({
+                businessAdmins,
+                isLoading: false
+            })
+            
         } catch (err) {
             set({
-                error: err.message ?? 'Failed reloading admins',
-                isloading: false
+                isLoading: false,
+                error: err.message ?? 'Failed loading admins'
             })
         }
     }
