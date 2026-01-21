@@ -59,6 +59,26 @@ export const useBookingsStore = create((set, get) => ({
         }
     },
 
+    checkBookings: (id) => {
+        set({ isLoading: true, error: null });
+
+        try {
+            console.log('Checking ', id);
+
+            if(get().userBookings.some(u => u.offerId === id))
+                throw new Error('Already booked this offer');
+
+            set({ isLoading: false, error: null });
+            
+            return true;
+        } catch (err) {
+            set({
+                error: err.message,
+                isLoading: false,
+            })
+        }
+    },
+
     cancelBooking: async (bookingData) => {
         set({isLoading: true, error: null});
 
