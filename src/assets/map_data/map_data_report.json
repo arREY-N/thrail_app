@@ -1,0 +1,342 @@
+{
+    "status": "Final Audit",
+    "statistics": {
+        "total_mountains_target": 36,
+        "mountains_found": 28,
+        "mountains_missing": 8,
+        "total_hiking_segments": 10828,
+        "total_named_trails": 52
+    },
+    "MISSING_MOUNTAINS": [
+        "Mount Ayngat",
+        "Mount Binacayan",
+        "Mount Cabaun",
+        "Mount Daguldol",
+        "Mount Haponang Banoi",
+        "Mount Lantik",
+        "Mount Mag-asawang Bato",
+        "Mount Mataripis"
+    ],
+    "FOUND_MOUNTAINS": [
+        "Mount Ayaas",
+        "Mount Balagbag",
+        "Mount Banahaw",
+        "Mount Batolusong",
+        "Mount Batulao",
+        "Mount Binutasan",
+        "Mount Cristobal",
+        "Mount Daraitan",
+        "Mount Gulugod Baboy",
+        "Mount Irid",
+        "Mount Kalisungan",
+        "Mount Kulis",
+        "Mount Mabilog",
+        "Mount Maculot",
+        "Mount Makiling",
+        "Mount Malipunyo",
+        "Mount Manabu",
+        "Mount Mapalad",
+        "Mount Marami",
+        "Mount Maynoba",
+        "Mount Nagpatong",
+        "Mount Pamitinan",
+        "Mount Parawagan",
+        "Mount Pico de Loro",
+        "Mount Sapari",
+        "Mount Tagapo",
+        "Mount Talamitam",
+        "Mount Tatlong Krus"
+    ],
+    "NAMED_TRAILS_LIST": [
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Cruz Compound']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['B. Santa Ana Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Springfield' 'Sampaguita Extension']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['San Vicente Street Extension']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Gumamela Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Falcon Alley']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Alley 1']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Basic Trail']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Sunflower Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Santan Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Pigeon Alley']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Rose Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Orchids Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Talong Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Sampaguita Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['47th Avenue Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Ayaas",
+            "name": "['Bayanihan Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Banahaw",
+            "name": "['Diwata']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mount Marami New Trail (Nuestra Se\u00f1ora)']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mount Marami Old Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Alibangbang Trail' 'Palay-Palay - Dos Picos Valley Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Talipusngo to Nuestra Senora Dela Paz Track']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mount Marami Trail (Nuestra Se\u00f1ora)']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mataas na Gulod Side Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['To Silyang Bato']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mount Marami Southface Trail to Hinalong Dagat'\n 'Hinalong Dagat - Mount Marami Boulders']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mataas na Gulod - Palay-Palay Valley Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Palay-Palay - Dos Picos Valley Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mataas na Gulod - Palay-Palay Valley Trail'\n 'Palay-Palay - Dos Picos Valley Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Palay-Palay - Dos Picos Valley Trail' 'Alibangbang Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Batulao",
+            "name": "['Mount Marami Southface Trail to Hinalong Dagat']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['River Crossing Trail']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['Mount Irid Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['Trail ni Mamshie']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['Kinabuan Falls Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['Sadlak Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Binutasan",
+            "name": "['To Kinabuan']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Maculot",
+            "name": "['Manabu Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Maculot",
+            "name": "['Malipunyo Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['Atisan Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['Mang Ben - Mang Berting Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['Manabu - Malipunyo Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['San Antonio to Mount Malipunyo Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['Alaminos to Mount Manabu Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Malipunyo",
+            "name": "['80 degree Trail - Malipunyo']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Mapalad",
+            "name": "['Carmen Street']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Mapalad",
+            "name": "['Barangay Road']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Mapalad",
+            "name": "['Santo Tomas Road']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Mapalad",
+            "name": "['Cableway']",
+            "type": "['track']"
+        },
+        {
+            "mountain": "Mount Marami",
+            "name": "['Pinagkaisahan Hanging Bridge']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Marami",
+            "name": "['Mount Buntis Trail']",
+            "type": "['path']"
+        },
+        {
+            "mountain": "Mount Marami",
+            "name": "['Caingin Hanging Bridge']",
+            "type": "['path']"
+        }
+    ],
+    "NAMELESS_PATH_COUNTS": {
+        "Mount Ayaas": 1202,
+        "Mount Balagbag": 1166,
+        "Mount Banahaw": 278,
+        "Mount Batolusong": 782,
+        "Mount Batulao": 328,
+        "Mount Binutasan": 332,
+        "Mount Cristobal": 108,
+        "Mount Daraitan": 194,
+        "Mount Gulugod Baboy": 86,
+        "Mount Irid": 234,
+        "Mount Kalisungan": 108,
+        "Mount Kulis": 332,
+        "Mount Mabilog": 236,
+        "Mount Maculot": 74,
+        "Mount Makiling": 264,
+        "Mount Malipunyo": 80,
+        "Mount Manabu": 80,
+        "Mount Mapalad": 272,
+        "Mount Marami": 148,
+        "Mount Maynoba": 120,
+        "Mount Nagpatong": 28,
+        "Mount Pamitinan": 1202,
+        "Mount Parawagan": 1202,
+        "Mount Pico de Loro": 348,
+        "Mount Sapari": 332,
+        "Mount Tagapo": 250,
+        "Mount Talamitam": 348,
+        "Mount Tatlong Krus": 40
+    }
+}
