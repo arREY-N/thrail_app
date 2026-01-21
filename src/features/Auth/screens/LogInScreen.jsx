@@ -1,4 +1,4 @@
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
@@ -62,8 +62,8 @@ const LogInScreen = ({
                             secureTextEntry
                         />
 
-                        <View style={AuthStyles.optionsRow}>
-                            <TouchableOpacity 
+                        <View style={[AuthStyles.optionsRow, {justifyContent: 'flex-end'}]}>
+                            {/* <TouchableOpacity 
                                 style={AuthStyles.rememberMeContainer} 
                                 onPress={() => setRememberMe(!rememberMe)}
                                 activeOpacity={0.7}
@@ -74,7 +74,7 @@ const LogInScreen = ({
                                     color={rememberMe ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
                                 />
                                 <CustomText style={AuthStyles.rememberText}>Remember Me</CustomText>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             <TouchableOpacity onPress={onForgotPasswordPress}>
                                 <CustomText style={AuthStyles.forgotText}>Forgot Password?</CustomText>
