@@ -1,7 +1,8 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Text, View } from 'react-native';
  
 export default function signup(){
     const router = useRouter();
@@ -9,6 +10,11 @@ export default function signup(){
     const validateSignUp = useAuthStore(s => s.validateSignUp);
     const editAccount = useAuthStore(s => s.editAccount);
     const isLoading = useAuthStore(s => s.isLoading);
+    const reset = useAuthStore(s => s.reset);
+
+    useEffect(() => {
+        reset();
+    },[]);
 
     const onSignUpPress = async (email, password, username, confirmPassword) => {
         editAccount({
@@ -35,12 +41,16 @@ export default function signup(){
     }
     
     return (  
-        <SignUpScreen
-            onSignUpPress={onSignUpPress} 
-            onLogInPress={onLogIn} 
-            onBackPress={onBackPress}
-            onGmailSignUp={onGmailSignUp}
-            error={error}
-            isLoading={isLoading}/>
+        <View>
+            { isLoading && <Text>Loading</Text> }
+
+            <SignUpScreen
+                onSignUpPress={onSignUpPress} 
+                onLogInPress={onLogIn} 
+                onBackPress={onBackPress}
+                onGmailSignUp={onGmailSignUp}
+                error={error}
+                isLoading={isLoading}/>
+        </View>
     )
 }
