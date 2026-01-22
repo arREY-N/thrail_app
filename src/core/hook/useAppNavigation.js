@@ -4,7 +4,6 @@ export function useAppNavigation(){
     const router = useRouter();
 
     const onMountainPress = (id) => {
-        console.log('Routing to: ', id);
         router.push(`/(mountain)/${id}`)
     }
 
@@ -16,9 +15,29 @@ export function useAppNavigation(){
         console.log('Downloading: ', id);
     }
 
+    const onSignUpPress = () => {
+        router.replace('/(auth)/signup');
+    }
+
+    const onLogIn = () => {
+        router.replace('/(auth)/login');
+    }
+
+    const onNotificationPress = () => {
+        router.push('/(home)/notification');
+    }
+
+    const onBookingPress = () => {
+        router.push('/(book)/userBooking');
+    }
+
     return{
         onMountainPress,
         onBackPress,
-        onDownloadPress
+        onDownloadPress,
+        onSignUpPress,
+        onLogIn,
+        onBookingPress, 
+        onNotificationPress
     }
 }
