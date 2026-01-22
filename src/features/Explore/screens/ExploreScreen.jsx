@@ -1,10 +1,29 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import React from 'react';
+import { Pressable, Text, View } from 'react-native';
 
-const ExploreScreen = () => {
+import CustomHeader from '../../../components/CustomHeader';
+
+const ExploreScreen = ({ 
+    trails, 
+    onViewMountain 
+}) => {
+
     return (
         <View>
-            <Text>Explore Screen</Text>
+            <CustomHeader 
+                title="Explore"
+                showDefaultIcons={true} 
+            />
+
+            <Text>Explore screen</Text>
+            
+            {trails?.map((t) => {
+                return (
+                    <Pressable onPress={() => onViewMountain(t.id)} key={t.id}>
+                        <Text>{t.name}</Text>
+                    </Pressable>
+                )
+            })}
         </View>
     )
 }

@@ -1,7 +1,9 @@
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+// import { Pressable, Text, View } from 'react-native';
+
+import ExploreScreen from '../../features/Explore/screens/ExploreScreen';
 
 export default function explore(){
     const router = useRouter();
@@ -14,18 +16,21 @@ export default function explore(){
     }
 
     return (
-        <View>
-            <Text>Explore</Text>
-            {
-                trails.map((t) => {
-                    return(
-                        <Pressable onPress={() => onViewMountain(t.id)} key={t.id}>
-                            <Text>{t.name}</Text>
-                        </Pressable>
-                    )
-                })
-            }
-        </View>
-        // <ExploreScreen/>
+        <ExploreScreen
+            trails={trails}
+            onViewMountain={onViewMountain}
+        />
+        // <View>
+        //     <Text>Explore</Text>
+        //     {
+        //         trails.map((t) => {
+        //             return(
+        //                 <Pressable onPress={() => onViewMountain(t.id)} key={t.id}>
+        //                     <Text>{t.name}</Text>
+        //                 </Pressable>
+        //             )
+        //         })
+        //     }
+        // </View>
     )
 }

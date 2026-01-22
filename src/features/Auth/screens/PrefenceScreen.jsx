@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 import ErrorMessage from '../../../components/ErrorMessage';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
@@ -19,7 +20,6 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
     const [showConfirmation, setShowConfirmation] = useState(false);
 
     const FLOW_YES = ['q1', 'q2', 'q3', 'q4', 'q5'];
-    
     const FLOW_NO  = ['q1', 'q4', 'q5'];
 
     const hikedBeforeAnswer = questions['q1']?.answer; 
@@ -156,13 +156,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                 onClose={handleEdit}
             />
 
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Feather name="chevron-left" size={28} color={Colors.WHITE} />
-                </TouchableOpacity>
-                <CustomText style={styles.headerTitle}>Thrail</CustomText>
-                <View style={{ width: 28 }} />
-            </View>
+            <CustomHeader onBackPress={handleBack} />
 
             <ResponsiveScrollView 
                 minHeight={600} 
@@ -181,7 +175,8 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
 
                     <View style={styles.footer}>
                         {stepIndex > 0 ? (
-                            <TouchableOpacity onPress={handleBack}>
+                            <TouchableOpacity onPress={handleBack} style={styles.prevButton}>
+                                <Feather name="chevron-left" size={24} color={Colors.PRIMARY} />
                                 <CustomText style={styles.prevText}>Previous</CustomText>
                             </TouchableOpacity>
                         ) : ( <View /> )}
@@ -190,7 +185,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                             <CustomText style={styles.nextText}>
                                 {stepIndex >= currentFlow.length - 1 ? "Finish" : "Next"}
                             </CustomText>
-                            <Feather name="chevron-right" size={18} color={Colors.WHITE} />
+                            <Feather name="chevron-right" size={24} color={Colors.WHITE} />
                         </TouchableOpacity>
                     </View>
 
@@ -204,25 +199,10 @@ const styles = StyleSheet.create({
     container: { 
         flex: 1 
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 15,
-        paddingBottom: 15,
-        backgroundColor: Colors.PRIMARY,
-        width: '100%',
-    },
-    headerTitle: { 
-        fontSize: 20, 
-        fontWeight: 'bold', 
-        color: Colors.WHITE 
-    },
     contentContainer: { 
         flexGrow: 1, 
-        paddingHorizontal: 24, 
-        paddingTop: 30 
+        paddingHorizontal: 16, 
+        paddingTop: 32 
     },
     formConstrainer: { 
         width: '100%', 
@@ -232,29 +212,28 @@ const styles = StyleSheet.create({
     },
     pageTitle: { 
         textAlign: 'center', 
-        marginBottom: 30, 
-        fontSize: 24, 
+        marginBottom: 32, 
         fontWeight: 'bold' 
     },
     questionArea: { 
         flex: 1, 
-        marginBottom: 30,
+        paddingBottom: 32
     },
     question: { 
         fontSize: 18, 
         fontWeight: 'bold', 
-        marginBottom: 15, 
+        marginBottom: 16, 
         color: Colors.BLACK 
     },
     subLabel: { 
         fontSize: 14, 
         fontStyle: 'italic', 
-        marginBottom: 15, 
+        marginBottom: 16, 
         color: Colors.GRAY_MEDIUM 
     },
     optionsWrapper: { 
         width: '100%', 
-        flexDirection: 'column' 
+        flexDirection: 'column'
     },
     gridContainer: { 
         flexDirection: 'row', 
@@ -268,19 +247,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginTop: 30, 
-        marginBottom: 30 
+        marginTop: 32, 
+        marginBottom: 32 
+    },
+    prevButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
     },
     prevText: { 
         color: Colors.PRIMARY, 
         fontWeight: '600', 
-        fontSize: 16 
+        fontSize: 16,
+        marginLeft: 4
     },
     nextButton: {
         backgroundColor: Colors.PRIMARY, 
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 14,
         paddingHorizontal: 24,
         borderRadius: 24,
         gap: 8,

@@ -6,7 +6,8 @@ export default function HomeLayout(){
             <Stack.Screen
                 name='weather'
                 options={{
-                    title: 'Weather'
+                    title: 'Weather',
+                    headerShown: false
                 }}
             />
             
@@ -27,7 +28,8 @@ export default function HomeLayout(){
             <Stack.Screen
                 name='notification'
                 options={{
-                    title: 'Notification'
+                    title: 'Notification',
+                    headerShown: false
                 }}
             />
         </Stack>

@@ -1,12 +1,12 @@
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../../../components/CustomButton';
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
 import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
@@ -35,7 +35,7 @@ const LogInScreen = ({
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
@@ -63,8 +63,8 @@ const LogInScreen = ({
                             secureTextEntry
                         />
 
-                        <View style={AuthStyles.optionsRow}>
-                            <TouchableOpacity 
+                        <View style={[AuthStyles.optionsRow, {justifyContent: 'flex-end'}]}>
+                            {/* <TouchableOpacity 
                                 style={AuthStyles.rememberMeContainer} 
                                 onPress={() => onRememberMePress()}
                                 activeOpacity={0.7}
@@ -75,7 +75,7 @@ const LogInScreen = ({
                                     color={remember ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
                                 />
                                 <CustomText style={AuthStyles.rememberText}>Remember Me</CustomText>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             <TouchableOpacity onPress={onForgotPasswordPress}>
                                 <CustomText style={AuthStyles.forgotText}>Forgot Password?</CustomText>

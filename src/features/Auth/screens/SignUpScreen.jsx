@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '../../../components/CustomButton';
+import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 import CustomTextInput from '../../../components/CustomTextInput';
 import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
@@ -30,7 +30,7 @@ const SignUpScreen = ({ onLogInPress, onBackPress, onSignUpPress, onGmailSignUp,
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>

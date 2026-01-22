@@ -1,7 +1,9 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+// import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import ProfileScreen from '../../features/Profile/screens/ProfileScreen';
 
 export default function profile(){
     const router = useRouter();
@@ -23,43 +25,49 @@ export default function profile(){
     }
 
     return (
-        <ProfileScreenTest 
-            onSignOut={onSignOutPress}
+        <ProfileScreen
+            onSignOutPress={onSignOutPress}
             onApplyPress={onApplyPress}
-            profile={profile}/>
+            profile={profile}
+        />
+        // <ProfileScreenTest 
+        //     onSignOut={onSignOutPress}
+        //     onApplyPress={onApplyPress}
+        //     profile={profile}/>
     )
 }
 
-const ProfileScreenTest = ({
-    onSignOut, 
-    onApplyPress,
-    profile,
-}) => {
-    return (
-        <View>
-            <Text>profile</Text>
+// const ProfileScreenTest = ({
+//     onSignOut, 
+//     onApplyPress,
+//     profile,
+// }) => {
 
-            <View style={styles.profileInfo}>
-                <Text>USER INFORMATION</Text>
-                <Text>  Name: {profile?.firstname} {profile?.lastname} </Text>
-                <Text>  Username: {profile?.username}</Text>
-                <Text>  Email: {profile?.email} </Text>
-                <Text>  Created: {profile?.createdAt?.toDate().toLocaleDateString()}</Text>
-            </View>
+//     return (
+//         <View>
+//             <Text>profile</Text>
 
-            <Pressable onPress={onSignOut}>
-                <Text>Sign out</Text>
-            </Pressable>
+//             <View style={styles.profileInfo}>
+//                 <Text>USER INFORMATION</Text>
+//                 <Text>  Name: {profile?.firstname} {profile?.lastname} </Text>
+//                 <Text>  Username: {profile?.username}</Text>
+//                 <Text>  Email: {profile?.email} </Text>
+//                 <Text>  Created: {profile?.createdAt?.toDate().toLocaleDateString()}</Text>
+//             </View>
 
-            <Pressable onPress={onApplyPress}>
-                <Text>Apply for a business acconunt</Text>
-            </Pressable>
-        </View>
-    )
-}
+//             <Pressable onPress={onSignOut}>
+//                 <Text>Sign out</Text>
+//             </Pressable>
 
-const styles = StyleSheet.create({
-    profileInfo: {
-        margin: 10
-    }
-})
+//             <Pressable onPress={onApplyPress}>
+//                 <Text>Apply for a business acconunt</Text>
+//             </Pressable>
+//         </View>
+//     )
+// }
+
+// const styles = StyleSheet.create({
+//     profileInfo: {
+//         margin: 10
+//     }
+// })
