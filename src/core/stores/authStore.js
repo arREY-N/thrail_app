@@ -206,5 +206,23 @@ export const useAuthStore = create((set, get) => ({
         })
 
         return get().remember;
+    },
+
+    gmailSignUp: () => {
+        set({
+            error: 'Function to be added soon',
+        })
+    },
+    
+    gmailLogIn: () => {
+        set({
+            error: 'Function to be added soon',
+        })
+    },
+    
+    forgotPassword: () => {
+        set({
+            error: 'Function to be added soon',
+        })
     }
 }))
