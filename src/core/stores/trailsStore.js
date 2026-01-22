@@ -24,6 +24,7 @@ const init = {
     trail: trailTemplate,
     hikingTrail: hikingTrailTemplate,
     recommendedTrails: [],
+    discoverTrails: [],
 }
 
 
@@ -247,6 +248,32 @@ export const useTrailsStore = create((set, get) => ({
             set({
                 error: err.message ?? 'Failed to load recommended trails',
                 isLoading: false
+            })
+        }
+    },
+
+    loadDiscoverTrails: () => {
+        set({ isLoading: true, error: null })
+
+        try {
+            // generate 5 random numbers
+            // fetch trails[random_number] save to discoverTrails
+
+            if(true){
+                set({
+                    error: 'Function to be added soon',
+                    isLoading: false
+                })
+                return;
+            }
+
+            // set({
+            //     isLoading: false,
+            // })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: err.message || 'Failed loading discover trails'
             })
         }
     }
