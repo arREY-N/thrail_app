@@ -8,7 +8,8 @@ export default function book(){
     const { id } = useLocalSearchParams();
     const router = useRouter();
 
-    const system = useBookingsStore(s => s.error);
+    const bookingError = useBookingsStore(s => s.error);
+    const offerError = useOffersStore(s => s.error);
     const loadTrailOffers = useOffersStore(s => s.loadTrailOffers);
     const trailOffers = useOffersStore(s => s.trailOffers);
     const offerIsLoading = useOffersStore(s => s.isLoading)
@@ -28,7 +29,7 @@ export default function book(){
             offers={trailOffers}
             isLoading={offerIsLoading}
             onBookNowPress={onBookNowPress}
-            system={system}
+            system={bookingError || offerError}
         />
     )
 }
@@ -41,7 +42,6 @@ const TESTBOOK = ({
 }) => {
     return (
         <View>
-            <Text>Booking</Text>
             { system && <Text>{system}</Text>}
             { !isLoading ?  
                 offers?.length > 0 &&
