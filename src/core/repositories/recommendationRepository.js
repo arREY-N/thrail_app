@@ -1,4 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
+import getRecoID from '@/src/core/domain/recommendationDomain';
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 
 export async function fetchUserRecommendations(uid){
@@ -17,15 +18,18 @@ export async function fetchUserRecommendations(uid){
     }
 }
 
-export async function fetchMonthRecommendation(uid, recoID){
+export async function fetchCurrentRecommendation(uid){
     try{
-        if(!uid || !recoID) throw new Error('UID or Recommendation ID missing.');
+        if(!uid) throw new Error('UID or Recommendation ID missing.');
+
+        const recoID = getRecoID();
 
         const ref = doc(db, 'users', uid, 'recommendations', recoID);    
         const snapshot = await getDoc(ref);
         
         if(!snapshot.exists()) {
-            throw new Error('Current recommendation is not yet ready')
+            console.log('Current recommendation is not yet ready');
+            return;
         }
         
         return {
@@ -33,7 +37,7 @@ export async function fetchMonthRecommendation(uid, recoID){
             ...snapshot.data(),
         }
     } catch (err) {
-        console.error('Error: ', err);
+        console.log(err);
         return [];
     }
 }

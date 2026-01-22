@@ -22,7 +22,8 @@ const init = {
     isLoading: false,
     error: null,
     trail: trailTemplate,
-    hikingTrail: hikingTrailTemplate
+    hikingTrail: hikingTrailTemplate,
+    recommendedTrails: [],
 }
 
 
@@ -116,8 +117,14 @@ export const useTrailsStore = create((set, get) => ({
 
         try {
             const trails = await fetchAllTrails();
-            set({trails, isLoading: false})
+            console.log(trails);
+            
+            set({
+                trails: trails, 
+                isLoading: false
+            })
         } catch (err) {
+            console.error(err);
             set({
                 error: err.message ?? 'Failed to load trails',
                 isLoading: false
@@ -132,6 +139,7 @@ export const useTrailsStore = create((set, get) => ({
             const trails = await fetchAllTrails();
             set({trails, isLoading: false});
         } catch (err) {
+            console.error(err);
             set({
                 error: err.message ?? 'Failed to load trails',
                 isLoading: false
@@ -162,6 +170,7 @@ export const useTrailsStore = create((set, get) => ({
                 };
             })
         } catch (err) {
+            console.error(err);
             set({
                 error: err.message ?? 'Failed to create new trail',
                 isLoading: false
@@ -182,6 +191,7 @@ export const useTrailsStore = create((set, get) => ({
                 trail: selectedTrail
             });
         } catch (err) {
+            console.error(err);
             set({
                 isLoading: false,
                 error: err.message
@@ -200,11 +210,45 @@ export const useTrailsStore = create((set, get) => ({
                 isLoading: false
             }))
         } catch (err) {
+            console.error(err);
             set({
                 error: err.message ?? 'Failed to delete trail',
                 isLoading: false
             })
         }
     },
+
+    setRecommendedTrails: async (recommendations) => {
+        set({ isLoading: true, error: null});
+
+        try {
+            if(!recommendations) {
+                console.log('No recommendation data');
+                set({
+                    isLoading: false,
+                    recommendedTrails: []
+                })
+                return;
+            }
+            
+            const trailList = get().trails;
+
+            const recommendedTrails = recommendations
+                .map(m => trailList
+                    .find(t => t.id === m.trailId))
+                .filter(Boolean);
+
+            set({
+                recommendedTrails,
+                isLoading: false
+            })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: err.message ?? 'Failed to load recommended trails',
+                isLoading: false
+            })
+        }
+    }
 }));
 
