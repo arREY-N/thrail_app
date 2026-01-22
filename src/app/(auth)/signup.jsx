@@ -1,3 +1,4 @@
+import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
@@ -11,6 +12,9 @@ export default function signup(){
     const editAccount = useAuthStore(s => s.editAccount);
     const isLoading = useAuthStore(s => s.isLoading);
     const reset = useAuthStore(s => s.reset);
+
+    const onGmailSignUp = useAuthStore(s => s.gmailSignUp);
+    const { onBackPress, onLogIn } = useAppNavigation();
 
     useEffect(() => {
         reset();
@@ -28,18 +32,6 @@ export default function signup(){
         if(validated) router.push('/(auth)/information');
     }
 
-    const onLogIn = () => {
-        router.replace('/(auth)/login');
-    }
-
-    const onBackPress = () => {
-        router.back();
-    }
-
-    const onGmailSignUp = async () => {
-        setError('Function to be added soon.');
-    }
-    
     return (  
         <View>
             { isLoading && <Text>Loading</Text> }
