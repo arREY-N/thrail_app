@@ -112,7 +112,6 @@ export const useOffersStore = create((set, get) => ({
     },
 
     loadTrailOffers: async (trailId) => {
-        
         try{
             if(!trailId)
                 throw new Error('Trail ID missing');
@@ -124,8 +123,9 @@ export const useOffersStore = create((set, get) => ({
             const offers = await fetchOfferForTrail(trailId);
 
             if(offers.length === 0){
-                console.log('No offers available for this trail');
                 set({
+                    error: 'No offers available for this trail',
+                    trailOffers: [],
                     isLoading: false
                 })
                 return;
