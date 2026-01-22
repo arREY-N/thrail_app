@@ -1,38 +1,29 @@
-import { forgotPassword } from '@/src/core/FirebaseAuthUtil';
+import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Text, View } from 'react-native';
 
 export default function login(){
-    const router = useRouter();
+    const { onBackPress, onSignUpPress } = useAppNavigation();
+    
     const error = useAuthStore(s => s.error);
     const profile = useAuthStore(s => s.profile);
     const isLoading = useAuthStore(s => s.isLoading);
     const user = useAuthStore(s => s.user);
     const remember = useAuthStore(s => s.remember);
-
-    const logIn = useAuthStore(s => s.logIn);
-    const onRememberMePress = useAuthStore(s => s.rememberMe)
+    const reset = useAuthStore(s => s.reset);
     
     const lock = (isLoading || (user && !profile));
-    
-    const onLogIn = async (email, password) => {
-        await logIn(email, password);
-    }
 
-    const onForgotPassword = async (email) => {
-        await forgotPassword(email)
-    }
+    const onLogIn = useAuthStore(s => s.logIn);
+    const onRememberMePress = useAuthStore(s => s.rememberMe)
+    const onGmailLogIn = useAuthStore(s => s.gmailLogIn);    
+    const onForgotPassword = useAuthStore(s => s.forgotPassword);
 
-    const onBackPress = () => {
-        router.back();
-    }
-
-    const onSignUpPress = () => {
-        router.replace('/(auth)/signup');
-    }
+    useEffect(() => {
+        reset();
+    }, []);
 
     return (
         <View>
@@ -44,7 +35,8 @@ export default function login(){
                 onForgotPasswordPress={onForgotPassword}
                 onBackPress={onBackPress}
                 onRememberMePress={onRememberMePress}
-                remember={remember}/>
+                remember={remember}
+                onGmailLogIn={onGmailLogIn}/>
         </View>
     )
 }
