@@ -1,7 +1,8 @@
+import CustomTextInput from "@/src/components/CustomTextInput";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
@@ -14,10 +15,24 @@ export default function book(){
     const trailOffers = useOffersStore(s => s.trailOffers);
     const offerIsLoading = useOffersStore(s => s.isLoading)
     const checkBookings = useBookingsStore(s => s.checkBookings);
-
+    const [date, setDate] = useState('');
+    const [filteredOffers, setFilteredOffers] = useState(trailOffers);
+    
     useEffect(() => {        
         loadTrailOffers(id);
-    }, [id]);
+        setFilteredOffers(trailOffers);
+    }, [id, trailOffers]);
+    
+
+    const filterOffers = () => {
+        if(date) {
+            setFilteredOffers(() => 
+                trailOffers.filter(o => o.date === date)
+            )
+        } else {
+            setFilteredOffers(trailOffers);
+        }
+    }
 
     const onBookNowPress = (id) => {
         if(!checkBookings(id)) return;
@@ -26,10 +41,13 @@ export default function book(){
     
     return(
         <TESTBOOK 
-            offers={trailOffers}
+            offers={filteredOffers}
             isLoading={offerIsLoading}
             onBookNowPress={onBookNowPress}
             system={bookingError || offerError}
+            date={date}
+            setDate={setDate}
+            filterOffers={filterOffers}
         />
     )
 }
@@ -38,11 +56,24 @@ const TESTBOOK = ({
     offers,
     isLoading,
     onBookNowPress,
-    system
+    system,
+    date,
+    setDate,
+    filterOffers,
 }) => {
     return (
         <View>
             { system && <Text>{system}</Text>}
+
+            <CustomTextInput
+                placeholder="Date"
+                value={date}
+                onChangeText={(date) => setDate(date)}
+            />
+            <Pressable onPress={filterOffers}>
+                <Text>SEARCH</Text>
+            </Pressable>
+
             { !isLoading ?  
                 offers?.length > 0 &&
                     offers.map((o) => {
