@@ -3,17 +3,18 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { useBusinessesStore } from "@/src/core/stores/businessesStore";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function personnel(){
-    const loadUserByEmail = useUsersStore((state) => state.loadUserByEmail);
-    const profile = useAuthStore((state) => state.profile);
+    const loadUserByEmail = useUsersStore(s => s.loadUserByEmail);
+    const profile = useAuthStore(s => s.profile);
 
-    const businessAdmins = useBusinessesStore((state) => state.businessAdmins);
-    const businessAccount = useBusinessesStore((state) => state.businessAccount);
-    const createBusinessAdmin = useBusinessesStore((state) => state.createBusinessAdmin);
-    const reloadBusinessAdmins = useBusinessesStore((state) => state.reloadBusinessAdmins);
-    
+    const businessAdmins = useBusinessesStore(s => s.businessAdmins);
+    const businessAccount = useBusinessesStore(s => s.businessAccount);
+    const createBusinessAdmin = useBusinessesStore(s => s.createBusinessAdmin);
+    const reloadBusinessAdmins = useBusinessesStore(s => s.reloadBusinessAdmins);
+    const isLoading = useBusinessesStore(s => s.isLoading);
+
     const [searchedUsers, setSearchedUsers] = useState([]);
 
     const [owner, setOwner] = useState(false);
@@ -30,16 +31,12 @@ export default function personnel(){
     const onFindUserPress = async (email) => {
         const user = await loadUserByEmail(email);
         if(user){
-            setSearchedUsers((prev) => {
-                return prev.some(u => u.id == user?.id) 
-                    ? prev 
-                    : [...prev, user]
-            });
+            setSearchedUsers([user]);
         } 
     }
 
-    const onMakeAdminPress = async (userId) => {
-        await createBusinessAdmin({userId, businessId: businessAccount.id})
+    const onMakeAdminPress = async (user) => {
+        await createBusinessAdmin({user, businessId: businessAccount.id})
         setSearchedUsers([]);
     }
 
@@ -47,7 +44,7 @@ export default function personnel(){
         console.log('Reload');
         await reloadBusinessAdmins(businessAccount.id);
     }
-    
+
     return(
         <TESTPERSONNEL
             businessAdmins={businessAdmins}
@@ -55,7 +52,8 @@ export default function personnel(){
             searchedUsers={searchedUsers}
             onMakeAdminPress={onMakeAdminPress}
             onReloadPress={onReloadPress}
-            owner={owner}/>
+            owner={owner}
+            isLoading={isLoading}/>
     );
 }
 
@@ -65,7 +63,8 @@ const TESTPERSONNEL = ({
     searchedUsers,
     onMakeAdminPress,
     onReloadPress,
-    owner
+    owner,
+    isLoading
 }) => {
     const [email, setEmail] = useState('');
     
@@ -73,7 +72,8 @@ const TESTPERSONNEL = ({
         <View>
             <Text>Personnel Page</Text>
             { owner ?   
-                <View> 
+                <View>
+                    { isLoading && <Text> LOADING </Text>} 
                     <CustomTextInput
                         placeholder="Email"
                         value={email}
@@ -88,18 +88,22 @@ const TESTPERSONNEL = ({
                         searchedUsers.length > 0
                         ? searchedUsers.map((s) => {
                             return(
-                                <Pressable onPress={() => {
-                                    onMakeAdminPress(s.id)
-                                    setEmail('');
-                                }}>
+                                <View>
                                     <Text>ID: {s.id}</Text>
                                     <Text>Username: {s.username}</Text>
                                     <Text>Email: {s.email}</Text>
-                                    <Text>-----MAKE ADMIN</Text>
-                                </Pressable>
+                                        { s.role === 'admin'
+                                            ? <Text>ALREADY AN ADMIN</Text>
+                                            : <Pressable onPress={() => {
+                                                onMakeAdminPress(s)
+                                                setEmail('');
+                                            }}>
+                                                <Text>-----MAKE ADMIN</Text>
+                                            </Pressable>
+                                        }
+                                </View> 
                             )
-                        })
-                        : <Text>NO USER FOUND</Text>
+                        }) : <Text>NO USER FOUND</Text>
                     }
                 </View> : <></>
            }
@@ -107,7 +111,12 @@ const TESTPERSONNEL = ({
             <Text>ADMINS</Text>
             { businessAdmins.map((a) => {
                     return(
-                        <Text>{a.id}</Text>
+                        <View style={styles.admin}>
+                            <Text>ID: {a.id}</Text>
+                            <Text>NAME: {a.firstname} {a.lastname}</Text>
+                            <Text>USERNAME: {a.username}</Text>
+                            <Text>EMAIL: {a.email}</Text>
+                        </View>
                     )
                 })
             }
@@ -117,3 +126,11 @@ const TESTPERSONNEL = ({
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+    admin: {
+        borderWidth: 1,
+        margin: 5,
+        padding: 5
+    }
+})
