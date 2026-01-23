@@ -90,7 +90,12 @@ exports.createAdmin = onCall(async (request) => {
             .doc(userId)
             .set({
                 assignedAt: FieldValue.serverTimestamp(),
-                id: userId
+                id: userId,
+                firstname: doc.data().firstname,
+                lastname: doc.data().lastname,
+                username: doc.data().username,
+                email: doc.data().email,
+                businessId,
             }, {merge: true});
 
 
