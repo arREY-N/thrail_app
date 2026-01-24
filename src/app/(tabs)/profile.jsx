@@ -2,7 +2,6 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
-import { resetData } from '@/src/core/stores/dataStore';
 import ProfileScreen from '../../features/Profile/screens/ProfileScreen';
 
 export default function profile(){
@@ -13,7 +12,7 @@ export default function profile(){
 
     const onSignOutPress = async () => {
         await signOut();
-        resetData();
+        // resetData();
     }
 
     const onApplyPress = () => {
