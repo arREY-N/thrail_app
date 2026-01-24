@@ -3,25 +3,20 @@ import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function user(){
-    const loadUsers = useUsersStore((state) => state.loadUsers);
-    const users = useUsersStore((state) => state.users);
-    const deleteAccount = useUsersStore((state) => state.deleteAccount);
+    const system = useUsersStore(s => s.error);
+    const isLoading = useUsersStore(s => s.isLoading);
+    const loadUsers = useUsersStore(s => s.loadUsers);
+    const users = useUsersStore(s => s.users);
+    const onDeleteAccountPress = useUsersStore(s => s.deleteAccount);
 
     useEffect(() => {
         loadUsers();
     }, []);
 
-    const onDeleteAccountPress = async (id) => {
-        if(!id) {
-            console.log('INVALID ID');
-            return;
-        }
-        console.log('Deleting: ', id)
-        await deleteAccount(id);
-    }
-
     return (
         <TESTUSER
+            isLoading={isLoading}
+            system={system}
             users={users}
             onDeleteAccountPress={onDeleteAccountPress}
         />
@@ -29,12 +24,16 @@ export default function user(){
 }
 
 const TESTUSER = ({
+    isLoading,
+    system,
     users,
     onDeleteAccountPress
 }) => {
     return(
         <ScrollView>
             <Text>Users</Text>
+            { system && <Text>{system}</Text> }
+            { isLoading && <Text> Loading </Text>}
             { users && users.map((u) => {
                 return(
                     <View style={styles.userCard}>
