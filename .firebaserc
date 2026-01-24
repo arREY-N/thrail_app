@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "thrail"
-  }
+    "default": "thrail",
+    "thrail": "thrail"
+  },
+  "targets": {},
+  "etags": {}
 }
