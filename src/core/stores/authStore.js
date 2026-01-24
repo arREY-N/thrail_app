@@ -127,14 +127,17 @@ export const useAuthStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try{
-            set({
-                user: null,
-                profile: null,
-                role: null,
-                isLoading: false,
-                businessId: null
-            })
+            // set({
+            //     user: null,
+            //     profile: null,
+            //     role: null,
+            //     isLoading: false,
+            //     businessId: null
+            // })
             await signOut(auth);
+            set({
+                isLoading: false,
+            })
         } catch (err) {
             set({
                 error: err.message ?? 'Failed signing out',

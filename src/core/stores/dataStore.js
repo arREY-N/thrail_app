@@ -1,5 +1,4 @@
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { useOffersStore } from '@/src/core/stores/offersStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
@@ -13,7 +12,7 @@ import { usePaymentsStore } from './paymentsStore';
 export const resetData = () => {
     try {
         useApplicationsStore.getState().reset();
-        useAuthStore.getState().reset();
+        // useAuthStore.getState().reset();
         useBookingsStore.getState().reset();
         useBusinessesStore.getState().reset();
         useOffersStore.getState().reset();

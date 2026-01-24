@@ -138,7 +138,7 @@ export const useBusinessesStore = create((set, get) => ({
             if(!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await fetchBusinessAdmins(targetID);
-            console.log(businessAdmins);
+
             set({
                 businessAdmins,
                 isLoading: false
