@@ -15,6 +15,7 @@ export default function business(){
     const addBusiness = useBusinessesStore(s => s.addBusiness);
     const deleteBusiness = useBusinessesStore(s => s.deleteBusiness);
     const loadBusinesses = useBusinessesStore(s => s.loadBusinesses);
+    const reloadBusinesses = useBusinessesStore(s => s.reloadBusinesses);
 
     useEffect(() => {
         loadBusinesses();
@@ -24,6 +25,7 @@ export default function business(){
     const approveApplicationPress = async (applicationData) => {
         await approveApplication(applicationData.userId);            
         await addBusiness(applicationData);
+        await reloadBusinesses();
     }
     
     const onDeletePress = async (id) => {
@@ -39,6 +41,7 @@ export default function business(){
             onDeletePress={onDeletePress}
             applicationsIsLoading={applicationsIsLoading}
             businessIsLoading={businessesIsLoading}
+            reloadBusinesses={reloadBusinesses}
         />
     )
 }
@@ -50,42 +53,50 @@ const TESTBUSINESS = ({
     businesses,
     onDeletePress,
     applicationsIsLoading,
-    businessIsLoading
+    businessIsLoading,
+    reloadBusinesses,
 }) => {
     return (
         <ScrollView>
-            <Text>Superadmin Business Screen</Text>
-            <Text>--BUSINESS APPLICATIONS--</Text>
-            
-            { applicationsIsLoading  && <Text>LOADING APPLICATIONS</Text>}
-            <Pressable onPress={reloadApplications}>
-                <Text>=============RELOAD=============</Text>
-            </Pressable>
-            {
-                applications 
-                    ? applications.filter(a => a.approved === false).map(a => {                
-                        return(
-                            <View style={styles.application} key={a.id}>
-                                <Text>{a.businessName}</Text>
-                                <Text>{a.email}</Text>
-                                <Pressable onPress={() => approveApplicationPress({
-                                    userId: a.userId,
-                                    appId: a.id,
-                                    email: a.email, 
-                                    businessName: a.businessName,
-                                    address: a.businessAddress,
-                                    province: a.province})}>
-                                    <Text>Approve Request</Text>
-                                </Pressable>
-                            </View>
-                        )    
-                    }) 
-                    : <Text>Applications loading</Text>
+            <View style={styles.area}>
+                <Text>--BUSINESS APPLICATIONS--</Text>
+                
+                { applicationsIsLoading && <Text>APPLICATION IS LOADING</Text>}
+                { businessIsLoading && <Text>BUSINESS IS LOADING</Text>}
 
-            }
+                { applicationsIsLoading  && <Text>LOADING APPLICATIONS</Text>}
+                <Pressable onPress={reloadApplications}>
+                    <Text>=============RELOAD=============</Text>
+                </Pressable>
+                {
+                    applications 
+                        ? applications.filter(a => a.approved === false).map(a => {                
+                            return(
+                                <View style={styles.application} key={a.id}>
+                                    <Text>{a.businessName}</Text>
+                                    <Text>{a.email}</Text>
+                                    <Pressable onPress={() => approveApplicationPress({
+                                        userId: a.userId,
+                                        appId: a.id,
+                                        email: a.email, 
+                                        businessName: a.businessName,
+                                        address: a.businessAddress,
+                                        province: a.province})}>
+                                        <Text>Approve Request</Text>
+                                    </Pressable>
+                                </View>
+                            )    
+                        }) 
+                        : <Text>Applications loading</Text>
 
-            <View style={styles.users}>
+                }
+            </View>
+
+            <View style={styles.area}>
                 <Text>-----ACTIVE BUSINESSES-----</Text>
+                <Pressable onPress={reloadBusinesses}>
+                    <Text>=============RELOAD=============</Text>
+                </Pressable>
                 {
                     (!businessIsLoading && businesses) ? 
                         businesses.filter(b => b.active === true).map((b) => {
@@ -143,6 +154,13 @@ const styles = StyleSheet.create({
         marginVertical: 5
     },
     business: {
-        margin: 5
-    }
+        marginVertical: 5,
+        padding: 10,
+        borderWidth: 0.5,
+    },
+    area : {
+        borderWidth: 1,
+        margin: 10,
+        padding: 10
+    },
 })
