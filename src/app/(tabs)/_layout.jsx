@@ -13,11 +13,13 @@ export default function UserLayout() {
 
     useEffect(() => {
         if (!user && !isLoading){
-            return;
+           return;
         } 
-        
-        loadTrails();
     }, [user, isLoading]);
+
+    useEffect(() => {
+        loadTrails();
+    }, []);
 
     if(!user && !isLoading) return <Redirect href={'/(auth)/landing'}/>
     
