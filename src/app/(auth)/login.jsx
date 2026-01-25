@@ -36,7 +36,7 @@ export default function login(){
                 onBackPress={onBackPress}
                 onRememberMePress={onRememberMePress}
                 remember={remember}
-                onGmailLogIn={onGmailLogIn}/>
+                onGooglePress={onGmailLogIn}/>
         </View>
     )
 }
