@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Test Trail" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [121.0, 14.0],
+          [121.1, 14.1],
+          [121.2, 14.0]
+        ]
+      }
+    }
+  ]
+}
