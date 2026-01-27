@@ -33,16 +33,17 @@ export async function fetchOfferById(businessId, offerId){
 
 export async function createNewOffer(offer){
     try {
-        const businessOfferRef = doc(collection(db, 'businesses', offer.businessId, 'offers'));
+        const businessOfferRef = offer.id
+            ? doc(db, 'businesses', offer.businessId, 'offers', offer.id)
+            : doc(collection(db, 'businesses', offer.businessId, 'offers'));
+        
         const businessOfferData = {
             ...offer,
             id: businessOfferRef.id,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         }
-        
         await setDoc(businessOfferRef, businessOfferData, {merge: true});
-
         return businessOfferData;
     } catch (err) {
         throw new Error(err.message ?? 'Failed creating offer')
@@ -68,7 +69,7 @@ export async function fetchOfferForTrail(id){
             throw new Error('Trail ID missing'); 
 
         const ref = collectionGroup(db, 'offers');
-        const q = query(ref, where('trailId', '==', id));
+        const q = query(ref, where('trail.id', '==', id));
 
         const querySnapshot = await getDocs(q);
 
