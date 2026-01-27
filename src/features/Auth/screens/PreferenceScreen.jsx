@@ -26,7 +26,9 @@ const PreferenceScreen = ({
 
     const router = useRouter();
     const [stepIndex, setStepIndex] = useState(0);
-    const [showConfirmation, setShowConfirmation] = useState(false);
+    
+    const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+    const [showExitConfirmation, setShowExitConfirmation] = useState(false);
 
     const FLOW_YES = ['q1', 'q2', 'q3', 'q4', 'q5'];
     const FLOW_NO  = ['q1', 'q4', 'q5'];
@@ -42,33 +44,38 @@ const PreferenceScreen = ({
 
     const handleNext = () => {
         if (stepIndex >= currentFlow.length - 1) {
-            setShowConfirmation(true); 
+            setShowSaveConfirmation(true); 
         } else {
             setStepIndex(prev => prev + 1);
         }
     };
 
     const handleConfirmSave = () => {
-        setShowConfirmation(false);
+        setShowSaveConfirmation(false);
         onFinish();
     };
 
-    const handleEdit = () => {
-        setShowConfirmation(false);
+    const handleCloseModals = () => {
+        setShowSaveConfirmation(false);
+        setShowExitConfirmation(false);
     };
 
     const handleBack = () => {
         if (stepIndex === 0) {
-            console.log('Cancel preference for now?');
-            router.replace('/'); 
+            setShowExitConfirmation(true);
         } else {
             setStepIndex(prev => prev - 1);
         }
     };
 
+    const handleConfirmExit = () => {
+        setShowExitConfirmation(false);
+        router.replace('/'); 
+    };
+
     const isSelected = (optionValue) => {
         const currentAnswer = currentQuestionData?.answer;
-        
+
         if (currentAnswer === null || currentAnswer === undefined) return false;
 
         if (Array.isArray(currentAnswer)) {
@@ -162,11 +169,23 @@ const PreferenceScreen = ({
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <ConfirmationModal
-                visible={showConfirmation}
+                visible={showSaveConfirmation}
                 title="Save Hiking Preferences?"
                 message="Are you ready to submit your preferences and find your trail?"
                 onConfirm={handleConfirmSave}
-                onClose={handleEdit}
+                onClose={handleCloseModals}
+                confirmText="Save"
+                cancelText="Edit"
+            />
+
+            <ConfirmationModal
+                visible={showExitConfirmation}
+                title="Skip Preferences?"
+                message="You haven't finished setting up your profile. Are you sure you want to go back?"
+                onConfirm={handleConfirmExit}
+                onClose={handleCloseModals}
+                confirmText="Skip"
+                cancelText="Stay"
             />
 
             <CustomHeader onBackPress={handleBack} />
@@ -203,7 +222,7 @@ const PreferenceScreen = ({
                             <CustomText style={styles.nextText}>
                                 {stepIndex >= currentFlow.length - 1 ? "Finish" : "Next"}
                             </CustomText>
-
+                            
                             <Feather name="chevron-right" size={24} color={Colors.WHITE} />
                         </TouchableOpacity>
                     </View>

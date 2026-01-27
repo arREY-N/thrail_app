@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import CustomButton from '../../../components/CustomButton';
@@ -6,6 +7,8 @@ import CustomText from '../../../components/CustomText';
 import ErrorMessage from '../../../components/ErrorMessage';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
+
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
@@ -17,8 +20,38 @@ const TermsScreen = ({
     error 
 }) => {
 
+    const [showDeclineModal, setShowDeclineModal] = useState(false);
+
+    const handleAcceptClick = () => {
+        if (onAcceptPress) onAcceptPress();
+    };
+
+    const handleDeclineClick = () => {
+        setShowDeclineModal(true);
+    };
+
+    const handleConfirmDecline = () => {
+        setShowDeclineModal(false);
+        if (onDeclinePress) onDeclinePress();
+    };
+
+    const handleCloseModal = () => {
+        setShowDeclineModal(false);
+    };
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            
+            <ConfirmationModal
+                visible={showDeclineModal}
+                title="Decline Terms?"
+                message="You need to accept the Terms & Conditions to create an account. This will take you back to the start screen."
+                confirmText="Decline"
+                cancelText="Back"
+                onConfirm={handleConfirmDecline}
+                onClose={handleCloseModal}
+            />
+
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
@@ -55,13 +88,13 @@ const TermsScreen = ({
                         <View style={[AuthStyles.buttonContainer, styles.buttonGap]}>
                             <CustomButton 
                                 title="Accept" 
-                                onPress={onAcceptPress} 
+                                onPress={handleAcceptClick}
                                 variant="primary"
                             />
 
                             <CustomButton 
                                 title="Decline" 
-                                onPress={onDeclinePress} 
+                                onPress={handleDeclineClick}
                                 variant="outline" 
                             />
                         </View>
