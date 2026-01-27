@@ -1,7 +1,11 @@
-import { useAuthStore } from '@/src/core/stores/authStore';
-import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
+
+import { useAuthStore } from '@/src/core/stores/authStore';
+
+import CustomLoading from '@/src/components/CustomLoading';
+import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
  
 export default function signup(){
     const router = useRouter();
@@ -35,12 +39,16 @@ export default function signup(){
     }
     
     return (  
-        <SignUpScreen
-            onSignUpPress={onSignUpPress} 
-            onLogInPress={onLogIn} 
-            onBackPress={onBackPress}
-            onGmailSignUp={onGmailSignUp}
-            error={error}
-            isLoading={isLoading}/>
+        <View style={{ flex: 1 }}>
+            <CustomLoading visible={isLoading} message="Validating..." />
+
+            <SignUpScreen
+                onSignUpPress={onSignUpPress} 
+                onLogInPress={onLogIn} 
+                onBackPress={onBackPress}
+                onGmailSignUp={onGmailSignUp}
+                error={error}
+            />
+        </View>
     )
 }
