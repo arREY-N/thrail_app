@@ -23,7 +23,6 @@ export default function book(){
         setFilteredOffers(trailOffers);
     }, [id, trailOffers]);
     
-
     const filterOffers = () => {
         if(date) {
             setFilteredOffers(() => 
@@ -77,13 +76,17 @@ const TESTBOOK = ({
             { !isLoading ?  
                 offers?.length > 0 &&
                     offers.map((o) => {
+                        const trail = o.trail;
                         return (
-                            <View style={styles.offers} key={o.id}>
-                                <Text>OfferID: {o.id}</Text>
-                                <Text>Trail ID: {o.trailId}</Text>
-                                <Text>Provider: {o.businessName}</Text>
-                                <Text>Price: {o.price}</Text>
+                            <View style={styles.offerForm} key={o.id}>
+                                <Text>Trail: {trail?.name}</Text>
+                                <Text>Price: P{o.price}.00 </Text>
                                 <Text>Date: {o.date}</Text>
+                                <Text>Duration: {o.duration}</Text>
+                                <Text>Documents: {o.documents?.join(', ')}</Text>
+                                <Text>Inclusions: {o.inclusions?.join(', ')}</Text>
+                                <Text>Description: {o.description}</Text>
+                            
                                 <Pressable onPress={() => onBookNowPress(o.id)}>
                                     <Text>BOOK NOW</Text>
                                 </Pressable>
@@ -97,7 +100,7 @@ const TESTBOOK = ({
 }
 
 const styles = StyleSheet.create({
-    offers: {
+    offerForm: {
         borderWidth: 1,
         margin: 10,
         padding: 5
