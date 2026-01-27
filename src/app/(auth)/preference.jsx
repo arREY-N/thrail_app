@@ -4,7 +4,7 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import PreferenceScreen from "@/src/features/Auth/screens/PrefenceScreen";
+import PreferenceScreen from "@/src/features/Auth/screens/PreferenceScreen";
 
 export default function preference(){
     const router = useRouter();

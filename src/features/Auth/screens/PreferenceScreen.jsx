@@ -1,7 +1,11 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import CustomHeader from '../../../components/CustomHeader';
@@ -13,7 +17,12 @@ import { Colors } from '../../../constants/colors';
 
 import SelectionOption from '../components/SelectionOption';
 
-const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
+const PreferenceScreen = ({ 
+    questions, 
+    setAnswer, 
+    onFinish, 
+    error 
+}) => {
 
     const router = useRouter();
     const [stepIndex, setStepIndex] = useState(0);
@@ -77,9 +86,10 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
             case 'q3':
                 return (
                     <>
-                        <CustomText style={styles.question}>
+                        <CustomText variant="subtitle" style={styles.question}>
                             {currentQuestionData.question}
                         </CustomText>
+
                         <View style={styles.optionsWrapper}>
                             {dynamicOptions.map(opt => (
                                 <SelectionOption 
@@ -97,12 +107,14 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
             case 'q4':
                 return (
                     <>
-                        <CustomText style={styles.question}>
+                        <CustomText variant="subtitle" style={styles.question}>
                             {currentQuestionData.question}
                         </CustomText>
-                        <CustomText style={styles.subLabel}>
+
+                        <CustomText variant="caption" style={styles.subLabel}>
                             (Select all that apply)
                         </CustomText>
+
                         <View style={styles.optionsWrapper}>
                             {dynamicOptions.map(opt => (
                                 <SelectionOption 
@@ -119,10 +131,11 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
             case 'q5':
                 return (
                     <>
-                        <CustomText style={styles.question}>
+                        <CustomText variant="subtitle" style={styles.question}>
                             {currentQuestionData.question}
                         </CustomText>
-                        <CustomText style={styles.subLabel}>
+
+                        <CustomText variant="caption" style={styles.subLabel}>
                             (Select all that apply)
                         </CustomText>
                         
@@ -165,7 +178,9 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.formConstrainer}>
-                    <CustomText variant="h2" style={styles.pageTitle}>Preference</CustomText>
+                    <CustomText variant="subtitle" style={styles.pageTitle}>
+                        Preference
+                    </CustomText>
 
                     <ErrorMessage error={error} />
 
@@ -177,7 +192,10 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                         {stepIndex > 0 ? (
                             <TouchableOpacity onPress={handleBack} style={styles.prevButton}>
                                 <Feather name="chevron-left" size={24} color={Colors.PRIMARY} />
-                                <CustomText style={styles.prevText}>Previous</CustomText>
+
+                                <CustomText style={styles.prevText}>
+                                    Previous
+                                </CustomText>
                             </TouchableOpacity>
                         ) : ( <View /> )}
 
@@ -185,6 +203,7 @@ const PreferenceScreen = ({ questions, setAnswer, onFinish, error }) => {
                             <CustomText style={styles.nextText}>
                                 {stepIndex >= currentFlow.length - 1 ? "Finish" : "Next"}
                             </CustomText>
+
                             <Feather name="chevron-right" size={24} color={Colors.WHITE} />
                         </TouchableOpacity>
                     </View>
@@ -223,13 +242,12 @@ const styles = StyleSheet.create({
         fontSize: 18, 
         fontWeight: 'bold', 
         marginBottom: 16, 
-        color: Colors.BLACK 
+        color: Colors.TEXT_PRIMARY 
     },
     subLabel: { 
-        fontSize: 14, 
         fontStyle: 'italic', 
         marginBottom: 16, 
-        color: Colors.GRAY_MEDIUM 
+        color: Colors.TEXT_SECONDARY
     },
     optionsWrapper: { 
         width: '100%', 
@@ -271,7 +289,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     nextText: { 
-        color: Colors.WHITE, 
+        color: Colors.TEXT_INVERSE, 
         fontWeight: 'bold', 
         fontSize: 16 
     },
