@@ -97,7 +97,7 @@ const TESTBOOK = ({
             <View style={styles.card}>
                 <Text>Offer Information</Text>
                 <Text>OfferID: {offer.id}</Text>
-                <Text>Trail ID: {offer.trailId}</Text>
+                <Text>Trail ID: {offer.trail.id}</Text>
                 <Text>Price: {offer.price}</Text>
                 <Text>Provider: {offer.businessName}</Text>
                 <Text>Date: {offer.date}</Text>
