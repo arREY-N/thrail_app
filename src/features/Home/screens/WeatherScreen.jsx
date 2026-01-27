@@ -1,18 +1,14 @@
-import Feather from '@expo/vector-icons/Feather';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomHeader from '../../../components/CustomHeader';
+import CustomIcon from '../../../components/CustomIcon';
 import CustomText from '../../../components/CustomText';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 
-const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
+const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
     console.log("RECEIVED DATA:", locationWeather);
 
     const temperature = locationWeather?.temperature ?? "--";
@@ -28,7 +24,12 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
 
     const RefreshAction = (
         <TouchableOpacity onPress={onRefreshPress} style={styles.headerActionButton}>
-            <Ionicons name="refresh" size={24} color={Colors.TEXT_INVERSE} />
+            <CustomIcon 
+                library="Ionicons" 
+                name="refresh" 
+                size={24} 
+                color={Colors.TEXT_INVERSE} 
+            />
         </TouchableOpacity>
     );
 
@@ -58,14 +59,26 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
                                 </CustomText>
                             </View>
                             <View style={styles.locationRow}>
-                                <FontAwesome6 name="location-dot" size={16} color={Colors.BLACK} />
+
+                                <CustomIcon 
+                                    library="FontAwesome6" 
+                                    name="location-dot" 
+                                    size={16} 
+                                    color={Colors.BLACK} 
+                                />
 
                                 <CustomText variant="body" style={styles.locationLabel}>
                                     {location}
                                 </CustomText>
                             </View>
                         </View>
-                        <MaterialCommunityIcons name="weather-partly-cloudy" size={96} color={Colors.BLACK} />
+
+                        <CustomIcon 
+                            library="MaterialCommunityIcons" 
+                            name="weather-partly-cloudy" 
+                            size={96} 
+                            color={Colors.BLACK} 
+                        />
                     </View>
                     
                     <View style={styles.heroDivider} />
@@ -83,7 +96,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
 
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="calendar" size={18} color={Colors.TEXT_SECONDARY} />
+
+                        <CustomIcon 
+                            library="Ionicons" 
+                            name="calendar" 
+                            size={18} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
                         <CustomText variant="body" style={styles.cardHeaderTitle}>
                             4-Day Forecast
                         </CustomText>
@@ -134,7 +153,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
 
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="sunny" size={18} color={Colors.TEXT_SECONDARY} />
+
+                        <CustomIcon 
+                            library="Ionicons" 
+                            name="sunny" 
+                            size={18} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
 
                         <CustomText variant="body" style={styles.cardHeaderTitle}>
                             Sun
@@ -143,7 +168,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
                     
                     <View style={styles.sunTimeRow}>
                         <View style={styles.sunItem}>
-                            <Feather name="sunrise" size={32} color={Colors.BLACK} />
+
+                            <CustomIcon 
+                                library="Feather" 
+                                name="sunrise" 
+                                size={32} 
+                                color={Colors.BLACK} 
+                            />
                             <CustomText variant="subtitle" style={styles.sunTimeText}>
                                 6:02 AM
                             </CustomText>
@@ -154,7 +185,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
                         </View>
 
                         <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
-                            <Feather name="sunset" size={32} color={Colors.BLACK} />
+
+                            <CustomIcon 
+                                library="Feather" 
+                                name="sunset" 
+                                size={32} 
+                                color={Colors.BLACK} 
+                            />
                             <CustomText variant="subtitle" style={styles.sunTimeText}>
                                 6:15 PM
                             </CustomText>
@@ -174,7 +211,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
 const ForecastItem = ({ day, icon, low, high }) => (
     <View style={styles.fItem}>       
         <View style={styles.fIconWrapper}>
-            <MaterialCommunityIcons name={icon} size={32} color={Colors.BLACK} />
+
+            <CustomIcon 
+                library="MaterialCommunityIcons" 
+                name={icon} 
+                size={32} 
+                color={Colors.BLACK} 
+            />
         </View>
 
         <CustomText variant="caption" style={styles.fDay}>
@@ -200,8 +243,13 @@ const ForecastItem = ({ day, icon, low, high }) => (
 const BentoBox = ({ title, value, desc, icon, lib }) => (
     <View style={styles.bentoBox}>
         <View style={styles.bentoHeader}>
-            {lib === 'Feather' && <Feather name={icon} size={18} color={Colors.TEXT_SECONDARY} />}
-            {lib === 'Ionicons' && <Ionicons name={icon} size={18} color={Colors.TEXT_SECONDARY} />}
+
+            <CustomIcon 
+                library={lib}
+                name={icon}
+                size={18} 
+                color={Colors.TEXT_SECONDARY} 
+            />
             
             <CustomText variant="body" style={styles.bentoTitle}>
                 {title}
