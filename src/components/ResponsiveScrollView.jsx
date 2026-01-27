@@ -1,5 +1,9 @@
 import React from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import {
+    ScrollView,
+    StyleSheet,
+    useWindowDimensions
+} from 'react-native';
 
 const ResponsiveScrollView = ({ children, minHeight = 600, contentContainerStyle, ...props }) => {
     
