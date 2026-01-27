@@ -1,23 +1,28 @@
 export const Colors = {
     BLACK:          '#111827',
     WHITE:          '#FFFFFF',
-    Gray:           '#686868',
+    GRAY:           '#686868',
     GRAY_MEDIUM:    '#A2A2A2', 
     GRAY_LIGHT:     '#D9D9D9',
-    YELLOW:          '#FBC02D',
+    GRAY_ULTRALIGHT:'#F5F5F5',
+    YELLOW:         '#FBC02D',
+
+    TEXT_PRIMARY:   '#040906',
+    TEXT_SECONDARY: '#686868',
+    TEXT_INVERSE:   '#FFFFFF',
+    TEXT_PLACEHOLDER:'#A2A2A2',
 
     PRIMARY:        '#A2A2A2',
     SECONDARY:      '#D9D9D9',
     BACKGROUND:     '#FAFAFA',
+    SHADOW:         '#000000',
+    MODAL_OVERLAY:  'rgba(0, 0, 0, 0.5)',
 
     ERROR:          '#D32F2F',
     ERROR_BG:       '#FFEBEE',
     ERROR_BORDER:   '#FFCDD2',
-
     SUCCESS:        '#388E3C',
-    WARNING:        '#FBC02D',
-
-    MODAL_OVERLAY:  'rgba(17, 24, 39, 0.5)',
+    WARNING:        '#D32F2F',   
 };
 
 // Color Samples
