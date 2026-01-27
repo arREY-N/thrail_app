@@ -26,8 +26,6 @@ export const AuthStyles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 32, 
         fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.BLACK,
     },
 
     errorContainer: {
@@ -44,7 +42,6 @@ export const AuthStyles = StyleSheet.create({
     },
     errorText: {
         color: Colors.ERROR,
-        fontSize: 14,
         flex: 1,
     },
 
@@ -61,13 +58,11 @@ export const AuthStyles = StyleSheet.create({
         gap: 8,
     },
     rememberText: {
-        fontSize: 14,
-        color: Colors.GRAY,
+
     },
     forgotText: {
         fontWeight: '600',
-        fontSize: 14,
-        color: Colors.PRIMARY,
+        color: Colors.TEXT_SECONDARY,
     },
 
     buttonContainer: {
@@ -90,7 +85,6 @@ export const AuthStyles = StyleSheet.create({
     dividerText: {
         marginHorizontal: 16, 
         color: Colors.GRAY_MEDIUM,
-        fontSize: 14,
     },
 
     googleButton: {
@@ -107,9 +101,7 @@ export const AuthStyles = StyleSheet.create({
         marginBottom: 40, 
     },
     googleButtonText: {
-        fontSize: 16,
         fontWeight: '600',
-        color: Colors.BLACK,
     },
 
     footerContainer: {
@@ -119,13 +111,11 @@ export const AuthStyles = StyleSheet.create({
         marginBottom: 20,
     },
     footerText: {
-        fontSize: 14,
-        color: Colors.GRAY,
+
     },
     signUpLink: {
-        fontSize: 14,
         fontWeight: 'bold',
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
         marginLeft: 4,
     },
 });
