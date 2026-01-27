@@ -28,7 +28,7 @@ export default function login(){
         setIsTestLoading(true); 
         
         console.log("Starting forced delay...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         console.log("Delay finished, logging in.");
 
         setIsTestLoading(false); 
