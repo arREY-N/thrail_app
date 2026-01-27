@@ -1,9 +1,15 @@
-import { Feather } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 
-import CustomText from '../../../components/CustomText';
-import { Colors } from '../../../constants/colors';
+import React from 'react';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+import CustomText from '@/src/components/CustomText';
+
+import { Colors } from '@/src/constants/colors';
 
 const SelectionOption = ({ label, selected, onPress }) => {
 
@@ -16,14 +22,16 @@ const SelectionOption = ({ label, selected, onPress }) => {
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <CustomText style={styles.label}>{label}</CustomText>
+            <CustomText variant="body" style={styles.label}>
+                {label}
+            </CustomText>
             
             <View style={[
                 styles.iconContainer, 
                 selected && styles.selectedIcon
             ]}>
                 {selected && (
-                    <Feather name="check" size={14} color={Colors.WHITE} />
+                    <Feather name="check" size={14} color={Colors.TEXT_INVERSE} />
                 )}
             </View>
         </TouchableOpacity>
@@ -49,8 +57,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     label: {
-        fontSize: 16,
-        color: Colors.BLACK,
         fontWeight: '500',
         flex: 1,
         marginRight: 10,

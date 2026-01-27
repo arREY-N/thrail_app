@@ -22,13 +22,13 @@ const PrivacyScreen = ({ onBackPress }) => {
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Privacy Policy
                         </CustomText>
 
                         <View style={styles.legalContainer}>
                             <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
-                                <CustomText style={styles.legalText}>
+                                <CustomText variant="body" style={styles.legalText}>
                                     [PRIVACY POLICY PLACEHOLDER]
                                     {'\n'}{'\n'}
                                     1. Data Collection{'\n'}
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     },
     legalText: {
         fontSize: 14,
-        color: Colors.GRAY,
+        color: Colors.TEXT_SECONDARY,
         lineHeight: 22,
     },
 });

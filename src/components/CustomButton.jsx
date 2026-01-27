@@ -1,6 +1,13 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { Colors } from '../../src/constants/colors';
+import {
+    Pressable,
+    StyleSheet
+} from 'react-native';
+
+import { Colors } from '@/src/constants/colors';
+
+import CustomText from '@/src/components/CustomText';
+
 
 const CustomButton = ({ 
     title, 
@@ -31,7 +38,9 @@ const CustomButton = ({
                 pressed && styles.pressed
             ]}
         >
-            <Text style={[styles.baseText, labelStyle, textStyle]}>{title}</Text>
+            <CustomText style={[styles.baseText, labelStyle, textStyle]}>
+                {title}
+            </CustomText>
         </Pressable>
     );
 };
@@ -43,14 +52,13 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: Colors.BLACK,
+        shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
     baseText: {
-        fontSize: 16,
         fontWeight: 'bold',
     },
     pressed: {
@@ -64,14 +72,14 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
     },
     textPrimary: {
-        color: Colors.WHITE,
+        color: Colors.TEXT_INVERSE,
     },
 
     secondary: {
         backgroundColor: Colors.SECONDARY, 
     },
     textSecondary: {
-        color: Colors.BLACK, 
+        color: Colors.TEXT_PRIMARY, 
     },
 
     outline: {
@@ -81,7 +89,7 @@ const styles = StyleSheet.create({
         elevation: 0, 
     },
     textOutline: {
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
     },
 });
 

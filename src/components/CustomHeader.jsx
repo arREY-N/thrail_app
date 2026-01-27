@@ -1,10 +1,16 @@
-import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 
-import { Colors } from '../constants/colors';
-import CustomText from './CustomText';
+import React from 'react';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+import { Colors } from '@/src/constants/colors';
+import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
+
+import CustomText from '@/src/components/CustomText';
 
 const CustomHeader = ({ 
     title, 
@@ -13,10 +19,8 @@ const CustomHeader = ({
     showDefaultIcons = false,
     style 
 }) => {
-    const router = useRouter();
 
-    const handleNotification = () => router.push('/(home)/notification');
-    const handleBooking = () => router.push('/(book)/userBooking');
+    const { onNotificationPress, onBookingPress } = useAppNavigation();
 
     if (onBackPress) {
         return (
@@ -26,18 +30,24 @@ const CustomHeader = ({
                     style={styles.backButton}
                     activeOpacity={0.7}
                 >
-                    <Feather name="chevron-left" size={28} color={Colors.WHITE} />
+                    <Feather name="chevron-left" size={24} color={Colors.TEXT_INVERSE} />
                 </TouchableOpacity>
 
                 <View style={styles.centerTitleContainer}>
                      {title ? (
-                        <CustomText style={styles.stackTitle}>
+                        <CustomText variant="title" style={styles.stackTitle}>
                             {title}
                         </CustomText>
                     ) : null}
                 </View>
 
-                <View style={styles.spacer} /> 
+                {rightActions ? (
+                    <View style={styles.rightActionsContainer}>
+                        {rightActions}
+                    </View>
+                ) : (
+                    <View style={styles.spacer} /> 
+                )}
             </View>
         );
     }
@@ -45,7 +55,7 @@ const CustomHeader = ({
     return (
         <View style={[styles.container, style]}>
             <View style={styles.leftTitleContainer}>
-                <CustomText style={styles.tabTitle}>
+                <CustomText variant="title" style={styles.tabTitle}>
                     {title}
                 </CustomText>
             </View>
@@ -53,11 +63,26 @@ const CustomHeader = ({
             <View style={styles.rightActionsContainer}>
                 {showDefaultIcons && (
                     <>
-                        <TouchableOpacity style={styles.iconButton} onPress={handleNotification}>
-                            <Feather name="bell" size={20} color={Colors.WHITE} />
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={onNotificationPress}
+                        >
+                            <Feather 
+                                name='bell' 
+                                size={20} 
+                                color={Colors.TEXT_INVERSE} 
+                            />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconButton} onPress={handleBooking}>
-                            <Feather name="book-open" size={20} color={Colors.WHITE} />
+
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={onBookingPress}
+                        >
+                            <Feather
+                                name='book-open'
+                                size={20}
+                                color={Colors.TEXT_INVERSE}
+                            />
                         </TouchableOpacity>
                     </>
                 )}
@@ -94,9 +119,7 @@ const styles = StyleSheet.create({
         zIndex: -1,
     },
     stackTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: Colors.WHITE, 
+        color: Colors.TEXT_INVERSE, 
         textAlign: 'center',
     },
     spacer: {
@@ -108,9 +131,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     tabTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: Colors.WHITE,
+        color: Colors.TEXT_INVERSE,
         textAlign: 'left',
     },
     rightActionsContainer: {

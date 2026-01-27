@@ -25,7 +25,7 @@ const ProfileScreen = ({
             />
 
             <View style={styles.contentContainer}>
-                <CustomText variant="h2" style={styles.headerTitle}>
+                <CustomText variant="subtitle" style={styles.headerTitle}>
                     User Profile
                 </CustomText>
 
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: Colors.Gray,
+        borderColor: Colors.GRAY_LIGHT,
     },
     sectionLabel: {
         fontWeight: 'bold',

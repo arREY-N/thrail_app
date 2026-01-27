@@ -22,13 +22,13 @@ const TermsReadOnlyScreen = ({ onBackPress }) => {
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Terms of Service
                         </CustomText>
 
                         <View style={styles.legalContainer}>
                             <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
-                                <CustomText style={styles.legalText}>
+                                <CustomText variant="body" style={styles.legalText}>
                                     [TERMS OF SERVICE - READ ONLY]
                                     {'\n'}{'\n'}
                                     1. Introduction{'\n'}
@@ -39,7 +39,7 @@ const TermsReadOnlyScreen = ({ onBackPress }) => {
                                 </CustomText>
                             </ScrollView>
                         </View>
-                        
+
                     </View>
                 </View>
             </ResponsiveScrollView>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     },
     legalText: {
         fontSize: 14,
-        color: Colors.GRAY,
+        color: Colors.TEXT_SECONDARY,
         lineHeight: 22,
     },
 });

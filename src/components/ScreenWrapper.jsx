@@ -1,9 +1,16 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, View } from 'react-native';
-import { Colors } from '../../src/constants/colors';
-import { useBreakpoints } from '../hooks/useBreakpoints';
+import {
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    View
+} from 'react-native';
 
-const ScreenWrapper = ({ children, style, backgroundColor = Colors.Background }) => {
+import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
+const ScreenWrapper = ({ children, style, backgroundColor = Colors.BACKGROUND }) => {
     
     const { isMobile } = useBreakpoints();
 

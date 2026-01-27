@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -12,7 +12,7 @@ import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 
-const WeatherScreen = ({ locationWeather, onBackPress }) => {
+const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress}) => {
     console.log("RECEIVED DATA:", locationWeather);
 
     const temperature = locationWeather?.temperature ?? "--";
@@ -26,9 +26,20 @@ const WeatherScreen = ({ locationWeather, onBackPress }) => {
     const humidity = locationWeather?.humidity ? `${Math.round(locationWeather.humidity * 100)}%` : "--";
     const uvIndex = locationWeather?.UV ? String(locationWeather.UV) : "--";
 
+    const RefreshAction = (
+        <TouchableOpacity onPress={onRefreshPress} style={styles.headerActionButton}>
+            <Ionicons name="refresh" size={24} color={Colors.TEXT_INVERSE} />
+        </TouchableOpacity>
+    );
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Weather" onBackPress={onBackPress} />
+
+            <CustomHeader 
+                title="Weather" 
+                onBackPress={onBackPress} 
+                rightActions={RefreshAction} 
+            />
 
             <ResponsiveScrollView 
                 style={styles.container}
@@ -38,12 +49,20 @@ const WeatherScreen = ({ locationWeather, onBackPress }) => {
                     <View style={styles.heroTop}>
                         <View style={styles.heroTextWrapper}>
                             <View style={styles.tempContainer}>
-                                <CustomText style={styles.mainTemp}>{temperature}°</CustomText>
-                                <CustomText style={styles.tempUnit}>C</CustomText>
+                                <CustomText variant="title" style={styles.mainTemp}>
+                                    {temperature}°
+                                </CustomText>
+
+                                <CustomText variant="subtitle" style={styles.tempUnit}>
+                                    C
+                                </CustomText>
                             </View>
                             <View style={styles.locationRow}>
                                 <FontAwesome6 name="location-dot" size={16} color={Colors.BLACK} />
-                                <CustomText variant="body" style={styles.locationLabel}>{location}</CustomText>
+
+                                <CustomText variant="body" style={styles.locationLabel}>
+                                    {location}
+                                </CustomText>
                             </View>
                         </View>
                         <MaterialCommunityIcons name="weather-partly-cloudy" size={96} color={Colors.BLACK} />
@@ -52,15 +71,22 @@ const WeatherScreen = ({ locationWeather, onBackPress }) => {
                     <View style={styles.heroDivider} />
                     
                     <View style={styles.heroBottom}>
-                        <CustomText variant="body" style={styles.heroSubText}>Mostly Cloudy</CustomText>
-                        <CustomText variant="body" style={styles.heroSubText}>Day: {dayTemp}° | Night: {nightTemp}°</CustomText>
+                        <CustomText variant="body" style={styles.heroSubText}>
+                            Mostly Cloudy
+                        </CustomText>
+
+                        <CustomText variant="body" style={styles.heroSubText}>
+                            Day: {dayTemp}° | Night: {nightTemp}°
+                        </CustomText>
                     </View>
                 </View>
 
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="calendar" size={18} color={Colors.Gray} />
-                        <CustomText variant="body" style={styles.cardHeaderTitle}>4-Day Forecast</CustomText>
+                        <Ionicons name="calendar" size={18} color={Colors.TEXT_SECONDARY} />
+                        <CustomText variant="body" style={styles.cardHeaderTitle}>
+                            4-Day Forecast
+                        </CustomText>
                     </View>
                     <View style={styles.forecastRow}>
                         <ForecastItem day="Mon" icon="weather-sunny" low="25" high="32" />
@@ -108,21 +134,34 @@ const WeatherScreen = ({ locationWeather, onBackPress }) => {
 
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="sunny" size={18} color={Colors.Gray} />
-                        <CustomText variant="body" style={styles.cardHeaderTitle}>Sun</CustomText>
+                        <Ionicons name="sunny" size={18} color={Colors.TEXT_SECONDARY} />
+
+                        <CustomText variant="body" style={styles.cardHeaderTitle}>
+                            Sun
+                        </CustomText>
                     </View>
                     
                     <View style={styles.sunTimeRow}>
                         <View style={styles.sunItem}>
                             <Feather name="sunrise" size={32} color={Colors.BLACK} />
-                            <CustomText variant="h2" style={styles.sunTimeText}>6:02 AM</CustomText>
-                            <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                            <CustomText variant="subtitle" style={styles.sunTimeText}>
+                                6:02 AM
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.sunLabel}>
+                                Sunrise
+                            </CustomText>
                         </View>
 
                         <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
                             <Feather name="sunset" size={32} color={Colors.BLACK} />
-                            <CustomText variant="h2" style={styles.sunTimeText}>6:15 PM</CustomText>
-                            <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
+                            <CustomText variant="subtitle" style={styles.sunTimeText}>
+                                6:15 PM
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.sunLabel}>
+                                Sunset
+                            </CustomText>
                         </View>
                     </View>
                 </View>
@@ -133,29 +172,50 @@ const WeatherScreen = ({ locationWeather, onBackPress }) => {
 };
 
 const ForecastItem = ({ day, icon, low, high }) => (
-    <View style={styles.fItem}>
+    <View style={styles.fItem}>       
         <View style={styles.fIconWrapper}>
             <MaterialCommunityIcons name={icon} size={32} color={Colors.BLACK} />
         </View>
+
+        <CustomText variant="caption" style={styles.fDay}>
+            {day}
+        </CustomText>
+
         <View style={styles.fTempRow}>
-            <CustomText style={styles.fTempHigh}>{high}°</CustomText>
-            <CustomText style={styles.fTempSeparator}>/</CustomText>
-            <CustomText variant="caption" style={styles.fTempLow}>{low}°</CustomText>
-        </View>
-        <CustomText variant="caption" style={styles.fDay}>{day}</CustomText>
+            <CustomText variant="body" style={styles.fTempHigh}>
+                {high}°
+            </CustomText>
+
+            <CustomText style={styles.fTempSeparator}>
+                /
+            </CustomText>
+
+            <CustomText variant="caption" style={styles.fTempLow}>
+                {low}°
+            </CustomText>
+        </View> 
     </View>
 );
 
 const BentoBox = ({ title, value, desc, icon, lib }) => (
     <View style={styles.bentoBox}>
         <View style={styles.bentoHeader}>
-            {lib === 'Feather' && <Feather name={icon} size={18} color={Colors.Gray} />}
-            {lib === 'Ionicons' && <Ionicons name={icon} size={18} color={Colors.Gray} />}
-            <CustomText variant="body" style={styles.bentoTitle}>{title}</CustomText>
+            {lib === 'Feather' && <Feather name={icon} size={18} color={Colors.TEXT_SECONDARY} />}
+            {lib === 'Ionicons' && <Ionicons name={icon} size={18} color={Colors.TEXT_SECONDARY} />}
+            
+            <CustomText variant="body" style={styles.bentoTitle}>
+                {title}
+            </CustomText>
         </View>
+
         <View>
-            <CustomText variant="h2" style={styles.bentoValue}>{value}</CustomText>
-            <CustomText variant="caption" style={styles.bentoDesc}>{desc}</CustomText>
+            <CustomText variant="subtitle" style={styles.bentoValue}>
+                {value}
+            </CustomText>
+
+            <CustomText variant="caption" style={styles.bentoDesc}>
+                {desc}
+            </CustomText>
         </View>
     </View>
 );
@@ -168,6 +228,9 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 16,
         paddingBottom: 32,
+    },
+    headerActionButton: {
+        padding: 4,
     },
 
     heroSection: {
@@ -189,15 +252,14 @@ const styles = StyleSheet.create({
     mainTemp: {
         fontSize: 64,
         fontWeight: '700',
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
         letterSpacing: -4,
         lineHeight: 90,
     },
     tempUnit: {
-        fontSize: 24,
         fontWeight: 'bold',
         marginTop: 20,
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
     },
     locationRow: {
         flexDirection: 'row',
@@ -220,7 +282,7 @@ const styles = StyleSheet.create({
     },
     heroSubText: {
         fontWeight: '500',
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
     },
 
     fullWidthCard: {
@@ -236,7 +298,7 @@ const styles = StyleSheet.create({
     },
     cardHeaderTitle: {
         fontWeight: 'bold',
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
     },
 
     forecastRow: {
@@ -247,23 +309,26 @@ const styles = StyleSheet.create({
     
     fItem: {
         alignItems: 'center',
-        gap: 8,
+        gap: 4,
     },
     fIconWrapper: {
         height: 32, 
         justifyContent: 'center',
         alignItems: 'center',
     },
+    fDay: {
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY, 
+    },
     fTempRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 4,
     },
+
     fTempHigh: {
-        fontSize: 16,
         fontWeight: '800',
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
     },
     fTempSeparator: {
         fontSize: 14,
@@ -273,12 +338,7 @@ const styles = StyleSheet.create({
     fTempLow: {
         fontSize: 14,
         fontWeight: '500',
-        color: Colors.Gray, 
-    },
-    fDay: {
-        fontWeight: '600',
-        color: Colors.Gray,
-        marginBottom: 4, 
+        color: Colors.TEXT_SECONDARY, 
     },
 
     bentoGrid: {
@@ -303,7 +363,7 @@ const styles = StyleSheet.create({
     },
     bentoTitle: {
         fontWeight: 'bold',
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
     },
     bentoValue: {
         fontWeight: 'bold',
@@ -311,7 +371,7 @@ const styles = StyleSheet.create({
     },
     bentoDesc: {
         fontWeight: '500',
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
     },
 
     sunTimeRow: {
@@ -328,7 +388,7 @@ const styles = StyleSheet.create({
     },
     sunLabel: {
         fontWeight: 'bold',
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
         textTransform: 'uppercase',
     },
     

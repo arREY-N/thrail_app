@@ -1,12 +1,37 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
-const MountainScreen = () => {
+import CustomHeader from '../../../components/CustomHeader';
+import CustomText from '../../../components/CustomText';
+import { Colors } from '../../../constants/colors';
+
+const MountainScreen = ({ navigation }) => {
     return (
-        <View>
-            <Text>Mountain Screen</Text>
+        <View style={styles.container}>
+            <CustomHeader 
+                title="Mountain Details" 
+                onBackPress={() => navigation?.goBack()}
+            />
+
+            <View style={styles.contentContainer}>
+                <CustomText variant="body">
+                    Mountain Screen
+                </CustomText>
+            </View>
         </View>
     )
 }
 
-export default MountainScreen
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+    },
+    contentContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
+});
+
+export default MountainScreen;
