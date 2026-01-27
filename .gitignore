@@ -48,3 +48,4 @@ setSuperAdmin.js
 
 firebase-export-*/
 emulator_data/
+firebase-debug.log
