@@ -20,7 +20,7 @@ const ExploreScreen = ({
             {trails?.map((t) => {
                 return (
                     <Pressable onPress={() => onViewMountain(t.id)} key={t.id}>
-                        <Text>{t.name}</Text>
+                        <Text>{t.general.name}</Text>
                     </Pressable>
                 )
             })}
