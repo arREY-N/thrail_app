@@ -1,13 +1,44 @@
-import { validateTrailData } from '@/src/core/domain/trailDomain';
+import { TRAIL_CONSTANTS } from '@/src/constants/trails';
+import { validateTrail } from '@/src/core/domain/utility';
 import { deleteTrail, fetchAllTrails, getTrailMap, saveTrail } from '@/src/core/repositories/trailRepository';
 import { getTrailWeather } from '@/src/core/repositories/weatherRepository';
 import { create } from "zustand";
 
 const trailTemplate = {
-    name: '',
-    length: null,
-    province: [],
-    address: '',
+    general: {
+        name: null,
+        province: [],
+        address: null,
+    },
+    geographical: {
+        longitude: null,
+        latitude: null,
+        masl: null,
+        start: null,
+        end: null
+    },
+    difficulty: {
+        length: null,
+        gain: null,
+        slope: null,
+        obstacles: null,
+        circularity: null,
+        quality: null,
+        hours: null,
+        difficulty_points: null
+    },
+    tourism: {
+        shelter: null,
+        resting: null,
+        viewpoint: null,
+        information_board: null,
+        clean_water: null,
+        river: null,
+        lake: null,
+        waterfall: null,
+        monument: null,
+        community: null
+    }
 }
 
 const hikingTrailTemplate = {
@@ -31,27 +62,125 @@ const init = {
 export const useTrailsStore = create((set, get) => ({
     ...init,
 
-    selectTrail: async (id) => {
+    reset: () => set(init),
+
+    resetTrail: () => set({trail: trailTemplate}),
+
+    writeTrail: (id) => {
         set({isLoading: true, error: null});
 
-        if(!id){
-            get().initTrail();
-            return;
-        }
+        try {
+            if(get().trails.length > 0 && get().trails.find(t => t.id === id)){
+                set({
+                    trail: get().trails.find(t => t.id === id),
+                    isLoading: false,
+                })
+                return;
+            }
 
-        const selectedTrail = get().trails.find(t => t.id === id);
-
-        if(!selectedTrail) 
             set({
-                error: 'Trail not found',
-                isLoading: false,
-            });
+                trail: trailTemplate,
+                isLoading: false
+            })
+        } catch (err) {
+            set({
+                error: err.message || 'Failed writing trail',
+                isLoading: false
+            })
+        }
+    },
 
-        set({
-            trail: selectedTrail,
-            isLoading: false
+    createTrail: async () => {
+        set({isLoading: true, error: null});
+
+        try {
+            const generalErrors = validateTrail(
+                get().trail.general, 
+                TRAIL_CONSTANTS.TRAIL_INFORMATION.general
+            )
+
+            const difficultyErrors = validateTrail(
+                get().trail.difficulty, 
+                TRAIL_CONSTANTS.TRAIL_INFORMATION.difficulty
+            )
+            
+
+            if([...generalErrors, ...difficultyErrors].length > 0) 
+                throw new Error(`${[...generalErrors, ...difficultyErrors].join(', ')} required`)
+            
+            const newTrail = await saveTrail(get().trail);
+            
+            set((state) => {
+                const exists = state.trails.some(t => t.id === newTrail.id)
+                
+                return {
+                    trails: exists 
+                        ? state.trails.map(t => t.id === newTrail.id ? newTrail : t)
+                        : [...state.trails, newTrail],
+                    isLoading: false,
+                    trail: trailTemplate
+                };
+            })
+            return true;
+        } catch (err) {
+            console.error(err);
+            set({
+                error: err.message ?? 'Failed to create new trail',
+                isLoading: false
+            })
+
+            return false
+        }
+    },
+
+    editProperty: (property) => {
+        const { info, type, key, value } = property;
+        const trail = get().trail;
+        
+        let current = (trail[info] && trail[info][key]) ? trail[info][key] : null;
+        let finalValue = value;
+        
+        if(type === 'multi-select'){
+            current = current || [];
+            finalValue = current?.find(v => v === value)
+                ? current.filter(c => c !== value)
+                : [...current, value]
+        } else if (type ===  'boolean'){
+            finalValue = !current
+        } 
+
+        set((state) => {
+            return {
+                trail: {
+                    ...state.trail,
+                    [info]: {
+                        ...state.trail[info],
+                        [key]: finalValue
+                    }
+                }
+            }
         })
     },
+
+    removeTrail: async (id) => {
+        set({isLoading: true, error: null});
+
+        try{
+            const trailId = await deleteTrail(id);
+
+            set((state) => ({
+                trails: state.trails.filter(t => t.id !== trailId),
+                isLoading: false
+            }))
+        } catch (err) {
+            console.error(err);
+            set({
+                error: err.message ?? 'Failed to delete trail',
+                isLoading: false
+            })
+        }
+    },
+
 
     hikeTrail: async (id) => {
         set({ isLoading: true, error: null });
@@ -95,22 +224,6 @@ export const useTrailsStore = create((set, get) => ({
         })
     },
 
-    editTrail: async (trailData) => {
-        set((state) => {
-            return {
-                trail: {...state.trail, ...trailData}
-            }
-        })
-    },
-
-    initTrail: () => {
-        set({
-            trail: trailTemplate,      
-        })
-    },
-
-    reset: () => set(init),
-
     loadTrails: async () => {
         if(get().trails.length > 0) return;
 
@@ -118,8 +231,7 @@ export const useTrailsStore = create((set, get) => ({
 
         try {
             const trails = await fetchAllTrails();
-            console.log(trails);
-            
+                        
             set({
                 trails: trails, 
                 isLoading: false
@@ -145,77 +257,6 @@ export const useTrailsStore = create((set, get) => ({
                 error: err.message ?? 'Failed to load trails',
                 isLoading: false
             });
-        }
-    },
-
-    createTrail: async () => {
-        set({isLoading: true, error: null});
-
-        try {
-            // validate if get().trail has complete data
-            console.log((get().trail));
-
-            validateTrailData(get().trail);
-
-            const newTrail = await saveTrail(get().trail);
-            
-            set((state) => {
-                const exists = state.trails.some(t => t.id === newTrail.id)
-                
-                return {
-                    trails: exists 
-                        ? state.trails.map(t => t.id === newTrail.id ? newTrail : t)
-                        : [...state.trails, newTrail],
-                    isLoading: false,
-                    trail: trailTemplate
-                };
-            })
-        } catch (err) {
-            console.error(err);
-            set({
-                error: err.message ?? 'Failed to create new trail',
-                isLoading: false
-            })
-        }
-    },
-
-    updateTrail: (id) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-            const selectedTrail = get().trails.find(t => t.id === id);
-
-            if(!selectedTrail) throw new Error('Trail not found');
-
-            set({
-                isLoading: false,
-                trail: selectedTrail
-            });
-        } catch (err) {
-            console.error(err);
-            set({
-                isLoading: false,
-                error: err.message
-            })
-        }
-    },
-
-    removeTrail: async (id) => {
-        set({isLoading: true, error: null});
-
-        try{
-            const trailId = await deleteTrail(id);
-
-            set((state) => ({
-                trails: state.trails.filter(t => t.id !== trailId),
-                isLoading: false
-            }))
-        } catch (err) {
-            console.error(err);
-            set({
-                error: err.message ?? 'Failed to delete trail',
-                isLoading: false
-            })
         }
     },
 
@@ -252,7 +293,7 @@ export const useTrailsStore = create((set, get) => ({
         }
     },
 
-    loadDiscoverTrails: () => {
+    setDiscoverTrails: () => {
         set({ isLoading: true, error: null })
 
         try {
