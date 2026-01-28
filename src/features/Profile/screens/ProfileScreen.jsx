@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import ConfirmationModal from '../../../components/ConfirmationModal';
 import CustomButton from '../../../components/CustomButton';
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -13,12 +14,38 @@ const ProfileScreen = ({
     profile,
 }) => {
 
+    const [showSignOutModal, setShowSignOutModal] = useState(false);
+
     const createdDate = profile?.createdAt?.toDate 
         ? profile.createdAt.toDate().toLocaleDateString() 
         : "N/A";
 
+    const handleSignOutClick = () => {
+        setShowSignOutModal(true);
+    };
+
+    const handleConfirmSignOut = () => {
+        setShowSignOutModal(false);
+        if (onSignOutPress) onSignOutPress();
+    };
+
+    const handleCloseModal = () => {
+        setShowSignOutModal(false);
+    };
+
     return (
         <View style={styles.container}>
+            
+            <ConfirmationModal
+                visible={showSignOutModal}
+                title="Sign Out?"
+                message="Are you sure you want to log out of your account?"
+                confirmText="Sign Out"
+                cancelText="Stay"
+                onConfirm={handleConfirmSignOut}
+                onClose={handleCloseModal}
+            />
+
             <CustomHeader 
                 title="Profile"
                 showDefaultIcons={true} 
@@ -58,7 +85,7 @@ const ProfileScreen = ({
 
                     <CustomButton 
                         title="Sign Out" 
-                        onPress={onSignOutPress} 
+                        onPress={handleSignOutClick}
                         variant="outline"
                         style={styles.buttonSpacing}
                     />
