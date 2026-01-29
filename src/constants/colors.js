@@ -23,6 +23,10 @@ export const Colors = {
     ERROR_BORDER:   '#FFCDD2',
     SUCCESS:        '#388E3C',
     WARNING:        '#D32F2F',   
+
+    SEARCH_BAR_BG:  '#C4C4C440',
+    CHIP_INACTIVE:  '#C4C4C440', 
+    CHIP_ACTIVE:    '#A0A0A0',
 };
 
 // Color Samples
