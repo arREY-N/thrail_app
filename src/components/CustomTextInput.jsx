@@ -1,5 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
-
 import React, { useState } from 'react';
 import {
     Platform,
@@ -12,6 +10,7 @@ import {
 import { Colors } from '@/src/constants/colors';
 
 import CustomDateInput from '@/src/components/CustomDateInput';
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 const CustomTextInput = ({ 
@@ -24,7 +23,10 @@ const CustomTextInput = ({
     isPasswordVisible, 
     onTogglePassword,
     type = 'text',
-    ...props 
+    style,
+    icon, 
+    iconLibrary = 'Feather', 
+    ...props
 }) => {
 
     const [isFocused, setIsFocused] = useState(false);
@@ -34,7 +36,7 @@ const CustomTextInput = ({
     const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             {type === 'date' ? (
                 <CustomDateInput 
                     value={value} 
@@ -56,6 +58,18 @@ const CustomTextInput = ({
                             backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND
                         }
                     ]}>
+                        
+                        {icon && (
+                            <View style={styles.iconContainer}>
+                                <CustomIcon 
+                                    name={icon} 
+                                    library={iconLibrary} 
+                                    size={20} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                            </View>
+                        )}
+
                         <TextInput 
                             style={styles.input}
                             placeholder={placeholder}
@@ -74,7 +88,8 @@ const CustomTextInput = ({
                                 onPress={togglePassword}
                                 style={styles.eyeIcon}
                             >
-                                <Feather 
+                                <CustomIcon 
+                                    library="Feather"
                                     name={showPassword ? "eye" : "eye-off"} 
                                     size={20} 
                                     color={Colors.TEXT_SECONDARY} 
@@ -106,6 +121,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         height: 54,
         paddingHorizontal: 16,
+    },
+    iconContainer: {
+        marginRight: 8,
     },
     input: {
         flex: 1,
