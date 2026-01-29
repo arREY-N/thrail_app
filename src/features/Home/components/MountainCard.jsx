@@ -58,11 +58,24 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                 <View style={styles.statsRow}>
                     
                     <View style={styles.statsGroup}>
-                        <StatItem label="Distance" value={item?.length || "--"} />
+                        <StatItem 
+                            label="Distance" 
+                            value={item?.length || "--"}
+                        />
+
                         <View style={styles.verticalDivider} />
-                        <StatItem label="Elev" value={item?.elevation || "--"} />
+
+                        <StatItem 
+                            label="Elev" 
+                            value={item?.elevation || "--"}
+                        />
+
                         <View style={styles.verticalDivider} />
-                        <StatItem label="Time" value={item?.duration || "--"} />
+
+                        <StatItem 
+                            label="Time" 
+                            value={item?.duration || "--"} 
+                        />
                     </View>
 
                     <TouchableOpacity 
@@ -96,7 +109,7 @@ const styles = StyleSheet.create({
         width: 280, 
         backgroundColor: Colors.WHITE,
         borderRadius: 20, 
-        marginBottom: 0, 
+        marginBottom: 0,
         overflow: 'hidden',
         
         shadowColor: Colors.SHADOW,
@@ -181,14 +194,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 8,
     },
     statsGroup: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
+        marginRight: 8,
     },
     statItem: {
         alignItems: 'flex-start',
+        maxWidth: 60,
     },
     statValue: {
         fontWeight: 'bold',
@@ -199,10 +216,11 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textTransform: 'uppercase', 
         fontWeight: '400',
+        fontSize: 12,
     },
     verticalDivider: {
-        width: 2,
-        height: 32,
+        width: 1,
+        height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
     },
     
