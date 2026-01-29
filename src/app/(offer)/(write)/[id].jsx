@@ -30,7 +30,6 @@ export default function writeOffer(){
     }, [id]);
 
     const onSubmitOfferPress = async () => {
-        console.log('submit')
         await addOffer(businessAccount);
         router.back();    
     }

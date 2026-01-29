@@ -24,7 +24,7 @@ const init = {
     offers: [],
     isLoading: false,
     error: null,
-    trailOffers: null,
+    trailOffers: [],
     documents: [],
     offer: OFFER_TEMPLATE,
 }
@@ -109,8 +109,7 @@ export const useOffersStore = create((set, get) => ({
         const isSameBusiness = offers.length > 0 && offers[0].businessId === businessId
 
         if(isSameBusiness) return;
-
-        console.log('Fetching for ', businessId)
+        
         set({ isLoading: true, error: null });
 
         try {
@@ -176,8 +175,6 @@ export const useOffersStore = create((set, get) => ({
                 ...get().offer,
                 ...businessInformation
             });
-
-            console.log(newOffer)
             
             const optimisticOffer = {
                 ...newOffer,
@@ -205,7 +202,7 @@ export const useOffersStore = create((set, get) => ({
             if(!trailId)
                 throw new Error('Trail ID missing');
 
-            if(get().trailOffers?.length > 0 && get().trailOffers[0]?.trail.id === trailId) return;
+            if(get().trailOffers.length > 0 && get().trailOffers[0].hike.trail.id === trailId) return;
             
             set({isLoading: true, error: null});
             
@@ -213,13 +210,12 @@ export const useOffersStore = create((set, get) => ({
 
             if(offers.length === 0){
                 set({
-                    error: 'No offers available for this trail',
                     trailOffers: [],
                     isLoading: false
                 })
                 return;
             }
-
+            
             set({
                 trailOffers: offers,
                 isLoading: false,
@@ -237,14 +233,11 @@ export const useOffersStore = create((set, get) => ({
 
         try {
             if(!offerId || !businessId){
-                console.log(`${offerId}, ${businessId}`);
                 throw new Error('Offer and Business ID missing');
             }
 
-            console.log('Here', offerId, ' + ', businessId);
             const deletedId = await deleteOffer(offerId, businessId)
-            console.log('Deleted', deletedId, ' + ', businessId);
-
+            
             set((state) => {
                 return {
                     offers: state.offers.filter(o => o.id !== offerId),

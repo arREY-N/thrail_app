@@ -53,10 +53,10 @@ const TESTOFFER = ({
             <Pressable onPress={onCreateNew}>
                 <Text>ADD NEW</Text>
             </Pressable>
-            { !isLoading ?
-                offers?.length > 0 && offers.map((o) => {
+            { !isLoading 
+                ? offers?.length > 0 && offers.map((o) => {
                     const general = o.general;
-                    const trail = o.hike.trail;
+                    const trail = o.hike?.trail;
                     const hike = o.hike;
                     return (
                         <View style={styles.offerForm} key={o.id}>
@@ -75,10 +75,7 @@ const TESTOFFER = ({
                     )})
                 : <Text style={styles.loading}>New Offers loading</Text>
             }
-
             <View style={{margin: 50}}/>
-                 
-            
         </ScrollView>
     )
 }

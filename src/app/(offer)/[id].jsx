@@ -20,13 +20,16 @@ export default function book(){
     
     useEffect(() => {        
         loadTrailOffers(id);
+    }, [id]);
+
+    useEffect(() => {
         setFilteredOffers(trailOffers);
-    }, [id, trailOffers]);
+    }, [trailOffers])
     
     const filterOffers = () => {
         if(date) {
             setFilteredOffers(() => 
-                trailOffers.filter(o => o.date === date)
+                trailOffers.filter(o => o.general.date === date)
             )
         } else {
             setFilteredOffers(trailOffers);
@@ -73,9 +76,9 @@ const TESTBOOK = ({
                 <Text>SEARCH</Text>
             </Pressable>
 
-            { !isLoading ?  
-                offers?.length > 0 &&
-                    offers.map((o) => {
+            { !isLoading 
+                ? offers?.length > 0
+                    ? offers.map((o) => {
                         const hike = o.hike;
                         const general = o.general;
                         return (
@@ -94,6 +97,7 @@ const TESTBOOK = ({
                             </View>
                         )
                     })
+                    : <Text style={styles.loading}>No Offers</Text>
                 : <Text style={styles.loading}>New Offers loading</Text>
             }
         </View>
