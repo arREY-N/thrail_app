@@ -69,7 +69,7 @@ export async function fetchOfferForTrail(id){
             throw new Error('Trail ID missing'); 
 
         const ref = collectionGroup(db, 'offers');
-        const q = query(ref, where('trail.id', '==', id));
+        const q = query(ref, where('hike.trail.id', '==', id));
 
         const querySnapshot = await getDocs(q);
 

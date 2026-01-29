@@ -76,16 +76,17 @@ const TESTBOOK = ({
             { !isLoading ?  
                 offers?.length > 0 &&
                     offers.map((o) => {
-                        const trail = o.trail;
+                        const hike = o.hike;
+                        const general = o.general;
                         return (
                             <View style={styles.offerForm} key={o.id}>
-                                <Text>Trail: {trail?.name}</Text>
-                                <Text>Price: P{o.price}.00 </Text>
-                                <Text>Date: {o.date}</Text>
-                                <Text>Duration: {o.duration}</Text>
-                                <Text>Documents: {o.documents?.join(', ')}</Text>
-                                <Text>Inclusions: {o.inclusions?.join(', ')}</Text>
-                                <Text>Description: {o.description}</Text>
+                                <Text>Trail: {hike?.trail?.name}</Text>
+                                <Text>Price: P{general.price}.00 </Text>
+                                <Text>Date: {general.date}</Text>
+                                <Text>Duration: {hike.duration}</Text>
+                                <Text>Documents: {general.documents?.join(', ')}</Text>
+                                <Text>Inclusions: {hike.inclusions?.join(', ')}</Text>
+                                <Text>Description: {general.description}</Text>
                             
                                 <Pressable onPress={() => onBookNowPress(o.id)}>
                                     <Text>BOOK NOW</Text>

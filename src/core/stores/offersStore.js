@@ -7,12 +7,17 @@ import {
 } from "../repositories/offerRepository";
 
 const OFFER_TEMPLATE = {
-    trail: null,
-    date: null,
-    price: null,
-    documents: [],
-    duration: null,
-    inclusions: [],
+    general: {
+        date: null,
+        price: null,
+        description: null,
+        documents: []
+    },
+    hike: {
+        trail: null,
+        duration: null,
+        inclusions: [],
+    },
 }
 
 const init = {
@@ -57,6 +62,35 @@ export const useOffersStore = create((set, get) => ({
         });
     },
 
+    editProperty: (property) => {
+        const { info, type, key, value } = property;
+        const offer = get().offer;
+        
+        let current = (offer[info] && offer[info][key]) ? offer[info][key] : null;
+        let finalValue = value;
+        
+        if(type === 'multi-select'){
+            current = current || [];
+            finalValue = current?.find(v => v === value)
+                ? current.filter(c => c !== value)
+                : [...current, value]
+        } else if (type ===  'boolean'){
+            finalValue = !current
+        } 
+
+        set((state) => {
+            return {
+                offer: {
+                    ...state.offer,
+                    [info]: {
+                        ...state.offer[info],
+                        [key]: finalValue
+                    }
+                }
+            }
+        })
+    },
+
     editOffer: (data) => {
         set((state) => {
             return {
@@ -90,41 +124,6 @@ export const useOffersStore = create((set, get) => ({
             });
         }
     },
-
-    // loadOffer: async (offerData) => {
-    //     set({isLoading: true, error: null});
-
-    //     if(get().offers.length > 0 && get().offers.some(o => o.id === offerData.id))
-    //         return get().offers.some(o => o.id === id);
-
-    //     try {
-    //         const businessId = offerData.ownedBy;
-    //         const trailId = offerData.trailId;
-
-    //         const offer = await fetchOfferById(businessId, trailId);
-
-    //         if(!offer){
-    //             console.log(`Offer ${offerData.id} from ${businessId} for ${trailId} not found`);
-    //             set({
-    //                 error: 'Offer not found',
-    //                 isLoading: false
-    //             })
-    //             return;
-    //         }
-
-    //         set((state) => {
-    //             return{ 
-    //                 offers: [...state, offer],
-    //                 isLoading: false
-    //             }
-    //         });
-    //     } catch (err) {
-    //         set({
-    //             error: err.message ?? 'Failed loading details for offer',
-    //             isLoading: false,
-    //         })
-    //     }
-    // },
 
     writeOffer: (id) => {
         set({ isLoading: true, error: null});
@@ -177,6 +176,8 @@ export const useOffersStore = create((set, get) => ({
                 ...get().offer,
                 ...businessInformation
             });
+
+            console.log(newOffer)
             
             const optimisticOffer = {
                 ...newOffer,

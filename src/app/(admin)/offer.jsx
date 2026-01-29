@@ -5,10 +5,6 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-const DOCUMENT_LIST = ['Valid ID', 'Medical Certificate', 'Waiver' ]
-const HIKE_DURATION = ['1-3 hours', 'Half-day', 'Full-day', 'Overnight', 'Multi-day']
-const OFFER_INCLUSIONS = ['Shuttle', 'Tent', 'Bag tag']
-
 export default function offer(){
     const router = useRouter();
 
@@ -22,9 +18,9 @@ export default function offer(){
     const businessAccount = useBusinessesStore(s => s.businessAccount);
 
     useEffect(()=> {
+        resetOffer();    
         loadTrails();
         loadOffers(businessAccount?.id);
-        resetOffer();    
     }, [businessAccount?.id]);
 
     const onUpdateOffer = (id) => {
@@ -47,7 +43,6 @@ export default function offer(){
 }
 
 const TESTOFFER = ({
-    trails,
     offers,
     isLoading,
     onUpdateOffer,
@@ -60,23 +55,24 @@ const TESTOFFER = ({
             </Pressable>
             { !isLoading ?
                 offers?.length > 0 && offers.map((o) => {
-                        const trail = trails.find(t => t.id === o.trail?.id);
-                        return (
-                            <View style={styles.offerForm} key={o.id}>
-                                <Text>Trail: {trail?.name}</Text>
-                                <Text>Price: P{o.price}.00 </Text>
-                                <Text>Date: {o.date}</Text>
-                                <Text>Duration: {o.duration}</Text>
-                                <Text>Documents: {o.documents?.join(', ')}</Text>
-                                <Text>Inclusions: {o.inclusions?.join(', ')}</Text>
-                                <Text>Description: {o.description}</Text>
-                                
-                                <Pressable onPress={() => onUpdateOffer(o.id)}>
-                                    <Text>Edit Offer</Text>
-                                </Pressable>
-                            </View>
-                        )
-                    })
+                    const general = o.general;
+                    const trail = o.hike.trail;
+                    const hike = o.hike;
+                    return (
+                        <View style={styles.offerForm} key={o.id}>
+                            <Text>Trail: {trail?.name}</Text>
+                            <Text>Price: P{general?.price}.00 </Text>
+                            <Text>Date: {general?.date}</Text>
+                            <Text>Duration: {hike?.duration}</Text>
+                            <Text>Documents: {general?.documents?.join(', ')}</Text>
+                            <Text>Inclusions: {hike?.inclusions?.join(', ')}</Text>
+                            <Text>Description: {general?.description}</Text>
+                            
+                            <Pressable onPress={() => onUpdateOffer(o.id)}>
+                                <Text>Edit Offer</Text>
+                            </Pressable>
+                        </View>
+                    )})
                 : <Text style={styles.loading}>New Offers loading</Text>
             }
 
