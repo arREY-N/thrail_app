@@ -1,6 +1,5 @@
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { View } from 'react-native';
 
 import { useAuthStore } from '@/src/core/stores/authStore';
