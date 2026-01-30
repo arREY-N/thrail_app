@@ -1,11 +1,10 @@
 import CustomTextInput from "@/src/components/CustomTextInput";
-import { validatePayment } from '@/src/core/domain/paymentDomain';
 import { useAuthStore } from "@/src/core/stores/authStore";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
@@ -14,122 +13,112 @@ export default function book(){
     const systemPayments = usePaymentsStore(s => s.error);
     const systemBookings = useBookingsStore(s => s.error);
 
-    const router = useRouter();
+    const router = useRouter();    
+    const profile = useAuthStore(s => s.profile);
 
-    const trailOffers = useOffersStore((state) => state.trailOffers);
-    const offer = trailOffers.find(o => o.id === id);
-    const profile = useAuthStore((state) => state.profile);
+    const loadOffer = useOffersStore(s => s.loadOffer);
+    const offer = useOffersStore(s => s.offer);
 
-    const createPayment = usePaymentsStore((state) => state.createPayment);
-    const paymentIsLoading = usePaymentsStore((state) => state.isLoading);
-
-    const createBooking = useBookingsStore((state) => state.createBooking);
-    const bookingIsLoading = useBookingsStore((state) => state.isLoading);
-
-    const onPayPress = async (paymentData) => {
-        try {
-            if(!paymentData.mode) throw new Error('Select payment method');
-            
-            const receipt = validatePayment();
-            
-            if(!receipt) {
-                console.log('Invalid payment');
-            }
-            
-            const payment = {
-                businessId: offer.businessId,
-                userId: profile.id,
-                offerId: offer.id,
-                amount: offer.price,
-                mode: paymentData.mode,
-                ...receipt
-            }
+    const createPayment = usePaymentsStore(s => s.createPayment);
+    const paymentIsLoading = usePaymentsStore(s => s.isLoading);
     
-            const paymentRef = await createPayment(payment);
+    const createBooking = useBookingsStore(s => s.createBooking);
+    const bookingIsLoading = useBookingsStore(s => s.isLoading);
 
-            const bookingRec = {
-                receiptId: receipt.receiptId,
-                paymentId: paymentRef,
-                mode: paymentData.mode,
-                businessName: offer.businessName,
-                trailName: offer.trailName,
-                businessId: offer.businessId,
-                trailId: offer.trailId,
-                date: offer.date,
-                price: offer.price,
-                userId: profile.id,
-                offerId: offer.id,
-            }
+    const [mode, setMode] = useState('');
+    const modes = ['GCash', 'Maya'];
+    
+    useEffect(() => {
+        console.log(id);
+        if(id) loadOffer(id)
+    }, [id]);
 
-            await createBooking({bookingData: bookingRec});
-            router.replace('/(tabs)');
-        } catch (err) {
-            console.log(err.message);
-            setSystem(err.message)        
-        }
+    const onPayPress = async (mode) => {
+        const payment = await createPayment({
+            profile,
+            offer,
+            mode
+        })
+
+        if(!payment) return;
+
+        await createBooking({
+            bookingData: {
+                payment,
+                offer
+            },
+        });
+
+        router.replace(`/(receipt)/${payment.id}`);
     }
 
     return (
-        !(paymentIsLoading || bookingIsLoading) ? 
-            <TESTBOOK 
-                offer={offer}
-                profile={profile}
-                onPayPress={onPayPress}
-                system={systemBookings || systemOffers || systemPayments}
-            /> : 
-            
-            <Text style={styles.loading}>LOADING</Text>
+        <TESTBOOK 
+            offer={offer}
+            profile={profile}
+            mode={mode}
+            setMode={setMode}
+            modes={modes}
+            onPayPress={onPayPress}
+            isLoading={paymentIsLoading || bookingIsLoading}
+            system={systemBookings || systemOffers || systemPayments}
+        /> 
     )
 }
 
 const TESTBOOK = ({
     offer,
     profile,
+    mode,
+    setMode,
+    modes,
     onPayPress,
+    isLoading,
     system
 }) => {
-    const [mode, setMode] = useState('');
-
     return (
         <View>    
             <Text>Book</Text>
             { system && <Text>{system}</Text> }
-            <View style={styles.card}>
-                <Text>Offer Information</Text>
-                <Text>OfferID: {offer.id}</Text>
-                <Text>Trail ID: {offer.hike.trail.id}</Text>
-                <Text>Price: {offer.general.price}</Text>
-                <Text>Provider: {offer.businessName}</Text>
-                <Text>Date: {offer.general.date}</Text>
-            </View>
-            <View style={styles.card}>
-                <Text>User Information</Text>
-                <Text>User ID: {profile.id} </Text>
-                <Text>User: {profile.firstname} {profile.lastname}</Text>
-                <Text>Username: {profile.username}</Text>
-            </View>
-            
-            <CustomTextInput
-                placeholder="Mode of Payment"
-                value={mode}
-                onChangeText={null}
-            />
-            
-            <Pressable onPress={() => setMode('Maya')}>
-                <Text>Maya</Text>
-            </Pressable>
+            { !isLoading 
+                ? offer && 
+                    <View>    
+                        <View style={styles.card}>
+                            <Text>Offer Information</Text>
+                            <Text>OfferID: {offer.id ?? ''}</Text>
+                            <Text>Trail ID: {offer.hike.trail.id ?? ''}</Text>
+                            <Text>Price: {offer.general.price ?? ''}</Text>
+                            <Text>Provider: {offer.businessName ?? ''}</Text>
+                            <Text>Date: {offer.general.date ?? ''}</Text>
+                        </View>
+                        <View style={styles.card}>
+                            <Text>User Information</Text>
+                            <Text>User ID: {profile.id} </Text>
+                            <Text>User: {profile.firstname} {profile?.lastname}</Text>
+                            <Text>Username: {profile.username}</Text>
+                        </View>
+                        
+                        <CustomTextInput
+                            placeholder="Mode of Payment"
+                            value={mode}
+                            onChangeText={null}
+                        />
+                        {
+                            modes.map(m => {
+                                return (
+                                    <Pressable onPress={() => setMode(m)}>
+                                        <Text>{m}</Text>
+                                    </Pressable>
+                                )
+                            })
+                        }     
 
-            <Pressable onPress={() => setMode('GCash')}>
-                <Text>GCash</Text>
-            </Pressable>
-
-            <Pressable onPress={() => onPayPress({
-                offerId: offer.id,
-                userId: profile.id,
-                mode,
-            })}>
-                <Text>Pay</Text>
-            </Pressable>
+                        <Pressable onPress={() => onPayPress(mode)}>
+                            <Text>Pay</Text>
+                        </Pressable>
+                    </View> 
+                : <Text>Offer loading</Text>
+            }
         </View>
     )
 }
