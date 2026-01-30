@@ -8,23 +8,21 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 
 export default function apply(){
     const router = useRouter();
+
     const [system, setSystem] = useState(null);
-    const profile = useAuthStore((state) => state.profile);
+    const profile = useAuthStore(s => s.profile);
 
     const provinces = ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'];
-    const createApplication = useApplicationsStore((state) => state.createApplication);
-    const error = useApplicationsStore((state) => state.error);
+    const createApplication = useApplicationsStore(s => s.createApplication);
+    const error = useApplicationsStore(s => s.error);
 
     const onApplyPress = async (businessData) => {
-        setSystem(null);
-        
         try{           
             const appId = await createApplication({
                 ...businessData,
                 userId: profile.id, 
             });
-
-            setSystem(`Application ${appId} sent`);            
+            router.replace('/(tabs)');             
         } catch (err) {
             setSystem(error ? error.message : err.message );
         }

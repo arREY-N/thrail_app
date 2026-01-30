@@ -1,144 +1,81 @@
-import CustomTextInput from "@/src/components/CustomTextInput";
-import { createOfferObject } from "@/src/core/domain/offerDomain";
-import { useAuthStore } from "@/src/core/stores/authStore";
 import { useBusinessesStore } from "@/src/core/stores/businessesStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function offer(){
-    const [system, setSystem] = useState(null);
-    const trails = useTrailsStore((state) => state.trails);
-    const loadTrails = useTrailsStore((state) => state.loadTrails);
+    const router = useRouter();
 
-    const addOffer = useOffersStore((state) => state.addOffer);
-    const offers = useOffersStore((state) => state.offers);
-    const loadOffers = useOffersStore((state) => state.loadOffers);
-    const deleteOffer = useOffersStore((state) => state.deleteOffer);
-    const offersIsLoading = useOffersStore((state) => state.isLoading);
+    const trails = useTrailsStore(s => s.trails);
+    const loadTrails = useTrailsStore(s => s.loadTrails);
 
-    const profile = useAuthStore((state) => state.profile);
-    const businessAccount = useBusinessesStore((state) => state.businessAccount);
+    const offers = useOffersStore(s => s.offers);
+    const loadOffers = useOffersStore(s => s.loadOffers);
+    const offersIsLoading = useOffersStore(s => s.isLoading);
+    const resetOffer = useOffersStore(s => s.resetOffer);
+    const businessAccount = useBusinessesStore(s => s.businessAccount);
 
     useEffect(()=> {
+        resetOffer();    
         loadTrails();
         loadOffers(businessAccount?.id);
     }, [businessAccount?.id]);
 
-    const onSubmitOfferPress = async (offerData) => {
-        try { 
-            const filledOffer = createOfferObject({
-                trails: trails,
-                admin: profile,
-                business: businessAccount,
-                offerData,
-            })
-
-            await addOffer(filledOffer);
-        } catch (err) {
-            setSystem(err.message);
-        }
+    const onUpdateOffer = (id) => {
+        router.push(`/(offer)/(write)/${id}`)    
     }
-
-    const onDeleteOfferPress = (offerId) => {
-        try {
-            const businessId = businessAccount?.id;
-            console.log('Delete ', offerId, ' by ', businessId);
-            deleteOffer(offerId, businessId);
-        } catch (err) {
-            setSystem(err.message);
-        }
+    
+    const onCreateNew = () => {
+        router.push(`/(offer)/(write)/${null}`)    
     }
 
     return(
         <TESTOFFER
             trails={trails}
             offers={offers}
-            onSubmitOfferPress={onSubmitOfferPress}
-            system={system}
-            onDeleteOfferPress={onDeleteOfferPress}
             isLoading={offersIsLoading}
+            onUpdateOffer={onUpdateOffer}
+            onCreateNew={onCreateNew}
         />
     )
 }
 
 const TESTOFFER = ({
-    trails,
-    onSubmitOfferPress,
-    system,
     offers,
-    onDeleteOfferPress,
     isLoading,
+    onUpdateOffer,
+    onCreateNew
 }) => {
-    const [date, setDate] = useState('');
-    const [trail, setTrail] = useState(null);
-    const [price, setPrice] = useState(null);
-
     return (
         <ScrollView>
-            <Text>Offer screen</Text>
-
-            <View style={styles.offerForm}>
-                { system && <Text>{system}</Text> }
-                <CustomTextInput
-                    placeholder="Trail"
-                    value={trail?.name || ''}
-                    onChangeText={null}
-                />
-
-                { trails?.length > 0 &&
-                    trails.map((t) => {
-                        return(
-                            <Pressable onPress={() => setTrail(t)}>
-                                <Text>{t.name}</Text>
+            <Pressable onPress={onCreateNew}>
+                <Text>ADD NEW</Text>
+            </Pressable>
+            { !isLoading 
+                ? offers?.length > 0 && offers.map((o) => {
+                    const general = o.general;
+                    const trail = o.hike?.trail;
+                    const hike = o.hike;
+                    return (
+                        <View style={styles.offerForm} key={o.id}>
+                            <Text>Trail: {trail?.name}</Text>
+                            <Text>Price: P{general?.price}.00 </Text>
+                            <Text>Date: {general?.date}</Text>
+                            <Text>Duration: {hike?.duration}</Text>
+                            <Text>Documents: {general?.documents?.join(', ')}</Text>
+                            <Text>Inclusions: {hike?.inclusions?.join(', ')}</Text>
+                            <Text>Description: {general?.description}</Text>
+                            
+                            <Pressable onPress={() => onUpdateOffer(o.id)}>
+                                <Text>Edit Offer</Text>
                             </Pressable>
-                        )
-                    })
-                }
-
-                <CustomTextInput
-                    placeholder="Date"
-                    value={date}
-                    onChangeText={setDate}
-                />
-                
-                <CustomTextInput
-                    placeholder="Price"
-                    value={price}
-                    onChangeText={setPrice}
-                />
-
-                <Pressable onPress={() => onSubmitOfferPress({
-                    trailId: trail?.id,
-                    price,
-                    date
-                })}>
-                    <Text>SUBMIT OFFER</Text>
-                </Pressable>
-            </View>
-
-            { !isLoading ?
-                offers?.length > 0 && offers.map((o) => {
-                        const trail = trails.find(t => t.id === o.trailId);
-                        return (
-                            <View style={styles.offerForm} key={o.id}>
-                                <Text>Trail: {trail?.name}</Text>
-                                <Text>Price: P{o.price}.00 </Text>
-                                <Text>Date: {o.date}</Text>
-
-                                <Pressable onPress={() => onDeleteOfferPress(o.id)}>
-                                    <Text>Delete Offer</Text>
-                                </Pressable>
-                            </View>
-                        )
-                    })
+                        </View>
+                    )})
                 : <Text style={styles.loading}>New Offers loading</Text>
             }
-
             <View style={{margin: 50}}/>
-                 
-            
         </ScrollView>
     )
 }

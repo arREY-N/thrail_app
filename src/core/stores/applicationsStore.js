@@ -82,6 +82,7 @@ export const useApplicationsStore = create((set,get) => ({
             
             const applicationId = await createApplication(businessData);
                     
+            set({ isLoading: false })
             return applicationId;
         } catch (err) {
             throw new Error(err);

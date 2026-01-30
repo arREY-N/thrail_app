@@ -12,7 +12,7 @@ const init = {
     businesses: [],
     businessAccount: null,
     businessAdmins: [],
-    isLoading: null,
+    isLoading: false,
     error: null,
 }
 
@@ -128,9 +128,9 @@ export const useBusinessesStore = create((set, get) => ({
     },
 
     loadBusinessAdmins: async (providedBusinessId = null) => {
-        set({isLoading: true, error: null});
-
         if(get().businessAccount && get().businessAdmins.length > 0) return;
+        
+        set({isLoading: true, error: null});
 
         try {
             const targetID = providedBusinessId || get().businessAccount.id;
@@ -138,7 +138,7 @@ export const useBusinessesStore = create((set, get) => ({
             if(!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await fetchBusinessAdmins(targetID);
-            console.log(businessAdmins);
+
             set({
                 businessAdmins,
                 isLoading: false
@@ -151,13 +151,27 @@ export const useBusinessesStore = create((set, get) => ({
         }
     },
 
-    createBusinessAdmin: async ({userId, businessId}) => {
+    createBusinessAdmin: async ({user, businessId}) => {
         set({isLoading: true, error: null});
 
         try{
-            await createBusinessAdmin({userId, businessId});
+            const role = user.role;
+            const userId = user.id;
+
+            if(role === 'admin') {
+                set({
+                    error: 'Already an admin',
+                    isLoading: false
+                })
+                return;
+            }          
+
+            const uid = await createBusinessAdmin({userId, businessId});
 
             const businessAdmin = await fetchBusinessAdmins(userId);
+            
+            console.log(businessAdmin);
+
             set((state) => {
                 return {
                     businessAdmins: [...state.businessAdmins, businessAdmin],

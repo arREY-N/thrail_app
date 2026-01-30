@@ -38,13 +38,15 @@ const TESTTRAIL = ({
     onBookPress,
     onHikePress
 }) => {
+    const general = trail?.general;
+
     return(
         <View>
             <Text>Trail View</Text>
             <Text>ID: {trail?.id}</Text>
-            <Text>Name: {trail?.name}</Text>
-            <Text>Province: {trail?.province?.join(',')}</Text>
-            <Text>Address: {trail?.address}</Text>
+            <Text>Name: {general.name}</Text>
+            <Text>Province: {general.province?.join(',')}</Text>
+            <Text>Address: {general.address}</Text>
             
             <CustomButton title={'Download'} onPress={() => onDownloadPress(trail?.id)}/>
             <CustomButton title={'Book'} onPress={() => onBookPress(trail?.id)}/>

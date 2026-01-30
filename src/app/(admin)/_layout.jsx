@@ -8,9 +8,9 @@ import UnauthorizedScreen from '../unauthorized';
 export default function AdminLayout(){
     const router = useRouter();
     
-    const user = useAuthStore((state) => state.user);
-    const role = useAuthStore((state) => state.role);
-    const isLoading = useAuthStore((state) => state.isLoading);
+    const user = useAuthStore(s => s.user);
+    const role = useAuthStore(s => s.role);
+    const isLoading = useAuthStore(s => s.isLoading);
     
     useEffect(() => { 
         if(!isLoading && !user) {

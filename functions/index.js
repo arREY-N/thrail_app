@@ -90,7 +90,12 @@ exports.createAdmin = onCall(async (request) => {
             .doc(userId)
             .set({
                 assignedAt: FieldValue.serverTimestamp(),
-                id: userId
+                id: userId,
+                firstname: doc.data().firstname,
+                lastname: doc.data().lastname,
+                username: doc.data().username,
+                email: doc.data().email,
+                businessId,
             }, {merge: true});
 
 
@@ -188,9 +193,21 @@ exports.createBusiness = onCall(async (request) => {
         
         console.log('Creating admins folder')
 
+        const userRef = db.collection('users').doc(userId);
+        const owner = await userRef.get();
+        
+        console.log(owner);
+        
+        console.log(owner.data());
+
         await businessRef.collection('admins').doc('owner').set({
                 assignedAt: FieldValue.serverTimestamp(),
-                id: userId
+                id: userId,
+                firstname: owner.data().firstname,
+                lastname: owner.data().lastname,
+                username: owner.data().username,
+                email: owner.data().email,
+                businessId: doc.data().id,
             },{merge: true});
 
         console.log('Setting application to true')

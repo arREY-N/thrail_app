@@ -23,7 +23,7 @@ export async function checkUserCredentials(userCredentials){
             throw new Error(`${unavailable.join(', ')} already in use`);
     } catch (err) { 
         console.log(err.message);
-        throw new Error(getAuthErrorMessage(err));
+        throw new Error(err.message);
     }
 }
 

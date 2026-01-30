@@ -6,68 +6,47 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import useBookingsStore from '@/src/core/stores/bookingsStore';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
 
+import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
+import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import HomeScreen from '../../features/Home/screens/HomeScreen';
 
 export default function home(){
     const router = useRouter();
     const { onMountainPress, onDownloadPress } = useAppNavigation();
     
-    const locationWeather = useWeatherStore((state) => state.locationWeather);
-    const loadWeather = useWeatherStore((state) => state.loadWeather);
-    const profile = useAuthStore((state) => state.profile);
-    const loadUserBookings = useBookingsStore((state) => state.loadUserBookings);
+    const locationWeather = useWeatherStore(s => s.locationWeather);
+    const loadWeather = useWeatherStore(s => s.loadWeather);
+    const profile = useAuthStore(s => s.profile);
+    const recommendations = useRecommendationsStore(s => s.recommendations);
+    const loadUserBookings = useBookingsStore(s => s.loadUserBookings);
+    const recommendedTrails = useTrailsStore(s => s.recommendedTrails);
+    const trails = useTrailsStore(s => s.trails);
+    const setRecommendedTrails = useTrailsStore(s => s.setRecommendedTrails);
+    const loadRecommendations = useRecommendationsStore(s => s.loadRecommendations)
     
-    const DUMMY_DATA = [
-        { 
-            id: '1', 
-            name: 'Mt. Binicayan', 
-            location: 'Cainta, Rizal', 
-            score: '4.6', 
-            length: '3.06 km', 
-            elevation: '380 m', 
-            duration: '1h 45m',
-        }, 
-        
-        { 
-            id: '2', 
-            name: 'Mt. Sipit Ulang', 
-            location: 'Rodriguez, Rizal', 
-        },
-
-        { 
-            id: '3',
-        }
-    ];
-
     useEffect(() => {
         if(!profile || !profile.id) return;    
         loadWeather();
         loadUserBookings(profile.id);
+        loadRecommendations(profile.id);
     }, [profile]);
     
+    useEffect(() => {
+        if(trails){
+            setRecommendedTrails(recommendations?.trails);
+        }
+    }, [trails, recommendations])
+
     const onWeatherPress = () => {
-        console.log('to weather page')
         router.push('/(home)/weather')
     }
 
     const onViewAllRecommendationPress = () => {
-        console.log('View all recommendations')
         router.push('/(home)/recommendations')
     }
     
     const onViewAllTrendingPress = () => {
-        console.log('View all trending')
         router.push('/(home)/trending')
-    }
-
-    const onNotificationPress = () => {
-        console.log('View notification')
-        router.push('/(home)/notification')
-    }
-
-    const onBookingPress = () => {
-        console.log('View booking')
-        router.push('/(book)/userBooking')
     }
 
     return (
@@ -75,70 +54,11 @@ export default function home(){
             locationTemp={locationWeather} 
             onWeatherPress={onWeatherPress}
             onViewAllRecommendationPress={onViewAllRecommendationPress}
-            onNotificationPress={onNotificationPress}
-            onBookingPress={onBookingPress}
             onViewAllTrendingPress={onViewAllTrendingPress}
-            
+            recommendedTrails={recommendedTrails}
+            discoverTrails={[]}
             onMountainPress={onMountainPress}
             onDownloadPress={onDownloadPress}
-
-            recommendedTrails={DUMMY_DATA} 
-            isLoaded={false}
         />
     );
-    //     <TESTHOME 
-    //         locationTemp={locationWeather} 
-    //         onWeatherPress={onWeatherPress}
-    //         onViewAllRecommendationPress={onViewAllRecommendationPress}
-    //         onNotificationPress={onNotificationPress}
-    //         onBookingPress={onBookingPress}
-    //         recommendedTrails={null}
-    //         onMountainPress={onMountainPress}
-    //         onDownloadPress={onDownloadPress}
-    //         onViewAllTrendingPress={onViewAllTrendingPress}
-    //         isLoaded={false}/>
-    // )
-    // return <HomeScreen/>
 }
-
-// const TESTHOME = ({
-//     locationTemp, 
-//     onWeatherPress,
-//     onViewAllRecommendationPress,
-//     onNotificationPress,
-//     onBookingPress,
-//     recommendedTrails,
-//     onMountainPress,
-//     onDownloadPress,
-//     onViewAllTrendingPress,
-//     isLoaded
-// }) => {
-//     return (
-//         <View>
-//             <Text>Location: {locationTemp?.location}</Text>
-//             <Text>Temperature: {locationTemp?.temperature}°C</Text>
-//             <Text>Day: {locationTemp?.day}°C</Text>
-//             <Text>Night: {locationTemp?.night}°C</Text>
-
-//             <CustomButton title={'Weather Button'} onPress={onWeatherPress}/>
-//             <CustomButton title={'View all recommendations'} onPress={onViewAllRecommendationPress}/>
-//             <CustomButton title={'Notification'} onPress={onNotificationPress}/>
-//             <CustomButton title={'Booking'} onPress={onBookingPress}/>
-//             {
-//                 isLoaded &&
-//                 recommendedTrails.map((r) => {
-//                     return (
-//                         <View>
-//                             <Text key={r.id}>{r.name}</Text>
-//                             <Text>{r.length}</Text>
-//                             <Text>{r.score}</Text>
-//                             <CustomButton title={'View mountain'} onPress={() => onMountainPress(r.id)}/>
-//                             <CustomButton title={'Download'} onPress={() => onDownloadPress(r.id)}/>
-//                         </View>
-//                     )
-//                 })
-//             }
-//             <CustomButton title={'View all trending'} onPress={onViewAllTrendingPress}/>
-//         </View>
-//     )
-// }

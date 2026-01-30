@@ -78,8 +78,10 @@ export const useUsersStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const success = await deleteUser(id);
+            if(!id) throw new Error('Invalid user ID');
 
+            const success = await deleteUser(id);
+ 
             if(!success){
                 set({
                     error: 'Failed deleting user',

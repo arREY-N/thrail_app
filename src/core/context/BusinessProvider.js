@@ -13,11 +13,11 @@ export function useBusiness(){
 }
 
 export function BusinessProvider({children}){
-    const role = useAuthStore((state) => state.role);
-    const businessId = useAuthStore((state) => state.businessId);
-    const loadBusinessAccount = useBusinessesStore((state) => state.loadBusinessAccount);
-    const loadBusinessAdmins = useBusinessesStore((state) => state.loadBusinessAdmins);
-    const businessAccount = useBusinessesStore((state) => state.businessAccount);
+    const role = useAuthStore(s => s.role);
+    const businessId = useAuthStore(s => s.businessId);
+    const loadBusinessAccount = useBusinessesStore(s => s.loadBusinessAccount);
+    const loadBusinessAdmins = useBusinessesStore(s => s.loadBusinessAdmins);
+    const businessAccount = useBusinessesStore(s => s.businessAccount);
 
     useEffect(()=>{
         if(role === 'admin'  && !businessAccount) {
