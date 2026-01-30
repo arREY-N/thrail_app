@@ -1,15 +1,12 @@
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { forgotPassword } from '@/src/core/FirebaseAuthUtil';
 import { useAuthStore } from '@/src/core/stores/authStore';
 
 import CustomLoading from '@/src/components/CustomLoading';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
-import React, { useEffect } from 'react';
-import { Text, View } from 'react-native';
 
 export default function login(){
     const { onBackPress, onSignUpPress } = useAppNavigation();
@@ -24,8 +21,6 @@ export default function login(){
     const user = useAuthStore(s => s.user);
     const remember = useAuthStore(s => s.remember);
     const reset = useAuthStore(s => s.reset);
-    
-    const lock = (isLoading || (user && !profile));
 
     const onLogIn = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
@@ -33,29 +28,21 @@ export default function login(){
     const onForgotPassword = useAuthStore(s => s.forgotPassword);
 
     const logIn = useAuthStore(s => s.logIn);
-    const onRememberMePress = useAuthStore(s => s.rememberMe)
     //Testing the Loading
     const lock = (isLoading || isTestLoading || (user && !profile));
     
-    const onLogIn = async (email, password) => {
-        setIsTestLoading(true); 
+    // const onLogIn = async (email, password) => {
+    //     setIsTestLoading(true); 
         
-        console.log("Starting forced delay...");
-        await new Promise(resolve => setTimeout(resolve, 500));
-        console.log("Delay finished, logging in.");
+    //     console.log("Starting forced delay...");
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+    //     console.log("Delay finished, logging in.");
 
-        setIsTestLoading(false); 
+    //     setIsTestLoading(false); 
 
-        await logIn(email, password);
-    }
-    //
-    const onForgotPassword = async (email) => {
-        await forgotPassword(email)
-    }
-
-    const onBackPress = () => {
-        router.back();
-    }
+    //     await logIn(email, password);
+    // }
+    
 
     useEffect(() => {
         reset();
@@ -74,8 +61,6 @@ export default function login(){
             />
 
             <CustomLoading visible={lock} message="Signing in..." />
-                remember={remember}
-                onGooglePress={onGmailLogIn}/>
         </View>
     )
 }
