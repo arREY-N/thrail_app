@@ -47,7 +47,10 @@ export const useBookingsStore = create((set, get) => ({
             set((state) => {
                 console.log({ bookingId, ...bookingData })
                 return {
-                    userBookings: [...state.userBookings, { bookingId, ...bookingData }],
+                    userBookings: [
+                        ...state.userBookings, 
+                        { bookingId, ...bookingData }
+                    ],
                     isLoading: false,
                 }
             })

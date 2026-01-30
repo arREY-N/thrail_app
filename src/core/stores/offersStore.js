@@ -18,6 +18,9 @@ const OFFER_TEMPLATE = {
         duration: null,
         inclusions: [],
     },
+    id: null,
+    businessId: null,
+    businessName: null,
 }
 
 const init = {
@@ -26,7 +29,7 @@ const init = {
     error: null,
     trailOffers: [],
     documents: [],
-    offer: OFFER_TEMPLATE,
+    offer: null,
 }
 
 export const useOffersStore = create((set, get) => ({
@@ -101,7 +104,7 @@ export const useOffersStore = create((set, get) => ({
 
     reset: () => set(init),
 
-    resetOffer: () => set({ offer: OFFER_TEMPLATE }),
+    resetOffer: () => set({ offer: null }),
 
     loadOffers: async (businessId) => {
         const { offers } = get();
@@ -223,6 +226,27 @@ export const useOffersStore = create((set, get) => ({
         } catch (err) {
             set({
                 error: err.message ?? 'Failed loading trail offers',
+                isLoading: false
+            })
+        }
+    },
+
+    loadOffer: (offerId) => {
+        set({ isLoading: true, error: null})
+        
+        try {
+            const offer = get().trailOffers.find(o => o.id === offerId);
+
+            if(!offer) throw new Error('Offer not found');
+
+            set({
+                offer,
+                isLoading: false
+            })
+        } catch (err) {
+            console.error(err.message)
+            set({
+                error: err.message || 'Failed loading offer',
                 isLoading: false
             })
         }
