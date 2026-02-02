@@ -21,7 +21,9 @@ export default function home(){
 
     const onManageTrailsPress = () => {
         console.log('Manage trails');
-        router.push('/(superadmin)/trail');
+        router.push({
+            pathname: '/(superadmin)/trail'
+        });
     }
 
     const onManageUsersPress = () => {

@@ -7,127 +7,101 @@ const WriteComponent = ({
     options,
     system,
     isLoading,
-
     onSubmit,
     onDelete,
-    onEditProperty,
+    onEditProperty
 }) => {
     return (
-        <ScrollView>
+        <ScrollView style={styles.writeComponent}>
             {
-                Object.entries(informationSet).map(([group, groupValue]) => {
-                    return(
-                        <View style={styles.writeComponent}>
-                            {
-                                Object.entries(groupValue).map(([property, value]) => {
-                                    const text = value.text;
-                                    const type = value.type;
-                                    const val = ((object[group] && object[group][property] !== null) ? object[group][property]: null);
+                Object.entries(informationSet).map(([prop, value]) => {
+                    const text = value.text;
+                    const type = value.type;
+                    const val = object[prop] ?? null;
+                    if(type === 'text' || type == 'numerical'){
+                        return(
+                            <View key={prop} >
+                                <Text>{prop}: {text}</Text>
+                                <CustomTextInput
+                                    placeholder={text}
+                                    value={val || ''}
+                                    onChangeText={(text) => onEditProperty({
+                                        type: type,
+                                        key: prop,
+                                        value: text
+                                    })}
+                                />
+                            </View>
+                        )
+                    }
 
-                                    if(type === 'text' || type == 'numerical'){
-                                            return(
-                                                <View key={groupValue[property].text}>
-                                                    <Text>{groupValue[property].text}</Text>
-                                                    <CustomTextInput
-                                                        placeholder={groupValue[property].text}
-                                                        value={val || ''}
-                                                        onChangeText={(text) => onEditProperty({
-                                                            info: [group],
-                                                            type: type,
-                                                            key: property,
-                                                            value: text
-                                                        })}
-                                                    />
-                                                </View>
-                                            )
-                                        }
+                    if(type === 'multi-select'){
+                        const options = value.options;
+                        return(
+                            <View key={prop}>
+                                <Text>{text}</Text>
+                                {
+                                    options && options.map(o => {
+                                        return(
+                                            <Pressable style={val?.find(v => v === o) ? styles.true : styles.false} onPress={() => onEditProperty({
+                                                type: type,
+                                                key: prop,
+                                                value: o
+                                            })}>
+                                                <Text>{o}</Text>
+                                            </Pressable>
+                                        )
+                                    })
+                                }
+                            </View>
+                        )
+                    }
 
-                                        if(type === 'multi-select'){
-                                            const options = groupValue[property].options;
-                                            return(
-                                                <View key={groupValue[property].text}>
-                                                    <Text>{groupValue[property].text}</Text>
-                                                    {
-                                                        options && options.map(o => {
-                                                            return(
-                                                                <Pressable style={val?.find(v => v === o) ? styles.true : styles.false} onPress={() => onEditProperty({
-                                                                    info: group,
-                                                                    type: type,
-                                                                    key: property,
-                                                                    value: o
-                                                                })}>
-                                                                    <Text>{o}</Text>
-                                                                </Pressable>
-                                                            )
-                                                        })
-                                                    }
-                                                </View>
-                                            )
-                                        }
+                    if(type === 'single-select'){
+                        const options = value.options;
+                        return(
+                            <View key={text}>
+                                <Text>{text}</Text>
+                                {
+                                    options && options.map(o => {
+                                        return(
+                                            <Pressable style={val === o ? styles.true : styles.false} onPress={() => onEditProperty({
+                                                type: type,
+                                                key: prop,
+                                                value: o,
+                                            })}>
+                                                <Text>{o}</Text>
+                                            </Pressable>
+                                        )
+                                    })
+                                }
+                            </View>
+                        )
+                    }
 
-                                        if(type === 'single-select'){
-                                            const options = groupValue[property].options;
-                                            return(
-                                                <View key={groupValue[property].text}>
-                                                    <Text>{groupValue[property].text}</Text>
-                                                    {
-                                                        options && options.map(o => {
-                                                            return(
-                                                                <Pressable style={val === o ? styles.true : styles.false} onPress={() => onEditProperty({
-                                                                    info: group,
-                                                                    type: type,
-                                                                    key: property,
-                                                                    value: o,
-                                                                })}>
-                                                                    <Text>{o}</Text>
-                                                                </Pressable>
-                                                            )
-                                                        })
-                                                    }
-                                                </View>
-                                            )
-                                        }
-                                        
-                                        if(type === 'object-select'){
-                                            return(
-                                                <View key={groupValue[property].text}>
-                                                    <Text>{groupValue[property].text}</Text>
-                                                    {
-                                                        options && options.map(o => {
-                                                            return(
-                                                                <Pressable style={(val && val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
-                                                                    info: group,
-                                                                    type: type,
-                                                                    key: property,
-                                                                    value: o
-                                                                })}>
-                                                                    <Text>{o}</Text>
-                                                                </Pressable>
-                                                            )
-                                                        })
-                                                    }
-                                                </View>
-                                            )
-                                        }
+                    if(type === 'object-select'){
+                        return(
+                            <View key={text}>
+                                <Text>{text}</Text>
+                                {
+                                    options && options.map(o => {
+                                        return(
+                                            <Pressable style={(val && val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
+                                                type: type,
+                                                key: prop,
+                                                value: o
+                                            })}>
+                                                <Text>{o}</Text>
+                                            </Pressable>
+                                        )
+                                    })
+                                }
+                            </View>
+                        )
+                    }
 
-                                        if(type === 'boolean'){
-                                            return(
-                                                <Pressable style={val === true ? styles.true : styles.false} onPress={() => onEditProperty({
-                                                    info: group,
-                                                    type: type,
-                                                    key: property,
-                                                    value: val
-                                                })}>
-                                                    <Text>{text}: {val === null ? 'NO DATA' : val === true ? 'True' : 'False'}</Text>
-                                                </Pressable>
-                                            )
-                                        }
-                                })
-                            }
-                        </View>
-                    )
                 })
-            }    
+            }
 
             { system && <Text>{system}</Text>}
             { isLoading && <Text>Loading</Text>}
@@ -147,7 +121,6 @@ const WriteComponent = ({
 const styles = StyleSheet.create({
     writeComponent: {
         margin: 10,
-        borderWidth: 1,
         padding: 10
     },
     group: {

@@ -7,69 +7,94 @@ import {
 } from "../repositories/offerRepository";
 
 const OFFER_TEMPLATE = {
-    general: {
-        date: null,
-        price: null,
-        description: null,
-        documents: []
-    },
-    hike: {
-        trail: null,
-        duration: null,
-        inclusions: [],
-    },
-    id: null,
-    businessId: null,
-    businessName: null,
+    date: null,
+    price: null,
+    description: null,
+    documents: [],
+    duration: null,
+    inclusions: [],
+    trail: null,
 }
 
 const init = {
     offers: [],
     isLoading: false,
     error: null,
-    trailOffers: [],
     documents: [],
     offer: null,
+    sort: null,
 }
 
 export const useOffersStore = create((set, get) => ({
     ...init, 
 
-    includeInclusions: (doc) => {
-        set((state) => {
-            const updated = state.offer.inclusions?.find(i => i === doc)
-                ? state.offer.inclusions?.filter(i => i !== doc)
-                : [...state.offer.inclusions ?? null, doc];
+    addOffer: async (businessData) => {
+        set({isLoading: true, error: null});
 
-            return {
-                offer: {
-                    ...state.offer,
-                    inclusions: updated
-                }
+        try {
+            const business = {
+                id: businessData.id,
+                name: businessData.businessName
             }
-        })
-    },
-
-    includeDocument: (doc) => {        
-        set((state) => {
-            const updated = state.offer.documents?.find(d => d === doc)
-                ? state.offer.documents?.filter(d => d !== doc)
-                : [...state.offer.documents ?? null, doc];
-
-            return {
-                offer: { 
-                    ...state.offer, 
-                    documents: updated 
-                } 
-            }
-        });
-    },
-
-    editProperty: (property) => {
-        const { info, type, key, value } = property;
-        const offer = get().offer;
         
-        let current = (offer[info] && offer[info][key]) ? offer[info][key] : null;
+            const newOffer = await createNewOffer({ ...get().offer, business });
+            
+            console.log(newOffer);
+
+            const optimisticOffer = {
+                ...newOffer,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
+
+            set(state => {
+                const newOfferList = state.offers.filter(o => o.id !== optimisticOffer.id);
+                const offers = [optimisticOffer, ...newOfferList];
+                const sorted = offers.sort((a, b) => a.date - b.date);
+                
+                return {
+                    offers: sorted,
+                    isLoading: false
+                }
+            });
+            
+            return optimisticOffer.id;
+        } catch (err) {
+            console.log(err.message);
+            set({
+                error: err.message ?? 'Failed to create new offer',
+                isLoading: false
+            })
+        }
+    },
+
+    writeOffer: (id) => {
+        if(!id) {
+            set({ offer: OFFER_TEMPLATE }); 
+            return;
+        }
+
+        set({ isLoading: true, error: null});
+
+        try {
+            set({
+                offer: get().offers.find(o => o.id === id),
+                isLoading: false, 
+            })
+        } catch (err) {
+            console.log(err.message);
+            set({
+                error: err.message || 'Failed writing offer',
+                isLoading: false
+            })
+        }
+    },
+    
+    editProperty: (property) => {
+        const { type, key, value } = property;
+        const offer = get().offer;
+
+        let current = (offer[key]) ? offer[key] : null;
         let finalValue = value;
         
         if(type === 'multi-select'){
@@ -85,19 +110,8 @@ export const useOffersStore = create((set, get) => ({
             return {
                 offer: {
                     ...state.offer,
-                    [info]: {
-                        ...state.offer[info],
-                        [key]: finalValue
-                    }
+                    [key]: finalValue,
                 }
-            }
-        })
-    },
-
-    editOffer: (data) => {
-        set((state) => {
-            return {
-                offer: { ...state.offer, ...data }
             }
         })
     },
@@ -106,51 +120,6 @@ export const useOffersStore = create((set, get) => ({
 
     resetOffer: () => set({ offer: null }),
 
-    loadOffers: async (businessId) => {
-        const { offers } = get();
-
-        const isSameBusiness = offers.length > 0 && offers[0].businessId === businessId
-
-        if(isSameBusiness) return;
-        
-        set({ isLoading: true, error: null });
-
-        try {
-            
-            const offers = await fetchOffers(businessId);
-            set({offers, isLoading: false})
-        } catch (err) {
-            set({
-                error: err.message ?? 'Failed to load offers',
-                isLoading: false
-            });
-        }
-    },
-
-    writeOffer: (id) => {
-        set({ isLoading: true, error: null});
-
-        try {
-            if(get().offers.length > 0 && get().offers.find(o => o.id === id)){
-                set({
-                    offer: get().offers.find(o => o.id === id),
-                    isLoading: false, 
-                })
-                return;
-            }
-            
-            set({
-                offer: OFFER_TEMPLATE,
-                isLoading: false,
-            })
-        } catch (err) {
-            set({
-                error: err.message || 'Failed writing offer',
-                isLoading: false
-            })
-        }
-    },
-
     refreshOffers: async () => {
         set({isLoading: true, error: null});
 
@@ -158,6 +127,7 @@ export const useOffersStore = create((set, get) => ({
             const offers = await fetchOffers();
             set({offers, isLoading: false});
         } catch (err) {
+            console.log(err.message);
             set({
                 error: err.message ?? 'Failed to load offers',
                 isLoading: false
@@ -165,65 +135,45 @@ export const useOffersStore = create((set, get) => ({
         }
     },
 
-    addOffer: async (business) => {
-        set({isLoading: true, error: null});
+    loadBusinessOffers: async (businessId) => {
+        const { offers } = get();
+
+        if(offers.length > 0 && offers[0].businessId === businessId) return;
+        
+        set({ isLoading: true, error: null });
 
         try {
-            const businessInformation = {
-                businessId: business.id,
-                businessName: business.businessName
-            }
-
-            const newOffer = await createNewOffer({
-                ...get().offer,
-                ...businessInformation
-            });
-            
-            const optimisticOffer = {
-                ...newOffer,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            }
-
-            set(state => {
-                const newOfferList = state.offers.filter(o => o.id !== optimisticOffer.id);
-                return {
-                    offers: [...newOfferList, optimisticOffer],
-                    isLoading: false
-                }
-            });
+            const offers = await fetchOffers(businessId);
+            console.log(offers);
+            set({offers, isLoading: false})
         } catch (err) {
+            console.log(err.message);
             set({
-                error: err.message ?? 'Failed to create new offer',
+                error: err.message ?? 'Failed to load offers',
                 isLoading: false
-            })
+            });
         }
     },
 
     loadTrailOffers: async (trailId) => {
+        const { offers } = get().offers;
+
+        if(offers && offers.length > 0 && offers[0].hike.trail.id === trailId) return;
+        
         try{
             if(!trailId)
                 throw new Error('Trail ID missing');
-
-            if(get().trailOffers.length > 0 && get().trailOffers[0].hike.trail.id === trailId) return;
+                
+            set({ isLoading: true, error: null });
             
-            set({isLoading: true, error: null});
-            
-            const offers = await fetchOfferForTrail(trailId);
-
-            if(offers.length === 0){
-                set({
-                    trailOffers: [],
-                    isLoading: false
-                })
-                return;
-            }
+            const fetched = await fetchOfferForTrail(trailId);
             
             set({
-                trailOffers: offers,
+                offers: fetched || [],
                 isLoading: false,
             })
         } catch (err) {
+            console.log(err.message);
             set({
                 error: err.message ?? 'Failed loading trail offers',
                 isLoading: false
@@ -235,9 +185,11 @@ export const useOffersStore = create((set, get) => ({
         set({ isLoading: true, error: null})
         
         try {
-            const offer = get().trailOffers.find(o => o.id === offerId);
+            const offer = get().offers.find(o => o.id === offerId);
 
             if(!offer) throw new Error('Offer not found');
+
+            console.log(offer);
 
             set({
                 offer,
@@ -264,42 +216,16 @@ export const useOffersStore = create((set, get) => ({
             
             set((state) => {
                 return {
-                    offers: state.offers.filter(o => o.id !== offerId),
+                    offers: state.offers.filter(o => o.id !== deletedId),
                     isLoading: false,
                 }
             })
         } catch (err) {
+            console.log(err.message);
             set({
                 error: err.message ?? 'Failed deleting offer',
                 isLoading: false
             })
         }
     },
-
-    updateOffer: (id) => {
-        set({ isLoading: true, error: null });
-
-        try {
-            const offer = get().offers.find(o => o.id === id);
-    
-            if(!offer) {
-                set({
-                    error: 'No offer found',
-                    isLoading: false
-                })
-                return;
-            }
-
-            set({
-                offer: offer,
-                isLoading: false
-            })
-        } catch (err) {
-            set({
-                error: err.message || 'Failed selecting offer',
-                isLoading: false
-            })
-        }
-        
-    }
 }))

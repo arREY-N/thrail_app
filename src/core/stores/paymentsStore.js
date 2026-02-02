@@ -1,6 +1,5 @@
-import { pay } from '@/src/core/domain/paymentDomain';
 import { create } from "zustand";
-import { createPayment, fetchPayment } from "../repositories/paymentRepository";
+import { createPayment, createReceipt, fetchPayment } from "../repositories/paymentRepository";
 
 const init = {
     userPayments: [],
@@ -21,12 +20,12 @@ export const usePaymentsStore = create((set, get) => ({
         
         const { profile, offer, mode } = paymentData;
         const { firstname, lastname, email } = profile;
-        const { businessId, businessName, hike } = offer 
+        const { businessId, businessName, hike, general } = offer 
 
         try {
             if(!mode) throw new Error('No payment mode selected')
 
-            const receipt = pay();
+            const receipt = createReceipt(general.price);
             
             const { reference, amount, createdAt } = receipt;
 
@@ -55,17 +54,19 @@ export const usePaymentsStore = create((set, get) => ({
             
             if(!paymentId) throw new Error('Payment failed');
             
+            const payment = await fetchPayment(paymentId);
+
             set((state) => {
                 return {
                     userPayments: [
                         ...state.userPayments, 
-                        { id: paymentId, ...paymentRecord }
+                        payment
                     ],
                     isLoading: false,
                 }
             })
             
-            return {id:paymentId, ...paymentRecord};
+            return payment;
         } catch (err) {
             console.error(err.message);
             set({

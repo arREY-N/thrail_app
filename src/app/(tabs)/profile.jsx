@@ -12,12 +12,10 @@ export default function profile(){
 
     const onSignOutPress = async () => {
         await signOut();
-        // resetData();
     }
 
     const onApplyPress = () => {
-        console.log('Apply');
-        router.push('/(business)/apply');
+        router.push('/(business)/write');
     }
 
     return (

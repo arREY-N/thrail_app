@@ -2,7 +2,7 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBookingsStore } from '@/src/core/stores/bookingsStore';
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-export default function userBooking(){
+export default function booking(){
     const userBookings = useBookingsStore((state) => state.userBookings);
     const bookingsIsLoading = useBookingsStore((state) => state.isLoading);
     const bookingErrors = useBookingsStore((state) => state.error);

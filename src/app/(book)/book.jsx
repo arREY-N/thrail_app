@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function book(){
-    const { id } = useLocalSearchParams();
+    const { offerId } = useLocalSearchParams();
     const systemOffers = useOffersStore(s => s.error);
     const systemPayments = usePaymentsStore(s => s.error);
     const systemBookings = useBookingsStore(s => s.error);
@@ -29,9 +29,9 @@ export default function book(){
     const modes = ['GCash', 'Maya'];
     
     useEffect(() => {
-        console.log(id);
-        if(id) loadOffer(id)
-    }, [id]);
+        console.log('Booking: ', offerId);
+        if(offerId) loadOffer(offerId)
+    }, [offerId]);
 
     const onPayPress = async (mode) => {
         const payment = await createPayment({
@@ -44,13 +44,15 @@ export default function book(){
 
         await createBooking({
             bookingData: {
-                payment,
+                payment: 
                 offer
             },
         });
 
         router.replace(`/(receipt)/${payment.id}`);
     }
+
+    if(!offer) return;
 
     return (
         <TESTBOOK 
@@ -76,6 +78,7 @@ const TESTBOOK = ({
     isLoading,
     system
 }) => {
+    console.log(offer);
     return (
         <View>    
             <Text>Book</Text>
@@ -85,17 +88,15 @@ const TESTBOOK = ({
                     <View>    
                         <View style={styles.card}>
                             <Text>Offer Information</Text>
-                            <Text>OfferID: {offer.id ?? ''}</Text>
-                            <Text>Trail ID: {offer.hike.trail.id ?? ''}</Text>
-                            <Text>Price: {offer.general.price ?? ''}</Text>
-                            <Text>Provider: {offer.businessName ?? ''}</Text>
-                            <Text>Date: {offer.general.date ?? ''}</Text>
+                            <Text>Trail: {offer.trail.name ?? ''}</Text>
+                            <Text>Price: {offer.price ?? ''}</Text>
+                            <Text>Provider: {offer?.business.name ?? ''}</Text>
+                            <Text>Date: {offer.date ?? ''}</Text>
                         </View>
                         <View style={styles.card}>
                             <Text>User Information</Text>
-                            <Text>User ID: {profile.id} </Text>
                             <Text>User: {profile.firstname} {profile?.lastname}</Text>
-                            <Text>Username: {profile.username}</Text>
+                            <Text>Email: {profile.email}</Text>
                         </View>
                         
                         <CustomTextInput

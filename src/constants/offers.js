@@ -17,41 +17,36 @@ export const OFFER_CONSTANTS = {
         'Bag tag'
     ],
     OFFER_INFORMATION: {
-        general: {
-            date: {
-                text: 'Date',
-                type: 'text'
-            },
-            price: {
-                text: 'Price',
-                type: 'numerical',
-            },
-            description: {
-                text: 'Description',
-                type: 'text',
-            },
-            documents: {
-                text: 'Document',
-                type: 'multi-select',
-                options: ['Valid ID', 'Medical Certificate', 'Waiver']
-            },
+        date: {
+            text: 'Date',
+            type: 'text'
         },
-        hike: {
-            trail: {
-                text: 'Trail', 
-                type: 'object-select'
-            },
-            duration: {
-                text: 'Duration',
-                type: 'single-select',
-                options: ['1-3 Hours', 'Half-day', 'Full-day', 'Overnight', 'Multi-day']
-            },
-            inclusions: {
-                text: 'Inclusions',
-                type: 'multi-select',
-                options: ['Shuttle', 'Tent', 'Bag Tag']
-            },
+        price: {
+            text: 'Price',
+            type: 'numerical',
         },
-
+        description: {
+            text: 'Description',
+            type: 'text',
+        },
+        documents: {
+            text: 'Document',
+            type: 'multi-select',
+            options: ['Valid ID', 'Medical Certificate', 'Waiver']
+        },
+        trail: {
+            text: 'Trail', 
+            type: 'object-select'
+        },
+        duration: {
+            text: 'Duration',
+            type: 'single-select',
+            options: ['1-3 Hours', 'Half-day', 'Full-day', 'Overnight', 'Multi-day']
+        },
+        inclusions: {
+            text: 'Inclusions',
+            type: 'multi-select',
+            options: ['Shuttle', 'Tent', 'Bag Tag']
+        },
     }
 }

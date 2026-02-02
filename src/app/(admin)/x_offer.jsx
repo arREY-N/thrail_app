@@ -1,15 +1,11 @@
 import { useBusinessesStore } from "@/src/core/stores/businessesStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function offer(){
     const router = useRouter();
-
-    const trails = useTrailsStore(s => s.trails);
-    const loadTrails = useTrailsStore(s => s.loadTrails);
 
     const offers = useOffersStore(s => s.offers);
     const loadOffers = useOffersStore(s => s.loadOffers);
@@ -19,21 +15,22 @@ export default function offer(){
 
     useEffect(()=> {
         resetOffer();    
-        loadTrails();
         loadOffers(businessAccount?.id);
     }, [businessAccount?.id]);
 
     const onUpdateOffer = (id) => {
-        router.push(`/(offer)/(write)/${id}`)    
+        router.push({
+            pathname: '/(offer)/write',
+            params: { offerId: id }
+        })    
     }
     
     const onCreateNew = () => {
-        router.push(`/(offer)/(write)/${null}`)    
+        router.push('/(offer)/write')
     }
 
     return(
         <TESTOFFER
-            trails={trails}
             offers={offers}
             isLoading={offersIsLoading}
             onUpdateOffer={onUpdateOffer}
@@ -56,8 +53,9 @@ const TESTOFFER = ({
             { !isLoading 
                 ? offers?.length > 0 && offers.map((o) => {
                     const general = o.general;
-                    const trail = o.hike?.trail;
+                    const trail = o.trail;
                     const hike = o.hike;
+
                     return (
                         <View style={styles.offerForm} key={o.id}>
                             <Text>Trail: {trail?.name}</Text>

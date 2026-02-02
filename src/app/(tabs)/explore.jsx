@@ -8,9 +8,11 @@ export default function explore(){
 
     const trails = useTrailsStore(s => s.trails);
 
-    const onViewMountain = (id) => {  
-        console.log(id);
-        router.push(`/(trail)/${id}`)
+    const onViewMountain = (trailId) => {  
+        router.push({
+            pathname: `/(trail)/trail`,
+            params: { trailId }
+        })
     }
 
     return (

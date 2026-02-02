@@ -3,10 +3,10 @@ import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/fires
 
 export async function createPayment(paymentData){
     try{
-        const paymentRef = doc(collection(db, 'payments'));
+        const paymentRef = doc(db, 'payments', paymentData.receipt.id);
         await setDoc(paymentRef, {
-            ...paymentData,
             id: paymentRef.id,
+            ...paymentData,
             createdAt: serverTimestamp(),
         });
 
@@ -29,5 +29,22 @@ export async function fetchPayment(id){
     } catch (err) {
         console.log(err.message);
         throw new Error(err.message || 'Failed fetching payment ', id)
+    }
+}
+
+export async function createReceipt(amount){
+    try {
+        const docRef = doc(collection(db, 'receipts'));
+        
+        await setDoc(docRef, {
+            reference: docRef.id, 
+            createdAt: serverTimestamp(),
+            amount
+        });
+
+        return docRef.id;
+    } catch (err) {
+        console.log(err.message);
+        throw new Error(err.message || 'Failed creating receipt');
     }
 }

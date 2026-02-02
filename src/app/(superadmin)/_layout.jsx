@@ -24,36 +24,7 @@ export default function SuperAdminLayout(){
     
     return(     
         <SuperAdminProvider>
-            <Stack>
-                <Stack.Screen
-                    name = 'index'
-                    options = {{
-                        title: 'Superadmin Home',
-                        headerShown: true,
-                    }}
-                />
-                <Stack.Screen
-                    name = 'business'
-                    options = {{
-                        title: 'Businesses',
-                        headerShown: true,
-                    }}
-                />
-                <Stack.Screen
-                    name = 'trail'
-                    options = {{
-                        title: 'Trails',
-                        headerShown: true,
-                    }}
-                />
-                <Stack.Screen
-                    name = 'user'
-                    options = {{
-                        title: 'Users',
-                        headerShown: true,
-                    }}
-                />
-            </Stack>
+            <Stack screenOptions={{title: 'Superadmin'}}/>
         </SuperAdminProvider>
     )
 }

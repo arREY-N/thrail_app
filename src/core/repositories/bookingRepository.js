@@ -29,7 +29,7 @@ export async function fetchUserBookings(userId){
 export async function createBooking(bookingData){
     try {
         console.log(bookingData);
-        const bookingRef = doc(collection(db, 'users', user.id, 'bookings'));
+        const bookingRef = doc(collection(db, 'users', bookingData.payment.user.id, 'bookings'));
         await setDoc(bookingRef, {
             ...bookingData,
             id: bookingRef.id,
