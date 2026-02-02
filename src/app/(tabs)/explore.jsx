@@ -15,9 +15,11 @@ export default function explore(){
         })
     }
 
+    const displayTrails = (trails && trails.length > 0) ? trails : DUMMY_TRAILS;
+
     return (
         <ExploreScreen
-            trails={trails}
+            trails={displayTrails}
             onViewMountain={onViewMountain}
         />
     )

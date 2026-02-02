@@ -1,9 +1,10 @@
-import CustomTextInput from '@/src/components/CustomTextInput';
-import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text } from 'react-native';
+
+import BusAppScreen from '../../features/Profile/screens/BusAppScreen';
+
+import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
+import { useAuthStore } from '@/src/core/stores/authStore';
 
 export default function apply(){
     const router = useRouter();
@@ -27,77 +28,100 @@ export default function apply(){
         }
     }
 
+    const onBackPress = () => {
+        router.back();
+    }
+
     return (
-        <ApplyScreen
+        <BusAppScreen
             system={system}
             provinces={provinces}
-            onApplyPress={onApplyPress}/>
+            onApplyPress={onApplyPress}
+            onBackPress={onBackPress}
+        />
     )
 }
 
-const ApplyScreen = ({
-    system,
-    provinces,
-    onApplyPress
-}) => {
-    const [email, setEmail] = useState('');
-    const [businessName, setBusinessName] = useState('');
-    const [businessAddress, setBusinessAddress] = useState('');
-    const [province, setProvince] = useState('');
+// const ApplyScreen = ({
+//     system,
+//     provinces,
+//     onApplyPress,
+//     onBackPress
+// }) => {
     
-    return (
-        <ScrollView>
-            <Text>Business Application Screen</Text>
-            {
-                system && <Text>{system}</Text>
-            }
-            <CustomTextInput
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
+//     return (
+//         <BusAppScreen
+//             system={system}
+//             provinces={provinces}
+//             onApplyPress={onApplyPress}
+//             onBackPress={onBackPress}
+//         />
+//     )
+// }
 
-            <CustomTextInput
-                placeholder="Business Name"
-                value={businessName}
-                onChangeText={setBusinessName}
-                autoCapitalize="none"
-            />
+// const ApplyScreen = ({
+//     system,
+//     provinces,
+//     onApplyPress
+// }) => {
+//     const [email, setEmail] = useState('');
+//     const [businessName, setBusinessName] = useState('');
+//     const [businessAddress, setBusinessAddress] = useState('');
+//     const [province, setProvince] = useState('');
+    
+//     return (
+//         <ScrollView>
+//             <Text>Business Application Screen</Text>
+//             {
+//                 system && <Text>{system}</Text>
+//             }
+//             <CustomTextInput
+//                 placeholder="Email"
+//                 value={email}
+//                 onChangeText={setEmail}
+//                 keyboardType="email-address"
+//                 autoCapitalize="none"
+//             />
 
-            <CustomTextInput
-                placeholder="Business Address"
-                value={businessAddress}
-                onChangeText={setBusinessAddress}
-                autoCapitalize="none"
-            />
+//             <CustomTextInput
+//                 placeholder="Business Name"
+//                 value={businessName}
+//                 onChangeText={setBusinessName}
+//                 autoCapitalize="none"
+//             />
 
-            <CustomTextInput
-                placeholder="Business Province"
-                value={province}
-                onChangeText={null}
-                autoCapitalize="none"
-            />
+//             <CustomTextInput
+//                 placeholder="Business Address"
+//                 value={businessAddress}
+//                 onChangeText={setBusinessAddress}
+//                 autoCapitalize="none"
+//             />
 
-            {
-                provinces.map(p => {
-                    return (
-                        <Pressable onPress={() => setProvince(p)}>
-                            <Text>{p}</Text>
-                        </Pressable> 
-                    )
-                })
-            }
+//             <CustomTextInput
+//                 placeholder="Business Province"
+//                 value={province}
+//                 onChangeText={null}
+//                 autoCapitalize="none"
+//             />
 
-            <Pressable onPress={() => onApplyPress({
-                email, 
-                businessName, 
-                businessAddress,
-                province
-                })}>
-                <Text>Create New Business</Text>
-            </Pressable>
-        </ScrollView>
-    )
-}
+//             {
+//                 provinces.map(p => {
+//                     return (
+//                         <Pressable onPress={() => setProvince(p)}>
+//                             <Text>{p}</Text>
+//                         </Pressable> 
+//                     )
+//                 })
+//             }
+
+//             <Pressable onPress={() => onApplyPress({
+//                 email, 
+//                 businessName, 
+//                 businessAddress,
+//                 province
+//                 })}>
+//                 <Text>Create New Business</Text>
+//             </Pressable>
+//         </ScrollView>
+//     )
+// }

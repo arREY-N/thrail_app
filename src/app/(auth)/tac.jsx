@@ -1,7 +1,11 @@
-import { useAuthStore } from "@/src/core/stores/authStore";
 import { Redirect, useRouter } from "expo-router";
+import React from 'react';
+import { View } from 'react-native';
 
-import TermsScreen from "../../../src/features/Auth/screens/TermsScreen";
+import { useAuthStore } from "@/src/core/stores/authStore";
+
+import CustomLoading from "@/src/components/CustomLoading";
+import TermsScreen from "@/src/features/Auth/screens/TermsScreen";
 
 export default function tac(){
     const router = useRouter();
@@ -24,12 +28,15 @@ export default function tac(){
     }
 
     return(
-        <TermsScreen 
-            isLoading={isLoading}
-            onAcceptPress={onAcceptPress}
-            onDeclinePress={onDeclinePress}
-            onBackPress={onBackPress}
-            error={error}
-        />
+        <View style={{ flex: 1 }}>
+            <CustomLoading visible={isLoading} message="Creating account..." />
+
+            <TermsScreen 
+                onAcceptPress={onAcceptPress}
+                onDeclinePress={onDeclinePress}
+                onBackPress={onBackPress}
+                error={error}
+            />
+        </View>
     )
 }

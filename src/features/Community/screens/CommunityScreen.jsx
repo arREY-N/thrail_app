@@ -1,19 +1,37 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomHeader from '../../../components/CustomHeader';
+import CustomText from '../../../components/CustomText';
+import { Colors } from '../../../constants/colors';
 
 const CommunityScreen = () => {
     return (
-        <View>
+        <View style={styles.container}>
             <CustomHeader 
                 title="Community"
                 showDefaultIcons={true} 
             />
 
-            <Text>Community Screen</Text>
+            <View style={styles.contentContainer}>
+                <CustomText variant="body">
+                    Community Screen
+                </CustomText>
+            </View>
         </View>
     )
 }
 
-export default CommunityScreen
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+    },
+    contentContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
+});
+
+export default CommunityScreen;

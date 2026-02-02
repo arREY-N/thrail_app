@@ -1,8 +1,17 @@
-import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-import { Colors } from '../constants/colors';
+import { Colors } from '@/src/constants/colors';
+
+import CustomDateInput from '@/src/components/CustomDateInput';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
 
 const CustomTextInput = ({ 
     label, 
@@ -12,8 +21,12 @@ const CustomTextInput = ({
     secureTextEntry, 
     keyboardType,
     isPasswordVisible, 
-    onTogglePassword,  
-    ...props 
+    onTogglePassword,
+    type = 'text',
+    style,
+    icon, 
+    iconLibrary = 'Feather', 
+    ...props
 }) => {
 
     const [isFocused, setIsFocused] = useState(false);
@@ -23,46 +36,69 @@ const CustomTextInput = ({
     const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
 
     return (
-        <View style={styles.container}>
-            {label && <Text style={styles.label}>{label}</Text>}
-            
-            <View style={[
-                styles.inputContainer,
-                { 
-                    borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
-                    backgroundColor: isFocused ? Colors.WHITE : Colors.FAFAFA
-                }
-            ]}>
-                
-                <TextInput 
-                    style={styles.input}
-                    placeholder={placeholder}
-                    placeholderTextColor={Colors.GRAY_MEDIUM}
-                    value={value}
+        <View style={[styles.container, style]}>
+            {type === 'date' ? (
+                <CustomDateInput 
+                    value={value} 
                     onChangeText={onChangeText}
-                    
-                    secureTextEntry={secureTextEntry && !showPassword}
-                    
-                    keyboardType={keyboardType || 'default'} 
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    
-                    {...props} 
+                    label={label}
                 />
+            ) : (
+                <>
+                    {label && (
+                        <CustomText variant="label" style={styles.label}>
+                            {label}
+                        </CustomText>
+                    )}
+                    
+                    <View style={[
+                        styles.inputContainer,
+                        { 
+                            borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
+                            backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND
+                        }
+                    ]}>
+                        
+                        {icon && (
+                            <View style={styles.iconContainer}>
+                                <CustomIcon 
+                                    name={icon} 
+                                    library={iconLibrary} 
+                                    size={20} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                            </View>
+                        )}
 
-                {secureTextEntry && (
-                    <TouchableOpacity 
-                        onPress={togglePassword}
-                        style={styles.eyeIcon}
-                    >
-                        <Feather 
-                            name={showPassword ? "eye" : "eye-off"} 
-                            size={20} 
-                            color={Colors.GRAY_MEDIUM} 
+                        <TextInput 
+                            style={styles.input}
+                            placeholder={placeholder}
+                            placeholderTextColor={Colors.TEXT_PLACEHOLDER}
+                            value={value}
+                            onChangeText={onChangeText}
+                            secureTextEntry={secureTextEntry && !showPassword}
+                            keyboardType={keyboardType || 'default'} 
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => setIsFocused(false)}
+                            {...props} 
                         />
-                    </TouchableOpacity>
-                )}
-            </View>
+
+                        {secureTextEntry && (
+                            <TouchableOpacity 
+                                onPress={togglePassword}
+                                style={styles.eyeIcon}
+                            >
+                                <CustomIcon 
+                                    library="Feather"
+                                    name={showPassword ? "eye" : "eye-off"} 
+                                    size={20} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </>
+            )}
         </View>
     );
 };
@@ -74,9 +110,6 @@ const styles = StyleSheet.create({
     },
     label: {
         marginBottom: 8,
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.BLACK,
         marginLeft: 2,
     },
     inputContainer: {
@@ -89,12 +122,17 @@ const styles = StyleSheet.create({
         height: 54,
         paddingHorizontal: 16,
     },
+    iconContainer: {
+        marginRight: 8,
+    },
     input: {
         flex: 1,
         fontSize: 16,
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
         height: '100%',
-        outlineStyle: 'none', 
+        ...Platform.select({
+            web: { outlineStyle: 'none' }
+        })
     },
     eyeIcon: {
         padding: 8,

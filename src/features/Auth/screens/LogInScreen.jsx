@@ -40,7 +40,7 @@ const LogInScreen = ({
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Log In
                         </CustomText>
 
@@ -78,7 +78,9 @@ const LogInScreen = ({
                             </TouchableOpacity> */}
 
                             <TouchableOpacity onPress={onForgotPasswordPress}>
-                                <CustomText style={AuthStyles.forgotText}>Forgot Password?</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.forgotText}>
+                                    Forgot Password?
+                                </CustomText>
                             </TouchableOpacity>
                         </View>
 
@@ -92,7 +94,9 @@ const LogInScreen = ({
 
                         <View style={AuthStyles.dividerContainer}>
                             <View style={AuthStyles.line} />
-                            <CustomText style={AuthStyles.dividerText}>or continue with</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.dividerText}>
+                                    or continue with
+                                </CustomText>
                             <View style={AuthStyles.line} />
                         </View>
 
@@ -102,18 +106,23 @@ const LogInScreen = ({
                             activeOpacity={0.8}
                         >
                             <AntDesign name="google" size={20} color={Colors.BLACK} />
-                            <CustomText style={AuthStyles.googleButtonText}>Log in with Google</CustomText>
+
+                            <CustomText variant="body" style={AuthStyles.googleButtonText}>
+                                Log in with Google
+                            </CustomText>
                         </TouchableOpacity>
 
                         <View style={AuthStyles.footerContainer}>
-                            <CustomText style={AuthStyles.footerText}>
+                            <CustomText variant="caption" style={AuthStyles.footerText}>
                                 Don't have an account?{' '}
                             </CustomText>
+
                             <TouchableOpacity onPress={onSignUpPress}>
-                                <CustomText style={AuthStyles.signUpLink}>Sign Up</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.signUpLink}>
+                                    Sign Up
+                                </CustomText>
                             </TouchableOpacity>
                         </View>
-
                     </View>
                 </View>
             </ResponsiveScrollView>

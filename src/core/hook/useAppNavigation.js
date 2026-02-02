@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 
-export function useAppNavigation(){
+export function useAppNavigation() {
     const router = useRouter();
 
     const onMountainPress = (id) => {
@@ -9,7 +9,7 @@ export function useAppNavigation(){
 
     const onBackPress = () => {
         router.back();
-    }
+    };
 
     const onDownloadPress = (id) => {
         console.log('Downloading: ', id);
@@ -31,7 +31,7 @@ export function useAppNavigation(){
         router.push('/(book)/userBooking');
     }
 
-    return{
+    return {
         onMountainPress,
         onBackPress,
         onDownloadPress,

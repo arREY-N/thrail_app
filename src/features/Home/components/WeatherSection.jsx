@@ -1,6 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import CustomText from '../../../components/CustomText';
 import { Colors } from '../../../constants/colors';
@@ -25,22 +29,23 @@ const WeatherSection = ({ locationTemp, onPress }) => {
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
             <View style={styles.row}>
                 <View>
-                    <CustomText style={styles.tempText}>
+                    <CustomText variant="title" style={styles.tempText}>
                         {locationTemp?.temperature ? `${locationTemp.temperature}°c` : '--'}
                     </CustomText>
                     
                     <View style={styles.locationRow}>
-                        <Ionicons name="location-outline" size={16} color={Colors.Gray} />
-                        <CustomText style={styles.locationText}>
+                        <Ionicons name="location-outline" size={16} color={Colors.TEXT_SECONDARY} />
+
+                        <CustomText variant="caption" style={styles.locationText}>
                             {locationTemp?.location || 'Locating...'}
                         </CustomText>
                     </View>
                 </View>
 
                 <View style={styles.rightSide}>
-                    <Ionicons name={iconName} size={48} color={Colors.Gray} />
+                    <Ionicons name={iconName} size={48} color={Colors.TEXT_SECONDARY} />
                     
-                    <CustomText style={styles.dayNightText}>
+                    <CustomText variant="caption" style={styles.dayNightText}>
                         Day {locationTemp?.day || '--'}° / Night {locationTemp?.night || '--'}°
                     </CustomText>
                 </View>
@@ -66,7 +71,6 @@ const styles = StyleSheet.create({
     tempText: {
         fontSize: 56,
         fontWeight: 'bold',
-        color: Colors.BLACK,
         lineHeight: 60,
     },
     locationRow: {
@@ -76,9 +80,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     locationText: {
-        fontSize: 14,
         fontWeight: '600',
-        color: Colors.Gray,
     },
     rightSide: {
         alignItems: 'flex-end',
@@ -88,7 +90,6 @@ const styles = StyleSheet.create({
     dayNightText: {
         fontSize: 12,
         fontWeight: '600',
-        color: Colors.Gray,
         marginTop: 8,
     },
 });

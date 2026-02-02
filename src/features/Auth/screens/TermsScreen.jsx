@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import CustomButton from '../../../components/CustomButton';
@@ -7,13 +8,50 @@ import ErrorMessage from '../../../components/ErrorMessage';
 import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 
+import ConfirmationModal from '../../../components/ConfirmationModal';
+
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
 
-const TermsScreen = ({ onAcceptPress, onDeclinePress, onBackPress, error }) => {
+const TermsScreen = ({ 
+    onAcceptPress, 
+    onDeclinePress, 
+    onBackPress, 
+    error 
+}) => {
+
+    const [showDeclineModal, setShowDeclineModal] = useState(false);
+
+    const handleAcceptClick = () => {
+        if (onAcceptPress) onAcceptPress();
+    };
+
+    const handleDeclineClick = () => {
+        setShowDeclineModal(true);
+    };
+
+    const handleConfirmDecline = () => {
+        setShowDeclineModal(false);
+        if (onDeclinePress) onDeclinePress();
+    };
+
+    const handleCloseModal = () => {
+        setShowDeclineModal(false);
+    };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            
+            <ConfirmationModal
+                visible={showDeclineModal}
+                title="Decline Terms?"
+                message="You need to accept the Terms & Conditions to create an account. This will take you back to the start screen."
+                confirmText="Decline"
+                cancelText="Back"
+                onConfirm={handleConfirmDecline}
+                onClose={handleCloseModal}
+            />
+
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
@@ -24,7 +62,7 @@ const TermsScreen = ({ onAcceptPress, onDeclinePress, onBackPress, error }) => {
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Terms & Conditions
                         </CustomText>
 
@@ -32,31 +70,31 @@ const TermsScreen = ({ onAcceptPress, onDeclinePress, onBackPress, error }) => {
 
                         <View style={styles.legalContainer}>
                             <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
-                                <CustomText style={styles.legalText}>
+                                <CustomText variant="body" style={styles.legalText}>
                                     [TERMS AND CONDITIONS PLACEHOLDER]
                                     {'\n'}{'\n'}
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                                     {'\n'}{'\n'}
-                                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
                                     {'\n'}{'\n'}
                                 </CustomText>
                             </ScrollView>
                         </View>
 
-                        <CustomText style={styles.agreementText}>
+                        <CustomText variant="caption" style={styles.agreementText}>
                             By clicking "Accept", you acknowledge that you have read and agree to the Terms & Conditions and Privacy Policy.
                         </CustomText>
 
                         <View style={[AuthStyles.buttonContainer, styles.buttonGap]}>
                             <CustomButton 
                                 title="Accept" 
-                                onPress={onAcceptPress} 
+                                onPress={handleAcceptClick}
                                 variant="primary"
                             />
 
                             <CustomButton 
                                 title="Decline" 
-                                onPress={onDeclinePress} 
+                                onPress={handleDeclineClick}
                                 variant="outline" 
                             />
                         </View>
@@ -81,13 +119,12 @@ const styles = StyleSheet.create({
     },
     legalText: {
         fontSize: 14,
-        color: Colors.GRAY,
+        color: Colors.TEXT_SECONDARY,
         lineHeight: 22,
     },
     agreementText: {
         textAlign: 'center',
-        fontSize: 14,
-        color: Colors.GRAY,
+        color: Colors.TEXT_SECONDARY,
         lineHeight: 20,
         paddingHorizontal: 8,
         marginBottom: 32,

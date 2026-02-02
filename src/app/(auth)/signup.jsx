@@ -1,9 +1,12 @@
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
-import { useAuthStore } from '@/src/core/stores/authStore';
-import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import { useRouter } from 'expo-router';
+import { View } from 'react-native';
+
+import { useAuthStore } from '@/src/core/stores/authStore';
+
+import CustomLoading from '@/src/components/CustomLoading';
+import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 import React, { useEffect } from 'react';
-import { Text, View } from 'react-native';
  
 export default function signup(){
     const router = useRouter();
@@ -33,8 +36,8 @@ export default function signup(){
     }
 
     return (  
-        <View>
-            { isLoading && <Text>Loading</Text> }
+        <View style={{ flex: 1 }}>
+            <CustomLoading visible={isLoading} message="Validating..." />
 
             <SignUpScreen
                 onSignUpPress={onSignUpPress} 
@@ -42,7 +45,7 @@ export default function signup(){
                 onBackPress={onBackPress}
                 onGmailSignUp={onGmailSignUp}
                 error={error}
-                isLoading={isLoading}/>
+            />
         </View>
     )
 }

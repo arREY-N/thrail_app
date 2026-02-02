@@ -1,6 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -16,8 +21,6 @@ const HomeScreen = ({
     locationTemp, 
     onWeatherPress,
     onViewAllRecommendationPress,
-    // onNotificationPress,
-    // onBookingPress,
     onViewAllTrendingPress,
     recommendedTrails, 
     onMountainPress,
@@ -29,9 +32,15 @@ const HomeScreen = ({
     const ListSection = ({ title, data, onViewAll }) => (
         <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-                <CustomText style={styles.sectionTitle}>{title}</CustomText>
+
+                <CustomText variant="subtitle" style={styles.sectionTitle}>
+                    {title}
+                </CustomText>
+
                 <TouchableOpacity onPress={onViewAll}>
-                    <CustomText style={styles.viewAllText}>View All</CustomText>
+                    <CustomText variant="caption" style={styles.viewAllText}>
+                        View All
+                    </CustomText>
                 </TouchableOpacity>
             </View>
 
@@ -53,7 +62,7 @@ const HomeScreen = ({
             ) : (
                 <View style={styles.emptyStateContainer}>
                     <Ionicons name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                    <CustomText style={styles.emptyStateText}>
+                    <CustomText variant="caption" style={styles.emptyStateText}>
                         No trails available yet.
                     </CustomText>
                 </View>
@@ -119,12 +128,9 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.BLACK,
     },
     viewAllText: {
-        fontSize: 14,
         textDecorationLine: 'underline',
-        color: Colors.Gray,
     },
     horizontalList: {
         paddingHorizontal: 16, 
@@ -140,8 +146,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     emptyStateText: {
-        fontSize: 14,
-        color: Colors.GRAY_MEDIUM,
+        color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
     }
 });

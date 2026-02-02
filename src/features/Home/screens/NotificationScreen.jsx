@@ -1,5 +1,10 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import {
+    FlatList,
+    Pressable,
+    StyleSheet,
+    View
+} from 'react-native';
 
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -18,11 +23,11 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
             <View style={styles.iconPlaceholder} />
 
             <View style={styles.textContainer}>
-                <CustomText variant="h1" style={styles.title}>
+                <CustomText variant="subtitle" style={styles.title}>
                     {item.title}
                 </CustomText>
                 
-                <CustomText style={styles.message} numberOfLines={3}>
+                <CustomText variant="body" style={styles.message} numberOfLines={3}>
                     {item.message}
                 </CustomText>
                 
@@ -54,7 +59,7 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Colors.BACKGROUND,
     },
     listContent: {
         paddingBottom: 20,
@@ -64,7 +69,7 @@ const styles = StyleSheet.create({
         padding: 16,
         backgroundColor: Colors.WHITE,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
         alignItems: 'flex-start',
     },
     unreadItem: {
@@ -87,13 +92,13 @@ const styles = StyleSheet.create({
     },
     message: {
         fontSize: 14,
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
         lineHeight: 20,
     },
     time: {
         marginTop: 4,
         fontWeight: 'bold', 
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
     }
 });
 

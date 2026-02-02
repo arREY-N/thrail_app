@@ -1,8 +1,11 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-//npx expo install expo-linear-gradient
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import CustomText from '../../../components/CustomText';
 import { Colors } from '../../../constants/colors';
@@ -26,13 +29,14 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                     <View style={styles.headerContent}>
                         
                         <View style={styles.textContainer}>
-                            <CustomText style={styles.title} numberOfLines={1}>
+                            <CustomText variant="body" style={styles.title} numberOfLines={1}>
                                 {item?.name || "Mountain Name"} 
                             </CustomText>
                             
                             <View style={styles.locationRow}>
                                 <Ionicons name="location-sharp" size={12} color={Colors.GRAY_LIGHT} />
-                                <CustomText style={styles.location} numberOfLines={1}>
+
+                                <CustomText variant="caption" style={styles.location} numberOfLines={1}>
                                     {item?.location || "Location"}
                                 </CustomText>
                             </View>
@@ -40,7 +44,8 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
                         <View style={styles.glassBadge}>
                             <Ionicons name="star" size={12} color={Colors.YELLOW} />
-                            <CustomText style={styles.ratingText}>
+
+                            <CustomText variant="caption" style={styles.ratingText}>
                                 {item?.score || "--"}
                             </CustomText>
                         </View>
@@ -53,11 +58,24 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                 <View style={styles.statsRow}>
                     
                     <View style={styles.statsGroup}>
-                        <StatItem label="Distance" value={item?.length || "--"} />
+                        <StatItem 
+                            label="Distance" 
+                            value={item?.length || "--"}
+                        />
+
                         <View style={styles.verticalDivider} />
-                        <StatItem label="Elev" value={item?.elevation || "--"} />
+
+                        <StatItem 
+                            label="Elev" 
+                            value={item?.elevation || "--"}
+                        />
+
                         <View style={styles.verticalDivider} />
-                        <StatItem label="Time" value={item?.duration || "--"} />
+
+                        <StatItem 
+                            label="Time" 
+                            value={item?.duration || "--"} 
+                        />
                     </View>
 
                     <TouchableOpacity 
@@ -76,8 +94,13 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
 const StatItem = ({ label, value }) => (
     <View style={styles.statItem}>
-        <CustomText style={styles.statValue}>{value}</CustomText>
-        <CustomText style={styles.statLabel}>{label}</CustomText>
+        <CustomText variant="caption" style={styles.statValue}>
+            {value}
+        </CustomText>
+
+        <CustomText variant="caption" style={styles.statLabel}>
+            {label}
+        </CustomText>
     </View>
 );
 
@@ -86,10 +109,10 @@ const styles = StyleSheet.create({
         width: 280, 
         backgroundColor: Colors.WHITE,
         borderRadius: 20, 
-        marginBottom: 0, 
+        marginBottom: 0,
         overflow: 'hidden',
         
-        shadowColor: "#000",
+        shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 6,
@@ -129,9 +152,8 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     title: {
-        fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.WHITE, 
+        color: Colors.TEXT_INVERSE, 
         marginBottom: 4,
         textShadowColor: 'rgba(0, 0, 0, 0.5)',
         textShadowOffset: { width: 0, height: 1 },
@@ -143,7 +165,6 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     location: {
-        fontSize: 14,
         color: 'rgba(255,255,255,0.9)', 
         fontWeight: '500',
     },
@@ -160,9 +181,8 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
     ratingText: {
-        fontSize: 14,
         fontWeight: 'bold',
-        color: Colors.WHITE,
+        color: Colors.TEXT_INVERSE,
     },
 
     statsContainer: {
@@ -174,30 +194,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 8,
     },
     statsGroup: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
+        marginRight: 8,
     },
     statItem: {
         alignItems: 'flex-start',
+        maxWidth: 60,
     },
     statValue: {
-        fontSize: 14, 
         fontWeight: 'bold',
-        color: Colors.BLACK,
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
     },
     statLabel: {
-        fontSize: 10,
-        color: Colors.Gray,
+        color: Colors.TEXT_SECONDARY,
         textTransform: 'uppercase', 
         fontWeight: '400',
+        fontSize: 12,
     },
     verticalDivider: {
-        width: 2,
-        height: 32,
+        width: 1,
+        height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
     },
     
