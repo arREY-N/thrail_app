@@ -38,15 +38,15 @@ export default function home(){
     }, [trails, recommendations])
 
     const onWeatherPress = () => {
-        router.push('/(home)/weather')
+        router.push('/(main)/home/weather')
     }
 
     const onViewAllRecommendationPress = () => {
-        router.push('/(home)/recommendations')
+        router.push('/(main)/home/recommendations')
     }
     
     const onViewAllTrendingPress = () => {
-        router.push('/(home)/trending')
+        router.push('/home/trending')
     }
 
     return (

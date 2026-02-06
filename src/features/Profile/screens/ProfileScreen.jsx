@@ -26,7 +26,7 @@ const ProfileScreen = ({
 
     const handleConfirmSignOut = () => {
         setShowSignOutModal(false);
-        if (onSignOutPress) onSignOutPress();
+        onSignOutPress();
     };
 
     const handleCloseModal = () => {

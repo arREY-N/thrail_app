@@ -1,22 +1,22 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuthStore } from '../core/stores/authStore';
+import LoadingScreen from './loading';
 
 export default function RootLayout() {
     const initialize = useAuthStore((state) => state.initialize);
+    const user = useAuthStore(s => s.user);
+    const isLoading = useAuthStore(s => s.isLoading);
 
     useEffect(() => {
         const unsub = initialize();
-        return () => unsub();
-    }, []);
+        return () => {
+            if(unsub) unsub();
+        }
+    }, [user?.uid]);
 
-    return(
-        <Stack screenOptions = {{headerShown: false}}>
-            <Stack.Screen name="index"/>
-            <Stack.Screen name="(auth)"/>
-            <Stack.Screen name="(tabs)"/>
-            <Stack.Screen name="(superadmin)"/>
-            <Stack.Screen name="(admin)"/>
-        </Stack>
-    )
+    if(isLoading) return <LoadingScreen/>
+
+    return <Stack screenOptions = {{headerShown: false}}/>
+    
 }

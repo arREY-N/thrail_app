@@ -77,7 +77,7 @@ const PreferenceScreen = ({
 
     const handleConfirmExit = () => {
         setShowExitConfirmation(false);
-        router.replace('/'); 
+        router.replace('/(tabs)'); 
     };
 
     const isSelected = (optionValue) => {

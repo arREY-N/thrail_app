@@ -1,31 +1,19 @@
 import { db } from '@/src/core/config/Firebase';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { TrailMapper } from '@/src/core/mapper/trailMapper';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 
 const trailsCollection = collection(db, 'trails');
-
-/**
- * Fetch all trails
- * @returns {Promise<Trail[]>}
- */
 
 export async function fetchAllTrails(){
     try {
         const snapshot = await getDocs(trailsCollection);
 
-        return snapshot.docs.map((docsnap) => ({
-            id: docsnap.id,
-            ...docsnap.data(),
-        }));
+        return snapshot.docs.map((docsnap) => TrailMapper.toUI(docsnap.data()));
     } catch (err) {
         throw new Error(err);
     }
 }
 
-/**
- * Fetch a single trail by ID
- * @param {string} id
- * @returns {Promise<Trail|null>}
- */
 export async function fetchTrailById(id){
     try {
         const ref = doc(db, 'trail', id);
@@ -33,23 +21,7 @@ export async function fetchTrailById(id){
 
         if(!snap.exists()) return null;
         
-        return {
-            id: snap.id,
-            ...snap.data()
-        }
-    } catch (err) {
-        throw new Error(err)
-    }
-}
-
-export async function createTrail(trailData){
-    try {
-        const doc = await addDoc(trailsCollection, trailData);
-
-        return {
-            id: doc.id,
-            ...trailData
-        }
+        return TrailMapper.toUI(snap.data());
     } catch (err) {
         throw new Error(err)
     }
@@ -61,12 +33,12 @@ export async function saveTrail(trailData){
         ? doc(db, 'trails', trailData.id)
         : doc(collection(db, 'trails'));
 
-        await setDoc(docRef, { ...trailData, id:docRef.id }, { merge: true });
+        const trail = TrailMapper.toDB({id: docRef.id, ...trailData});
+        console.log('Trail in repo: ', trail);
+        
+        await setDoc(docRef, trail, { merge: true });
 
-        return {
-            ...trailData,
-            id: docRef.id,
-        }
+        return TrailMapper.toUI(trail);
     } catch (err) {
         throw new Error(err);
     }

@@ -1,5 +1,6 @@
 import { BusinessProvider } from '@/src/core/context/BusinessProvider';
 import { useAuthStore } from '@/src/core/stores/authStore';
+import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { Stack, useRouter } from "expo-router";
 import { useEffect } from 'react';
 import LoadingScreen from '../loading';
@@ -11,13 +12,20 @@ export default function AdminLayout(){
     const user = useAuthStore(s => s.user);
     const role = useAuthStore(s => s.role);
     const isLoading = useAuthStore(s => s.isLoading);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
     
     useEffect(() => { 
         if(!isLoading && !user) {
-            router.replace('/(auth)/landing');
+            // router.replace('/(auth)/landing');
             return
         }
+
+        loadTrails();
     }, [user]);
+    
+    if(!isLoading && !user){
+        router.replace('/(auth)/landing');
+    }
     
     if(!role) return <LoadingScreen/>;
 
