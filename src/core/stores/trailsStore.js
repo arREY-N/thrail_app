@@ -5,40 +5,32 @@ import { getTrailWeather } from '@/src/core/repositories/weatherRepository';
 import { create } from "zustand";
 
 const trailTemplate = {
-    general: {
-        name: null,
-        province: [],
-        address: null,
-    },
-    geographical: {
-        longitude: null,
-        latitude: null,
-        masl: null,
-        start: null,
-        end: null
-    },
-    difficulty: {
-        length: null,
-        gain: null,
-        slope: null,
-        obstacles: null,
-        circularity: null,
-        quality: null,
-        hours: null,
-        difficulty_points: null
-    },
-    tourism: {
-        shelter: null,
-        resting: null,
-        viewpoint: null,
-        information_board: null,
-        clean_water: null,
-        river: null,
-        lake: null,
-        waterfall: null,
-        monument: null,
-        community: null
-    }
+    name: null,
+    province: [],
+    address: null,
+    longitude: null,
+    latitude: null,
+    masl: null,
+    start: null,
+    end: null,
+    length: null,
+    gain: null,
+    slope: null,
+    obstacles: null,
+    circularity: null,
+    quality: null,
+    hours: null,
+    difficulty_points: null,
+    shelter: null,
+    resting: null,
+    viewpoint: null,
+    information_board: null,
+    clean_water: null,
+    river: null,
+    lake: null,
+    waterfall: null,
+    monument: null,
+    community: null,
 }
 
 const hikingTrailTemplate = {
@@ -53,7 +45,7 @@ const init = {
     isLoading: false,
     error: null,
     trail: trailTemplate,
-    hikingTrail: hikingTrailTemplate,
+    hikingTrail: null,
     recommendedTrails: [],
     discoverTrails: [],
 }
@@ -94,19 +86,16 @@ export const useTrailsStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const generalErrors = validateTrail(
-                get().trail.general, 
-                TRAIL_CONSTANTS.TRAIL_INFORMATION.general
-            )
-
-            const difficultyErrors = validateTrail(
-                get().trail.difficulty, 
-                TRAIL_CONSTANTS.TRAIL_INFORMATION.difficulty
-            )
+            const info = TRAIL_CONSTANTS.TRAIL_INFORMATION;
+            console.log('CREATE TRAIL: ', get().trail);
             
+            const generalErrors = validateTrail(
+                get().trail, 
+                {...info.general, ...info.geography, ...info.difficulty_points}
+            )            
 
-            if([...generalErrors, ...difficultyErrors].length > 0) 
-                throw new Error(`${[...generalErrors, ...difficultyErrors].join(', ')} required`)
+            if(generalErrors.length > 0) 
+                throw new Error(`${generalErrors.join(', ')} required`)
             
             const newTrail = await saveTrail(get().trail);
             
@@ -134,10 +123,10 @@ export const useTrailsStore = create((set, get) => ({
     },
 
     editProperty: (property) => {
-        const { info, type, key, value } = property;
+        const { type, key, value } = property;
         const trail = get().trail;
         
-        let current = (trail[info] && trail[info][key]) ? trail[info][key] : null;
+        let current = trail[key] ?? null;
         let finalValue = value;
         
         if(type === 'multi-select'){
@@ -153,10 +142,7 @@ export const useTrailsStore = create((set, get) => ({
             return {
                 trail: {
                     ...state.trail,
-                    [info]: {
-                        ...state.trail[info],
-                        [key]: finalValue
-                    }
+                    [key]: finalValue
                 }
             }
         })
@@ -224,16 +210,16 @@ export const useTrailsStore = create((set, get) => ({
         })
     },
 
-    loadTrails: async () => {
+    loadAllTrails: async () => {
         if(get().trails.length > 0) return;
 
         set({isLoading: true, error: null});
 
         try {
             const trails = await fetchAllTrails();
-                        
+            const sorted = trails.sort((a, b) => a.name.localeCompare(b.name))             
             set({
-                trails: trails, 
+                trails: sorted, 
                 isLoading: false
             })
         } catch (err) {
@@ -242,6 +228,24 @@ export const useTrailsStore = create((set, get) => ({
                 error: err.message ?? 'Failed to load trails',
                 isLoading: false
             });
+        }
+    },
+
+    loadTrail: async (id) => {
+        if(get().trails.length > 0){
+            const trail = get().trails.find(t => t.id === id);
+
+            if(!trail){
+                set({
+                    error: 'Trail Not found',
+                    trail: trailTemplate
+                })
+                return;
+            }
+
+            set({
+                trail
+            })
         }
     },
 
