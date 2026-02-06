@@ -20,7 +20,7 @@ const accountTemplate = {
 const init = {
     user: null,
     profile: null,
-    isLoading: false,
+    isLoading: true,
     role: null,
     error: null,
     _unsubscribe: null,
@@ -34,17 +34,17 @@ export const useAuthStore = create((set, get) => ({
     
     resetSignUp: () => set({account: accountTemplate}),
 
-    reset: () => set(init),
+    reset: () => set({
+        ...init,
+        isLoading: false
+    }),
 
     initialize: () => {
-        set({isLoading: true, error: null});
-        
         const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
-            console.log('change token')
+            set({ isLoading: true, error: null});
             const currentUnsub = get()._unsubscribe;
 
             if(currentUnsub) {
-                console.log('currentUnsub');
                 currentUnsub();
                 set({ _unsubscribe: null });
             }
@@ -77,19 +77,23 @@ export const useAuthStore = create((set, get) => ({
                         }
                     },
                     (error) => {
+                        if(!get().user) return;
                         console.log('Firestore listener error: ', error);
                     }
                 )
 
                 set({_unsubscribe: unsubProfile});
             } else {
-                console.log('no user');
+                const currentUnsub = get()._unsubscribe;
+
+                if(currentUnsub){
+                    currentUnsub();
+                    set({_unsubscribe: null})
+                }
+                
                 set({
-                    user: null,
-                    profile: null,
-                    role: null,
-                    isLoading: false,
-                    businessId: null,
+                    ...init,
+                    isLoading: false
                 });
             }
         });
@@ -106,7 +110,6 @@ export const useAuthStore = create((set, get) => ({
             const role = token.claims.role || 'user';
     
             const businessId = token.claims.businessId || token.claims.owner || null;
-            console.log('Store: ', businessId);
 
             set({
                 user: userCredential.user,
@@ -127,15 +130,17 @@ export const useAuthStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try{
-            // set({
-            //     user: null,
-            //     profile: null,
-            //     role: null,
-            //     isLoading: false,
-            //     businessId: null
-            // })
+            const currentUnsub = get()._unsubscribe;
+            
+            if(currentUnsub){
+                currentUnsub();
+                set({_unsubscribe: null})
+            }
+
             await signOut(auth);
+
             set({
+                ...init,
                 isLoading: false,
             })
         } catch (err) {
@@ -150,7 +155,7 @@ export const useAuthStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const user = await signUp(get().account);
-            console.log('User: ', user);
+            
             set({ isLoading: false })
         } catch (err) {
             set({
