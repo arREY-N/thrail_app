@@ -5,23 +5,21 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 
 import CustomNavBar from "../../components/CustomNavBar";
+import LoadingScreen from "../loading";
 
-export default function UserLayout() {
+export default function homeLayout() {
     const user = useAuthStore(s => s.user);
     const isLoading = useAuthStore(s => s.isLoading);
-    const loadTrails = useTrailsStore(s => s.loadTrails);
-
-    useEffect(() => {
-        if (!user && !isLoading){
-           return;
-        } 
-    }, [user, isLoading]);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
+    const profile = useAuthStore(s => s.profile);
 
     useEffect(() => {
         loadTrails();
     }, []);
 
-    if(!user && !isLoading) return <Redirect href={'/(auth)/landing'}/>
+    if(isLoading) return <LoadingScreen/>
+
+    if(!user) return <Redirect href={'/(auth)/landing'}/>
     
     return (
         <Tabs
