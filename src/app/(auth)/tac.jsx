@@ -15,8 +15,6 @@ export default function tac(){
 
     const onAcceptPress = async () => {
         await signUp();
-        // console.log('GO TO PREFERENCE!');
-        // return <Redirect href={'/(auth)/preference'}/>
     }
 
     const onDeclinePress = async () => {
