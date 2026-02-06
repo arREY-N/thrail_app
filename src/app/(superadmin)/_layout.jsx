@@ -11,7 +11,7 @@ export default function SuperAdminLayout(){
     const user = useAuthStore(s => s.user);
     const isLoading = useAuthStore(s => s.isLoading);
     const role = useAuthStore(s => s.role);
-    
+
     useEffect(() => {
         if(!user && !isLoading) {
             router.replace('/(auth)/landing');
