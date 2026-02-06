@@ -26,7 +26,7 @@ export default function home(){
     const onManageOffersPress = () => {
         console.log('Manage offers');
         router.push({
-            pathname: '/(offer)/offer',
+            pathname: '/offer/view',
             params: { businessId: businessAccount.id }
         });
     }
