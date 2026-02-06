@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React from 'react';
 import { View } from 'react-native';
 
@@ -15,7 +15,8 @@ export default function tac(){
 
     const onAcceptPress = async () => {
         await signUp();
-        return <Redirect href={'/(auth)/preference'}/>
+        // console.log('GO TO PREFERENCE!');
+        // return <Redirect href={'/(auth)/preference'}/>
     }
 
     const onDeclinePress = async () => {
