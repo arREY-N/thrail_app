@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
     ScrollView,
@@ -7,10 +6,11 @@ import {
     View
 } from 'react-native';
 
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
 
@@ -22,12 +22,15 @@ const HomeScreen = ({
     onWeatherPress,
     onViewAllRecommendationPress,
     onViewAllTrendingPress,
+    onViewAllDiscoverPress,
     recommendedTrails, 
+    discoverTrails,
     onMountainPress,
     onDownloadPress,
 }) => {
     
-    const displayTrails = recommendedTrails || [];
+    const recList = recommendedTrails || [];
+    const discList = discoverTrails || [];
 
     const ListSection = ({ title, data, onViewAll }) => (
         <View style={styles.sectionContainer}>
@@ -61,7 +64,13 @@ const HomeScreen = ({
                 </ScrollView>
             ) : (
                 <View style={styles.emptyStateContainer}>
-                    <Ionicons name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                    <CustomIcon 
+                        library="Ionicons" 
+                        name="trail-sign-outline" 
+                        size={32} 
+                        color={Colors.GRAY_MEDIUM} 
+                    />
+                    
                     <CustomText variant="caption" style={styles.emptyStateText}>
                         No trails available yet.
                     </CustomText>
@@ -90,13 +99,13 @@ const HomeScreen = ({
 
                 <ListSection 
                     title="Recommendations" 
-                    data={displayTrails} 
+                    data={recList} 
                     onViewAll={onViewAllRecommendationPress} 
                 />
 
                 <ListSection 
-                    title="Trending" 
-                    data={displayTrails}
+                    title="Discover" 
+                    data={discList}
                     onViewAll={onViewAllTrendingPress} 
                 />
 
