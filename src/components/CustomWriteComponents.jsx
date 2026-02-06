@@ -5,10 +5,7 @@ const WriteComponent = ({
     informationSet,
     object,
     options,
-    system,
-    isLoading,
-    onSubmit,
-    onDelete,
+    optionSet,
     onEditProperty
 }) => {
     return (
@@ -18,10 +15,11 @@ const WriteComponent = ({
                     const text = value.text;
                     const type = value.type;
                     const val = object[prop] ?? null;
+                    const required = value.required;
                     if(type === 'text' || type == 'numerical'){
                         return(
                             <View key={prop} >
-                                <Text>{prop}: {text}</Text>
+                                <Text>{text} { required ? '*' : ''}</Text>
                                 <CustomTextInput
                                     placeholder={text}
                                     value={val || ''}
@@ -39,7 +37,7 @@ const WriteComponent = ({
                         const options = value.options;
                         return(
                             <View key={prop}>
-                                <Text>{text}</Text>
+                                <Text>{text} { required ? '*' : ''}</Text>
                                 {
                                     options && options.map(o => {
                                         return(
@@ -61,7 +59,7 @@ const WriteComponent = ({
                         const options = value.options;
                         return(
                             <View key={text}>
-                                <Text>{text}</Text>
+                                <Text>{text} { required ? '*' : ''}</Text>
                                 {
                                     options && options.map(o => {
                                         return(
@@ -80,11 +78,14 @@ const WriteComponent = ({
                     }
 
                     if(type === 'object-select'){
+                        const optionKey = value.options ?? null;
+                        const opts = optionKey ? optionSet[optionKey] : options;
+                        console.log(opts);
                         return(
                             <View key={text}>
-                                <Text>{text}</Text>
+                                <Text>{text} { required ? '*' : ''}</Text>
                                 {
-                                    options && options.map(o => {
+                                    opts && opts.map(o => {
                                         return(
                                             <Pressable style={(val && val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
                                                 type: type,
@@ -100,34 +101,27 @@ const WriteComponent = ({
                         )
                     }
 
+                    if(type === 'boolean'){
+                        return(
+                            <View key={text}>
+                                <Text>{ text } { required ? '*' : ''}</Text>
+                                <Pressable style={!val ? styles.false : (val ? styles.true : styles.false)} onPress={() => onEditProperty({
+                                    type: type,
+                                    key: prop,
+                                    value: val
+                                })}>
+                                    <Text>{val === null ? 'NO DATA' : (val ? 'TRUE' : 'FALSE')}</Text>
+                                </Pressable>
+                            </View>
+                        )
+                    }
                 })
             }
-
-            { system && <Text>{system}</Text>}
-            { isLoading && <Text>Loading</Text>}
-            <Pressable onPress={onSubmit}>
-                <Text>SAVE</Text>
-            </Pressable>
-            <Pressable onPress={onDelete}>
-                <Text>DELETE</Text>
-            </Pressable>
-
-            <View style={{margin: 50}}/>
-
         </ScrollView>
     )
 }
 
 const styles = StyleSheet.create({
-    writeComponent: {
-        margin: 10,
-        padding: 10
-    },
-    group: {
-        margin: 10,
-        borderWidth: 1,
-        padding: 10
-    },
     true: {
         margin: 10,
         borderWidth: 1,
