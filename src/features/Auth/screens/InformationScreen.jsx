@@ -49,6 +49,7 @@ const InformationScreen = ({
                             value={number}
                             onChangeText={setNumber}
                             keyboardType="phone-pad"
+                            type="phone"
                         />
 
                         <CustomTextInput
