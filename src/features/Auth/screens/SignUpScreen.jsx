@@ -1,7 +1,7 @@
-import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
+import Customicon from '@/src/components/CustomIcon';
 import CustomButton from '../../../components/CustomButton';
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -105,7 +105,13 @@ const SignUpScreen = ({
                             onPress={onGmailSignUp}
                             activeOpacity={0.8}
                         >
-                            <AntDesign name="google" size={20} color={Colors.BLACK} />
+                            <Customicon
+                                    library="AntDesign"
+                                    name="google"
+                                    size={20}
+                                    color={Colors.BLACK}
+                            />
+
                             <CustomText variant="body" style={AuthStyles.googleButtonText}>
                                 Continue with Google
                             </CustomText>
