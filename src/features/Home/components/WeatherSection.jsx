@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
     StyleSheet,
@@ -6,8 +5,10 @@ import {
     View
 } from 'react-native';
 
-import CustomText from '../../../components/CustomText';
-import { Colors } from '../../../constants/colors';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+
+import { Colors } from '@/src/constants/colors';
 
 const WeatherSection = ({ locationTemp, onPress }) => {
 
@@ -34,8 +35,13 @@ const WeatherSection = ({ locationTemp, onPress }) => {
                     </CustomText>
                     
                     <View style={styles.locationRow}>
-                        <Ionicons name="location-outline" size={16} color={Colors.TEXT_SECONDARY} />
-
+                        <CustomIcon 
+                            library="FontAwesome6" 
+                            name="location-dot" 
+                            size={16}
+                            color={Colors.TEXT_SECONDARY} 
+                        />
+                        
                         <CustomText variant="caption" style={styles.locationText}>
                             {locationTemp?.location || 'Locating...'}
                         </CustomText>
@@ -43,7 +49,12 @@ const WeatherSection = ({ locationTemp, onPress }) => {
                 </View>
 
                 <View style={styles.rightSide}>
-                    <Ionicons name={iconName} size={48} color={Colors.TEXT_SECONDARY} />
+                    <CustomIcon 
+                        library="Ionicons" 
+                        name={iconName}
+                        size={48}
+                        color={Colors.TEXT_SECONDARY} 
+                    />
                     
                     <CustomText variant="caption" style={styles.dayNightText}>
                         Day {locationTemp?.day || '--'}° / Night {locationTemp?.night || '--'}°
