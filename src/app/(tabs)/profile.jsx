@@ -15,7 +15,7 @@ export default function profile(){
     }
 
     const onApplyPress = () => {
-        router.push('/(business)/write');
+        router.push('/(main)/business/apply');
     }
 
     return (
