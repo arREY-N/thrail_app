@@ -1,11 +1,14 @@
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
 import { Redirect, useRouter } from "expo-router";
 import { useAuthStore } from "../core/stores/authStore";
+import LoadingScreen from './loading';
 
 export default function index() {
     const router = useRouter();
     const user = useAuthStore(s => s.user);
+    const profile = useAuthStore(s => s.profile);
     const role = useAuthStore(s => s.role);
+    const isLoading = useAuthStore(s => s.isLoading);
 
     const onLogIn = () => {
         router.push('/(auth)/login');
@@ -23,13 +26,15 @@ export default function index() {
         router.push('/(auth)/terms')
     }
 
+    if(isLoading) return <LoadingScreen/>
+
     if(user){
-        if(role === 'user') return <Redirect href={'/(tabs)'}/>
-    
-        if(role === 'admin') return <Redirect href={'/(admin)'}/>
-    
-        if(role === 'superadmin') return <Redirect href={'/(superadmin)'}/>
-    }
+        if(!profile) return <LoadingScreen/>
+        
+        if(profile && profile.onBoardingComplete) 
+            return <Redirect href={'/(tabs)'}/>
+        else return <Redirect href={'/(auth)/preference'}/> 
+    } 
     
     return (
         <LandingScreen 
