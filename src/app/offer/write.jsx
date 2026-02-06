@@ -5,6 +5,7 @@ import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function writeOffer(){
     const { offerId } = useLocalSearchParams();
@@ -22,7 +23,7 @@ export default function writeOffer(){
     const resetOffer = useOffersStore(s => s.resetOffer);
     const editProperty = useOffersStore(s => s.editProperty);
     const businessAccount = useBusinessesStore(s => s.businessAccount);
-    const loadTrails = useTrailsStore(s => s.loadTrails);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
 
     useEffect(()=> {
         resetOffer();
@@ -45,14 +46,14 @@ export default function writeOffer(){
     const onEditProperty = (property) => {
         const { value, type } = property;
         let finalValue = value;
-
+        console.log(property);
         if(type === 'object-select'){
-            const object = trails.find(t => t.general.name === property.value);
-
+            const object = trails.find(t => t.name === property.value);
             finalValue = {
-                ...object.general,
                 id: object.id,
+                name: object.name,
             }
+            console.log(finalValue);
             
         }
 
@@ -64,14 +65,14 @@ export default function writeOffer(){
 
     let options = [];
     
-    trails.map(t => options.push(t.general.name));
+    trails.map(t => options.push(t.name));
 
     if(!offer) return;
     
     return(
-        <WriteComponent
-            informationSet={offerInformation}
-            object={offer}
+        <TestWriteOffer
+            offerInformation={offerInformation}
+            offer={offer}
             options={options}
             system={system}
             isLoading={isLoading}
@@ -79,5 +80,42 @@ export default function writeOffer(){
             onDelete={onDeleteOfferPress}
             onEditProperty={onEditProperty}
         />
+    )
+}
+
+const TestWriteOffer = ({
+    offerInformation,
+    offer,
+    options,
+    system,
+    isLoading,
+    onSubmit,
+    onDelete,
+    onEditProperty
+}) => {
+    return(
+        <ScrollView>
+            <WriteComponent
+                informationSet={offerInformation}
+                object={offer}
+                options={options}
+                system={system}
+                isLoading={isLoading}
+                onSubmit={onSubmit}
+                onDelete={onDelete}
+                onEditProperty={onEditProperty}
+            />
+
+            { isLoading && <Text>LOADING</Text>}
+            { system && <Text>{system}</Text>}
+            <Pressable onPress={() => onSubmit()}>
+                <Text>Submit</Text>
+            </Pressable>
+            <Pressable onPress={() => onDelete()}>
+                <Text>Delete</Text>
+            </Pressable>
+            <View style={{margin: 50}}/>
+
+        </ScrollView>
     )
 }
