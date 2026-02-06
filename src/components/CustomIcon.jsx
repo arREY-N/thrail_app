@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {
+    AntDesign,
     Feather,
     FontAwesome5,
     FontAwesome6,
@@ -8,13 +9,13 @@ import {
     MaterialCommunityIcons
 } from '@expo/vector-icons';
 
-import { Colors } from '../constants/colors';
+import { Colors } from '@/src/constants/colors';
 
 const CustomIcon = ({ 
     library = 'Feather',
     name, 
     size = 24, 
-    color = Colors.TEXT_PRIMARY, 
+    color = Colors.PRIMARY, 
     style 
 }) => {
 
@@ -26,6 +27,8 @@ const CustomIcon = ({
     };
 
     switch (library) {
+        case 'AntDesign':
+            return <AntDesign {...commonProps} />;
         case 'Ionicons':
             return <Ionicons {...commonProps} />;
         case 'MaterialCommunityIcons':
