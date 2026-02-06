@@ -20,12 +20,12 @@ export const usePaymentsStore = create((set, get) => ({
         
         const { profile, offer, mode } = paymentData;
         const { firstname, lastname, email } = profile;
-        const { businessId, businessName, hike, general } = offer 
+        const { business, trail, price } = offer 
 
         try {
             if(!mode) throw new Error('No payment mode selected')
 
-            const receipt = createReceipt(general.price);
+            const receipt = createReceipt(price);
             
             const { reference, amount, createdAt } = receipt;
 
@@ -36,8 +36,8 @@ export const usePaymentsStore = create((set, get) => ({
                     email
                 },
                 business: {
-                    id: businessId,
-                    name: businessName
+                    id: business.id,
+                    name: business.name
                 }, 
                 receipt: {
                     id: reference,
@@ -46,7 +46,7 @@ export const usePaymentsStore = create((set, get) => ({
                 },
                 offer: {
                     id: offer.id,
-                    trail: hike.trail.name,
+                    trail: trail.name,
                 }
             }
 
