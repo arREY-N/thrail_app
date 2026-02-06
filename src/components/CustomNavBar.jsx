@@ -1,7 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-
 import React from 'react';
 import {
     StyleSheet,
@@ -9,44 +5,80 @@ import {
     View
 } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
 const getTabConfig = (routeName, isFocused) => {
-    const color = isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY;
-    const diamondColor = isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY;
+    const iconColor = isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY;
+    const iconSize = 24;
 
     switch (routeName) {
         case 'index':
             return {
-                icon: <Feather name='home' size={22} color={color} />,
+                icon: 
+                    <CustomIcon
+                        library="Feather"
+                        name="home"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Home',
             };
         case 'explore':
             return {
-                icon: <FontAwesome6 name='mountain' size={20} color={diamondColor} />,
+                icon: 
+                    <CustomIcon
+                        library="Feather"
+                        name="search"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Explore',
             };
         case 'hike':
             return {
-                icon: <FontAwesome5 name='compass' size={24} color={color} />,
+                icon: 
+                    <CustomIcon
+                        library="FontAwesome5"
+                        name="compass"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Hike',
-                isSpecial: true,
             };
         case 'community':
             return {
-                icon: <Feather name='users' size={22} color={color} />,
+                icon: 
+                    <CustomIcon
+                        library="Feather"
+                        name="users"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Community',
             };
         case 'profile':
             return {
-                icon: <FontAwesome5 name='user-circle' size={22} color={color} />,
+                icon: 
+                    <CustomIcon
+                        library="FontAwesome5"
+                        name="user-circle"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Profile',
             };
         default:
             return {
-                icon: <Feather name='square' size={22} color={color} />,
+                icon: 
+                    <CustomIcon
+                        library="Feather"
+                        name="square"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
                 label: 'Tab',
             };
     }
@@ -73,37 +105,6 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                     }
                 };
 
-                if (config.isSpecial) {
-                    return (
-                        <View key={route.key} style={styles.diamondWrapper}>
-                            <TouchableOpacity
-                                onPress={onPress}
-                                activeOpacity={0.9}
-                                style={styles.diamondTouchArea}
-                            >
-                                <View style={styles.diamondShape}>
-                                    <View style={styles.diamondIconFix}>
-                                        {config.icon}
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-
-                            <CustomText
-                                variant='caption'
-                                style={[
-                                    styles.label,
-                                    {
-                                        color: isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY,
-                                        fontWeight: isFocused ? '700' : '400',
-                                    },
-                                ]}
-                            >
-                                {config.label}
-                            </CustomText>
-                        </View>
-                    );
-                }
-
                 return (
                     <TouchableOpacity
                         key={route.key}
@@ -115,12 +116,10 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                         style={styles.tabItem}
                         activeOpacity={0.7}
                     >
-                        <View
-                            style={[
-                                styles.iconWrapper,
-                                isFocused && { transform: [{ scale: 1.1 }] },
-                            ]}
-                        >
+                        <View style={[
+                            styles.iconPill, 
+                            isFocused && styles.iconPillActive
+                        ]}>
                             {config.icon}
                         </View>
 
@@ -129,8 +128,8 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                             style={[
                                 styles.label,
                                 {
-                                    color: isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY,
-                                    fontWeight: isFocused ? '700' : '400',
+                                    color: isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY,
+                                    fontWeight: isFocused ? '700' : '500',
                                 },
                             ]}
                         >
@@ -146,60 +145,47 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
 const styles = StyleSheet.create({
     barContainer: {
         flexDirection: 'row',
-        backgroundColor: Colors.PRIMARY,
-        height: 'auto',
-        alignItems: 'flex-end',
-        justifyContent: 'space-between',
+        backgroundColor: Colors.BACKGROUND,
+        height: 80,
+        alignItems: 'center',
+        justifyContent: 'space-around',
         paddingHorizontal: 8,
-        paddingTop: 8,
-        paddingBottom: 16,
+        paddingBottom: 0,
+        elevation: 8, 
+        shadowColor: "#000", 
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
         borderTopWidth: 1,
-        borderTopColor: Colors.TEXT_INVERSE,
+        borderTopColor: Colors.GRAY_LIGHT,
     },
 
     tabItem: {
         flex: 1,
         alignItems: 'center',
-        justifyContent: 'flex-end',
-        paddingHorizontal: 8,
+        justifyContent: 'center',
+        height: '100%',
+        gap: 4,
     },
-    iconWrapper: {
-        marginBottom: 8,
+
+    iconPill: {
+        width: 64,
+        // height: 32,
+        paddingVertical: 4,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginBottom: 4,
     },
+    iconPillActive: {
+        backgroundColor: Colors.SECONDARY,
+    },
+
     label: {
         fontSize: 12,
         lineHeight: 16,
         textAlign: 'center',
-    },
-
-    diamondWrapper: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        height: 50,
-        zIndex: 10,
-    },
-    diamondTouchArea: {
-        position: 'absolute',
-        top: -34,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    diamondShape: {
-        width: 50,
-        height: 50,
-        backgroundColor: Colors.SECONDARY,
-        borderRadius: 14,
-        transform: [{ rotate: '45deg' }],
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    diamondIconFix: {
-        width: 50,
-        height: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-        transform: [{ rotate: '-45deg' }],
     },
 });
 

@@ -1,4 +1,3 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
@@ -7,10 +6,34 @@ import {
     View
 } from 'react-native';
 
-import CustomText from '../../../components/CustomText';
-import { Colors } from '../../../constants/colors';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+
+import { Colors } from '@/src/constants/colors';
 
 const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
+
+    const name = item.general?.name || item.name || "Unnamed Mountain";
+
+    let location = "Unknown Location";
+    if (item.general?.address) {
+        location = item.general.address;
+    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
+        location = item.general.province[0];
+    } else if (item.location) {
+        location = item.location;
+    }
+    
+    const rawLength = item.difficulty?.length || item.length;
+    const displayLength = rawLength ? `${rawLength} km` : "--";
+
+    const rawElev = item.geographical?.masl || item.difficulty?.gain || item.elevation;
+    const displayElev = rawElev ? `${rawElev} masl` : "--";
+
+    const rawTime = item.difficulty?.hours || item.duration;
+    const displayTime = rawTime ? `${rawTime} h` : "--";
+
+    const score = item.score || item.rating || "N/A";
 
     return (
         <TouchableOpacity 
@@ -27,29 +50,37 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                     style={styles.gradientOverlay}
                 >
                     <View style={styles.headerContent}>
-                        
                         <View style={styles.textContainer}>
                             <CustomText variant="body" style={styles.title} numberOfLines={1}>
-                                {item?.name || "Mountain Name"} 
+                                {name} 
                             </CustomText>
                             
                             <View style={styles.locationRow}>
-                                <Ionicons name="location-sharp" size={12} color={Colors.GRAY_LIGHT} />
+                                <CustomIcon 
+                                    library="FontAwesome6" 
+                                    name="location-pin" 
+                                    size={10}
+                                    color={Colors.TEXT_INVERSE} 
+                                />
 
                                 <CustomText variant="caption" style={styles.location} numberOfLines={1}>
-                                    {item?.location || "Location"}
+                                    {location}
                                 </CustomText>
                             </View>
                         </View>
 
                         <View style={styles.glassBadge}>
-                            <Ionicons name="star" size={12} color={Colors.YELLOW} />
+                            <CustomIcon
+                                library="ionicons"
+                                name="star"
+                                size={12}
+                                color={Colors.YELLOW}
+                            />
 
                             <CustomText variant="caption" style={styles.ratingText}>
-                                {item?.score || "--"}
+                                {score}
                             </CustomText>
                         </View>
-
                     </View>
                 </LinearGradient>
             </View>
@@ -60,21 +91,21 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                     <View style={styles.statsGroup}>
                         <StatItem 
                             label="Distance" 
-                            value={item?.length || "--"}
+                            value={displayLength}
                         />
 
                         <View style={styles.verticalDivider} />
 
                         <StatItem 
                             label="Elev" 
-                            value={item?.elevation || "--"}
+                            value={displayElev}
                         />
 
                         <View style={styles.verticalDivider} />
 
                         <StatItem 
                             label="Time" 
-                            value={item?.duration || "--"} 
+                            value={displayTime} 
                         />
                     </View>
 
@@ -83,7 +114,12 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                         onPress={onDownload}
                         activeOpacity={0.7}
                     >
-                        <Feather name="download" size={18} color={Colors.WHITE} />
+                        <CustomIcon
+                            libraby="Feather"
+                            name="download"
+                            size={18}
+                            color={Colors.WHITE}
+                        />
                     </TouchableOpacity>
 
                 </View>

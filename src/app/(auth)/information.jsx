@@ -9,15 +9,21 @@ export default function information(){
     const validateInfo = useAuthStore(s => s.validateInfo);
     const editAccount = useAuthStore(s => s.editAccount);
 
-    const onContinuePress = (phoneNumber,firstname, lastname, birthday, address) => {
+    const onContinuePress = (phoneNumber, firstname, lastname, birthday, address) => {
+
+        const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
+        
         editAccount({
-            phoneNumber,
+            phoneNumber: cleanPhoneNumber,
             firstname, 
             lastname, 
-            birthday, 
+            birthday,
             address
         });
-        if(validateInfo()) router.push('/(auth)/tac');
+
+        if(validateInfo()) {
+            router.push('/(auth)/tac');
+        }
     }
 
     const onBackPress = () => {

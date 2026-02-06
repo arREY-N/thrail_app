@@ -57,7 +57,7 @@ export default function useTrailHook({
     const onHikePress = (trailId) => {
         hikeTrail(trailId);
         router.push({
-            pathname: '(main)/hike/view',
+            pathname: '/(main)/hike/view',
         })
     }
 

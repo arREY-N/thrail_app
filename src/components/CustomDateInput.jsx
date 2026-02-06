@@ -1,6 +1,4 @@
-import Feather from '@expo/vector-icons/Feather';
-
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
     Modal,
@@ -10,18 +8,34 @@ import {
     View
 } from 'react-native';
 
-import { Colors } from '@/src/constants/colors';
-
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
 
 const CustomDateInput = ({ 
     value, 
     onChangeText, 
     label 
 }) => {
+    const [activePicker, setActivePicker] = useState(null);
 
-    const [activePicker, setActivePicker] = useState(null); 
-    const [mm = '', dd = '', yyyy = ''] = value ? value.split('/') : [];
+    const [mm, setMm] = useState('');
+    const [dd, setDd] = useState('');
+    const [yyyy, setYyyy] = useState('');
+
+    useEffect(() => {
+        if (value instanceof Date && !isNaN(value)) {
+            setMm((value.getMonth() + 1).toString().padStart(2, '0'));
+            setDd(value.getDate().toString().padStart(2, '0'));
+            setYyyy(value.getFullYear().toString());
+        } else {
+            if (value === null || value === undefined) {
+                setMm('');
+                setDd('');
+                setYyyy('');
+            }
+        }
+    }, [value]);
 
     const daysData = useMemo(() => {
         let daysInMonth = 31;
@@ -58,9 +72,9 @@ const CustomDateInput = ({
     }, []);
 
     const handleSelect = (category, val) => {
-        let newMM = mm || '';
-        let newDD = dd || '';
-        let newYYYY = yyyy || '';
+        let newMM = mm;
+        let newDD = dd;
+        let newYYYY = yyyy;
 
         if (category === 'MM') newMM = val;
         if (category === 'DD') newDD = val;
@@ -69,11 +83,19 @@ const CustomDateInput = ({
         if (newMM && newYYYY && newDD) {
              const maxDays = new Date(parseInt(newYYYY), parseInt(newMM), 0).getDate();
              if (parseInt(newDD) > maxDays) {
-                 newDD = ''; 
+                 newDD = '';
              }
         }
 
-        onChangeText(`${newMM}/${newDD}/${newYYYY}`);
+        setMm(newMM);
+        setDd(newDD);
+        setYyyy(newYYYY);
+
+        if (newMM && newDD && newYYYY) {
+            const dateObj = new Date(parseInt(newYYYY), parseInt(newMM) - 1, parseInt(newDD));
+            onChangeText(dateObj);
+        }
+
         setActivePicker(null);
     };
 
@@ -87,26 +109,26 @@ const CustomDateInput = ({
 
             <View style={styles.dateGroupContainer}>
                 <DropdownPicker 
-                    label="Day" 
-                    value={dd} 
-                    options={daysData} 
-                    flex={1}
-                    isVisible={activePicker === 'DD'} 
-                    onOpen={() => setActivePicker('DD')} 
-                    onClose={() => setActivePicker(null)}
-                    onSelect={(val) => handleSelect('DD', val)}
-                />
-                
-                <DropdownPicker 
                     label="Month" 
                     value={mm} 
                     options={monthsData} 
                     flex={2} 
                     isMonth={true}
-                    isVisible={activePicker === 'MM'} 
+                    isActive={activePicker === 'MM'} 
                     onOpen={() => setActivePicker('MM')} 
                     onClose={() => setActivePicker(null)}
                     onSelect={(val) => handleSelect('MM', val)}
+                />
+
+                <DropdownPicker 
+                    label="Day" 
+                    value={dd} 
+                    options={daysData} 
+                    flex={1}
+                    isActive={activePicker === 'DD'} 
+                    onOpen={() => setActivePicker('DD')} 
+                    onClose={() => setActivePicker(null)}
+                    onSelect={(val) => handleSelect('DD', val)}
                 />
                 
                 <DropdownPicker 
@@ -114,7 +136,7 @@ const CustomDateInput = ({
                     value={yyyy} 
                     options={yearsData} 
                     flex={1.5}
-                    isVisible={activePicker === 'YYYY'} 
+                    isActive={activePicker === 'YYYY'} 
                     onOpen={() => setActivePicker('YYYY')} 
                     onClose={() => setActivePicker(null)}
                     onSelect={(val) => handleSelect('YYYY', val)}
@@ -131,7 +153,7 @@ const DropdownPicker = ({
     onSelect, 
     flex, 
     isMonth, 
-    isVisible, 
+    isActive,
     onOpen, 
     onClose 
 }) => {
@@ -142,25 +164,40 @@ const DropdownPicker = ({
         if (monthObj) displayValue = monthObj.label;
     }
 
+    const textColor = value ? Colors.TEXT_PRIMARY : Colors.TEXT_PLACEHOLDER;
+
     return (
         <>
             <TouchableOpacity 
-                style={[styles.dropdownBox, { flex: flex || 1 }]} 
+                style={[
+                    styles.dropdownBox, 
+                    { 
+                        flex: flex || 1,
+                        backgroundColor: isActive ? Colors.WHITE : Colors.BACKGROUND,
+                        borderColor: isActive ? Colors.PRIMARY : Colors.GRAY_LIGHT
+                    }
+                ]} 
                 onPress={onOpen} 
                 activeOpacity={0.7}
             >
                 <CustomText 
                     variant="body" 
-                    style={[styles.dropdownText, !value && { color: Colors.GRAY_MEDIUM }]}
+                    style={[styles.dropdownText, { color: textColor }]}
                 >
                     {displayValue || label}
                 </CustomText>
-                <Feather name="chevron-down" size={16} color={Colors.GRAY_MEDIUM} />
+                
+                <CustomIcon 
+                    library="Feather" 
+                    name="chevron-down" 
+                    size={16} 
+                    color={Colors.GRAY_MEDIUM} 
+                />
             </TouchableOpacity>
 
             <Modal 
                 transparent={true} 
-                visible={isVisible} 
+                visible={isActive} 
                 animationType="fade" 
                 onRequestClose={onClose}
             >
@@ -217,9 +254,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     dropdownBox: {
-        backgroundColor: Colors.WHITE,
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
         borderRadius: 12,
         height: 54,
         flexDirection: 'row',

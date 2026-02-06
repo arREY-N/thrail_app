@@ -1,5 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
-
 import React from 'react';
 import {
     StyleSheet,
@@ -7,6 +5,7 @@ import {
     View
 } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
@@ -31,7 +30,12 @@ const SelectionOption = ({ label, selected, onPress }) => {
                 selected && styles.selectedIcon
             ]}>
                 {selected && (
-                    <Feather name="check" size={14} color={Colors.TEXT_INVERSE} />
+                    <CustomIcon
+                        library="Feather"
+                        name="check"
+                        size={18}
+                        color='Colors.WHITE'
+                    />
                 )}
             </View>
         </TouchableOpacity>

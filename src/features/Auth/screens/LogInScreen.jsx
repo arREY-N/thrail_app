@@ -1,4 +1,3 @@
-import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
@@ -105,8 +104,13 @@ const LogInScreen = ({
                             onPress={onGooglePress}
                             activeOpacity={0.8}
                         >
-                            <AntDesign name="google" size={20} color={Colors.BLACK} />
-
+                            <CustomIcon
+                                library='AntDesign'
+                                name='google'
+                                size={20}
+                                color={Colors.BLACK}
+                            />
+                            
                             <CustomText variant="body" style={AuthStyles.googleButtonText}>
                                 Log in with Google
                             </CustomText>

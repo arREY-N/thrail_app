@@ -1,5 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
-
 import React from 'react';
 import {
     StyleSheet,
@@ -10,6 +8,7 @@ import {
 import { Colors } from '@/src/constants/colors';
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 const CustomHeader = ({ 
@@ -30,7 +29,12 @@ const CustomHeader = ({
                     style={styles.backButton}
                     activeOpacity={0.7}
                 >
-                    <Feather name="chevron-left" size={24} color={Colors.TEXT_INVERSE} />
+                    <CustomIcon 
+                        library="Feather" 
+                        name="chevron-left"
+                        size={24}
+                        color={Colors.TEXT_INVERSE} 
+                    />
                 </TouchableOpacity>
 
                 <View style={styles.centerTitleContainer}>
@@ -67,9 +71,10 @@ const CustomHeader = ({
                             style={styles.iconButton}
                             onPress={onNotificationPress}
                         >
-                            <Feather 
-                                name='bell' 
-                                size={20} 
+                            <CustomIcon 
+                                library="Feather" 
+                                name="bell"
+                                size={20}
                                 color={Colors.TEXT_INVERSE} 
                             />
                         </TouchableOpacity>
@@ -78,10 +83,11 @@ const CustomHeader = ({
                             style={styles.iconButton}
                             onPress={onBookingPress}
                         >
-                            <Feather
-                                name='book-open'
+                            <CustomIcon 
+                                library="Feather" 
+                                name="book-open"
                                 size={20}
-                                color={Colors.TEXT_INVERSE}
+                                color={Colors.TEXT_INVERSE} 
                             />
                         </TouchableOpacity>
                     </>
@@ -131,7 +137,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     tabTitle: {
-        color: Colors.TEXT_INVERSE,
+        color: Colors.TEXT_PRIMARY,
         textAlign: 'left',
     },
     rightActionsContainer: {

@@ -40,12 +40,24 @@ const ExploreScreen = ({
         switch (selectedCategory) {
             case 'Recommended':
                 return trails.filter(t => (t.score || t.rating) >= 4.6);
+            
             case 'Nearby':
-                return trails.filter(t => t.address?.includes('Rizal'));
+                return trails.filter(t => {
+                    const address = t.general?.address || "";
+                    const provinces = t.general?.province || [];
+                    return address.includes('Rizal') || provinces.includes('Rizal');
+                });
+
             case 'Trending':
                 return trails.slice(0, 3); 
+            
             case 'Challenge':
-                return trails.filter(t => t.elevation > 600 || t.length > 10);
+                return trails.filter(t => {
+                    const elev = Number(t.geographical?.masl || t.elevation || 0);
+                    const len = Number(t.difficulty?.length || t.length || 0);
+                    return elev > 600 || len > 10;
+                });
+
             case 'All':
             default:
                 return trails;

@@ -1,4 +1,3 @@
-import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -7,6 +6,7 @@ import {
     View
 } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
@@ -38,11 +38,18 @@ const PreferenceScreen = ({
     const currentStepKey = currentFlow[stepIndex];
     const currentQuestionData = questions[currentStepKey];
 
+    const currentAnswer = currentQuestionData?.answer;
+    const hasAnswer = Array.isArray(currentAnswer) 
+        ? currentAnswer.length > 0 
+        : currentAnswer !== null && currentAnswer !== undefined && currentAnswer !== '';
+
     const handleSelect = (value) => {
         setAnswer(currentStepKey, value);
     };
 
     const handleNext = () => {
+        if (!hasAnswer) return;
+
         if (stepIndex >= currentFlow.length - 1) {
             setShowSaveConfirmation(true); 
         } else {
@@ -74,8 +81,6 @@ const PreferenceScreen = ({
     };
 
     const isSelected = (optionValue) => {
-        const currentAnswer = currentQuestionData?.answer;
-
         if (currentAnswer === null || currentAnswer === undefined) return false;
 
         if (Array.isArray(currentAnswer)) {
@@ -210,7 +215,12 @@ const PreferenceScreen = ({
                     <View style={styles.footer}>
                         {stepIndex > 0 ? (
                             <TouchableOpacity onPress={handleBack} style={styles.prevButton}>
-                                <Feather name="chevron-left" size={24} color={Colors.PRIMARY} />
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevron-left" 
+                                    size={24} 
+                                    color={Colors.PRIMARY} 
+                                />
 
                                 <CustomText style={styles.prevText}>
                                     Previous
@@ -218,12 +228,24 @@ const PreferenceScreen = ({
                             </TouchableOpacity>
                         ) : ( <View /> )}
 
-                        <TouchableOpacity onPress={handleNext} style={styles.nextButton}>
+                        <TouchableOpacity 
+                            onPress={handleNext} 
+                            disabled={!hasAnswer}
+                            style={[
+                                styles.nextButton,
+                                !hasAnswer && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM } 
+                            ]}
+                        >
                             <CustomText style={styles.nextText}>
                                 {stepIndex >= currentFlow.length - 1 ? "Finish" : "Next"}
                             </CustomText>
                             
-                            <Feather name="chevron-right" size={24} color={Colors.WHITE} />
+                            <CustomIcon 
+                                library="Feather" 
+                                name="chevron-right" 
+                                size={24} 
+                                color={Colors.WHITE} 
+                            />
                         </TouchableOpacity>
                     </View>
 

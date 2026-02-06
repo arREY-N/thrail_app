@@ -42,11 +42,17 @@ export default function home(){
     }
 
     const onViewAllRecommendationPress = () => {
-        router.push('/(main)/home/recommendations')
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'recommendations'}
+        })
     }
     
     const onViewAllTrendingPress = () => {
-        router.push('/home/trending')
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'trending'}
+        })
     }
 
     return (
