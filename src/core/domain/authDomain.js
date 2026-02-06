@@ -28,8 +28,8 @@ export function validateInfo(userInfo){
     if(!firstname.trim()) throw new Error('First name is required');
     
     if(!lastname.trim()) throw new Error('Last name is required');
-    
-    if(!birthday.trim()) throw new Error('Birthday is required');
+
+    if(!birthday) throw new Error('Birthday is required');
     
     if(!address.trim()) throw new Error('Address is required');
     
