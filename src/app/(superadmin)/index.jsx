@@ -16,20 +16,24 @@ export default function home(){
 
     const onManageBusinessPress = () => {
         console.log('Manage Business');
-        router.push('/(superadmin)/business');
+        router.push('/business/list');
     }
 
     const onManageTrailsPress = () => {
         console.log('Manage trails');
-        router.push({
-            pathname: '/(superadmin)/trail'
-        });
+        router.push('/trail/list');
     }
-
+    
+    const onManageMountainPress = () => {
+        console.log('Manage mountains');
+        router.push('/mountain/list');
+    }
+    
     const onManageUsersPress = () => {
         console.log('Manage users');
         router.push('/(superadmin)/user');
     }
+
 
     return(
         <TESTHOME 
@@ -37,6 +41,7 @@ export default function home(){
             onManageBusinessPress={onManageBusinessPress}
             onManageTrailsPress={onManageTrailsPress}
             onManageUsersPress={onManageUsersPress}
+            onManageMountainPress={onManageMountainPress}
         />
     )
 }
@@ -45,7 +50,8 @@ const TESTHOME = ({
     onSignOutPress,
     onManageBusinessPress,
     onManageTrailsPress,
-    onManageUsersPress
+    onManageUsersPress,
+    onManageMountainPress,
 }) => {
     return(
         <ScrollView>
@@ -66,6 +72,11 @@ const TESTHOME = ({
             <Pressable onPress={onManageUsersPress}>
                 <Text>Manage Users</Text>
             </Pressable>
+
+            <Pressable onPress={onManageMountainPress}>
+                <Text>Manage Mountains</Text>
+            </Pressable>
+
         </ScrollView>
     )
 }
