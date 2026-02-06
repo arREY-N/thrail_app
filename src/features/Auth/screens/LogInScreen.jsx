@@ -1,14 +1,14 @@
-import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
-import CustomButton from '../../../components/CustomButton';
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
-import ErrorMessage from '../../../components/ErrorMessage';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '../../../constants/colors';
 import { AuthStyles } from '../styles/AuthStyles';
@@ -105,8 +105,13 @@ const LogInScreen = ({
                             onPress={onGooglePress}
                             activeOpacity={0.8}
                         >
-                            <AntDesign name="google" size={20} color={Colors.BLACK} />
-
+                            <CustomIcon
+                                library='AntDesign'
+                                name='google'
+                                size={20}
+                                color={Colors.BLACK}
+                            />
+                            
                             <CustomText variant="body" style={AuthStyles.googleButtonText}>
                                 Log in with Google
                             </CustomText>
