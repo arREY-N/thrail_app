@@ -24,11 +24,11 @@ export function useAppNavigation() {
     }
 
     const onNotificationPress = () => {
-        router.push('/(home)/notification');
+        router.push('/(main)/home/notification');
     }
 
     const onBookingPress = () => {
-        router.push('/(book)/userBooking');
+        router.push('/(main)/book/list');
     }
 
     return {
