@@ -7,6 +7,7 @@ export default function MountainLayout(){
                 name='[id]'
                 options={{
                     title: 'Trail',
+                    headerShown: false
                 }}
                 />
         </Stack>
