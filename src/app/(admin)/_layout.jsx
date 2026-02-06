@@ -12,7 +12,7 @@ export default function AdminLayout(){
     const user = useAuthStore(s => s.user);
     const role = useAuthStore(s => s.role);
     const isLoading = useAuthStore(s => s.isLoading);
-    const loadTrails = useTrailsStore(s => s.loadTrails);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
     
     useEffect(() => { 
         if(!isLoading && !user) {
