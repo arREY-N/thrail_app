@@ -1,28 +1,14 @@
-export function validate(structure, object){
-    let errors = [];
-
-    for (const [key, value] of Object.entries(structure)) {
-        
-        console.log(`${key}: ${object[key]}`);
-
-        if(!object[key] || object[key].toString().trim() === ''){
-            errors.push(`${value}`);
-        }
-    }
-    
-    return errors;
-}
-
 export function validateTrail(object, structure){
     let errors = [];
 
-    console.log(structure);
-    console.log(object);
-
     for(const [key, value] of Object.entries(structure)){
-        console.log(`${key}: ${object.key}`);
+        console.log(`${key}: ${object[key]}`);
 
-        if(object[key] === null || object[key].toString().trim() === ''){
+        if(structure[key].required && (
+            object[key] === null || 
+            (object[key].toString() && object[key].toString().trim() === '')) ||
+            (object[key].length === 0)
+        ){
             console.log(`${value.text}`);
             errors.push(`${value.text}`);
         }
