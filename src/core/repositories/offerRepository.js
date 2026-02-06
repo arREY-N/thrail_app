@@ -1,5 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
-import { OfferMapper } from '@/src/core/mapper/offer';
+import { OfferMapper } from '@/src/core/mapper/offerMapper';
 import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 
 export async function fetchOffers(businessId){
