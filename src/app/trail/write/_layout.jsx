@@ -1,6 +1,6 @@
+import LoadingScreen from "@/src/app/loading";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import { Redirect, Stack } from "expo-router";
-import LoadingScreen from "../../loading";
 
 export default function writeLayout(){
     const isLoading = useAuthStore(s => s.isLoading);

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import BusAppScreen from '../../features/Profile/screens/BusAppScreen';
+import BusAppScreen from '@/src/features/Profile/screens/BusAppScreen';
 
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
 import { useAuthStore } from '@/src/core/stores/authStore';

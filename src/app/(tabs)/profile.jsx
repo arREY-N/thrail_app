@@ -2,7 +2,7 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
-import ProfileScreen from '../../features/Profile/screens/ProfileScreen';
+import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 
 export default function profile(){
     const router = useRouter();

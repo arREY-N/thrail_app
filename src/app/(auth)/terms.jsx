@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import TermsReadOnlyScreen from "../../features/Auth/screens/TermsReadOnlyScreen";
+import TermsReadOnlyScreen from "@/src/features/Auth/screens/TermsReadOnlyScreen";
 
 export default function Terms() {
     const router = useRouter();

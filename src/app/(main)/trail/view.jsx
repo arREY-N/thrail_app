@@ -2,8 +2,8 @@ import useTrailHook from '@/src/core/hook/useTrailHook';
 import { useLocalSearchParams } from "expo-router";
 import { Text } from "react-native";
 
+import LoadingScreen from '@/src/app/loading';
 import TESTTRAIL from '@/src/components/TESTCOMPONENTS/TestTrail';
-import LoadingScreen from '../../loading';
 
 export default function viewTrail(){
     const { trailId } = useLocalSearchParams();

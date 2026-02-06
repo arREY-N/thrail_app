@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 
-import CustomNavBar from "../../components/CustomNavBar";
+import CustomNavBar from "@/src/components/CustomNavBar";
 import LoadingScreen from "../loading";
 
 export default function homeLayout() {

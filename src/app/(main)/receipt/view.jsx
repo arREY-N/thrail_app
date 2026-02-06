@@ -1,8 +1,8 @@
+import LoadingScreen from "@/src/app/loading";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
-import LoadingScreen from "../../loading";
 
 export default function receipt(){
     const { paymentId } = useLocalSearchParams();
