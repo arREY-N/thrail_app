@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuthStore } from '../core/stores/authStore';
-import LoadingScreen from './loading';
 
 export default function RootLayout() {
     const initialize = useAuthStore((state) => state.initialize);
@@ -15,7 +14,7 @@ export default function RootLayout() {
         }
     }, [user?.uid]);
 
-    if(isLoading) return <LoadingScreen/>
+    if(isLoading) return null;
 
     return <Stack screenOptions = {{headerShown: false}}/>
     

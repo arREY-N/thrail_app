@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-    Dimensions,
     StyleSheet,
     TouchableOpacity,
     View
@@ -119,7 +118,7 @@ const TrailScreen = ({
                                 </View>
                             </View>
                             
-                            <TouchableOpacity style={styles.downloadButton} onPress={onDownloadPress}>
+                            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownloadPress(trail.id)}>
                                 <CustomIcon library="Feather" name="download" size={20} color={Colors.GRAY_MEDIUM} />
                             </TouchableOpacity>
                         </View>
@@ -152,7 +151,7 @@ const TrailScreen = ({
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Hike" 
-                        onPress={onHikePress} 
+                        onPress={() => onHikePress(trail.id)} 
                         style={styles.footerBtn}
                         variant="secondary"
                     />
@@ -161,7 +160,7 @@ const TrailScreen = ({
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Book" 
-                        onPress={onBookPress} 
+                        onPress={() => onBookPress(trail.id)} 
                         style={styles.footerBtn}
                         variant="primary"
                     />

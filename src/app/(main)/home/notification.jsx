@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 
-import NotificationScreen from "../../features/Home/screens/NotificationScreen";
+import NotificationScreen from '@/src/features/Home/screens/NotificationScreen';
 
 export default function notification() {
     const router = useRouter();

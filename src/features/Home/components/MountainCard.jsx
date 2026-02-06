@@ -50,7 +50,6 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                     style={styles.gradientOverlay}
                 >
                     <View style={styles.headerContent}>
-                        
                         <View style={styles.textContainer}>
                             <CustomText variant="body" style={styles.title} numberOfLines={1}>
                                 {name} 
@@ -82,7 +81,6 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                                 {score}
                             </CustomText>
                         </View>
-
                     </View>
                 </LinearGradient>
             </View>

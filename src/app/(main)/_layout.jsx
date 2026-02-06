@@ -7,5 +7,5 @@ export default function mainLayout(){
 
     if(isLoading) return <LoadingScreen/>
 
-    return <Stack screenOptions={{title: 'Thrail'}}/>
+    return <Stack screenOptions={{headerShown: false}}/>
 }
