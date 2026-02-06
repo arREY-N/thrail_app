@@ -7,7 +7,7 @@ export default function trail(){
     const router = useRouter();
     
     const trails = useTrailsStore(s => s.trails);
-    const loadTrails = useTrailsStore(s => s.loadTrails);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
     const isLoading = useTrailsStore(s => s.isLoading);
 
     useEffect(() => {
@@ -15,11 +15,14 @@ export default function trail(){
     }, [])
 
     const onUpdateTrail = (id) => {
-        router.push(`/(trail)/(write)/${id}`);
+        router.push({
+            pathname: '/trail/write',
+            params: { trailId: id }
+        });
     }
     
     const onCreateNew = () => {
-        router.push(`/(trail)/(write)/${null}`);
+        router.push('/trail/write');
     }
 
     
