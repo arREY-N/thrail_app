@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 export default function user(){
     const system = useUsersStore(s => s.error);
     const isLoading = useUsersStore(s => s.isLoading);
-    const loadUsers = useUsersStore(s => s.loadUsers);
+    const loadUsers = useUsersStore(s => s.loadAllUsers);
     const users = useUsersStore(s => s.users);
     const onDeleteAccountPress = useUsersStore(s => s.deleteAccount);
 
