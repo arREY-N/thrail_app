@@ -42,7 +42,7 @@ const hikingTrailTemplate = {
 
 const init = {
     trails: [],
-    isLoading: false,
+    isLoading: true,
     error: null,
     trail: trailTemplate,
     hikingTrail: null,

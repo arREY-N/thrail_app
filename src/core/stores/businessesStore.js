@@ -12,7 +12,7 @@ const init = {
     businesses: [],
     businessAccount: null,
     businessAdmins: [],
-    isLoading: false,
+    isLoading: true,
     error: null,
 }
 

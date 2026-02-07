@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 const init = {
     users: [],
-    isLoading: false,
+    isLoading: true,
     error: null,
 }
 
@@ -12,7 +12,7 @@ export const useUsersStore = create((set, get) => ({
 
     reset: () => set(init),
 
-    loadUsers: async () => {
+    loadAllUsers: async () => {
         if(get().users.length > 0) return;
 
         set({isLoading: true, error: null});
