@@ -31,9 +31,15 @@ export default function useTrailHook({
 
     useEffect(() => {
         if(trailId && (mode === 'view' || mode === 'write')){
+            console.log('With id ', mode)
             resetTrail();
             loadTrail(trailId);
         }
+        
+        if(mode === 'write' && !trailId){
+            console.log('No id', mode)
+            resetTrail();
+        } 
 
         if(mode === 'list') 
             loadAllTrails();
