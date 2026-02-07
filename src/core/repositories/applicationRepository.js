@@ -27,7 +27,7 @@ export async function createApplication(businessData){
 
         await setDoc(appRef, {
             ...businessData,
-            approved: false,
+            approved: null,
             createdAt: serverTimestamp()
         },{merge: true});
 
