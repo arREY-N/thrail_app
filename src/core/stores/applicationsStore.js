@@ -12,7 +12,7 @@ export const useApplicationsStore = create((set,get) => ({
 
     reset: () => set(init),
 
-    loadApplications: async () => {
+    loadAllApplications: async () => {
         console.log('Loading applications');
         if(get().applications.length > 0) return;
         
