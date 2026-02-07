@@ -9,7 +9,8 @@ export default function superadminLayout(){
     const role = useAuthStore(s => s.role);
 
     if(isLoading) return <LoadingScreen/>
+
     if(!user || role !== 'superadmin') return <UnauthorizedScreen/>
     
-    return <Stack/>
+    return <Stack screenOptions={{title: 'Dashboard'}}/>
 }
