@@ -1,4 +1,3 @@
-import { PROVINCE } from "./constants"
 export const MOUNTAIN_CONSTANTS = {
     MOUNTAIN_INFORMATION: {
         name: {
@@ -9,7 +8,7 @@ export const MOUNTAIN_CONSTANTS = {
         province: {
             text: 'Province',
             type: 'multi-select',
-            options: PROVINCE,
+            options: 'provinces',
             required: true,
         }
     }

@@ -14,7 +14,7 @@ export const TRAIL_CONSTANTS = {
             province: {
                 text: 'Province', 
                 type: 'multi-select', 
-                options: ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'],
+                options: 'provinces',
                 required: true,
             },
             mountain: {
@@ -81,19 +81,19 @@ export const TRAIL_CONSTANTS = {
             circularity: {
                 text: 'Trail Circularity', 
                 type: 'single-select', 
-                options: ['Circular', 'Out-and-Back', 'Traverse'],
+                options: 'circularity',
                 required: true,
             },
             quality: {
                 text: 'Trail Quality', 
                 type: 'multi-select', 
-                options: ['Q1', 'Q2', 'Q3'],
+                options: 'quality',
                 required: true,
             },
             difficulty_points: {
                 text: 'Difficulty points', 
                 type: 'multi-select', 
-                options: ['Cliff', 'River'],
+                options: 'difficulty_points',
                 required: false,
             },
         },
@@ -146,71 +146,10 @@ export const TRAIL_CONSTANTS = {
             viewpoint: {
                 text: 'Viewpoints', 
                 type: 'multi-select', 
-                options: ['V1', 'V2', 'V3'],
+                options: 'viewpoints',
                 required: false,
             },
 
         }
     },
-    REQUIRED_INFO: {
-        name: {
-            text: 'Name', 
-            type: 'text'
-        },
-        address: {
-            text: 'Address', 
-            type: 'text'
-        },
-        province: {
-            text: 'Province', 
-            type: 'multi-select', 
-            options: ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon']
-        },       
-        longitude: {
-            text: 'Longitude', 
-            type: 'numerical'
-        },
-        latitude: {
-            text: 'Latitude', 
-            type: 'numerical'
-        },
-        masl: {
-            text: 'MASL', 
-            type: 'numerical'
-        },
-        start: {
-            text: 'Start', 
-            type: 'numerical'
-        },
-        end: {
-            text: 'End', 
-            type: 'numerical'
-        },
-        length: {
-            text: 'Length (km)', 
-            type: 'numerical'
-        },
-        gain: {
-            text: 'Elevation Gain (km)', 
-            type: 'numerical'
-        },
-        slope: {
-            text: 'Slope (%)', 
-            type: 'numerical'
-        },
-        hours: {
-            text: 'Hours to summit (hr)', 
-            type: 'numerical'
-        },
-        circularity: {
-            text: 'Trail Circularity', 
-            type: 'single-select', 
-            options: ['Circular', 'Out-and-Back', 'Traverse']
-        },
-        quality: {
-            text: 'Trail Quality', 
-            type: 'multi-select', 
-            options: ['Q1', 'Q2', 'Q3']
-        },
-    }
 }
