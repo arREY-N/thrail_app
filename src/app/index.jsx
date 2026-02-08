@@ -1,12 +1,6 @@
-import React from 'react';
-import { View } from 'react-native';
-import TrailMap from '../components/TrailMap';
+import { Redirect } from 'expo-router';
 
-export default function Page() {
-  return (
-    // No more red background, just full screen map
-    <View style={{ flex: 1 }}>
-      <TrailMap />
-    </View>
-  );
+export default function Index() {
+  // jsut to bypass log in screen for now, will remove when we have the login screen working
+  return <Redirect href="/(tabs)/map" />;
 }
