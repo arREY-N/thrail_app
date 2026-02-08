@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+    Platform,
+    StatusBar,
     StyleSheet,
     TouchableOpacity,
     View
@@ -13,6 +15,7 @@ import CustomText from '@/src/components/CustomText';
 
 const CustomHeader = ({ 
     title, 
+    subtitle,
     onBackPress, 
     rightActions, 
     showDefaultIcons = false,
@@ -39,7 +42,7 @@ const CustomHeader = ({
 
                 <View style={styles.centerTitleContainer}>
                      {title ? (
-                        <CustomText variant="title" style={styles.stackTitle}>
+                        <CustomText variant="title" style={styles.centerTitle}>
                             {title}
                         </CustomText>
                     ) : null}
@@ -58,36 +61,42 @@ const CustomHeader = ({
 
     return (
         <View style={[styles.container, style]}>
-            <View style={styles.leftTitleContainer}>
-                <CustomText variant="title" style={styles.tabTitle}>
+            <View style={styles.leftContent}>
+                <CustomText style={styles.headline}>
                     {title}
                 </CustomText>
+                
+                {subtitle && (
+                    <CustomText style={styles.subtitle}>
+                        {subtitle}
+                    </CustomText>
+                )}
             </View>
 
             <View style={styles.rightActionsContainer}>
                 {showDefaultIcons && (
                     <>
                         <TouchableOpacity
-                            style={styles.iconButton}
+                            style={styles.actionIcon}
                             onPress={onNotificationPress}
                         >
                             <CustomIcon 
-                                library="Feather" 
-                                name="bell"
-                                size={20}
+                                library="Ionicons" 
+                                name="notifications"
+                                size={24}
                                 color={Colors.TEXT_INVERSE} 
                             />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.iconButton}
+                            style={styles.actionIcon}
                             onPress={onBookingPress}
                         >
                             <CustomIcon 
-                                library="Feather" 
-                                name="book-open"
-                                size={20}
-                                color={Colors.TEXT_INVERSE} 
+                                library="Ionicons" 
+                                name="calendar"
+                                size={24}
+                                color={Colors.TEXT_INVERSE}
                             />
                         </TouchableOpacity>
                     </>
@@ -102,18 +111,20 @@ const CustomHeader = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        minHeight: 66, 
+        height: 64, 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16, 
-        paddingVertical: 14, 
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: Colors.PRIMARY, 
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT || '#F0F0F0',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0, 
     },
 
     backButton: {
-        padding: 4,
-        marginLeft: -4, 
+        padding: 8,
+        marginLeft: -8, 
         zIndex: 10,
     },
     centerTitleContainer: {
@@ -123,32 +134,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: -1,
+        height: '100%',
     },
-    stackTitle: {
+    centerTitle: {
         color: Colors.TEXT_INVERSE, 
-        textAlign: 'center',
+        fontSize: 24,
+        fontWeight: '700',
+        marginBottom: 0,
     },
     spacer: {
-        width: 28,
+        width: 40,
     },
     
-    leftTitleContainer: {
+    leftContent: {
         flex: 1,
         justifyContent: 'center',
+        flexDirection: 'column',
     },
-    tabTitle: {
-        color: Colors.TEXT_PRIMARY,
+    headline: {
+        color: Colors.TEXT_INVERSE,
         textAlign: 'left',
+        fontSize: 32,
+        fontWeight: '700',
+        lineHeight: 28,
     },
+    subtitle: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'left',
+        fontSize: 16,
+        lineHeight: 20,
+    },
+
     rightActionsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8, 
+        gap: 12,
     },
-    iconButton: {
-        backgroundColor: Colors.SECONDARY,
+    actionIcon: {
         padding: 8,
-        borderRadius: 50,
     },
 });
 
