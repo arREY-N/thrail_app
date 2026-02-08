@@ -9,7 +9,7 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const CustomLoading = ({ visible, message = "Loading..." }) => {
+const CustomLoading = ({ visible = true, message = "Loading..." }) => {
     if (!visible) return null;
 
     return (
@@ -27,12 +27,12 @@ const CustomLoading = ({ visible, message = "Loading..." }) => {
 
 const styles = StyleSheet.create({
     overlay: {
-        ...StyleSheet.absoluteFillObject, // Covers the entire parent screen
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Darken background
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 9999, // Forces it to be on top of everything
-        elevation: 10, // Required for Android to sit on top
+        zIndex: 9999,
+        elevation: 10,
     },
     container: {
         backgroundColor: Colors.WHITE,
