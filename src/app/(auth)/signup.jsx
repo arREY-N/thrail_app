@@ -1,12 +1,13 @@
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { useAuthStore } from '@/src/core/stores/authStore';
 
 import CustomLoading from '@/src/components/CustomLoading';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
-import React, { useEffect } from 'react';
+
  
 export default function signup(){
     const router = useRouter();
@@ -20,6 +21,10 @@ export default function signup(){
     const { onBackPress, onLogIn } = useAppNavigation();
 
     useEffect(() => {
+        console.log("Loading State Changed:", isLoading);
+    }, [isLoading]);
+
+    useEffect(() => {
         reset();
     },[]);
 
@@ -29,22 +34,28 @@ export default function signup(){
             password, 
             username, 
             confirmPassword
-        })    
+        });   
         
         const validated = await validateSignUp();
-        if(validated) router.push('/(auth)/information');
+
+        if(validated) {
+            router.push('/(auth)/information');
+        }
     }
 
     return (  
         <View style={{ flex: 1 }}>
-            <CustomLoading visible={isLoading} message="Validating..." />
-
             <SignUpScreen
                 onSignUpPress={onSignUpPress} 
                 onLogInPress={onLogIn} 
                 onBackPress={onBackPress}
                 onGmailSignUp={onGmailSignUp}
                 error={error}
+            />
+
+            <CustomLoading 
+                visible={isLoading} 
+                message="Validating..." 
             />
         </View>
     )
