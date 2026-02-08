@@ -18,7 +18,6 @@ const TESTWRITETRAIL = ({
     return(
         <ScrollView>
             <View style={styles.group}>
-                <Text>GENERAL INFORMATION</Text>
                 <WriteComponent
                     informationSet={information}
                     object={trail}
@@ -30,7 +29,6 @@ const TESTWRITETRAIL = ({
             </View>
 
             <View style={styles.group}>
-                <Text>GEOGRAPHICAL INFORMATION</Text>
                 <WriteComponent
                     informationSet={geography}
                     object={trail}
@@ -39,7 +37,6 @@ const TESTWRITETRAIL = ({
             </View>
 
             <View style={styles.group}>
-                <Text>DIFFICULTY INFORMATION</Text>
                 <WriteComponent
                     informationSet={difficulty}
                     object={trail}
@@ -48,7 +45,6 @@ const TESTWRITETRAIL = ({
             </View>
             
             <View style={styles.group}>
-                <Text>TOURISM INFORMATION</Text>
                 <WriteComponent
                     informationSet={tourism}
                     object={trail}
@@ -76,7 +72,6 @@ export default TESTWRITETRAIL;
 
 const styles = StyleSheet.create({
     group: {
-        borderWidth: 1,
         padding: 10,
         margin: 10,
     }
