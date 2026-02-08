@@ -1,7 +1,22 @@
-import { createApplication, fetchApplications } from '@/src/core/repositories/applicationRepository';
+import { createApplication, fetchApplication, fetchApplications } from '@/src/core/repositories/applicationRepository';
 import { create } from 'zustand';
 
-const init ={
+const applicationTemplate = {
+    applicantName: null,
+    userId: null,
+    email: null,
+    validId: null,
+    businessName: null,
+    address: null,
+    servicedLocation: [],
+    establishedOn: null,
+    dti: null,
+    denr: null,
+    bir: null,
+}
+
+const init = {
+    application: applicationTemplate,
     applications: [],
     isLoading: false,
     error: null,
@@ -39,6 +54,33 @@ export const useApplicationsStore = create((set,get) => ({
             set({
                 erro: err.message ?? 'Failed reloading applications'
             })
+        }
+    },
+
+    loadApplication: async (id) => {
+        if(get().applications.length > 0){
+            const application = get().applications.find(a => a.id === id);
+
+            if(application){
+                set({ application })
+                return;
+            }
+        }
+
+        try {
+            set({ isLoading: true, error: null});
+
+            const application = await fetchApplication(id);
+
+            if(!application) throw new Error('Application not found');
+
+            set({
+                application,
+                isLoading: false,
+            })
+        } catch (err) {
+            console.error(err.message);
+            set({ error: err.message, isLoading: false});            
         }
     },
 
@@ -87,5 +129,31 @@ export const useApplicationsStore = create((set,get) => ({
         } catch (err) {
             throw new Error(err);
         }
+    },
+
+    editProperty: (property) => {
+        const { type, key, value } = property;
+        const application = get().application;
+        
+        let current = application[key] ?? null;
+        let finalValue = value;
+        
+        if(type === 'multi-select'){
+            current = current || [];
+            finalValue = current?.find(v => v === value)
+                ? current.filter(c => c !== value)
+                : [...current, value]
+        } else if (type ===  'boolean'){
+            finalValue = !current
+        } 
+
+        set((state) => {
+            return {
+                application: {
+                    ...state.application,
+                    [key]: finalValue
+                }
+            }
+        })
     }
 }));

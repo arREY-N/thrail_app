@@ -38,6 +38,7 @@ export default function useSuperadmin({
     const userLoading = useUsersStore(s => s.isLoading);
 
     const applications = useApplicationsStore(s => s.applications);
+    const application = useApplicationsStore(s => s.application);
     const loadAllApplications = useApplicationsStore(s => s.loadAllApplications);
     const reloadApplications = useApplicationsStore(s => s.reloadApplications);
     const applicationCount = applications.length;
@@ -80,6 +81,10 @@ export default function useSuperadmin({
     }
     
     function onManageMountainPress(){
+
+    }
+
+    function onCheckApplication(id){
 
     }
 

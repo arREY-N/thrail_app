@@ -1,4 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
+import { ApplicationMapper } from '@/src/core/mapper/applicationMapper';
 import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 
 export async function fetchApplications(){
@@ -7,12 +8,33 @@ export async function fetchApplications(){
 
         const snapshot = await getDocs(ref);
 
-        return snapshot.docs.map((docsnap) => ({
+        if(snapshot.empty) return [];
+
+        return snapshot.docs.map((docsnap) => ApplicationMapper.toUI({
             id: docsnap.id,
             ...docsnap.data()
         }));
     } catch (err) {
-        throw new Error(err);
+        console.error(err.message);
+        throw new Error(err.message);
+    }
+}
+
+export async function fetchApplication(id){
+    try {
+        const docRef = doc(collection(db, 'applications'), id);
+
+        const docsnap = await getDoc(docRef);
+
+        if(!docsnap.exists()) return null;
+
+        return ApplicationMapper.toUI({
+            id: docsnap.id,
+            ...docsnap.data()
+        });
+    } catch (err) {
+        console.error(err.message);
+        throw new Error(err.message)
     }
 }
 
