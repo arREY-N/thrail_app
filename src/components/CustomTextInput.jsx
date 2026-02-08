@@ -50,6 +50,9 @@ const CustomTextInput = ({
             if (cleaned.length === 2) {
                 if (cleaned !== '09' && cleaned !== '63') return;
             }
+            if (cleaned.startsWith('63') && cleaned.length >= 3) {
+                if (cleaned[2] !== '9') return; // Blocks typing '4', '5', etc.
+            }
             if (cleaned.length > 2) {
                 if (!cleaned.startsWith('09') && !cleaned.startsWith('63')) return;
             }
@@ -58,20 +61,23 @@ const CustomTextInput = ({
 
             if (cleaned.startsWith('09')) {
                 if (cleaned.length > 4) {
-                    formatted = `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)}`;
+                    formatted = `(${cleaned.slice(0, 4)}) ${cleaned.slice(4, 7)}`;
                 }
                 if (cleaned.length > 7) {
-                    formatted = `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 11)}`;
+                    formatted = `(${cleaned.slice(0, 4)}) ${cleaned.slice(4, 7)} ${cleaned.slice(7, 11)}`;
                 }
-            } else if (cleaned.startsWith('63')) {
+            } 
+            else if (cleaned.startsWith('63')) {
+                formatted = `+${cleaned}`;
+
                 if (cleaned.length > 2) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)}`;
+                    formatted = `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 5)}`;
                 }
                 if (cleaned.length > 5) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)}`;
+                    formatted = `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 5)}) ${cleaned.slice(5, 8)}`;
                 }
                 if (cleaned.length > 8) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 12)}`;
+                    formatted = `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 5)}) ${cleaned.slice(5, 8)} ${cleaned.slice(8, 12)}`;
                 }
             }
 
@@ -80,11 +86,6 @@ const CustomTextInput = ({
             onChangeText(text);
         }
     };
-
-    const inputProps = type === 'phone' ? {
-        keyboardType: 'phone-pad',
-        maxLength: value?.startsWith('63') ? 15 : 13, 
-    } : {};
 
     return (
         <View style={[styles.container, style]}>
@@ -131,7 +132,6 @@ const CustomTextInput = ({
                             keyboardType={keyboardType || 'default'} 
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
-                            {...inputProps}
                             {...props} 
                         />
 
