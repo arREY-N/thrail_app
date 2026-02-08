@@ -34,7 +34,7 @@ const SelectionOption = ({ label, selected, onPress }) => {
                         library="Feather"
                         name="check"
                         size={18}
-                        color='Colors.WHITE'
+                        color={Colors.WHITE}
                     />
                 )}
             </View>
