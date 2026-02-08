@@ -23,7 +23,7 @@ export default function profile(){
     }
 
     function onAdminPress(){
-        console.log('to implement');
+        router.push('/(main)/admin')
     }
     
     function onSuperadminPress(){
