@@ -118,4 +118,8 @@ export const AuthStyles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         marginLeft: 4,
     },
+
+    pageContent: {
+        padding: 16,
+    },
 });
