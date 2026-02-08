@@ -12,7 +12,7 @@ import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
 import ScreenWrapper from '../../../components/ScreenWrapper';
 import { Colors } from '../../../constants/colors';
 
-const BusApp = ({
+const ApplyScreen = ({
     system,
     provinces,
     onApplyPress,
@@ -188,4 +188,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default BusApp;
+export default ApplyScreen;
