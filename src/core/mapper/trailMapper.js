@@ -16,7 +16,8 @@ export const TrailMapper = {
             general:{
                 name: data.name,
                 address: data.address,
-                province: data.province
+                province: data.province,
+                mountain: data.mountain,
             },
             geography: {
                 longitude: data.longitude,

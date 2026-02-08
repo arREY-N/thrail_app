@@ -3,6 +3,7 @@ import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
+import { useMountainsStore } from "../stores/mountainsStore";
 
 export default function useTrailHook({
     trailId = null,
@@ -20,23 +21,30 @@ export default function useTrailHook({
         removeTrail,
         writeTrail,
         createTrail,
-        onEditProperty,
+        editProperty,
         resetTrail,
         hikingTrail,
         setOnHike,
         hikeTrail,
     } = useTrailsStore();
 
+    const {
+        mountains,
+        loadAllMountains, 
+    } = useMountainsStore();
+
     const information = TRAIL_CONSTANTS.TRAIL_INFORMATION;
 
     useEffect(() => {
         if(trailId && (mode === 'view' || mode === 'write')){
+            loadAllMountains();
             console.log('With id ', mode)
             resetTrail();
             loadTrail(trailId);
         }
         
         if(mode === 'write' && !trailId){
+            loadAllMountains();
             console.log('No id', mode)
             resetTrail();
         } 
@@ -70,12 +78,16 @@ export default function useTrailHook({
     const onSubmitPress = async () => {
         const success = await createTrail();
         if(!success) return;
-        router.replace('trail/list');
+        router.back();
     }
 
     const onRemovePress = async () => {
         if(trailId) await removeTrail(trailId);
-        router.back();
+        router.replace('../trail/list');
+    }
+
+    const onEditProperty = (prop) => {
+        editProperty(prop)
     }
 
     return {
@@ -85,9 +97,9 @@ export default function useTrailHook({
         error,
         information,
         writeTrail,
-        onEditProperty,
         hikingTrail,
         setOnHike,
+        onEditProperty,
         onViewTrail,
         onBookPress,
         onHikePress,
