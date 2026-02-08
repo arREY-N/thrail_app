@@ -32,7 +32,7 @@ const SearchBar = ({
                     <CustomIcon 
                         library="Ionicons" 
                         name="filter" 
-                        size={20} 
+                        size={24} 
                         color={Colors.TEXT_PRIMARY} 
                     />
                 </TouchableOpacity>
