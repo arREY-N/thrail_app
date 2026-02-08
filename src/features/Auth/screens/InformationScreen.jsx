@@ -45,7 +45,7 @@ const InformationScreen = ({
 
                         <CustomTextInput
                             label="Phone Number *"
-                            placeholder="0912 345 6789"
+                            placeholder="+63 (9XX) XXX XXXX"
                             value={number}
                             onChangeText={setNumber}
                             keyboardType="phone-pad"
