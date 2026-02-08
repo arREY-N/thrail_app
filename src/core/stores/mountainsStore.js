@@ -7,7 +7,7 @@ const MOUNTAIN_TEMPLATE = {
 }
 
 const init = {
-    isLoading: false,
+    isLoading: true,
     error: null,
     mountain: null,
     mountains: [],

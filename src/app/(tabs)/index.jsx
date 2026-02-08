@@ -8,7 +8,7 @@ import { useWeatherStore } from '@/src/core/stores/weatherStore';
 
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
-import HomeScreen from '../../features/Home/screens/HomeScreen';
+import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
     const router = useRouter();

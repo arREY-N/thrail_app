@@ -1,11 +1,11 @@
 import { StyleSheet, View } from "react-native";
 
+import CustomButton from "@/src/components/CustomButton";
+import CustomText from "@/src/components/CustomText";
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from "@/src/components/ScreenWrapper";
 import DecorativeCircle from "@/src/features/Auth/components/DecorativeCircle";
 import MountainGraphic from '@/src/features/Auth/components/MountainGraphic';
-import CustomButton from "../../../components/CustomButton";
-import CustomText from "../../../components/CustomText";
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from "../../../components/ScreenWrapper";
 
 import { Colors } from '@/src/constants/colors';
 

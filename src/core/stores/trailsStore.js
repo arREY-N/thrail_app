@@ -1,55 +1,19 @@
 import { TRAIL_CONSTANTS } from '@/src/constants/trails';
 import { validateTrail } from '@/src/core/domain/utility';
+import { trailTemplate } from '@/src/core/models/trailTemplate';
 import { deleteTrail, fetchAllTrails, getTrailMap, saveTrail } from '@/src/core/repositories/trailRepository';
 import { getTrailWeather } from '@/src/core/repositories/weatherRepository';
 import { create } from "zustand";
 
-const trailTemplate = {
-    name: null,
-    province: [],
-    address: null,
-    longitude: null,
-    latitude: null,
-    masl: null,
-    start: null,
-    end: null,
-    length: null,
-    gain: null,
-    slope: null,
-    obstacles: null,
-    circularity: null,
-    quality: null,
-    hours: null,
-    difficulty_points: null,
-    shelter: null,
-    resting: null,
-    viewpoint: null,
-    information_board: null,
-    clean_water: null,
-    river: null,
-    lake: null,
-    waterfall: null,
-    monument: null,
-    community: null,
-}
-
-const hikingTrailTemplate = {
-    trail: null,
-    map: null,
-    weather: null,
-    hiking: false,
-}
-
 const init = {
     trails: [],
-    isLoading: false,
+    isLoading: true,
     error: null,
     trail: trailTemplate,
     hikingTrail: null,
     recommendedTrails: [],
     discoverTrails: [],
 }
-
 
 export const useTrailsStore = create((set, get) => ({
     ...init,
@@ -125,7 +89,7 @@ export const useTrailsStore = create((set, get) => ({
     editProperty: (property) => {
         const { type, key, value } = property;
         const trail = get().trail;
-        
+
         let current = trail[key] ?? null;
         let finalValue = value;
         
@@ -136,7 +100,7 @@ export const useTrailsStore = create((set, get) => ({
                 : [...current, value]
         } else if (type ===  'boolean'){
             finalValue = !current
-        } 
+        }
 
         set((state) => {
             return {

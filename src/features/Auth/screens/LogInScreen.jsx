@@ -3,15 +3,15 @@ import { TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
-import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { Colors } from '../../../constants/colors';
-import { AuthStyles } from '../styles/AuthStyles';
+import CustomIcon from '@/src/components/CustomIcon';
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
 const LogInScreen = ({ 
     onLogInPress, 
