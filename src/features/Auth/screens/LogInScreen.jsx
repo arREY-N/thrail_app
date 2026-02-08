@@ -19,7 +19,7 @@ const LogInScreen = ({
     onBackPress, 
     onForgotPasswordPress, 
     onRememberMePress,
-    onGooglePress, 
+    onGmailLogIn, 
     error,
     remember,
 }) => {
@@ -102,7 +102,7 @@ const LogInScreen = ({
 
                         <TouchableOpacity 
                             style={AuthStyles.googleButton} 
-                            onPress={onGooglePress}
+                            onPress={onGmailLogIn}
                             activeOpacity={0.8}
                         >
                             <CustomIcon
