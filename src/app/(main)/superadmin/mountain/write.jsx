@@ -43,7 +43,7 @@ export default function WriteMountain(){
         <TestWriteMountain
             mountain={mountain}
             information={information}
-            onEditProperty={onEditProperty}
+            onEditProperty={() => onEditProperty}
             onSubmit={onSubmit}
             onDelete={onDelete}   
             error={error} 
