@@ -12,8 +12,6 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
-// const { width } = Dimensions.get('window');
-
 const TrailScreen = ({ 
     trail, 
     onBackPress, 
@@ -23,64 +21,20 @@ const TrailScreen = ({
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
 
-    const name = trail.general?.name || "Unnamed Trail";
-    const address = trail.general?.address || trail.general?.province?.[0] || "Unknown Location";
-    const rating = trail.score || "0.0";
-    const reviewsCount = trail.reviews || "0";
+    const name = trail?.name || "Unnamed Trail";
+
+    const location = Array.isArray(trail?.province) 
+        ? trail.province.join(', ') 
+        : (trail?.province || "Unknown Location");  
+
+    const address = trail?.address || location;
+    const rating = trail?.score || "0.0"; 
+    const reviewsCount = trail?.reviews || "0";
 
     const stats = {
-        distance: trail.difficulty?.length ? `${trail.difficulty.length} km` : "--",
-        time: trail.difficulty?.hours ? `${trail.difficulty.hours} hr` : "--",
-        elevation: trail.geographical?.masl ? `${trail.geographical.masl} m` : "--",
-    };
-
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case 'Details':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.distance}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Distance</CustomText>
-                            </View>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.time}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Est. Time</CustomText>
-                            </View>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.elevation}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Elevation</CustomText>
-                            </View>
-                        </View>
-
-                        <View style={styles.placeholderBox}>
-                            <CustomText style={styles.placeholderText}>(Short Description)</CustomText>
-                        </View>
-                        <View style={styles.placeholderBox}>
-                            <CustomText style={styles.placeholderText}>(AI Difficulty Explanation)</CustomText>
-                        </View>
-                    </View>
-                );
-            case 'Weather':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={[styles.placeholderBox, { height: 150 }]}>
-                            <CustomText style={styles.placeholderText}>Weather Forecast Widget</CustomText>
-                        </View>
-                    </View>
-                );
-            case 'Reviews':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={[styles.placeholderBox, { height: 100 }]}>
-                            <CustomText style={styles.placeholderText}>User Reviews List</CustomText>
-                        </View>
-                    </View>
-                );
-            default:
-                return null;
-        }
+        distance: trail?.length ? `${trail.length} km` : "--",
+        time: trail?.hours ? `${trail.hours} hr` : "--",
+        elevation: trail?.masl ? `${trail.masl} m` : "--",
     };
 
     return (
@@ -90,36 +44,51 @@ const TrailScreen = ({
                 contentContainerStyle={styles.scrollContent}
                 style={styles.container}
             >
-                
                 <View style={styles.imageContainer}>
                     <View style={styles.imagePlaceholder} /> 
-                    
                     <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-                        <CustomIcon library="Feather" name="chevron-left" size={28} color={Colors.TEXT_PRIMARY} />
+                        <CustomIcon 
+                            library="Feather" 
+                            name="chevron-left" 
+                            size={28} 
+                            color={Colors.TEXT_PRIMARY} 
+                        />
                     </TouchableOpacity>
-
-                    {/* <View style={styles.pagination}>
-                        <View style={[styles.dot, styles.activeDot]} />
-                        <View style={styles.dot} />
-                        <View style={styles.dot} />
-                    </View> */}
                 </View>
 
                 <View style={styles.bodyContainer}>
-                    
                     <View style={styles.headerInfo}>
                         <View style={styles.titleRow}>
                             <View style={{ flex: 1 }}>
-                                <CustomText variant="h2" style={styles.title}>{name}</CustomText>
-                                <CustomText variant="body" style={styles.address}>{address}</CustomText>
+                                <CustomText variant="h2" style={styles.title}>
+                                    {name}
+                                </CustomText>
+
+                                <CustomText variant="body" style={styles.address}>
+                                    {address}
+                                </CustomText>
+
                                 <View style={styles.ratingRow}>
-                                    <CustomIcon library="Ionicons" name="star" size={14} color={Colors.TEXT_PRIMARY} />
-                                    <CustomText style={styles.ratingText}>{rating} ({reviewsCount})</CustomText>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="star" 
+                                        size={14} 
+                                        color={Colors.YELLOW} 
+                                    />
+
+                                    <CustomText style={styles.ratingText}>
+                                        {rating} ({reviewsCount})
+                                    </CustomText>
                                 </View>
                             </View>
                             
-                            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownloadPress(trail.id)}>
-                                <CustomIcon library="Feather" name="download" size={20} color={Colors.GRAY_MEDIUM} />
+                            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownloadPress(trail?.id)}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="download" 
+                                    size={20}
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -142,7 +111,12 @@ const TrailScreen = ({
                     </View>
                     <View style={styles.divider} />
 
-                    {renderTabContent()}
+                    <TrailContent 
+                        activeTab={activeTab} 
+                        stats={stats} 
+                        trail={trail} 
+                        location={location} 
+                    />
 
                 </View>
             </ResponsiveScrollView>
@@ -151,7 +125,7 @@ const TrailScreen = ({
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Hike" 
-                        onPress={() => onHikePress(trail.id)} 
+                        onPress={() => onHikePress(trail?.id)} 
                         style={styles.footerBtn}
                         variant="secondary"
                     />
@@ -160,7 +134,7 @@ const TrailScreen = ({
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Book" 
-                        onPress={() => onBookPress(trail.id)} 
+                        onPress={() => onBookPress(trail?.id)} 
                         style={styles.footerBtn}
                         variant="primary"
                     />
@@ -168,6 +142,133 @@ const TrailScreen = ({
             </View>
         </ScreenWrapper>
     );
+};
+
+const TrailContent = ({ activeTab, stats, trail, location }) => {
+    switch (activeTab) {
+        case 'Details':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.distance}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Distance
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.time}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Est. Time
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.elevation}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Elevation
+                            </CustomText>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            About
+                        </CustomText>
+
+                        <CustomText style={styles.descriptionText}>
+                            This is a {formatList(trail?.quality) || 'scenic'} {trail?.circularity || ''} trail located in {location}.
+                            {"\n\n"}
+                            {trail?.difficulty_points && trail.difficulty_points.length > 0 
+                                ? `Expect features such as ${formatList(trail.difficulty_points)}.` 
+                                : 'A great trail for outdoor enthusiasts.'}
+                        </CustomText>
+                    </View>
+
+                    <View style={styles.section}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Features & Facilities
+                        </CustomText>
+
+                        <View style={styles.tagContainer}>
+                            {trail?.shelter && <Tag label="Shelter" />}
+                            {trail?.clean_water && <Tag label="Drinking Water" />}
+                            {trail?.resting && <Tag label="Resting Area" />}
+                            {trail?.information_board && <Tag label="Info Board" />}
+                            {trail?.community && <Tag label="Community" />}
+                            
+                            {trail?.river && <Tag label="River" />}
+                            {trail?.lake && <Tag label="Lake" />}
+                            {trail?.waterfall && <Tag label="Waterfall" />}
+                            {trail?.monument && <Tag label="Monument" />}
+                            
+                            {Array.isArray(trail?.viewpoint) && trail.viewpoint.map((vp, index) => (
+                                <Tag key={`vp-${index}`} label={vp} />
+                            ))}
+                        </View>
+                    </View>
+                </View>
+            );
+        case 'Weather':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={[styles.placeholderBox, { height: 150 }]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="cloud" 
+                            size={32} 
+                            color={Colors.GRAY_MEDIUM} 
+                        />
+
+                        <CustomText style={styles.placeholderText}>
+                            Weather Forecast Widget
+                        </CustomText>
+                    </View>
+                </View>
+            );
+        case 'Reviews':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={[styles.placeholderBox, { height: 100 }]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="message-square" 
+                            size={32} 
+                            color={Colors.GRAY_MEDIUM} 
+                        />
+                        
+                        <CustomText style={styles.placeholderText}>
+                            User Reviews List
+                        </CustomText>
+                    </View>
+                </View>
+            );
+        default:
+            return null;
+    }
+};
+
+const Tag = ({ label }) => (
+    <View style={styles.tag}>
+        <CustomText variant="caption" style={styles.tagText}>
+            {label}
+        </CustomText>
+    </View>
+);
+
+const formatList = (list) => {
+    if (!list) return '';
+    return Array.isArray(list) ? list.join(', ') : list;
 };
 
 const styles = StyleSheet.create({
@@ -201,25 +302,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
     },
-    pagination: {
-        position: 'absolute',
-        bottom: 20,
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    activeDot: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        width: 20,
-    },
-
+    
     bodyContainer: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
@@ -307,10 +390,40 @@ const styles = StyleSheet.create({
     statValue: {
         fontWeight: 'bold',
         marginBottom: 4,
+        fontSize: 18,
     },
     statLabel: {
         color: Colors.TEXT_SECONDARY,
     },
+    
+    section: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    descriptionText: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 22,
+    },
+    tagContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    tag: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    tagText: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 12,
+    },
+
     placeholderBox: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         height: 80,
@@ -318,6 +431,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,
+        gap: 8,
     },
     placeholderText: {
         color: Colors.TEXT_SECONDARY,
