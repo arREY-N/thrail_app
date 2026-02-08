@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import BusAppScreen from '@/src/features/Profile/screens/BusAppScreen';
+import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
 
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
 import { useAuthStore } from '@/src/core/stores/authStore';
@@ -33,7 +33,7 @@ export default function applyBusiness(){
     }
 
     return (
-        <BusAppScreen
+        <ApplyScreen
             system={system}
             provinces={provinces}
             onApplyPress={onApplyPress}
