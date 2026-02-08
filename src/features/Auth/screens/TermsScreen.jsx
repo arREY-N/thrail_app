@@ -1,104 +1,68 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from "react-native";
+import React from 'react';
+import { StyleSheet, View } from "react-native";
 
-import CustomButton from '../../../components/CustomButton';
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
-import ErrorMessage from '../../../components/ErrorMessage';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomText from '@/src/components/CustomText';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import ConfirmationModal from '../../../components/ConfirmationModal';
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
-import { Colors } from '../../../constants/colors';
-import { AuthStyles } from '../styles/AuthStyles';
+export const TermsContent = () => (
+    <View style={styles.contentContainer}>
+        <ResponsiveScrollView>
+            <CustomText variant="body" style={styles.legalText}>
+                [TERMS OF SERVICE]
+                {'\n'}{'\n'}
+                1. Introduction{'\n'}
+                Welcome to Thrail. These are our general terms of use. Please read them carefully.
+                {'\n'}{'\n'}
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                {'\n'}{'\n'}
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                {'\n'}{'\n'}
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                {'\n'}{'\n'}
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                {'\n'}{'\n'}
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                {'\n'}{'\n'}
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                {'\n'}{'\n'}
+                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                {'\n'}{'\n'}
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                {'\n'}{'\n'}
+                [End of Terms]
+            </CustomText>
+        </ResponsiveScrollView>
+    </View>
+);
 
-const TermsScreen = ({ 
-    onAcceptPress, 
-    onDeclinePress, 
-    onBackPress, 
-    error 
-}) => {
-
-    const [showDeclineModal, setShowDeclineModal] = useState(false);
-
-    const handleAcceptClick = () => {
-        if (onAcceptPress) onAcceptPress();
-    };
-
-    const handleDeclineClick = () => {
-        setShowDeclineModal(true);
-    };
-
-    const handleConfirmDecline = () => {
-        setShowDeclineModal(false);
-        if (onDeclinePress) onDeclinePress();
-    };
-
-    const handleCloseModal = () => {
-        setShowDeclineModal(false);
-    };
-
+const TermsScreen = ({ onBackPress }) => {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <ConfirmationModal
-                visible={showDeclineModal}
-                title="Decline Terms?"
-                message="You need to accept the Terms & Conditions to create an account. This will take you back to the start screen."
-                confirmText="Decline"
-                cancelText="Back"
-                onConfirm={handleConfirmDecline}
-                onClose={handleCloseModal}
-            />
-
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <CustomHeader onBackPress={onBackPress} />
+                <CustomHeader 
+                    onBackPress={onBackPress} 
+                />
 
-                <View style={AuthStyles.contentContainer}>
+                <View style={AuthStyles.pageContent}>
                     <View style={AuthStyles.formConstrainer}>
-
                         <CustomText variant="title" style={AuthStyles.pageTitle}>
-                            Terms & Conditions
+                            Terms of Service
                         </CustomText>
-
-                        <ErrorMessage error={error} />
-
-                        <View style={styles.legalContainer}>
-                            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
-                                <CustomText variant="body" style={styles.legalText}>
-                                    [TERMS AND CONDITIONS PLACEHOLDER]
-                                    {'\n'}{'\n'}
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                                    {'\n'}{'\n'}
-                                    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                                    {'\n'}{'\n'}
-                                </CustomText>
-                            </ScrollView>
+                        
+                        <View style={styles.standaloneContainer}>
+                            <TermsContent />
                         </View>
-
-                        <CustomText variant="caption" style={styles.agreementText}>
-                            By clicking "Accept", you acknowledge that you have read and agree to the Terms & Conditions and Privacy Policy.
-                        </CustomText>
-
-                        <View style={[AuthStyles.buttonContainer, styles.buttonGap]}>
-                            <CustomButton 
-                                title="Accept" 
-                                onPress={handleAcceptClick}
-                                variant="primary"
-                            />
-
-                            <CustomButton 
-                                title="Decline" 
-                                onPress={handleDeclineClick}
-                                variant="outline" 
-                            />
-                        </View>
-
                     </View>
                 </View>
             </ResponsiveScrollView>
@@ -107,31 +71,24 @@ const TermsScreen = ({
 };
 
 const styles = StyleSheet.create({
-    legalContainer: {
+    contentContainer: {
+        flex: 1,
         width: '100%',
-        height: 300, 
         backgroundColor: Colors.WHITE,
+        padding: 16,
+    },
+    standaloneContainer: {
+        height: 500,
         borderRadius: 12,
+        overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        padding: 16,
-        marginBottom: 24,
     },
     legalText: {
         fontSize: 14,
         color: Colors.TEXT_SECONDARY,
         lineHeight: 22,
     },
-    agreementText: {
-        textAlign: 'center',
-        color: Colors.TEXT_SECONDARY,
-        lineHeight: 20,
-        paddingHorizontal: 8,
-        marginBottom: 32,
-    },
-    buttonGap: {
-        gap: 16, 
-    }
 });
 
 export default TermsScreen;
