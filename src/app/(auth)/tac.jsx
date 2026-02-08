@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { useAuthStore } from "@/src/core/stores/authStore";
 
 import CustomLoading from "@/src/components/CustomLoading";
-import TermsScreen from "@/src/features/Auth/screens/TermsScreen";
+import TACScreen from "@/src/features/Auth/screens/TACScreen";
 
 export default function tac(){
     const router = useRouter();
@@ -27,13 +27,15 @@ export default function tac(){
     }
 
     return(
-        <View style={{ flex: 1 }}>
-            <CustomLoading visible={isLoading} message="Creating account..." />
+        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+            <CustomLoading 
+                visible={isLoading} 
+                message="Creating account..." 
+            />
 
-            <TermsScreen 
+            <TACScreen 
                 onAcceptPress={onAcceptPress}
                 onDeclinePress={onDeclinePress}
-                onBackPress={onBackPress}
                 error={error}
             />
         </View>
