@@ -29,7 +29,7 @@ const WeatherSection = ({ locationTemp, onPress }) => {
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
             <View style={styles.row}>
-                <View>
+                <View style={styles.leftColumn}>
                     <CustomText variant="title" style={styles.tempText}>
                         {locationTemp?.temperature ? `${locationTemp.temperature}°c` : '--'}
                     </CustomText>
@@ -38,7 +38,7 @@ const WeatherSection = ({ locationTemp, onPress }) => {
                         <CustomIcon 
                             library="FontAwesome6" 
                             name="location-dot" 
-                            size={16}
+                            size={14}
                             color={Colors.TEXT_SECONDARY} 
                         />
                         
@@ -48,11 +48,11 @@ const WeatherSection = ({ locationTemp, onPress }) => {
                     </View>
                 </View>
 
-                <View style={styles.rightSide}>
+                <View style={styles.rightColumn}>
                     <CustomIcon 
                         library="Ionicons" 
                         name={iconName}
-                        size={48}
+                        size={52} 
                         color={Colors.TEXT_SECONDARY} 
                     />
                     
@@ -67,41 +67,49 @@ const WeatherSection = ({ locationTemp, onPress }) => {
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 16,
-        paddingTop: 32,
-        paddingBottom: 16,
+        paddingHorizontal: 20, 
+        paddingTop: 24,
+        paddingBottom: 24,
         backgroundColor: Colors.WHITE,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_LIGHT,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'stretch',
+    },
+    
+    leftColumn: {
+        justifyContent: 'flex-start',
     },
     tempText: {
-        fontSize: 56,
+        fontSize: 64, 
         fontWeight: 'bold',
-        lineHeight: 60,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 70, 
+        includeFontPadding: false, 
     },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
         marginTop: 4,
+        paddingLeft: 4, 
     },
     locationText: {
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '500',
+        color: Colors.TEXT_SECONDARY,
     },
-    rightSide: {
+
+    rightColumn: {
         alignItems: 'flex-end',
         justifyContent: 'space-between',
-        height: 60,
     },
     dayNightText: {
         fontSize: 12,
-        fontWeight: '600',
-        marginTop: 8,
+        fontWeight: '500',
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 2,
     },
 });
 
