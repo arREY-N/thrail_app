@@ -1,15 +1,24 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-import CustomHeader from '../../../components/CustomHeader';
-import CustomIcon from '../../../components/CustomIcon';
-import CustomText from '../../../components/CustomText';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
-import { Colors } from '../../../constants/colors';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+
+import { Colors } from '@/src/constants/colors';
 
 const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
     console.log("RECEIVED DATA:", locationWeather);
+
+    const [refreshing, setRefreshing] = useState(false);
 
     const temperature = locationWeather?.temperature ?? "--";
     const location = locationWeather?.location ?? "Location Not Set";
@@ -22,8 +31,20 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
     const humidity = locationWeather?.humidity ? `${Math.round(locationWeather.humidity * 100)}%` : "--";
     const uvIndex = locationWeather?.UV ? String(locationWeather.UV) : "--";
 
-    const RefreshAction = (
-        <TouchableOpacity onPress={onRefreshPress} style={styles.headerActionButton}>
+    const onRefresh = useCallback(async () => {
+        console.log("Pull-to-refresh triggered!");
+        setRefreshing(true);
+
+        if (onRefreshPress) {
+            console.log("Calling backend refresh function...");
+            await onRefreshPress(); 
+        }
+        setRefreshing(false);
+        console.log("Refresh loading stopped.");
+    }, [onRefreshPress]);
+
+    const WebRefreshButton = Platform.OS === 'web' ? (
+        <TouchableOpacity onPress={onRefresh} style={{ padding: 8 }}>
             <CustomIcon 
                 library="Ionicons" 
                 name="refresh" 
@@ -31,7 +52,7 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                 color={Colors.TEXT_INVERSE} 
             />
         </TouchableOpacity>
-    );
+    ) : null;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -39,12 +60,19 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
             <CustomHeader 
                 title="Weather" 
                 onBackPress={onBackPress} 
-                rightActions={RefreshAction} 
+                rightActions={WebRefreshButton}
             />
 
             <ResponsiveScrollView 
                 style={styles.container}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl 
+                        refreshing={refreshing} 
+                        onRefresh={onRefresh}
+                        colors={[Colors.PRIMARY]}
+                    />
+                }
             >
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
@@ -119,7 +147,6 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Wind" 
                         value={wind}
-                        // value="150 m/s"
                         desc="From Southeast" 
                         icon="wind" 
                         lib="Feather" 
@@ -127,16 +154,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Precipitation" 
                         value={precipAmount}
-                        // value="67 mm"
                         desc={`${precipChance} chance`} 
-                        // desc="50% chance"
                         icon="rainy" 
                         lib="Ionicons" 
                     />
                     <BentoBox 
                         title="UV Index" 
                         value={uvIndex} 
-                        // value="High"
                         desc="Moderate" 
                         icon="sun" 
                         lib="Feather" 
@@ -144,7 +168,6 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Humidity" 
                         value={humidity}
-                        // value="75%"
                         desc="Humid air" 
                         icon="water" 
                         lib="Ionicons" 
@@ -276,9 +299,6 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 16,
         paddingBottom: 32,
-    },
-    headerActionButton: {
-        padding: 4,
     },
 
     heroSection: {
