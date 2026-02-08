@@ -175,25 +175,27 @@ const PreferenceScreen = ({
             
             <ConfirmationModal
                 visible={showSaveConfirmation}
-                title="Save Hiking Preferences?"
+                title="Save Hiking Preferences"
                 message="Are you ready to submit your preferences and find your trail?"
                 onConfirm={handleConfirmSave}
                 onClose={handleCloseModals}
                 confirmText="Save"
-                cancelText="Edit"
+                cancelText="Cancel"
             />
 
             <ConfirmationModal
                 visible={showExitConfirmation}
-                title="Skip Preferences?"
+                title="Skip Preferences"
                 message="You haven't finished setting up your profile. Are you sure you want to go back?"
                 onConfirm={handleConfirmExit}
                 onClose={handleCloseModals}
-                confirmText="Skip"
-                cancelText="Stay"
+                confirmText="Confirm"
+                cancelText="Cancel"
             />
 
-            <CustomHeader onBackPress={handleBack} />
+            <CustomHeader 
+                onBackPress={handleBack}
+            />
 
             <ResponsiveScrollView 
                 minHeight={600} 
@@ -219,14 +221,29 @@ const PreferenceScreen = ({
                                     library="Feather" 
                                     name="chevron-left" 
                                     size={24} 
-                                    color={Colors.PRIMARY} 
+                                    color={Colors.TEXT_SECONDARY} 
                                 />
 
                                 <CustomText style={styles.prevText}>
                                     Previous
                                 </CustomText>
                             </TouchableOpacity>
-                        ) : ( <View /> )}
+                        ) : (
+                            <TouchableOpacity 
+                                onPress={() => setShowExitConfirmation(true)} 
+                                style={styles.skipButton}
+                            >
+                                <CustomText style={styles.skipText}>
+                                    Skip
+                                </CustomText>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevrons-right"
+                                    size={20} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity 
                             onPress={handleNext} 
@@ -244,7 +261,7 @@ const PreferenceScreen = ({
                                 library="Feather" 
                                 name="chevron-right" 
                                 size={24} 
-                                color={Colors.WHITE} 
+                                color={Colors.TEXT_INVERSE} 
                             />
                         </TouchableOpacity>
                     </View>
@@ -309,17 +326,34 @@ const styles = StyleSheet.create({
         marginTop: 32, 
         marginBottom: 32 
     },
+
     prevButton: {
+        
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
     },
     prevText: { 
-        color: Colors.PRIMARY, 
+        color: Colors.TEXT_SECONDARY, 
         fontWeight: '600', 
         fontSize: 16,
         marginLeft: 4
     },
+
+    skipButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 24,
+        gap: 8,
+    },
+    skipText: {
+        color: Colors.TEXT_SECONDARY, 
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+
     nextButton: {
         backgroundColor: Colors.PRIMARY, 
         flexDirection: 'row',
