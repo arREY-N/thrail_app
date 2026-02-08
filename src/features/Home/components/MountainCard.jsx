@@ -13,27 +13,14 @@ import { Colors } from '@/src/constants/colors';
 
 const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
-    const name = item.general?.name || item.name || "Unnamed Mountain";
-
-    let location = "Unknown Location";
-    if (item.general?.address) {
-        location = item.general.address;
-    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
-        location = item.general.province[0];
-    } else if (item.location) {
-        location = item.location;
-    }
-    
-    const rawLength = item.difficulty?.length || item.length;
-    const displayLength = rawLength ? `${rawLength} km` : "--";
-
-    const rawElev = item.geographical?.masl || item.difficulty?.gain || item.elevation;
-    const displayElev = rawElev ? `${rawElev} masl` : "--";
-
-    const rawTime = item.difficulty?.hours || item.duration;
-    const displayTime = rawTime ? `${rawTime} h` : "--";
-
-    const score = item.score || item.rating || "N/A";
+    const { 
+        name, 
+        location, 
+        displayLength, 
+        displayElev, 
+        displayTime, 
+        score 
+    } = getMountainData(item);
 
     return (
         <TouchableOpacity 
@@ -58,7 +45,7 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                             <View style={styles.locationRow}>
                                 <CustomIcon 
                                     library="FontAwesome6" 
-                                    name="location-pin" 
+                                    name="location-dot" 
                                     size={10}
                                     color={Colors.TEXT_INVERSE} 
                                 />
@@ -71,7 +58,7 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
                         <View style={styles.glassBadge}>
                             <CustomIcon
-                                library="ionicons"
+                                library="Ionicons"
                                 name="star"
                                 size={12}
                                 color={Colors.YELLOW}
@@ -115,7 +102,7 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                         activeOpacity={0.7}
                     >
                         <CustomIcon
-                            libraby="Feather"
+                            library="Feather"
                             name="download"
                             size={18}
                             color={Colors.WHITE}
@@ -126,6 +113,43 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
             </View>
         </TouchableOpacity>
     );
+};
+
+const getMountainData = (item) => {
+    const name = item.general?.name || item.name || "Unnamed Mountain";
+
+    let location = "Unknown Location";
+    if (item.address) {
+        location = item.address;
+    } else if (item.general?.address) {
+        location = item.general.address;
+    } else if (item.province) {
+         location = Array.isArray(item.province) ? item.province[0] : item.province;
+    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
+        location = item.general.province[0];
+    } else if (item.location) {
+        location = item.location;
+    }
+    
+    const rawLength = item.length || item.difficulty?.length;
+    const displayLength = rawLength ? `${rawLength} km` : "--";
+
+    const rawElev = item.masl || item.geographical?.masl || item.difficulty?.gain || item.elevation;
+    const displayElev = rawElev ? `${rawElev} masl` : "--";
+
+    const rawTime = item.hours || item.difficulty?.hours || item.duration;
+    const displayTime = rawTime ? `${rawTime} h` : "--";
+
+    const score = item.score || item.rating || "N/A";
+
+    return {
+        name,
+        location,
+        displayLength,
+        displayElev,
+        displayTime,
+        score
+    };
 };
 
 const StatItem = ({ label, value }) => (
