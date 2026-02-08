@@ -1,5 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    View
+} from 'react-native';
 
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { APPLICATION_CONSTANTS } from '@/src/constants/application';
@@ -7,8 +12,8 @@ import { Colors } from '@/src/constants/colors';
 import { OPTIONS } from '@/src/constants/constants';
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
 import { useAuthStore } from '@/src/core/stores/authStore';
-import BusApp from '@/src/features/Profile/screens/BusAppScreen';
-import { ScrollView, StyleSheet, View } from 'react-native';
+
+import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
 
 export default function applyBusiness(){
     const router = useRouter();
@@ -42,7 +47,7 @@ export default function applyBusiness(){
     }
 
     return (
-        <BusApp
+        <ApplyScreen
             information={information}
             application={application}
             system={system}
