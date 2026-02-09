@@ -1,9 +1,14 @@
-import { Feather } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 
-import { Colors } from '../constants/colors';
-import CustomText from './CustomText';
+import React from 'react';
+import {
+    StyleSheet,
+    View
+} from 'react-native';
+
+import { Colors } from '@/src/constants/colors';
+
+import CustomText from '@/src/components/CustomText';
 
 const ErrorMessage = ({ error, style }) => {
     
@@ -12,7 +17,7 @@ const ErrorMessage = ({ error, style }) => {
     return (
         <View style={[styles.container, style]}>
             <Feather name="alert-circle" size={18} color={Colors.ERROR} />
-            <CustomText style={styles.text}>
+            <CustomText variant="caption" style={styles.text}>
                 {error}
             </CustomText>
         </View>
@@ -34,7 +39,6 @@ const styles = StyleSheet.create({
     },
     text: {
         color: Colors.ERROR,
-        fontSize: 14,
         flex: 1,      
         fontWeight: '500',
     },

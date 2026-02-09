@@ -1,4 +1,10 @@
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import {
+    StyleSheet,
+    View,
+    useWindowDimensions
+} from "react-native";
+
+import { Colors } from '@/src/constants/colors';
 
 const MountainGraphic = () => {
     const { width } = useWindowDimensions();
@@ -35,7 +41,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 180,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
-        borderBottomColor: '#A0A0A0', 
+        borderBottomColor: Colors.GRAY_MEDIUM,
         marginRight: -80,
     },
     mountainRight: {
@@ -48,7 +54,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 140,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
-        borderBottomColor: '#C0C0C0', 
+        borderBottomColor: Colors.GRAY_LIGHT,
     },
 });
 

@@ -39,18 +39,44 @@ export const useBookingsStore = create((set, get) => ({
         try {
             console.log('Store: ', bookingData);
 
-            const bookingId = await createBooking({cancelledBy, bookingData});
+            const bookingId = await createBooking({
+                ...bookingData,
+                ...cancelledBy
+            });
 
             set((state) => {
                 console.log({ bookingId, ...bookingData })
                 return {
-                    userBookings: [...state.userBookings, { bookingId, ...bookingData }],
+                    userBookings: [
+                        ...state.userBookings, 
+                        { bookingId, ...bookingData }
+                    ],
                     isLoading: false,
                 }
             })
         } catch (err) {
             set({
                 error: err.message || 'Failed creating booking',
+                isLoading: false,
+            })
+        }
+    },
+
+    checkBookings: (id) => {
+        set({ isLoading: true, error: null });
+
+        try {
+            console.log('Checking ', id);
+
+            if(get().userBookings.some(u => u.offerId === id))
+                throw new Error('Already booked this offer');
+
+            set({ isLoading: false, error: null });
+            
+            return true;
+        } catch (err) {
+            set({
+                error: err.message,
                 isLoading: false,
             })
         }

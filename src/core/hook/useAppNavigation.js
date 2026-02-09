@@ -1,24 +1,43 @@
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 
-export function useAppNavigation(){
+export function useAppNavigation() {
     const router = useRouter();
 
     const onMountainPress = (id) => {
-        console.log('Routing to: ', id);
         router.push(`/(mountain)/${id}`)
     }
 
     const onBackPress = () => {
         router.back();
-    }
+    };
 
     const onDownloadPress = (id) => {
         console.log('Downloading: ', id);
     }
 
-    return{
+    const onSignUpPress = () => {
+        router.replace('/(auth)/signup');
+    }
+
+    const onLogIn = () => {
+        router.replace('/(auth)/login');
+    }
+
+    const onNotificationPress = () => {
+        router.push('/(main)/home/notification');
+    }
+
+    const onBookingPress = () => {
+        router.push('/(main)/book/list');
+    }
+
+    return {
         onMountainPress,
         onBackPress,
-        onDownloadPress
+        onDownloadPress,
+        onSignUpPress,
+        onLogIn,
+        onBookingPress, 
+        onNotificationPress
     }
 }

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import PrivacyScreen from "../../features/Auth/screens/PrivacyScreen";
+import PrivacyScreen from "@/src/features/Auth/screens/PrivacyScreen";
 
 export default function Privacy() {
     const router = useRouter();

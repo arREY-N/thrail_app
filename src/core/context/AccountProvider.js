@@ -2,20 +2,26 @@ import { createContext, useContext, useState } from "react";
 
 const preferenceTemplate = {
     q1: {
-        question: 'Have you hiked before',
+        question: 'Have you hiked before?',
         type: 'binary', 
         options: ['Yes', 'No'], 
         answer: null,
-        follow: 'q2'
+        // follow: 'q2'
     },
     q2: {
-        question: 'Select location',
+        question: 'Which mountain(s) have you hiked?',
         type: 'multi-select', 
-        options: ['Mt. A', 'Mt. B', 'Mt. C', 'Mt. D', 'Mt. E'], 
+        options: [
+            'Mt. Pulag', 
+            'Mt. Ulap', 
+            'Mt. Daraitan', 
+            'Mt. Batulao', 
+            'Mt. Maculot'
+        ],
         answer: [],
     },
     q3: {
-        question: 'What is your hiking experience level',
+        question: 'What is your hiking experience level?',
         type: 'select', 
         options: ['Beginner', 'Regular', 'Experienced'], 
         answer: null,
@@ -23,7 +29,7 @@ const preferenceTemplate = {
     q4: {
         question: 'How long do you prefer your hikes to be?',
         type: 'multi-select', 
-        options: ['1-3 hours', 'half-day', 'full-day', 'overnight', 'multi-day'], 
+        options: ['1-3 Hour(s)', 'Half-Day', 'Full-Day', 'Overnight', 'Multi-Day'], 
         answer: [],
     },
     q5: {
@@ -57,6 +63,7 @@ export function useAccount(){
 export function AccountProvider({children}){
     const [questions, setQuestions] = useState(preferenceTemplate);
     const [preferences, setPreferences] = useState(userPreferences);
+
     const [account, setAccount] = useState({
         email: '',
         username: '',
@@ -78,6 +85,7 @@ export function AccountProvider({children}){
 
     const setAnswer = (question, newAnswer) => {
         setQuestions(prev => {
+            // const currentQuestion = prev[question];
             let saveAnswer = newAnswer;
 
             if(questions[question].type === 'multi-select'){
@@ -88,6 +96,21 @@ export function AccountProvider({children}){
                                 ? answers.filter(a => a !== newAnswer)
                                 : [...answers, newAnswer] 
             }
+
+            // if(questions[question].type === 'multi-select'){
+            //     const currentAnswers = currentQuestion.answer || [];
+
+            //     const answers = prev[question].answer                
+
+            //     if (currentAnswers.includes(newAnswer)) {
+            //         saveAnswer = currentAnswers.filter(a => a !== newAnswer);
+            //     } else {
+            //         saveAnswer = [...currentAnswers, newAnswer];
+            //     }
+            //     // saveAnswer = answers.includes(newAnswer) 
+            //     //                 ? answers.filter(a => a !== newAnswer)
+            //     //                 : [...answers, newAnswer] 
+            // }
 
             return(
                 {
@@ -129,7 +152,15 @@ export function AccountProvider({children}){
 
     const resetPreferences = () => {
         setPreferences(userPreferences);
+
+        // setQuestions(preferenceTemplate);
     }
+
+    // const value = useMemo(() => ({
+    //     account, updateAccount, resetAccount,
+    //     questions, setAnswer,
+    //     preferences, savePreference, resetPreferences
+    // }), [account, questions, preferences]);
 
     const value = {
         account, updateAccount, resetAccount,

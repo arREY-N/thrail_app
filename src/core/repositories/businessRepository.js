@@ -92,6 +92,8 @@ export async function createBusinessAdmin({userId, businessId}){
         const uid = await createAdmin({userId, businessId})
         
         if(!uid) throw new Error('Admin creation failed');
+
+        return uid;
     } catch (err) {
         throw new Error(err.message)
     }

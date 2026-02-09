@@ -1,36 +1,41 @@
 import { BusinessProvider } from '@/src/core/context/BusinessProvider';
 import { useAuthStore } from '@/src/core/stores/authStore';
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { Stack, useRouter } from "expo-router";
 import { useEffect } from 'react';
+import LoadingScreen from '../loading';
+import UnauthorizedScreen from '../unauthorized';
 
 export default function AdminLayout(){
-    const user = useAuthStore((state) => state.user);
-    const role = useAuthStore((state) => state.role);
-    const isLoading = useAuthStore((state) => state.isLoading);
     const router = useRouter();
-    const rootNavigationState = useRootNavigationState();
     
-    useEffect(() => {
-        if(!rootNavigationState?.key) return;
-        
-        if(isLoading) return;
-
-        if(!user) {
-            router.replace('/(auth)/landing');
+    const user = useAuthStore(s => s.user);
+    const role = useAuthStore(s => s.role);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const loadTrails = useTrailsStore(s => s.loadAllTrails);
+    
+    useEffect(() => { 
+        if(!isLoading && !user) {
+            // router.replace('/(auth)/landing');
             return
         }
 
-        if(role && role === 'user'){
-            router.replace('/(tabs)/home');
-            return;
-        }        
-    }, [user, role, rootNavigationState?.key, isLoading]);
+        loadTrails();
+    }, [user]);
+    
+    if(!isLoading && !user){
+        router.replace('/(auth)/landing');
+    }
+    
+    if(!role) return <LoadingScreen/>;
 
-    return(     
+    if(role === 'user') return <UnauthorizedScreen/>
+
+    return(
         <BusinessProvider>
             <Stack>
                 <Stack.Screen
-                    name = 'home'
+                    name = 'index'
                     options = {{
                         title: 'Admin Home',
                         headerShown: true,

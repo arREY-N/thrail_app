@@ -29,12 +29,14 @@ export async function fetchUserBookings(userId){
 export async function createBooking(bookingData){
     try {
         console.log(bookingData);
-        const bookingRef = doc(collection(db, 'users', bookingData.userId, 'bookings'));
+        const bookingRef = doc(collection(db, 'users', bookingData.payment.user.id, 'bookings'));
         await setDoc(bookingRef, {
             ...bookingData,
+            id: bookingRef.id,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         }, {merge: true});
+
         return bookingRef.id;
     } catch (err) {
         console.log(err.message);

@@ -4,7 +4,7 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import PreferenceScreen from "@/src/features/Auth/screens/PrefenceScreen";
+import PreferenceScreen from "@/src/features/Auth/screens/PreferenceScreen";
 
 export default function preference(){
     const router = useRouter();
@@ -19,6 +19,7 @@ export default function preference(){
             console.log('Trying to save preference');
             await finishOnboarding(user.uid, finalPreferences);
             resetPreferences();
+            router.replace('/(tabs)')
         } catch (err) {
             setError(err.message);
         }
@@ -30,13 +31,6 @@ export default function preference(){
             setAnswer={setAnswer}
             onFinish={onFinishedPreference}
             error={error}
-            />
-            // <Pressable onPress={onFinishedPreference}>
-            //     <Text>Finish Onboarding</Text>
-            // </Pressable>
-
-            // <Pressable onPress={() => router.replace('/(tabs)/home')}>
-            //     <Text>Skip for now</Text>
-            // </Pressable>
+        />
     ) 
 }

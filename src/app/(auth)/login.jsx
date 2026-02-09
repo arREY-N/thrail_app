@@ -1,46 +1,53 @@
-import { forgotPassword } from '@/src/core/FirebaseAuthUtil';
-import { useAuthStore } from '@/src/core/stores/authStore';
-import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+
+import { useAuthStore } from '@/src/core/stores/authStore';
+
+import CustomLoading from '@/src/components/CustomLoading';
+import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
 export default function login(){
+    const { onBackPress, onSignUpPress } = useAppNavigation();
+
     const router = useRouter();
-    const [error, setError] = useState(null);
-    const logIn = useAuthStore((state) => state.logIn)
+    
+    const error = useAuthStore(s => s.error);
+    const profile = useAuthStore(s => s.profile);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const user = useAuthStore(s => s.user);
+    const remember = useAuthStore(s => s.remember);
+    const reset = useAuthStore(s => s.reset);
 
-    const onLogIn = async (email, password) => {
-        setError(null);
-        try{
-            const res = await logIn(email, password);
-        } catch (err) {
-            setError(err.message);
-        }
-    }
+    const onLogIn = useAuthStore(s => s.logIn);
+    const onRememberMePress = useAuthStore(s => s.rememberMe)
+    const onGmailLogIn = useAuthStore(s => s.gmailLogIn);    
+    const onForgotPassword = useAuthStore(s => s.forgotPassword);
 
-    const onForgotPassword = async (email) => {
-        setError(null);
-        try{
-            await forgotPassword(email)
-        }catch(error){
-            setError(error.message)
-        }
-    }
+    const isLogingIn = isLoading || (user && !profile);
 
-    const onBackPress = () => {
-        router.back();
-    }
-
-    const onSignUpPress = () => {
-        router.replace('/(auth)/signup');
-    }
+    useEffect(() => {
+        reset();
+    }, []);
 
     return (
-        <LogInScreen 
-            onLogInPress={onLogIn} 
-            onSignUpPress={onSignUpPress} 
-            error={error} 
-            onForgotPasswordPress={onForgotPassword}
-            onBackPress={onBackPress}/>
+        <View style={{ flex: 1 }}>
+            <LogInScreen 
+                onLogInPress={onLogIn} 
+                onSignUpPress={onSignUpPress} 
+                error={error} 
+                onForgotPasswordPress={onForgotPassword}
+                onBackPress={onBackPress}
+                onRememberMePress={onRememberMePress}
+                remember={remember}
+                onGmailLogIn={onGmailLogIn}
+            />
+
+            <CustomLoading 
+                visible={isLogingIn} 
+                message="Signing in..." 
+            />
+        </View>
     )
 }

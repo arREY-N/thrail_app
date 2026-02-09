@@ -1,8 +1,8 @@
-import { fetchUserRecommendations } from '@/src/core/repositories/recommendationRepository';
+import { fetchCurrentRecommendation } from '@/src/core/repositories/recommendationRepository';
 import { create } from 'zustand';
 
 const init = {
-    recommendations: [],
+    recommendations: null,
     error: null,
     isLoading: true,
 }
@@ -16,11 +16,19 @@ export const useRecommendationsStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try{
-            const recommendations = await fetchUserRecommendations(userId);
-
+            const recoList = await fetchCurrentRecommendation(userId);
+            
+            if(!recoList){
+                set({ 
+                    recommendations: [],
+                    isLoading: false 
+                })
+                return;
+            }
+            
             set({
+                recommendations: recoList,
                 isLoading: false,
-                recommendations
             })
         } catch (err) {
             set({
