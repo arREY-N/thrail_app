@@ -33,7 +33,7 @@ const ExploreScreen = ({
     const cardWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
 
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const categories = ['All', 'Recommended', 'Nearby', 'Trending', 'Challenge'];
+    const categories = ['All', 'Recommended', 'Nearby', 'Discover', 'Challenge'];
 
     const filteredTrails = useMemo(() => {
         return filterTrailsByCategory(trails, selectedCategory);
@@ -104,7 +104,7 @@ const filterTrailsByCategory = (trails, category) => {
                 return address.includes('Rizal') || isRizal;
             });
 
-        case 'Trending':
+        case 'Discover':
             return trails.slice(0, 3); 
         
         case 'Challenge':
