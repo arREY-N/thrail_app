@@ -105,7 +105,7 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                             library="Feather"
                             name="download"
                             size={18}
-                            color={Colors.WHITE}
+                            color={Colors.TEXT_INVERSE}
                         />
                     </TouchableOpacity>
 
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     placeholderImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: Colors.SECONDARY,
+        backgroundColor: Colors.GRAY,
     },
     gradientOverlay: {
         position: 'absolute', 
