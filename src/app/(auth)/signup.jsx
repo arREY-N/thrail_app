@@ -8,6 +8,8 @@ import { useAuthStore } from '@/src/core/stores/authStore';
 import CustomLoading from '@/src/components/CustomLoading';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
+import { Colors } from '@/src/constants/colors';
+
  
 export default function signup(){
     const router = useRouter();
@@ -44,7 +46,7 @@ export default function signup(){
     }
 
     return (  
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
             <SignUpScreen
                 onSignUpPress={onSignUpPress} 
                 onLogInPress={onLogIn} 
