@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, 
         backgroundColor: Colors.PRIMARY, 
         borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT || '#F0F0F0',
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0, 
     },
 
