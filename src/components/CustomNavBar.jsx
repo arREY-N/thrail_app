@@ -11,7 +11,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
 const getTabConfig = (routeName, isFocused) => {
-    const iconColor = isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY;
+    const iconColor = isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY;
     const iconSize = 24;
 
     switch (routeName) {
@@ -128,7 +128,7 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                             style={[
                                 styles.label,
                                 {
-                                    color: isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY,
+                                    color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
                                     fontWeight: isFocused ? '700' : '500',
                                 },
                             ]}
@@ -171,15 +171,16 @@ const styles = StyleSheet.create({
     iconPill: {
         width: 64,
         // height: 32,
-        paddingVertical: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
-        marginBottom: 4,
+        marginBottom: 0,
     },
     iconPillActive: {
-        backgroundColor: Colors.SECONDARY,
+        backgroundColor: Colors.PRIMARY,
     },
 
     label: {
