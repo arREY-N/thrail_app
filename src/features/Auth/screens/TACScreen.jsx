@@ -44,7 +44,7 @@ const TACScreen = ({
                     visible={showDeclineModal}
                     title="Decline Terms?"
                     message="You must accept the Terms & Conditions to create an account. Declining will cancel the sign-up process."
-                    confirmText="Decline"
+                    confirmText="Confirm"
                     cancelText="Cancel"
                     onConfirm={confirmDecline}
                     onClose={() => setShowDeclineModal(false)}
@@ -98,17 +98,18 @@ const TACScreen = ({
 
                     <View style={styles.buttonContainer}>
                         <CustomButton 
+                            title="Decline" 
+                            onPress={handleDeclinePress}
+                            variant="outline"
+                            style={{ flex: 1 }}
+                        />
+
+                        <CustomButton 
                             title="Proceed" 
                             onPress={handleProceed}
                             variant="primary"
                             disabled={!isChecked} 
-                            style={{ opacity: isChecked ? 1 : 0.5, marginBottom: 12 }} 
-                        />
-
-                        <CustomButton 
-                            title="Decline" 
-                            onPress={handleDeclinePress}
-                            variant="outline"
+                            style={{ flex: 1, opacity: isChecked ? 1 : 0.5 }}
                         />
                     </View>
 
@@ -124,15 +125,18 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 32,
+        // padding: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 64,
         width: '100%',
     },
     modalCard: {
         width: '100%',
-        height: '90%', 
+        height: '100%', 
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 32,
         alignItems: 'center',
 
         shadowColor: "#000",
@@ -230,6 +234,10 @@ const styles = StyleSheet.create({
 
     buttonContainer: {
         width: '100%',
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 8,
     },
 });
 
