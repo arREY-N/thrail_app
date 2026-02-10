@@ -127,6 +127,7 @@ const TrailScreen = ({
                         title="Hike" 
                         onPress={() => onHikePress(trail?.id)} 
                         style={styles.footerBtn}
+                        // style={[styles.footerBtn, {backgroundColor: Colors.SECONDARY}]}
                         variant="secondary"
                     />
                 </View>
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
-        paddingBottom: 100,
+        paddingBottom: 0,
     },
 
     imageContainer: {
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     imagePlaceholder: {
         width: '100%',
         height: '100%',
-        backgroundColor: '#E0E0E0',
+        backgroundColor: Colors.GRAY_LIGHT,
     },
     backButton: {
         position: 'absolute',
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.8)',
+        backgroundColor: Colors.WHITE,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -309,8 +310,9 @@ const styles = StyleSheet.create({
         marginTop: -20,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
+        paddingBottom: 96,
         paddingTop: 24,
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
     },
     headerInfo: {
         marginBottom: 20,
@@ -319,6 +321,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        gap: 8,
     },
     title: {
         fontWeight: 'bold',
@@ -350,11 +353,11 @@ const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginBottom: 8,
+        marginBottom: 0,
     },
     tabButton: {
         paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
     },
     activeTabButton: {
         borderBottomWidth: 2,
@@ -451,6 +454,8 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         gap: 16,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
     },
     buttonWrapper: {
         flex: 1,
