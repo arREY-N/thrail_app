@@ -20,7 +20,7 @@ export default function login(){
     const remember = useAuthStore(s => s.remember);
     const reset = useAuthStore(s => s.reset);
 
-    const onLogIn = useAuthStore(s => s.logIn);
+    const onLogInPress = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
     const onGmailLogIn = useAuthStore(s => s.gmailLogIn);    
     const onForgotPassword = useAuthStore(s => s.forgotPassword);
@@ -34,7 +34,7 @@ export default function login(){
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen 
-                onLogInPress={onLogIn} 
+                onLogInPress={onLogInPress} 
                 onSignUpPress={onSignUpPress} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
