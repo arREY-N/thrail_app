@@ -8,6 +8,9 @@ export const getAuthErrorMessage = (error) => {
 
         case 'auth/weak-password':
             return 'Password should be at least 6 characters long'
+        
+        case 'auth/wrong-password':
+            return 'Wrong password. Please try again.'
 
         case 'auth/invalid-credential':
             return 'Please check your credentials'

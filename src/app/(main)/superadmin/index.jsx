@@ -1,22 +1,24 @@
+import { useAuthHook } from '@/src/core/hook/useAuthHook';
 import useSuperadmin from '@/src/core/hook/useSuperadmin';
-import { Pressable, Text, View, StyleSheet } from "react-native";
-import LoadingScreen from '../../loading';
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function superadminDashboard(){
+    const { role } = useAuthHook();
+
     const {
         businessCount,
         trailCount,
         userCount,
         adminCount,
         mountainCount,
-        loaded,
+        // loaded,
         onManageBusinessPress,
         onManageTrailsPress,
         onManageUsersPress,
         onManageMountainPress
-    } = useSuperadmin();
+    } = useSuperadmin({ role });
 
-    if(!loaded) return <LoadingScreen/>
+    // if(!loaded) return <LoadingScreen/>
 
     return(
         <TESTSUPERADMIN

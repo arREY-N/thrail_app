@@ -1,6 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
-import { useOfferView } from '@/src/core/hook/useOfferView';
+import { useOfferDomain } from "@/src/core/hook/useOfferDomain";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
@@ -12,7 +12,7 @@ export default function listOffer(){
         bookingError,
         offerError,
         isLoading,
-    } = useOfferView({ trailId });
+    } = useOfferDomain({ trailId });
 
     if(isLoading) return <LoadingScreen/>;
 

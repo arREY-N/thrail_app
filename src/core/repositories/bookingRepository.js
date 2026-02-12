@@ -1,5 +1,5 @@
-import { BOOKING_STATUS } from '@/src/constants/status';
 import { db } from '@/src/core/config/Firebase';
+import { BookingStatus } from '@/src/types/Enum';
 import { collection, doc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 
 export async function fetchUserBookings(userId){
@@ -51,14 +51,14 @@ export async function cancelBooking({cancelledBy, bookingData}){
 
         const bookingRef = doc(db, 'users', userId, 'bookings', id);
         await setDoc(bookingRef, {
-            status: BOOKING_STATUS.CANCELLED,
+            status: BookingStatus.CANCELLED,
             cancelledBy,
             updatedAt: serverTimestamp()
         }, {merge: true})
         
         return {
             ...bookingData,
-            status: BOOKING_STATUS.CANCELLED,
+            status: BookingStatus.CANCELLED,
             cancelledBy,
             updatedAt: new Date()
         }

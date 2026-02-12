@@ -13,7 +13,7 @@ export default function signup(){
     const error = useAuthStore(s => s.error)
     const validateSignUp = useAuthStore(s => s.validateSignUp);
     const editAccount = useAuthStore(s => s.editAccount);
-    const isLoading = useAuthStore(s => s.isLoading);
+    const isLoading = useAuthStore(s => s.isChecking);
     const reset = useAuthStore(s => s.reset);
 
     const onGmailSignUp = useAuthStore(s => s.gmailSignUp);

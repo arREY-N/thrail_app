@@ -10,6 +10,8 @@ export default function index() {
     const role = useAuthStore(s => s.role);
     const isLoading = useAuthStore(s => s.isLoading);
 
+    console.log('index');
+    
     const onLogIn = () => {
         router.push('/(auth)/login');
     }
@@ -25,9 +27,7 @@ export default function index() {
     const onTerms = () => {
         router.push('/(auth)/terms')
     }
-
-    if(isLoading) return <LoadingScreen/>
-
+    
     if(user){
         if(!profile) return <LoadingScreen/>
         
@@ -35,6 +35,8 @@ export default function index() {
             return <Redirect href={'/(tabs)'}/>
         else return <Redirect href={'/(auth)/preference'}/> 
     } 
+
+    if(isLoading) return <LoadingScreen/>
     
     return (
         <LandingScreen 

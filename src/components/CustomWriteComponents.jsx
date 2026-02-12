@@ -105,7 +105,7 @@ const WriteComponent = ({
                                 {
                                     opts && opts.map(o => {
                                         return(
-                                            <Pressable style={(val === o) ? styles.true : styles.false} onPress={() => onEditProperty({
+                                            <Pressable style={(val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
                                                 type: type,
                                                 key: prop,
                                                 value: o
@@ -131,6 +131,22 @@ const WriteComponent = ({
                                     <Text>{val === null ? 'NO DATA' : (val ? 'TRUE' : 'FALSE')}</Text>
                                 </Pressable>
                             </View>
+                        )
+                    }
+
+                    if(type === 'date'){
+                        return(
+                            <CustomTextInput
+                                label={`${text} ${ required ? '*' : ''}`} 
+                                placeholder="DD/MM/YYYY"
+                                value={val}
+                                onChangeText={(val) => onEditProperty({
+                                    type: type,
+                                    key: prop,
+                                    value: val,
+                                })}
+                                type="date"
+                            />
                         )
                     }
                 })

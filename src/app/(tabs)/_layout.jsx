@@ -1,25 +1,26 @@
-import { Redirect, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
 
 import { useAuthStore } from "@/src/core/stores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
-import LoadingScreen from "../loading";
 
 export default function homeLayout() {
     const user = useAuthStore(s => s.user);
-    const isLoading = useAuthStore(s => s.isLoading);
-    const loadTrails = useTrailsStore(s => s.loadAllTrails);
+    const isLoading = useTrailsStore(s => s.isLoading);
+    const loadTrails = useTrailsStore(s => s.fetchAll);
     const profile = useAuthStore(s => s.profile);
 
     useEffect(() => {
         loadTrails();
     }, []);
 
-    if(isLoading) return <LoadingScreen/>
+    console.log('tabs')
+    
+    // if(isLoading) return <LoadingScreen/>
 
-    if(!user) return <Redirect href={'/(auth)/landing'}/>
+    //if(!user) return <Redirect href={'/(auth)/landing'}/>
     
     return (
         <Tabs

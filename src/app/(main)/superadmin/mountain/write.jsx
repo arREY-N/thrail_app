@@ -1,6 +1,7 @@
 import WriteComponent from "@/src/components/CustomWriteComponents";
-import { MOUNTAIN_CONSTANTS } from '@/src/constants/mountain';
+
 import { useMountainsStore } from "@/src/core/stores/mountainsStore";
+import { MOUNTAIN_INFORMATION } from "@/src/fields/mountainFields";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -17,7 +18,7 @@ export default function WriteMountain(){
     const deleteMountain = useMountainsStore(s => s.deleteMountain);
     const error = useMountainsStore(s => s.error);
 
-    const information = MOUNTAIN_CONSTANTS.MOUNTAIN_INFORMATION;
+    const information = MOUNTAIN_INFORMATION;
 
     useEffect(() => {
         console.log('Check: ', mountainId)

@@ -1,55 +1,37 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
 
 import WriteComponent from '@/src/components/CustomWriteComponents';
-import { APPLICATION_CONSTANTS } from '@/src/constants/application';
 import { Colors } from '@/src/constants/colors';
-import { OPTIONS } from '@/src/constants/constants';
-import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useAuthStore } from '@/src/core/stores/authStore';
-import BusApp from '@/src/features/Profile/screens/BusAppScreen';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import useApply from '@/src/core/hook/useApply';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import LoadingScreen from '../../loading';
 
 export default function applyBusiness(){
-    const router = useRouter();
+    const {
+        application,
+        information,
+        onEditProperty,
+        onApplyPress
+    } = useApply();
 
-    const [system, setSystem] = useState(null);
-    const profile = useAuthStore(s => s.profile);
-
-    const provinces = OPTIONS.provinces;
-
-    const application = useApplicationsStore(s => s.application);
-    const createApplication = useApplicationsStore(s => s.createApplication);
-    const error = useApplicationsStore(s => s.error);
-
-    const onEditProperty = useApplicationsStore(s => s.editProperty);
-
-    const information = APPLICATION_CONSTANTS.APPLICATION_INFO
-    const onApplyPress = async (businessData) => {
-        try{           
-            const appId = await createApplication({
-                ...businessData,
-                userId: profile.id, 
-            });
-            router.replace('/(tabs)');             
-        } catch (err) {
-            setSystem(error ? error.message : err.message );
-        }
-    }
-
-    const onBackPress = () => {
-        router.back();
-    }
+    if(!application) return <LoadingScreen/>
 
     return (
-        <BusApp
+        // <BusApp
+        //     information={information}
+        //     application={application}
+        //     system={system}
+        //     onEditProperty={onEditProperty}
+        //     provinces={provinces}
+        //     onApplyPress={onApplyPress}
+        //     onBackPress={onBackPress}
+        // />
+
+
+        <TESTAPPLY
             information={information}
             application={application}
-            system={system}
             onEditProperty={onEditProperty}
-            provinces={provinces}
             onApplyPress={onApplyPress}
-            onBackPress={onBackPress}
         />
     )
 }
@@ -58,6 +40,7 @@ const TESTAPPLY = ({
     information,
     application,
     onEditProperty,
+    onApplyPress,
 }) => {
     const applicant = information.applicant;
     const business = information.business;
@@ -80,6 +63,10 @@ const TESTAPPLY = ({
                 object={application}
                 onEditProperty={onEditProperty}
             />
+
+            <Pressable onPress={() => onApplyPress()}>
+                <Text>Apply</Text>
+            </Pressable>
 
             <View style={{margin: 100}}/>
         </ScrollView>

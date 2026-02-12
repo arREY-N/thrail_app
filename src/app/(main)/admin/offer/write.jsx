@@ -1,158 +1,70 @@
-import CustomTextInput from "@/src/components/CustomTextInput";
-import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import LoadingScreen from "@/src/app/loading";
+import WriteComponent from "@/src/components/CustomWriteComponents";
+import { useAuthHook } from "@/src/core/hook/useAuthHook";
+import { useOfferWrite } from "@/src/core/hook/useOfferWrite";
+import { useLocalSearchParams } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
-export default function view(){
-    const { trailId, businessId } = useLocalSearchParams();
-    const router = useRouter();
+export default function writeOffer(){
+    const { offerId } = useLocalSearchParams();
+    const { businessId } = useAuthHook();
 
-    const bookingError = useBookingsStore(s => s.error);
-    const offerError = useOffersStore(s => s.error);
-    const loadTrailOffers = useOffersStore(s => s.loadTrailOffers);
-    const loadBusinessOffers = useOffersStore(s => s.loadBusinessOffers);
-    const isLoading = useOffersStore(s => s.isLoading)
-    const checkBookings = useBookingsStore(s => s.checkBookings);
-    const offers = useOffersStore(s => s.offers);
-    const reset = useOffersStore(s => s.reset);
-
-    const [date, setDate] = useState('');
-    const [filteredOffers, setFilteredOffers] = useState(offers);
+    const {
+        information,
+        offer,
+        options,
+        error,
+        isLoading,
+        onRemovePress,
+        onEditProperty,
+        onSubmitPress,
+    } = useOfferWrite({ offerId, businessId })
     
-    useEffect(() => {        
-        reset();
-        if(businessId) loadBusinessOffers(businessId);
-        if(trailId) loadTrailOffers(trailId);
-    }, [trailId, businessId]);
+    if(isLoading || !offer) return <LoadingScreen/>
 
-    useEffect(() => {
-        setFilteredOffers(offers);
-    }, [offers])
-
+    return(
+        <TESTWRITEOFFER
+            informationSet={information}
+            object={offer}
+            optionSet={options}
+            system={error}
+            isLoading={isLoading}
+            onSubmit={onSubmitPress}
+            onDelete={onRemovePress}
+            onEditProperty={onEditProperty}
+        />
+    )
+}
     
-    const filterOffers = () => {
-        if(date) {
-            setFilteredOffers(() => 
-                offers.filter(o => o.date === date)
-            )
-        } else {
-            setFilteredOffers(offers);
-        }
-    }
-
-    const onBookNowPress = (id) => {
-        console.log('WILL BOOK: ', id);
-        if(!checkBookings(id)) return;
-        router.push({
-            pathname: '/(book)/book',
-            params: { offerId: id }
-        });
-    }
-
-    const onUpdateOffer = (id) => {
-        router.push({
-            pathname: '/offer/write',
-            params: { offerId: id }
-        })    
-    }
-    
-    const onCreateNew = () => {
-        router.push('/offer/write')
-    }
-    
+const TESTWRITEOFFER = ({    
+        informationSet,
+        object,
+        optionSet,
+        system,
+        isLoading,
+        onSubmit,
+        onDelete,
+        onEditProperty,
+}) => {
     return (
         <ScrollView>
-            <CustomTextInput
-                placeholder="Date"
-                value={date}
-                onChangeText={(date) => setDate(date)}
+            <WriteComponent
+                informationSet={informationSet}
+                object={object}
+                optionSet={optionSet}
+                onEditProperty={onEditProperty}
             />
-            <Pressable onPress={filterOffers}>
-                <Text>SEARCH</Text>
+
+            { system && <Text>{system}</Text>}
+            { isLoading && <Text>Loading</Text>}
+            <Pressable onPress={onSubmit}>
+                <Text>SAVE</Text>
+            </Pressable>
+            <Pressable onPress={() => onDelete(object.id)}>
+                <Text>DELETE</Text>
             </Pressable>
 
-            { businessId && 
-                <Pressable onPress={onCreateNew}>
-                    <Text>ADD NEW</Text>
-                </Pressable>
-            }
-
-            { isLoading 
-                ? <Text>LOADING OFFERS</Text>  
-                : <View>
-                    { offers.length > 0
-                        ? <View>
-                            {trailId && 
-                                <TESTUSERBOOK 
-                                    offers={filteredOffers}
-                                    onBookNowPress={onBookNowPress}
-                                    system={bookingError || offerError}
-                                />
-                            }
-                
-                            { businessId && 
-                                <ADMINBOOK
-                                    offers={filteredOffers}
-                                    onUpdateOffer={onUpdateOffer}
-                                    onCreateNew={onCreateNew}
-                                />
-                            }
-                        </View>
-                        : <Text style={styles.loading}>No Offers</Text>
-                    }
-                </View> 
-            }
+            <View style={{margin: 50}}/>
         </ScrollView>
     )
 }
-
-
-
-const ADMINBOOK = ({
-    offers,
-    onUpdateOffer,
-    
-}) => {
-    return (
-        <View>
-            
-            { offers.map((o) => {
-                const general = o.general;
-                const trail = o.trail;
-                const hike = o.hike;
-                return (
-                    <View style={styles.offerForm} key={o.id}>
-                        <Text>Trail: {o.trail?.name}</Text>
-                        <Text>Price: P{o.price}.00 </Text>
-                        <Text>Date: {o.date}</Text>
-                        <Text>Duration: {o.duration}</Text>
-                        <Text>Documents: {o.documents?.join(', ')}</Text>
-                        <Text>Inclusions: {o.inclusions.length > 0 ? o.inclusions?.join(', ') : 'None'}</Text>
-                        <Text>Description: {o.description}</Text>
-                        
-                        <Pressable onPress={() => onUpdateOffer(o.id)}>
-                            <Text>Edit Offer</Text>
-                        </Pressable>
-                    </View>
-                )})
-            }
-            <View style={{margin: 50}}/>
-        </View>
-    )
-}
-
-const styles = StyleSheet.create({
-    offerForm: {
-        borderWidth: 1,
-        margin: 10,
-        padding: 5
-    },
-    loading: {
-        textAlign: 'center',
-        margin: 10,
-        padding: 10,
-    }
-})

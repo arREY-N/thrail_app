@@ -1,4 +1,4 @@
-import useTrailHook from "@/src/core/hook/useTrailHook";
+import useTrailDomain from "@/src/core/hook/useTrailDomain";
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 import React from 'react';
 
@@ -6,7 +6,7 @@ export default function explore(){
     const { 
         onViewTrail, 
         trails 
-    } = useTrailHook({ mode: 'list'}) 
+    } = useTrailDomain() 
     
     return (
         <ExploreScreen

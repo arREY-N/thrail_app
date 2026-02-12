@@ -1,3 +1,4 @@
+import LoadingScreen from "@/src/app/loading";
 import TESTWRITETRAIL from "@/src/components/TESTCOMPONENTS/TestWriteTrail";
 import useTrailHook from "@/src/core/hook/useTrailHook";
 import { useLocalSearchParams } from "expo-router";
@@ -15,6 +16,8 @@ export default function write(){
         onEditProperty
     } = useTrailHook({ trailId, mode: 'write' })
     
+    if(!trail) return <LoadingScreen/>
+
     return (
         <TESTWRITETRAIL
             informationSet={information}
