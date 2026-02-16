@@ -1,21 +1,20 @@
-import { useAccount } from "@/src/core/context/AccountProvider";
-import { onSignUp } from "@/src/core/domain/authDomain";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React from 'react';
+import { View } from 'react-native';
 
-import TermsScreen from "../../../src/features/Auth/screens/TermsScreen";
+import { useAuthStore } from "@/src/core/stores/authStore";
+
+import CustomLoading from "@/src/components/CustomLoading";
+import TACScreen from "@/src/features/Auth/screens/TACScreen";
 
 export default function tac(){
     const router = useRouter();
-    const [error, setError] = useState();
-    const { account } = useAccount(); 
-    
+    const error = useAuthStore(s => s.error);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const signUp = useAuthStore(s => s.signUp);
+
     const onAcceptPress = async () => {
-        try {
-            await onSignUp(account);
-        } catch (err) {
-            setError(err.message);
-        }
+        await signUp();
     }
 
     const onDeclinePress = async () => {
@@ -28,11 +27,17 @@ export default function tac(){
     }
 
     return(
-        <TermsScreen 
-            onAcceptPress={onAcceptPress}
-            onDeclinePress={onDeclinePress}
-            onBackPress={onBackPress}
-            error={error}
-        />
+        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+            <CustomLoading 
+                visible={isLoading} 
+                message="Creating account..." 
+            />
+
+            <TACScreen 
+                onAcceptPress={onAcceptPress}
+                onDeclinePress={onDeclinePress}
+                error={error}
+            />
+        </View>
     )
 }

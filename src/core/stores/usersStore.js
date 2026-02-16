@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 const init = {
     users: [],
-    isLoading: false,
+    isLoading: true,
     error: null,
 }
 
@@ -12,7 +12,7 @@ export const useUsersStore = create((set, get) => ({
 
     reset: () => set(init),
 
-    loadUsers: async () => {
+    loadAllUsers: async () => {
         if(get().users.length > 0) return;
 
         set({isLoading: true, error: null});
@@ -78,8 +78,10 @@ export const useUsersStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const success = await deleteUser(id);
+            if(!id) throw new Error('Invalid user ID');
 
+            const success = await deleteUser(id);
+ 
             if(!success){
                 set({
                     error: 'Failed deleting user',

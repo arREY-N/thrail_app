@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 const BusinessContext = createContext(null);
 
@@ -13,17 +13,16 @@ export function useBusiness(){
 }
 
 export function BusinessProvider({children}){
-    const role = useAuthStore((state) => state.role);
-    const businessId = useAuthStore((state) => state.businessId);
-    const loadBusinessAccount = useBusinessesStore((state) => state.loadBusinessAccount);
-    const loadBusinessAdmins = useBusinessesStore((state) => state.loadBusinessAdmins);
-    const businessAccount = useBusinessesStore((state) => state.businessAccount);
+    const role = useAuthStore(s => s.role);
+    const businessId = useAuthStore(s => s.businessId);
+    const loadBusinessAccount = useBusinessesStore(s => s.loadBusinessAccount);
+    const loadBusinessAdmins = useBusinessesStore(s => s.loadBusinessAdmins);
+    const businessAccount = useBusinessesStore(s => s.businessAccount);
 
     useEffect(()=>{
         if(role === 'admin'  && !businessAccount) {
             loadBusinessAccount(businessId);
         }
-        console.log('ACCNT: ', businessAccount)
     }, [businessId, businessAccount, role])
     
     useEffect(()=>{        
@@ -32,11 +31,10 @@ export function BusinessProvider({children}){
         }
     }, [businessAccount])
     
-    const value = useMemo(() => {
-        return {
-
-        }
-    }, [])
+    const value = {
+        role,
+        businessId   
+    }
 
     return <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>
 }

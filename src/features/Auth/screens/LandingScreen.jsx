@@ -1,15 +1,20 @@
 import { StyleSheet, View } from "react-native";
 
-import CustomButton from "../../../components/CustomButton";
-import CustomText from "../../../components/CustomText";
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from "../../../components/ScreenWrapper";
-import DecorativeCircle from "../components/DecorativeCircle";
-import MountainGraphic from "../components/MountainGraphic";
+import CustomButton from "@/src/components/CustomButton";
+import CustomText from "@/src/components/CustomText";
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import DecorativeCircle from "@/src/features/Auth/components/DecorativeCircle";
+import MountainGraphic from '@/src/features/Auth/components/MountainGraphic';
 
-import { Colors } from '../../../constants/colors';
+import { Colors } from '@/src/constants/colors';
 
-const LandingScreen = ({ onLogInPress, onSignUpPress, onTermsPress, onPrivacyPress  }) => {
+const LandingScreen = ({ 
+    onLogInPress, 
+    onSignUpPress, 
+    onTermsPress, 
+    onPrivacyPress  
+}) => {
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -31,15 +36,16 @@ const LandingScreen = ({ onLogInPress, onSignUpPress, onTermsPress, onPrivacyPre
 
                 <View style={[styles.cardSection, { minHeight: 450 }]}>
                     <View style={styles.contentConstrainer}>
-                        <CustomText variant="h2" color={Colors.WHITE} style={styles.centerText}>
+                        <CustomText variant="subtitle" style={styles.centerText}>
                                 Welcome To Thrail
-                            </CustomText>
+                        </CustomText>
                         
                         <View style={styles.titleContainer}>
-                            <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
+                            <CustomText variant="title" style={styles.centerText}>
                                 Your Next Trail
                             </CustomText>
-                            <CustomText variant="h1" color={Colors.WHITE} style={styles.centerText}>
+
+                            <CustomText variant="title" style={styles.centerText}>
                                 Begins Here
                             </CustomText>
                         </View>
@@ -68,7 +74,6 @@ const LandingScreen = ({ onLogInPress, onSignUpPress, onTermsPress, onPrivacyPre
                             </CustomText>
                             .
                         </CustomText>
-                        
                     </View>
                 </View>
             </ResponsiveScrollView>
@@ -118,13 +123,19 @@ const styles = StyleSheet.create({
 
     cardSection: {
         flex: 1,
-        backgroundColor: Colors.Gray, 
+        backgroundColor: Colors.GRAY, 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         paddingHorizontal: 16,
         padding: 32,
         alignItems: 'center',
         justifyContent: 'center',
+
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 10,
     },  
     
     contentConstrainer: {
@@ -143,15 +154,16 @@ const styles = StyleSheet.create({
 
     centerText: {
         textAlign: 'center',
+        color: Colors.TEXT_INVERSE,
     },
     footerText: {
-        color: Colors.GRAY_LIGHT, 
+        color: Colors.TEXT_INVERSE, 
         textAlign: 'center',
         marginTop: 32,
         marginBottom: 32,
     },
     linkText: {
-        color: Colors.WHITE,
+        color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
     },
 });

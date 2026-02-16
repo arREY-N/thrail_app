@@ -1,9 +1,14 @@
 import React from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import {
+  Modal,
+  StyleSheet,
+  View
+} from 'react-native';
 
-import { Colors } from '../../src/constants/colors';
-import CustomButton from '../components/CustomButton';
-import CustomText from '../components/CustomText';
+import { Colors } from '@/src/constants/colors';
+
+import CustomButton from '@/src/components/CustomButton';
+import CustomText from '@/src/components/CustomText';
 
 const ConfirmationModal = ({ 
   visible, 
@@ -25,11 +30,11 @@ const ConfirmationModal = ({
       <View style={styles.overlay}>
         <View style={styles.container}>
           
-          <CustomText style={styles.title}>
+          <CustomText variant="subtitle" style={styles.title}>
             {title}
           </CustomText>
 
-          <CustomText style={styles.message}>
+          <CustomText variant="caption" style={styles.message}>
             {message}
           </CustomText>
 
@@ -58,18 +63,19 @@ const ConfirmationModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(17, 24, 39, 0.5)', 
+    backgroundColor: Colors.MODAL_OVERLAY, 
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   container: {
     backgroundColor: Colors.WHITE,
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
     width: '100%',
-    maxWidth: 340, 
-    shadowColor: "#000",
+    maxWidth: 380, 
+    shadowColor: Colors.SHADOW,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -78,21 +84,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.BLACK,
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
-    fontSize: 14,
-    color: Colors.Gray,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
     lineHeight: 22,
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    paddingHorizontal: 16,
+    gap: 16
   },
   modalButton: {
     flex: 1, 

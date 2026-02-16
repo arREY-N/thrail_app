@@ -1,9 +1,14 @@
-import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-import CustomText from '../../../components/CustomText';
-import { Colors } from '../../../constants/colors';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+
+import { Colors } from '@/src/constants/colors';
 
 const SelectionOption = ({ label, selected, onPress }) => {
 
@@ -16,14 +21,21 @@ const SelectionOption = ({ label, selected, onPress }) => {
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <CustomText style={styles.label}>{label}</CustomText>
+            <CustomText variant="body" style={styles.label}>
+                {label}
+            </CustomText>
             
             <View style={[
                 styles.iconContainer, 
                 selected && styles.selectedIcon
             ]}>
                 {selected && (
-                    <Feather name="check" size={14} color={Colors.WHITE} />
+                    <CustomIcon
+                        library="Feather"
+                        name="check"
+                        size={18}
+                        color={Colors.WHITE}
+                    />
                 )}
             </View>
         </TouchableOpacity>
@@ -36,10 +48,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: Colors.WHITE, 
-        paddingVertical: 14,
+        paddingVertical: 16,
         paddingHorizontal: 16,
         borderRadius: 12,
-        marginBottom: 12,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT, 
     },
@@ -49,8 +61,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     label: {
-        fontSize: 16,
-        color: Colors.BLACK,
         fontWeight: '500',
         flex: 1,
         marginRight: 10,

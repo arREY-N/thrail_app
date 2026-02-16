@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import TermsReadOnlyScreen from "../../features/Auth/screens/TermsReadOnlyScreen";
+import TermsScreen from "../../features/Auth/screens/TermsScreen";
 
 export default function Terms() {
     const router = useRouter();
@@ -10,7 +10,7 @@ export default function Terms() {
     }
 
     return (
-        <TermsReadOnlyScreen 
+        <TermsScreen 
             onBackPress={onBackPress}
         />
     );

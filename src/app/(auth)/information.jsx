@@ -1,31 +1,35 @@
-import { useAccount } from "@/src/core/context/AccountProvider";
-import { validateInfo } from "@/src/core/domain/authDomain";
-import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useAuthStore } from "@/src/core/stores/authStore";
 
+import { useRouter } from "expo-router";
+
+import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
 
 export default function information(){
-    const [error, setError] = useState(null);
+    const error = useAuthStore(s => s.error);
     const router = useRouter();
-    const { account, updateAccount } = useAccount();
+    const validateInfo = useAuthStore(s => s.validateInfo);
+    const editAccount = useAuthStore(s => s.editAccount);
 
     const onContinuePress = (phoneNumber, firstname, lastname, birthday, address) => {
-        setError(null);
-        try {
-            validateInfo(phoneNumber, firstname, lastname, birthday, address);
-            
-            updateAccount({
-                phoneNumber,
-                firstname,
-                lastname,
-                birthday,
-                address
-            });
+        let clean = phoneNumber ? phoneNumber.replace(/[^0-9]/g, '') : '';
 
+        if (clean.startsWith('63')) {
+            clean = '0' + clean.substring(2);
+        }
+
+        console.log("Original Input:", phoneNumber);
+        console.log("Sent to Backend:", clean);
+        
+        editAccount({
+            phoneNumber: clean,
+            firstname, 
+            lastname, 
+            birthday,
+            address
+        });
+
+        if(validateInfo()) {
             router.push('/(auth)/tac');
-        } catch (err) {
-            setError(err.message);
         }
     }
 
@@ -34,7 +38,6 @@ export default function information(){
     }
 
     return(
-        // account={account} add account props to handle auto fill
         <InformationScreen
             onContinuePress={onContinuePress}
             onBackPress={onBackPress}

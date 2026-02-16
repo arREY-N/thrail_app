@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
-import CustomButton from '../../../components/CustomButton';
-import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
-import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { Colors } from '../../../constants/colors';
-import { AuthStyles } from '../styles/AuthStyles';
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
-const InformationScreen = ({ onContinuePress, onBackPress, error }) => {
+const InformationScreen = ({ 
+    onContinuePress, 
+    onBackPress, 
+    error 
+}) => {
 
     const [number, setNumber] = useState('');
     const [firstname, setFirstname] = useState('');
@@ -28,48 +32,50 @@ const InformationScreen = ({ onContinuePress, onBackPress, error }) => {
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Personal Details
                         </CustomText>
 
                         <ErrorMessage error={error} />
 
                         <CustomTextInput
-                            label="Phone Number"
-                            placeholder="0912 345 6789"
+                            label="Phone Number *"
+                            placeholder="+63 (9XX) XXX XXXX"
                             value={number}
                             onChangeText={setNumber}
                             keyboardType="phone-pad"
+                            type="phone"
                         />
 
                         <CustomTextInput
-                            label="First Name"
+                            label="First Name *"
                             placeholder="e.g. Juan"
                             value={firstname}
                             onChangeText={setFirstname}
                         />
 
                         <CustomTextInput
-                            label="Last Name"
+                            label="Last Name *"
                             placeholder="e.g. Dela Cruz"
                             value={lastname}
                             onChangeText={setLastname}
                         />
 
                         <CustomTextInput
-                            label="Birthday"
-                            placeholder="MM/DD/YYYY"
+                            label="Birthday *"
+                            placeholder="DD/MM/YYYY"
                             value={birthday}
                             onChangeText={setBirthday}
+                            type="date"
                         />
 
                         <CustomTextInput
-                            label="Address"
+                            label="Address *"
                             placeholder="City, Province"
                             value={address}
                             onChangeText={setAddress}

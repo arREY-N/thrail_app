@@ -1,10 +1,11 @@
-import { Text, View } from "react-native";
+import CustomLoading from "@/src/components/CustomLoading";
 
 const LoadingScreen = () => {
     return(
-        <View>
-            <Text>THRAIL LOADING</Text>
-        </View>
+        <CustomLoading
+            visible={true}
+            message="Loading..."
+        />
     )
 }
 

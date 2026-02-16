@@ -1,38 +1,47 @@
-import { useRootNavigationState, useRouter } from "expo-router";
-import { useEffect } from "react";
+import LandingScreen from "@/src/features/Auth/screens/LandingScreen";
+import { Redirect, useRouter } from "expo-router";
 import { useAuthStore } from "../core/stores/authStore";
 import LoadingScreen from "./loading";
 
 export default function index() {
-    const router = useRouter();
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const role = useAuthStore((s) => s.role);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
-    const isLoading = useAuthStore((state) => state.isLoading);
-    const user = useAuthStore((state) => state.user);
-    const profile = useAuthStore((state) => state.profile);
-    const role = useAuthStore((state) => state.role);
-    const rootNavigationState = useRootNavigationState();
+  const onLogIn = () => {
+    router.push("/(auth)/login");
+  };
 
-    useEffect(() => {
-        if(!rootNavigationState?.key) return;
+  const onSignUp = () => {
+    router.push("/(auth)/signup");
+  };
 
-        if(isLoading) return;
-        
-        if(!user) {
-            router.replace('/(auth)/landing');
-        } else if(role === 'superadmin') {
-            router.replace('/(superadmin)/home');
-        } else if(role === 'admin') {
-            router.replace('/(admin)/home');
-        } else if(role === 'user'){
-            if(profile) {
-                if(!profile.onBoardingComplete){
-                    router.replace('/(auth)/preference');
-                } else {
-                    router.replace('/(tabs)/home');
-                }
-            }
-        }
-    }, [user, role, isLoading, profile, rootNavigationState?.key])
+  const onPrivacy = () => {
+    router.push("/(auth)/privacy");
+  };
 
-    return <LoadingScreen/>;
+  const onTerms = () => {
+    router.push("/(auth)/terms");
+  };
+
+  if (isLoading) return <LoadingScreen />;
+
+  if (user) {
+    if (!profile) return <LoadingScreen />;
+
+    if (profile && profile.onBoardingComplete)
+      return <Redirect href={"/(tabs)"} />;
+    else return <Redirect href={"/(auth)/preference"} />;
+  }
+
+  return (
+    <LandingScreen
+      onLogInPress={onLogIn}
+      onSignUpPress={onSignUp}
+      onPrivacyPress={onPrivacy}
+      onTermsPress={onTerms}
+    />
+  );
 }

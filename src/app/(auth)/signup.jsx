@@ -1,51 +1,62 @@
-import { useAccount } from '@/src/core/context/AccountProvider';
-import { validateSignUp } from '@/src/core/domain/authDomain';
-import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
+import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+
+import { useAuthStore } from '@/src/core/stores/authStore';
+
+import CustomLoading from '@/src/components/CustomLoading';
+import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
+
  
 export default function signup(){
     const router = useRouter();
-    const [error, setError] = useState(null);
-    const { account, updateAccount } = useAccount();
-    
-    const onSignUpPress = (email, password, username, confirmPassword) => {
-        setError(null);
-        try{ 
-            validateSignUp(email, password, username, confirmPassword);
+    const error = useAuthStore(s => s.error)
+    const validateSignUp = useAuthStore(s => s.validateSignUp);
+    const editAccount = useAuthStore(s => s.editAccount);
+    const isLoading = useAuthStore(s => s.isLoading);
+    const reset = useAuthStore(s => s.reset);
 
-            updateAccount({
-                email, 
-                password, 
-                username, 
-                confirmPassword,
-            });
+    const onGmailSignUp = useAuthStore(s => s.gmailSignUp);
+    const { onBackPress, onLogIn } = useAppNavigation();
 
+    useEffect(() => {
+        console.log("Loading State Changed:", isLoading);
+    }, [isLoading]);
+
+    useEffect(() => {
+        reset();
+    },[]);
+
+    const onSignUpPress = async (email, password, username, confirmPassword) => {
+        editAccount({
+            email, 
+            password, 
+            username, 
+            confirmPassword
+        });   
+        
+        const validated = await validateSignUp();
+
+        if(validated) {
             router.push('/(auth)/information');
-        } catch (err) {
-            setError(err.message);
         }
     }
 
-    const onLogIn = () => {
-        router.replace('/(auth)/login');
-    }
+    return (  
+        <View style={{ flex: 1 }}>
+            <SignUpScreen
+                onSignUpPress={onSignUpPress} 
+                onLogInPress={onLogIn} 
+                onBackPress={onBackPress}
+                onGmailSignUp={onGmailSignUp}
+                error={error}
+            />
 
-    const onBackPress = () => {
-        router.back();
-    }
-
-    const onGmailSignUp = async () => {
-        setError('Function to be added soon.');
-    }
-    
-    return (
-        // account={account} add account props to handle auto fill  
-        <SignUpScreen
-            onSignUpPress={onSignUpPress} 
-            onLogInPress={onLogIn} 
-            onBackPress={onBackPress}
-            onGmailSignUp={onGmailSignUp}
-            error={error}/>
+            <CustomLoading 
+                visible={isLoading} 
+                message="Validating..." 
+            />
+        </View>
     )
 }

@@ -1,7 +1,21 @@
 import { auth, db } from '@/src/core/config/Firebase';
-import { onIdTokenChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { checkUserCredentials, logIn, signUp } from '@/src/core/repositories/authRepository';
+import { onIdTokenChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { create } from "zustand";
+import { validateInfo, validateSignUp } from '../domain/authDomain';
+
+const accountTemplate = {
+    email: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    phoneNumber: '',
+    firstname: '',
+    lastname: '',
+    birthday: '',
+    address: '',
+}
 
 const init = {
     user: null,
@@ -11,21 +25,28 @@ const init = {
     error: null,
     _unsubscribe: null,
     businessId: null,
+    account: accountTemplate,
+    remember: true,
 }
 
 export const useAuthStore = create((set, get) => ({
     ...init,
+    
+    resetSignUp: () => set({account: accountTemplate}),
 
-    reset: () => set(init),
+    reset: () => set({
+        ...init,
+        isLoading: false
+    }),
 
     initialize: () => {
-        set({isLoading: true, error: null});
-        
         const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
+            set({ isLoading: true, error: null});
             const currentUnsub = get()._unsubscribe;
+
             if(currentUnsub) {
                 currentUnsub();
-                set({_unsubscribe: null});
+                set({ _unsubscribe: null });
             }
 
             if(firebaseUser) {
@@ -40,28 +61,39 @@ export const useAuthStore = create((set, get) => ({
                     setTimeout(() => firebaseUser.getIdToken(true), 2000);
                     return;
                 }
+                
+                const businessId = idTokenResult.claims.businessId || idTokenResult.claims.owner || null;
 
-                set({ user: firebaseUser, role: userRole});
+                set({ user: firebaseUser, role: userRole, businessId});
                 
                 const ref = doc(db, 'users', firebaseUser.uid);
-                const unsubProfile = onSnapshot(ref, (snap) =>{
-                    if(snap.exists()){
-                        set({
-                            profile: { id: firebaseUser.uid, ...snap.data() },
-                            isLoading: false
-                        });
+                const unsubProfile = onSnapshot(ref, 
+                    (snap) => {
+                        if(snap.exists()){
+                            set({
+                                profile: { id: firebaseUser.uid, ...snap.data() },
+                                isLoading: false
+                            });
+                        }
+                    },
+                    (error) => {
+                        if(!get().user) return;
+                        console.log('Firestore listener error: ', error);
                     }
-                })
+                )
 
                 set({_unsubscribe: unsubProfile});
             } else {
+                const currentUnsub = get()._unsubscribe;
+
+                if(currentUnsub){
+                    currentUnsub();
+                    set({_unsubscribe: null})
+                }
+                
                 set({
-                    user: null,
-                    profile: null,
-                    role: null,
-                    isLoading: false,
-                    businessId: null,
-                    _unsubscribe: null
+                    ...init,
+                    isLoading: false
                 });
             }
         });
@@ -72,17 +104,13 @@ export const useAuthStore = create((set, get) => ({
     logIn: async (email, password) => {
         set({isLoading: true, error: null});
         try{
-            const userCredential = await signInWithEmailAndPassword(
-                auth,
-                email,
-                password
-            );
+            const userCredential = await logIn({email, password});
 
             const token = await userCredential.user.getIdTokenResult(true);
             const role = token.claims.role || 'user';
     
             const businessId = token.claims.businessId || token.claims.owner || null;
-                
+
             set({
                 user: userCredential.user,
                 role: role,
@@ -102,27 +130,107 @@ export const useAuthStore = create((set, get) => ({
         set({isLoading: true, error: null});
 
         try{
-            console.log('Signing out');
+            const currentUnsub = get()._unsubscribe;
             
-            const unsubProfile = get()._unsubscribe;
-            if(unsubProfile) await unsubProfile();
+            if(currentUnsub){
+                currentUnsub();
+                set({_unsubscribe: null})
+            }
+
+            await signOut(auth);
 
             set({
-                user: null,
-                profile: null,
-                role: null,
+                ...init,
                 isLoading: false,
-                businessId: null,
-                _unsubscribe: null
             })
-            
-            await signOut(auth);
-            console.log('Sign out');
         } catch (err) {
             set({
                 error: err.message ?? 'Failed signing out',
                 isLoading: false
             })
         }
+    },
+
+    signUp: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const user = await signUp(get().account);
+            
+            set({ isLoading: false })
+        } catch (err) {
+            set({
+                error: err.message || 'Failed signing up',
+                isLoading: false,
+            })
+        }
+    },
+
+    validateSignUp: async () => {
+        set({ isLoading: true, error: null });  
+        try {
+            validateSignUp(get().account);
+
+            await checkUserCredentials(get().account)
+
+            set({ isLoading: false });
+
+            return true;
+        } catch (err) {
+            set({
+                error: err.message || 'Failed checking user credentials',
+                isLoading: false
+            })
+        }
+    },
+
+    validateInfo: () => {
+        set({ isLoading: true, error: null });
+        try {
+            validateInfo(get().account);
+            set({ isLoading: false });
+            return true;
+        } catch (err) {
+            set({
+                error: err.message || 'Failed checking user information',
+                isLoading: false
+            })
+        }
+    },
+
+    editAccount: (userData) => {
+        set((state) => {
+            return {
+                account: {...state.account, ...userData}
+            }
+        })
+    },
+
+    rememberMe: () => {
+        set((state) => {
+            return {
+                error: 'Function to be added soon',
+                remember: !state.remember
+            }
+        })
+
+        return get().remember;
+    },
+
+    gmailSignUp: () => {
+        set({
+            error: 'Function to be added soon',
+        })
+    },
+    
+    gmailLogIn: () => {
+        set({
+            error: 'Function to be added soon',
+        })
+    },
+    
+    forgotPassword: () => {
+        set({
+            error: 'Function to be added soon',
+        })
     }
 }))

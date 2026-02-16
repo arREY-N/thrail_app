@@ -1,30 +1,31 @@
-import { AntDesign, Feather } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
-import CustomButton from '../../../components/CustomButton';
-import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
-import ErrorMessage from '../../../components/ErrorMessage';
-import Header from '../../../components/Header';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { Colors } from '../../../constants/colors';
-import { AuthStyles } from '../styles/AuthStyles';
+import CustomIcon from '@/src/components/CustomIcon';
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
 const LogInScreen = ({ 
     onLogInPress, 
     onSignUpPress, 
     onBackPress, 
     onForgotPasswordPress, 
-    onGooglePress, 
-    error 
+    onRememberMePress,
+    onGmailLogIn, 
+    error,
+    remember,
 }) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -34,12 +35,12 @@ const LogInScreen = ({
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <Header onBackPress={onBackPress} />
+                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>
 
-                        <CustomText variant="h1" style={AuthStyles.pageTitle}>
+                        <CustomText variant="title" style={AuthStyles.pageTitle}>
                             Log In
                         </CustomText>
 
@@ -62,22 +63,24 @@ const LogInScreen = ({
                             secureTextEntry
                         />
 
-                        <View style={AuthStyles.optionsRow}>
-                            <TouchableOpacity 
+                        <View style={[AuthStyles.optionsRow, {justifyContent: 'flex-end'}]}>
+                            {/* <TouchableOpacity 
                                 style={AuthStyles.rememberMeContainer} 
-                                onPress={() => setRememberMe(!rememberMe)}
+                                onPress={() => onRememberMePress()}
                                 activeOpacity={0.7}
                             >
                                 <Feather 
-                                    name={rememberMe ? "check-square" : "square"} 
+                                    name={remember ? "check-square" : "square"} 
                                     size={20} 
-                                    color={rememberMe ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                                    color={remember ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
                                 />
                                 <CustomText style={AuthStyles.rememberText}>Remember Me</CustomText>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             <TouchableOpacity onPress={onForgotPasswordPress}>
-                                <CustomText style={AuthStyles.forgotText}>Forgot Password?</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.forgotText}>
+                                    Forgot Password?
+                                </CustomText>
                             </TouchableOpacity>
                         </View>
 
@@ -91,28 +94,40 @@ const LogInScreen = ({
 
                         <View style={AuthStyles.dividerContainer}>
                             <View style={AuthStyles.line} />
-                            <CustomText style={AuthStyles.dividerText}>or continue with</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.dividerText}>
+                                    or continue with
+                                </CustomText>
                             <View style={AuthStyles.line} />
                         </View>
 
                         <TouchableOpacity 
                             style={AuthStyles.googleButton} 
-                            onPress={onGooglePress}
+                            onPress={onGmailLogIn}
                             activeOpacity={0.8}
                         >
-                            <AntDesign name="google" size={20} color={Colors.BLACK} />
-                            <CustomText style={AuthStyles.googleButtonText}>Log in with Google</CustomText>
+                            <CustomIcon
+                                library='AntDesign'
+                                name='google'
+                                size={20}
+                                color={Colors.BLACK}
+                            />
+                            
+                            <CustomText variant="body" style={AuthStyles.googleButtonText}>
+                                Log in with Google
+                            </CustomText>
                         </TouchableOpacity>
 
                         <View style={AuthStyles.footerContainer}>
-                            <CustomText style={AuthStyles.footerText}>
+                            <CustomText variant="caption" style={AuthStyles.footerText}>
                                 Don't have an account?{' '}
                             </CustomText>
+
                             <TouchableOpacity onPress={onSignUpPress}>
-                                <CustomText style={AuthStyles.signUpLink}>Sign Up</CustomText>
+                                <CustomText variant="caption" style={AuthStyles.signUpLink}>
+                                    Sign Up
+                                </CustomText>
                             </TouchableOpacity>
                         </View>
-
                     </View>
                 </View>
             </ResponsiveScrollView>
