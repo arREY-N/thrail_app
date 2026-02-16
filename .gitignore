@@ -48,3 +48,4 @@ setSuperAdmin.js
 
 firebase-export-*/
 firebase-debug.log
+firestore-debug.log
