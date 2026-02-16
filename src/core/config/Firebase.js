@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_APIKEY,
@@ -21,9 +22,23 @@ export { app };
 
 const functions = getFunctions();
 
-if(typeof window !== 'undefined' && window.location.hostname === 'localhost'){
-    console.log('Connecting to Firebase emulators');
-    connectFirestoreEmulator(db, "127.0.0.1", 8080);
-    connectAuthEmulator(auth, "http://127.0.0.1:9099");
-    connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+if (__DEV__) {
+    let emulatorHost;
+
+    if (Platform.OS === 'android') {
+        // Android emulators need this special IP to see your computer
+        emulatorHost = '10.0.2.2';
+    } else if (Platform.OS === 'ios') {
+        // iOS simulators can use localhost
+        emulatorHost = 'localhost';
+    } else {
+        // Web browsers use localhost
+        emulatorHost = 'localhost';
+    }
+
+    console.log(`🚀 Auto-detected environment. Connecting to Firebase at: ${emulatorHost}`);
+
+    connectFirestoreEmulator(db, emulatorHost, 8080);
+    connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
+    connectFunctionsEmulator(functions, emulatorHost, 5001);
 }
