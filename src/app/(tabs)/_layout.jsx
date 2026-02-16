@@ -34,14 +34,6 @@ export default function UserLayout() {
         }}>
             <Tabs.Screen name="home"/>
             <Tabs.Screen name="community"/>
-            <Tabs.Screen 
-                name="map" 
-                options={{
-                    title: 'Map',
-                    tabBarIcon: ({ color }) => <Ionicons name="map" size={24} color={color} />,
-                }}
-            />
-
             <Tabs.Screen name="explore"/>
             <Tabs.Screen name="hike"/>
             <Tabs.Screen name="profile"/>
