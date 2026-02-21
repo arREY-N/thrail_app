@@ -7,9 +7,10 @@ import {
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
-import CustomText from '../../../components/CustomText';
-import { Colors } from '../../../constants/colors';
+
+import { Colors } from '@/src/constants/colors';
 
 const SearchBar = ({ 
     categories, 
@@ -73,11 +74,20 @@ const SearchBar = ({
 const styles = StyleSheet.create({
     headerControls: {
         backgroundColor: Colors.BACKGROUND,
-        paddingVertical: 8,
+        paddingBottom: 16,
         paddingHorizontal: 16,
         gap: 8,
         zIndex: 10,
-        elevation: 0,
+        elevation: 4,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 24,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_LIGHT,
     },
     topControls: {
         flexDirection: 'row',
@@ -92,25 +102,26 @@ const styles = StyleSheet.create({
     filterButton: {
         width: 54,
         height: 54,
-        backgroundColor: Colors.SEARCH_BAR_BG,
+        backgroundColor: Colors.BACKGROUND,
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        backgroundColor: Colors.WHITE,
     },
     
     categoryContainer: {
         marginTop: 4, 
+        borderRadius: 12,
     },
     categoryScroll: {
         gap: 8,
+        borderRadius: 12,
     },
     categoryChip: {
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 10,
+        borderRadius: 12,
         backgroundColor: Colors.CHIP_INACTIVE,
     },
     activeChip: {
