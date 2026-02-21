@@ -84,61 +84,71 @@ const getTabConfig = (routeName, isFocused) => {
     }
 };
 
-const CustomNavBar = ({ state, descriptors, navigation }) => {
+const CustomNavBar = ({ 
+    state, 
+    descriptors, 
+    navigation,
+    children
+}) => {
     return (
-        <View style={styles.barContainer}>
-            {state.routes.map((route, index) => {
-                const { options } = descriptors[route.key];
-                const isFocused = state.index === index;
-                
-                const config = getTabConfig(route.name, isFocused);
+        <>
 
-                const onPress = () => {
-                    const event = navigation.emit({
-                        type: 'tabPress',
-                        target: route.key,
-                        canPreventDefault: true,
-                    });
+            {children}
 
-                    if (!isFocused && !event.defaultPrevented) {
-                        navigation.navigate(route.name);
-                    }
-                };
+            <View style={styles.barContainer}>
+                {state.routes.map((route, index) => {
+                    const { options } = descriptors[route.key];
+                    const isFocused = state.index === index;
+                    
+                    const config = getTabConfig(route.name, isFocused);
 
-                return (
-                    <TouchableOpacity
-                        key={route.key}
-                        accessibilityRole='button'
-                        accessibilityState={isFocused ? { selected: true } : {}}
-                        accessibilityLabel={options.tabBarAccessibilityLabel}
-                        testID={options.tabBarTestID}
-                        onPress={onPress}
-                        style={styles.tabItem}
-                        activeOpacity={0.7}
-                    >
-                        <View style={[
-                            styles.iconPill, 
-                            isFocused && styles.iconPillActive
-                        ]}>
-                            {config.icon}
-                        </View>
+                    const onPress = () => {
+                        const event = navigation.emit({
+                            type: 'tabPress',
+                            target: route.key,
+                            canPreventDefault: true,
+                        });
 
-                        <CustomText
-                            variant='caption'
-                            style={[
-                                styles.label,
-                                {
-                                    color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
-                                    fontWeight: isFocused ? '700' : '500',
-                                },
-                            ]}
+                        if (!isFocused && !event.defaultPrevented) {
+                            navigation.navigate(route.name);
+                        }
+                    };
+
+                    return (
+                        <TouchableOpacity
+                            key={route.key}
+                            accessibilityRole='button'
+                            accessibilityState={isFocused ? { selected: true } : {}}
+                            accessibilityLabel={options.tabBarAccessibilityLabel}
+                            testID={options.tabBarTestID}
+                            onPress={onPress}
+                            style={styles.tabItem}
+                            activeOpacity={0.7}
                         >
-                            {config.label}
-                        </CustomText>
-                    </TouchableOpacity>
-                );
-            })}
-        </View>
+                            <View style={[
+                                styles.iconPill, 
+                                isFocused && styles.iconPillActive
+                            ]}>
+                                {config.icon}
+                            </View>
+
+                            <CustomText
+                                variant='caption'
+                                style={[
+                                    styles.label,
+                                    {
+                                        color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
+                                        fontWeight: isFocused ? '700' : '500',
+                                    },
+                                ]}
+                            >
+                                {config.label}
+                            </CustomText>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+        </>
     );
 };
 
@@ -149,9 +159,11 @@ const styles = StyleSheet.create({
         height: 80,
         alignItems: 'center',
         justifyContent: 'space-around',
-        paddingHorizontal: 8,
-        paddingBottom: 0,
-        elevation: 8, 
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        elevation: 8,
+        gap: 8,
+
         shadowColor: "#000", 
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
@@ -169,8 +181,7 @@ const styles = StyleSheet.create({
     },
 
     iconPill: {
-        width: 64,
-        // height: 32,
+        width: '100%',
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 24,

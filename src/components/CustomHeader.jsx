@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-    Platform,
-    StatusBar,
     StyleSheet,
     TouchableOpacity,
     View
@@ -15,11 +13,11 @@ import CustomText from '@/src/components/CustomText';
 
 const CustomHeader = ({ 
     title, 
-    subtitle,
     onBackPress, 
     rightActions, 
     showDefaultIcons = false,
-    style 
+    style,
+    children
 }) => {
 
     const { onNotificationPress, onBookingPress } = useAppNavigation();
@@ -36,16 +34,19 @@ const CustomHeader = ({
                         library="Feather" 
                         name="chevron-left"
                         size={24}
-                        color={Colors.TEXT_INVERSE} 
+                        color={Colors.PRIMARY} 
+                        style={{scale: 1.2}}
                     />
                 </TouchableOpacity>
 
                 <View style={styles.centerTitleContainer}>
-                     {title ? (
-                        <CustomText variant="title" style={styles.centerTitle}>
-                            {title}
-                        </CustomText>
-                    ) : null}
+                    {children ? children : (
+                        title ? (
+                            <CustomText variant="title" style={styles.centerTitle}>
+                                {title}
+                            </CustomText>
+                        ) : null
+                    )}
                 </View>
 
                 {rightActions ? (
@@ -62,13 +63,9 @@ const CustomHeader = ({
     return (
         <View style={[styles.container, style]}>
             <View style={styles.leftContent}>
-                <CustomText style={styles.headline}>
-                    {title}
-                </CustomText>
-                
-                {subtitle && (
-                    <CustomText style={styles.subtitle}>
-                        {subtitle}
+                {children ? children : (
+                    <CustomText variant='title' style={styles.headline}>
+                        {title}
                     </CustomText>
                 )}
             </View>
@@ -84,7 +81,7 @@ const CustomHeader = ({
                                 library="Ionicons" 
                                 name="notifications"
                                 size={24}
-                                color={Colors.TEXT_INVERSE} 
+                                color={Colors.PRIMARY} 
                             />
                         </TouchableOpacity>
 
@@ -94,14 +91,13 @@ const CustomHeader = ({
                         >
                             <CustomIcon 
                                 library="Ionicons" 
-                                name="calendar"
+                                name="calendar-clear"
                                 size={24}
-                                color={Colors.TEXT_INVERSE}
+                                color={Colors.PRIMARY}
                             />
                         </TouchableOpacity>
                     </>
                 )}
-                
                 {rightActions}
             </View>
         </View>
@@ -111,15 +107,17 @@ const CustomHeader = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        height: 64, 
+        // height: 80, 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16, 
-        backgroundColor: Colors.PRIMARY, 
+        paddingTop: 16,
+        paddingBottom: 8,
+        backgroundColor: Colors.BACKGROUND, 
         borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0, 
+        borderBottomColor: Colors.BACKGROUND,
+        // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0, 
     },
 
     backButton: {
@@ -137,9 +135,7 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     centerTitle: {
-        color: Colors.TEXT_INVERSE, 
-        fontSize: 24,
-        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY, 
         marginBottom: 0,
     },
     spacer: {
@@ -152,17 +148,8 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     headline: {
-        color: Colors.TEXT_INVERSE,
         textAlign: 'left',
-        fontSize: 32,
-        fontWeight: '700',
-        lineHeight: 28,
-    },
-    subtitle: {
-        color: Colors.TEXT_SECONDARY,
-        textAlign: 'left',
-        fontSize: 16,
-        lineHeight: 20,
+        marginBottom: 0,
     },
 
     rightActionsContainer: {
@@ -171,7 +158,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     actionIcon: {
-        padding: 8,
+        padding: 4,
     },
 });
 

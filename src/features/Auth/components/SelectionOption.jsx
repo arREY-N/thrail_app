@@ -10,7 +10,12 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const SelectionOption = ({ label, selected, onPress }) => {
+const SelectionOption = ({ 
+    label, 
+    selected, 
+    onPress,
+    children
+}) => {
 
     return (
         <TouchableOpacity 
@@ -21,9 +26,15 @@ const SelectionOption = ({ label, selected, onPress }) => {
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <CustomText variant="body" style={styles.label}>
-                {label}
-            </CustomText>
+            <View style={styles.contentContainer}>
+                {children ? (
+                    children
+                ) : (
+                    <CustomText variant="body" style={styles.label}>
+                        {label}
+                    </CustomText>
+                )}
+            </View>
             
             <View style={[
                 styles.iconContainer, 
@@ -60,6 +71,12 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY, 
         backgroundColor: Colors.BACKGROUND,
     },
+
+    contentContainer: {
+        flex: 1,
+        marginRight: 8,
+    },
+
     label: {
         fontWeight: '500',
         flex: 1,
