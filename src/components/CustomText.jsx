@@ -42,6 +42,7 @@ const CustomText = ({
     return (
         <Text 
             style={[
+                styles.base,
                 variantStyle, 
                 color && { color: color },
                 style
@@ -54,6 +55,10 @@ const CustomText = ({
 };
 
 const styles = StyleSheet.create({
+    base: {
+        color: Colors.TEXT_PRIMARY,
+    },
+    
     h1: {
         fontSize: 32,
         fontWeight: 'bold',
@@ -68,17 +73,19 @@ const styles = StyleSheet.create({
     },
     body: {
         fontSize: 16,
+        fontWeight: 'normal',
         color: Colors.TEXT_PRIMARY,
         lineHeight: 24,
     },
     label: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '500',
         color: Colors.TEXT_PRIMARY,
     },   
     caption: {
         fontSize: 14,
         color: Colors.TEXT_SECONDARY,
+        fontWeight: 'normal',
     },
 });
 
