@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import ConfirmationModal from '../../../components/ConfirmationModal';
-import CustomButton from '../../../components/CustomButton';
-import CustomDropdown from '../../../components/CustomDropdown';
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
-import ErrorMessage from '../../../components/ErrorMessage';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
-import { Colors } from '../../../constants/colors';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomButton from '@/src/components/CustomButton';
+import CustomDropdown from '@/src/components/CustomDropdown';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+
+import { Colors } from '@/src/constants/colors';
 
 const ApplyScreen = ({
     system,
@@ -29,7 +30,15 @@ const ApplyScreen = ({
     const isSuccess = system && (system.toLowerCase().includes('sent') || system.toLowerCase().includes('success'));
     const isError = system && !isSuccess;
 
+    const isFormValid = 
+        email.trim().length > 0 && 
+        businessName.trim().length > 0 && 
+        businessAddress.trim().length > 0 && 
+        province !== '';
+
     const handlePreSubmit = () => {
+        if (!isFormValid) return; 
+
         setShowConfirm(true);
     };
 
@@ -48,7 +57,7 @@ const ApplyScreen = ({
             
             <ConfirmationModal
                 visible={showConfirm}
-                title="Submit Application?"
+                title="Submit Application"
                 message="Are you sure your business details are correct?"
                 confirmText="Submit"
                 cancelText="Check"
@@ -64,7 +73,7 @@ const ApplyScreen = ({
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
                 
                 <View style={styles.headerSection}>
-                    <CustomText variant="body" style={styles.pageTitle}>
+                    <CustomText variant="h2" style={styles.pageTitle}>
                         Apply for a Partner Account
                     </CustomText>
                     <CustomText variant="caption" style={styles.pageSubtitle}>
@@ -124,6 +133,8 @@ const ApplyScreen = ({
                             title="Submit Application"
                             onPress={handlePreSubmit}
                             variant="primary"
+                            disabled={!isFormValid}
+                            style={{ opacity: isFormValid ? 1 : 0.5 }}
                         />
                     </View>
 
@@ -136,42 +147,44 @@ const ApplyScreen = ({
 
 const styles = StyleSheet.create({
     scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
+        paddingVertical: 32,
+        paddingHorizontal: 16,
     },
     headerSection: {
-        marginBottom: 20,
+        marginBottom: 32,
+        gap: 8,
         alignItems: 'center',
     },
     pageTitle: {
         fontWeight: 'bold',
-        fontSize: 20, // Clean subtitle size
-        marginBottom: 6,
-        color: Colors.TEXT_PRIMARY,
+        marginBottom: 0,
     },
     pageSubtitle: {
         textAlign: 'center',
-        color: Colors.TEXT_SECONDARY,
         maxWidth: '85%',
     },
+
     successBox: {
-        backgroundColor: '#E0F2FE',
+        backgroundColor: Colors.SUCCESS,
         padding: 12,
         borderRadius: 8,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#BAE6FD',
+        borderColor: Colors.GRAY,
     },
     successText: {
-        color: '#0369A1',
+        color: Colors.SUCCESS,
         textAlign: 'center',
         fontSize: 14,
         fontWeight: '500',
     },
+    
     formCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 24,
+        paddingVertical: 24,
+        paddingHorizontal: 16,
+
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
