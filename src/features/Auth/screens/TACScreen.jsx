@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     
     tabContainer: {
         flexDirection: 'row',
-        width: '100%',
+        width: '90%',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 16,
         paddingVertical: 8,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         flexDirection: 'row',
         gap: 8,
-        marginTop: 8,
+        marginTop: 0,
     },
 });
 
