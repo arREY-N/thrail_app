@@ -119,7 +119,7 @@ const LogInScreen = ({
 
                         <View style={AuthStyles.footerContainer}>
                             <CustomText variant="caption" style={AuthStyles.footerText}>
-                                Don't have an account?{' '}
+                                {"Don't have an account? "}
                             </CustomText>
 
                             <TouchableOpacity onPress={onSignUpPress}>
