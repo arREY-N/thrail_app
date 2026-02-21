@@ -48,16 +48,18 @@ const ExploreScreen = ({
                     showDefaultIcons={true} 
                 />
 
+                <SearchBar 
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                    onFilterPress={() => console.log('Filter Pressed')}
+                />
+
                 <ResponsiveScrollView 
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <SearchBar 
-                        categories={categories}
-                        selectedCategory={selectedCategory}
-                        onSelectCategory={setSelectedCategory}
-                        onFilterPress={() => console.log('Filter Pressed')}
-                    />
+                    
 
                     <View style={[styles.listContainer, { gap }]}>
                         {filteredTrails.length > 0 ? (
@@ -72,9 +74,9 @@ const ExploreScreen = ({
                             ))
                         ) : (
                             <View style={styles.emptyState}>
-                                 <CustomText style={{color: Colors.TEXT_SECONDARY}}>
-                                    No trails found for "{selectedCategory}".
-                                 </CustomText>
+                                <CustomText style={{color: Colors.TEXT_SECONDARY}}>
+                                    {`No trails found for "${selectedCategory}".`}
+                                </CustomText>
                             </View>
                         )}
                     </View>
@@ -126,11 +128,12 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND, 
     },
     scrollContent: {
-        paddingBottom: 32,
+        paddingBottom: 0,
     },
     listContainer: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingTop: 16,
+        paddingBottom: 16,
         flexDirection: 'row', 
         flexWrap: 'wrap',     
     },
