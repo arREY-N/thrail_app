@@ -19,7 +19,8 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
         displayLength, 
         displayElev, 
         displayTime, 
-        score 
+        score,
+        displayTemp
     } = getMountainData(item);
 
     return (
@@ -31,6 +32,32 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
             <View style={styles.imageContainer}>
                 
                 <View style={styles.placeholderImage} />
+
+                <View style={[styles.glassPill, styles.ratePosition]}>
+                    <CustomIcon
+                        library="AntDesign"
+                        name="star"
+                        size={12}
+                        color={Colors.YELLOW}
+                    />
+                    <CustomText variant="caption" style={styles.badgeText}>
+                        {score}
+                    </CustomText>
+                </View>
+
+                {displayTemp && (
+                    <View style={[styles.glassPill, styles.weatherPosition]}>
+                        <CustomIcon
+                            library="Ionicons"
+                            name="partly-sunny" 
+                            size={14}
+                            color={Colors.WHITE}
+                        />
+                        <CustomText variant="caption" style={styles.badgeText}>
+                            {displayTemp}
+                        </CustomText>
+                    </View>
+                )}
 
                 <LinearGradient
                     colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
@@ -49,24 +76,10 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                                     size={10}
                                     color={Colors.TEXT_INVERSE} 
                                 />
-
                                 <CustomText variant="caption" style={styles.location} numberOfLines={1}>
                                     {location}
                                 </CustomText>
                             </View>
-                        </View>
-
-                        <View style={styles.glassBadge}>
-                            <CustomIcon
-                                library="Ionicons"
-                                name="star"
-                                size={12}
-                                color={Colors.YELLOW}
-                            />
-
-                            <CustomText variant="caption" style={styles.ratingText}>
-                                {score}
-                            </CustomText>
                         </View>
                     </View>
                 </LinearGradient>
@@ -124,7 +137,7 @@ const getMountainData = (item) => {
     } else if (item.general?.address) {
         location = item.general.address;
     } else if (item.province) {
-         location = Array.isArray(item.province) ? item.province[0] : item.province;
+        location = Array.isArray(item.province) ? item.province[0] : item.province;
     } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
         location = item.general.province[0];
     } else if (item.location) {
@@ -142,13 +155,17 @@ const getMountainData = (item) => {
 
     const score = item.score || item.rating || "N/A";
 
+    const rawTemp = item.weather?.temperature || item.temperature || "26"; 
+    const displayTemp = rawTemp ? `${rawTemp}°C` : null;
+
     return {
-        name,
-        location,
-        displayLength,
-        displayElev,
-        displayTime,
-        score
+        name, 
+        location, 
+        displayLength, 
+        displayElev, 
+        displayTime, 
+        score, 
+        displayTemp
     };
 };
 
@@ -157,7 +174,6 @@ const StatItem = ({ label, value }) => (
         <CustomText variant="caption" style={styles.statValue}>
             {value}
         </CustomText>
-
         <CustomText variant="caption" style={styles.statLabel}>
             {label}
         </CustomText>
@@ -168,7 +184,7 @@ const styles = StyleSheet.create({
     cardContainer: {
         width: 280, 
         backgroundColor: Colors.WHITE,
-        borderRadius: 20, 
+        borderRadius: 24, 
         marginBottom: 0,
         overflow: 'hidden',
         
@@ -181,7 +197,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
     },
-    
     imageContainer: {
         height: 180, 
         width: '100%',
@@ -191,8 +206,38 @@ const styles = StyleSheet.create({
     placeholderImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: Colors.GRAY,
+        backgroundColor: Colors.PRIMARY,
     },
+
+    glassPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    badgeText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+    },
+    
+    ratePosition: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        zIndex: 2,
+    },
+    weatherPosition: {
+        position: 'absolute',
+        top: 12,
+        right: 12, 
+        zIndex: 2,
+    },
+
     gradientOverlay: {
         position: 'absolute', 
         left: 0,
@@ -209,42 +254,26 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         flex: 1,
-        marginRight: 16,
     },
     title: {
         fontWeight: 'bold',
         color: Colors.TEXT_INVERSE, 
         marginBottom: 4,
-        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowColor: Colors.SHADOW,
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,
     },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        paddingVertical: 2,
+        gap: 8,
     },
     location: {
-        color: 'rgba(255,255,255,0.9)', 
+        color: Colors.TEXT_INVERSE, 
         fontWeight: '500',
     },
     
-    glassBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    ratingText: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_INVERSE,
-    },
-
     statsContainer: {
         paddingVertical: 16,
         paddingHorizontal: 16,
@@ -283,7 +312,6 @@ const styles = StyleSheet.create({
         height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
     },
-    
     downloadButtonCircle: {
         width: 36,
         height: 36,
