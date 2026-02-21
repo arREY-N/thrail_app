@@ -51,7 +51,7 @@ const LandingScreen = ({
                         </View>
 
                         <View style={styles.buttonContainer}>
-                            <CustomButton title="Create Account" onPress={onSignUpPress} variant="primary" />
+                            <CustomButton title="Sign Up" onPress={onSignUpPress} variant="primary" />
                             <CustomButton title="Log In" onPress={onLogInPress} variant="secondary" />
                         </View>
 
