@@ -6,9 +6,9 @@ export const Colors = {
     GRAY_LIGHT:     '#D9D9D9',
     GRAY_ULTRALIGHT:'#F5F5F5',
     
-    PRIMARY:        '#A2A2A2', 
-    SECONDARY:      '#D9D9D9', 
-    BACKGROUND:     '#FAFAFA',
+    PRIMARY:        '#2E7D32', 
+    SECONDARY:      '#81C784',
+    BACKGROUND:     '#FAFCFA', 
     
     TEXT_PRIMARY:   '#040906', 
     TEXT_SECONDARY: '#686868', 
@@ -25,9 +25,14 @@ export const Colors = {
     SUCCESS:        '#388E3C',
     WARNING:        '#D32F2F',   
 
+    STRENGTH_EMPTY: '#E5E7EB',
+    STRENGTH_WEAK:  '#D32F2F',
+    STRENGTH_MEDIUM:'#F59E0B',
+    STRENGTH_STRONG:'#388E3C',
+
     SEARCH_BAR_BG:  '#C4C4C440',
-    CHIP_INACTIVE:  '#C4C4C440', 
-    CHIP_ACTIVE:    '#A0A0A0',
+    CHIP_INACTIVE:  '#FAFCFA', 
+    CHIP_ACTIVE:    '#2E7D32',
 };
 
 // Color Samples
