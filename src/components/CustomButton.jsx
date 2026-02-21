@@ -14,7 +14,8 @@ const CustomButton = ({
     onPress, 
     variant = 'primary',
     style,
-    textStyle 
+    textStyle,
+    children
 }) => {
     
     let buttonStyle = styles.primary;
@@ -38,9 +39,13 @@ const CustomButton = ({
                 pressed && styles.pressed
             ]}
         >
-            <CustomText style={[styles.baseText, labelStyle, textStyle]}>
-                {title}
-            </CustomText>
+            {children ? (
+                children
+            ) : (
+                <CustomText style={[styles.baseText, labelStyle, textStyle]}>
+                    {title}
+                </CustomText>
+            )}
         </Pressable>
     );
 };
@@ -76,7 +81,7 @@ const styles = StyleSheet.create({
     },
 
     secondary: {
-        backgroundColor: Colors.SECONDARY, 
+        backgroundColor: Colors.WHITE, 
     },
     textSecondary: {
         color: Colors.TEXT_PRIMARY, 
