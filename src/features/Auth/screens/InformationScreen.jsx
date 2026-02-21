@@ -18,11 +18,21 @@ const InformationScreen = ({
     error 
 }) => {
 
-    const [number, setNumber] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
     const [birthday, setBirthday] = useState('');
     const [address, setAddress] = useState('');
+
+    const handleContinue = () => {
+        let cleanNumber = phoneNumber.replace(/\s+/g, '');
+
+        if (cleanNumber.length === 10) {
+            cleanNumber = '0' + cleanNumber;
+        }
+
+        onContinuePress(cleanNumber, firstname, lastname, birthday, address);
+    };
     
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -45,11 +55,13 @@ const InformationScreen = ({
 
                         <CustomTextInput
                             label="Phone Number *"
-                            placeholder="+63 (9XX) XXX XXXX"
-                            value={number}
-                            onChangeText={setNumber}
-                            keyboardType="phone-pad"
+                            placeholder="9XX XXX XXXX"
+                            prefix="+63"
                             type="phone"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                            keyboardType="number-pad"
+                            maxLength={12}
                         />
 
                         <CustomTextInput
@@ -84,7 +96,7 @@ const InformationScreen = ({
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
                                 title="Continue" 
-                                onPress={() => onContinuePress(number, firstname, lastname, birthday, address)}
+                                onPress={handleContinue}
                                 variant="primary" 
                             />
                         </View>
