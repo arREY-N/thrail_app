@@ -15,7 +15,8 @@ import { Colors } from '@/src/constants/colors';
 const CustomDateInput = ({ 
     value, 
     onChangeText, 
-    label 
+    label,
+    children
 }) => {
     const [activePicker, setActivePicker] = useState(null);
     const [mm, setMm] = useState('');
@@ -80,10 +81,10 @@ const CustomDateInput = ({
         if (category === 'YYYY') newYYYY = val;
 
         if (newMM && newYYYY && newDD) {
-             const maxDays = new Date(parseInt(newYYYY), parseInt(newMM), 0).getDate();
-             if (parseInt(newDD) > maxDays) {
-                 newDD = '';
-             }
+            const maxDays = new Date(parseInt(newYYYY), parseInt(newMM), 0).getDate();
+            if (parseInt(newDD) > maxDays) {
+                newDD = '';
+            }
         }
 
         setMm(newMM);
@@ -141,6 +142,9 @@ const CustomDateInput = ({
                     onSelect={(val) => handleSelect('YYYY', val)}
                 />
             </View>
+
+            {children}
+
         </View>
     );
 };
@@ -240,14 +244,6 @@ const DropdownPicker = ({
                                                     {item.label}
                                                 </CustomText>
 
-                                                {isSelected && (
-                                                    <CustomIcon 
-                                                        library="Feather" 
-                                                        name="check" 
-                                                        size={20} 
-                                                        color={Colors.WHITE} 
-                                                    />
-                                                )}
                                             </TouchableOpacity>
                                         );
                                     }}
@@ -264,7 +260,7 @@ const DropdownPicker = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        marginBottom: 16,
+        marginBottom: 0,
     },
     label: {
         marginBottom: 8,
@@ -335,7 +331,7 @@ const styles = StyleSheet.create({
     optionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         paddingVertical: 16,
         paddingHorizontal: 16,
         borderRadius: 14, 
