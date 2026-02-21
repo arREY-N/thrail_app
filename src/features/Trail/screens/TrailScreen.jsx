@@ -10,6 +10,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
 import { Colors } from '@/src/constants/colors';
 
 const TrailScreen = ({ 
@@ -39,6 +40,15 @@ const TrailScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+                <CustomIcon 
+                    library="Feather" 
+                    name="chevron-left" 
+                    size={28} 
+                    color={Colors.PRIMARY} 
+                />
+            </TouchableOpacity>
+            
             <ResponsiveScrollView 
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
@@ -46,14 +56,6 @@ const TrailScreen = ({
             >
                 <View style={styles.imageContainer}>
                     <View style={styles.imagePlaceholder} /> 
-                    <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-left" 
-                            size={28} 
-                            color={Colors.TEXT_PRIMARY} 
-                        />
-                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.bodyContainer}>
@@ -87,7 +89,7 @@ const TrailScreen = ({
                                     library="Feather" 
                                     name="download" 
                                     size={20}
-                                    color={Colors.GRAY_MEDIUM} 
+                                    color={Colors.WHITE} 
                                 />
                             </TouchableOpacity>
                         </View>
@@ -345,7 +347,8 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -361,7 +364,7 @@ const styles = StyleSheet.create({
     },
     activeTabButton: {
         borderBottomWidth: 2,
-        borderBottomColor: Colors.TEXT_PRIMARY,
+        borderBottomColor: Colors.PRIMARY,
     },
     tabText: {
         fontSize: 16,
@@ -369,7 +372,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     activeTabText: {
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
     divider: {
