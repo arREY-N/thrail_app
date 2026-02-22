@@ -27,7 +27,7 @@ if (__DEV__) {
 
     if (Platform.OS === 'android') {
         // Android emulators need this special IP to see your computer
-        emulatorHost = '10.0.2.2';
+        emulatorHost = '192.168.254.119';
     } else if (Platform.OS === 'ios') {
         // iOS simulators can use localhost
         emulatorHost = 'localhost';
