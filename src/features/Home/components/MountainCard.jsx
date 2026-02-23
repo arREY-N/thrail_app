@@ -153,9 +153,9 @@ const getMountainData = (item) => {
     const rawTime = item.hours || item.difficulty?.hours || item.duration;
     const displayTime = rawTime ? `${rawTime} h` : "--";
 
-    const score = item.score || item.rating || "N/A";
+    const score = item.score || item.rating || "5.0" || "N/A";
 
-    const rawTemp = item.weather?.temperature || item.temperature || "26"; 
+    const rawTemp = item.weather?.temperature || item.temperature || "26" || "N/A"; 
     const displayTemp = rawTemp ? `${rawTemp}°C` : null;
 
     return {
