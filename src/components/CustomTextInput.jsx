@@ -13,23 +13,7 @@ import CustomDateInput from '@/src/components/CustomDateInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
-type TextInputParams = {
-    label: string | null, 
-    placeholder, 
-    value, 
-    onChangeText, 
-    secureTextEntry: boolean | false, 
-    keyboardType,
-    isPasswordVisible, 
-    onTogglePassword,
-    type = 'text',
-    style,
-    icon, 
-    iconLibrary = 'Feather', 
-    prefix, 
-    children,
-    ...props
-}
+
 
 const CustomTextInput = ({ 
     label, 
