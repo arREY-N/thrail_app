@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
         gap: 8,
         zIndex: 10,
         elevation: 4,
-        borderBottomLeftRadius: 28,
+        borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
 
         shadowColor: Colors.SHADOW, 
