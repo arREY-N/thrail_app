@@ -129,7 +129,7 @@ const TrailScreen = ({
                         title="Hike" 
                         onPress={() => onHikePress(trail?.id)} 
                         style={styles.footerBtn}
-                        // style={[styles.footerBtn, {backgroundColor: Colors.SECONDARY}]}
+                        // style={[styles.footerBtn, {color: Colors.SECONDARY}]}
                         variant="secondary"
                     />
                 </View>
@@ -454,6 +454,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 16,
+
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         gap: 16,
