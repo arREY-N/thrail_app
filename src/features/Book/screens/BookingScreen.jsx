@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
-import CustomIcon from '@/src/components/CustomIcon';
-import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 
-import OffersView from '@/src/features/Book/components/OffersView';
+import ProgressStep from '@/src/features/Book/components/ProgressStep';
+import DetailsScreen from '@/src/features/Book/screens/DetailsScreen';
+import OffersScreen from '@/src/features/Book/screens/OffersScreen';
+import PaymentScreen from '@/src/features/Book/screens/PaymentScreen';
+import ReceiptScreen from '@/src/features/Book/screens/ReceiptScreen';
 
 const BookingScreen = ({ offers = [], onBackPress }) => {
     
@@ -17,20 +20,105 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
     const [bookingData, setBookingData] = useState({
         selectedOfferId: null,
         hikerDetails: null,
+        uploadedDocs: null,
         medicalCertUrl: null,
     });
+
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingStep, setPendingStep] = useState(null);
+    const [pendingHeaderBack, setPendingHeaderBack] = useState(false);
+
+    const lineFillPercentage = ((currentView - 1) / 3) * 100;
+
+    const handleHeaderBackPress = () => {
+        if (currentView === 4) {
+            onBackPress();
+            return;
+        }
+
+        const hasProgress = currentView > 1 || bookingData.selectedOfferId !== null;
+
+        if (hasProgress) {
+            setPendingHeaderBack(true);
+            setShowConfirmModal(true);
+        } else {
+            onBackPress();
+        }
+    };
+
+    const handleStepNavigation = (step) => {
+        if ((currentView === 2 || currentView === 3) && step < currentView) {
+            setPendingStep(step);
+            setShowConfirmModal(true);
+        } else {
+            setCurrentView(step);
+        }
+    };
+
+    const confirmNavigation = () => {
+        if (pendingHeaderBack) {
+            setShowConfirmModal(false);
+
+            setTimeout(() => {
+                onBackPress(); 
+                setPendingHeaderBack(false);
+            }, 300);
+            return;
+        }
+
+        if (pendingStep !== null) {
+            setBookingData(prev => {
+                let clearedData = { ...prev };
+                
+                if (pendingStep === 1) {
+                    clearedData.hikerDetails = null;
+                    clearedData.uploadedDocs = null;
+                    clearedData.paymentMethod = null;
+                } else if (pendingStep === 2) {
+                    clearedData.paymentMethod = null;
+                }
+                
+                return clearedData;
+            });
+
+            setCurrentView(pendingStep);
+        }
+        
+        setShowConfirmModal(false);
+        
+        setTimeout(() => {
+            setPendingStep(null);
+            setPendingHeaderBack(false);
+        }, 300);
+    };
+
+    const cancelNavigation = () => {
+        setShowConfirmModal(false);
+        
+        setTimeout(() => {
+            setPendingStep(null);
+            setPendingHeaderBack(false);
+        }, 300);
+    };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomHeader 
                 title="Book" 
-                onBackPress={onBackPress} 
+                onBackPress={handleHeaderBackPress}
             />
             
             <View style={styles.progressWrapper}>
                 <View style={styles.progressContainer}>
-                    <View style={styles.progressLine} />
+                    
+                    <View style={styles.lineWrapper}>
+                        <View style={styles.progressLineBackground} />
+                        <View style={[
+                            styles.progressLineActive, 
+                            { width: `${lineFillPercentage}%` }
+                        ]} />
+                    </View>
                     
                     <View style={styles.progressRow}>
                         <ProgressStep 
@@ -39,6 +127,7 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                             libraryName="FontAwesome5"
                             iconName="tag" 
                             currentView={currentView}
+                            onStepPress={handleStepNavigation}
                         />
 
                         <ProgressStep 
@@ -47,6 +136,7 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                             libraryName="Ionicons"
                             iconName="person" 
                             currentView={currentView}
+                            onStepPress={handleStepNavigation}
                         />
 
                         <ProgressStep 
@@ -55,13 +145,16 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                             libraryName="FontAwesome5" 
                             iconName="wallet" 
                             currentView={currentView}
+                            onStepPress={handleStepNavigation}
                         />
+
                         <ProgressStep 
                             stepNum={4} 
                             title="Receipt" 
                             libraryName="Ionicons"
                             iconName="receipt" 
                             currentView={currentView}
+                            onStepPress={handleStepNavigation}
                         />
                     </View>
                 </View>
@@ -69,7 +162,7 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
 
             <View style={styles.contentContainer}>
                 {currentView === 1 && (
-                    <OffersView 
+                    <OffersScreen 
                         offers={offers}
                         selectedOfferId={bookingData.selectedOfferId}
                         onContinue={(offerId) => {
@@ -83,50 +176,62 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                 )}
                 
                 {currentView === 2 && (
-                    <View style={styles.placeholderView}>
-                        <CustomText variant="h2">
-                            Step 2: Details
-                        </CustomText>
-                        <CustomText color={Colors.TEXT_SECONDARY}>
-                            We will build the Form here next!
-                        </CustomText>
-                    </View>
+                    <DetailsScreen 
+                        selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
+                        savedDetails={bookingData.hikerDetails}
+                        savedDocs={bookingData.uploadedDocs}
+                        
+                        onContinue={(detailsData) => {
+                            setBookingData({ 
+                                ...bookingData, 
+                                ...detailsData 
+                            });
+                            setCurrentView(3); 
+                        }}
+                    />
+                )}
+
+                {currentView === 3 && (
+                    <PaymentScreen 
+                        selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
+                        savedMethod={bookingData.paymentMethod}
+
+                        onContinue={(paymentData) => {
+                            setBookingData({ 
+                                ...bookingData, 
+                                ...paymentData 
+                            });
+                            setCurrentView(4);
+                        }}
+                    />
+                )}
+
+                {currentView === 4 && (
+                    <ReceiptScreen 
+                        bookingData={bookingData}
+                        selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
+                        onFinish={() => {
+                            onBackPress(); 
+                        }}
+                    />
                 )}
             </View>
 
+            <ConfirmationModal 
+                visible={showConfirmModal}
+                onClose={cancelNavigation}
+                onConfirm={confirmNavigation}
+                title={pendingHeaderBack ? "Cancel Booking?" : "Discard Changes?"}
+                message={
+                    pendingHeaderBack 
+                    ? "Are you sure you want to leave the booking process? All your progress will be lost." 
+                    : "If you go back now, you will lose the details you just entered."
+                }
+                confirmText={pendingHeaderBack ? "Leave" : "Discard"}
+                cancelText="Keep Editing"
+            />
+
         </ScreenWrapper>
-    );
-};
-
-const ProgressStep = ({ stepNum, title, libraryName, iconName, currentView }) => {
-    const isActive = currentView >= stepNum;
-    
-    return (
-        <View style={styles.stepContainer}>
-            <View 
-                style={[
-                    styles.iconCircle, 
-                    isActive ? styles.activeIconCircle : styles.inactiveIconCircle
-                ]}
-            >
-                <CustomIcon 
-                    library={libraryName}
-                    name={iconName} 
-                    size={20} 
-                    color={isActive ? Colors.WHITE : Colors.GRAY_MEDIUM} 
-                />
-            </View>
-
-            <CustomText 
-                variant="caption" 
-                style={[
-                    styles.stepText, 
-                    isActive ? styles.activeStepText : styles.inactiveStepText
-                ]}
-            >
-                {title}
-            </CustomText>
-        </View>
     );
 };
 
@@ -156,48 +261,28 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         zIndex: 2,
     },
-    progressLine: {
+    lineWrapper: {
         position: 'absolute',
         top: 20,
         left: 20,
         right: 20,
         height: 2,
-        backgroundColor: Colors.GRAY_LIGHT,
         zIndex: 1,
     },
-    stepContainer: {
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: Colors.BACKGROUND,
-        paddingHorizontal: 4,
+    progressLineBackground: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: Colors.GRAY_LIGHT,
     },
-    iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.BACKGROUND,
-    },
-    activeIconCircle: {
+    progressLineActive: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
         backgroundColor: Colors.PRIMARY,
-        borderWidth: 0,
-    },
-    inactiveIconCircle: {
-        backgroundColor: Colors.BACKGROUND,
-        borderWidth: 1.5,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    stepText: {
-        fontSize: 12,
-    },
-    activeStepText: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-    },
-    inactiveStepText: {
-        color: Colors.GRAY_MEDIUM,
-        fontWeight: '500',
     },
     contentContainer: {
         flex: 1,
