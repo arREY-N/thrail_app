@@ -45,7 +45,7 @@ const TrailScreen = ({
                     library="Feather" 
                     name="chevron-left" 
                     size={28} 
-                    color={Colors.PRIMARY} 
+                    color={Colors.WHITE} 
                 />
             </TouchableOpacity>
             
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
-        paddingBottom: 0,
+        paddingBottom: 8,
     },
 
     imageContainer: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -315,6 +315,13 @@ const styles = StyleSheet.create({
         paddingBottom: 96,
         paddingTop: 24,
         paddingHorizontal: 24,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
     },
     headerInfo: {
         marginBottom: 20,
@@ -412,7 +419,7 @@ const styles = StyleSheet.create({
     },
     descriptionText: {
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 22,
+        lineHeight: 12,
     },
     tagContainer: {
         flexDirection: 'row',
@@ -420,13 +427,13 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tag: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.PRIMARY,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
     },
     tagText: {
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.TEXT_INVERSE,
         fontSize: 12,
     },
 
@@ -455,11 +462,19 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 16,
 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
+
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         gap: 16,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
+
     },
     buttonWrapper: {
         flex: 1,
