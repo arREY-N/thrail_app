@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
 
     cardSection: {
         flex: 1,
-        backgroundColor: Colors.GRAY, 
+        backgroundColor: Colors.SECONDARY, 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         paddingHorizontal: 16,
