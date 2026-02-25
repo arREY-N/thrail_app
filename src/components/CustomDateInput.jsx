@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
     Modal,
+    Pressable,
     StyleSheet,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View
 } from 'react-native';
 
@@ -205,53 +205,48 @@ const DropdownPicker = ({
                 animationType="fade" 
                 onRequestClose={onClose}
             >
-                <TouchableWithoutFeedback onPress={onClose}>
-                    <View style={styles.modalOverlay}>
-                        <TouchableWithoutFeedback>
-                            <View style={styles.modalContent}>
-                                
-                                <View style={styles.modalHeader}>
-                                    <CustomText variant="subtitle" style={styles.modalTitle}>
-                                        Select {label}
-                                    </CustomText>
-                                    <View style={styles.headerDivider} />
-                                </View>
+                <Pressable style={styles.modalOverlay} onPress={onClose}>
+                    <Pressable style={styles.modalContent} onPress={() => {}}>
+                        
+                        <View style={styles.modalHeader}>
+                            <CustomText variant="subtitle" style={styles.modalTitle}>
+                                Select {label}
+                            </CustomText>
+                            <View style={styles.headerDivider} />
+                        </View>
 
-                                <FlatList 
-                                    data={options} 
-                                    keyExtractor={(item) => item.value}
-                                    showsVerticalScrollIndicator={false} 
-                                    initialNumToRender={15}
-                                    contentContainerStyle={styles.listContent}
-                                    renderItem={({ item }) => {
-                                        const isSelected = item.value === value;
-                                        return (
-                                            <TouchableOpacity 
-                                                style={[
-                                                    styles.optionItem,
-                                                    isSelected && styles.selectedOptionItem
-                                                ]} 
-                                                onPress={() => onSelect(item.value)}
-                                                activeOpacity={0.8}
-                                            >
-                                                <CustomText 
-                                                    variant="body"
-                                                    style={[
-                                                        styles.optionText, 
-                                                        isSelected && styles.selectedOptionText
-                                                    ]}
-                                                >
-                                                    {item.label}
-                                                </CustomText>
-
-                                            </TouchableOpacity>
-                                        );
-                                    }}
-                                />
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
+                        <FlatList 
+                            data={options} 
+                            keyExtractor={(item) => item.value}
+                            showsVerticalScrollIndicator={false} 
+                            initialNumToRender={15}
+                            contentContainerStyle={styles.listContent}
+                            renderItem={({ item }) => {
+                                const isSelected = item.value === value;
+                                return (
+                                    <TouchableOpacity 
+                                        style={[
+                                            styles.optionItem,
+                                            isSelected && styles.selectedOptionItem
+                                        ]} 
+                                        onPress={() => onSelect(item.value)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <CustomText 
+                                            variant="body"
+                                            style={[
+                                                styles.optionText, 
+                                                isSelected && styles.selectedOptionText
+                                            ]}
+                                        >
+                                            {item.label}
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </Pressable>
+                </Pressable>
             </Modal>
         </>
     );
@@ -338,7 +333,7 @@ const styles = StyleSheet.create({
     },
     selectedOptionItem: {
         backgroundColor: Colors.PRIMARY,
-        opacity: 0.5,
+        opacity: 1,
     },
     optionText: {
         fontSize: 16,
