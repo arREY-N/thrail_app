@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         paddingVertical: 16,
         paddingHorizontal: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT, 
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         width: 24,
         height: 24,
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_MEDIUM,
         alignItems: 'center',
