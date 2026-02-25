@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 180,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
-        borderBottomColor: Colors.PRIMARY,
+        borderBottomColor: Colors.GRAY,
         marginRight: -80,
     },
     mountainRight: {
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 140,
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
-        borderBottomColor: Colors.SECONDARY,
+        borderBottomColor: Colors.GRAY_MEDIUM,
     },
 });
 
