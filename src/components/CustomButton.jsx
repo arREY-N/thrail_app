@@ -53,7 +53,7 @@ const CustomButton = ({
 const styles = StyleSheet.create({
     baseButton: {
         paddingVertical: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
