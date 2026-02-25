@@ -7,7 +7,7 @@ export const Colors = {
     GRAY_ULTRALIGHT:'#F5F5F5',
     
     PRIMARY:        '#2E7D32', 
-    SECONDARY:      '#81C784',
+    SECONDARY:      '#7DBC81',
     BACKGROUND:     '#FAFCFA', 
     
     TEXT_PRIMARY:   '#040906', 
