@@ -1,26 +1,29 @@
 import LoadingScreen from "@/src/app/loading";
 import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
 import { useOfferDomain } from "@/src/core/hook/useOfferDomain";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
-    const { trailId } = useLocalSearchParams();
+    const { trailId, mode } = useLocalSearchParams();
 
     const {
-        filteredOffers,
+        list,
         onBookNowPress,
         bookingError,
         offerError,
         isLoading,
-    } = useOfferDomain({ trailId });
+    } = useOfferDomain({ trailId, mode });
 
     if(isLoading) return <LoadingScreen/>;
 
     return (
-        <TESTUSERBOOK 
-            offers={filteredOffers}
-            onBookNowPress={onBookNowPress}
-            system={bookingError || offerError}
-        />
+        <>
+            <Stack.Screen options={{headerShown: true}}/>
+            <TESTUSERBOOK 
+                offers={list}
+                onBookNowPress={onBookNowPress}
+                system={bookingError || offerError}
+            />
+        </>
     )
 }

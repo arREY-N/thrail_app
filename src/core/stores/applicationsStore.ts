@@ -1,12 +1,12 @@
 import { ApplicationRepository } from '@/src/core/repositories/applicationRepository';
-import { ApplicationUI } from '@/src/types/entities/Application';
+import { Application } from '@/src/types/entities/Application';
 import { Property } from '@/src/types/Property';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
 import { editProperty } from '../utility/editProperty';
-
-export interface ApplicationState extends BaseStore<ApplicationUI>{
+export interface ApplicationState extends BaseStore<Application>{
     approveApplication: (id: string) => Promise<void>;
+    rejectApplication: (id: string, message: string) => Promise<void>;
 }
 
 const applicationTemplate = {
@@ -59,11 +59,11 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
         set({ isLoading: true, error: null});
         
         if(!id){
-            console.log('new')
             set({ 
-                current: new ApplicationUI(), 
+                current: new Application(), 
                 isLoading: false
             })
+            return;
         }
         
         try {
@@ -119,16 +119,9 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
         
         try {
 
-            const completeApplication = new ApplicationUI({ ...current, ...data})
+            const completeApplication = new Application({ ...current, ...data})
 
             console.log(completeApplication)
-
-            const STOP = true;
-
-            if(STOP){
-                set({ isLoading: false })
-                return false;
-            }
 
             await ApplicationRepository.write(completeApplication);
                     
@@ -147,25 +140,41 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
     approveApplication: async (id: string) => {
         set({ isLoading: true, error: null});
         try {
+            const application = get().current;
             const data = get().data;
-            let application = null;
 
-            if(data.length > 0){
-                application = data.find(d => d.id === id);
-            }
+            const updatedApp = await ApplicationRepository.fetchById(id);
 
-            if(!application){
-                application = await ApplicationRepository.fetchById(id);
+            if(!updatedApp) {
+                throw new Error('Application cannot be found');
             }
             
-            if(!application) throw new Error('Application not found');
+            set({
+                data: data.map(a => a.id === id ? updatedApp : a),
+                isLoading: false
+            })
+        } catch (err) {
+            console.error((err as Error).message);
+            set({
+                error: (err as Error).message ?? 'Failed approving application',
+                isLoading: false
+            })
+        }
+    },
+
+    rejectApplication: async (id: string, message: string) => {
+        set({ isLoading: true, error: null});
+        try {
+            const application = get().current;
+            const data = get().data;
             
-            const updatedApp = {
+            const updatedApp = new Application({
                 ...application,
-                approved: true
-            }
+                status: 'rejected',
+                message,
+            });
 
-            await ApplicationRepository.write(updatedApp);
+            await ApplicationRepository.update(updatedApp);
 
             set({
                 data: data.map(a => a.id === id ? updatedApp : a),

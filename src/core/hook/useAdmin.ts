@@ -1,10 +1,14 @@
-import { OfferUI, UseOfferParams } from "@/src/types/entities/Offer";
+import { OfferUI } from "@/src/types/entities/Offer";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useBusinessesStore } from "../stores/businessesStore";
 import { useOffersStore } from "../stores/offersStore";
 
-export function useAdmin(params: UseOfferParams){
+export type AdminParams = {
+    businessId: string | null
+}
+
+export function useAdmin(params: AdminParams){
     const { businessId } = params
 
     const businessAccount = useBusinessesStore(s => s.current);

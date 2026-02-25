@@ -8,12 +8,16 @@ import { Property } from '@/src/types/Property';
 import { create } from "zustand";
 
 export interface TrailState extends BaseStore<TrailUI> {
-    hikingTrail: TrailUI[] | [];
-    setHikingTrail: (id: string) => TrailUI; 
+    hikingTrail: {
+        trail: TrailUI | null;
+        hiking: boolean;
+    };
+    setHikingTrail: (id: string) => void; 
     recommendedTrail: TrailUI[] | [];
     setRecommendedTrail: (id: string) => Promise<TrailUI[] | []> 
     discoverTrail: TrailUI[] | [];
-    setDiscoverTrail: () => Promise<TrailUI[] | []>
+    setDiscoverTrail: () => Promise<TrailUI[] | []>;
+    setOnHike: () => void;
 }
 
 const init = {
@@ -21,7 +25,10 @@ const init = {
     current: null,
     isLoading: true,
     error: null,
-    hikingTrail: [],
+    hikingTrail: {
+        trail: null,
+        hiking: false,
+    },
     recommendedTrail: [],
     discoverTrail: [],
 }
@@ -123,8 +130,10 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
         set({ isLoading: true, error: null });
         
         try {
+            console.log(current);
             const validatedTrail = new TrailUI(current);
-
+            console.log(validatedTrail)
+            
             const info = TRAIL_INFORMATION;
             const generalErrors = validateTrail(validatedTrail, info)            
 
@@ -172,6 +181,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
     },
 
     edit: (property: Property) => {
+        console.log(property);
         set((state) => {
             if(!state.current) {
                 
@@ -185,9 +195,52 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
 
     reset: () => set(init),
 
-    setHikingTrail: () => {
+    setHikingTrail: (id: string) => {
+        set({ isLoading: true, error: null })
+        console.log('setting: ', id);
+        try {
+            const data = get().data;
+            const trail = data.find(t => t.id === id);
+
+            if(!trail){
+                set({ 
+                    error: 'Trail not found', 
+                    isLoading: false 
+                })
+                return;
+            }
+
+            set((state) => {
+                return {
+                    hikingTrail: {
+                        ...state.hikingTrail,
+                        trail,
+                    }
+                }
+            })
+        } catch (err) {
+            console.error((err as Error).message);
+            set({
+                error: (err as Error).message,
+                isLoading: false
+            })
+        }
         let trail: TrailUI = new TrailUI();
         return trail;
+    },
+
+    setOnHike: () => {
+        const hiking = get().hikingTrail.hiking;
+        console.log(hiking);
+
+        set((state) => {
+            return {
+                hikingTrail: {
+                    ...state.hikingTrail,
+                    hiking: !hiking
+                }
+            }
+        })
     },
 
     setDiscoverTrail: async () => {
@@ -200,139 +253,9 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
         let recommended: TrailUI[] = []
         return recommended;
     },
-
-    // hikeTrail: async (id: string) => {
-    //     set({ isLoading: true, error: null });
-
-    //     try {
-    //         const trail = get().data.find(t => t.id === id);
-
-    //         if(!trail) throw new Error('Trail not found');
-
-    //         const map = await TrailRepository.getMap(id);
-    //         const weather = await getTrailWeather(trail.province);
-
-    //         set({
-    //             hikingTrail: {
-    //                 trail,
-    //                 map, 
-    //                 weather,
-    //                 hiking: false
-    //             },
-    //             isLoading: false
-    //         })
-    //     } catch (err: any) {
-    //         set({
-    //             isLoading: false,
-    //             error: err.message || 'Failed setting trail'
-    //         })
-    //     }
-    // },
 }))
 
 // export const useTrailsStore = create<TrailState>((set, get) => ({
-//     ...init,
-
-//     reset: () => set(init),
-
-//     resetTrail: () => set({trail: trailTemplate}),
-
-
-//     hikeTrail: async (id) => {
-//         set({ isLoading: true, error: null });
-
-//         try {
-//             const trail = get().trails.find(t => t.id === id);
-
-//             if(!trail) throw new Error('Trail not found');
-
-//             const map = await getTrailMap(id);
-//             const weather = await getTrailWeather(trail.province);
-
-//             set({
-//                 hikingTrail: {
-//                     trail,
-//                     map, 
-//                     weather,
-//                     hiking: false
-//                 },
-//                 isLoading: false
-//             })
-//         } catch (err) {
-//             set({
-//                 isLoading: false,
-//                 error: err.message || 'Failed setting trail'
-//             })
-//         }
-//     },
-
-//     setOnHike: () => {
-//         const hiking = get().hikingTrail.hiking;
-//         console.log(hiking);
-
-//         set((state) => {
-//             return {
-//                 hikingTrail: {
-//                     ...state.hikingTrail,
-//                     hiking: !hiking
-//                 }
-//             }
-//         })
-//     },
-
-//     fetchTrails: async () => {
-//         if(get().trails.length > 0) return;
-
-//         set({isLoading: true, error: null});
-
-//         try {
-//             const trails = await fetchAllTrails();
-//             const sorted = trails.sort((a, b) => a.name.localeCompare(b.name))             
-//             set({
-//                 trails: sorted, 
-//                 isLoading: false
-//             })
-//         } catch (err) {
-//             console.error(err);
-//             set({
-//                 error: err.message ?? 'Failed to load trails',
-//                 isLoading: false
-//             });
-//         }
-//     },
-
-//     loadTrail: async (id) => {
-//         if(get().trails.length > 0){
-//             const trail = get().trails.find(t => t.id === id);
-
-//             if(!trail){
-//                 set({
-//                     error: 'Trail Not found',
-//                     trail: trailTemplate
-//                 })
-//                 return;
-//             }
-
-//             set({
-//                 trail
-//             })
-//         }
-//     },
-
-//     refreshTrails: async () => {
-//         set({isLoading: true, error: null});
-
-//         try {
-//             const trails = await fetchAllTrails();
-//             set({trails, isLoading: false});
-//         } catch (err) {
-//             console.error(err);
-//             set({
-//                 error: err.message ?? 'Failed to load trails',
-//                 isLoading: false
-//             });
-//         }
-//     },
 
 //     setRecommendedTrails: async (recommendations) => {
 //         set({ isLoading: true, error: null});
@@ -366,31 +289,3 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
 //             })
 //         }
 //     },
-
-//     setDiscoverTrails: () => {
-//         set({ isLoading: true, error: null })
-
-//         try {
-//             // generate 5 random numbers
-//             // fetch trails[random_number] save to discoverTrails
-
-//             if(true){
-//                 set({
-//                     error: 'Function to be added soon',
-//                     isLoading: false
-//                 })
-//                 return;
-//             }
-
-//             // set({
-//             //     isLoading: false,
-//             // })
-//         } catch (err) {
-//             console.error(err);
-//             set({
-//                 error: err.message || 'Failed loading discover trails'
-//             })
-//         }
-//     }
-// }));
-

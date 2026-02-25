@@ -2,6 +2,7 @@
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
 import useApply from '@/src/core/hook/useApply';
+import { Stack } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import LoadingScreen from '../../loading';
 
@@ -26,13 +27,15 @@ export default function applyBusiness(){
         //     onBackPress={onBackPress}
         // />
 
-
-        <TESTAPPLY
-            information={information}
-            application={application}
-            onEditProperty={onEditProperty}
-            onApplyPress={onApplyPress}
-        />
+        <>
+            <Stack.Screen options={{headerShown: true}}/>
+            <TESTAPPLY
+                information={information}
+                application={application}
+                onEditProperty={onEditProperty}
+                onApplyPress={onApplyPress}
+            />
+        </>
     )
 }
 

@@ -105,7 +105,7 @@ const WriteComponent = ({
                                 {
                                     opts && opts.map(o => {
                                         return(
-                                            <Pressable style={(val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
+                                            <Pressable style={(val === o || val.name === o) ? styles.true : styles.false} onPress={() => onEditProperty({
                                                 type: type,
                                                 key: prop,
                                                 value: o

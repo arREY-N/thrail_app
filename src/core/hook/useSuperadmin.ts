@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { useApplicationsStore } from '../stores/applicationsStore';
 
-type SuperadminParams = {
+export type SuperadminParams = {
     role: string;
 }
 
@@ -24,8 +24,8 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const trailCount = trails.length;
     const trailLoading = useTrailsStore(s => s.isLoading);
 
-    const mountains = useMountainsStore(s => s.mountains);
-    const loadAllMountains = useMountainsStore(s => s.loadAllMountains);
+    const mountains = useMountainsStore(s => s.data);
+    const loadAllMountains = useMountainsStore(s => s.fetchAll);
     const mountainCount = mountains.length;
     const mountainLoading = useMountainsStore(s => s.isLoading);
 
@@ -33,12 +33,13 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const loadAllUsers = useUsersStore(s => s.fetchAll);
     const userCount = users.filter(u => u.role === 'user').length;
     const adminCount = users.filter(u => u.role === 'admin').length;
+    const superadminCount = users.filter(u => u.role === 'superadmin').length;
     const userLoading = useUsersStore(s => s.isLoading);
 
-    const applications = useApplicationsStore(s => s.applications);
-    const application = useApplicationsStore(s => s.application);
-    const loadAllApplications = useApplicationsStore(s => s.loadAllApplications);
-    const reloadApplications = useApplicationsStore(s => s.reloadApplications);
+    const applications = useApplicationsStore(s => s.data);
+    const application = useApplicationsStore(s => s.current);
+    const loadAllApplications = useApplicationsStore(s => s.fetchAll);
+    const reloadApplications = useApplicationsStore(s => s.refresh);
     const applicationCount = applications.length;
     const approvedApplicationCount = applications.filter((a: any) => a.approved === true).length;
     const pendingApplicationCount = applications.filter((a: any) => a.approved === null).length;
@@ -79,11 +80,15 @@ export default function useSuperadmin(params: SuperadminParams | null){
     }
     
     function onManageUsersPress(){
-
+        router.push({
+            pathname: '/(main)/superadmin/user/list'
+        })
     }
     
     function onManageMountainPress(){
-
+        router.push({
+            pathname: '/(main)/superadmin/mountain/list'
+        })
     }
 
     function onCheckApplication(
@@ -118,6 +123,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
     function onWriteTrail(
         trailId: string
     ){
+        console.log('to write', trailId);
         if(trailId){
             router.push({
                 pathname: '/(main)/superadmin/trail/write',
@@ -130,6 +136,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         }
     }
 
+    console.log(users);
     return {
         role: params?.role,
         businesses,
@@ -139,6 +146,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         users,
         userCount,
         adminCount,
+        superadminCount,
         mountains,
         mountainCount,
         applications,

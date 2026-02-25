@@ -1,34 +1,27 @@
-import { useAuthStore } from '@/src/core/stores/authStore';
-import { useRouter } from 'expo-router';
 import React from 'react';
 
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
+import { useAuthHook } from '@/src/core/hook/useAuthHook';
+import useBusiness from '@/src/core/hook/useBusiness';
+import useUserDomain from '@/src/core/hook/useUserDomain';
 
 export default function profile(){
-    const router = useRouter();
-    const role = useAuthStore(s => s.role);
+    const {
+        profile,
+        role,
+        onSignOutPress,
+    } = useAuthHook();
 
-    const signOut = useAuthStore(s => s.signOut);
-    const profile = useAuthStore(s => s.profile);
+    const {
+        onAdminPress,
+        onSuperadminPress,
+        onViewAccountPress,
+    } = useUserDomain();
 
-    async function onSignOutPress(){
-        await signOut();
-    }
-
-    function onApplyPress(){
-        router.push('/(main)/business/apply');
-    }
-
-    function onAdminPress(){
-        router.push('/(main)/admin')
-    }
-    
-    function onSuperadminPress(){
-        router.push('/(main)/superadmin');
-    }
+    const { onApplyPress } = useBusiness();
 
     return (
         <View>
@@ -37,6 +30,14 @@ export default function profile(){
                 onApplyPress={onApplyPress}
                 profile={profile}
             />
+
+            <CustomButton 
+                title="View Account" 
+                onPress={() => onViewAccountPress(profile.id)} 
+                variant="primary"
+                style={styles.buttonSpacing}
+            />
+
             { role === 'superadmin' &&
                 <View>
                     <CustomButton 

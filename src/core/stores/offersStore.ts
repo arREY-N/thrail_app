@@ -1,4 +1,4 @@
-import { BusinessUI } from "@/src/types/entities/Business";
+import { Business } from "@/src/types/entities/Business";
 import { OfferBusiness, OfferUI } from "@/src/types/entities/Offer";
 import { create } from "zustand";
 import { Store } from "../interface/storeInterface";
@@ -136,6 +136,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
             const data = get().data;
 
             let offers: OfferUI[] = [];
+            console.log(data);
 
             if(data.length > 0){
                 offers = data.filter(o => o.trail.id === id)
@@ -154,10 +155,12 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 return;
             }
             
+            console.log(offers);
             set({
                 trailOffers: offers,
                 isLoading: false
             })  
+            console.log(get().trailOffers);
         } catch (err) {
             console.error((err as Error).message);
             set({
@@ -178,13 +181,13 @@ export const useOffersStore = create<OfferState>((set, get) => ({
             return;
         }
 
-        if(!businessId){
-            set({ 
-                error: 'No Business ID selected',
-                isLoading: false,
-            });
-            return;
-        }
+        // if(!businessId){
+        //     set({ 
+        //         error: 'No Business ID selected',
+        //         isLoading: false,
+        //     });
+        //     return;
+        // }
 
         try {
             const data = get().data;
@@ -192,10 +195,12 @@ export const useOffersStore = create<OfferState>((set, get) => ({
             let offer = null;
 
             if(data.length > 0){
+                console.log('data is filled')
                 offer = data.find(d => d.id === id);
             }
 
             if(!offer){
+                console.log('go to repo');
                 offer = await OfferRepository.fetchById({id, businessId});
             }
 
@@ -220,13 +225,13 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         }
     },
 
-    create: async (data: BusinessUI) => {
+    create: async (data: Business) => {
         set({isLoading: true, error: null});
 
         try {
             const business: OfferBusiness = {
                 id: data.id || '',
-                name: data.name 
+                name: data.businessName 
             }
 
             const offer = new OfferUI({...get().current, business});
@@ -245,6 +250,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 
                 return {
                     businessOffers: offers,
+                    data: offers,
                     isLoading: false
                 }
             });

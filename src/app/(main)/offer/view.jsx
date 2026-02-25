@@ -1,6 +1,6 @@
 import TESTBOOK from '@/src/components/TESTCOMPONENTS/TestBook';
 import { useBookView } from '@/src/core/hook/useBookView';
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 
 export default function viewOffer(){
     const { offerId } = useLocalSearchParams();
@@ -19,16 +19,21 @@ export default function viewOffer(){
         profile,
     } = useBookView({ offerId });
     
+    console.log(offer);
+    
     return(
-        <TESTBOOK 
-            offer={offer}
-            profile={profile}
-            mode={mode}
-            setMode={setMode}
-            modes={modes}
-            onPayPress={onPayPress}
-            isLoading={paymentIsLoading || bookingIsLoading}
-            system={systemBookings || systemOffers || systemPayments}
-        /> 
+        <>
+            <Stack.Screen options={{headerShown: true}}/>
+            <TESTBOOK 
+                offer={offer}
+                profile={profile}
+                mode={mode}
+                setMode={setMode}
+                modes={modes}
+                onPayPress={onPayPress}
+                isLoading={paymentIsLoading || bookingIsLoading}
+                system={systemBookings || systemOffers || systemPayments}
+            /> 
+        </>
     )
 }

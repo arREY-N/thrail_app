@@ -1,4 +1,5 @@
-import { BusinessUI } from "@/src/types/entities/Business";
+import { Application } from "@/src/types/entities/Application";
+import { Business } from "@/src/types/entities/Business";
 import { UserUI } from "@/src/types/entities/User";
 import { create } from "zustand";
 import { BaseStore } from "../interface/storeInterface";
@@ -9,7 +10,7 @@ type AdminUI = {
     businessId: string,
 }
 
-export interface BusinessState extends BaseStore<BusinessUI>{
+export interface BusinessState extends BaseStore<Business>{
     businessAdmins: UserUI[] 
 
     createBusinessAdmin: (admin: AdminUI) => Promise<void>
@@ -88,7 +89,7 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
 
     load: async (id: string | null) => {
         if(!id){
-            set({ current: new BusinessUI() })
+            set({ current: new Business() })
             return;
         }
 
@@ -128,15 +129,22 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
         }
     },
 
-    create: async () => {
+    create: async (application: Application, id: string) => {
         set({isLoading: true, error: null});
 
-        const businessData = get().current;
-
         try {
-            if(!businessData) throw new Error('Invalid business data');
+            if(!application) throw new Error('Invalid business data');
             
-            const newAccount = await BusinessRepository.write(businessData);
+            const business = Business.fromApplication(application);
+
+            console.log('BusinessStore: ', business);
+
+            console.log('ID:' ,id);
+            const newAccount = await BusinessRepository.write(
+                business,
+                id,
+            );
+            
             console.log('New: ', newAccount)
 
             const sanitizedAccount = {

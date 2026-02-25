@@ -1,18 +1,21 @@
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 
-export default function useBusiness(
+export type BusinessParams = {
     role: string,
     businessId: string,
-){
+}
+
+export default function useBusiness(params: BusinessParams | null){
     const business = useBusinessesStore(s => s.current);
     const loadBusiness = useBusinessesStore(s => s.load);
     const deleteBusiness = useBusinessesStore(s => s.delete);
 
     useEffect(() => {
-        if(role === 'user') return;        
-        if(businessId) loadBusiness(businessId);
-    }, []);
+        if(params?.role === 'user') return;        
+        if(params?.businessId) loadBusiness(params?.businessId);
+    }, [params?.role, params?.businessId]);
 
 
     async function onDeleteBusinessPress(
@@ -21,9 +24,16 @@ export default function useBusiness(
         await deleteBusiness(id);
     }
 
+    const onApplyPress = () => {
+        console.log('Apply business');
+        router.push({
+            pathname: '/(main)/business/apply'
+        })
+    }
+
     return {
         business,
         onDeleteBusinessPress,
+        onApplyPress,
     }
-
 }

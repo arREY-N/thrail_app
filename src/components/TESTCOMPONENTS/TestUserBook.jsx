@@ -1,3 +1,4 @@
+import { formatDate } from "@/src/core/utility/date";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 const TESTUSERBOOK = ({
@@ -16,8 +17,8 @@ const TESTUSERBOOK = ({
                         <View style={styles.offerForm} key={o.id}>
                             <Text>Trail: {o.trail.name}</Text>
                             <Text>Price: P{o.price}.00 </Text>
-                            <Text>Date: {o.date}</Text>
-                            <Text>Duration: {o.duration}</Text>
+                            <Text>Date: {formatDate(o.hikeDate)}</Text>
+                            <Text>Duration: {o.hikeDuration}</Text>
                             <Text>Documents: {o.documents.join(', ')}</Text>
                             <Text>Inclusions: {o.inclusions.length > 0 ? o.inclusions.join(', ') : 'None'}</Text>
                             <Text>Description: {o.description}</Text>

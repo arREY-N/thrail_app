@@ -1,28 +1,46 @@
 import { BusinessDB, BusinessUI } from "@/src/types/entities/Business";
-import { serverTimestamp } from "firebase/firestore";
-import { timestampToISO, toDate } from "../utility/date";
 
 export const BusinessMapper = {
     toUI(data: BusinessDB): BusinessUI {
         return {
             active: data.active,
-            address: data.address,
-            name: data.businessName,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            ownerId: data.owner.id,
+            ownerName: data.owner.name,
+            email: data.owner.email,
+            validId: data.owner.validId,
+            businessName: data.business.name,
+            address: data.business.address,
+            establishedOn: data.business.establishedOn,
+            servicedLocation: data.business.servicedLocation,
+            ...data.permits,
             id: data.id,
-            createdAt: timestampToISO(data.createdAt),
-            province: data.province,
-            updatedAt: toDate(data.updatedAt),
         }
     },
     toDB(data: BusinessUI): BusinessDB {
         return {
-            active: data.active,
-            address: data.address,
-            businessName: data.name,
-            createdAt: serverTimestamp(),
-            id: data.id || '',
-            province: data.province,
-            updatedAt: serverTimestamp(),
+            id: data.id,
+            active: data.active, 
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            owner: {
+                id: data.ownerId,
+                name: data.ownerName,
+                email: data.email,
+                validId: data.validId,
+            },
+            business: {
+                name: data.businessName,
+                address: data.address,
+                establishedOn: data.establishedOn,
+                servicedLocation: data.servicedLocation,
+            },
+            permits: {
+                bir: data.bir,
+                denr: data.denr,
+                dti: data.dti,
+            }
         }
     }
 }

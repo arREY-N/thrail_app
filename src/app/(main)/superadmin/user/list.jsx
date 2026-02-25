@@ -1,24 +1,21 @@
-import { useUsersStore } from "@/src/core/stores/usersStore";
-import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import LoadingScreen from "@/src/app/loading";
+import useUserDomain from "@/src/core/hook/useUserDomain";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-export default function user(){
-    const system = useUsersStore(s => s.error);
-    const isLoading = useUsersStore(s => s.isLoading);
-    const loadUsers = useUsersStore(s => s.loadAllUsers);
-    const users = useUsersStore(s => s.users);
-    const onDeleteAccountPress = useUsersStore(s => s.deleteAccount);
+export default function listUsers(){
+    const {
+        users,
+        error,
+        isLoading,
+    } = useUserDomain();
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
-
+    if(isLoading) return <LoadingScreen/>
+    
     return (
         <TESTUSER
             isLoading={isLoading}
-            system={system}
+            system={error}
             users={users}
-            onDeleteAccountPress={onDeleteAccountPress}
         />
     );
 }
@@ -27,7 +24,6 @@ const TESTUSER = ({
     isLoading,
     system,
     users,
-    onDeleteAccountPress
 }) => {
     return(
         <ScrollView>
@@ -41,9 +37,7 @@ const TESTUSER = ({
                         <Text>Name: {u.firstname} {u.lastname}</Text>
                         <Text>Email: {u.email}</Text>
                         <Text>Role: {u.role}</Text>
-                        <Pressable onPress={() => onDeleteAccountPress(u.id)}>
-                            <Text>Delete Account</Text>
-                        </Pressable>
+                                                
                     </View>
                 )}) 
             }

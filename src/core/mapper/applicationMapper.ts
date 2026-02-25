@@ -1,4 +1,6 @@
 import { ApplicationDB, ApplicationUI } from "@/src/types/entities/Application";
+import { serverTimestamp, Timestamp } from "firebase/firestore";
+import { timestampToISO } from "../utility/date";
 
 export const ApplicationMapper = {
     toUI(data: ApplicationDB): ApplicationUI {
@@ -11,11 +13,12 @@ export const ApplicationMapper = {
             validId: data.applicant.validId,
             businessName: data.business.name,
             businessAddress: data.business.address,
-            establishedOn: data.business.establishedOn,
+            establishedOn: new Date(timestampToISO(data.business.establishedOn)),
             servicedLocation: data.business.servicedLocation,
-            createdAt: data.createdAt,
+            createdAt: new Date(timestampToISO(data.createdAt)),
+            updatedAt: new Date(timestampToISO(data.updatedAt)),
+            message: data.message,
             ...data.permits,
-            
         }
 
         return application;
@@ -24,7 +27,9 @@ export const ApplicationMapper = {
         const application = {
             id: data.id,
             status: data.status,
-            createdAt: data.createdAt,
+            createdAt: Timestamp.fromDate(data.createdAt) ?? serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            message: data.message,
             applicant: {
                 id: data.userId,
                 email: data.email,
@@ -35,7 +40,7 @@ export const ApplicationMapper = {
                 name: data.businessName,
                 address: data.businessAddress,
                 servicedLocation: data.servicedLocation,
-                establishedOn: data.establishedOn,
+                establishedOn: Timestamp.fromDate(data.establishedOn),
             },
             permits: {
                 denr: data.denr,

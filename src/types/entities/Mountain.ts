@@ -11,3 +11,12 @@ export interface MountainDB{
         province: string[];
     }
 }
+
+export class MountainUI{
+    name: string = '';
+    province: string[] = [];
+    
+    constructor(init?: Partial<MountainUI>){
+        Object.assign(this, init);
+    }
+}

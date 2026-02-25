@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import { useTrailsStore } from "../stores/trailsStore";
 
-type TrailParams = {
+export type TrailParams = {
     trailId: string | null,
     mode: Mode
 }
@@ -11,7 +11,10 @@ type TrailParams = {
 export default function useTrailDomain(params: TrailParams | null = null){
     const trails = useTrailsStore(s => s.data);
     const trail = useTrailsStore(s => s.current);
+    const hikingTrail = useTrailsStore(s => s.hikingTrail);
 
+    const setOnHike = useTrailsStore(s => s.setOnHike);
+    const setHikingTrail = useTrailsStore(s => s.setHikingTrail);
     const fetchAllTrails = useTrailsStore(s => s.fetchAll);
     const load = useTrailsStore(s => s.load);
 
@@ -28,23 +31,33 @@ export default function useTrailDomain(params: TrailParams | null = null){
     }
 
     const onHikePress = (trailId: string) => {
-        console.log('hiking ', trailId);
-    }
-
-    const onBookPress = (trailId: string) => {
-        console.log('booking', trailId);
+        setHikingTrail(trailId);
+        router.push({
+            pathname: '/(main)/hike/view'
+        })
     }
 
     const onWriteTrail = (trailId: string) => {
         console.log('write: ', trailId)
+        if(trailId){
+            router.push({
+                pathname: '/(main)/superadmin/trail/write',
+                params: {trailId}
+            });
+        } else {
+            router.push({
+                pathname: '/(main)/superadmin/trail/write',
+            });
+        }
     }
 
     return{
         trails,
         trail,
+        hikingTrail,
+        setOnHike,
         onViewTrail,
-        onHikePress, 
-        onBookPress,
+        onHikePress,
         onWriteTrail,
     }
 }

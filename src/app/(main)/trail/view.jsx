@@ -1,5 +1,6 @@
 import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/useAuthHook";
+import { useOfferDomain } from "@/src/core/hook/useOfferDomain";
 import useTrailDomain from "@/src/core/hook/useTrailDomain";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
@@ -16,9 +17,12 @@ export default function viewTrail(){
     const {
         trail,
         onHikePress,
-        onBookPress,
         onWriteTrail, 
     } = useTrailDomain({ trailId });
+
+    const {
+        onSeeTrailOffers
+    } = useOfferDomain({});
     
     if(!trail) return <LoadingScreen/>;
 
@@ -35,7 +39,7 @@ export default function viewTrail(){
                 onBackPress={onBackPress} 
                 onDownloadPress={onDownloadPress} 
                 onHikePress={onHikePress}
-                onBookPress={onBookPress}
+                onBookPress={onSeeTrailOffers}
                 onEditPress={onWriteTrail}
             />
         </>

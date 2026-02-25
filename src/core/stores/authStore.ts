@@ -25,6 +25,8 @@ export interface AuthState{
     account: SignUpUI;
     remember: boolean;
     isChecking: boolean;
+
+    signOut: () => Promise<void>;
 }
 
 const accountTemplate = {
@@ -161,7 +163,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             await signOut(auth);
 
             set({
-                ...init,
                 isLoading: false,
             })
         } catch (err) {

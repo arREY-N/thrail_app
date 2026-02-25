@@ -2,13 +2,17 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
+import { OfferUI } from "@/src/types/entities/Offer";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
+export type BookParams = {
+    offerId: string | null;
+}
 
-export function useBookView({
-    offerId = null,
-}){
+export function useBookView(params: BookParams){
+    const { offerId } = params;
+
     const systemOffers = useOffersStore(s => s.error);
     const systemPayments = usePaymentsStore(s => s.error);
     const systemBookings = useBookingsStore(s => s.error);
@@ -16,10 +20,10 @@ export function useBookView({
     const router = useRouter();    
     const profile = useAuthStore(s => s.profile);
 
-    const loadOffer = useOffersStore(s => s.loadOffer);
-    const offer = useOffersStore(s => s.offer);
+    const loadOffer = useOffersStore(s => s.load);
+    const offer = useOffersStore(s => s.current);
 
-    const createPayment = usePaymentsStore(s => s.createPayment);
+    const createPayment = usePaymentsStore(s => s.create);
     const paymentIsLoading = usePaymentsStore(s => s.isLoading);
     
     const createBooking = useBookingsStore(s => s.createBooking);
@@ -33,21 +37,24 @@ export function useBookView({
     const cancelBooking = useBookingsStore(s => s.cancelBooking);
     
     useEffect(() => {
-        if(offerId) loadOffer(offerId)
+        console.log('loading: ', offerId);
+        loadOffer({ id: offerId })
     }, [offerId]);
 
-    const onCancelBookingPress = (bookingData) => {
+    function onCancelBookingPress(bookingData: OfferUI){
         try {
+            if(!profile) throw new Error('Profile is empty');
+
             cancelBooking({
                 cancelledBy: profile.role,
                 bookingData
             });
         } catch (err) {
-            console.log(err.message);
+            console.log((err as Error).message);
         }
     }
 
-    const onPayPress = async (mode) => {
+    const onPayPress = async (mode: string) => {
         const payment = await createPayment({
             profile,
             offer,
@@ -63,11 +70,13 @@ export function useBookView({
             },
         });
 
-        router.push({
-            pathname: '/receipt/view',
-            params: { paymentId: payment.id }
-        });
+        // router.push({
+        //     pathname: '/receipt/view',
+        //     params: { paymentId: payment.id }
+        // });
     }
+
+    console.log(offer);
 
     return {
         offer,

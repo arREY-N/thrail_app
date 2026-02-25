@@ -1,20 +1,22 @@
 import TESTHIKE from "@/src/components/TESTCOMPONENTS/TestHike";
-import useTrailHook from "@/src/core/hook/useTrailHook";
-import { useLocalSearchParams } from "expo-router";
+import useTrailHike from "@/src/core/hook/useTrailHike";
+import { Stack } from "expo-router";
 
 export default function hikeView(){
-    const { trailId } = useLocalSearchParams();
+    // const { trailId } = useLocalSearchParams();
     
     const { 
         hikingTrail, 
         setOnHike, 
-    } = useTrailHook({ trailId, mode: 'view' });
-
+    } = useTrailHike({});
 
     return(
-        <TESTHIKE
-            hikeTrail={hikingTrail}
-            onStartHikePress={setOnHike}
-        />
+        <>
+            <Stack.Screen options={{headerShown: true}}/> 
+            <TESTHIKE
+                hikeTrail={hikingTrail}
+                onStartHikePress={setOnHike}
+            />
+        </>
     )
 }

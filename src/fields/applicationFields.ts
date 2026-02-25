@@ -5,7 +5,7 @@ export const APPLICATION_INFO = {
             type: 'text',
             required: true,
         },
-        address: {
+        businessAddress: {
             text: 'Office Address',
             type: 'text',
             required: true,

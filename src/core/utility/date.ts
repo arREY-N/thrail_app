@@ -7,6 +7,23 @@ export const timestampToISO = (ts: Timestamp | FieldValue | Date | undefined | n
     return "";
 }
 
+export const formatDate = (
+    date: Date | null | undefined, 
+    options: 'full' | 'short' | 'time' = 'full'
+): string => {
+    if (!date || isNaN(date.getTime())) return 'N/A';
+
+    const configs = {
+        full: { month: 'short', day: 'numeric', year: 'numeric' },
+        short: { month: '2-digit', day: '2-digit', year: '2-digit' },
+        time: { hour: '2-digit', minute: '2-digit', hour12: true }
+    } as const; 
+
+    const config = configs[options];
+
+    return new Intl.DateTimeFormat('en-US', config).format(date);
+};
+
 export const toDate = (value: Timestamp | FieldValue | any ) : Date => {
     if(value instanceof Timestamp) return value.toDate();
 

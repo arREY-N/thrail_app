@@ -81,6 +81,8 @@ export class TrailUI{
     province: string[] = [];
     mountain: string[] = [];
     masl: Meters = 0;
+    rating: number = 0;
+    reviewCount: number = 0;
     startLat: number = 0;
     startLong: number = 0;
     endLat: number = 0;

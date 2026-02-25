@@ -13,6 +13,7 @@ export default function listBusiness(){
         onDeleteBusinessPress,
     } = useSuperadmin();
 
+    console.log('Applications: ', applications);
     return(
         <TESTBUSINESS
             applications={applications}
@@ -51,7 +52,7 @@ const TESTBUSINESS = ({
                 </Pressable>
                 {
                     applications 
-                        ? applications.filter(a => a.approved === false).map(a => {                
+                        ? applications.filter(a => a.status === 'pending').map(a => {                
                             return(
                                 <View style={styles.application} key={a.id}>
                                     <Text>{a.businessName}</Text>

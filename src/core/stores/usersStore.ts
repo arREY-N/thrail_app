@@ -22,7 +22,6 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
     fetchAll: async () => {
         const data = get().data;
-
         if(data.length > 0) return;
 
         set({ isLoading: true, error: null });

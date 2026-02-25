@@ -8,22 +8,22 @@ const TESTWRITETRAIL = ({
     isLoading,
     onSubmitTrailPress,
     onRemoveTrailPress,
-    onEditProperty
+    onEditProperty,
+    options,
 }) => {
     const information = informationSet.general;
     const geography = informationSet.geography;
     const tourism = informationSet.tourism;
     const difficulty = informationSet.difficulty;
 
+    console.log(options);
     return(
         <ScrollView>
             <View style={styles.group}>
                 <WriteComponent
                     informationSet={information}
                     object={trail}
-                    optionSet={{
-                        mountains: ['Mt. A', 'Mt. B', 'Mt. C']
-                    }}
+                    optionSet={options}
                     onEditProperty={onEditProperty}
                 />
             </View>

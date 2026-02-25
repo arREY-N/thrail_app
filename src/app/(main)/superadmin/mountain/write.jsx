@@ -1,50 +1,30 @@
+import LoadingScreen from "@/src/app/loading";
 import WriteComponent from "@/src/components/CustomWriteComponents";
+import useMountainWrite from "@/src/core/hook/useMountainWrite";
 
-import { useMountainsStore } from "@/src/core/stores/mountainsStore";
-import { MOUNTAIN_INFORMATION } from "@/src/fields/mountainFields";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function WriteMountain(){
-    const router = useRouter();
     const { mountainId } = useLocalSearchParams();
 
-    const loadMountain = useMountainsStore(s => s.loadMountain);
-    const mountain = useMountainsStore(s => s.mountain);
-    const isLoading = useMountainsStore(s => s.isLoading);
-    const onEditProperty = useMountainsStore(s => s.editProperty);
-    const writeMountain = useMountainsStore(s => s.writeMountain);
-    const deleteMountain = useMountainsStore(s => s.deleteMountain);
-    const error = useMountainsStore(s => s.error);
+    const {
+        mountain,
+        information,
+        onEditProperty,
+        onSubmit,
+        onDelete,
+        error,
+        isLoading,
+    } = useMountainWrite({mountainId})
 
-    const information = MOUNTAIN_INFORMATION;
-
-    useEffect(() => {
-        console.log('Check: ', mountainId)
-        loadMountain(mountainId ?? null)
-    }, [mountainId]);
-
-    const onSubmit = async () => {
-        const success = await writeMountain();
-        if(!success) return;
-        router.back();
-    }
-
-    const onDelete = async () => {
-        if(mountainId) await deleteMountain(mountainId);
-        router.back();
-    }
-
-    // if(isLoading) return <LoadingScreen/>
-
-    if(!mountain) return null;
+    if(!mountain || isLoading) return <LoadingScreen/>;
 
     return(
         <TestWriteMountain
             mountain={mountain}
             information={information}
-            onEditProperty={() => onEditProperty}
+            onEditProperty={onEditProperty}
             onSubmit={onSubmit}
             onDelete={onDelete}   
             error={error} 

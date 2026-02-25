@@ -1,6 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import TESTWRITETRAIL from "@/src/components/TESTCOMPONENTS/TestWriteTrail";
-import useTrailHook from "@/src/core/hook/useTrailHook";
+import useTrailWrite from "@/src/core/hook/useTrailWrite";
 import { useLocalSearchParams } from "expo-router";
 
 export default function write(){
@@ -10,20 +10,22 @@ export default function write(){
         information,
         trail,
         error,
-        loading,
+        isLoading,
+        options,
         onSubmitPress,
         onRemovePress,
-        onEditProperty
-    } = useTrailHook({ trailId, mode: 'write' })
+        onEditProperty,
+    } = useTrailWrite({id: trailId});
     
     if(!trail) return <LoadingScreen/>
 
     return (
         <TESTWRITETRAIL
+            options={options}
             informationSet={information}
             trail={trail}
             system={error}
-            isLoading={loading}
+            isLoading={isLoading}
             onSubmitTrailPress={onSubmitPress}
             onRemoveTrailPress={onRemovePress}
             onEditProperty={onEditProperty}

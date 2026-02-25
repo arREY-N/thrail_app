@@ -1,10 +1,9 @@
 import { db } from '@/src/core/config/Firebase';
-import { BusinessDB, BusinessUI } from '@/src/types/entities/Business';
+import { Business, businessConverter, IBusiness } from '@/src/types/entities/Business';
 import { UserDB, UserUI } from '@/src/types/entities/User';
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { BaseRepository } from '../interface/repositoryInterface';
-import { BusinessMapper } from '../mapper/businessMapper';
 import { UserMapper } from '../mapper/userMapper';
 
 export type AdminParams = {
@@ -12,58 +11,54 @@ export type AdminParams = {
     businessId: string,
 }
 
-export interface BusinessRepository extends BaseRepository<BusinessUI>{
+export interface BusinessRepository extends BaseRepository<IBusiness>{
     fetchBusinessAdmins(id: string): Promise<UserUI[]>
     createBusinessAdmin(...args: any[]): Promise<void>;
 }
 
-const businessCollection = collection(db, 'businesses').withConverter({
-    toFirestore: (business: BusinessDB) => business,
-    fromFirestore: (snapshot): BusinessDB => snapshot.data() as BusinessDB
-}); 
+const businessCollection = collection(db, 'businesses').withConverter(businessConverter); 
 
 class BusinessRepositoryImpl implements BusinessRepository{
-    async fetchAll(...args: any[]): Promise<BusinessUI[]> {
+    async fetchAll(...args: any[]): Promise<Business[]> {
         try{
             const snapshot = await getDocs(businessCollection);
-            return snapshot.docs.map((docsnap) => BusinessMapper.toUI(docsnap.data())); 
+            return snapshot.docs.map(doc => doc.data()); 
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching all businesses');
         }
     }
 
-    async fetchById(id: string, ...args: any[]): Promise<BusinessUI | null> {
+    async fetchById(id: string, ...args: any[]): Promise<Business | null> {
         try{
             const ref = doc(businessCollection, id);
             
             const snap = await getDoc(ref);
             
-            if(!snap.exists()) return null;
-            
-            return BusinessMapper.toUI(snap.data());
+            return snap.data() || null;
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching business');
         }
     }
     
-    async write(data: BusinessUI, ...args: any[]): Promise<BusinessUI> {
+    async write(data: Business, applicationId: string): Promise<Business> {
         const functions = getFunctions();
-
         const createBusiness = httpsCallable(functions, 'createBusiness');
+        
+        const firestoreData = data.toFirestore();
 
         try{
-            const businessDB = BusinessMapper.toDB({
-                    ...data,
-                active: true
+            console.log(firestoreData, applicationId);
+            
+            const result = await createBusiness({
+                data: firestoreData,
+                applicationId,
             });
 
-            const result = await createBusiness(businessDB);
-            
             if(!result) throw new Error('Failed creating business');
-
-            return BusinessMapper.toUI(businessDB);
+            console.log('repo: ', data);
+            return data;
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching business');
