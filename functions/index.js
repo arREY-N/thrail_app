@@ -14,6 +14,7 @@ admin.initializeApp();
 
 setGlobalOptions({ maxInstances: 10 });
 
+
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     const account = await admin.auth().getUser(user.uid);
 
@@ -108,123 +109,74 @@ exports.createAdmin = onCall(async (request) => {
 });
 
 exports.createBusiness = onCall(async (request) => {
-    const { active, userId, appId, email, businessName, address, province } = request.data;
-    const caller = request.auth;
+    const { data, applicationId } = request.data;
+    const auth = request.auth;
+
+    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (auth.token.role !== 'superadmin') {
+        throw new HttpsError('permission-denied', 'Only superadmins can approve applications');
+    }
+
+    const userId = data.owner?.id;
+    const appId = applicationId;
+    const db = admin.firestore();
 
     try {
-        console.log(request.data);
-        if(!caller) {
-            console.log('!caller');
-            throw new Error('Authentication Required');
-        }
-        
-        if(caller.token.role !== 'superadmin') {
-            console.log('!== superadmin');
-            throw new Error('Permission denied, only superadmin can create admin accounts');
-        }
-        
-        if(!province) {
-            console.log('Province missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        if(!address) {
-            console.log('Address missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        if(!appId) {
-            console.log('AppId missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        if(!userId) {
-            console.log('UserId missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        if(!businessName) {
-            console.log('Business Name missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        if(!email) {
-            console.log('Email missing')
-            throw new Error('Please fill up all information');
-        } 
-        
-        const db = admin.firestore();
-    
-        const busRef = db.collection('businesses').doc(userId);
-        const bus = await busRef.get();
+        const result = await db.runTransaction(async (transaction) => {
+            const busRef = db.collection('businesses').doc(userId);
+            const appRef = db.collection('applications').doc(appId);
+            const userRef = db.collection('users').doc(userId);
 
-        const application = db.collection('applications').doc(appId);
-        const app = await application.get();
-        
-        if(bus.exists && app.data().approved) { 
-            console.log('Approved')
-            throw new Error('Application already approved');
-        }
+            const [busSnap, appSnap, userSnap] = await Promise.all([
+                transaction.get(busRef),
+                transaction.get(appRef),
+                transaction.get(userRef)
+            ]);
 
-        console.log('Creating user claims')
+            if (appSnap.exists && appSnap.data().status === 'approved') {
+                throw new Error('Application already approved');
+            }
+            if (!userSnap.exists) {
+                throw new Error('Owner user account not found');
+            }
+
+            const userData = userSnap.data();
+
+            transaction.set(busRef, { 
+                ...data, 
+                updatedAt: FieldValue.serverTimestamp() 
+            }, { merge: true });
+
+            const adminSubRef = busRef.collection('admins').doc('owner');
+            transaction.set(adminSubRef, {
+                assignedAt: FieldValue.serverTimestamp(),
+                id: userId,
+                firstname: userData.firstname || '',
+                lastname: userData.lastname || '',
+                username: userData.username || '',
+                email: userData.email || '',
+                businessId: userId,
+            }, { merge: true });
+
+            transaction.update(appRef, { status: 'approved' });
+
+            transaction.update(userRef, { role: 'admin' });
+
+            return data;
+        });
 
         await admin.auth().setCustomUserClaims(userId, {
             role: 'admin',
             owner: userId
         });
 
-        console.log('Creating business document')
+        return { success: true, data: result };
 
-        await db.collection('businesses').doc(userId).set({
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-            id: userId,
-            businessName: businessName,
-            address,
-            province,
-            active: active === true
-        },{merge: true});
-
-        const businessRef = db.collection('businesses').doc(userId);
-        const doc = await businessRef.get();
-        
-        if(!doc.exists) 
-            throw new HttpsError('not-found', 'Business document does not exists');
-        
-        console.log('Creating admins folder')
-
-        const userRef = db.collection('users').doc(userId);
-        const owner = await userRef.get();
-        
-        console.log(owner);
-        
-        console.log(owner.data());
-
-        await businessRef.collection('admins').doc('owner').set({
-                assignedAt: FieldValue.serverTimestamp(),
-                id: userId,
-                firstname: owner.data().firstname,
-                lastname: owner.data().lastname,
-                username: owner.data().username,
-                email: owner.data().email,
-                businessId: doc.data().id,
-            },{merge: true});
-
-        console.log('Setting application to true')
-
-        await db.collection('applications').doc(appId).set({
-                approved: true
-            }, {merge: true});
-
-        await db.collection('users').doc(userId).set({
-            role: 'admin'
-        }, {merge: true});
-
-        return doc.data();
     } catch (err) {
-        throw new HttpsError('Failed creating business account', err.message);
+        console.error("Transaction failed: ", err);
+        throw new HttpsError('internal', err.message || 'Failed to create business');
     }
-})
+});
 
 exports.deleteUser = onCall(async (request) => {
     const { userId } = request.data;
