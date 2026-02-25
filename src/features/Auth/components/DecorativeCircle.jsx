@@ -20,14 +20,14 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: Colors.SECONDARY,
+        backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'absolute',
     },
     circleDisplayText: { 
         fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.TEXT_INVERSE,
     },
 });
 
