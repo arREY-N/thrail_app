@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 14,
         paddingHorizontal: 24,
-        borderRadius: 24,
+        borderRadius: 16,
         gap: 8,
     },
     skipText: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 14,
         paddingHorizontal: 24,
-        borderRadius: 24,
+        borderRadius: 16,
         gap: 8,
     },
     nextText: { 
