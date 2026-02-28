@@ -116,9 +116,13 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                                 key={offer.id}
                                 offer={offer}
                                 isSelected={localSelectedId === offer.id}
-                                isExpanded={expandedId === offer.id}
-                                onSelect={() => setLocalSelectedId(offer.id)}
-                                onToggleExpand={() => toggleExpand(offer.id)}
+                                onSelect={() => {
+                                    if (localSelectedId === offer.id) {
+                                        setLocalSelectedId(null);
+                                    } else {
+                                        setLocalSelectedId(offer.id)
+                                    }
+                                }}
                             />
                         ))
                     ) : (
