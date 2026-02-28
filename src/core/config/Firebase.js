@@ -33,31 +33,9 @@ const getEmulatorHost = () => {
 };
 
 if (__DEV__) {
-<<<<<<< HEAD
-    let emulatorHost;
-
-    if (Platform.OS === 'android') {
-        // Android emulators need this special IP to see your computer
-        emulatorHost = '10.122.34.240';
-    } else if (Platform.OS === 'ios') {
-        // iOS simulators can use localhost
-        emulatorHost = 'localhost';
-    } else {
-        // Web browsers use localhost
-        emulatorHost = 'localhost';
-    }
-
-    console.log(`🚀 Auto-detected environment. Connecting to Firebase at: ${emulatorHost}`);
-
-    connectFirestoreEmulator(db, emulatorHost, 8080);
-    connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
-    connectFunctionsEmulator(functions, emulatorHost, 5001);
-}
-=======
   const emulatorHost = getEmulatorHost();
   console.log(`🚀 Connecting to Firebase at: ${emulatorHost}`);
   connectFirestoreEmulator(db, emulatorHost, 8080);
   connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
   connectFunctionsEmulator(functions, emulatorHost, 5001);
 }
->>>>>>> origin/assets/map_data
