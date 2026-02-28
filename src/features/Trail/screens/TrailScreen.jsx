@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     },
 
     imageContainer: {
-        height: 300,
+        height: 350,
         width: '100%',
         position: 'relative',
     },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
         borderTopColor: Colors.GRAY_LIGHT,
     },
     headerInfo: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     titleRow: {
         flexDirection: 'row',
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     },
     address: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 8,
+        marginBottom: 0,
     },
     ratingRow: {
         flexDirection: 'row',
