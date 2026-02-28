@@ -1,11 +1,9 @@
-import { StyleSheet, View } from "react-native";
+import React from 'react';
+import { Image, StyleSheet, View } from "react-native";
 
 import CustomButton from "@/src/components/CustomButton";
 import CustomText from "@/src/components/CustomText";
-import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from "@/src/components/ScreenWrapper";
-import DecorativeCircle from "@/src/features/Auth/components/DecorativeCircle";
-import MountainGraphic from '@/src/features/Auth/components/MountainGraphic';
 
 import { Colors } from '@/src/constants/colors';
 
@@ -17,42 +15,50 @@ const LandingScreen = ({
 }) => {
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <ResponsiveScrollView 
-                minHeight={600} 
-                style={styles.container} 
-                contentContainerStyle={styles.scrollContainer}
-            >
-
-                <View style={[styles.topSection, { minHeight: 400 }]}>
-                    <View style={styles.circleContainer}>
-                        <DecorativeCircle title="Book" style={styles.bookPosition} />
-                        <DecorativeCircle title="Explore" style={styles.explorePosition} />
-                        <DecorativeCircle title="Hike" style={styles.hikePosition} />
-                    </View>
-                    <MountainGraphic />
+        <ScreenWrapper backgroundColor="#1A1A1A">
+            <View style={styles.container}>
+                
+                <View style={styles.imageWrapper}>
+                    <Image 
+                        source={require('@/src/assets/images/Hiking.jpg')}
+                        style={styles.heroImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
-                <View style={[styles.cardSection, { minHeight: 450 }]}>
+                <View style={styles.cardSection}>
+                    {/* <View style={styles.dragIndicator} /> */}
+
                     <View style={styles.contentConstrainer}>
-                        <CustomText variant="subtitle" style={styles.centerText}>
-                                Welcome To Thrail
-                        </CustomText>
                         
-                        <View style={styles.titleContainer}>
-                            <CustomText variant="title" style={styles.centerText}>
+                        <View style={styles.headerContainer}>
+                            <CustomText variant="label" style={styles.welcomeText}>
+                                WELCOME TO THRAIL
+                            </CustomText>
+                            
+                            <CustomText variant="h1" style={styles.titleText}>
                                 Your Next Trail
                             </CustomText>
-
-                            <CustomText variant="title" style={styles.centerText}>
+                            <CustomText variant="h1" style={styles.titleText}>
                                 Begins Here
+                            </CustomText>
+
+                            <CustomText variant="body" style={styles.subtitleText}>
+                                Discover breathtaking mountains, book local guides, and start your adventure today.
                             </CustomText>
                         </View>
 
                         <View style={styles.buttonContainer}>
-                            <CustomButton title="Sign Up" onPress={onSignUpPress} variant="primary" />
-                            <CustomButton title="Log In" onPress={onLogInPress} variant="secondary" />
+                            <CustomButton 
+                                title="Sign Up" 
+                                onPress={onSignUpPress} 
+                                variant="primary" 
+                            />
+                            <CustomButton 
+                                title="Log In" 
+                                onPress={onLogInPress} 
+                                variant="outline" 
+                            />
                         </View>
 
                         <CustomText variant="caption" style={styles.footerText}>
@@ -62,7 +68,7 @@ const LandingScreen = ({
                                 style={styles.linkText}
                                 onPress={onTermsPress}
                             >
-                                [Terms of Service]
+                                Terms of Service
                             </CustomText>
                             {' '}and{' '}
                             <CustomText 
@@ -70,100 +76,98 @@ const LandingScreen = ({
                                 style={styles.linkText}
                                 onPress={onPrivacyPress}
                             >
-                                [Privacy Policy]
+                                Privacy Policy
                             </CustomText>
                             .
                         </CustomText>
                     </View>
                 </View>
-            </ResponsiveScrollView>
+
+            </View>
         </ScreenWrapper>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1, 
         width: '100%',
-    },
-    scrollContainer: {
-        flexGrow: 1,
+        backgroundColor: Colors.WHITE,
     },
     
-    topSection: {
-        height: '42%',
-        minHeight: 300,
-        justifyContent: 'center',
-        alignItems: 'center',
+    imageWrapper: {
+        flex: 1,
         width: '100%',
-        position: 'relative',
-        backgroundColor: Colors.BACKGROUND,
+        backgroundColor: Colors.GRAY_LIGHT,
     },
-    circleContainer: {
-        position: 'absolute',
-        top: '10%',
+    heroImage: {
         width: '100%',
-        height: 200,
-        zIndex: 10,
-    },
-    bookPosition: { 
-        top: 20, 
-        alignSelf: 'center' 
-    },
-    explorePosition: { 
-        top: 100, 
-        left: '15%' 
-    },
-    hikePosition: { 
-        top: 100, 
-        right: '15%' 
+        height: '100%',
     },
 
     cardSection: {
-        flex: 1,
-        backgroundColor: Colors.GRAY, 
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        paddingHorizontal: 16,
-        padding: 32,
+        backgroundColor: Colors.WHITE, 
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        marginTop: -32,
+        paddingHorizontal: 24,
+        paddingTop: 32,
+        paddingBottom: 32,
         alignItems: 'center',
-        justifyContent: 'center',
 
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 10,
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 10, 
     },  
     
+    // dragIndicator: {
+    //     width: 40,
+    //     height: 5,
+    //     borderRadius: 3,
+    //     backgroundColor: Colors.GRAY_LIGHT,
+    // },
+
     contentConstrainer: {
         width: '100%',
         maxWidth: 400, 
         alignItems: 'center',
     },
-    titleContainer: {
-        marginBottom: 32,
+    
+    headerContainer: {
+        alignItems: 'center',
+        marginBottom: 24,
     },
-    buttonContainer: {
-        width: '100%',
-        marginTop: 20,
-        gap: 16,
+    welcomeText: {
+        color: Colors.PRIMARY,
+        letterSpacing: 1.5,
+        marginBottom: 8,
+        fontWeight: '700',
+    },
+    titleText: {
+        textAlign: 'center',
+        lineHeight: 40,
+    },
+    subtitleText: {
+        textAlign: 'center',
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 12,
+        paddingHorizontal: 16,
+        lineHeight: 22,
     },
 
-    centerText: {
-        textAlign: 'center',
-        color: Colors.TEXT_INVERSE,
+    buttonContainer: {
+        width: '100%',
+        gap: 16,
+        marginBottom: 24,
     },
     footerText: {
-        color: Colors.TEXT_INVERSE, 
         textAlign: 'center',
-        marginTop: 32,
-        marginBottom: 32,
+        lineHeight: 20,
     },
     linkText: {
-        color: Colors.TEXT_INVERSE,
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
 });
