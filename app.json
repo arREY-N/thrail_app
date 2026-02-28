@@ -15,26 +15,33 @@
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.thrail_app"
     },
     "web": {
       "output": "static"
     },
     "plugins": [
       "expo-router",
+      // [
+      //   "expo-splash-screen",
+      //   {
+      //     "image": "./assets/images/splash-icon.png",
+      //     "imageWidth": 200,
+      //     "resizeMode": "contain",
+      //     "backgroundColor": "#ffffff",
+      //     "dark": {
+      //       "backgroundColor": "#000000"
+      //     }
+      //   }
+      // ],
+      "expo-font",
       [
-        "expo-splash-screen",
+        "@maplibre/maplibre-react-native",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "locationAlwaysAndWhenInUsePermission": "Allow Thrail to use your location to show you on the map."
         }
-      ],
-      "expo-font"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

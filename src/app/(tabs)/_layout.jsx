@@ -1,11 +1,7 @@
-import { Redirect, Tabs } from "expo-router";
-import React, { useEffect } from "react";
-
-import { useAuthStore } from "@/src/core/stores/authStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
-
-import CustomNavBar from "@/src/components/CustomNavBar";
-import LoadingScreen from "../loading";
+import { useAuthStore } from '@/src/core/stores/authStore';
+import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { Tabs } from 'expo-router';
+import React, { useEffect } from 'react';
 
 export default function homeLayout() {
     const user = useAuthStore(s => s.user);
@@ -22,15 +18,12 @@ export default function homeLayout() {
     if(!user) return <Redirect href={'/(auth)/landing'}/>
     
     return (
-        <Tabs
-            screenOptions={{ headerShown: false }}
-            tabBar={(props) => <CustomNavBar {...props} />}
-        >
-            <Tabs.Screen name="index" />
-            <Tabs.Screen name="explore" />
-            <Tabs.Screen name="hike" />
-            <Tabs.Screen name="community" />
-            <Tabs.Screen name="profile" />
+        <Tabs screenOptions= {{ headerShown: false }}>
+            <Tabs.Screen name="home"/>
+            <Tabs.Screen name="community"/>
+            <Tabs.Screen name="explore"/>
+            <Tabs.Screen name="hike"/>
+            <Tabs.Screen name="profile"/>
         </Tabs>
     );
 }
