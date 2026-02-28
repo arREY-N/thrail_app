@@ -31,7 +31,7 @@ export const Colors = {
     STRENGTH_STRONG:'#388E3C',
 
     SEARCH_BAR_BG:  '#C4C4C440',
-    CHIP_INACTIVE:  '#FAFCFA', 
+    CHIP_INACTIVE:  '#F5F5F5', 
     CHIP_ACTIVE:    '#2E7D32',
 };
 
