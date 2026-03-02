@@ -36,8 +36,9 @@ const OfferCardItem = ({
                 
                 <View style={styles.guideInfo}>
                     <CustomText 
-                        variant="label" 
+                        variant="body" 
                         style={styles.guideName}
+                        numberOfLines={2} 
                     >
                         {offer.business?.name || "Independent Guide"}
                     </CustomText>
@@ -83,6 +84,7 @@ const OfferCardItem = ({
                                 About this Package
                             </CustomText>
                             <CustomText 
+                                variant="caption"
                                 style={styles.detailText}
                             >
                                 {offer.description}
@@ -105,6 +107,7 @@ const OfferCardItem = ({
                                         style={styles.timelineDay}
                                     >
                                         <CustomText 
+                                            variant="label"
                                             style={styles.dayLabel}
                                         >
                                             {dayData.day}
@@ -117,11 +120,13 @@ const OfferCardItem = ({
                                             >
                                                 <View style={styles.timelineDot} />
                                                 <CustomText 
+                                                    variant="label"
                                                     style={styles.timelineTime}
                                                 >
                                                     {act.time}
                                                 </CustomText>
                                                 <CustomText 
+                                                    variant="caption"
                                                     style={styles.timelineEvent}
                                                 >
                                                     {act.event}
@@ -154,6 +159,7 @@ const OfferCardItem = ({
                                         color={Colors.SUCCESS} 
                                     />
                                     <CustomText 
+                                        variant="caption"
                                         style={styles.bulletText}
                                     >
                                         {item}
@@ -179,6 +185,7 @@ const OfferCardItem = ({
                                     >
                                         <View style={styles.tinyDot} />
                                         <CustomText 
+                                            variant="caption"
                                             style={styles.bulletText}
                                         >
                                             {item}
@@ -190,40 +197,37 @@ const OfferCardItem = ({
                     )}
 
                     {offer.reminders && offer.reminders.length > 0 && (
-                        <View style={styles.modernWarningBox}>
-                            <View style={styles.warningAccentStrip} />
+                        <View style={styles.simpleWarningBox}>
                             
-                            <View style={styles.modernWarningContent}>
-                                <View style={styles.modernWarningHeader}>
-                                    <View style={styles.warningIconCircle}>
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name="info" 
-                                            size={16} 
-                                            color={Colors.PRIMARY} 
-                                        />
-                                    </View>
+                            <View style={styles.warningHeader}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="info" 
+                                    size={18} 
+                                    color={Colors.PRIMARY} 
+                                />
+                                <CustomText 
+                                    variant="label"
+                                    style={styles.warningTitle}
+                                >
+                                    Important Reminders
+                                </CustomText>
+                            </View>
+                            
+                            {offer.reminders.map((item, idx) => (
+                                <View 
+                                    key={idx} 
+                                    style={styles.warningRow}
+                                >
+                                    <View style={styles.warningDot} />
                                     <CustomText 
-                                        style={styles.modernWarningTitle}
+                                        variant="caption"
+                                        style={styles.warningText}
                                     >
-                                        Important Reminders
+                                        {item}
                                     </CustomText>
                                 </View>
-                                
-                                {offer.reminders.map((item, idx) => (
-                                    <View 
-                                        key={idx} 
-                                        style={styles.modernWarningRow}
-                                    >
-                                        <View style={styles.modernWarningDot} />
-                                        <CustomText 
-                                            style={styles.modernWarningText}
-                                        >
-                                            {item}
-                                        </CustomText>
-                                    </View>
-                                ))}
-                            </View>
+                            ))}
                         </View>
                     )}
 
@@ -242,6 +246,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+        
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -251,12 +256,11 @@ const styles = StyleSheet.create({
     selectedOfferCard: {
         borderColor: Colors.PRIMARY,
         borderWidth: 2,
-        backgroundColor: Colors.BACKGROUND,
     },
     
     cardHeader: { 
         flexDirection: 'row', 
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     guideAvatar: { 
         width: 48, 
@@ -266,14 +270,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center', 
         marginRight: 16,
+        marginTop: 4,
     },
     guideInfo: { 
         flex: 1, 
+        flexShrink: 1,
         justifyContent: 'center',
+        paddingRight: 12,
     },
     guideName: { 
         marginBottom: 4,
-        fontSize: 16,
+        fontWeight: 'bold',
+        lineHeight: 20, 
     },
     ratingRow: { 
         flexDirection: 'row', 
@@ -282,7 +290,7 @@ const styles = StyleSheet.create({
     },
     priceInfo: { 
         alignItems: 'flex-end', 
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
     },
     priceText: { 
         fontSize: 22, 
@@ -296,13 +304,13 @@ const styles = StyleSheet.create({
     },
     
     expandedContent: {
-        marginTop: 20,
-        padding: 16,
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        borderRadius: 12, 
+        marginTop: 24,
+        paddingHorizontal: 8,
+        paddingBottom: 8,
+        gap: 16, 
     },
     detailBlock: { 
-        marginBottom: 24,
+        marginBottom: 0,
     },
     detailLabel: { 
         fontWeight: 'bold', 
@@ -311,9 +319,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     detailText: { 
-        color: Colors.TEXT_SECONDARY, 
         lineHeight: 24,
-        fontSize: 14,
     },
     
     bulletRow: { 
@@ -323,10 +329,8 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     bulletText: { 
-        color: Colors.TEXT_SECONDARY, 
         flex: 1, 
         lineHeight: 22,
-        fontSize: 14,
     },
     
     timelineContainer: { 
@@ -343,7 +347,6 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY, 
         marginBottom: 12, 
         marginTop: 4,
-        fontSize: 15,
     },
     timelineRow: { 
         flexDirection: 'row', 
@@ -361,14 +364,10 @@ const styles = StyleSheet.create({
     },
     timelineTime: { 
         width: 80, 
-        color: Colors.TEXT_PRIMARY, 
         fontWeight: '700',
-        fontSize: 14,
     },
     timelineEvent: { 
         flex: 1, 
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 14,
         lineHeight: 20,
     },
 
@@ -379,76 +378,52 @@ const styles = StyleSheet.create({
     gridItem: { 
         width: '50%', 
         flexDirection: 'row', 
-        alignItems: 'center', 
+        alignItems: 'flex-start',
         marginBottom: 10, 
         paddingRight: 8,
     },
     tinyDot: { 
-        width: 6, 
-        height: 6, 
-        borderRadius: 3, 
+        width: 4,
+        height: 4, 
+        borderRadius: 2, 
         backgroundColor: Colors.GRAY_MEDIUM, 
         marginRight: 10,
+        marginTop: 9,
     },
 
-    modernWarningBox: { 
-        backgroundColor: Colors.WHITE,
+    simpleWarningBox: { 
+        backgroundColor: '#F8F9FA',
         borderRadius: 12, 
-        marginTop: 8, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT,
-        overflow: 'hidden',
-        
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    warningAccentStrip: {
-        height: 4,
-        width: '100%',
-        backgroundColor: Colors.PRIMARY,
-    },
-    modernWarningContent: {
         padding: 16,
+        marginTop: 0, 
+        borderWidth: 1, 
+        borderColor: Colors.PRIMARY,
     },
-    modernWarningHeader: { 
+    warningHeader: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         gap: 10, 
         marginBottom: 16,
     },
-    warningIconCircle: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: Colors.BACKGROUND,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modernWarningTitle: { 
-        color: Colors.TEXT_PRIMARY,
+    warningTitle: { 
+        color: Colors.TEXT_PRIMARY, 
         fontWeight: 'bold',
-        fontSize: 16,
     },
-    modernWarningRow: {
+    warningRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         marginBottom: 12,
         gap: 10,
     },
-    modernWarningDot: {
-        width: 6, 
-        height: 6, 
-        borderRadius: 3, 
+    warningDot: {
+        width: 4, 
+        height: 4, 
+        borderRadius: 2, 
         backgroundColor: Colors.GRAY_MEDIUM, 
-        marginTop: 8, 
+        marginTop: 9, 
     },
-    modernWarningText: { 
-        color: Colors.TEXT_SECONDARY, 
+    warningText: { 
         flex: 1, 
-        fontSize: 14, 
         lineHeight: 22, 
     },
 });

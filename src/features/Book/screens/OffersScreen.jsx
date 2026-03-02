@@ -2,17 +2,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View
 } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
+import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCardItem from '@/src/features/Book/components/OfferCardItem';
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 
 import { Colors } from '@/src/constants/colors';
 
-const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
+const OffersScreen = ({ 
+    offers = [], 
+    selectedOfferId, 
+    onContinue 
+}) => {
     
     const uniqueDates = useMemo(() => {
         const dates = offers
@@ -22,13 +26,18 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
         return [...new Set(dates)];
     }, [offers]);
 
-    const [selectedDate, setSelectedDate] = useState(
-        uniqueDates.length > 0 ? uniqueDates[0] : null
-    );
+    const getTodayString = () => {
+        const today = new Date();
+        const shortMonths = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+        return `${shortMonths[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+    };
+
+    const [selectedDate, setSelectedDate] = useState(getTodayString());
     
     const [localSelectedId, setLocalSelectedId] = useState(selectedOfferId);
-    
-    const [expandedId, setExpandedId] = useState(null);
 
     useEffect(() => {
         if (selectedOfferId) {
@@ -48,8 +57,17 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
         return offers.filter(offer => offer.date === selectedDate);
     }, [offers, selectedDate]);
 
-    const toggleExpand = (id) => {
-        setExpandedId(prevId => prevId === id ? null : id);
+    const isSelectedDatePast = useMemo(() => {
+        if (!selectedDate) return false;
+        const selected = new Date(selectedDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return selected < today;
+    }, [selectedDate]);
+
+    const handleDateSelect = (date) => {
+        setSelectedDate(date);
+        setLocalSelectedId(null); 
     };
 
     return (
@@ -58,56 +76,27 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                {uniqueDates.length > 0 && (
-                    <View style={styles.calendarSection}>
-                        <CustomText variant="h2" style={styles.sectionTitle}>
-                            Select Date
-                        </CustomText>
-                        
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false} 
-                            contentContainerStyle={styles.dateScroll}
-                        >
-                            {uniqueDates.map((date, index) => {
-                                const isSelected = selectedDate === date;
-                                
-                                return (
-                                    <TouchableOpacity 
-                                        key={index} 
-                                        style={[
-                                            styles.dateChip, 
-                                            isSelected ? styles.activeDateChip : styles.inactiveDateChip
-                                        ]}
-                                        onPress={() => {
-                                            setSelectedDate(date);
-                                            setLocalSelectedId(null); 
-                                            setExpandedId(null); 
-                                        }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <CustomText 
-                                            style={isSelected ? styles.activeDateText : styles.inactiveDateText}
-                                        >
-                                            {date}
-                                        </CustomText>
-                                        
-                                        <View 
-                                            style={[
-                                                styles.dot, 
-                                                isSelected ? styles.activeDot : styles.inactiveDot
-                                            ]} 
-                                        />
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </ScrollView>
-                    </View>
-                )}
+                <View style={styles.calendarSectionWrapper}>
+                    <CustomText 
+                        variant="h2" 
+                        style={styles.sectionTitle}
+                    >
+                        Select Date
+                    </CustomText>
+                    
+                    <OfferCalendar 
+                        uniqueDates={uniqueDates}
+                        selectedDate={selectedDate}
+                        onSelectDate={handleDateSelect}
+                    />
+                </View>
 
                 <View style={styles.offersSection}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        Select Offer
+                    <CustomText 
+                        variant="h2" 
+                        style={styles.sectionTitle}
+                    >
+                        Available Offers
                     </CustomText>
                     
                     {filteredOffers.length > 0 ? (
@@ -116,18 +105,22 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                                 key={offer.id}
                                 offer={offer}
                                 isSelected={localSelectedId === offer.id}
+                                isExpired={isSelectedDatePast}
                                 onSelect={() => {
                                     if (localSelectedId === offer.id) {
                                         setLocalSelectedId(null);
                                     } else {
-                                        setLocalSelectedId(offer.id)
+                                        setLocalSelectedId(offer.id);
                                     }
-                                }}
+                                }} 
                             />
                         ))
                     ) : (
                         <View style={styles.emptyState}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                            <CustomText 
+                                variant="caption" 
+                                color={Colors.TEXT_SECONDARY}
+                            >
                                 No offers available for this date.
                             </CustomText>
                         </View>
@@ -149,66 +142,31 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
         paddingHorizontal: 16,
-        paddingTop: 0,
+        paddingTop: 16, 
         paddingBottom: 16,
     },
     scrollContent: {
-        paddingBottom: 80, 
+        paddingBottom: 100, 
+    },
+    calendarSectionWrapper: {
+        marginBottom: 8,
     },
     sectionTitle: {
-        paddingTop: 16,
+        paddingTop: 0, 
         paddingHorizontal: 0,
         marginBottom: 16,
-    },
-    calendarSection: {
-        paddingTop: 0,
-        marginBottom: 0,
-    },
-    dateScroll: {
-        paddingHorizontal: 0,
-        gap: 8,
-    },
-    dateChip: {
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 16,
-        borderWidth: 1,
-        alignItems: 'center',
-        gap: 8,
-    },
-    activeDateChip: {
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-    },
-    inactiveDateChip: {
-        backgroundColor: Colors.WHITE,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    activeDateText: {
-        fontWeight: '600',
-        color: Colors.WHITE,
-    },
-    inactiveDateText: {
-        fontWeight: '500',
-        color: Colors.TEXT_PRIMARY,
-    },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    activeDot: {
-        backgroundColor: Colors.WHITE,
-    },
-    inactiveDot: {
-        backgroundColor: Colors.PRIMARY,
+        fontWeight: 'bold',
     },
     offersSection: {
         paddingHorizontal: 0,
     },
     emptyState: {
-        paddingVertical: 32,
+        paddingVertical: 40,
         alignItems: 'center',
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
 });
 
