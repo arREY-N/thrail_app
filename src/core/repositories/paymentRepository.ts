@@ -1,9 +1,7 @@
 import { db } from '@/src/core/config/Firebase';
 import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { BaseRepository } from '../interface/repositoryInterface';
-import { ReceiptMapper } from '../mapper/receiptMapper';
 import { Payment, paymentConverter } from '../models/Payment/Payment';
-import { IReceipt } from '../models/Payment/Payment.types';
 
 const paymentCollection = collection(db, 'payments').withConverter(paymentConverter);
 class PaymentRepositoryImpl implements BaseRepository<Payment>{
@@ -51,7 +49,7 @@ export const PaymentRepository = new PaymentRepositoryImpl();
 export async function createReceipt(
     amount: number,
     mode: string
-): Promise<IReceipt<Date>>{
+): Promise<void>{
     try {
         const docRef = doc(collection(db, 'receipts'));
         
@@ -63,9 +61,30 @@ export async function createReceipt(
         }
         await setDoc(docRef, data);
 
-        return ReceiptMapper.toUI(data);
+        // return ReceiptMapper.toUI(data);
     } catch (err) {
         if(err instanceof Error) throw err;
         throw new Error('Failed creating receipt');
     }
 }
+
+// export const ReceiptMapper = {
+//     toUI(data: Receip): ReceiptUI {
+//         return {
+//             id: data.id,
+//             amount: data.amount,
+//             date: (data.date && (data.date as any).toDate === 'function')
+//                 ? timestampToISO(data.date)
+//                 : new Date().toISOString(),
+//             mode: data.mode,
+//         }
+//     }, 
+//     toDB(data: ReceiptUI): ReceiptDB {
+//         return {
+//             id: data.id,
+//             amount: data.amount,
+//             date: Timestamp.fromDate(new Date(data.date)),
+//             mode: data.mode,
+//         }
+//     }
+// }

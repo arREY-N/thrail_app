@@ -6,6 +6,7 @@ import CustomButton from '../../../components/CustomButton';
 import CustomHeader from '../../../components/CustomHeader';
 import CustomText from '../../../components/CustomText';
 
+import { formatDate } from '@/src/core/utility/date';
 import { Colors } from '../../../constants/colors';
 
 const ProfileScreen = ({
@@ -16,9 +17,7 @@ const ProfileScreen = ({
 
     const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-    const createdDate = profile?.createdAt?.toDate 
-        ? profile.createdAt.toDate().toLocaleDateString() 
-        : "N/A";
+    const createdDate = formatDate(profile.createdAt); 
 
     const handleSignOutClick = () => {
         setShowSignOutModal(true);

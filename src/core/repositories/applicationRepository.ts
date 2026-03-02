@@ -1,5 +1,4 @@
 import { db } from '@/src/core/config/Firebase';
-import { ApplicationMapper } from '@/src/core/mapper/applicationMapper';
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { BaseRepository } from '../interface/repositoryInterface';
 import { Application, applicationConverter } from '../models/Application/Application';
@@ -37,8 +36,6 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
                 ? doc(applicationCollection, data.id)
                 : doc(applicationCollection);
 
-            const docsnap = await getDoc(docref);
-
             const q = query(applicationCollection, where('applicant.id', '==', data.owner.id));
             const querySnapshot = await getDocs(q);
 
@@ -48,15 +45,10 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
                 throw new Error(`Application is ${app?.data().status}`);
             }
 
-            const application = ApplicationMapper.toDB({
-                ...data,
-                id: docref.id, 
-            });
-
-            await setDoc(docref, application, {merge: true});
-            
             data.id = docref.id;
-            
+
+            await setDoc(docref, data, {merge: true});
+        
             return data;
         } catch (err) {
             if(err instanceof Error) throw err;
@@ -67,15 +59,10 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
     async update(data: Application): Promise<Application> {
         try{
             const docref = doc(applicationCollection, data.id);
-
-            const application = ApplicationMapper.toDB({
-                ...data,
-                id: docref.id, 
-            });
-
-            await setDoc(docref, application, {merge: true});
-
+            
             data.id = docref.id;
+
+            await setDoc(docref, data, {merge: true});
 
             return data;
         } catch (err) {
