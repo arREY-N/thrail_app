@@ -1,4 +1,7 @@
 import useSuperadmin from '@/src/core/hook/useSuperadmin';
+import { Application } from '@/src/core/models/Application/Application';
+import { Business } from '@/src/core/models/Business/Business';
+import { formatDate } from '@/src/core/utility/date';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function listBusiness(){
@@ -6,12 +9,13 @@ export default function listBusiness(){
         applications,
         businesses,
         applicationLoading,
-        businessesLoading,
+        businessLoading,
         reloadApplications,
         reloadBusinesses,
         onApproveApplicationPress,
         onDeleteBusinessPress,
-    } = useSuperadmin();
+    } = useSuperadmin(null);
+
 
     console.log('Applications: ', applications);
     return(
@@ -19,13 +23,24 @@ export default function listBusiness(){
             applications={applications}
             businesses={businesses}
             applicationsIsLoading={applicationLoading}
-            businessIsLoading={businessesLoading}
+            businessIsLoading={businessLoading}
             reloadBusinesses={reloadBusinesses}
             reloadApplications={reloadApplications}
             approveApplicationPress={onApproveApplicationPress}
             onDeletePress={onDeleteBusinessPress}
         />
     )
+}
+
+type ScreenParams = {
+    reloadApplications: () => void,
+    applications: Application[],
+    approveApplicationPress: (id: string) => void,
+    businesses: Business[],
+    onDeletePress: (id: string) => void,
+    applicationsIsLoading: boolean,
+    businessIsLoading: boolean,
+    reloadBusinesses: () => void;
 }
 
 const TESTBUSINESS = ({
@@ -37,43 +52,10 @@ const TESTBUSINESS = ({
     applicationsIsLoading,
     businessIsLoading,
     reloadBusinesses,
-}) => {
+}: ScreenParams) => {
+    console.log(businesses);
     return (
         <ScrollView>
-            <View style={styles.area}>
-                <Text>--BUSINESS APPLICATIONS--</Text>
-                
-                { applicationsIsLoading && <Text>APPLICATION IS LOADING</Text>}
-                { businessIsLoading && <Text>BUSINESS IS LOADING</Text>}
-
-                { applicationsIsLoading  && <Text>LOADING APPLICATIONS</Text>}
-                <Pressable onPress={reloadApplications}>
-                    <Text>=============RELOAD=============</Text>
-                </Pressable>
-                {
-                    applications 
-                        ? applications.filter(a => a.status === 'pending').map(a => {                
-                            return(
-                                <View style={styles.application} key={a.id}>
-                                    <Text>{a.businessName}</Text>
-                                    <Text>{a.email}</Text>
-                                    <Pressable onPress={() => approveApplicationPress({
-                                        userId: a.userId,
-                                        appId: a.id,
-                                        email: a.email, 
-                                        businessName: a.businessName,
-                                        address: a.businessAddress,
-                                        province: a.province})}>
-                                        <Text>Approve Request</Text>
-                                    </Pressable>
-                                </View>
-                            )    
-                        }) 
-                        : <Text>Applications loading</Text>
-
-                }
-            </View>
-
             <View style={styles.area}>
                 <Text>-----ACTIVE BUSINESSES-----</Text>
                 <Pressable onPress={reloadBusinesses}>
@@ -85,13 +67,9 @@ const TESTBUSINESS = ({
                             return(
                                 <View key={b.id} style={styles.business}>
                                     <Text>ID: {b.id}</Text>
-                                    <Text>Name: {b.businessName}</Text>
+                                    <Text>Name: {b.name}</Text>
                                     <Text>Address: {b.address}</Text>
-                                    <Text>Created: {b.createdAt?.toDate().toLocaleDateString('en-us', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                    })}</Text>
+                                    <Text>Created: {formatDate(b.createdAt)}</Text>
                                     {
                                         true && 
                                         
@@ -112,13 +90,9 @@ const TESTBUSINESS = ({
                             return(
                                 <View key={b.id} style={styles.business}>
                                     <Text>ID: {b.id}</Text>
-                                    <Text>Name: {b.businessName}</Text>
+                                    <Text>Name: {b.name}</Text>
                                     <Text>Address: {b.address}</Text>
-                                    <Text>Created: {b.createdAt?.toDate().toLocaleDateString('en-us', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                    })}</Text>
+                                    <Text>Created: {formatDate(b.createdAt)}</Text>
                                 </View>
                             )
                         })

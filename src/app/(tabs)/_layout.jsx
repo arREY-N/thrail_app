@@ -1,16 +1,12 @@
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
 
-import { useAuthStore } from "@/src/core/stores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
 
 export default function homeLayout() {
-    const user = useAuthStore(s => s.user);
-    const isLoading = useTrailsStore(s => s.isLoading);
     const loadTrails = useTrailsStore(s => s.fetchAll);
-    const profile = useAuthStore(s => s.profile);
 
     useEffect(() => {
         loadTrails();

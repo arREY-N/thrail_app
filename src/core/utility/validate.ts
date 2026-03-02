@@ -1,5 +1,5 @@
-import { SignUpUI } from "@/src/types/entities/User";
 import { FullValidationStructure } from "@/src/types/ValidationStructure";
+import { SignUp } from "../models/User/SignUp";
 
 export function validateTrail(
     object: any, 
@@ -32,7 +32,7 @@ export function validateTrail(
 }
 
 export function validateSignUp(
-    signUpData: SignUpUI
+    signUpData: SignUp
 ){
     const { 
         email, 
@@ -57,7 +57,7 @@ export function validateSignUp(
 }
 
 export function validateInfo(
-    userInfo: SignUpUI
+    userInfo: SignUp
 ){
     const { phoneNumber, firstname, lastname, birthday, address } = userInfo
 
