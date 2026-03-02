@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         color: Colors.PRIMARY,
-        letterSpacing: 1.5,
+        letterSpacing: 1,
         marginBottom: 8,
         fontWeight: '700',
     },
