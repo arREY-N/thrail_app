@@ -19,7 +19,7 @@ export default function profile(){
         onAdminPress,
         onSuperadminPress,
         onViewAccountPress,
-    } = useUserDomain();
+    } = useUserDomain({ role });
 
     const { onApplyPress } = useBusiness();
 
