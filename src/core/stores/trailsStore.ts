@@ -3,20 +3,20 @@ import { TrailRepository } from '@/src/core/repositories/trailRepository';
 import { editProperty } from '@/src/core/utility/editProperty';
 import { validateTrail } from '@/src/core/utility/validate';
 import { TRAIL_INFORMATION } from '@/src/fields/trailFields';
-import { TrailUI } from '@/src/types/entities/Trail';
 import { Property } from '@/src/types/Property';
 import { create } from "zustand";
+import { Trail } from '../models/Trail/Trail';
 
-export interface TrailState extends BaseStore<TrailUI> {
+export interface TrailState extends BaseStore<Trail> {
     hikingTrail: {
-        trail: TrailUI | null;
+        trail: Trail | null;
         hiking: boolean;
     };
     setHikingTrail: (id: string) => void; 
-    recommendedTrail: TrailUI[] | [];
-    setRecommendedTrail: (id: string) => Promise<TrailUI[] | []> 
-    discoverTrail: TrailUI[] | [];
-    setDiscoverTrail: () => Promise<TrailUI[] | []>;
+    recommendedTrail: Trail[];
+    setRecommendedTrail: (id: string) => Promise<Trail[]> 
+    discoverTrail: Trail[];
+    setDiscoverTrail: () => Promise<Trail[]>;
     setOnHike: () => void;
 }
 
@@ -43,7 +43,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
 
         try {
             const trails = await TrailRepository.fetchAll();
-            const sorted = trails.sort((a: TrailUI, b: TrailUI) => a.name.localeCompare(b.name))             
+            const sorted = trails.sort((a: Trail, b: Trail) => a.general.name.localeCompare(b.general.name))             
             set({
                 data: sorted, 
                 isLoading: false
@@ -62,7 +62,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
 
         try {
             const trails = await TrailRepository.fetchAll();
-            const sorted = trails.sort((a: TrailUI, b: TrailUI) => a.name.localeCompare(b.name))             
+            const sorted = trails.sort((a: Trail, b: Trail) => a.general.name.localeCompare(b.general.name))             
             set({
                 data: sorted, 
                 isLoading: false
@@ -78,14 +78,14 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
 
     load: async (id: string | null) => {
         if(!id) {
-            set({ current: new TrailUI() })
+            set({ current: new Trail() })
             return;
         }
 
         set({ isLoading: true, error: null})
 
         try {
-            let trail: TrailUI | undefined | null = null;
+            let trail: Trail | undefined | null = null;
             let data = get().data;
 
             if(data.length > 0){
@@ -101,7 +101,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
             }
 
             console.log(trail);
-            const trailInstance = new TrailUI(trail);
+            const trailInstance = new Trail(trail);
 
             set({
                 data: data.find(d => d.id === trailInstance.id)
@@ -131,7 +131,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
         
         try {
             console.log(current);
-            const validatedTrail = new TrailUI(current);
+            const validatedTrail = new Trail(current);
             console.log(validatedTrail)
             
             const info = TRAIL_INFORMATION;
@@ -225,7 +225,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
                 isLoading: false
             })
         }
-        let trail: TrailUI = new TrailUI();
+        let trail: Trail = new Trail();
         return trail;
     },
 
@@ -244,13 +244,13 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
     },
 
     setDiscoverTrail: async () => {
-        let discover: TrailUI[] = [];
+        let discover: Trail[] = [];
 
         return discover;
     },
 
     setRecommendedTrail: async (id) => {
-        let recommended: TrailUI[] = []
+        let recommended: Trail[] = []
         return recommended;
     },
 }))

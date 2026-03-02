@@ -1,8 +1,8 @@
 import { ApplicationRepository } from '@/src/core/repositories/applicationRepository';
-import { Application } from '@/src/types/entities/Application';
 import { Property } from '@/src/types/Property';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
+import { Application } from '../models/Application/Application';
 import { editProperty } from '../utility/editProperty';
 export interface ApplicationState extends BaseStore<Application>{
     approveApplication: (id: string) => Promise<void>;

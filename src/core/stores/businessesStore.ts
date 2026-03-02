@@ -1,17 +1,18 @@
-import { Application } from "@/src/types/entities/Application";
-import { Business } from "@/src/types/entities/Business";
-import { UserUI } from "@/src/types/entities/User";
 import { create } from "zustand";
 import { BaseStore } from "../interface/storeInterface";
+import { Admin } from "../models/Admin/Admin";
+import { Application } from "../models/Application/Application";
+import { Business } from "../models/Business/Business";
+import { User } from "../models/User/User";
 import { BusinessRepository } from "../repositories/businessRepository";
 
 type AdminUI = {
-    user: UserUI,
+    user: User,
     businessId: string,
 }
 
 export interface BusinessState extends BaseStore<Business>{
-    businessAdmins: UserUI[] 
+    businessAdmins: Admin[], 
 
     createBusinessAdmin: (admin: AdminUI) => Promise<void>
     loadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
@@ -139,7 +140,6 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
 
             console.log('BusinessStore: ', business);
 
-            console.log('ID:' ,id);
             const newAccount = await BusinessRepository.write(
                 business,
                 id,
@@ -252,7 +252,6 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
 
         try{
             const role = user.role as string;
-            const userId = user.id as string;
 
             if(role === 'admin') {
                 set({
@@ -262,12 +261,11 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
                 return;
             }          
 
-            const uid = await BusinessRepository.createBusinessAdmin({userId, businessId});
+            const admin = await BusinessRepository.createBusinessAdmin(user, businessId);
             
-
             set((state) => {
                 return {
-                    businessAdmins: [...state.businessAdmins, user],
+                    businessAdmins: [...state.businessAdmins, admin],
                     isLoading: false
                 }
             })

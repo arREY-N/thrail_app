@@ -1,9 +1,9 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
-import { PaymentUI } from "@/src/types/entities/Payment";
 import { create } from "zustand";
-import { fetchPayment } from "../repositories/paymentRepository";
+import { Payment } from "../models/Payment/Payment";
+import { PaymentRepository } from "../repositories/paymentRepository";
 
-export interface PaymentState extends BaseStore<PaymentUI>{
+export interface PaymentState extends BaseStore<Payment>{
     fetchUserPayments(): Promise<void>
 }
 
@@ -29,11 +29,9 @@ export const usePaymentsStore = create<PaymentState>((set, get) => ({
 
     },
 
-    load: async (
-        id: string | null
-    ) => {
+    load: async (id: string | null) => {
         if(!id){
-            set({ current: new PaymentUI() });
+            set({ current: new Payment() });
             return;
         }
 
@@ -44,7 +42,7 @@ export const usePaymentsStore = create<PaymentState>((set, get) => ({
 
             if(get().data.length === 0){
                 console.log('no records');
-                receipt = await fetchPayment(id);
+                receipt = await PaymentRepository.fetchById(id);
             } else {
                 console.log('in store')
                 receipt = get().data.find(p => p.id ===id);

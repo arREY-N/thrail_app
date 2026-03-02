@@ -1,7 +1,8 @@
-import { Business } from "@/src/types/entities/Business";
-import { OfferBusiness, OfferUI } from "@/src/types/entities/Offer";
 import { create } from "zustand";
 import { Store } from "../interface/storeInterface";
+import { Business } from "../models/Business/Business";
+import { IBusinessSummary } from "../models/Business/Business.types";
+import { Offer } from "../models/Offer/Offer";
 import { OfferRepository } from "../repositories/offerRepository";
 import { editProperty } from "../utility/editProperty";
 
@@ -10,9 +11,9 @@ type OfferParams = {
     businessId: string;
 }
 
-export interface OfferState extends Store<OfferUI>{
-    trailOffers: OfferUI[] | [];
-    businessOffers: OfferUI[] | [];
+export interface OfferState extends Store<Offer>{
+    trailOffers: Offer[];
+    businessOffers: Offer[];
 
     fetchOfferByBusiness: (id: string) => Promise<void>;
     fetchOfferByTrail: (id: string) => Promise<void>;
@@ -90,7 +91,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         try {
             const data = get().data;
 
-            let offers: OfferUI[] = [];
+            let offers: Offer[] = [];
 
             if(data.length > 0) {
                 offers = data.filter(o => o.business.id ===id);
@@ -135,7 +136,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         try {
             const data = get().data;
 
-            let offers: OfferUI[] = [];
+            let offers: Offer[] = [];
             console.log(data);
 
             if(data.length > 0){
@@ -175,7 +176,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         
         if(!id) {
             set({ 
-                current: new OfferUI(), 
+                current: new Offer(), 
                 isLoading: false 
             }); 
             return;
@@ -229,24 +230,18 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const business: OfferBusiness = {
+            const business: IBusinessSummary = {
                 id: data.id || '',
-                name: data.businessName 
+                name: data.name 
             }
 
-            const offer = new OfferUI({...get().current, business});
+            const offer = new Offer({...get().current, business});
     
             const newOffer = await OfferRepository.write(offer);
 
-            const optimisticOffer = {
-                ...newOffer,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            }
-
             set(state => {
-                const newOfferList = state.businessOffers.filter(o => o.id !== optimisticOffer.id);
-                const offers = [...newOfferList, optimisticOffer];
+                const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
+                const offers = [...newOfferList, newOffer];
                 
                 return {
                     businessOffers: offers,

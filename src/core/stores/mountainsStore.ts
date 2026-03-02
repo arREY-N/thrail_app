@@ -1,11 +1,11 @@
-import { MountainUI } from "@/src/types/entities/Mountain";
 import { Property } from "@/src/types/Property";
 import { create } from "zustand";
 import { BaseStore } from "../interface/storeInterface";
+import { Mountain } from "../models/Mountain/Mountain";
 import { MountainRepository } from "../repositories/mountainRepository";
 import { editProperty } from "../utility/editProperty";
 
-export interface MountainState extends BaseStore<MountainUI>{
+export interface MountainState extends BaseStore<Mountain>{
 
 }
 
@@ -31,7 +31,7 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
             
             set({ isLoading: true, error: null});
             
-            const mountains: MountainUI[] = await MountainRepository.fetchAll();
+            const mountains: Mountain[] = await MountainRepository.fetchAll();
 
             if(mountains.length === 0){
                 console.log('No mountains available');
@@ -56,7 +56,7 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
         try {
             set({ isLoading: true, error: null});
             
-            const mountains: MountainUI[] = await MountainRepository.fetchAll();
+            const mountains: Mountain[] = await MountainRepository.fetchAll();
 
             if(mountains.length === 0){
                 console.log('No mountains available');
@@ -80,7 +80,7 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
     load: async (id) => {
         set({ isLoading: true, error: null });
         if(!id) {
-            set({ isLoading: false, current: new MountainUI()})
+            set({ isLoading: false, current: new Mountain()})
             return;
         }
         

@@ -1,12 +1,12 @@
 import { UserRepository } from '@/src/core/repositories/userRepository';
-import { UserUI } from '@/src/types/entities/User';
 import { Property } from '@/src/types/Property';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
+import { User } from '../models/User/User';
 import { editProperty } from '../utility/editProperty';
 
-export interface UserState extends BaseStore<UserUI> {
-    searched: UserUI[] | [];
+export interface UserState extends BaseStore<User> {
+    searched: User[];
 }
 
 const init = {
@@ -28,7 +28,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
         
         try {
             const users = await UserRepository.fetchAll();
-            const sorted = users.sort((a: UserUI, b: UserUI) => a.firstname.localeCompare(b.firstname))
+            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
             
             set({
                 data: sorted,
@@ -48,7 +48,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
         
         try {
             const users = await UserRepository.fetchAll();
-            const sorted = users.sort((a: UserUI, b: UserUI) => a.firstname.localeCompare(b.firstname))
+            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
             
             set({
                 data: sorted,
@@ -65,14 +65,14 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
     load: async (id: string | null) => {
         if(!id) {
-            set({ current: new UserUI() })
+            set({ current: new User() })
             return;
         }
 
         set({ isLoading: true, error: null })
 
         try {
-            let user: UserUI | undefined | null = null;
+            let user: User | undefined | null = null;
             let data = get().data;
 
             if(data.length > 0){
@@ -87,7 +87,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
                 throw new Error(`Could not find user with id ${id}`);
             }
 
-            const userInstance = new UserUI(user);
+            const userInstance = new User(user);
 
             set(() => {
                 const newData = data.find(d => d.id === userInstance.id)
@@ -122,7 +122,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
         set({ isLoading: true, error: null });
 
         try {
-            const validatedUser = new UserUI(current);
+            const validatedUser = new User(current);
 
             const savedUser = await UserRepository.write(validatedUser);
 
