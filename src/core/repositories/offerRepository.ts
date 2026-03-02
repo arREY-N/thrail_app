@@ -1,8 +1,7 @@
 import { db } from '@/src/core/config/Firebase';
 import { Repository } from '@/src/core/interface/repositoryInterface';
-import { OfferMapper } from '@/src/core/mapper/offerMapper';
-import { OfferDB, OfferUI } from '@/src/types/entities/Offer';
-import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { Offer, offerConverter } from '../models/Offer/Offer';
 
 type OfferParams = {
     id: string,
@@ -10,49 +9,45 @@ type OfferParams = {
 }
 
 const createOffersCollection = (businessId: string) => {
-    return collection(db, 'businesses', businessId, 'offers').withConverter({
-        toFirestore: (offer: OfferDB) => offer,
-        fromFirestore: (snapshot): OfferDB => snapshot.data() as OfferDB
-    });
+    return collection(db, 'businesses', businessId, 'offers').withConverter(offerConverter);
 } 
 
 const createOffersGroupCollection = () => {    
-    return collectionGroup(db, 'offers').withConverter({
-        toFirestore: (offer: OfferDB) => offer,
-        fromFirestore: (snapshot): OfferDB => snapshot.data() as OfferDB
-    });
+    return collectionGroup(db, 'offers').withConverter(offerConverter);
 } 
 
-class OfferRepositoryImpl implements Repository<OfferUI>{
-    async fetchAll(): Promise<OfferUI[]> {
+class OfferRepositoryImpl implements Repository<Offer>{
+    async fetchAll(): Promise<Offer[]> {
         try {
             const offerCollection = createOffersGroupCollection();
             const snapshot = await getDocs(offerCollection);
-
+            
             if(snapshot.empty) return [];
             
-            return snapshot.docs.map((docsnap) => OfferMapper.toUI(docsnap.data()));
+            console.log('Sucessfully fetched all offers');
+            return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
             if(err instanceof Error) throw err;
             throw new Error('Failed to fetch offer')
         }
     }
 
-    async fetchAllBusinessOffers(businessId: string): Promise<OfferUI[] | []> {
+    async fetchAllBusinessOffers(businessId: string): Promise<Offer[] | []> {
         try {
             const offerCollection = createOffersCollection(businessId);
             const snapshot = await getDocs(offerCollection);
-
+            
             if(snapshot.empty) return [];
             
-            return snapshot.docs.map((docsnap) => OfferMapper.toUI(docsnap.data()));
+            console.log('Sucessfully fetched offers for business: ', businessId);
+            return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching business offers')
         }
     }
 
-    async fetchAllTrailOffers(trailId: string): Promise<OfferUI[] | []>{
+    async fetchAllTrailOffers(trailId: string): Promise<Offer[] | []>{
         try {
             if(!trailId) throw new Error('Trail ID missing'); 
 
@@ -63,7 +58,8 @@ class OfferRepositoryImpl implements Repository<OfferUI>{
 
             if(querySnapshot.empty) return [];
             
-            return querySnapshot.docs.map((doc) => OfferMapper.toUI(doc.data() as OfferDB));
+            console.log('Sucessfully fetched offers for trail: ', trailId);
+            return querySnapshot.docs.map(docsnap => docsnap.data() as Offer);
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message || 'Failed fetching offer for')
@@ -71,7 +67,7 @@ class OfferRepositoryImpl implements Repository<OfferUI>{
     }
 
     
-    async fetchById({id, businessId}: OfferParams): Promise<OfferUI | null> {
+    async fetchById({id, businessId}: OfferParams): Promise<Offer | null> {
         try {
             const offerCollection = createOffersCollection(businessId);
             const ref = doc(offerCollection, id)
@@ -79,30 +75,30 @@ class OfferRepositoryImpl implements Repository<OfferUI>{
 
             if(!snap.exists()) return null;
 
-            return OfferMapper.toUI(snap.data());
+            console.log('Sucessfully fetched offer: ', snap.id);
+            return snap.data();
         } catch (err: any) {
             console.error(err.message);
             throw new Error('Failed to fetch offer')
         }
     }
 
-    async write(data: OfferUI): Promise<OfferUI> {
-        try {
-            const offer = OfferMapper.toDB(data);
-            console.log(offer);
-            const businessOfferRef = offer.id
-                ? doc(db, 'businesses', offer.business.id, 'offers', offer.id)
-                : doc(collection(db, 'businesses', offer.business.id, 'offers'));
+    async write(data: Offer): Promise<Offer> {
+        try {            
+            const create = !data.id;
 
-            const businessOfferData = {
-                ...offer,
-                id: businessOfferRef.id,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            }
+            const col = createOffersCollection(data.business.id);
+
+            const businessOfferRef = create
+                ? doc(col)
+                : doc(col, data.id);
+
+            if(create) data.id = businessOfferRef.id;
             
-            await setDoc(businessOfferRef, businessOfferData, {merge: true});
-            return OfferMapper.toUI(businessOfferData);
+            await setDoc(businessOfferRef, data, {merge: true});
+
+            console.log('Offer successfully sent to database:', data);
+            return data;
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message ?? 'Failed creating offer')
@@ -110,11 +106,11 @@ class OfferRepositoryImpl implements Repository<OfferUI>{
     }
 
     async delete({id, businessId}: OfferParams): Promise<void> {
-        console.log(id, businessId);
         try {
             const offerCollection = createOffersCollection(businessId)
             const docRef = doc(offerCollection, id)
             await deleteDoc(docRef);
+            console.log('Successfully deleted offer: ', id)
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message ?? 'Failed deleting');

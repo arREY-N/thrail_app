@@ -1,11 +1,17 @@
 import { OFFER_INFORMATION } from "@/src/fields/offerFields";
-import { UseOfferParams } from "@/src/types/entities/Offer";
 import { Property } from "@/src/types/Property";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { useBusinessesStore } from "../stores/businessesStore";
 import { useOffersStore } from "../stores/offersStore";
 import { useTrailsStore } from "../stores/trailsStore";
+
+export type UseOfferParams = {
+    trailId: string | null,
+    businessId: string | null,
+    offerId: string | null,
+    mode: string | null,
+}
 
 export function useOfferWrite(params: UseOfferParams){
     const { offerId, businessId } = params
@@ -36,9 +42,9 @@ export function useOfferWrite(params: UseOfferParams){
         let finalValue = value;
 
         if(type === 'object-select'){
-            const object = trails.find(t => t.name === property.value);
+            const object = trails.find(t => t.general.name === property.value);
             finalValue = object 
-                ? {id: object.id, name : object.name} 
+                ? {id: object.id, name : object.general.name} 
                 : {trailId: '', trailName : '' };
         }
 
@@ -56,7 +62,7 @@ export function useOfferWrite(params: UseOfferParams){
     }
 
     const options = {
-        trails: [...trails.map(m => m.name)]
+        trails: [...trails.map(m => m.general.name)]
     }
 
     const onRemovePress = (id: string) => {

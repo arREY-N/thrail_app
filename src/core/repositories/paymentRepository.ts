@@ -1,46 +1,39 @@
 import { db } from '@/src/core/config/Firebase';
-import { PaymentUI } from '@/src/types/entities/Payment';
-import { ReceiptUI } from '@/src/types/entities/Receipt';
 import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { BaseRepository } from '../interface/repositoryInterface';
-import { PaymentMapper } from '../mapper/paymentMapper';
 import { ReceiptMapper } from '../mapper/receiptMapper';
+import { Payment, paymentConverter } from '../models/Payment/Payment';
+import { IReceipt } from '../models/Payment/Payment.types';
 
-class PaymentRepositoryImpl implements BaseRepository<PaymentUI>{
-    fetchAll(): Promise<PaymentUI[]> {
+const paymentCollection = collection(db, 'payments').withConverter(paymentConverter);
+class PaymentRepositoryImpl implements BaseRepository<Payment>{
+    fetchAll(): Promise<Payment[]> {
         throw new Error('Method not implemented.');
     }
     
     async fetchById(id: string): Promise<any> {
         try {
-            const paymentRef = doc(db, 'payments', id);
+            const paymentRef = doc(paymentCollection, id);
             const snap = await getDoc(paymentRef)
 
-            return {
-                id: snap.id,
-                ...snap.data()
-            }
+            return snap.data()
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error(`Failed fetching payment ${id}`)
         }
     }
 
-    async write(data: PaymentUI): Promise<PaymentUI> {
+    async write(data: Payment): Promise<Payment> {
         try{
-            const paymentRef = doc(db, 'payments', data.receiptId);
-            
-            const dbData = PaymentMapper.toDB(data);
-            
-            const finalDb = { ...dbData, id: paymentRef.id }
-
+            const paymentRef = doc(paymentCollection, data.receipt.id);
+        
             await setDoc(
                 paymentRef,
-                finalDb,
+                data,
                 {merge: false}
             );
         
-            return PaymentMapper.toUI(finalDb);
+            return data;
         } catch (err){
             if(err instanceof Error) throw err;
             throw new Error('Failed creating payment document');
@@ -54,21 +47,11 @@ class PaymentRepositoryImpl implements BaseRepository<PaymentUI>{
 
 export const PaymentRepository = new PaymentRepositoryImpl();
 
-export async function createPayment(
-    paymentData: PaymentUI
-){
-}
-
-export async function fetchPayment(
-    id: string
-){
-    
-}
 
 export async function createReceipt(
     amount: number,
     mode: string
-): Promise<ReceiptUI>{
+): Promise<IReceipt<Date>>{
     try {
         const docRef = doc(collection(db, 'receipts'));
         

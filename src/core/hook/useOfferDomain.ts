@@ -1,8 +1,14 @@
-import { OfferUI, UseOfferParams } from "@/src/types/entities/Offer";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Offer } from "../models/Offer/Offer";
 import { useOffersStore } from "../stores/offersStore";
 
+export type UseOfferParams = {
+    trailId: string | null,
+    businessId: string | null,
+    offerId: string | null,
+    mode: string | null,
+}
 
 export function useOfferDomain(params: UseOfferParams){
     const { offerId, trailId, mode } = params;
@@ -18,9 +24,9 @@ export function useOfferDomain(params: UseOfferParams){
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
     
-    const [filteredOffers, setFilteredOffers] = useState<OfferUI[] |[]>([]);
+    const [filteredOffers, setFilteredOffers] = useState<Offer[] |[]>([]);
     const [date, setDate] = useState<Date>();
-    const [list, setList] = useState<OfferUI[]|[]>([]);
+    const [list, setList] = useState<Offer[]>([]);
     
     useEffect(() => {
         fetchOffers();
@@ -50,7 +56,7 @@ export function useOfferDomain(params: UseOfferParams){
     
     function filterOffers(){
         if(date){
-            setFilteredOffers(() => list.filter(o => o.hikeDate === date).sort((a, b) => a.hikeDate.getDate() - b.hikeDate.getDate()))
+            setFilteredOffers(() => list.filter(o => o.date === date).sort((a, b) => a.date.getDate() - b.date.getDate()))
         } else {
             setFilteredOffers(list);
         }

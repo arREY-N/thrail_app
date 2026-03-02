@@ -1,19 +1,18 @@
 import { db } from '@/src/core/config/Firebase';
 import { ApplicationMapper } from '@/src/core/mapper/applicationMapper';
-import { Application, applicationConverter } from '@/src/types/entities/Application';
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { BaseRepository } from '../interface/repositoryInterface';
+import { Application, applicationConverter } from '../models/Application/Application';
 
 export const applicationCollection = collection(db, 'applications').withConverter(applicationConverter);
 
 export interface ApplicationRepository extends BaseRepository<Application>{}
 
 class ApplicationRepositoryImpl implements ApplicationRepository{
-    async fetchAll(...args: any[]): Promise<Application[]> {
+    async fetchAll(): Promise<Application[]> {
         try{
             const snapshot = await getDocs(applicationCollection);
             if(snapshot.empty) return [];
-            console.log(snapshot);
             return snapshot.docs.map(doc => doc.data());
         } catch (err) {
             if(err instanceof Error) throw err;
@@ -21,7 +20,7 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
         }    
     }
 
-    async fetchById(id: string, ...args: any[]): Promise<Application | null> {
+    async fetchById(id: string): Promise<Application | null> {
         try {
             const docRef = doc(applicationCollection, id);
             const docsnap = await getDoc(docRef);
@@ -32,7 +31,7 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
         }
     }
 
-    async write(data: Application, ...args: any[]): Promise<Application> {
+    async write(data: Application): Promise<Application> {
         try{
             const docref = data.id
                 ? doc(applicationCollection, data.id)
@@ -40,10 +39,10 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
 
             const docsnap = await getDoc(docref);
 
-            const q = query(applicationCollection, where('applicant.id', '==', data.userId));
+            const q = query(applicationCollection, where('applicant.id', '==', data.owner.id));
             const querySnapshot = await getDocs(q);
 
-            const app = querySnapshot.docs.find(app => app.data().userId === data.userId);
+            const app = querySnapshot.docs.find(app => app.data().owner.id === data.owner.id);
 
             if(app){
                 throw new Error(`Application is ${app?.data().status}`);
@@ -65,7 +64,7 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
         }    
     }
 
-    async update(data: Application, ...args: any[]): Promise<Application> {
+    async update(data: Application): Promise<Application> {
         try{
             const docref = doc(applicationCollection, data.id);
 
@@ -85,7 +84,7 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
         }    
     }
 
-    async delete(id: string, ...args: any[]): Promise<void> {
+    async delete(id: string): Promise<void> {
         try {
             const docRef = doc(applicationCollection, id);
             await deleteDoc(docRef);

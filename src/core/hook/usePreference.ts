@@ -1,5 +1,5 @@
-import { SignUpUI } from "@/src/types/entities/User";
 import { useState } from "react";
+import { SignUp } from "../models/User/SignUp";
 
 const preferenceTemplate = {
     q1: {
@@ -42,7 +42,7 @@ const preferenceTemplate = {
 }
 
 export default function usePreference(){
-    const account = new SignUpUI();
+    const account = new SignUp();
     const [questions, setQuestions] = useState(preferenceTemplate);
 
     const setAnswer = (
@@ -50,8 +50,7 @@ export default function usePreference(){
         newAnswer: string,
     ) => {
         setQuestions(prev => {
-            // const currentQuestion = prev[question];
-            let saveAnswer: string | string[] | null = newAnswer;
+            let saveAnswer: string | string[] | boolean | null = newAnswer;
 
             if(prev[question].type === 'multi-select'){
                 
@@ -61,6 +60,8 @@ export default function usePreference(){
                     ? answers.filter(a => a !== newAnswer)
                     : [...answers ?? [], newAnswer] 
             }
+
+            // TODO revised how true/false values are saved
 
             return(
                 {

@@ -1,57 +1,44 @@
 import { db } from '@/src/core/config/Firebase';
-import { UserDB, UserUI } from '@/src/types/entities/User';
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { BaseRepository } from '../interface/repositoryInterface';
-import { UserMapper } from '../mapper/userMapper';
+import { User, userConverter } from '../models/User/User';
 
-const usersCollection = collection(db, 'users').withConverter({
-    toFirestore: (user: UserDB) => user,
-    fromFirestore: (snapshot): UserDB => snapshot.data() as UserDB
-})
+const usersCollection = collection(db, 'users').withConverter(userConverter)
 
-class UserRepositoryImpl implements BaseRepository<UserUI>{
-    async fetchAll(): Promise<UserUI[]> {
+class UserRepositoryImpl implements BaseRepository<User>{
+    async fetchAll(): Promise<User[]> {
         try{
             const snapshot = await getDocs(usersCollection);
-
-            return snapshot.docs.map((docsnap) => UserMapper.toUI({
-                ...docsnap.data(),
-                id: docsnap.id,
-            }));
-
+            return snapshot.docs.map(docsnap=> docsnap.data());
         } catch (err: unknown) {
             if(err instanceof Error) throw err;
             throw new Error('An error occurred while fetching all users.');
         }
     }
 
-    async fetchById(id: string): Promise<UserUI | null> {
+    async fetchById(id: string): Promise<User | null> {
         try {
             const snap = await getDoc(doc(usersCollection, id));
             if(!snap.exists()) return null;
-
-            return UserMapper.toUI({
-                id: snap.id,
-                ...snap.data()
-            })
+            return snap.data()
         } catch (err: unknown) {
             if(err instanceof Error) throw err;
             throw new Error('An error occurred while fetching user.');
         }
     }
 
-    async write(data: UserUI): Promise<UserUI> {
+    async write(data: User): Promise<User> {
         try {
             const docRef = data.id
                 ? doc(usersCollection, data.id)
                 : doc(usersCollection)
-
-            const user = UserMapper.toDB({ id: docRef.id, ...data});
-
+                
+            if(!data.id) data.id = docRef.id;
+            
             await setDoc(docRef, data, { merge: true });
-
-            return UserMapper.toUI(user);
+            
+            return data;
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('An error occurred while writing user')
@@ -73,20 +60,15 @@ class UserRepositoryImpl implements BaseRepository<UserUI>{
         }
     }
 
-    async fetchByEmail(email: string): Promise<UserUI[] | []>{
+    async fetchByEmail(email: string): Promise<User[]>{
         try {
             const q = query(usersCollection, where('email', '==', email));
             
             const querySnapshot = await getDocs(q);
 
-            if(querySnapshot.empty){
-                return [];
-            }
+            if(querySnapshot.empty) return [];
 
-            return querySnapshot.docs.map((docsnap) => UserMapper.toUI({
-                id: docsnap.id,
-                ...docsnap.data()
-            }));
+            return querySnapshot.docs.map(docsnap => docsnap.data());
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error(`An error occurred while fetching user with email ${email}`)
@@ -95,62 +77,3 @@ class UserRepositoryImpl implements BaseRepository<UserUI>{
 }
 
 export const UserRepository = new UserRepositoryImpl();
-// /**
-//  * Fetch user by ID 
-//  * @param {string} id
-//  * @returns {Promise<User|null}>
-//  */
-// export async function fetchUserById(id){
-//     try {
-//         const ref = doc(db, 'users', id);
-//         const snap = await getDoc(ref);
-
-//         if(!snap.exists()) return null;
-
-//         return {
-//             id: snap.id,
-//             ...snap.data()
-//         }
-//     } catch (err) {
-//         throw new Error('Failed to fetch user ', id);
-//     }
-// }
-
-// export async function fetchUsers(){
-    
-// }
-
-// export async function fetchUserByEmail(email){
-//     try {
-//         const userRef = collection(db, 'users');
-//         const q = query(userRef, where('email', '==', email));
-        
-//         const querySnapshot = await getDocs(q);
-
-//         if(querySnapshot.empty){
-//             return null;
-//         }
-
-//         const results = querySnapshot.docs.map((docsnap) => ({
-//             id: docsnap.id,
-//             ...docsnap.data()
-//         }))
-
-//         return results[0];
-//     } catch (err) {
-//         throw new Error(err.message ?? 'Failed fetching', email)
-//     }
-// }
-
-// export async function deleteUser(id){
-//     const functions = getFunctions();
-
-//     const deleteAccount = httpsCallable(functions, 'deleteUser');
-
-//     try {
-//         const result = await deleteAccount({userId: id});
-//         return result.data.success;
-//     } catch (err) {
-//         throw new Error(err.message ?? 'Failed deleting ', id)
-//     }
-// }

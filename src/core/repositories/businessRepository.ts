@@ -1,23 +1,26 @@
 import { db } from '@/src/core/config/Firebase';
-import { Business, businessConverter, IBusiness } from '@/src/types/entities/Business';
-import { UserDB, UserUI } from '@/src/types/entities/User';
-import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { BaseRepository } from '../interface/repositoryInterface';
-import { UserMapper } from '../mapper/userMapper';
+import { Admin, adminConverter } from '../models/Admin/Admin';
+import { Business, businessConverter } from '../models/Business/Business';
+import { IBusiness } from '../models/Business/Business.types';
+import { User } from '../models/User/User';
 
 export type AdminParams = {
     userId: string,
     businessId: string,
 }
-
 export interface BusinessRepository extends BaseRepository<IBusiness>{
-    fetchBusinessAdmins(id: string): Promise<UserUI[]>
-    createBusinessAdmin(...args: any[]): Promise<void>;
+    fetchBusinessAdmins(id: string): Promise<Admin[]>
+    createBusinessAdmin(...args: any[]): Promise<Admin>;
 }
 
 const businessCollection = collection(db, 'businesses').withConverter(businessConverter); 
 
+const createAdminCollection = (id: string) => {
+    return collection(db, 'businesses', id, 'admin').withConverter(adminConverter);
+}
 class BusinessRepositoryImpl implements BusinessRepository{
     async fetchAll(...args: any[]): Promise<Business[]> {
         try{
@@ -45,19 +48,15 @@ class BusinessRepositoryImpl implements BusinessRepository{
     async write(data: Business, applicationId: string): Promise<Business> {
         const functions = getFunctions();
         const createBusiness = httpsCallable(functions, 'createBusiness');
-        
-        const firestoreData = data.toFirestore();
-
-        try{
-            console.log(firestoreData, applicationId);
-            
+    
+        try{        
             const result = await createBusiness({
-                data: firestoreData,
+                data: data.toFirestore(),
                 applicationId,
             });
 
             if(!result) throw new Error('Failed creating business');
-            console.log('repo: ', data);
+            
             return data;
         } catch (err) {
             if(err instanceof Error) throw err;
@@ -67,42 +66,54 @@ class BusinessRepositoryImpl implements BusinessRepository{
 
     async delete(id: string, ...args: any[]): Promise<void> {
         try{
-            const docRef = doc(db, 'businesses', id);
-            const docsnap = await getDoc(docRef);
+            const docRef = doc(businessCollection, id);
 
-            await setDoc(docRef, {
-                active: false,
-            }, {merge: true});
+            await updateDoc( 
+                docRef, 
+                { active: false }
+            );
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching business');
         }
     }
 
-    async fetchBusinessAdmins(id: string): Promise<UserUI[]> {
+    async fetchBusinessAdmins(id: string): Promise<Admin[]> {
         try {
-            const ref = collection(db, 'businesses', id, 'admins');
+            const ref = createAdminCollection(id);
             const snapshot = await getDocs(ref);
         
-            return snapshot.docs.map((docsnap) => UserMapper.toUI(docsnap.data() as UserDB));
+            return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching all businesses');
         }
     }
 
-    async createBusinessAdmin({userId, businessId}: AdminParams){
+    async createBusinessAdmin(user: User, businessId: string): Promise<Admin>{
         const functions = getFunctions();
     
         const createAdmin = httpsCallable(functions, 'createAdmin');
     
         try {
-            if(!userId || !businessId) throw new Error('Missing user or business id');
+            if(!user) throw new Error('Missing user');
+            
+            if(!businessId) throw new Error('Missing business');
     
-            const uid = await createAdmin({userId, businessId})
+            const admin = new Admin({
+                id: user.id,
+                status: 'active',
+                username: user.username,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+            })
+
+            const uid = await createAdmin(admin.toFirestore());
             
             if(!uid) throw new Error('Admin creation failed');
 
+            return admin;
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed fetching all businesses');

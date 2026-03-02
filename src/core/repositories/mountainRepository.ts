@@ -1,73 +1,78 @@
 import { db } from '@/src/core/config/Firebase';
-import { MountainDB, MountainUI } from '@/src/types/entities/Mountain';
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { BaseRepository } from '../interface/repositoryInterface';
-import { MountainMapper } from '../mapper/mountainMapper';
+import { Mountain, mountainConverter } from '../models/Mountain/Mountain';
 
-const mountainCollection = collection(db, 'mountains').withConverter({
-    toFirestore: (mountain: MountainDB) => mountain,
-    fromFirestore: (snapshot): MountainDB => snapshot.data() as MountainDB,
-});
+const mountainCollection = collection(db, 'mountains').withConverter(mountainConverter);
 
-class MountainRepositoryImpl implements BaseRepository<MountainUI>{
-    async fetchAll(...args: any[]): Promise<MountainUI[] | []> {
+class MountainRepositoryImpl implements BaseRepository<Mountain>{
+    async fetchAll(): Promise<Mountain[] | []> {
         try {
             const snapshot = await getDocs(mountainCollection);
 
             if(snapshot.empty) return [];
 
-            return snapshot.docs.filter(d => d.id !== 'init').map((docs) => MountainMapper.toUI(docs.data()));
+            return snapshot.docs.filter(d => d.id !== 'init').map(docs => docs.data());
         } catch (err) {
             if(err instanceof Error) throw err;
-            throw new Error((err as Error).message || 'Failed fetching all mountains')
+            throw new Error('Failed fetching all mountains')
         }
     }
     
-    async fetchById(id: string, ...args: any[]): Promise<MountainUI | null> {
+    async fetchById(id: string): Promise<Mountain | null> {
         try {
             const docRef = doc(mountainCollection, id);
             const snapshot = await getDoc(docRef);
 
             if(!snapshot.exists()) return null;
 
-            return MountainMapper.toUI(snapshot.data());
+            return snapshot.data();
         } catch (err) {
             if(err instanceof Error) throw err;
-            throw new Error((err as Error).message || 'Failed fetching mountain');
+            throw new Error('Failed fetching mountain');
         }
     }
     
-    async write(data: MountainUI, ...args: any[]): Promise<MountainUI> {
+    async write(data: Mountain): Promise<Mountain> {
         try {
             const docRef = data.id 
                 ? doc(mountainCollection, data.id)
                 : doc(mountainCollection);
 
-            const mountainInfo = data.id 
-                ? {id: docRef.id, ...data, updatedAt: serverTimestamp()}
-                : {id: docRef.id, ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp()}
+            data.id = docRef.id;
 
-            const mountain = MountainMapper.toDB(mountainInfo)
-            await setDoc(docRef, mountain, { merge: true });
-            return MountainMapper.toUI(mountain);
+            await setDoc(docRef, data, { merge: true });
+            
+            return data;
         } catch (err) {
             if(err instanceof Error) throw err;
-            throw new Error((err as Error).message || 'Failed writing mountain')
+            throw new Error('Failed writing mountain')
         }
     }
     
-    async delete(id: string, ...args: any[]): Promise<void> {
+    async delete(id: string): Promise<void> {
         try {
             const docRef = doc(mountainCollection, id);
             await deleteDoc(docRef);
         } catch (err) {
             if(err instanceof Error) throw err;
-            throw new Error((err as Error).message || 'Failed deleting mountain')
+            throw new Error('Failed deleting mountain')
         }
     }
 
-    async fetchMountainByProvince(): Promise<MountainUI[] | []>{
-        throw new Error('TO IMPLEMENT');        
+    async fetchMountainByProvince(province: string): Promise<Mountain[] | []>{
+        try {
+            const q = query(mountainCollection, where('province', 'array-contains', province));
+    
+            const snapshot = await getDocs(q);
+            
+            if(snapshot.empty) return [];
+    
+            return snapshot.docs.map(doc => doc.data());
+        } catch (err) {
+            if (err instanceof Error) throw err;
+            throw new Error(`Failed to fetch mountains in ${province}`);    
+        }
     }
 }
 

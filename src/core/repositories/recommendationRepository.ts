@@ -1,40 +1,35 @@
 import { db } from '@/src/core/config/Firebase';
 import getRecoID from '@/src/core/utility/recommendation';
-import { RecommendationDB } from '@/src/types/entities/Recommendation';
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { RecommendationMapper } from '../mapper/recommendationMapper';
+import { recommendationConverter } from '../models/Recommendation/Recommendation';
 
-const usersCollection = collection(db, 'users');
+const createUserCollection = (id: string) => {
+    return collection(db, 'users', id, 'recommendations').withConverter(recommendationConverter);
+}
 
 class RecommendationRepositoryImpl{
-    async fetchAll(
-        uid: string
-    ) {
+    async fetchAll(uid: string) {
         try {
-            const ref = collection(usersCollection, uid, 'recommendations');
+            if(!uid) throw new Error('UID or Recommendation ID missing.');
+            const ref = createUserCollection(uid);
             const snapshot = await getDocs(ref);
         
             if (snapshot.empty) return [];
             
-            return snapshot.docs.map((docsnap) => RecommendationMapper.toUI({
-                id: docsnap.id,
-                ...docsnap.data() as RecommendationDB,
-            }));
+            return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
             if(err instanceof Error) throw err;
             throw new Error('An error occurred while fetching user recommendations.');
         }
     }
 
-    async fetchCurrent(
-        uid: string
-    ){
+    async fetchCurrent(uid: string){
         try{
             if(!uid) throw new Error('UID or Recommendation ID missing.');
         
             const recoID = getRecoID();
         
-            const ref = doc(db, 'users', uid, 'recommendations', recoID);    
+            const ref = doc(createUserCollection(uid), recoID);    
             const snapshot = await getDoc(ref);
             
             if(!snapshot.exists()) {
@@ -42,13 +37,10 @@ class RecommendationRepositoryImpl{
                 return;
             }
             
-            return {
-                id: snapshot.id,
-                ...snapshot.data(),
-            }
+            return snapshot.data();
         } catch (err) {
-            console.log(err);
-            return [];
+            if(err instanceof Error) throw err;
+            throw new Error('An error occurred while fetching current user recommendations.');
         }
     }
 }

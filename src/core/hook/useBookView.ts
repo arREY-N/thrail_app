@@ -2,9 +2,9 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
-import { OfferUI } from "@/src/types/entities/Offer";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { Offer } from "../models/Offer/Offer";
 
 export type BookParams = {
     offerId: string | null;
@@ -41,7 +41,7 @@ export function useBookView(params: BookParams){
         loadOffer({ id: offerId })
     }, [offerId]);
 
-    function onCancelBookingPress(bookingData: OfferUI){
+    function onCancelBookingPress(bookingData: Offer){
         try {
             if(!profile) throw new Error('Profile is empty');
 

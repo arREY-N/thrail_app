@@ -1,6 +1,6 @@
-import { OfferUI } from "@/src/types/entities/Offer";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Offer } from "../models/Offer/Offer";
 import { useBusinessesStore } from "../stores/businessesStore";
 import { useOffersStore } from "../stores/offersStore";
 
@@ -21,7 +21,7 @@ export function useAdmin(params: AdminParams){
     const businessOffers = useOffersStore(s => s.businessOffers);
     const isLoading = useOffersStore(s => s.isLoading);
 
-    const [filteredOffers, setFilteredOffers] = useState<OfferUI[]>(businessOffers);
+    const [filteredOffers, setFilteredOffers] = useState<Offer[]>(businessOffers);
 
     useEffect(() => {
         if(businessId) {
@@ -38,10 +38,10 @@ export function useAdmin(params: AdminParams){
     const onFilterOffers = (date: Date | null = null) => {
         console.log(date);
         if(date){
-            setFilteredOffers(() => businessOffers.filter(o => o.hikeDate.getDate() === date.getDate()).sort((a, b) => a.hikeDate.getDate() - b.hikeDate.getDate()));
+            setFilteredOffers(() => businessOffers.filter(o => o.date.getDate() === date.getDate()).sort((a, b) => a.date.getDate() - b.date.getDate()));
         } else {
             console.log('RESET')
-            setFilteredOffers(businessOffers.sort((a, b) => a.hikeDate.getDate() - b.hikeDate.getDate()));
+            setFilteredOffers(businessOffers.sort((a, b) => a.date.getDate() - b.date.getDate()));
         }
     }
     const onWriteOffer = (id: string) => {

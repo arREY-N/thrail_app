@@ -1,19 +1,24 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
+import { Role } from "../models/User/User.types";
 import { useUsersStore } from "../stores/usersStore";
 
 export type UserParams = {
     userId: string;
+    role: Role;
 }
 
-export default function useUserDomain(params: UserParams | null){
+export default function useUserDomain(params: UserParams){
+    const { role } = params;
     const loadUsers = useUsersStore(s => s.fetchAll);
     const users = useUsersStore(s => s.data);
     const isLoading = useUsersStore(s => s.isLoading);
     const error = useUsersStore(s => s.error);
 
     useEffect(() => {
-        loadUsers();
+        if(role === 'superadmin'){
+            loadUsers();
+        }
     },[]);
 
     const onViewAccountPress = (userId: string) => {
