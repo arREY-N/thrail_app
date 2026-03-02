@@ -1,19 +1,12 @@
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest, HttpsError} = require("firebase-functions/https");
 const admin = require("firebase-admin");
+const {setGlobalOptions} = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/https");
 const functions = require('firebase-functions/v1')
-const { onUserCreated } = require("firebase-functions/v2/identity");
-const { user } = require("firebase-functions/v1/auth");
-const { onCall } = require('firebase-functions/v2/https'); 
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
-const crypto = require('crypto');
-const { log } = require("console");
-const { request } = require("http");
+const { FieldValue } = require('firebase-admin/firestore');
 
 admin.initializeApp();
 
 setGlobalOptions({ maxInstances: 10 });
-
 
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     const account = await admin.auth().getUser(user.uid);
