@@ -79,6 +79,7 @@ const DUMMY_OFFERS = [
             'Organizer may cancel if 12 participants are not met.'
         ]
     },
+
     {
         id: 'offer-2',
         price: 400,
@@ -89,26 +90,48 @@ const DUMMY_OFFERS = [
         description: 'Standard hike package. Good for beginners.',
         business: { name: 'Local Guide Coop' }
     },
+
     {
         id: 'offer-3',
         price: 850,
-        date: 'Dec 5, 2025',
+        date: 'Feb 15, 2026',
         duration: '1 Day',
         documents: ['Medical Certificate', 'Valid ID', 'Waiver'],
         inclusions: ['Premium Guide', 'Lunch Included'],
-        description: 'Premium package.',
-        trail: { id: 'trail-1', name: 'Mt. Parawagan' },
-        business: { name: 'Guide/Business Name 3' }
+        description: 'Premium package (This event has already concluded).',
+        business: { name: 'Peak Explorers' }
     },
+
     {
         id: 'offer-4',
         price: 650,
-        date: 'Oct 21, 2025',
+        date: 'Feb 28, 2026',
         duration: '1 Day',
         documents: ['Medical Certificate', 'Valid ID', 'Waiver'],
-        inclusions: ['Certified Local Guide', 'First-aid Support', 'Lunch Included'],
-        description: 'Premium package.',
-        trail: { id: 'trail-3', name: 'Mt. Parawagan' },
-        business: { name: 'Guide/Business Name 4' }
+        inclusions: ['Certified Local Guide', 'First-aid Support'],
+        description: 'Weekend joiner hike (This event has already concluded).',
+        business: { name: 'Weekend Warriors' }
+    },
+
+    {
+        id: 'offer-5',
+        price: 500,
+        date: 'Apr 5, 2026',
+        duration: '1 Day',
+        documents: ['Valid ID'],
+        inclusions: ['Local Guide', 'Trail Snacks'],
+        description: 'Early morning hike to catch the sea of clouds.',
+        business: { name: 'Cloud Chasers' }
+    },
+
+    {
+        id: 'offer-6',
+        price: 1200,
+        date: 'Apr 20, 2026',
+        duration: '1 Day',
+        documents: ['Medical Certificate', 'Valid ID'],
+        inclusions: ['Roundtrip Transpo', 'Guide Fee', 'Lunch'],
+        description: 'All-inclusive day trip package.',
+        business: { name: 'All-In Adventures' }
     },
 ];
