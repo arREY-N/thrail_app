@@ -5,6 +5,7 @@ export type ViewpointType = 'V1' | 'V2' | 'V3'
 export type RecommendationStatus = 'Hiked' | 'Unhiked'
 export type PaymentMode = 'GCash' | 'Maya' | null
 export type Mode = 'write' | 'view' | 'list' | null
+export type Province = 'Cavite' | 'Laguna' | 'Batangas' | 'Rizal' | 'Quezon';
 
 export enum BookingStatus{
     PENDING = 'Pending',
