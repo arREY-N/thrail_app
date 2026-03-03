@@ -1,6 +1,6 @@
 import { db } from '@/src/core/config/Firebase';
-import { Preference } from '@/src/types/Preference';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { Preference } from './models/User/Preference';
 
 export const finishOnboarding = async (
     uid: string, 
