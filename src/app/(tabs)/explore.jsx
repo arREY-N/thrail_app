@@ -1,4 +1,4 @@
-import useTrailDomain from "@/src/core/hook/useTrailDomain";
+import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 import React from 'react';
 

@@ -3,7 +3,7 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import usePreference from "@/src/core/hook/usePreference";
+import usePreference from "@/src/core/hook/user/usePreference";
 import PreferenceScreen from "@/src/features/Auth/screens/PreferenceScreen";
 
 export default function preference(){

@@ -1,6 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
-import { useOfferDomain } from "@/src/core/hook/useOfferDomain";
+import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
 import { Stack, useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){

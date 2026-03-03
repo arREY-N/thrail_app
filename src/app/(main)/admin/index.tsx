@@ -1,8 +1,8 @@
-import { useAdmin } from '@/src/core/hook/useAdmin';
-import { useAuthHook } from '@/src/core/hook/useAuthHook';
+import { useAdmin } from '@/src/core/hook/admin/useAdmin';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { Business } from '@/src/core/models/Business/Business';
+import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
-import { Business } from '@/src/types/entities/Business';
-import { UserUI } from '@/src/types/entities/User';
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import LoadingScreen from '../../loading';
 
@@ -36,7 +36,7 @@ type screenParams = {
     businessAccount: Business
     onManageAdminsPress: () => void,
     onManageOffersPress: () => void,
-    adminProfile: UserUI,
+    adminProfile: User,
     error: string | null,
 }
 
@@ -57,7 +57,7 @@ const TESTHOME =(params: screenParams) => {
                 <Text>BUSINESS INFORMATION</Text>
                 
                 <View>
-                    <Text>  Business Name: {businessAccount.businessName}</Text>
+                    <Text>  Business Name: {businessAccount.name}</Text>
                     <Text>  Address: {businessAccount.address}</Text>
                     <Text>  Serviced Location: {businessAccount.servicedLocation}</Text>
                     <Text>  Established on: {formatDate(businessAccount.establishedOn)}</Text>

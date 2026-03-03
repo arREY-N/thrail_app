@@ -1,5 +1,5 @@
 import CustomTextInput from "@/src/components/CustomTextInput";
-import { useAdmin } from "@/src/core/hook/useAdmin";
+import { useAdmin } from "@/src/core/hook/admin/useAdmin";
 import { toDate } from "@/src/core/utility/date";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";

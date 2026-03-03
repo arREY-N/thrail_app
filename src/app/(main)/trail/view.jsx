@@ -1,7 +1,7 @@
+import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
+import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
-import { useAuthHook } from "@/src/core/hook/useAuthHook";
-import { useOfferDomain } from "@/src/core/hook/useOfferDomain";
-import useTrailDomain from "@/src/core/hook/useTrailDomain";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text } from "react-native";

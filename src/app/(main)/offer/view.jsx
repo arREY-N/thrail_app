@@ -1,5 +1,5 @@
 import TESTBOOK from '@/src/components/TESTCOMPONENTS/TestBook';
-import { useBookView } from '@/src/core/hook/useBookView';
+import { useBookView } from '@/src/core/hook/book/useBookView';
 import { Stack, useLocalSearchParams } from "expo-router";
 
 export default function viewOffer(){

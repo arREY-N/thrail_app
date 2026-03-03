@@ -1,4 +1,4 @@
-import useMountainDomain from "@/src/core/hook/useMountainDomain";
+import useMountainDomain from "@/src/core/hook/mountain/useMountainDomain";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function mountainList(){

@@ -1,4 +1,4 @@
-import { useAdmin } from "@/src/core/hook/useAdmin";
+import { useAdmin } from "@/src/core/hook/admin/useAdmin";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 

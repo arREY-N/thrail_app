@@ -1,5 +1,5 @@
 import LoadingScreen from "@/src/app/loading";
-import useUserWrite from "@/src/core/hook/useUserWrite";
+import useUserWrite from "@/src/core/hook/user/useUserWrite";
 import { User } from "@/src/core/models/User/User";
 import { formatDate } from "@/src/core/utility/date";
 import { Stack, useLocalSearchParams } from "expo-router";

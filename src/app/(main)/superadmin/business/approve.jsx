@@ -1,5 +1,5 @@
 import CustomTextInput from '@/src/components/CustomTextInput';
-import useSuperadmin from '@/src/core/hook/useSuperadmin';
+import useSuperadmin from '@/src/core/hook/superadmin/useSuperadmin';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function approveBusiness(){

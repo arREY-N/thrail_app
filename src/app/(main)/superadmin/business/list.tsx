@@ -1,4 +1,5 @@
-import useSuperadmin from '@/src/core/hook/useSuperadmin';
+
+import useSuperadmin from '@/src/core/hook/superadmin/useSuperadmin';
 import { Application } from '@/src/core/models/Application/Application';
 import { Business } from '@/src/core/models/Business/Business';
 import { formatDate } from '@/src/core/utility/date';

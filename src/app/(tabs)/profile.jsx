@@ -4,9 +4,9 @@ import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
-import { useAuthHook } from '@/src/core/hook/useAuthHook';
-import useBusiness from '@/src/core/hook/useBusiness';
-import useUserDomain from '@/src/core/hook/useUserDomain';
+import useBusiness from '@/src/core/hook/admin/useBusiness';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import useUserDomain from '@/src/core/hook/user/useUserDomain';
 
 export default function profile(){
     const {

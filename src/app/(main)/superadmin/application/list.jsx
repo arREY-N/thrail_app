@@ -1,4 +1,4 @@
-import useSuperadminDomain from "@/src/core/hook/useSuperadminDomain";
+import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
 import { formatDate } from "@/src/core/utility/date";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 

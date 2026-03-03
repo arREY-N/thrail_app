@@ -1,5 +1,5 @@
 import LoadingScreen from "@/src/app/loading";
-import useUserDomain from "@/src/core/hook/useUserDomain";
+import useUserDomain from "@/src/core/hook/user/useUserDomain";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function listUsers(){

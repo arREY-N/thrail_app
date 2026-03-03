@@ -1,7 +1,7 @@
 
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
-import useApply from '@/src/core/hook/useApply';
+import useApply from '@/src/core/hook/user/useApply';
 import { Stack } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import LoadingScreen from '../../loading';

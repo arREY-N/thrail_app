@@ -1,11 +1,13 @@
 import LoadingScreen from "@/src/app/loading";
 import TESTWRITETRAIL from "@/src/components/TESTCOMPONENTS/TestWriteTrail";
-import useTrailWrite from "@/src/core/hook/useTrailWrite";
+import useTrailWrite from "@/src/core/hook/trail/useTrailWrite";
 import { useLocalSearchParams } from "expo-router";
 
 export default function write(){
-    const { trailId } = useLocalSearchParams();
+    const { trailId: rawTrailId } = useLocalSearchParams();
     
+    const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
+
     const {
         information,
         trail,
@@ -19,6 +21,8 @@ export default function write(){
     
     if(!trail) return <LoadingScreen/>
 
+    console.log('edit: ', trail);
+    
     return (
         <TESTWRITETRAIL
             options={options}

@@ -1,4 +1,4 @@
-import useSuperadminDomain from '@/src/core/hook/useSuperadminDomain';
+import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function superadminDashboard(){

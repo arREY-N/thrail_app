@@ -1,14 +1,18 @@
 import LoadingScreen from "@/src/app/loading";
-import useSuperadmin from "@/src/core/hook/useSuperadmin";
+import useSuperadmin from "@/src/core/hook/superadmin/useSuperadmin";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Trail } from "@/src/core/models/Trail/Trail";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function listTrail(){
+    const { role } = useAuthHook();
+
     const {
         trails,
         trailLoading,
         onViewTrail,
         onWriteTrail,
-    } = useSuperadmin();
+    } = useSuperadmin({ role });
 
     if(trailLoading) return <LoadingScreen/>
     
@@ -22,12 +26,19 @@ export default function listTrail(){
     )
 }
 
+type ScreenParams = {
+    onViewTrail: (id: string) => void,
+    trails: Trail[],
+    isLoading: boolean,
+    onWriteTrail: (id?: string | null) => void,
+}
+
 const TESTCREATETRAIL = ({
     onViewTrail,
     trails,
     isLoading,
     onWriteTrail,
-}) => {
+}: ScreenParams) => {
     return(
         <ScrollView>
             <Pressable onPress={() => onWriteTrail()}>
@@ -40,10 +51,9 @@ const TESTCREATETRAIL = ({
                     return(
                         <ScrollView key={t.id} style={styles.trailForm}>
                             <Pressable onPress={() => onViewTrail(t.id)}>
-                                <Text>Trail Name: {t.name}</Text>
-                                <Text>Province: {t.province.join(', ')}</Text>
-                                <Text>Length: {t.length} km</Text>
-                                <Text>Status: {t.status == null ? '[No data]' : (t.status ? 'Active' : 'Inactive')}</Text>
+                                <Text>Trail Name: {t.general.name}</Text>
+                                <Text>Province: {t.general.province.join(', ')}</Text>
+                                <Text>Length: {t.difficulty.length} km</Text>
                             </Pressable>
                         </ScrollView>
                     )

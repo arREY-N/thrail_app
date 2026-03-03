@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 
 import { useAuthStore } from '@/src/core/stores/authStore';
 
-import { useAuthHook } from '@/src/core/hook/useAuthHook';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
 export default function login(){

@@ -1,6 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import WriteComponent from "@/src/components/CustomWriteComponents";
-import useMountainWrite from "@/src/core/hook/useMountainWrite";
+import useMountainWrite from "@/src/core/hook/mountain/useMountainWrite";
 
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";

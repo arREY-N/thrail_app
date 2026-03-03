@@ -1,5 +1,5 @@
 import TESTHIKE from "@/src/components/TESTCOMPONENTS/TestHike";
-import useTrailHike from "@/src/core/hook/useTrailHike";
+import useTrailHike from "@/src/core/hook/trail/useTrailHike";
 import { Stack } from "expo-router";
 
 export default function hikeView(){

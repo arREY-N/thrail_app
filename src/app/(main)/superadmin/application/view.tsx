@@ -1,9 +1,9 @@
 import LoadingScreen from "@/src/app/loading";
 import CustomButton from "@/src/components/CustomButton";
 import CustomTextInput from "@/src/components/CustomTextInput";
-import useApplicationDomain from "@/src/core/hook/useApplicationDomain";
+import useApplicationDomain from "@/src/core/hook/superadmin/useApplicationDomain";
+import { Application } from "@/src/core/models/Application/Application";
 import { formatDate } from "@/src/core/utility/date";
-import { Application } from "@/src/types/entities/Application";
 import { useLocalSearchParams } from "expo-router";
 import { Dispatch, SetStateAction } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -64,24 +64,24 @@ const TESTAPPLICATION = (params: ApplicationScreenParams) => {
             
             <View style={styles.group}>
                 <Text>Applicant</Text>
-                <Text>Name: {application.name}</Text>
-                <Text>ID: {application.validId}</Text>
-                <Text>Email: {application.email}</Text>
+                <Text>Name: {application.owner.name}</Text>
+                <Text>ID: {application.owner.id}</Text>
+                <Text>Email: {application.owner.email}</Text>
             </View>
             
             <View style={styles.group}>
                 <Text>Business</Text>
-                <Text>Name: {application.businessName}</Text>
-                <Text>Address: {application.businessAddress}</Text>
+                <Text>Name: {application.name}</Text>
+                <Text>Address: {application.address}</Text>
                 <Text>Established on: {formatDate(application.establishedOn)}</Text>
                 <Text>Locations: {application.servicedLocation.join(', ')}</Text>
             </View>
 
             <View style={styles.group}>
                 <Text>Permits</Text>
-                <Text>DENR: {application.denr}</Text>
-                <Text>DTI: {application.dti}</Text>
-                <Text>BIR: {application.bir}</Text>
+                <Text>DENR: {application.permits.denr}</Text>
+                <Text>DTI: {application.permits.dti}</Text>
+                <Text>BIR: {application.permits.bir}</Text>
             </View>
 
             { application.status !== 'approved' &&

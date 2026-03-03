@@ -1,7 +1,7 @@
 import LoadingScreen from "@/src/app/loading";
 import WriteComponent from "@/src/components/CustomWriteComponents";
-import { useAuthHook } from "@/src/core/hook/useAuthHook";
-import { useOfferWrite } from "@/src/core/hook/useOfferWrite";
+import { useOfferWrite } from "@/src/core/hook/offer/useOfferWrite";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
