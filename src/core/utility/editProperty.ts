@@ -1,4 +1,4 @@
-import { Property } from "@/src/types/Property";
+import { Property } from "@/src/core/types/Property";
 
 export const editProperty = <T>(currentData: T, property: Property): T => {
     const { type, key, value } = property;

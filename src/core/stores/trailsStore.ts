@@ -1,12 +1,9 @@
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { TrailRepository } from '@/src/core/repositories/trailRepository';
-import { editProperty } from '@/src/core/utility/editProperty';
-import { validateTrail } from '@/src/core/utility/validate';
-import { TRAIL_INFORMATION } from '@/src/fields/trailFields';
-import { Property } from '@/src/types/Property';
+import { TrailUIConfig } from '@/src/fields/trailFields';
 import { create } from "zustand";
+import { immer } from 'zustand/middleware/immer';
 import { Trail } from '../models/Trail/Trail';
-
 export interface TrailState extends BaseStore<Trail> {
     hikingTrail: {
         trail: Trail | null;
@@ -18,6 +15,7 @@ export interface TrailState extends BaseStore<Trail> {
     discoverTrail: Trail[];
     setDiscoverTrail: () => Promise<Trail[]>;
     setOnHike: () => void;
+    editTrail: (section: string, id: string, value: any) => void;
 }
 
 const init = {
@@ -33,7 +31,7 @@ const init = {
     discoverTrail: [],
 }
 
-export const useTrailsStore = create<TrailState>((set, get) => ({
+export const useTrailsStore = create<TrailState>()(immer((set, get) => ({
     ...init,
 
     fetchAll: async () => {
@@ -100,14 +98,11 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
                 throw new Error(`Could not find trail with id ${id}`);
             }
 
-            console.log(trail);
-            const trailInstance = new Trail(trail);
-
             set({
-                data: data.find(d => d.id === trailInstance.id)
+                data: data.find(d => d.id === trail.id)
                     ? data
-                    : [...data, trailInstance],
-                current: trailInstance,
+                    : [...data, trail],
+                current: trail,
                 isLoading: false
             })
         } catch (err: any) {
@@ -134,11 +129,11 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
             const validatedTrail = new Trail(current);
             console.log(validatedTrail)
             
-            const info = TRAIL_INFORMATION;
-            const generalErrors = validateTrail(validatedTrail, info)            
+            const info = TrailUIConfig;
+            // const generalErrors = validateTrail(validatedTrail, info)            
 
-            if(generalErrors.length > 0) 
-                throw new Error(`${generalErrors.join(', ')} required`)
+            // if(generalErrors.length > 0) 
+            //     throw new Error(`${generalErrors.join(', ')} required`)
             
             const savedTrail = await TrailRepository.write(validatedTrail);
             
@@ -180,15 +175,21 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
         }
     },
 
-    edit: (property: Property) => {
-        console.log(property);
+    edit(property) {
+        // TODO replaced by editTrail    
+    },
+
+    editTrail: (section: string, id: string, value: any) => {
         set((state) => {
-            if(!state.current) {
-                
-                return state
-            };
-            return {
-                current: editProperty(state.current, property)
+            if(!state.current) return;
+
+            if(section === 'root'){
+                (state.current as any)[id] = value;
+            } else {
+                if (!(state.current as any)[section]) {
+                    (state.current as any)[section] = {};
+                }
+                (state.current as any)[section][id] = value;
             }
         })
     },
@@ -253,7 +254,7 @@ export const useTrailsStore = create<TrailState>((set, get) => ({
         let recommended: Trail[] = []
         return recommended;
     },
-}))
+})))
 
 // export const useTrailsStore = create<TrailState>((set, get) => ({
 
