@@ -10,16 +10,24 @@ import { Colors } from '@/src/constants/colors';
 
 import CustomText from '@/src/components/CustomText';
 
-const ErrorMessage = ({ error, style }) => {
+const ErrorMessage = ({ 
+    error, 
+    style,
+    children
+}) => {
     
-    if (!error) return null;
+    if (!error && !children) return null;
 
     return (
         <View style={[styles.container, style]}>
             <Feather name="alert-circle" size={18} color={Colors.ERROR} />
-            <CustomText variant="caption" style={styles.text}>
-                {error}
-            </CustomText>
+            {children ? (
+                children
+            ) : (
+                <CustomText variant="caption" style={styles.text}>
+                    {error}
+                </CustomText>
+            )}
         </View>
     );
 };

@@ -38,10 +38,10 @@ const ProfileScreen = ({
             
             <ConfirmationModal
                 visible={showSignOutModal}
-                title="Sign Out?"
+                title="Sign Out"
                 message="Are you sure you want to log out of your account?"
-                confirmText="Sign Out"
-                cancelText="Stay"
+                confirmText="Confirm"
+                cancelText="Cancel"
                 onConfirm={handleConfirmSignOut}
                 onClose={handleCloseModal}
             />

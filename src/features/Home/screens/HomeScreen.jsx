@@ -122,10 +122,11 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 32,
+        gap: 16,
     },
 
     sectionContainer: {
-        marginTop: 32,
+        marginTop: 0,
     },
     sectionHeader: {
         flexDirection: 'row',

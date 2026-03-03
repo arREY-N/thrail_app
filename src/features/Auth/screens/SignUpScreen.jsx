@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import {
+    TouchableOpacity,
+    View
+} from 'react-native';
 
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
 import Customicon from '@/src/components/CustomIcon';
-import CustomButton from '../../../components/CustomButton';
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
-import CustomTextInput from '../../../components/CustomTextInput';
-import ErrorMessage from '../../../components/ErrorMessage';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { Colors } from '../../../constants/colors';
-import { AuthStyles } from '../styles/AuthStyles';
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
 const SignUpScreen = ({ 
     onLogInPress, 
@@ -27,6 +30,30 @@ const SignUpScreen = ({
     const [confirmPassword, setConfirmPassword] = useState('');
     
     const [showPasswords, setShowPasswords] = useState(false);
+
+    let strength = 0;
+    if (password.length > 0) {
+        const hasLength = password.length >= 8;
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (hasLength && hasUpper && hasLower && hasNumber && hasSpecial) {
+            strength = 3;
+        } else if (hasLength && (hasNumber || hasSpecial)) {
+            strength = 2;
+        } else {
+            strength = 1;
+        }
+    }
+
+    const getStrengthColor = () => {
+        if (strength === 1) return Colors.STRENGTH_WEAK;    
+        if (strength === 2) return Colors.STRENGTH_MEDIUM;   
+        if (strength === 3) return Colors.STRENGTH_STRONG;  
+        return Colors.STRENGTH_EMPTY; 
+    };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -64,15 +91,34 @@ const SignUpScreen = ({
                             autoCapitalize="none"
                         />
 
-                        <CustomTextInput
-                            label="Password *"
-                            placeholder="Type your password"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            isPasswordVisible={showPasswords}
-                            onTogglePassword={() => setShowPasswords(!showPasswords)}
-                        />
+                        <View>
+                            <CustomTextInput
+                                label="Password *"
+                                placeholder="Type your password"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                                isPasswordVisible={showPasswords}
+                                onTogglePassword={() => setShowPasswords(!showPasswords)}
+                                style={{ marginBottom: 0 }} 
+                            />
+
+                            <View style={AuthStyles.strengthContainer}>
+                                {[1, 2, 3].map((level) => (
+                                    <View 
+                                        key={level}
+                                        style={[
+                                            AuthStyles.strengthBar,
+                                            { 
+                                                backgroundColor: strength >= level 
+                                                    ? getStrengthColor() 
+                                                    : Colors.STRENGTH_EMPTY
+                                            }
+                                        ]} 
+                                    />
+                                ))}
+                            </View>
+                        </View>
 
                         <CustomTextInput
                             label="Confirm Password *"
@@ -82,7 +128,15 @@ const SignUpScreen = ({
                             secureTextEntry
                             isPasswordVisible={showPasswords}
                             onTogglePassword={() => setShowPasswords(!showPasswords)}
+                            style={{ marginBottom: 0 }} 
                         />
+
+                        <CustomText 
+                                variant="caption" 
+                                style={AuthStyles.passwordHint}
+                            >
+                                At least 8 characters with a mix of letters, numbers & symbols.
+                        </CustomText>
 
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 
@@ -119,7 +173,7 @@ const SignUpScreen = ({
 
                         <View style={AuthStyles.footerContainer}>
                             <CustomText variant="caption" style={AuthStyles.footerText}>
-                                Already have an account?{' '}
+                                {"Already have an account? "}
                             </CustomText>
 
                             <TouchableOpacity onPress={onLogInPress}>

@@ -16,7 +16,8 @@ const CustomDropdown = ({
     value, 
     onSelect, 
     placeholder = "Select an option",
-    label
+    label,
+    children
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
@@ -52,9 +53,11 @@ const CustomDropdown = ({
                 onPress={toggleDropdown}
                 activeOpacity={0.8}
             >
-                <CustomText style={[styles.text, !value && styles.placeholder]}>
-                    {value || placeholder}
-                </CustomText>
+                {children ? children : (
+                    <CustomText style={[styles.text, !value && styles.placeholder]}>
+                        {value || placeholder}
+                    </CustomText>
+                )}
                 
                 <CustomIcon 
                     library="Feather"

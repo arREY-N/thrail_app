@@ -15,7 +15,8 @@ export const AuthStyles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         paddingHorizontal: 16, 
-        paddingTop: 32, 
+        paddingTop: 0, 
+        paddingBottom: 16,
     },
     formConstrainer: {
         width: '100%',
@@ -25,7 +26,6 @@ export const AuthStyles = StyleSheet.create({
     pageTitle: {
         textAlign: 'center',
         marginBottom: 32, 
-        fontSize: 28,
     },
 
     errorContainer: {
@@ -108,18 +108,39 @@ export const AuthStyles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 0,
     },
     footerText: {
 
     },
     signUpLink: {
         fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.PRIMARY,
         marginLeft: 4,
     },
 
     pageContent: {
         padding: 16,
+    },
+
+    strengthContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+        marginBottom: 16,
+        paddingHorizontal: 4,
+    },
+    strengthBar: {
+        flex: 1,           
+        height: 4,         
+        borderRadius: 2,   
+    },
+
+    passwordHint: {
+        fontSize: 12,
+        paddingHorizontal: 4,
+        marginTop: 8,
+        marginBottom: 16,
     },
 });

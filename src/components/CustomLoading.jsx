@@ -9,7 +9,11 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const CustomLoading = ({ visible = true, message = "Loading..." }) => {
+const CustomLoading = ({ 
+    visible = true, 
+    message = "Loading...", 
+    children
+}) => {
     if (!visible) return null;
 
     return (
@@ -17,9 +21,13 @@ const CustomLoading = ({ visible = true, message = "Loading..." }) => {
             <View style={styles.container}>
                 <ActivityIndicator size="large" color={Colors.PRIMARY || Colors.BLACK} />
                 
-                <CustomText variant="body" style={styles.text}>
-                    {message}
-                </CustomText>
+                {children ? (
+                    children
+                ) : (
+                    <CustomText variant="body" style={styles.text}>
+                        {message}
+                    </CustomText>
+                )}
             </View>
         </View>
     );

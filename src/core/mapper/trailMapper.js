@@ -6,6 +6,7 @@ export const TrailMapper = {
             ...data.geography,
             ...data.difficulty,
             ...data.tourism,
+            ...data.weather,
         }
 
         return data.id ? {id: data.id, ...trail} : trail;
@@ -47,6 +48,10 @@ export const TrailMapper = {
                 monument: data.monument,
                 community: data.community,
                 viewpoint: data.viewpoint,
+            },
+            weather: {
+                temperature: data.temperature,
+                condition: data.condition,
             }
         }
 

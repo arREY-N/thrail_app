@@ -10,6 +10,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
 import { Colors } from '@/src/constants/colors';
 
 const TrailScreen = ({ 
@@ -39,6 +40,15 @@ const TrailScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+                <CustomIcon 
+                    library="Feather" 
+                    name="chevron-left" 
+                    size={28} 
+                    color={Colors.WHITE} 
+                />
+            </TouchableOpacity>
+            
             <ResponsiveScrollView 
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
@@ -46,14 +56,6 @@ const TrailScreen = ({
             >
                 <View style={styles.imageContainer}>
                     <View style={styles.imagePlaceholder} /> 
-                    <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-left" 
-                            size={28} 
-                            color={Colors.TEXT_PRIMARY} 
-                        />
-                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.bodyContainer}>
@@ -87,7 +89,7 @@ const TrailScreen = ({
                                     library="Feather" 
                                     name="download" 
                                     size={20}
-                                    color={Colors.GRAY_MEDIUM} 
+                                    color={Colors.WHITE} 
                                 />
                             </TouchableOpacity>
                         </View>
@@ -127,6 +129,7 @@ const TrailScreen = ({
                         title="Hike" 
                         onPress={() => onHikePress(trail?.id)} 
                         style={styles.footerBtn}
+                        // style={[styles.footerBtn, {color: Colors.SECONDARY}]}
                         variant="secondary"
                     />
                 </View>
@@ -277,18 +280,18 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
-        paddingBottom: 100,
+        paddingBottom: 8,
     },
 
     imageContainer: {
-        height: 300,
+        height: 350,
         width: '100%',
         position: 'relative',
     },
     imagePlaceholder: {
         width: '100%',
         height: '100%',
-        backgroundColor: '#E0E0E0',
+        backgroundColor: Colors.GRAY_LIGHT,
     },
     backButton: {
         position: 'absolute',
@@ -297,7 +300,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.8)',
+        backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -309,16 +312,25 @@ const styles = StyleSheet.create({
         marginTop: -20,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
+        paddingBottom: 96,
         paddingTop: 24,
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
     },
     headerInfo: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     titleRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        gap: 8,
     },
     title: {
         fontWeight: 'bold',
@@ -326,7 +338,7 @@ const styles = StyleSheet.create({
     },
     address: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 8,
+        marginBottom: 0,
     },
     ratingRow: {
         flexDirection: 'row',
@@ -342,7 +354,8 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -350,15 +363,15 @@ const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginBottom: 8,
+        marginBottom: 0,
     },
     tabButton: {
         paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
     },
     activeTabButton: {
         borderBottomWidth: 2,
-        borderBottomColor: Colors.TEXT_PRIMARY,
+        borderBottomColor: Colors.PRIMARY,
     },
     tabText: {
         fontSize: 16,
@@ -366,7 +379,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     activeTabText: {
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
     divider: {
@@ -406,7 +419,7 @@ const styles = StyleSheet.create({
     },
     descriptionText: {
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 22,
+        lineHeight: 12,
     },
     tagContainer: {
         flexDirection: 'row',
@@ -414,13 +427,13 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tag: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.PRIMARY,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
     },
     tagText: {
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.TEXT_INVERSE,
         fontSize: 12,
     },
 
@@ -448,9 +461,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 16,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
+
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         gap: 16,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+
     },
     buttonWrapper: {
         flex: 1,
