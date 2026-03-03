@@ -1,16 +1,17 @@
 import { auth, db } from '@/src/core/config/Firebase';
 import { AuthRepository } from '@/src/core/repositories/authRepository';
-import { Property } from '@/src/types/Property';
+import { Property } from '@/src/core/types/Property';
 import { User as FirebaseUser, onIdTokenChanged, signOut, Unsubscribe } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { create } from "zustand";
 import { SignUp } from '../models/User/SignUp';
 import { User, userConverter } from '../models/User/User';
+import { Role } from '../models/User/User.types';
 import { editProperty } from '../utility/editProperty';
 import { validateInfo, validateSignUp } from '../utility/validate';
 
 type CustomClaims = {
-    role: string;
+    role: Role | null;
     businessId?: string;
     owner?: string;
 }
@@ -19,7 +20,7 @@ export interface AuthState{
     user: FirebaseUser | null;
     profile: User | null;
     isLoading: boolean;
-    role: string | null;
+    role: Role | null;
     error: string | null;
     _unsubscribe: Unsubscribe | null;
     businessId: string | null;
@@ -46,13 +47,13 @@ const init = {
     user: null,
     profile: null,
     isLoading: true,
-    role: null,
     error: null,
     _unsubscribe: null,
     businessId: null,
     account: accountTemplate,
     remember: true,
     isChecking: false,
+    role: null,
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

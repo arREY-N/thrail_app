@@ -1,5 +1,5 @@
-import { CircularityType, DifficultyPointsType, TrailQualityType, ViewpointType } from "@/src/types/Enum";
-import { Hours, Kilometers, Meters, Percentage } from "@/src/types/Unit";
+import { CircularityType, DifficultyPointsType, TrailQualityType, ViewpointType } from "@/src/core/types/Enum";
+import { Hours, Kilometers, Meters, Percentage } from "@/src/core/types/Unit";
 import { FieldValue, GeoPoint, Timestamp } from "firebase/firestore";
 
 export interface ITrailSummary {

@@ -1,4 +1,4 @@
-import { Property } from "@/src/types/Property";
+import { Property } from "@/src/core/types/Property";
 
 export interface BaseStore<T>{
     data: T[];

@@ -1,4 +1,4 @@
-import { Property } from "@/src/types/Property";
+import { Property } from "@/src/core/types/Property";
 import { create } from "zustand";
 import { BaseStore } from "../interface/storeInterface";
 import { Mountain } from "../models/Mountain/Mountain";
