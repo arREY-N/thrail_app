@@ -1,8 +1,11 @@
 import { IDifficulty, IGeneral, IGeographyUI, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 
 export class Trail implements ITrail {
+    [key: string]: any;
+    [immerable] = true;
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date(); 
