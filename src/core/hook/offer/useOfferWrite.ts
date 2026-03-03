@@ -1,10 +1,10 @@
+import { Property } from "@/src/core/types/Property";
 import { OFFER_INFORMATION } from "@/src/fields/offerFields";
-import { Property } from "@/src/types/Property";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useBusinessesStore } from "../stores/businessesStore";
-import { useOffersStore } from "../stores/offersStore";
-import { useTrailsStore } from "../stores/trailsStore";
+import { useBusinessesStore } from "../../stores/businessesStore";
+import { useOffersStore } from "../../stores/offersStore";
+import { useTrailsStore } from "../../stores/trailsStore";
 
 export type UseOfferParams = {
     trailId: string | null,

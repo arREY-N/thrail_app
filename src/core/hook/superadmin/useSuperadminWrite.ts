@@ -1,4 +1,4 @@
-import { useUsersStore } from "../stores/usersStore";
+import { useUsersStore } from "../../stores/usersStore";
 import { SuperadminParams } from "./useSuperadmin";
 
 export default function useSuperadminWrite(params: SuperadminParams | null){

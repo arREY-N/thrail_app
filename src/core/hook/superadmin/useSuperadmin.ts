@@ -4,10 +4,11 @@ import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { useApplicationsStore } from '../stores/applicationsStore';
+import { Role } from '../../models/User/User.types';
+import { useApplicationsStore } from '../../stores/applicationsStore';
 
 export type SuperadminParams = {
-    role: string;
+    role: Role | null;
 }
 
 export default function useSuperadmin(params: SuperadminParams | null){
@@ -120,9 +121,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         })
     }
 
-    function onWriteTrail(
-        trailId: string
-    ){
+    function onWriteTrail(trailId: string | null = null){
         console.log('to write', trailId);
         if(trailId){
             router.push({
@@ -157,6 +156,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         // loaded,
         applicationLoading,
         businessLoading,
+        trailLoading,
         reloadBusinesses,
         reloadApplications,
 

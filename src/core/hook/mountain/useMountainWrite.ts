@@ -1,7 +1,7 @@
 import { MOUNTAIN_INFORMATION } from "@/src/fields/mountainFields";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useMountainsStore } from "../stores/mountainsStore";
+import { useMountainsStore } from "../../stores/mountainsStore";
 import { MountainParams } from "./useMountainDomain";
 
 export default function useMountainWrite(params: MountainParams){

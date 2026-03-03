@@ -1,4 +1,4 @@
-import { useTrailsStore } from "../stores/trailsStore";
+import { useTrailsStore } from "../../stores/trailsStore";
 import { TrailParams } from "./useTrailDomain";
 
 export default function useTrailHike(params: TrailParams){

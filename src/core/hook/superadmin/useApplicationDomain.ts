@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { useApplicationsStore } from "../stores/applicationsStore";
-import { useAuthStore } from "../stores/authStore";
-import { useBusinessesStore } from "../stores/businessesStore";
+import { useApplicationsStore } from "../../stores/applicationsStore";
+import { useAuthStore } from "../../stores/authStore";
+import { useBusinessesStore } from "../../stores/businessesStore";
 
 export type ApplicationParams = {
     applicationId: string,

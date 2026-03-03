@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useMountainsStore } from "../stores/mountainsStore";
+import { useMountainsStore } from "../../stores/mountainsStore";
 
 export type MountainParams = {
     mountainId: string | null;

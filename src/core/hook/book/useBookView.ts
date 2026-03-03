@@ -4,7 +4,7 @@ import { useOffersStore } from "@/src/core/stores/offersStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Offer } from "../models/Offer/Offer";
+import { Offer } from "../../models/Offer/Offer";
 
 export type BookParams = {
     offerId: string | null;

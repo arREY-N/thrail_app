@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Offer } from "../models/Offer/Offer";
-import { useOffersStore } from "../stores/offersStore";
+import { Offer } from "../../models/Offer/Offer";
+import { useOffersStore } from "../../stores/offersStore";
 
 export type UseOfferParams = {
     trailId: string | null,

@@ -1,7 +1,7 @@
 import { APPLICATION_INFO } from "@/src/fields/applicationFields";
 import { useEffect } from "react";
-import { useApplicationsStore } from "../stores/applicationsStore";
-import { useAuthStore } from "../stores/authStore";
+import { useApplicationsStore } from "../../stores/applicationsStore";
+import { useAuthStore } from "../../stores/authStore";
 
 type ApplicationParams = {
     id: string

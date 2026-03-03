@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Offer } from "../models/Offer/Offer";
-import { useBusinessesStore } from "../stores/businessesStore";
-import { useOffersStore } from "../stores/offersStore";
+import { Offer } from "../../models/Offer/Offer";
+import { useBusinessesStore } from "../../stores/businessesStore";
+import { useOffersStore } from "../../stores/offersStore";
 
 export type AdminParams = {
     businessId: string | null

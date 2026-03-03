@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { Role } from "../models/User/User.types";
-import { useUsersStore } from "../stores/usersStore";
+import { Role } from "../../models/User/User.types";
+import { useUsersStore } from "../../stores/usersStore";
 
 export type UserParams = {
     userId: string;

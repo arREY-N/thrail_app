@@ -1,7 +1,7 @@
-import { Mode } from "@/src/types/Enum";
+import { Mode } from "@/src/core/types/Enum";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useTrailsStore } from "../stores/trailsStore";
+import { useTrailsStore } from "../../stores/trailsStore";
 
 export type TrailParams = {
     trailId: string | null,

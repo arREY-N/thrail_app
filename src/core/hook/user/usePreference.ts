@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SignUp } from "../models/User/SignUp";
+import { SignUp } from "../../models/User/SignUp";
 
 const preferenceTemplate = {
     q1: {

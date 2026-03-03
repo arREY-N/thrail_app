@@ -1,10 +1,10 @@
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useApplicationsStore } from "../stores/applicationsStore";
-import { useBusinessesStore } from "../stores/businessesStore";
-import { useMountainsStore } from "../stores/mountainsStore";
-import { useTrailsStore } from "../stores/trailsStore";
-import { useUsersStore } from "../stores/usersStore";
+import { useApplicationsStore } from "../../stores/applicationsStore";
+import { useBusinessesStore } from "../../stores/businessesStore";
+import { useMountainsStore } from "../../stores/mountainsStore";
+import { useTrailsStore } from "../../stores/trailsStore";
+import { useUsersStore } from "../../stores/usersStore";
 import { SuperadminParams } from "./useSuperadmin";
 
 export default function useSuperadminDomain(params: SuperadminParams | null){

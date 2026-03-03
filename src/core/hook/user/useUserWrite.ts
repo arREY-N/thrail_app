@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useUsersStore } from "../stores/usersStore";
+import { useUsersStore } from "../../stores/usersStore";
 import { UserParams } from "./useUserDomain";
 
 export default function useUserWrite(params: UserParams | null){

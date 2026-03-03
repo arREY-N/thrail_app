@@ -1,4 +1,4 @@
-import { useOffersStore } from "../stores/offersStore";
+import { useOffersStore } from "../../stores/offersStore";
 
 export default function useBookDomain(){
     const offer = useOffersStore(s => s.current);
