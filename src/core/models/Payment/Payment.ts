@@ -1,4 +1,5 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IBusinessSummary } from "../Business/Business.types";
 import { IOfferSummary } from "../Offer/Offer.types";
@@ -6,6 +7,8 @@ import { IUserSummary } from "../User/User.types";
 import { IPayment, IPaymentDB, IReceipt } from "./Payment.types";
 
 export class Payment implements IPayment {
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();

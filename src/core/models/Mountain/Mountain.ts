@@ -1,8 +1,11 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot } from "firebase/firestore";
+import { immerable } from "immer";
 import { IMountain } from "./Mountain.types";
 
 
 export class Mountain implements IMountain{
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     name: string = '';
     province: string[] = [];

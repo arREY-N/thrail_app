@@ -1,4 +1,5 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IBusinessSummary } from "../Business/Business.types";
 import { IOfferInfo } from "../Offer/Offer.types";
@@ -8,6 +9,8 @@ import { IUserSummary } from "../User/User.types";
 import { BookingStatus, IBooking, IBookingDB } from "./Booking.types";
 
 export class Booking implements IBooking {
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     status: BookingStatus = 'reserved';
     payment: IPaymentSummary<Date>[] = [];

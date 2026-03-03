@@ -1,10 +1,13 @@
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 import { IApplication, IOwner, IPermit } from "../Application/Application.types";
 import { IBusiness, IBusinessBase, IBusinessDB } from "./Business.types";
 
 
 export class Business implements IBusiness {
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();

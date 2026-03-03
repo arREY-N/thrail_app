@@ -1,8 +1,11 @@
 import { IApplication, IApplicationDB, IOwner, IPermit, Status } from "@/src/core/models/Application/Application.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 
 export class Application implements IApplication{ 
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();

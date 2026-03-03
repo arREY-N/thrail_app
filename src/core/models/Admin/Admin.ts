@@ -1,8 +1,11 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IAdmin, IAdminDB, Status } from "./Admin.types";
 
 export class Admin implements IAdmin {
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     createdAt: Date = new Date;
     updatedAt: Date = new Date;

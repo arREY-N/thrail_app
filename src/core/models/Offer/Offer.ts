@@ -1,10 +1,13 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IBusinessSummary } from "../Business/Business.types";
 import { ITrailSummary } from "../Trail/Trail.types";
 import { IOffer, IOfferDB } from "./Offer.types";
 
 export class Offer implements IOffer {
+    [key: string]: any;
+    [immerable] = true
     id: string =  '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();

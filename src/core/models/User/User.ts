@@ -2,8 +2,11 @@ import { ISignUp } from "@/src/core/models/User/SignUp.types";
 import { IPreference, IUser, IUserDB, Role } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { immerable } from "immer";
 
 export class User implements IUser{
+    [key: string]: any;
+    [immerable] = true
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
