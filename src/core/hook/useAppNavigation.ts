@@ -1,4 +1,7 @@
 import { router } from "expo-router";
+/**
+ * @returns - Access to common navigation functions
+ */
 export function useAppNavigation() {
     const onMountainPress = (id: string) => {
         router.push({
@@ -31,6 +34,24 @@ export function useAppNavigation() {
         router.push('/(main)/book/list');
     }
 
+    const onWeatherPress = () => {
+        router.push('/(main)/home/weather')
+    }
+
+    const onViewAllRecommendationPress = () => {
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'recommendations'}
+        })
+    }
+    
+    const onViewAllTrendingPress = () => {
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'trending'}
+        })
+    }
+
     return {
         onMountainPress,
         onBackPress,
@@ -38,6 +59,9 @@ export function useAppNavigation() {
         onSignUpPress,
         onLogIn,
         onBookingPress, 
-        onNotificationPress
+        onNotificationPress,
+        onWeatherPress,
+        onViewAllRecommendationPress,
+        onViewAllTrendingPress,
     }
 }

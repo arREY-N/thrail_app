@@ -7,6 +7,12 @@ export function useAuthHook(){
     const isLoading = useAuthStore(s => s.isLoading);
     const error = useAuthStore(s => s.error);
     const businessId = useAuthStore(s => s.businessId);
+    const remember = useAuthStore(s => s.remember);
+    const reset = useAuthStore(s => s.reset);
+    const onLogIn = useAuthStore(s => s.logIn);
+    const onRememberMePress = useAuthStore(s => s.rememberMe)
+    const onForgotPassword = useAuthStore(s => s.forgotPassword);
+
     const signOut = useAuthStore(s => s.signOut);
 
     const isSuperadmin = role === 'superadmin'
@@ -15,7 +21,7 @@ export function useAuthHook(){
     const onSignOutPress = () => {
         signOut(); 
     }
-
+   
     return {
         role,
         isSuperadmin,
@@ -25,6 +31,11 @@ export function useAuthHook(){
         isLoading,
         error,
         businessId,
+        remember,
+        reset,
+        onLogIn,
+        onRememberMePress,
+        onForgotPassword,
         onSignOutPress,
     }
 }

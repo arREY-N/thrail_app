@@ -1,5 +1,4 @@
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
-import { router } from 'expo-router';
 import { useEffect } from 'react';
 
 export type BusinessParams = {
@@ -24,16 +23,9 @@ export default function useBusiness(params: BusinessParams | null){
         await deleteBusiness(id);
     }
 
-    const onApplyPress = () => {
-        console.log('Apply business');
-        router.push({
-            pathname: '/(main)/business/apply'
-        })
-    }
-
+    
     return {
         business,
         onDeleteBusinessPress,
-        onApplyPress,
     }
 }

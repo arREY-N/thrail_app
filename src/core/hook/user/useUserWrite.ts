@@ -1,21 +1,10 @@
-import { useEffect } from "react";
-import { useUsersStore } from "../../stores/usersStore";
-import { UserParams } from "./useUserDomain";
+import { useUsersStore } from "@/src/core/stores/usersStore";
 
-export default function useUserWrite(params: UserParams | null){
-    const loadUser = useUsersStore(s => s.load);
+/** Provides access to managing user entities */
+export default function useUserWrite(){
     const remove = useUsersStore(s => s.delete);
 
-    const user = useUsersStore(s => s.current);
-    const isLoading = useUsersStore(s => s.isLoading);
-
-    useEffect(() => {
-        loadUser(params?.userId);
-    },[params?.userId])
-
     return{
-        user,
-        isLoading,
         onDeleteAccountPress: remove
     }
 }
