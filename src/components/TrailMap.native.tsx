@@ -1,4 +1,4 @@
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import MapLibreGL, { UserTrackingMode } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
@@ -43,11 +43,13 @@ const TrailMap = () => {
         // @ts-ignore
         styleURL="https://demotiles.maplibre.org/style.json"
       >
+        <MapLibreGL.UserLocation />
         <MapLibreGL.Camera
           zoomLevel={12}
-          centerCoordinate={[121.05, 14.58]}
           animationMode="flyTo"
           animationDuration={2000}
+          followUserLocation={true}
+          followUserMode={UserTrackingMode.Follow}
         />
 
         {/* 3. ALWAYS render the Blue Dot component if we have permission.
