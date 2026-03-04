@@ -1,14 +1,15 @@
 import { auth, db } from '@/src/core/config/Firebase';
+import { SignUp } from '@/src/core/models/User/SignUp';
+import { User, userConverter } from '@/src/core/models/User/User';
+import { Role } from '@/src/core/models/User/User.types';
 import { AuthRepository } from '@/src/core/repositories/authRepository';
 import { Property } from '@/src/core/types/Property';
+import { editProperty } from '@/src/core/utility/editProperty';
+import { validateInfo, validateSignUp } from '@/src/core/utility/validate';
 import { User as FirebaseUser, onIdTokenChanged, signOut, Unsubscribe } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { create } from "zustand";
-import { SignUp } from '../models/User/SignUp';
-import { User, userConverter } from '../models/User/User';
-import { Role } from '../models/User/User.types';
-import { editProperty } from '../utility/editProperty';
-import { validateInfo, validateSignUp } from '../utility/validate';
+import { immer } from 'zustand/middleware/immer';
 
 type CustomClaims = {
     role: Role | null;
@@ -29,18 +30,16 @@ export interface AuthState{
     isChecking: boolean;
 
     signOut: () => Promise<void>;
-}
-
-const accountTemplate = {
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    phoneNumber: '',
-    firstname: '',
-    lastname: '',
-    birthday: new Date,
-    address: '',
+    reset: () => void;
+    logIn: (email: string, password: string) => Promise<void>;
+    rememberMe: () => boolean;
+    forgotPassword: () => void;
+    validateSignUp: () => Promise<boolean>;
+    editAccount: (data: SignUp) => void;
+    gmailSignUp: () => void;
+    signUp: () => Promise<void>;
+    validateInfo: () => boolean;
+    resetSignUp: () => void;
 }
 
 const init = {
@@ -50,13 +49,13 @@ const init = {
     error: null,
     _unsubscribe: null,
     businessId: null,
-    account: accountTemplate,
+    account: new SignUp(),
     remember: true,
     isChecking: false,
     role: null,
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>()(immer((set, get) => ({
     ...init,
     
     resetSignUp: () => set({ account: new SignUp() }),
@@ -83,6 +82,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
                 
                 if(!userRole){
+                    console.log('Failed fetching user role')
                     set({
                         user: firebaseUser,
                     });
@@ -106,6 +106,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                                 profile: snap.data(),
                                 isLoading: false
                             });
+                        } else {
+                            console.log('User document does not exists')
                         }
                     },
                     (error) => {
@@ -220,6 +222,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 error: (err as Error).message || 'Failed checking user information',
                 isLoading: false
             })
+            return false;
         }
     },
 
@@ -238,9 +241,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
 
     editAccount: (data: SignUp) => {
-        set({
-            account: new SignUp({...get().account, ...data})
-        })
+        console.log({...data});
+        console.log({...get().account});
+
+        const current = get().account || new SignUp();
+        const updated = current.update(data);
+
+        console.log('merged: ', updated);
+
+        set({ account: updated })
     },
 
     rememberMe: () => {
@@ -271,4 +280,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             error: 'Function to be added soon',
         })
     }
-}))
+})))
