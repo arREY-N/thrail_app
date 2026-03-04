@@ -16,7 +16,8 @@ const CustomIcon = ({
     name, 
     size = 24, 
     color = Colors.PRIMARY, 
-    style 
+    style,
+    solid
 }) => {
 
     const commonProps = {
@@ -34,9 +35,9 @@ const CustomIcon = ({
         case 'MaterialCommunityIcons':
             return <MaterialCommunityIcons {...commonProps} />;
         case 'FontAwesome5':
-            return <FontAwesome5 {...commonProps} />;
+            return <FontAwesome5 {...commonProps} solid={solid} />;
         case 'FontAwesome6':
-            return <FontAwesome6 {...commonProps} />;
+            return <FontAwesome6 {...commonProps} solid={solid} />;
         case 'Feather':
         default:
             return <Feather {...commonProps} />;

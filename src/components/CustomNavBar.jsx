@@ -45,6 +45,7 @@ const getTabConfig = (routeName, isFocused) => {
                         name="compass"
                         size={iconSize}
                         color={iconColor}
+                        solid
                     />,
                 label: 'Hike',
             };
@@ -67,6 +68,7 @@ const getTabConfig = (routeName, isFocused) => {
                         name="user-circle"
                         size={iconSize}
                         color={iconColor}
+                        solid
                     />,
                 label: 'Profile',
             };
@@ -92,9 +94,7 @@ const CustomNavBar = ({
 }) => {
     return (
         <>
-
             {children}
-
             <View style={styles.barContainer}>
                 {state.routes.map((route, index) => {
                     const { options } = descriptors[route.key];

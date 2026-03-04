@@ -3,6 +3,9 @@ import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 
+import CustomLoading from '@/src/components/CustomLoading';
+import CustomNavBar from "@/src/components/CustomNavBar";
+
 export default function homeLayout() {
     const user = useAuthStore(s => s.user);
     const isLoading = useAuthStore(s => s.isLoading);
@@ -13,13 +16,16 @@ export default function homeLayout() {
         loadTrails();
     }, []);
 
-    if(isLoading) return <LoadingScreen/>
+    if(isLoading) return <CustomLoading/>
 
     if(!user) return <Redirect href={'/(auth)/landing'}/>
     
     return (
-        <Tabs screenOptions= {{ headerShown: false }}>
-            <Tabs.Screen name="home"/>
+        <Tabs 
+            screenOptions={{ headerShown: false }}
+            tabBar={CustomNavBar}
+        >
+            <Tabs.Screen name="index"/>
             <Tabs.Screen name="community"/>
             <Tabs.Screen name="explore"/>
             <Tabs.Screen name="hike"/>
