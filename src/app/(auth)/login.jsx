@@ -1,20 +1,24 @@
 import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
 import React, { useEffect } from 'react';
 
-import { useAuthStore } from '@/src/core/stores/authStore';
 
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
 export default function login(){
-    const { onBackPress, onSignUpPress } = useAppNavigation();
+    const { 
+        onBackPress, 
+        onSignUpPress 
+    } = useAppNavigation();
     
-    const { error } = useAuthHook();    
-    const remember = useAuthStore(s => s.remember);
-    const reset = useAuthStore(s => s.reset);
-    const onLogIn = useAuthStore(s => s.logIn);
-    const onRememberMePress = useAuthStore(s => s.rememberMe)
-    const onForgotPassword = useAuthStore(s => s.forgotPassword);
+    const { 
+        error,
+        remember,
+        reset,
+        onLogIn,
+        onRememberMePress,
+        onForgotPassword,
+    } = useAuthHook();    
 
     useEffect(() => {
         reset();

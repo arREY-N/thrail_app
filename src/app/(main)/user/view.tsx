@@ -1,4 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import useUser from "@/src/core/hook/user/useUser";
 import useUserWrite from "@/src/core/hook/user/useUserWrite";
 import { User } from "@/src/core/models/User/User";
 import { formatDate } from "@/src/core/utility/date";
@@ -7,14 +9,19 @@ import { Pressable, Text, View } from "react-native";
 
 export default function viewUser(){
     const { userId: rawUserId } = useLocalSearchParams();
-
+    
     const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
+    
+    const { role } = useAuthHook();
 
-    const {
+    const { 
         user, 
-        isLoading,
+        isLoading 
+    } = useUser({ role, id: userId });
+    
+    const {
         onDeleteAccountPress
-    } = useUserWrite({ userId });
+    } = useUserWrite();
 
     if(!user || isLoading) return <LoadingScreen/>
     

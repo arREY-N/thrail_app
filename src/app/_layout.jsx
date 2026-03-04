@@ -1,16 +1,18 @@
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useAuthStore } from '@/src/core/stores/authStore';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { useAuthStore } from '../core/stores/authStore';
 import LoadingScreen from './loading';
 
-export default function RootLayout() {
+export default function RootLayout() { 
+    const { isLoading } = useAuthHook();
     const initialize = useAuthStore.getState().initialize;
-    const isLoading = useAuthStore(s => s.isLoading);
-
+    
     useEffect(() => {
         const unsub = initialize();
         return () => unsub?.();
     }, []);
+
 
     console.log('root', isLoading)
    

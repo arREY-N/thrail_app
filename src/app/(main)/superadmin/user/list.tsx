@@ -1,38 +1,28 @@
 import LoadingScreen from "@/src/app/loading";
-import useUserDomain from "@/src/core/hook/user/useUserDomain";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import useUser, { IUserDomain } from "@/src/core/hook/user/useUser";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function listUsers(){
-    const {
-        users,
-        error,
-        isLoading,
-    } = useUserDomain();
+    const { role } = useAuthHook();
 
-    if(isLoading) return <LoadingScreen/>
+    const controller = useUser({ role });
+
+    if(controller.isLoading) return <LoadingScreen/>
     
-    return (
-        <TESTUSER
-            isLoading={isLoading}
-            system={error}
-            users={users}
-        />
-    );
+    return <TESTUSER { ...controller }/>;
 }
 
-const TESTUSER = ({
-    isLoading,
-    system,
-    users,
-}) => {
+const TESTUSER = (params: IUserDomain) => {
+    const { error, isLoading, users } = params;
     return(
         <ScrollView>
             <Text>Users</Text>
-            { system && <Text>{system}</Text> }
+            { error && <Text>{error}</Text> }
             { isLoading && <Text> Loading </Text>}
             { users && users.map((u) => {
                 return(
-                    <View style={styles.userCard}>
+                    <View key={u.id} style={styles.userCard}>
                         <Text>ID: {u.id}</Text>
                         <Text>Name: {u.firstname} {u.lastname}</Text>
                         <Text>Email: {u.email}</Text>

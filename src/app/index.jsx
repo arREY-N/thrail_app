@@ -1,32 +1,25 @@
+import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
-import { Redirect, useRouter } from "expo-router";
-import { useAuthStore } from "../core/stores/authStore";
+import { Redirect } from "expo-router";
 import LoadingScreen from './loading';
 
 export default function index() {
-    const router = useRouter();
-    const user = useAuthStore(s => s.user);
-    const profile = useAuthStore(s => s.profile);
-    const role = useAuthStore(s => s.role);
-    const isLoading = useAuthStore(s => s.isLoading);
-
     console.log('index');
     
-    const onLogIn = () => {
-        router.push('/(auth)/login');
-    }
+    const {
+        user,
+        profile,
+        isLoading
+    } = useAuthHook();
 
-    const onSignUp = () => {
-        router.push('/(auth)/signup');
-    }
+    const { 
+        onLogIn, 
+        onSignUp, 
+        onPrivacy, 
+        onTerms 
+    } = useLandingNavigation(); 
     
-    const onPrivacy = () => {
-        router.push('/(auth)/privacy');
-    }
-
-    const onTerms = () => {
-        router.push('/(auth)/terms')
-    }
     
     if(user){
         if(!profile) return <LoadingScreen/>

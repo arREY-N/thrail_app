@@ -1,34 +1,15 @@
-import { useAuthStore } from "@/src/core/stores/authStore";
+import useSignUp from "@/src/core/hook/auth/useSignUp";
+import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
 import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
-import { useRouter } from "expo-router";
 
 
 export default function information(){
-    const error = useAuthStore(s => s.error);
-    const router = useRouter();
-    const validateInfo = useAuthStore(s => s.validateInfo);
-    const editAccount = useAuthStore(s => s.editAccount);
+    const { onBackPress } = useAppNavigation();
 
-    const onContinuePress = (phoneNumber, firstname, lastname, birthday, address) => {
-
-        const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
-        
-        editAccount({
-            phoneNumber: cleanPhoneNumber,
-            firstname, 
-            lastname, 
-            birthday,
-            address
-        });
-
-        if(validateInfo()) {
-            router.push('/(auth)/tac');
-        }
-    }
-
-    const onBackPress = () => {
-        router.back();    
-    }
+    const { 
+        error, 
+        onContinuePress 
+    } = useSignUp();
 
     return(
         <InformationScreen

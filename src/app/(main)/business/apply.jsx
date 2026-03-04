@@ -1,18 +1,21 @@
 
+import LoadingScreen from '@/src/app/loading';
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
-import useApply from '@/src/core/hook/user/useApply';
+import useApply from '@/src/core/hook/apply/useApply';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { Stack } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import LoadingScreen from '../../loading';
 
 export default function applyBusiness(){
+    const { role } = useAuthHook();
+
     const {
         application,
         information,
         onEditProperty,
         onApplyPress
-    } = useApply();
+    } = useApply({ role });
 
     if(!application) return <LoadingScreen/>
 

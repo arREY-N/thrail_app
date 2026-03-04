@@ -4,9 +4,8 @@ import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
-import useBusiness from '@/src/core/hook/admin/useBusiness';
+import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import useUserDomain from '@/src/core/hook/user/useUserDomain';
 
 export default function profile(){
     const {
@@ -19,9 +18,8 @@ export default function profile(){
         onAdminPress,
         onSuperadminPress,
         onViewAccountPress,
-    } = useUserDomain({ role });
-
-    const { onApplyPress } = useBusiness();
+        onApplyPress,
+    } = useProfileNavigation();
 
     return (
         <View>
