@@ -18,4 +18,13 @@ export class SignUp implements ISignUp{
         Object.assign(this, init);
     }
     
+    update(newData: Partial<SignUp>) {
+        Object.keys(newData).forEach((key) => {
+            const val = newData[key as keyof SignUp];
+            if (val !== undefined && val !== null && val !== "") {
+                (this as any)[key] = val;
+            }
+        });
+        return this;
+    }
 }
