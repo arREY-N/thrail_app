@@ -1,4 +1,5 @@
 import { BaseStore } from '@/src/core/interface/storeInterface';
+import { IRecommendedTrail } from '@/src/core/models/Recommendation/Recommendation.types';
 import { TrailRepository } from '@/src/core/repositories/trailRepository';
 import { TrailUIConfig } from '@/src/fields/trailFields';
 import { create } from "zustand";
@@ -11,7 +12,7 @@ export interface TrailState extends BaseStore<Trail> {
     };
     setHikingTrail: (id: string) => void; 
     recommendedTrail: Trail[];
-    setRecommendedTrail: (id: string) => Promise<Trail[]> 
+    setRecommendedTrail: (trails: IRecommendedTrail[]) => Promise<Trail[]> 
     discoverTrail: Trail[];
     setDiscoverTrail: () => Promise<Trail[]>;
     setOnHike: () => void;
@@ -250,7 +251,7 @@ export const useTrailsStore = create<TrailState>()(immer((set, get) => ({
         return discover;
     },
 
-    setRecommendedTrail: async (id) => {
+    setRecommendedTrail: async (trails: IRecommendedTrail[]) => {
         let recommended: Trail[] = []
         return recommended;
     },
