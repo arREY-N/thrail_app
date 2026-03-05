@@ -6,6 +6,17 @@ import { Alert, StyleSheet, View } from "react-native";
 // Load trail data
 const rawMapData = require("../assets/map_data/trails.json");
 
+const trailsGeoJSON = {
+  type: "FeatureCollection",
+  features: rawMapData.geometries.map((geometry: any) => ({
+    type: "Feature",
+    geometry,
+    properties: {},
+  })),
+};
+
+const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
+
 // MapLibreGL.setAccessToken(null);
 
 const TrailMap = () => {
@@ -29,6 +40,14 @@ const TrailMap = () => {
     })();
   }, []);
 
+  useEffect(() => {
+    fetch(
+      `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`,
+    )
+      .then((r) => console.log("MapTiler status:", r.status))
+      .catch((e) => console.log("MapTiler fetch error:", e));
+  }, []);
+
   const hikingTrailStyle = {
     lineColor: "#228B22",
     lineWidth: 3,
@@ -40,12 +59,16 @@ const TrailMap = () => {
     <View style={styles.page}>
       <MapLibreGL.MapView
         style={styles.map}
-        // @ts-ignore
-        styleURL="https://demotiles.maplibre.org/style.json"
+        mapStyle={`https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`}
+        attributionEnabled={true}
+        logoEnabled={true}
+        logoPosition={{ bottom: 16, left: 16 }}
+        attributionPosition={{ bottom: 16, right: 16 }}
       >
-        <MapLibreGL.UserLocation />
         <MapLibreGL.Camera
-          zoomLevel={12}
+          zoomLevel={14}
+          minZoomLevel={10}
+          maxZoomLevel={18}
           animationMode="flyTo"
           animationDuration={2000}
           followUserLocation={true}
@@ -62,7 +85,7 @@ const TrailMap = () => {
           />
         )}
 
-        <MapLibreGL.ShapeSource id="trailSource" shape={rawMapData as any}>
+        <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
           <MapLibreGL.LineLayer
             id="layer-hiking"
             style={hikingTrailStyle as any}
