@@ -20,7 +20,7 @@ const LandingScreen = ({
                 
                 <View style={styles.imageWrapper}>
                     <Image 
-                        source={require('@/src/assets/images/Hiking.jpg')}
+                        source={require('@/src/assets/images/MT1.jpg')}
                         style={styles.heroImage}
                         resizeMode="cover"
                     />
