@@ -1,5 +1,5 @@
 
-import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import PrivacyScreen from "@/src/features/Auth/screens/PrivacyScreen";
 
 export default function Privacy() {

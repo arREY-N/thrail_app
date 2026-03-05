@@ -1,5 +1,5 @@
 
-import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import TermsReadOnlyScreen from "@/src/features/Auth/screens/TermsReadOnlyScreen";
 
 export default function Terms() {

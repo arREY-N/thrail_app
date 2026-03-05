@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 import useRecommendation from '@/src/core/hook/recommendation/useRecommendation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';

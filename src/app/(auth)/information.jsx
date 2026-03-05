@@ -1,5 +1,5 @@
 import useSignUp from "@/src/core/hook/auth/useSignUp";
-import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
 
 

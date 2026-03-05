@@ -1,4 +1,4 @@
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import React, { useEffect } from 'react';
 
 

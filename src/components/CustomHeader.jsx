@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 
 import { Colors } from '@/src/constants/colors';
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
