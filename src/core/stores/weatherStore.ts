@@ -5,6 +5,7 @@ export interface WeatherState {
     error: string | null;
     locationWeather: any; // TODO define weather data
     loadWeather: () => void;
+    reset: () => void;
 }
 
 const init = {

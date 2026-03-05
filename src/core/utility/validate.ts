@@ -1,5 +1,5 @@
+import { SignUp } from "@/src/core/models/User/SignUp";
 import { FullValidationStructure } from "@/src/core/types/ValidationStructure";
-import { SignUp } from "../models/User/SignUp";
 
 export function validateTrail(
     object: any, 
