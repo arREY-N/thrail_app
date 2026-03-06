@@ -1,3 +1,4 @@
+import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/colors";
 import { IFormField } from "../core/interface/formFieldInterface";
@@ -5,10 +6,10 @@ import CustomDropdown from "./CustomDropdown";
 import CustomTextInput from "./CustomTextInput";
 
 export interface IWriteComponentParams {
-    informationSet: IFormField[],
+    informationSet: IFormField<any>[],
     object: any,
     optionSet?: { [key: string]: any[] | string[]; },
-    onEditProperty: (section: string, id: string, value: any) => void,
+    onEditProperty: (params: TEdit) => void
 }
 
 const WriteComponent = (props: IWriteComponentParams) => {    
@@ -33,14 +34,13 @@ const WriteComponent = (props: IWriteComponentParams) => {
 
                     if(type === 'text' || type == 'numerical'){
                         const val: string | null = isRoot ? object[id] : object[section][id] || null;
-                        console.log('text: ', val);
                         return(
                             <View key={label}>
                                 <CustomTextInput
                                     label={`${label}${required ? '*' : ''}`}
                                     placeholder={label}
                                     value={val || ''}
-                                    onChangeText={(text: string) => onEditProperty(section, id, text)}
+                                    onChangeText={(value: string) => onEditProperty({section, id, value})}
                                     style={styles.inputSpacing} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} icon={undefined}                                />
                             </View>
                         )
@@ -62,7 +62,10 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     options.length > 0
                                         ? options.map(o => {
                                             return(
-                                                <Pressable style={val?.find(v => v === o) ? styles.true : styles.false} onPress={null}>
+                                                <Pressable 
+                                                    style={(val === o || (Array.isArray(val) && val?.find(v => v === o))) ? styles.true : styles.false} 
+                                                    onPress={() => onEditProperty({section, id, value: o})}
+                                                >
                                                     <Text>{o}</Text>
                                                 </Pressable>
                                             )
@@ -89,7 +92,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     placeholder={`Select ${label}`}
                                     options={options}
                                     value={val}
-                                    onSelect={() => {}}
+                                    onSelect={(value: string) => onEditProperty({section, id, value})}
                                 />
                             </View>
                         )
@@ -131,7 +134,9 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 {
                                     options && options.map(o => {
                                         return(
-                                            <Pressable style={(val === o || val.name === o) ? styles.true : styles.false} onPress={() => {}}>
+                                            <Pressable 
+                                                style={(val === o || val.name === o) ? styles.true : styles.false} 
+                                                onPress={() => onEditProperty({section, id, value: o})}>
                                                 <Text>{o}</Text>
                                             </Pressable>
                                         )
@@ -142,12 +147,15 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     }
 
                     if(type === 'boolean'){
-                        const val: boolean | null = isRoot ? object[id] : object[section][id] || null;
+                        const val: boolean = isRoot ? object[id] : object[section][id];
 
                         return(
                             <View key={label}>
                                 <Text>{label} { required ? '*' : ''}</Text>
-                                <Pressable style={!val ? styles.false : (val ? styles.true : styles.false)} onPress={() => {}}>
+                                <Pressable 
+                                    style={!val ? styles.false : (val ? styles.true : styles.false)} 
+                                    onPress={() => onEditProperty({section, id, value: val})}
+                                >
                                     <Text>{val === null ? 'NO DATA' : (val ? 'TRUE' : 'FALSE')}</Text>
                                 </Pressable>
                             </View>
@@ -162,7 +170,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 label={`${label} ${required ? '*' : ''}`}
                                 placeholder="DD/MM/YYYY"
                                 value={val}
-                                onChangeText={() => { } }
+                                onChangeText={(value: Date) => onEditProperty({section, id, value})}
                                 type="date" 
                                 secureTextEntry={undefined} 
                                 keyboardType={undefined} 
