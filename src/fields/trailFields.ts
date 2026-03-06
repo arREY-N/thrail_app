@@ -1,13 +1,9 @@
+import { Trail } from "@/src/core/models/Trail/Trail";
 import { IFormField } from "../core/interface/formFieldInterface";
 
-export const TrailUIConfig: IFormField[] = [
-    {
-        section: 'root',
-        id: 'id',
-        label: 'ID',
-        type: 'text',
-        required:  true,
-    },
+export interface ITrailFormField extends IFormField<keyof Trail> {}
+
+export const TrailUIConfig: ITrailFormField[] = [
     // --- GENERAL --- 
     {
         section: 'general', 
