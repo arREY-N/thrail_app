@@ -1,4 +1,5 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
+import { formatDate } from "@/src/core/utility/date";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/colors";
 import { IFormField } from "../core/interface/formFieldInterface";
@@ -102,12 +103,11 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         const val: string | null = isRoot ? object[id] : object[section][id] || null;
                         return(
                             <View key={label}>
-                                <Text>{label} { required ? '*' : ''}</Text>
                                 <CustomTextInput
-                                    placeholder={label}
+                                    placeholder={label} 
+                                    label={`${label} ${required ? '*' : ''}`}
                                     value={val || ''}
                                     onChangeText={() => { } } 
-                                    label={label} 
                                     secureTextEntry={undefined} 
                                     keyboardType={undefined} 
                                     isPasswordVisible={undefined} 
@@ -163,13 +163,13 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     }
 
                     if(type === 'date'){
-                        const val: string | null = isRoot ? object[id] : object[section][id] || null;
+                        const val: Date | null = isRoot ? object[id] : object[section][id] || null;
                         
                         return(
                             <CustomTextInput
                                 label={`${label} ${required ? '*' : ''}`}
                                 placeholder="DD/MM/YYYY"
-                                value={val}
+                                value={formatDate(val)}
                                 onChangeText={(value: Date) => onEditProperty({section, id, value})}
                                 type="date" 
                                 secureTextEntry={undefined} 
