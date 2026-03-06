@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     barContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.BACKGROUND,
-        minHeight: 80,
+        maxHeight: 80,
         alignItems: 'center',
         justifyContent: 'space-around',
         paddingHorizontal: 16,
