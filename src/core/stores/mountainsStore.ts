@@ -1,18 +1,9 @@
-import { Property } from "@/src/core/types/Property";
 import { create } from "zustand";
 import { BaseStore } from "../interface/storeInterface";
 import { Mountain } from "../models/Mountain/Mountain";
 import { MountainRepository } from "../repositories/mountainRepository";
-import { editProperty } from "../utility/editProperty";
 
-export interface MountainState extends BaseStore<Mountain>{
-
-}
-
-const MOUNTAIN_TEMPLATE = {
-    name: null,
-    province: []
-}
+export interface MountainState extends BaseStore<Mountain>{}
 
 const init = {
     data: [],
@@ -109,14 +100,13 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
             })
         }
     },
-
-    create: async () => {
+    
+    create: async (create: Mountain) => {
         const data = get().data;
-        const mountain = get().current;
+        const current = get().current;
         
-        if(!mountain){
+        if(!current){
             set({ error: 'No data to create', })
-            return false;
         }
         
         set({ isLoading: true, error: null });
@@ -124,17 +114,17 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
         try {
             if(data.find(m => m.name
                 .toUpperCase()
-                .includes(mountain.name.toUpperCase()) && m.id !== mountain.id)
+                .includes(create.name.toUpperCase().trim()) && m.id !== create.id)
             ){
                 throw new Error('This mountain already exists')
             }
 
-            const created = await MountainRepository.write(mountain);
+            const created = await MountainRepository.write(create);
 
             if(!created) throw new Error('Mountain not written');
 
-            const newList = data.find(m => m.id === mountain.id)
-                ? [...data.filter(m => m.id !== mountain.id), created]
+            const newList = data.find(m => m.id === create.id)
+                ? [...data.filter(m => m.id !== create.id), created]
                 : [...data, created];
             const sorted = newList.sort((a, b) => a.name.localeCompare(b.name));
             
@@ -143,6 +133,7 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
                 data: sorted,
                 isLoading: false
             })
+
             return true;
         } catch (err) {
             console.error((err as Error).message);
@@ -178,18 +169,6 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
                 isLoading: false,
             })
         }
-    },
-
-    edit: (property: Property) => {
-        set((state) => {
-            if(!state.current) {
-                
-                return state
-            };
-            return {
-                current: editProperty(state.current, property)
-            }
-        })
     },
 
     reset: () => set(init),
