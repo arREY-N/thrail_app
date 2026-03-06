@@ -1,26 +1,24 @@
 import LoadingScreen from "@/src/app/loading";
-import useSuperadmin from "@/src/core/hook/superadmin/useSuperadmin";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useSuperadminNavigation from "@/src/core/hook/navigation/useSuperadminNavigation";
+import useTrail from "@/src/core/hook/trail/useTrail";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function listTrail(){
-    const { role } = useAuthHook();
+    const { onTrailPress } = useAppNavigation();
 
-    const {
-        trails,
-        trailLoading,
-        onViewTrail,
-        onWriteTrail,
-    } = useSuperadmin({ role });
+    const { onWriteTrail } = useSuperadminNavigation();
 
-    if(trailLoading) return <LoadingScreen/>
+    const { trails, isLoading } = useTrail();
+
+    if(isLoading) return <LoadingScreen/>
     
     return (
         <TESTCREATETRAIL 
-            onViewTrail={onViewTrail}
+            onViewTrail={onTrailPress}
             trails={trails}
-            isLoading={trailLoading}
+            isLoading={isLoading}
             onWriteTrail={onWriteTrail}
         />
     )
