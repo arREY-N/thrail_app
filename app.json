@@ -23,29 +23,17 @@
     },
     "plugins": [
       "expo-router",
-      // [
-      //   "expo-splash-screen",
-      //   {
-      //     "image": "./assets/images/splash-icon.png",
-      //     "imageWidth": 200,
-      //     "resizeMode": "contain",
-      //     "backgroundColor": "#ffffff",
-      //     "dark": {
-      //       "backgroundColor": "#000000"
-      //     }
-      //   }
-      // ],
       "expo-font",
       [
         "@maplibre/maplibre-react-native",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Thrail to use your location to show you on the map."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }
