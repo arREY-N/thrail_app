@@ -1,10 +1,11 @@
+import { BaseStore } from "@/src/core/interface/storeInterface";
+import { Admin } from "@/src/core/models/Admin/Admin";
+import { Application } from "@/src/core/models/Application/Application";
+import { Business } from "@/src/core/models/Business/Business";
+import { User } from "@/src/core/models/User/User";
+import { BusinessRepository } from "@/src/core/repositories/businessRepository";
 import { create } from "zustand";
-import { BaseStore } from "../interface/storeInterface";
-import { Admin } from "../models/Admin/Admin";
-import { Application } from "../models/Application/Application";
-import { Business } from "../models/Business/Business";
-import { User } from "../models/User/User";
-import { BusinessRepository } from "../repositories/businessRepository";
+import { immer } from "zustand/middleware/immer";
 
 type AdminUI = {
     user: User,
@@ -27,7 +28,7 @@ const init = {
     error: null,
 }
 
-export const useBusinessesStore = create<BusinessState>((set, get) => ({
+export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
     ...init, 
 
     fetchAll: async () => {
@@ -277,4 +278,4 @@ export const useBusinessesStore = create<BusinessState>((set, get) => ({
             })
         }
     },
-}));
+})));
