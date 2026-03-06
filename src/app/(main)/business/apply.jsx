@@ -14,6 +14,7 @@ export default function applyBusiness(){
         object,
         options,
         information,
+        error,
         onSubmitPress,
         onUpdatePress,
     } = useApplyWrite();
@@ -37,6 +38,7 @@ export default function applyBusiness(){
                 information={information}
                 application={object}
                 options={options}
+                error={error}
                 onEditProperty={onUpdatePress}
                 onApplyPress={onSubmitPress}
             />
@@ -50,6 +52,7 @@ const TESTAPPLY = ({
     onEditProperty,
     onApplyPress,
     options,
+    error
 }) => {
     const root = information.filter(i => i.section === 'root');
     const owner = information.filter(i => i.section === 'owner');
@@ -75,7 +78,8 @@ const TESTAPPLY = ({
                 onEditProperty={onEditProperty}
                 optionSet={options}
             />
-
+            
+            {error && <Text>{error}</Text>}
             <Pressable onPress={() => onApplyPress()}>
                 <Text>Apply</Text>
             </Pressable>

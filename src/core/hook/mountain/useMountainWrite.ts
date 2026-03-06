@@ -1,6 +1,7 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
 import { Mountain } from "@/src/core/models/Mountain/Mountain";
+import setFinalValue from "@/src/core/utility/setFinalValue";
 import { validate } from "@/src/core/utility/validate";
 import { MountainUIConfig } from "@/src/fields/mountainFields";
 import { router } from "expo-router";
@@ -60,24 +61,20 @@ export default function useMountainWrite(params: IUseMountainWriteParams): IUseM
     }
 
     const onUpdatePress = (params: TEdit) => {
-        const { section, id, value} = params;
+        const { section, id, value } = params;
         try {
             if(section !== 'root' && !id)
                 throw new Error(`Missing key for ${section}`);
             
-            let finalValue = value;
-
             const fieldConfig = information.find(f => f.section === section && f.id === id);
-
-            if (fieldConfig?.type === 'multi-select') {
-                const current: [] = section === 'root'
-                    ? mountain[id]
-                    : mountain[section][id]
-
-                finalValue = current.find(c => c === value)
-                    ? current.filter(c => c !== value)
-                    : [...current, value]
-            }
+            
+            const finalValue = setFinalValue<Mountain>({
+                fieldConfig,
+                draft: mountain,
+                section,
+                id,
+                value,
+            })
             
             setMountain(prev => {
                 return section === 'root'

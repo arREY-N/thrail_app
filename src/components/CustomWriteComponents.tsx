@@ -107,7 +107,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     placeholder={label} 
                                     label={`${label} ${required ? '*' : ''}`}
                                     value={val || ''}
-                                    onChangeText={() => { } } 
+                                    onChangeText={(value: string) => onEditProperty({section, id, value})} 
                                     secureTextEntry={undefined} 
                                     keyboardType={undefined} 
                                     isPasswordVisible={undefined} 

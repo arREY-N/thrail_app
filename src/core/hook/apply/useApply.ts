@@ -2,7 +2,6 @@ import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { Application } from "@/src/core/models/Application/Application";
 import { Role } from "@/src/core/models/User/User.types";
 import { useApplicationsStore } from "@/src/core/stores/applicationsStore";
-import { ApplicationUIConfig } from "@/src/fields/applicationFields";
 import { useEffect } from "react";
 
 export interface IApplyDomain extends IBaseDomainHook{
@@ -29,8 +28,7 @@ export default function useApply(params: UseApplyParms = { role: 'user' }): IApp
 
     const loadAllApplications = useApplicationsStore(s => s.fetchAll);
     const loadApplication = useApplicationsStore(s => s.load);
-
-    const information = ApplicationUIConfig
+    
     useEffect(() => {
         if(role === 'superadmin' ) loadAllApplications();
     },[]);

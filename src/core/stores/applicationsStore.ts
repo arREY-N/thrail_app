@@ -1,9 +1,7 @@
 import { ApplicationRepository } from '@/src/core/repositories/applicationRepository';
-import { Property } from '@/src/core/types/Property';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
 import { Application } from '../models/Application/Application';
-import { editProperty } from '../utility/editProperty';
 export interface ApplicationState extends BaseStore<Application>{
     approveApplication: (id: string) => Promise<void>;
     rejectApplication: (id: string, message: string) => Promise<void>;
@@ -109,31 +107,53 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
         }
     },
 
-    create: async (data) => {
-        const current = get().current;
-        if(!current){
-            set({ error: 'No new data to save '});
-            return false;
-        }
-        set({isLoading: true, error: null });
+    create: async (application: Application) => {
+        const data = get().data;
         
+        set({isLoading: true, error: null });
+    
         try {
-
-            const completeApplication = new Application({ ...current, ...data})
-
-            console.log(completeApplication)
-
-            await ApplicationRepository.write(completeApplication);
+            data.map(t => {
+                const applicant = t.owner.id;
+                const save = application.owner.id;
+                
+                if(applicant === save){
+                    const currentStatus = t.status;
                     
-            set({ isLoading: false })
+                    switch(currentStatus){
+                        case 'approved':
+                            throw new Error('An application made with your user ID has been approved.')
+                        case 'pending':
+                            throw new Error('An application made with your user ID is still pending.')
+                        case 'reviewed':
+                            throw new Error('An application made with your user ID is still under review.')
+                        case 'rejected':
+                            throw new Error('An application made with your user ID was rejected.')
+                        default:
+                            throw new Error('Application status unknown.')
+                    }
+                }
+            })
+
+            console.log(application);
+
+            await ApplicationRepository.write(application);
+                    
+            set((state) => {
+                return {
+                    data: [...state.data, application],
+                    isLoading: false 
+                } 
+            })
+            
             return true;
         } catch (err) {
             console.error((err as Error).message);
             set({
-                error: 'Failed creating application',
+                error: (err as Error).message || 'Failed creating application',
                 isLoading: false,
             })
-            return false;
+            throw err;
         }
     },
 
@@ -207,18 +227,6 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
                 isLoading: false,
             })
         }
-    },
-
-    edit: (property: Property) => {
-        set((state) => {
-            if(!state.current) {
-                
-                return state
-            };
-            return {
-                current: editProperty(state.current, property)
-            }
-        })
     },
 
     reset: () => set(init),

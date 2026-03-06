@@ -1,16 +1,13 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { IFormField } from "@/src/core/interface/formFieldInterface";
 
-// TODO create a utility function to edit object values
-
-export interface ISetFinalValue<T extends IFormField<T>> extends TEdit{
+export interface ISetFinalValue<T> extends TEdit{
     objects?: object[];
-    fieldConfig: IFormField<T>;
+    fieldConfig: any;
     option?: string;
     draft: T;
 }
 
-export default function setFinalValue<T extends IFormField<T>>(params: ISetFinalValue<T>){
+export default function setFinalValue<T>(params: ISetFinalValue<T>){
     const { objects, fieldConfig, section, id, value, option, draft } = params;
 
     if (fieldConfig?.type === 'object-select' && fieldConfig.options === 'mountains') {
