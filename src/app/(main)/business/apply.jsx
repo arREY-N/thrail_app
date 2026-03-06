@@ -2,7 +2,7 @@
 import LoadingScreen from '@/src/app/loading';
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
-import useApply from '@/src/core/hook/apply/useApply';
+import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { Stack } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,13 +11,14 @@ export default function applyBusiness(){
     const { role } = useAuthHook();
 
     const {
-        application,
+        object,
+        options,
         information,
-        onEditProperty,
-        onApplyPress
-    } = useApply({ role });
+        onSubmitPress,
+        onUpdatePress,
+    } = useApplyWrite();
 
-    if(!application) return <LoadingScreen/>
+    if(!object) return <LoadingScreen/>
 
     return (
         // <BusApp
@@ -34,9 +35,10 @@ export default function applyBusiness(){
             <Stack.Screen options={{headerShown: true}}/>
             <TESTAPPLY
                 information={information}
-                application={application}
-                onEditProperty={onEditProperty}
-                onApplyPress={onApplyPress}
+                application={object}
+                options={options}
+                onEditProperty={onUpdatePress}
+                onApplyPress={onSubmitPress}
             />
         </>
     )
@@ -47,27 +49,31 @@ const TESTAPPLY = ({
     application,
     onEditProperty,
     onApplyPress,
+    options,
 }) => {
-    const applicant = information.applicant;
-    const business = information.business;
-    const document = information.permits;
+    const root = information.filter(i => i.section === 'root');
+    const owner = information.filter(i => i.section === 'owner');
+    const permits = information.filter(i => i.section === 'permits');
 
     return(
         <ScrollView style={styles.scrollContent}>
             <WriteComponent
-                informationSet={applicant}
+                informationSet={root}
                 object={application}
                 onEditProperty={onEditProperty}
-            />
+                optionSet={options}
+                />
             <WriteComponent
-                informationSet={business}
+                informationSet={owner}
                 object={application}
                 onEditProperty={onEditProperty}
-            />
+                optionSet={options}
+                />
             <WriteComponent
-                informationSet={document}
+                informationSet={permits}
                 object={application}
                 onEditProperty={onEditProperty}
+                optionSet={options}
             />
 
             <Pressable onPress={() => onApplyPress()}>
