@@ -1,4 +1,5 @@
-import useMountainDomain from "@/src/core/hook/mountain/useMountainDomain";
+
+import useMountain from "@/src/core/hook/mountain/useMountain";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function mountainList(){
@@ -6,7 +7,7 @@ export default function mountainList(){
         isLoading,
         mountains,
         onWritePress
-    } = useMountainDomain();
+    } = useMountain();
 
     return(
         <TestMountainList
