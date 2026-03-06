@@ -38,7 +38,7 @@ export class Business implements IBusiness {
             name: application.name,
             establishedOn: application.establishedOn,
             address: application.address,
-            servicedLocation: [],
+            servicedLocation: application.servicedLocation,
             createdAt: application.createdAt,
             updatedAt: application.updatedAt,
             owner: application.owner,
