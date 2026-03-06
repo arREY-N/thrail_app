@@ -451,7 +451,8 @@ const styles = StyleSheet.create({
     },
     descriptionText: {
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 12,
+        lineHeight: 22,
+        marginBottom: -16,
     },
     tagContainer: {
         flexDirection: 'row',
