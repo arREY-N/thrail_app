@@ -1,7 +1,6 @@
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { IRecommendedTrail } from '@/src/core/models/Recommendation/Recommendation.types';
 import { TrailRepository } from '@/src/core/repositories/trailRepository';
-import { TrailUIConfig } from '@/src/fields/trailFields';
 import { create } from "zustand";
 import { immer } from 'zustand/middleware/immer';
 import { Trail } from '../models/Trail/Trail';
@@ -16,7 +15,6 @@ export interface TrailState extends BaseStore<Trail> {
     discoverTrail: Trail[];
     setDiscoverTrail: () => Promise<Trail[]>;
     setOnHike: () => void;
-    editTrail: (section: string, id: string, value: any) => void;
 }
 
 const init = {
@@ -115,45 +113,37 @@ export const useTrailsStore = create<TrailState>()(immer((set, get) => ({
         }
     },
 
-    create: async () => {
-        const current = get().current;            
-        
-        if(!current) {
-            set({ error: 'No new data to save'});
-            return false;
-        }
-
+    create: async (trail: Trail) => {
         set({ isLoading: true, error: null });
-        
-        try {
-            console.log(current);
-            const validatedTrail = new Trail(current);
-            console.log(validatedTrail)
-            
-            const info = TrailUIConfig;
-            // const generalErrors = validateTrail(validatedTrail, info)            
+        const data = get().data;
 
-            // if(generalErrors.length > 0) 
-            //     throw new Error(`${generalErrors.join(', ')} required`)
-            
-            const savedTrail = await TrailRepository.write(validatedTrail);
-            
+        try {
+            data.find(t => {
+                const name = t.general.name.toUpperCase().trim();
+                const save = trail.general.name.toUpperCase().trim();
+
+                if(name.includes(save) && t.id !== trail.id) 
+                    throw new Error('A trail with the same name already exists.')
+                }
+            )
+
+            console.log('New:', trail);
+            const saved = await TrailRepository.write(trail);
+
             set({
-                data: get().data.some(d => d.id === savedTrail.id)
-                    ? [...get().data.filter(d => d.id !== savedTrail.id), savedTrail] 
-                    : [...get().data, savedTrail],
+                data: get().data.some(d => d.id === saved.id)
+                    ? [...get().data.filter(d => d.id !== saved.id), saved] 
+                    : [...get().data, saved],
                 isLoading: false,    
             })
-            
             return true;
         } catch (err: any) {
-            console.error(err);
+            console.error(err.message);
             set({
-                error: err.message ?? 'Failed to create new trail',
-                isLoading: false
+                error: err.message,
+                isLoading: false,
             })
-
-            return false
+            return false;
         }
     },
 
@@ -174,25 +164,6 @@ export const useTrailsStore = create<TrailState>()(immer((set, get) => ({
                 isLoading: false
             })
         }
-    },
-
-    edit(property) {
-        // TODO replaced by editTrail    
-    },
-
-    editTrail: (section: string, id: string, value: any) => {
-        set((state) => {
-            if(!state.current) return;
-
-            if(section === 'root'){
-                (state.current as any)[id] = value;
-            } else {
-                if (!(state.current as any)[section]) {
-                    (state.current as any)[section] = {};
-                }
-                (state.current as any)[section][id] = value;
-            }
-        })
     },
 
     reset: () => set(init),
@@ -256,38 +227,3 @@ export const useTrailsStore = create<TrailState>()(immer((set, get) => ({
         return recommended;
     },
 })))
-
-// export const useTrailsStore = create<TrailState>((set, get) => ({
-
-//     setRecommendedTrails: async (recommendations) => {
-//         set({ isLoading: true, error: null});
-
-//         try {
-//             if(!recommendations) {
-//                 console.log('No recommendation data');
-//                 set({
-//                     isLoading: false,
-//                     recommendedTrails: []
-//                 })
-//                 return;
-//             }
-            
-//             const trailList = get().trails;
-
-//             const recommendedTrails = recommendations
-//                 .map(m => trailList
-//                     .find(t => t.id === m.trailId))
-//                 .filter(Boolean);
-
-//             set({
-//                 recommendedTrails,
-//                 isLoading: false
-//             })
-//         } catch (err) {
-//             console.error(err);
-//             set({
-//                 error: err.message ?? 'Failed to load recommended trails',
-//                 isLoading: false
-//             })
-//         }
-//     },
