@@ -2,7 +2,6 @@ import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { useMountainsStore } from '@/src/core/stores/mountainsStore';
 import { useTrailsStore } from '@/src/core/stores/trailsStore';
 import { useUsersStore } from '@/src/core/stores/usersStore';
-import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Role } from '../../models/User/User.types';
 import { useApplicationsStore } from '../../stores/applicationsStore';
@@ -17,7 +16,6 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const businessLoading = useBusinessesStore(s => s.isLoading);
     const businesses = useBusinessesStore(s => s.data);
     const businessCount = businesses.length;
-    const addBusiness = useBusinessesStore(s => s.create);
     const deleteBusiness = useBusinessesStore(s => s.delete);
 
     const trails = useTrailsStore(s => s.data);
@@ -28,17 +26,14 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const mountains = useMountainsStore(s => s.data);
     const loadAllMountains = useMountainsStore(s => s.fetchAll);
     const mountainCount = mountains.length;
-    const mountainLoading = useMountainsStore(s => s.isLoading);
 
     const users = useUsersStore(s => s.data);
     const loadAllUsers = useUsersStore(s => s.fetchAll);
     const userCount = users.filter(u => u.role === 'user').length;
     const adminCount = users.filter(u => u.role === 'admin').length;
     const superadminCount = users.filter(u => u.role === 'superadmin').length;
-    const userLoading = useUsersStore(s => s.isLoading);
 
     const applications = useApplicationsStore(s => s.data);
-    const application = useApplicationsStore(s => s.current);
     const loadAllApplications = useApplicationsStore(s => s.fetchAll);
     const reloadApplications = useApplicationsStore(s => s.refresh);
     const applicationCount = applications.length;
@@ -47,14 +42,6 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const rejectedApplications = applications.filter((a: any) => a.approved === false).length;
     const applicationLoading = useApplicationsStore(s => s.isLoading);
     const approveApplication = useApplicationsStore(s => s.approveApplication);
-
-    // const loaded = !(
-    //     applicationLoading || 
-    //     trailLoading || 
-    //     businessLoading ||
-    //     mountainLoading || 
-    //     userLoading
-    // );
     
     useEffect(() => {
         console.log('in hook')
@@ -68,30 +55,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         };
     }, [params?.role]);
 
-    function onManageBusinessPress(){
-        router.push({
-            pathname: '/(main)/superadmin/business/list'
-        })
-    }
-
-    function onManageTrailsPress(){
-        router.push({
-            pathname: '/(main)/superadmin/trail/list'
-        })
-    }
     
-    function onManageUsersPress(){
-        router.push({
-            pathname: '/(main)/superadmin/user/list'
-        })
-    }
-    
-    function onManageMountainPress(){
-        router.push({
-            pathname: '/(main)/superadmin/mountain/list'
-        })
-    }
-
     function onCheckApplication(
         id: string
     ){
@@ -111,30 +75,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
     ){
         await deleteBusiness(id);
     }
-
-    function onViewTrail(
-        trailId: string
-    ){
-        router.push({
-            pathname: '/(main)/trail/view',
-            params: { trailId }
-        })
-    }
-
-    function onWriteTrail(trailId: string | null = null){
-        console.log('to write', trailId);
-        if(trailId){
-            router.push({
-                pathname: '/(main)/superadmin/trail/write',
-                params: {trailId}
-            });
-        } else {
-            router.push({
-                pathname: '/(main)/superadmin/trail/write',
-            });
-        }
-    }
-
+    
     console.log(users);
     return {
         role: params?.role,
@@ -160,14 +101,8 @@ export default function useSuperadmin(params: SuperadminParams | null){
         reloadBusinesses,
         reloadApplications,
 
-        onViewTrail,
-        onWriteTrail,
         onApproveApplicationPress,
         onDeleteBusinessPress,
-        onManageBusinessPress,
-        onManageTrailsPress,
-        onManageUsersPress,
-        onManageMountainPress
     }
 
 }
