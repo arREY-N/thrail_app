@@ -1,3 +1,4 @@
+import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Property } from "@/src/core/types/Property";
 
 export interface BaseStore<T>{
@@ -11,7 +12,7 @@ export interface BaseStore<T>{
     load: (...args: any) => Promise<void>;
     create: (...args: any) => Promise<Boolean>;
     delete: (id: string) => Promise<void>;
-    edit: (property: Property) => void;
+    edit?: (property: TEdit) => void;
     reset: () => void;
 }
 
@@ -33,6 +34,6 @@ export abstract class Store<T> implements BaseStore<T>{
     abstract load(...args: any[]): Promise<void>;
     abstract create(...args: any[]): Promise<Boolean>;
     abstract delete(...args: any[]): Promise<void>;
-    abstract edit(property: Property): void;
+    abstract edit(property: Property | TEdit): void;
     abstract reset(): void;
 }
