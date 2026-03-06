@@ -1,55 +1,34 @@
 import WriteComponent from "@/src/components/CustomWriteComponents";
-import { IFormField } from "@/src/core/interface/formFieldInterface";
-import { Trail } from "@/src/core/models/Trail/Trail";
+import { IUseTrailWrite } from "@/src/core/hook/trail/useTrailWrite";
+import { ITrailFormField } from "@/src/fields/trailFields";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-export interface ITestWriteTrailParams{
-    informationSet: IFormField[],
-    trail: Trail,
-    system: string | null,
-    isLoading: boolean,
-    onSubmitTrailPress: () => void,
-    onRemoveTrailPress: (id: string) => void,
-    onEditProperty: (section: string, id: string, value: any) => void,
-    options?: { [key: string]: any[] | string[]; },
-}
-
-const TESTWRITETRAIL = (params: ITestWriteTrailParams) => {
+const TESTWRITETRAIL = (params: IUseTrailWrite) => {
     const {
-        informationSet,
-        trail,
-        system,
+        information,
+        object: trail,
+        error,
         isLoading,
-        onSubmitTrailPress,
-        onRemoveTrailPress,
-        onEditProperty,
         options,
+        onSubmitPress,
+        onRemovePress,
+        onUpdatePress: onUpdateTrail,
     } = params;
 
-    console.log('in writeTrail: ', trail);
-    const information = informationSet.filter((a: IFormField) => a.section === 'general');
-    const geography = informationSet.filter((a: IFormField) => a.section === 'geography');
-    const tourism = informationSet.filter((a: IFormField) => a.section === 'tourism');
-    const difficulty = informationSet.filter((a: IFormField) => a.section === 'difficulty');
-    const meta = informationSet.filter((a: IFormField) => a.section === 'root');
+    
+    const general = information.filter((a: ITrailFormField) => a.section === 'general');
+    const geography = information.filter((a: ITrailFormField) => a.section === 'geography');
+    const tourism = information.filter((a: ITrailFormField) => a.section === 'tourism');
+    const difficulty = information.filter((a: ITrailFormField) => a.section === 'difficulty');
 
     return(
         <ScrollView>
             <View style={styles.group}>
                 <WriteComponent
-                    informationSet={meta}
+                    informationSet={general}
                     object={trail}
                     optionSet={options}
-                    onEditProperty={onEditProperty}
-                />
-            </View>
-
-            <View style={styles.group}>
-                <WriteComponent
-                    informationSet={information}
-                    object={trail}
-                    optionSet={options}
-                    onEditProperty={onEditProperty}
+                    onEditProperty={onUpdateTrail}
                 />
             </View>
 
@@ -58,7 +37,7 @@ const TESTWRITETRAIL = (params: ITestWriteTrailParams) => {
                     informationSet={geography}
                     object={trail}
                     optionSet={options}
-                    onEditProperty={() => onEditProperty}
+                    onEditProperty={onUpdateTrail}
                 />    
             </View>
 
@@ -67,7 +46,7 @@ const TESTWRITETRAIL = (params: ITestWriteTrailParams) => {
                     informationSet={difficulty}
                     object={trail}
                     optionSet={options}
-                    onEditProperty={() => onEditProperty}
+                    onEditProperty={onUpdateTrail}
                 />
             </View>
             
@@ -76,17 +55,17 @@ const TESTWRITETRAIL = (params: ITestWriteTrailParams) => {
                     informationSet={tourism}
                     object={trail}
                     optionSet={options}
-                    onEditProperty={() => onEditProperty}
+                    onEditProperty={onUpdateTrail}
                 />    
             </View>
 
             
-            { system && <Text>{system}</Text>}
+            { error && <Text>{error}</Text>}
             { isLoading && <Text>Loading</Text>}
-            <Pressable onPress={onSubmitTrailPress}>
+            <Pressable onPress={onSubmitPress}>
                 <Text>SAVE</Text>
             </Pressable>
-            <Pressable onPress={() => onRemoveTrailPress(trail.id)}>
+            <Pressable onPress={() => onRemovePress(trail.id)}>
                 <Text>DELETE</Text>
             </Pressable>
 
@@ -94,10 +73,6 @@ const TESTWRITETRAIL = (params: ITestWriteTrailParams) => {
 
         </ScrollView>
     )
-}
-
-const xTESTWRITETRAIL = ({}) => {
-
 }
 
 export default TESTWRITETRAIL;
