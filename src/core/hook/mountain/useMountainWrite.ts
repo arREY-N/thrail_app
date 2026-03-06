@@ -54,9 +54,9 @@ export default function useMountainWrite(params: IUseMountainWriteParams): IUseM
         }
     }
 
-    const onRemovePress = async () => {
-        // if(mountainId) await remove(mountainId);
-        // router.back();
+    const onRemovePress = async (mountainId: string) => {
+        if(mountainId) await remove(mountainId);
+        router.back();
     }
 
     const onUpdatePress = (params: TEdit) => {

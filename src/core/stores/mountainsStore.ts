@@ -145,7 +145,7 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
         }
     },
     
-    delete: async (id) => {
+    delete: async (id: string) => {
         const data = get().data;
         set({ isLoading: true, error: null});
 
@@ -156,7 +156,6 @@ export const useMountainsStore = create<MountainState>((set, get) => ({
             await MountainRepository.delete(id);
 
             const updated = data.filter(m => m.id !== id);
-            console.log(updated);
 
             set({
                 data: updated,
