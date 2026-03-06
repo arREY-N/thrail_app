@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -88,75 +89,77 @@ const getTabConfig = (routeName, isFocused) => {
 const CustomNavBar = ({ 
     state, 
     descriptors, 
-    navigation,
-    children
+    navigation
 }) => {
     const insets = useSafeAreaInsets();
+    
+    const bottomPadding = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 16;
+    
+    const exactHeight = 64 + bottomPadding;
 
     return (
-        <>
+        <View 
+            style={[
+                styles.barContainer, 
+                { 
+                    paddingBottom: bottomPadding,
+                    height: exactHeight
+                } 
+            ]}
+        >
+            {state.routes.map((route, index) => {
+                const { options } = descriptors[route.key];
+                const isFocused = state.index === index;
+                
+                const config = getTabConfig(route.name, isFocused);
 
-            {children}
+                const onPress = () => {
+                    const event = navigation.emit({
+                        type: 'tabPress',
+                        target: route.key,
+                        canPreventDefault: true,
+                    });
 
-            <View 
-                style={[
-                    styles.barContainer, 
-                    { paddingBottom: Math.max(insets.bottom, 16) } 
-                ]}
-            >
-                {state.routes.map((route, index) => {
-                    const { options } = descriptors[route.key];
-                    const isFocused = state.index === index;
-                    
-                    const config = getTabConfig(route.name, isFocused);
+                    if (!isFocused && !event.defaultPrevented) {
+                        navigation.navigate(route.name);
+                    }
+                };
 
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
+                return (
+                    <TouchableOpacity
+                        key={route.key}
+                        accessibilityRole='button'
+                        accessibilityState={isFocused ? { selected: true } : {}}
+                        accessibilityLabel={options.tabBarAccessibilityLabel}
+                        testID={options.tabBarTestID}
+                        onPress={onPress}
+                        style={styles.tabItem}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[
+                            styles.iconPill, 
+                            { backgroundColor: isFocused ? Colors.PRIMARY : 'transparent' }
+                        ]}>
+                            {config.icon}
+                        </View>
 
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name);
-                        }
-                    };
-
-                    return (
-                        <TouchableOpacity
-                            key={route.key}
-                            accessibilityRole='button'
-                            accessibilityState={isFocused ? { selected: true } : {}}
-                            accessibilityLabel={options.tabBarAccessibilityLabel}
-                            testID={options.tabBarTestID}
-                            onPress={onPress}
-                            style={styles.tabItem}
-                            activeOpacity={0.7}
+                        <CustomText
+                            variant='caption'
+                            numberOfLines={1}
+                            style={[
+                                styles.label,
+                                {
+                                    color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
+                                    fontWeight: isFocused ? '700' : '500',
+                                },
+                            ]}
                         >
-                            <View style={[
-                                styles.iconPill, 
-                                isFocused && styles.iconPillActive
-                            ]}>
-                                {config.icon}
-                            </View>
-
-                            <CustomText
-                                variant='caption'
-                                style={[
-                                    styles.label,
-                                    {
-                                        color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
-                                        fontWeight: isFocused ? '700' : '500',
-                                    },
-                                ]}
-                            >
-                                {config.label}
-                            </CustomText>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        </>
+                            {config.label}
+                        </CustomText>
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
     );
 };
 
@@ -164,14 +167,11 @@ const styles = StyleSheet.create({
     barContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.BACKGROUND,
-        height: 80,
         alignItems: 'center',
         justifyContent: 'space-around',
-        paddingHorizontal: 16,
+        paddingHorizontal: 8, 
         paddingTop: 8,
-        paddingBottom: 16,
         elevation: 8,
-        gap: 8,
 
         shadowColor: Colors.SHADOW, 
         shadowOffset: { width: 0, height: -2 },
@@ -190,23 +190,19 @@ const styles = StyleSheet.create({
     },
 
     iconPill: {
-        width: '100%',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 24,
+        width: 64,               
+        height: 40,              
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'transparent',
-        marginBottom: 0,
-    },
-    iconPillActive: {
-        backgroundColor: Colors.PRIMARY,
+        overflow: 'hidden',
     },
 
     label: {
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: 11,            
+        lineHeight: 14,
         textAlign: 'center',
+        includeFontPadding: false, 
     },
 });
 
