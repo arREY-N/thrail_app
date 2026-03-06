@@ -3,7 +3,7 @@ import { router } from "expo-router";
  * @returns - Access to common navigation functions
  */
 export function useAppNavigation() {
-    const onMountainPress = (id: string) => {
+    const onTrailPress = (id: string) => {
         router.push({
             pathname: '/(main)/trail/view',
             params: { trailId: id},
@@ -53,7 +53,7 @@ export function useAppNavigation() {
     }
 
     return {
-        onMountainPress,
+        onTrailPress,
         onBackPress,
         onDownloadPress,
         onSignUpPress,
