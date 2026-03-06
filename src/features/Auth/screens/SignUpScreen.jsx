@@ -128,15 +128,7 @@ const SignUpScreen = ({
                             secureTextEntry
                             isPasswordVisible={showPasswords}
                             onTogglePassword={() => setShowPasswords(!showPasswords)}
-                            style={{ marginBottom: 0 }} 
                         />
-
-                        <CustomText 
-                                variant="caption" 
-                                style={AuthStyles.passwordHint}
-                            >
-                                At least 8 characters with a mix of letters, numbers & symbols.
-                        </CustomText>
 
                         <View style={AuthStyles.buttonContainer}>
                             <CustomButton 

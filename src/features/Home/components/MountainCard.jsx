@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
+    Image,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -20,7 +22,8 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
         displayElev, 
         displayTime, 
         score,
-        displayTemp
+        displayTemp,
+        heroImage
     } = getMountainData(item);
 
     return (
@@ -31,7 +34,11 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
         >
             <View style={styles.imageContainer}>
                 
-                <View style={styles.placeholderImage} />
+                <Image 
+                    source={heroImage} 
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                />
 
                 <View style={[styles.glassPill, styles.ratePosition]}>
                     <CustomIcon
@@ -158,6 +165,27 @@ const getMountainData = (item) => {
     const rawTemp = item.weather?.temperature || item.temperature || "26" || "N/A"; 
     const displayTemp = rawTemp ? `${rawTemp}°C` : null;
 
+    const images = [
+        require('@/src/assets/images/MT1.jpg'),
+        require('@/src/assets/images/MT2.jpg'),
+        require('@/src/assets/images/MT3.jpg'),
+        require('@/src/assets/images/MT4.jpg'),
+        require('@/src/assets/images/MT5.jpg'),
+    ];
+    
+    const uniqueString = item.id ? String(item.id) : name;
+
+    let hash = 0;
+    for (let i = 0; i < uniqueString.length; i++) {
+        const char = uniqueString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+
+    const positiveHash = Math.abs(hash);
+    const imageIndex = positiveHash % images.length;
+    const heroImage = images[imageIndex];
+
     return {
         name, 
         location, 
@@ -165,7 +193,8 @@ const getMountainData = (item) => {
         displayElev, 
         displayTime, 
         score, 
-        displayTemp
+        displayTemp,
+        heroImage
     };
 };
 
@@ -187,15 +216,23 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         marginBottom: 0,
         overflow: 'hidden',
-        
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
-        
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.SHADOW,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+            },
+            android: {
+                elevation: 4,
+            },
+            web: {
+                boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+            }
+        })
     },
     imageContainer: {
         height: 180, 
@@ -203,10 +240,10 @@ const styles = StyleSheet.create({
         position: 'relative', 
         backgroundColor: Colors.GRAY_LIGHT,
     },
-    placeholderImage: {
+    cardImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: Colors.GRAY_LIGHT,
     },
 
     glassPill: {
@@ -224,7 +261,6 @@ const styles = StyleSheet.create({
         color: Colors.WHITE,
         fontWeight: 'bold',
     },
-    
     ratePosition: {
         position: 'absolute',
         top: 12,
@@ -237,7 +273,6 @@ const styles = StyleSheet.create({
         right: 12, 
         zIndex: 2,
     },
-
     gradientOverlay: {
         position: 'absolute', 
         left: 0,
@@ -259,9 +294,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.TEXT_INVERSE, 
         marginBottom: 4,
-        textShadowColor: Colors.SHADOW,
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: '0px 1px 4px rgba(0,0,0,0.5)', 
+            }
+        })
     },
     locationRow: {
         flexDirection: 'row',
@@ -273,7 +321,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_INVERSE, 
         fontWeight: '500',
     },
-    
     statsContainer: {
         paddingVertical: 16,
         paddingHorizontal: 16,

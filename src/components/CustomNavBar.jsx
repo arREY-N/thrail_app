@@ -4,6 +4,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -90,12 +91,19 @@ const CustomNavBar = ({
     navigation,
     children
 }) => {
+    const insets = useSafeAreaInsets();
+
     return (
         <>
 
             {children}
 
-            <View style={styles.barContainer}>
+            <View 
+                style={[
+                    styles.barContainer, 
+                    { paddingBottom: Math.max(insets.bottom, 16) } 
+                ]}
+            >
                 {state.routes.map((route, index) => {
                     const { options } = descriptors[route.key];
                     const isFocused = state.index === index;
@@ -156,11 +164,11 @@ const styles = StyleSheet.create({
     barContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.BACKGROUND,
-        height: 80,
+        minHeight: 80,
         alignItems: 'center',
         justifyContent: 'space-around',
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingTop: 8,
         elevation: 8,
         gap: 8,
 

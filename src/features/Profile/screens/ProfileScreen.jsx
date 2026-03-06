@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import ConfirmationModal from '../../../components/ConfirmationModal';
-import CustomButton from '../../../components/CustomButton';
-import CustomHeader from '../../../components/CustomHeader';
-import CustomText from '../../../components/CustomText';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomText from '@/src/components/CustomText';
 
-import { Colors } from '../../../constants/colors';
+import { Colors } from '@/src/constants/colors';
 
 const ProfileScreen = ({
     onSignOutPress, 
     onApplyPress,
+    onAdminPress,
+    onSuperadminPress,
     profile,
+    role,
 }) => {
 
     const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -82,6 +85,24 @@ const ProfileScreen = ({
                         variant="primary"
                         style={styles.buttonSpacing}
                     />
+
+                    {role === 'superadmin' && (
+                        <CustomButton 
+                            title="Superadmin Dashboard" 
+                            onPress={onSuperadminPress} 
+                            variant="primary"
+                            style={styles.buttonSpacing}
+                        />
+                    )}
+
+                    {role === 'admin' && (
+                        <CustomButton 
+                            title="Admin Dashboard" 
+                            onPress={onAdminPress} 
+                            variant="primary"
+                            style={styles.buttonSpacing}
+                        />
+                    )}
 
                     <CustomButton 
                         title="Sign Out" 
