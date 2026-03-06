@@ -6,6 +6,7 @@ import {
     StyleSheet,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -13,6 +14,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 const ScreenWrapper = ({ children, style, backgroundColor = Colors.BACKGROUND }) => {
     
     const { isMobile } = useBreakpoints();
+    const insets = useSafeAreaInsets();
 
     let containerWidthStyle = {};
 
@@ -23,8 +25,8 @@ const ScreenWrapper = ({ children, style, backgroundColor = Colors.BACKGROUND })
     }
 
     return (
-        <View style={[styles.container, { backgroundColor }]}>
-            <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
+        <View style={[styles.container, { backgroundColor, paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
             <KeyboardAvoidingView 
                 style={styles.keyboardContainer}
