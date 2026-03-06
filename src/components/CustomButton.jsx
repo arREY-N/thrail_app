@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Platform,
     Pressable,
     StyleSheet
 } from 'react-native';
@@ -57,11 +58,21 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.SHADOW,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+            web: {
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)', 
+            }
+        })
     },
     baseText: {
         fontWeight: 'bold',
@@ -91,7 +102,18 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT, 
-        elevation: 0, 
+
+        ...Platform.select({
+            ios: {
+                shadowOpacity: 0,
+            },
+            android: {
+                elevation: 0,
+            },
+            web: {
+                boxShadow: 'none',
+            }
+        })
     },
     textOutline: {
         color: Colors.TEXT_SECONDARY,
