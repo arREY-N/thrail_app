@@ -1,35 +1,33 @@
+import { IFormField } from "@/src/core/interface/formFieldInterface";
 import { SignUp } from "@/src/core/models/User/SignUp";
-import { FullValidationStructure } from "@/src/core/types/ValidationStructure";
 
-export function validateTrail(
+export function validate<T>(
     object: any, 
-    structure: FullValidationStructure,
+    structure: IFormField<T>[],
 ): string[] {
     let errors: string[] = [];
 
-    for(const groupName in structure){
-        const group = structure[groupName];
-
-        for(const fieldKey in group){
-            const rule = group[fieldKey];
-            const value = object[fieldKey];
-
-            if(rule.required){
-                const isInvalid =
-                    value === null ||
-                    value === undefined ||
-                    (typeof value === 'string' && value.trim() === '') ||
-                    (Array.isArray(value) && value.length === 0);
-
-                if(isInvalid){
-                    errors.push(value.text);
-                }
+    structure.forEach((field) => {
+        const {section, id, label, required } = field;
+        
+        if(required) {
+            const value = section === 'root'
+                ? object[id]
+                : object[section][id]
+            
+            if(!value || 
+                (typeof value === 'string' && value.trim() === '') ||
+                (Array.isArray(value) && value.length === 0)
+            ){
+                errors.push(label)
             }
-        } 
-    }
+        }
+    })
 
     return errors;
 }
+
+
 
 export function validateSignUp(
     signUpData: SignUp
