@@ -8,31 +8,11 @@ export default function write(){
     
     const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 
-    const {
-        information,
-        trail,
-        error,
-        isLoading,
-        options,
-        onSubmitPress,
-        onRemovePress,
-        onEditProperty,
-    } = useTrailWrite({id: trailId});
+    const controller = useTrailWrite({ trailId });
     
-    if(!trail) return <LoadingScreen/>
+    if(!controller.object) return <LoadingScreen/>
 
-    console.log('edit: ', trail);
-    
     return (
-        <TESTWRITETRAIL
-            options={options}
-            informationSet={information}
-            trail={trail}
-            system={error}
-            isLoading={isLoading}
-            onSubmitTrailPress={onSubmitPress}
-            onRemoveTrailPress={onRemovePress}
-            onEditProperty={onEditProperty}
-        />
+        <TESTWRITETRAIL { ...controller }/>
     )
 }
