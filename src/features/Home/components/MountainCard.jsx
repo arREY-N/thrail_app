@@ -1,6 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
+    Image,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -13,27 +15,16 @@ import { Colors } from '@/src/constants/colors';
 
 const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
-    const name = item.general?.name || item.name || "Unnamed Mountain";
-
-    let location = "Unknown Location";
-    if (item.general?.address) {
-        location = item.general.address;
-    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
-        location = item.general.province[0];
-    } else if (item.location) {
-        location = item.location;
-    }
-    
-    const rawLength = item.difficulty?.length || item.length;
-    const displayLength = rawLength ? `${rawLength} km` : "--";
-
-    const rawElev = item.geographical?.masl || item.difficulty?.gain || item.elevation;
-    const displayElev = rawElev ? `${rawElev} masl` : "--";
-
-    const rawTime = item.difficulty?.hours || item.duration;
-    const displayTime = rawTime ? `${rawTime} h` : "--";
-
-    const score = item.score || item.rating || "N/A";
+    const { 
+        name, 
+        location, 
+        displayLength, 
+        displayElev, 
+        displayTime, 
+        score,
+        displayTemp,
+        heroImage
+    } = getMountainData(item);
 
     return (
         <TouchableOpacity 
@@ -43,7 +34,37 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
         >
             <View style={styles.imageContainer}>
                 
-                <View style={styles.placeholderImage} />
+                <Image 
+                    source={heroImage} 
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                />
+
+                <View style={[styles.glassPill, styles.ratePosition]}>
+                    <CustomIcon
+                        library="AntDesign"
+                        name="star"
+                        size={12}
+                        color={Colors.YELLOW}
+                    />
+                    <CustomText variant="caption" style={styles.badgeText}>
+                        {score}
+                    </CustomText>
+                </View>
+
+                {displayTemp && (
+                    <View style={[styles.glassPill, styles.weatherPosition]}>
+                        <CustomIcon
+                            library="Ionicons"
+                            name="partly-sunny" 
+                            size={14}
+                            color={Colors.WHITE}
+                        />
+                        <CustomText variant="caption" style={styles.badgeText}>
+                            {displayTemp}
+                        </CustomText>
+                    </View>
+                )}
 
                 <LinearGradient
                     colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
@@ -58,28 +79,14 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                             <View style={styles.locationRow}>
                                 <CustomIcon 
                                     library="FontAwesome6" 
-                                    name="location-pin" 
+                                    name="location-dot" 
                                     size={10}
                                     color={Colors.TEXT_INVERSE} 
                                 />
-
                                 <CustomText variant="caption" style={styles.location} numberOfLines={1}>
                                     {location}
                                 </CustomText>
                             </View>
-                        </View>
-
-                        <View style={styles.glassBadge}>
-                            <CustomIcon
-                                library="ionicons"
-                                name="star"
-                                size={12}
-                                color={Colors.YELLOW}
-                            />
-
-                            <CustomText variant="caption" style={styles.ratingText}>
-                                {score}
-                            </CustomText>
                         </View>
                     </View>
                 </LinearGradient>
@@ -115,10 +122,10 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
                         activeOpacity={0.7}
                     >
                         <CustomIcon
-                            libraby="Feather"
+                            library="Feather"
                             name="download"
                             size={18}
-                            color={Colors.WHITE}
+                            color={Colors.TEXT_INVERSE}
                         />
                     </TouchableOpacity>
 
@@ -128,12 +135,74 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
     );
 };
 
+const getMountainData = (item) => {
+    const name = item.general?.name || item.name || "Unnamed Mountain";
+
+    let location = "Unknown Location";
+    if (item.address) {
+        location = item.address;
+    } else if (item.general?.address) {
+        location = item.general.address;
+    } else if (item.province) {
+        location = Array.isArray(item.province) ? item.province[0] : item.province;
+    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
+        location = item.general.province[0];
+    } else if (item.location) {
+        location = item.location;
+    }
+    
+    const rawLength = item.length || item.difficulty?.length;
+    const displayLength = rawLength ? `${rawLength} km` : "--";
+
+    const rawElev = item.masl || item.geographical?.masl || item.difficulty?.gain || item.elevation;
+    const displayElev = rawElev ? `${rawElev} masl` : "--";
+
+    const rawTime = item.hours || item.difficulty?.hours || item.duration;
+    const displayTime = rawTime ? `${rawTime} h` : "--";
+
+    const score = item.score || item.rating || "5.0" || "N/A";
+
+    const rawTemp = item.weather?.temperature || item.temperature || "26" || "N/A"; 
+    const displayTemp = rawTemp ? `${rawTemp}°C` : null;
+
+    const images = [
+        require('@/src/assets/images/MT1.jpg'),
+        require('@/src/assets/images/MT2.jpg'),
+        require('@/src/assets/images/MT3.jpg'),
+        require('@/src/assets/images/MT4.jpg'),
+        require('@/src/assets/images/MT5.jpg'),
+    ];
+    
+    const uniqueString = item.id ? String(item.id) : name;
+
+    let hash = 0;
+    for (let i = 0; i < uniqueString.length; i++) {
+        const char = uniqueString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+
+    const positiveHash = Math.abs(hash);
+    const imageIndex = positiveHash % images.length;
+    const heroImage = images[imageIndex];
+
+    return {
+        name, 
+        location, 
+        displayLength, 
+        displayElev, 
+        displayTime, 
+        score, 
+        displayTemp,
+        heroImage
+    };
+};
+
 const StatItem = ({ label, value }) => (
     <View style={styles.statItem}>
         <CustomText variant="caption" style={styles.statValue}>
             {value}
         </CustomText>
-
         <CustomText variant="caption" style={styles.statLabel}>
             {label}
         </CustomText>
@@ -144,37 +213,72 @@ const styles = StyleSheet.create({
     cardContainer: {
         width: 280, 
         backgroundColor: Colors.WHITE,
-        borderRadius: 20, 
+        borderRadius: 24, 
         marginBottom: 0,
         overflow: 'hidden',
-        
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
-        
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.SHADOW,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+            },
+            android: {
+                elevation: 4,
+            },
+            web: {
+                boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+            }
+        })
     },
-    
     imageContainer: {
         height: 180, 
         width: '100%',
         position: 'relative', 
         backgroundColor: Colors.GRAY_LIGHT,
     },
-    placeholderImage: {
+    cardImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: Colors.SECONDARY,
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+
+    glassPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    badgeText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+    },
+    ratePosition: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        zIndex: 2,
+    },
+    weatherPosition: {
+        position: 'absolute',
+        top: 12,
+        right: 12, 
+        zIndex: 2,
     },
     gradientOverlay: {
         position: 'absolute', 
         left: 0,
         right: 0,
         bottom: 0,
-        height: '80%', 
+        height: '65%', 
         justifyContent: 'flex-end',
         padding: 16,
     },
@@ -185,42 +289,38 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         flex: 1,
-        marginRight: 16,
     },
     title: {
         fontWeight: 'bold',
         color: Colors.TEXT_INVERSE, 
         marginBottom: 4,
-        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: '0px 1px 4px rgba(0,0,0,0.5)', 
+            }
+        })
     },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        paddingVertical: 2,
+        gap: 8,
     },
     location: {
-        color: 'rgba(255,255,255,0.9)', 
+        color: Colors.TEXT_INVERSE, 
         fontWeight: '500',
     },
-    
-    glassBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    ratingText: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_INVERSE,
-    },
-
     statsContainer: {
         paddingVertical: 16,
         paddingHorizontal: 16,
@@ -259,7 +359,6 @@ const styles = StyleSheet.create({
         height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
     },
-    
     downloadButtonCircle: {
         width: 36,
         height: 36,

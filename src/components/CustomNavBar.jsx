@@ -1,9 +1,11 @@
 import React from 'react';
 import {
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -11,7 +13,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
 const getTabConfig = (routeName, isFocused) => {
-    const iconColor = isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY;
+    const iconColor = isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY;
     const iconSize = 24;
 
     switch (routeName) {
@@ -84,9 +86,27 @@ const getTabConfig = (routeName, isFocused) => {
     }
 };
 
-const CustomNavBar = ({ state, descriptors, navigation }) => {
+const CustomNavBar = ({ 
+    state, 
+    descriptors, 
+    navigation
+}) => {
+    const insets = useSafeAreaInsets();
+    
+    const bottomPadding = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 16;
+    
+    const exactHeight = 64 + bottomPadding;
+
     return (
-        <View style={styles.barContainer}>
+        <View 
+            style={[
+                styles.barContainer, 
+                { 
+                    paddingBottom: bottomPadding,
+                    height: exactHeight
+                } 
+            ]}
+        >
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
@@ -118,17 +138,18 @@ const CustomNavBar = ({ state, descriptors, navigation }) => {
                     >
                         <View style={[
                             styles.iconPill, 
-                            isFocused && styles.iconPillActive
+                            { backgroundColor: isFocused ? Colors.PRIMARY : 'transparent' }
                         ]}>
                             {config.icon}
                         </View>
 
                         <CustomText
                             variant='caption'
+                            numberOfLines={1}
                             style={[
                                 styles.label,
                                 {
-                                    color: isFocused ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY,
+                                    color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
                                     fontWeight: isFocused ? '700' : '500',
                                 },
                             ]}
@@ -146,13 +167,13 @@ const styles = StyleSheet.create({
     barContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.BACKGROUND,
-        height: 80,
         alignItems: 'center',
         justifyContent: 'space-around',
-        paddingHorizontal: 8,
-        paddingBottom: 0,
-        elevation: 8, 
-        shadowColor: "#000", 
+        paddingHorizontal: 8, 
+        paddingTop: 8,
+        elevation: 8,
+
+        shadowColor: Colors.SHADOW, 
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -169,23 +190,19 @@ const styles = StyleSheet.create({
     },
 
     iconPill: {
-        width: 64,
-        // height: 32,
-        paddingVertical: 4,
-        borderRadius: 24,
+        width: 64,               
+        height: 40,              
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'transparent',
-        marginBottom: 4,
-    },
-    iconPillActive: {
-        backgroundColor: Colors.SECONDARY,
+        overflow: 'hidden',
     },
 
     label: {
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: 11,            
+        lineHeight: 14,
         textAlign: 'center',
+        includeFontPadding: false, 
     },
 });
 

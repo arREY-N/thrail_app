@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+    Image,
     StyleSheet,
     TouchableOpacity,
     View
@@ -10,9 +11,8 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
-import { Colors } from '@/src/constants/colors';
 
-// const { width } = Dimensions.get('window');
+import { Colors } from '@/src/constants/colors';
 
 const TrailScreen = ({ 
     trail, 
@@ -23,103 +23,103 @@ const TrailScreen = ({
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
 
-    const name = trail.general?.name || "Unnamed Trail";
-    const address = trail.general?.address || trail.general?.province?.[0] || "Unknown Location";
-    const rating = trail.score || "0.0";
-    const reviewsCount = trail.reviews || "0";
+    const heroImage = useMemo(() => {
+        const images = [
+            require('@/src/assets/images/MT1.jpg'),
+            require('@/src/assets/images/MT2.jpg'),
+            require('@/src/assets/images/MT3.jpg'),
+            require('@/src/assets/images/MT4.jpg'),
+            require('@/src/assets/images/MT5.jpg'),
+        ];
+        
+        const uniqueString = trail?.id ? String(trail.id) : (trail?.name || "Unnamed Trail");
+
+        let hash = 0;
+        for (let i = 0; i < uniqueString.length; i++) {
+            const char = uniqueString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; 
+        }
+
+        const positiveHash = Math.abs(hash);
+        const imageIndex = positiveHash % images.length;
+        
+        return images[imageIndex];
+    }, [trail]);
+
+    const name = trail?.name || "Unnamed Trail";
+
+    const location = Array.isArray(trail?.province) 
+        ? trail.province.join(', ') 
+        : (trail?.province || "Unknown Location");  
+
+    const address = trail?.address || location;
+    const rating = trail?.score || "0.0"; 
+    const reviewsCount = trail?.reviews || "0";
 
     const stats = {
-        distance: trail.difficulty?.length ? `${trail.difficulty.length} km` : "--",
-        time: trail.difficulty?.hours ? `${trail.difficulty.hours} hr` : "--",
-        elevation: trail.geographical?.masl ? `${trail.geographical.masl} m` : "--",
-    };
-
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case 'Details':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.distance}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Distance</CustomText>
-                            </View>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.time}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Est. Time</CustomText>
-                            </View>
-                            <View style={styles.statItem}>
-                                <CustomText variant="body" style={styles.statValue}>{stats.elevation}</CustomText>
-                                <CustomText variant="caption" style={styles.statLabel}>Elevation</CustomText>
-                            </View>
-                        </View>
-
-                        <View style={styles.placeholderBox}>
-                            <CustomText style={styles.placeholderText}>(Short Description)</CustomText>
-                        </View>
-                        <View style={styles.placeholderBox}>
-                            <CustomText style={styles.placeholderText}>(AI Difficulty Explanation)</CustomText>
-                        </View>
-                    </View>
-                );
-            case 'Weather':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={[styles.placeholderBox, { height: 150 }]}>
-                            <CustomText style={styles.placeholderText}>Weather Forecast Widget</CustomText>
-                        </View>
-                    </View>
-                );
-            case 'Reviews':
-                return (
-                    <View style={styles.tabContent}>
-                        <View style={[styles.placeholderBox, { height: 100 }]}>
-                            <CustomText style={styles.placeholderText}>User Reviews List</CustomText>
-                        </View>
-                    </View>
-                );
-            default:
-                return null;
-        }
+        distance: trail?.length ? `${trail.length} km` : "--",
+        time: trail?.hours ? `${trail.hours} hr` : "--",
+        elevation: trail?.masl ? `${trail.masl} m` : "--",
     };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+                <CustomIcon 
+                    library="Feather" 
+                    name="chevron-left" 
+                    size={28} 
+                    color={Colors.WHITE} 
+                />
+            </TouchableOpacity>
+            
             <ResponsiveScrollView 
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
                 style={styles.container}
             >
-                
                 <View style={styles.imageContainer}>
-                    <View style={styles.imagePlaceholder} /> 
-                    
-                    <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-                        <CustomIcon library="Feather" name="chevron-left" size={28} color={Colors.TEXT_PRIMARY} />
-                    </TouchableOpacity>
-
-                    {/* <View style={styles.pagination}>
-                        <View style={[styles.dot, styles.activeDot]} />
-                        <View style={styles.dot} />
-                        <View style={styles.dot} />
-                    </View> */}
+                    <Image 
+                        source={heroImage} 
+                        style={styles.headerImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 <View style={styles.bodyContainer}>
-                    
                     <View style={styles.headerInfo}>
                         <View style={styles.titleRow}>
                             <View style={{ flex: 1 }}>
-                                <CustomText variant="h2" style={styles.title}>{name}</CustomText>
-                                <CustomText variant="body" style={styles.address}>{address}</CustomText>
+                                <CustomText variant="h2" style={styles.title}>
+                                    {name}
+                                </CustomText>
+
+                                <CustomText variant="body" style={styles.address}>
+                                    {address}
+                                </CustomText>
+
                                 <View style={styles.ratingRow}>
-                                    <CustomIcon library="Ionicons" name="star" size={14} color={Colors.TEXT_PRIMARY} />
-                                    <CustomText style={styles.ratingText}>{rating} ({reviewsCount})</CustomText>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="star" 
+                                        size={14} 
+                                        color={Colors.YELLOW} 
+                                    />
+
+                                    <CustomText style={styles.ratingText}>
+                                        {rating} ({reviewsCount})
+                                    </CustomText>
                                 </View>
                             </View>
                             
-                            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownloadPress(trail.id)}>
-                                <CustomIcon library="Feather" name="download" size={20} color={Colors.GRAY_MEDIUM} />
+                            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownloadPress(trail?.id)}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="download" 
+                                    size={20}
+                                    color={Colors.WHITE} 
+                                />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -142,7 +142,12 @@ const TrailScreen = ({
                     </View>
                     <View style={styles.divider} />
 
-                    {renderTabContent()}
+                    <TrailContent 
+                        activeTab={activeTab} 
+                        stats={stats} 
+                        trail={trail} 
+                        location={location} 
+                    />
 
                 </View>
             </ResponsiveScrollView>
@@ -151,16 +156,20 @@ const TrailScreen = ({
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Hike" 
-                        onPress={() => onHikePress(trail.id)} 
-                        style={styles.footerBtn}
+                        onPress={() => onHikePress(trail?.id)} 
                         variant="secondary"
+                        style={[
+                            styles.footerBtn, 
+                            { borderWidth: 1.5, borderColor: Colors.PRIMARY }
+                        ]}
+                        textStyle={{ color: Colors.PRIMARY }}
                     />
                 </View>
 
                 <View style={styles.buttonWrapper}>
                     <CustomButton 
                         title="Book" 
-                        onPress={() => onBookPress(trail.id)} 
+                        onPress={() => onBookPress(trail?.id)} 
                         style={styles.footerBtn}
                         variant="primary"
                     />
@@ -170,72 +179,190 @@ const TrailScreen = ({
     );
 };
 
+const TrailContent = ({ activeTab, stats, trail, location }) => {
+    switch (activeTab) {
+        case 'Details':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.distance}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Distance
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.time}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Est. Time
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.statItem}>
+                            <CustomText variant="body" style={styles.statValue}>
+                                {stats.elevation}
+                            </CustomText>
+
+                            <CustomText variant="caption" style={styles.statLabel}>
+                                Elevation
+                            </CustomText>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            About
+                        </CustomText>
+
+                        <CustomText style={styles.descriptionText}>
+                            This is a {formatList(trail?.quality) || 'scenic'} {trail?.circularity || ''} trail located in {location}.
+                            {"\n\n"}
+                            {trail?.difficulty_points && trail.difficulty_points.length > 0 
+                                ? `Expect features such as ${formatList(trail.difficulty_points)}.` 
+                                : 'A great trail for outdoor enthusiasts.'}
+                        </CustomText>
+                    </View>
+
+                    <View style={styles.section}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Features & Facilities
+                        </CustomText>
+
+                        <View style={styles.tagContainer}>
+                            {trail?.shelter && <Tag label="Shelter" />}
+                            {trail?.clean_water && <Tag label="Drinking Water" />}
+                            {trail?.resting && <Tag label="Resting Area" />}
+                            {trail?.information_board && <Tag label="Info Board" />}
+                            {trail?.community && <Tag label="Community" />}
+                            
+                            {trail?.river && <Tag label="River" />}
+                            {trail?.lake && <Tag label="Lake" />}
+                            {trail?.waterfall && <Tag label="Waterfall" />}
+                            {trail?.monument && <Tag label="Monument" />}
+                            
+                            {Array.isArray(trail?.viewpoint) && trail.viewpoint.map((vp, index) => (
+                                <Tag key={`vp-${index}`} label={vp} />
+                            ))}
+                        </View>
+                    </View>
+                </View>
+            );
+        case 'Weather':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={[styles.placeholderBox, { height: 150 }]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="cloud" 
+                            size={32} 
+                            color={Colors.GRAY_MEDIUM} 
+                        />
+
+                        <CustomText style={styles.placeholderText}>
+                            Weather Forecast Widget
+                        </CustomText>
+                    </View>
+                </View>
+            );
+        case 'Reviews':
+            return (
+                <View style={styles.tabContent}>
+                    <View style={[styles.placeholderBox, { height: 100 }]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="message-square" 
+                            size={32} 
+                            color={Colors.GRAY_MEDIUM} 
+                        />
+                        
+                        <CustomText style={styles.placeholderText}>
+                            User Reviews List
+                        </CustomText>
+                    </View>
+                </View>
+            );
+        default:
+            return null;
+    }
+};
+
+const Tag = ({ label }) => (
+    <View style={styles.tag}>
+        <CustomText variant="caption" style={styles.tagText}>
+            {label}
+        </CustomText>
+    </View>
+);
+
+const formatList = (list) => {
+    if (!list) return '';
+    return Array.isArray(list) ? list.join(', ') : list;
+};
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
-        paddingBottom: 100,
+        paddingBottom: 8,
     },
 
     imageContainer: {
-        height: 300,
+        height: 350,
         width: '100%',
         position: 'relative',
+        backgroundColor: Colors.GRAY_LIGHT,
     },
-    imagePlaceholder: {
+    headerImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: '#E0E0E0',
     },
     backButton: {
         position: 'absolute',
-        top: 32,
+        top: 24,
         left: 16,
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.4)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
-    pagination: {
-        position: 'absolute',
-        bottom: 20,
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    activeDot: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        width: 20,
-    },
-
+    
     bodyContainer: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
         marginTop: -20,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
+        paddingBottom: 96,
         paddingTop: 24,
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
     },
     headerInfo: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     titleRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        gap: 8,
     },
     title: {
         fontWeight: 'bold',
@@ -243,7 +370,7 @@ const styles = StyleSheet.create({
     },
     address: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 8,
+        marginBottom: 0,
     },
     ratingRow: {
         flexDirection: 'row',
@@ -259,7 +386,8 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -267,15 +395,15 @@ const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginBottom: 8,
+        marginBottom: 0,
     },
     tabButton: {
         paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
     },
     activeTabButton: {
         borderBottomWidth: 2,
-        borderBottomColor: Colors.TEXT_PRIMARY,
+        borderBottomColor: Colors.PRIMARY,
     },
     tabText: {
         fontSize: 16,
@@ -283,7 +411,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     activeTabText: {
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
     divider: {
@@ -307,10 +435,41 @@ const styles = StyleSheet.create({
     statValue: {
         fontWeight: 'bold',
         marginBottom: 4,
+        fontSize: 18,
     },
     statLabel: {
         color: Colors.TEXT_SECONDARY,
     },
+    
+    section: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    descriptionText: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 22,
+        marginBottom: -16,
+    },
+    tagContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    tag: {
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    tagText: {
+        color: Colors.TEXT_INVERSE,
+        fontSize: 12,
+    },
+
     placeholderBox: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         height: 80,
@@ -318,6 +477,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,
+        gap: 8,
     },
     placeholderText: {
         color: Colors.TEXT_SECONDARY,
@@ -334,9 +494,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 16,
+
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         gap: 16,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+
     },
     buttonWrapper: {
         flex: 1,

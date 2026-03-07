@@ -1,11 +1,18 @@
 
+import {
+    ScrollView,
+    StyleSheet,
+    View
+} from 'react-native';
+
 import LoadingScreen from '@/src/app/loading';
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
+
 import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { Stack } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
+import { Pressable, Text } from 'react-native';
 
 export default function applyBusiness(){
     const { role } = useAuthHook();
@@ -22,27 +29,15 @@ export default function applyBusiness(){
     if(!object) return <LoadingScreen/>
 
     return (
-        // <BusApp
-        //     information={information}
-        //     application={application}
-        //     system={system}
-        //     onEditProperty={onEditProperty}
-        //     provinces={provinces}
-        //     onApplyPress={onApplyPress}
-        //     onBackPress={onBackPress}
-        // />
-
-        <>
-            <Stack.Screen options={{headerShown: true}}/>
-            <TESTAPPLY
-                information={information}
-                application={object}
-                options={options}
-                error={error}
-                onEditProperty={onUpdatePress}
-                onApplyPress={onSubmitPress}
-            />
-        </>
+        <ApplyScreen
+            information={information}
+            application={application}
+            system={system}
+            onEditProperty={onEditProperty}
+            provinces={provinces}
+            onApplyPress={onApplyPress}
+            onBackPress={onBackPress}
+        />
     )
 }
 

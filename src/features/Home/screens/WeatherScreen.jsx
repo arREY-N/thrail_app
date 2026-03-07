@@ -1,15 +1,35 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Animated,
+    Easing,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-import CustomHeader from '../../../components/CustomHeader';
-import CustomIcon from '../../../components/CustomIcon';
-import CustomText from '../../../components/CustomText';
-import ResponsiveScrollView from '../../../components/ResponsiveScrollView';
-import ScreenWrapper from '../../../components/ScreenWrapper';
-import { Colors } from '../../../constants/colors';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
+import { Colors } from '@/src/constants/colors';
+
+const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress, isFetching }) => {
     console.log("RECEIVED DATA:", locationWeather);
+    const [testLoading, setTestLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setTestLoading(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const isLoading = testLoading || !locationWeather;
 
     const temperature = locationWeather?.temperature ?? "--";
     const location = locationWeather?.location ?? "Location Not Set";
@@ -22,8 +42,20 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
     const humidity = locationWeather?.humidity ? `${Math.round(locationWeather.humidity * 100)}%` : "--";
     const uvIndex = locationWeather?.UV ? String(locationWeather.UV) : "--";
 
-    const RefreshAction = (
-        <TouchableOpacity onPress={onRefreshPress} style={styles.headerActionButton}>
+    const onRefresh = useCallback(async () => {
+        console.log("Pull-to-refresh triggered!");
+        setRefreshing(true);
+
+        if (onRefreshPress) {
+            console.log("Calling backend refresh function...");
+            await onRefreshPress(); 
+        }
+        setRefreshing(false);
+        console.log("Refresh loading stopped.");
+    }, [onRefreshPress]);
+
+    const WebRefreshButton = Platform.OS === 'web' ? (
+        <TouchableOpacity onPress={onRefresh} style={{ padding: 8 }}>
             <CustomIcon 
                 library="Ionicons" 
                 name="refresh" 
@@ -31,7 +63,83 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                 color={Colors.TEXT_INVERSE} 
             />
         </TouchableOpacity>
-    );
+    ) : null;
+
+    if (isLoading) {
+        return (
+            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                <CustomHeader title="Weather" onBackPress={onBackPress} />
+                <View style={styles.scrollContent}>
+                    <View style={styles.heroSection}>
+                        <View style={styles.heroTop}>
+                            <SkeletonEffect style={{ width: 120, height: 80 }} />
+                            <SkeletonEffect style={{ width: 96, height: 96, borderRadius: 48 }} />
+                        </View>
+                        <SkeletonEffect style={{ width: '100%', height: 2, marginVertical: 16 }} />
+                        <View style={styles.heroBottom}>
+                            <SkeletonEffect style={{ width: 100, height: 20 }} />
+                            <SkeletonEffect style={{ width: 150, height: 20 }} />
+                        </View>
+                    </View>
+                    
+                    <View style={styles.fullWidthCard}>
+                        <View style={styles.forecastRow}>
+                            {[1, 2, 3, 4].map((i) => (
+                                <View key={i} style={styles.fItem}>
+                                    <SkeletonEffect style={{ width: 40, height: 60, borderRadius: 20 }} />
+                                    <SkeletonEffect style={{ width: 30, height: 15 }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.fullWidthCard}>
+                        <View style={styles.forecastRow}>
+                            {[1, 2, 3, 4].map((i) => (
+                                <View key={i} style={styles.fItem}>
+                                    <SkeletonEffect style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                    <SkeletonEffect style={{ width: 30, height: 15 }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.fullWidthCard}>
+                        <View style={styles.forecastRow}>
+                            {[1, 2, 3, 4].map((i) => (
+                                <View key={i} style={styles.fItem}>
+                                    <SkeletonEffect style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                    <SkeletonEffect style={{ width: 30, height: 15 }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.fullWidthCard}>
+                        <View style={styles.forecastRow}>
+                            {[1, 2, 3, 4].map((i) => (
+                                <View key={i} style={styles.fItem}>
+                                    <SkeletonEffect style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                    <SkeletonEffect style={{ width: 30, height: 15 }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.fullWidthCard}>
+                        <View style={styles.forecastRow}>
+                            {[1, 2, 3, 4].map((i) => (
+                                <View key={i} style={styles.fItem}>
+                                    <SkeletonEffect style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                    <SkeletonEffect style={{ width: 30, height: 15 }} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -39,12 +147,19 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
             <CustomHeader 
                 title="Weather" 
                 onBackPress={onBackPress} 
-                rightActions={RefreshAction} 
+                rightActions={WebRefreshButton}
             />
 
             <ResponsiveScrollView 
                 style={styles.container}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl 
+                        refreshing={refreshing} 
+                        onRefresh={onRefresh}
+                        colors={[Colors.PRIMARY]}
+                    />
+                }
             >
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
@@ -119,7 +234,6 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Wind" 
                         value={wind}
-                        // value="150 m/s"
                         desc="From Southeast" 
                         icon="wind" 
                         lib="Feather" 
@@ -127,16 +241,13 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Precipitation" 
                         value={precipAmount}
-                        // value="67 mm"
                         desc={`${precipChance} chance`} 
-                        // desc="50% chance"
                         icon="rainy" 
                         lib="Ionicons" 
                     />
                     <BentoBox 
                         title="UV Index" 
                         value={uvIndex} 
-                        // value="High"
                         desc="Moderate" 
                         icon="sun" 
                         lib="Feather" 
@@ -144,7 +255,6 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
                     <BentoBox 
                         title="Humidity" 
                         value={humidity}
-                        // value="75%"
                         desc="Humid air" 
                         icon="water" 
                         lib="Ionicons" 
@@ -206,6 +316,31 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress }) => {
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
+};
+
+const SkeletonEffect = ({ style }) => {
+    const opacity = React.useRef(new Animated.Value(0.3)).current;
+
+    React.useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(opacity, {
+                    toValue: 1,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(opacity, {
+                    toValue: 0.3,
+                    duration: 800,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, [opacity]);
+
+    return <Animated.View style={[{ backgroundColor: Colors.GRAY_LIGHT, borderRadius: 8 }, style, { opacity }]} />;
 };
 
 const ForecastItem = ({ day, icon, low, high }) => (
@@ -276,9 +411,6 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 16,
         paddingBottom: 32,
-    },
-    headerActionButton: {
-        padding: 4,
     },
 
     heroSection: {

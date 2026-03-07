@@ -1,7 +1,7 @@
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import React, { useEffect } from 'react';
 
-
+import CustomLoading from '@/src/components/CustomLoading';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
@@ -25,14 +25,22 @@ export default function login(){
     }, []);
 
     return (
-        <LogInScreen 
-            onLogInPress={onLogIn} 
-            onSignUpPress={onSignUpPress} 
-            error={error} 
-            onForgotPasswordPress={onForgotPassword}
-            onBackPress={onBackPress}
-            onRememberMePress={onRememberMePress}
-            remember={remember}
-        />
+        <View style={{ flex: 1 }}>
+            <LogInScreen 
+                onLogInPress={onLogInPress} 
+                onSignUpPress={onSignUpPress} 
+                error={error} 
+                onForgotPasswordPress={onForgotPassword}
+                onBackPress={onBackPress}
+                onRememberMePress={onRememberMePress}
+                remember={remember}
+                onGmailLogIn={onGmailLogIn}
+            />
+
+            <CustomLoading 
+                visible={isLogingIn} 
+                message="Signing in..." 
+            />
+        </View>
     )
 }

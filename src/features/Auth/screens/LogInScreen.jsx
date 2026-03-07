@@ -19,7 +19,7 @@ const LogInScreen = ({
     onBackPress, 
     onForgotPasswordPress, 
     onRememberMePress,
-    onGooglePress, 
+    onGmailLogIn, 
     error,
     remember,
 }) => {
@@ -102,7 +102,7 @@ const LogInScreen = ({
 
                         <TouchableOpacity 
                             style={AuthStyles.googleButton} 
-                            onPress={onGooglePress}
+                            onPress={onGmailLogIn}
                             activeOpacity={0.8}
                         >
                             <CustomIcon
@@ -119,7 +119,7 @@ const LogInScreen = ({
 
                         <View style={AuthStyles.footerContainer}>
                             <CustomText variant="caption" style={AuthStyles.footerText}>
-                                Don't have an account?{' '}
+                                {"Don't have an account? "}
                             </CustomText>
 
                             <TouchableOpacity onPress={onSignUpPress}>

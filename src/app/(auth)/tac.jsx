@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import CustomLoading from "@/src/components/CustomLoading";
 import useSignUp from "@/src/core/hook/auth/useSignUp";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import TermsScreen from "@/src/features/Auth/screens/TermsScreen";
+import TACScreen from "@/src/features/Auth/screens/TACScreen";
 
 export default function tac(){
     const { onBackPress } = useAppNavigation();
@@ -18,13 +18,15 @@ export default function tac(){
     } = useSignUp();
 
     return(
-        <View style={{ flex: 1 }}>
-            <CustomLoading visible={isLoading} message="Creating account..." />
+        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+            <CustomLoading 
+                visible={isLoading} 
+                message="Creating account..." 
+            />
 
-            <TermsScreen 
+            <TACScreen 
                 onAcceptPress={onAcceptPress}
                 onDeclinePress={onDeclinePress}
-                onBackPress={onBackPress}
                 error={error}
             />
         </View>

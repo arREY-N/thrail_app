@@ -26,6 +26,8 @@ const CustomTextInput = ({
     style,
     icon, 
     iconLibrary = 'Feather', 
+    prefix, 
+    children,
     ...props
 }) => {
 
@@ -37,54 +39,20 @@ const CustomTextInput = ({
 
     const handleTextChange = (text) => {
         if (type === 'phone') {
-            const cleaned = text.replace(/\D/g, '');
-
-            if (cleaned.length === 0) {
-                onChangeText('');
-                return;
-            }
-
-            if (cleaned.length === 1) {
-                if (cleaned !== '0' && cleaned !== '6') return; 
-            }
-            if (cleaned.length === 2) {
-                if (cleaned !== '09' && cleaned !== '63') return;
-            }
-            if (cleaned.length > 2) {
-                if (!cleaned.startsWith('09') && !cleaned.startsWith('63')) return;
-            }
-
-            let formatted = cleaned;
-
-            if (cleaned.startsWith('09')) {
-                if (cleaned.length > 4) {
-                    formatted = `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)}`;
-                }
-                if (cleaned.length > 7) {
-                    formatted = `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 11)}`;
-                }
-            } else if (cleaned.startsWith('63')) {
-                if (cleaned.length > 2) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)}`;
-                }
-                if (cleaned.length > 5) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)}`;
-                }
-                if (cleaned.length > 8) {
-                    formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 12)}`;
-                }
-            }
-
+            const formatted = formatLocalPhoneNumber(text);
             onChangeText(formatted);
         } else {
             onChangeText(text);
         }
     };
 
-    const inputProps = type === 'phone' ? {
-        keyboardType: 'phone-pad',
-        maxLength: value?.startsWith('63') ? 15 : 13, 
-    } : {};
+    let finalKeyboardType = keyboardType || 'default';
+    
+    if (type === 'phone') {
+        finalKeyboardType = 'number-pad';
+    } else if (secureTextEntry && showPassword && Platform.OS === 'android') {
+        finalKeyboardType = 'visible-password';
+    }
 
     return (
         <View style={[styles.container, style]}>
@@ -93,7 +61,9 @@ const CustomTextInput = ({
                     value={value} 
                     onChangeText={onChangeText}
                     label={label}
-                />
+                > 
+                    {children}
+                </CustomDateInput>
             ) : (
                 <>
                     {label && (
@@ -121,6 +91,15 @@ const CustomTextInput = ({
                             </View>
                         )}
 
+                        {prefix && (
+                            <View style={styles.prefixContainer}>
+                                <CustomText style={styles.prefixText}>
+                                    {prefix}
+                                </CustomText>
+                                <View style={styles.prefixSeparator} />
+                            </View>
+                        )}
+
                         <TextInput 
                             style={styles.input}
                             placeholder={placeholder}
@@ -128,10 +107,10 @@ const CustomTextInput = ({
                             value={value}
                             onChangeText={handleTextChange} 
                             secureTextEntry={secureTextEntry && !showPassword}
-                            keyboardType={keyboardType || 'default'} 
+                            keyboardType={finalKeyboardType} 
+                            autoCorrect={secureTextEntry ? false : undefined}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
-                            {...inputProps}
                             {...props} 
                         />
 
@@ -149,10 +128,38 @@ const CustomTextInput = ({
                             </TouchableOpacity>
                         )}
                     </View>
+                    
+                    {children}
+
                 </>
             )}
         </View>
     );
+};
+
+const formatLocalPhoneNumber = (text) => {
+    let cleaned = text.replace(/\D/g, '');
+
+    if (cleaned.startsWith('09')) {
+        cleaned = cleaned.substring(1);
+    }
+    if (cleaned.startsWith('63')) {
+        cleaned = cleaned.substring(2);
+    }
+
+    if (cleaned.length > 10) {
+        cleaned = cleaned.substring(0, 10);
+    }
+
+    let formatted = cleaned;
+    if (cleaned.length > 3) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+    }
+    if (cleaned.length > 6) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    }
+
+    return formatted;
 };
 
 const styles = StyleSheet.create({
@@ -175,8 +182,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     iconContainer: {
-        marginRight: 8,
+        marginRight: 12,
     },
+    
+    prefixContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    prefixText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    prefixSeparator: {
+        width: 1,
+        height: 20,
+        backgroundColor: Colors.GRAY_LIGHT,
+        marginLeft: 8,
+    },
+
     input: {
         flex: 1,
         fontSize: 16,

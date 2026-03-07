@@ -10,7 +10,12 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const SelectionOption = ({ label, selected, onPress }) => {
+const SelectionOption = ({ 
+    label, 
+    selected, 
+    onPress,
+    children
+}) => {
 
     return (
         <TouchableOpacity 
@@ -21,9 +26,15 @@ const SelectionOption = ({ label, selected, onPress }) => {
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <CustomText variant="body" style={styles.label}>
-                {label}
-            </CustomText>
+            <View style={styles.contentContainer}>
+                {children ? (
+                    children
+                ) : (
+                    <CustomText variant="body" style={styles.label}>
+                        {label}
+                    </CustomText>
+                )}
+            </View>
             
             <View style={[
                 styles.iconContainer, 
@@ -34,7 +45,7 @@ const SelectionOption = ({ label, selected, onPress }) => {
                         library="Feather"
                         name="check"
                         size={18}
-                        color='Colors.WHITE'
+                        color={Colors.WHITE}
                     />
                 )}
             </View>
@@ -50,7 +61,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         paddingVertical: 16,
         paddingHorizontal: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT, 
@@ -60,6 +71,12 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY, 
         backgroundColor: Colors.BACKGROUND,
     },
+
+    contentContainer: {
+        flex: 1,
+        marginRight: 8,
+    },
+
     label: {
         fontWeight: '500',
         flex: 1,
@@ -68,7 +85,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         width: 24,
         height: 24,
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_MEDIUM,
         alignItems: 'center',

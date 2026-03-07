@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
     Modal,
+    Pressable,
     StyleSheet,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View
 } from 'react-native';
 
@@ -15,10 +15,10 @@ import { Colors } from '@/src/constants/colors';
 const CustomDateInput = ({ 
     value, 
     onChangeText, 
-    label 
+    label,
+    children
 }) => {
     const [activePicker, setActivePicker] = useState(null);
-
     const [mm, setMm] = useState('');
     const [dd, setDd] = useState('');
     const [yyyy, setYyyy] = useState('');
@@ -81,10 +81,10 @@ const CustomDateInput = ({
         if (category === 'YYYY') newYYYY = val;
 
         if (newMM && newYYYY && newDD) {
-             const maxDays = new Date(parseInt(newYYYY), parseInt(newMM), 0).getDate();
-             if (parseInt(newDD) > maxDays) {
-                 newDD = '';
-             }
+            const maxDays = new Date(parseInt(newYYYY), parseInt(newMM), 0).getDate();
+            if (parseInt(newDD) > maxDays) {
+                newDD = '';
+            }
         }
 
         setMm(newMM);
@@ -142,6 +142,9 @@ const CustomDateInput = ({
                     onSelect={(val) => handleSelect('YYYY', val)}
                 />
             </View>
+
+            {children}
+
         </View>
     );
 };
@@ -183,6 +186,7 @@ const DropdownPicker = ({
                 <CustomText 
                     variant="body" 
                     style={[styles.dropdownText, { color: textColor }]}
+                    numberOfLines={1}
                 >
                     {displayValue || label}
                 </CustomText>
@@ -201,40 +205,48 @@ const DropdownPicker = ({
                 animationType="fade" 
                 onRequestClose={onClose}
             >
-                <TouchableWithoutFeedback onPress={onClose}>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-
+                <Pressable style={styles.modalOverlay} onPress={onClose}>
+                    <Pressable style={styles.modalContent} onPress={() => {}}>
+                        
+                        <View style={styles.modalHeader}>
                             <CustomText variant="subtitle" style={styles.modalTitle}>
                                 Select {label}
                             </CustomText>
+                            <View style={styles.headerDivider} />
+                        </View>
 
-                            <FlatList 
-                                data={options} 
-                                keyExtractor={(item) => item.value}
-                                showsVerticalScrollIndicator={true} 
-                                persistentScrollbar={true}
-                                initialNumToRender={15}
-                                renderItem={({ item }) => (
+                        <FlatList 
+                            data={options} 
+                            keyExtractor={(item) => item.value}
+                            showsVerticalScrollIndicator={false} 
+                            initialNumToRender={15}
+                            contentContainerStyle={styles.listContent}
+                            renderItem={({ item }) => {
+                                const isSelected = item.value === value;
+                                return (
                                     <TouchableOpacity 
-                                        style={styles.optionItem} 
+                                        style={[
+                                            styles.optionItem,
+                                            isSelected && styles.selectedOptionItem
+                                        ]} 
                                         onPress={() => onSelect(item.value)}
+                                        activeOpacity={0.8}
                                     >
                                         <CustomText 
                                             variant="body"
                                             style={[
                                                 styles.optionText, 
-                                                item.value === value && { color: Colors.PRIMARY, fontWeight: '700' }
+                                                isSelected && styles.selectedOptionText
                                             ]}
                                         >
                                             {item.label}
                                         </CustomText>
                                     </TouchableOpacity>
-                                )}
-                            />
-                        </View>
-                    </View>
-                </TouchableWithoutFeedback>
+                                );
+                            }}
+                        />
+                    </Pressable>
+                </Pressable>
             </Modal>
         </>
     );
@@ -243,6 +255,7 @@ const DropdownPicker = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        marginBottom: 0,
     },
     label: {
         marginBottom: 8,
@@ -264,39 +277,71 @@ const styles = StyleSheet.create({
     },
     dropdownText: {
         fontSize: 14,
+        flex: 1,
+        marginRight: 4,
     },
+    
     modalOverlay: {
         flex: 1,
-        backgroundColor: Colors.MODAL_OVERLAY,
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
-        width: '85%',
+        width: '80%',
         maxHeight: '50%',
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
+        backgroundColor: Colors.BACKGROUND,
+        borderRadius: 24,
+        paddingTop: 16,
+        paddingBottom: 16,
+        
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
+        overflow: 'hidden',
+    },
+    modalHeader: {
+        alignItems: 'center',
+        marginBottom: 8,
+        paddingHorizontal: 16,
     },
     modalTitle: {
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 16,
-        textAlign: 'center',
-        color: Colors.TEXT_SECONDARY,
+    },
+    headerDivider: {
+        height: 1,
+        width: '100%',
+        backgroundColor: Colors.PRIMARY,
+        opacity: 0.5,
+    },
+    listContent: {
+        paddingHorizontal: 16,
+        gap: 4,
     },
     optionItem: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderRadius: 14, 
+    },
+    selectedOptionItem: {
+        backgroundColor: Colors.PRIMARY,
+        opacity: 1,
     },
     optionText: {
-        textAlign: 'center',
+        fontSize: 16,
+        color: Colors.TEXT_PRIMARY,
+    },
+    selectedOptionText: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: '700',
     }
 });
 

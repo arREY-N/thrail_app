@@ -16,7 +16,8 @@ const CustomHeader = ({
     onBackPress, 
     rightActions, 
     showDefaultIcons = false,
-    style 
+    style,
+    children
 }) => {
 
     const { onNotificationPress, onBookingPress } = useAppNavigation();
@@ -33,16 +34,19 @@ const CustomHeader = ({
                         library="Feather" 
                         name="chevron-left"
                         size={24}
-                        color={Colors.TEXT_INVERSE} 
+                        color={Colors.PRIMARY} 
+                        style={{scale: 1.2}}
                     />
                 </TouchableOpacity>
 
                 <View style={styles.centerTitleContainer}>
-                     {title ? (
-                        <CustomText variant="title" style={styles.stackTitle}>
-                            {title}
-                        </CustomText>
-                    ) : null}
+                    {children ? children : (
+                        title ? (
+                            <CustomText variant="title" style={styles.centerTitle}>
+                                {title}
+                            </CustomText>
+                        ) : null
+                    )}
                 </View>
 
                 {rightActions ? (
@@ -58,41 +62,42 @@ const CustomHeader = ({
 
     return (
         <View style={[styles.container, style]}>
-            <View style={styles.leftTitleContainer}>
-                <CustomText variant="title" style={styles.tabTitle}>
-                    {title}
-                </CustomText>
+            <View style={styles.leftContent}>
+                {children ? children : (
+                    <CustomText variant='title' style={styles.headline}>
+                        {title}
+                    </CustomText>
+                )}
             </View>
 
             <View style={styles.rightActionsContainer}>
                 {showDefaultIcons && (
                     <>
                         <TouchableOpacity
-                            style={styles.iconButton}
+                            style={styles.actionIcon}
                             onPress={onNotificationPress}
                         >
                             <CustomIcon 
-                                library="Feather" 
-                                name="bell"
-                                size={20}
-                                color={Colors.TEXT_INVERSE} 
+                                library="Ionicons" 
+                                name="notifications"
+                                size={24}
+                                color={Colors.PRIMARY} 
                             />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.iconButton}
+                            style={styles.actionIcon}
                             onPress={onBookingPress}
                         >
                             <CustomIcon 
-                                library="Feather" 
-                                name="book-open"
-                                size={20}
-                                color={Colors.TEXT_INVERSE} 
+                                library="Ionicons" 
+                                name="calendar-clear"
+                                size={24}
+                                color={Colors.PRIMARY}
                             />
                         </TouchableOpacity>
                     </>
                 )}
-                
                 {rightActions}
             </View>
         </View>
@@ -102,18 +107,20 @@ const CustomHeader = ({
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        minHeight: 66, 
+        // height: 80, 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16, 
-        paddingVertical: 14, 
-        backgroundColor: Colors.PRIMARY,
+        paddingTop: 16,
+        paddingBottom: 8,
+        backgroundColor: Colors.BACKGROUND,
+        // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0, 
     },
 
     backButton: {
-        padding: 4,
-        marginLeft: -4, 
+        padding: 8,
+        marginLeft: -8, 
         zIndex: 10,
     },
     centerTitleContainer: {
@@ -123,32 +130,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: -1,
+        height: '100%',
     },
-    stackTitle: {
-        color: Colors.TEXT_INVERSE, 
-        textAlign: 'center',
+    centerTitle: {
+        color: Colors.TEXT_PRIMARY, 
+        marginBottom: 0,
     },
     spacer: {
-        width: 28,
+        width: 40,
     },
     
-    leftTitleContainer: {
+    leftContent: {
         flex: 1,
         justifyContent: 'center',
+        flexDirection: 'column',
     },
-    tabTitle: {
-        color: Colors.TEXT_PRIMARY,
+    headline: {
         textAlign: 'left',
+        marginBottom: 0,
     },
+
     rightActionsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8, 
+        gap: 12,
     },
-    iconButton: {
-        backgroundColor: Colors.SECONDARY,
-        padding: 8,
-        borderRadius: 50,
+    actionIcon: {
+        padding: 4,
     },
 });
 

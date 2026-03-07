@@ -1,12 +1,11 @@
 
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import TermsReadOnlyScreen from "@/src/features/Auth/screens/TermsReadOnlyScreen";
+import TermsScreen from "../../features/Auth/screens/TermsScreen";
 
 export default function Terms() {
     const { onBackPress } = useAppNavigation();
 
     return (
-        <TermsReadOnlyScreen 
+        <TermsScreen 
             onBackPress={onBackPress}
         />
     );
