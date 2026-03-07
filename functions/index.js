@@ -2,9 +2,10 @@ const admin = require("firebase-admin");
 const {setGlobalOptions} = require("firebase-functions");
 const { onCall, HttpsError } = require("firebase-functions/https");
 const functions = require('firebase-functions/v1')
-const { FieldValue } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 admin.initializeApp();
+
 
 setGlobalOptions({ maxInstances: 10 });
 
@@ -133,10 +134,12 @@ exports.createBusiness = onCall(async (request) => {
                 throw new Error('Owner user account not found');
             }
 
-            const userData = userSnap.data();
-
+            const userData = userSnap.data();    
+            
             transaction.set(busRef, { 
-                ...data, 
+                ...data,
+                createdAt: Timestamp.fromDate(new Date(data.createdAt)),
+                establishedOn: Timestamp.fromDate(new Date(data.establishedOn)),
                 updatedAt: FieldValue.serverTimestamp() 
             }, { merge: true });
 
