@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import CustomLoading from '@/src/components/CustomLoading';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+import { View } from 'react-native';
 
 export default function login(){
     const { 
@@ -18,6 +19,8 @@ export default function login(){
         onLogIn,
         onRememberMePress,
         onForgotPassword,
+        onGmailLogIn,
+        isLoading,
     } = useAuthHook();    
 
     useEffect(() => {
@@ -27,7 +30,7 @@ export default function login(){
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen 
-                onLogInPress={onLogInPress} 
+                onLogInPress={onLogIn} 
                 onSignUpPress={onSignUpPress} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
@@ -38,7 +41,7 @@ export default function login(){
             />
 
             <CustomLoading 
-                visible={isLogingIn} 
+                visible={isLoading} 
                 message="Signing in..." 
             />
         </View>
