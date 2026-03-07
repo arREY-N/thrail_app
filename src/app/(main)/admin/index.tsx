@@ -1,26 +1,41 @@
+import LoadingScreen from '@/src/app/loading';
+import UnauthorizedScreen from '@/src/app/unauthorized';
+import CustomButton from '@/src/components/CustomButton';
 import { useAdmin } from '@/src/core/hook/admin/useAdmin';
+import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { Business } from '@/src/core/models/Business/Business';
 import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import LoadingScreen from '../../loading';
+import { StyleSheet, Text, View } from "react-native";
 
 export default function adminHome(){
     const {
         businessId,
         profile,
         error,
+        role,
+        isLoading,
     } = useAuthHook();
 
     const {
         businessAccount,
-        onManageAdminsPress,
-        onManageOffersPress,
     } = useAdmin({ businessId })
-     
+    
+    if(isLoading || !businessAccount || !businessId || !profile || !role) 
+        return <LoadingScreen/> 
 
-    if(!businessAccount || !profile) return <LoadingScreen/>
+    if(!isLoading && (!businessId || !profile || !role)) 
+        return <UnauthorizedScreen/>
+
+    const {
+        onManageAdminsPress,
+        onManageOffersPress,    
+    } = useAdminNavigation({ 
+        userId: profile?.id,
+        businessId,
+        role,
+    });
 
     return (
         <TESTHOME 
@@ -74,13 +89,20 @@ const TESTHOME =(params: screenParams) => {
                 <Text>  Province: {adminProfile.email}</Text>
             </View>
             
-            <Pressable onPress={onManageAdminsPress}>
-                <Text>Manage Admins</Text>
-            </Pressable>
+            <CustomButton 
+                title={'Manage Admins'} 
+                onPress={onManageAdminsPress} 
+                style={undefined} 
+                textStyle={undefined}
+            />
             
-            <Pressable onPress={onManageOffersPress}>
-                <Text>Manage Offers</Text>
-            </Pressable>
+            <CustomButton 
+                title={'Manage Offers'} 
+                onPress={onManageOffersPress} 
+                style={undefined} 
+                textStyle={undefined}
+            />
+            
         </View>
     )
 }
