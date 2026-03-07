@@ -10,6 +10,7 @@ import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
 
 import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
 import { Pressable, Text } from 'react-native';
@@ -17,6 +18,7 @@ import { Pressable, Text } from 'react-native';
 export default function applyBusiness(){
     const { role } = useAuthHook();
 
+    const { onBackPress } = useAppNavigation();
     const {
         object,
         options,
@@ -31,11 +33,11 @@ export default function applyBusiness(){
     return (
         <ApplyScreen
             information={information}
-            application={application}
-            system={system}
-            onEditProperty={onEditProperty}
-            provinces={provinces}
-            onApplyPress={onApplyPress}
+            application={object}
+            system={error}
+            onEditProperty={onUpdatePress}
+            provinces={options.provinces}
+            onApplyPress={onSubmitPress}
             onBackPress={onBackPress}
         />
     )
