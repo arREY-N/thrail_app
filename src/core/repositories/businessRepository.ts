@@ -19,7 +19,7 @@ export interface BusinessRepository extends BaseRepository<IBusiness>{
 const businessCollection = collection(db, 'businesses').withConverter(businessConverter); 
 
 const createAdminCollection = (id: string) => {
-    return collection(db, 'businesses', id, 'admin').withConverter(adminConverter);
+    return collection(db, 'businesses', id, 'admins').withConverter(adminConverter);
 }
 class BusinessRepositoryImpl implements BusinessRepository{
     async fetchAll(...args: any[]): Promise<Business[]> {
@@ -51,11 +51,15 @@ class BusinessRepositoryImpl implements BusinessRepository{
     
         try{        
             const result = await createBusiness({
-                data: data.toFirestore(),
+                data: {
+                    ...data.toFirestore(),
+                    createdAt: data.createdAt.toISOString(),
+                    establishedOn: data.establishedOn.toISOString(),
+                },
                 applicationId,
             });
 
-            if(!result) throw new Error('Failed creating business');
+            if(!result.data) throw new Error('Failed creating business');
             
             return data;
         } catch (err) {

@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Offer } from "../../models/Offer/Offer";
 import { useBusinessesStore } from "../../stores/businessesStore";
@@ -31,46 +30,11 @@ export function useAdmin(params: AdminParams){
         }
     }, [businessId]);
 
-    useEffect(() => {
-        onFilterOffers();
-    }, [businessOffers])
-
-    const onFilterOffers = (date: Date | null = null) => {
-        console.log(date);
-        if(date){
-            setFilteredOffers(() => businessOffers.filter(o => o.date.getDate() === date.getDate()).sort((a, b) => a.date.getDate() - b.date.getDate()));
-        } else {
-            console.log('RESET')
-            setFilteredOffers(businessOffers.sort((a, b) => a.date.getDate() - b.date.getDate()));
-        }
-    }
-    const onWriteOffer = (id: string) => {
-        router.push({
-            pathname: '/(main)/admin/offer/write',
-            params: { offerId: id }
-        })
-    }
-
-    const onManageAdminsPress = () => {
-        // router.push('/(main)/admin/personnel/list');
-    }
-
-    const onManageOffersPress = () => {
-        router.push({
-            pathname: '/(main)/admin/offer/list',
-            params: { businessId: businessAccount?.id }
-        });
-    }
-
     return {
         businessAccount,
         filteredOffers,
         isLoading,
         businessAdmins: admins,
-        onReloadPress: reloadBusinessAdmins,
-        onFilterOffers,
-        onWriteOffer,
-        onManageAdminsPress,
-        onManageOffersPress,
+        onReloadPress: reloadBusinessAdmins
     }
 }

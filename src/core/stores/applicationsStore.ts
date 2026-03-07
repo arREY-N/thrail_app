@@ -4,7 +4,7 @@ import { BaseStore } from '../interface/storeInterface';
 import { Application } from '../models/Application/Application';
 export interface ApplicationState extends BaseStore<Application>{
     approveApplication: (id: string) => Promise<void>;
-    rejectApplication: (id: string, message: string) => Promise<void>;
+    rejectApplication: (application: Application) => Promise<void>;
 }
 
 const applicationTemplate = {
@@ -160,7 +160,6 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
     approveApplication: async (id: string) => {
         set({ isLoading: true, error: null});
         try {
-            const application = get().current;
             const data = get().data;
 
             const updatedApp = await ApplicationRepository.fetchById(id);
@@ -179,25 +178,19 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
                 error: (err as Error).message ?? 'Failed approving application',
                 isLoading: false
             })
+            throw err
         }
     },
 
-    rejectApplication: async (id: string, message: string) => {
+    rejectApplication: async (application: Application) => {
         set({ isLoading: true, error: null});
         try {
-            const application = get().current;
             const data = get().data;
             
-            const updatedApp = new Application({
-                ...application,
-                status: 'rejected',
-                message,
-            });
-
-            await ApplicationRepository.update(updatedApp);
+            await ApplicationRepository.update(application);
 
             set({
-                data: data.map(a => a.id === id ? updatedApp : a),
+                data: data.map(a => a.id === application.id ? application : a),
                 isLoading: false
             })
         } catch (err) {

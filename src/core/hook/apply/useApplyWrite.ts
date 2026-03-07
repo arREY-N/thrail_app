@@ -1,6 +1,7 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
 import { Application } from "@/src/core/models/Application/Application";
+import { User } from "@/src/core/models/User/User";
 import { useApplicationsStore } from "@/src/core/stores/applicationsStore";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import setFinalValue from "@/src/core/utility/setFinalValue";
@@ -10,7 +11,8 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export interface IApplyWrite extends IBaseWriteHook<Application> {
-
+    onApproveApplication: (profile: User) => Promise<void>;
+    onRejectApplication: (profile: User) => Promise<void>;
 }
 
 export type UseApplyWriteParams = {
@@ -44,7 +46,7 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
 
     useEffect(() => {
         setLocalError(null);
-    },[])
+    }, [])
 
     const information = ApplicationUIConfig;
 
@@ -108,6 +110,29 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
     async function onRemovePress(){
 
     }
+
+    async function onRejectApplication(user: User){
+        try {
+            if(user.role !== 'superadmin') 
+                throw new Error('Only superadmins are allowed to reject applications')
+
+
+        } catch (error: any) {
+            setLocalError((error as Error).message || 'Failed rejecting application');
+        }
+    }
+
+    async function onApproveApplication(user: User){
+        try {
+            if(user.role !== 'superadmin') 
+                throw new Error('Only superadmins are allowed to approve applications')
+
+
+        } catch (error: any) {
+            setLocalError((error as Error).message || 'Failed rejecting application');
+        }
+    }
+
     
     return {
         information,
@@ -117,6 +142,8 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
         options,
         onRemovePress,
         onSubmitPress,
-        onUpdatePress
+        onUpdatePress,
+        onRejectApplication,
+        onApproveApplication,
     }
 }

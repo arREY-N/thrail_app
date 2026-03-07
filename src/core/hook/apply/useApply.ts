@@ -30,7 +30,7 @@ export default function useApply(params: UseApplyParms = { role: 'user' }): IApp
     const loadApplication = useApplicationsStore(s => s.load);
     
     useEffect(() => {
-        if(role === 'superadmin' ) loadAllApplications();
+        if(role === 'superadmin') loadAllApplications();
     },[]);
 
     useEffect(() => {

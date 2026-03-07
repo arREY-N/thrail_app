@@ -1,12 +1,11 @@
 import { UserRepository } from '@/src/core/repositories/userRepository';
-import { Property } from '@/src/core/types/Property';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
 import { User } from '../models/User/User';
-import { editProperty } from '../utility/editProperty';
 
 export interface UserState extends BaseStore<User> {
     searched: User[];
+    loadUserByEmail: (email: string) => Promise<User[]>;
 }
 
 const init = {
@@ -173,50 +172,38 @@ export const useUsersStore = create<UserState>((set, get) => ({
             })
         }
     },
-
-    edit: (property: Property) => {
-        set((state) => {
-            if(!state.current) return state;
-
-            return{
-                current: editProperty(state.current, property)
-            }
-        })
-    },
     
     reset: () => set(init),
 
-    loadUserByEmail: async (email: string): Promise<void> => {
+    loadUserByEmail: async (email: string): Promise<User[]> => {
         set({ isLoading: true, error: null });
-    
-        const cachedUsers = get().data.filter(u => u.email === email);
-
-        if(cachedUsers.length > 0){
-            set({
-                searched: cachedUsers,
-                isLoading: false
-            })
-            return;
-        }
 
         try {
             const users = await UserRepository.fetchByEmail(email);
             
             if(users.length === 0){
-                throw new Error(`Failed loading user with email ${email}`)
+                throw new Error(`No user with email ${email}`)
             }
 
             set((state) => {
+                const searched = new Set(users.map(u => u.id));
+
+                const update = state.data.filter(u => searched.has(u.id));
+
                 return {
+                    data: [...update, ...users],
                     searched: users,
                     isLoading: false
                 }
-            })
+            });
+
+            return users;
         } catch (err) {
             set({
                 error: (err as Error).message ?? 'Failed retrieving user',
                 isLoading: false,
             })
+            return []
         }
     },
 }))

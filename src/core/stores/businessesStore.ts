@@ -1,6 +1,5 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
-import { Application } from "@/src/core/models/Application/Application";
 import { Business } from "@/src/core/models/Business/Business";
 import { User } from "@/src/core/models/User/User";
 import { BusinessRepository } from "@/src/core/repositories/businessRepository";
@@ -107,6 +106,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
             }
 
             if(!business){
+                console.log('calling repo');
                 business = await BusinessRepository.fetchById(id);
             }
 
@@ -118,9 +118,14 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
                 return;
             }
 
-            set({
-                current: business,
-                isLoading: false
+            set((state) => {
+                const updated = state.data.map(u => u.id !== id);
+
+                return {
+                    current: business,
+                    data: [...updated, business],
+                    isLoading: false
+                }
             })
         } catch (err) {
             console.error((err as Error).message);
@@ -131,34 +136,15 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         }
     },
 
-    create: async (application: Application, id: string) => {
+    create: async (business: Business, applicationId: string) => {
         set({isLoading: true, error: null});
 
         try {
-            if(!application) throw new Error('Invalid business data');
-            
-            const business = Business.fromApplication(application);
-
-            console.log('BusinessStore: ', business);
-
-            const newAccount = await BusinessRepository.write(
-                business,
-                id,
-            );
-            
-            console.log('New: ', newAccount)
-
-            const sanitizedAccount = {
-                ...newAccount,
-                createdAt: newAccount.createdAt,
-                updatedAt: newAccount.updatedAt               
-            };
-
-            console.log('Sanitized: ', sanitizedAccount);
-
+            const newAccount = await BusinessRepository.write(business, applicationId);
+    
             set((state) => {
                 return {
-                    businesses: [...state.data, sanitizedAccount],
+                    businesses: [...state.data, newAccount],
                     isLoading: false
                 }
             });
