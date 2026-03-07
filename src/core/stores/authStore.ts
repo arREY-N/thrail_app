@@ -37,6 +37,7 @@ export interface AuthState{
     validateSignUp: () => Promise<boolean>;
     editAccount: (data: SignUp) => void;
     gmailSignUp: () => void;
+    gmailLogIn: () => void;
     signUp: () => Promise<void>;
     validateInfo: () => boolean;
     resetSignUp: () => void;
