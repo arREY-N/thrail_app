@@ -4,11 +4,15 @@ import React from "react";
 import LoadingScreen from "@/src/app/loading";
 import CustomNavBar from "@/src/components/CustomNavBar";
 import useTrail from "@/src/core/hook/trail/useTrail";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 
 export default function homeLayout() {
-    const { isLoading } = useTrail();
+    const { trailIsLoading } = useTrail();
+    const { authIsLoading } = useAuthHook();
 
-    if(isLoading) return <LoadingScreen/>
+    const loaded = !trailIsLoading && !authIsLoading
+
+    if(!loaded) return <LoadingScreen/>
     
     return (
         <Tabs
