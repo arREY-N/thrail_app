@@ -12,7 +12,7 @@ export function useAuthHook(){
     const onLogIn = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
     const onForgotPassword = useAuthStore(s => s.forgotPassword);
-
+    const onGmailLogIn = useAuthStore(s => s.gmailLogIn)
     const signOut = useAuthStore(s => s.signOut);
 
     const isSuperadmin = role === 'superadmin'
@@ -37,5 +37,6 @@ export function useAuthHook(){
         onRememberMePress,
         onForgotPassword,
         onSignOutPress,
+        onGmailLogIn,
     }
 }
