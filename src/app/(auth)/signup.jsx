@@ -20,9 +20,6 @@ export default function signup(){
     
     const { onBackPress, onLogIn } = useAppNavigation();
 
-    useEffect(() => {
-        reset();
-    },[]);
 
     return (  
         <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
