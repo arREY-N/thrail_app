@@ -1,10 +1,13 @@
 import LoadingScreen from "@/src/app/loading";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
 // import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
 import BookingScreen from "@/src/features/Book/screens/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
     const { trailId, mode } = useLocalSearchParams();
+    const { onBackPress } = useAppNavigation();
 
     const {
         list,
@@ -20,7 +23,7 @@ export default function listOffer(){
         <BookingScreen 
             offers={DUMMY_OFFERS}
             onBookNowPress={onBookNowPress}
-            onBackPress={handleBack}
+            onBackPress={onBackPress}
         />
 
         // <TESTUSERBOOK 
