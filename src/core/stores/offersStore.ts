@@ -158,13 +158,14 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 trailOffers: offers,
                 isLoading: false
             })  
+
             console.log(get().trailOffers);
         } catch (err) {
             console.error((err as Error).message);
             set({
                 error: (err as Error).message || 'Failed writing offer',
                 isLoading: false
-            })
+            });
         }
     },
 
