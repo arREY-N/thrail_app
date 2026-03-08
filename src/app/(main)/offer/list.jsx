@@ -1,36 +1,41 @@
 import LoadingScreen from "@/src/app/loading";
+import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
-// import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
+import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
 import BookingScreen from "@/src/features/Book/screens/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
-    const { trailId, mode } = useLocalSearchParams();
+    const { trailId } = useLocalSearchParams();
     const { onBackPress } = useAppNavigation();
 
     const {
-        list,
-        onBookNowPress,
-        bookingError,
-        offerError,
-        isLoading,
-    } = useOfferDomain({ trailId, mode });
+        isLoading: trailIsLoading,
+        error: offerError,
+        trailOffers,
+    } = useTrailOffer({ trailId });
 
-    if(isLoading) return <LoadingScreen/>;
+    const { 
+        isLoading: bookIsLoading,
+        error: bookError,
+        booking,
+        onUpdatePress,
+        onCompleteOffer,
+        onSetOffer,
+    } = useBookOffer({ trailId });
 
-    return (
+    if(trailIsLoading || bookIsLoading) return <LoadingScreen/>;
+
+    return (        
         <BookingScreen 
-            offers={DUMMY_OFFERS}
-            onBookNowPress={onBookNowPress}
+            offers={trailOffers}
+            booking={booking}
+            error={offerError || bookError}
+            onBookNowPress={onCompleteOffer}
             onBackPress={onBackPress}
+            onUpdatePress={onUpdatePress}
+            onCompleteOffer={onCompleteOffer}
         />
-
-        // <TESTUSERBOOK 
-        //     offers={filteredOffers}
-        //     onBookNowPress={onBookNowPress}
-        //     system={bookingError || offerError}
-        // />
     )
 }
 
