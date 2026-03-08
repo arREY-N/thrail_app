@@ -3,7 +3,7 @@ import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IBusinessSummary } from "../Business/Business.types";
 import { ITrailSummary } from "../Trail/Trail.types";
-import { IOffer, IOfferDB } from "./Offer.types";
+import { IOffer, IOfferDB, ISchedule } from "./Offer.types";
 
 export class Offer implements IOffer {
     [key: string]: any;
@@ -27,6 +27,7 @@ export class Offer implements IOffer {
         id: "",
         name: ""
     };
+    schedule: ISchedule<Date>[] = [];
 
     constructor(init?: Partial<IOffer>){
         Object.assign(this, init);
@@ -46,7 +47,18 @@ export class Offer implements IOffer {
             reservedPax: data.reservedPax,
             documents: data.documents,
             inclusions: data.inclusions,
-            description: data.description
+            description: data.description,
+            schedule: data.schedule.map(sched => {
+                return {
+                    day: sched.day,
+                    activities: sched.activities.map(activity => {
+                        return {
+                            ...activity,
+                            time: toDate(activity.time),
+                        }
+                    })
+                }
+            }),
         }
 
         return new Offer(mapped);
@@ -69,6 +81,17 @@ export class Offer implements IOffer {
             documents: this.documents,
             inclusions: this.inclusions,
             description: this.description,
+            schedule: this.schedule.map(schedule => {
+                return {
+                    ...schedule,
+                    activities: schedule.activities.map(activity => {
+                        return {
+                            ...activity,
+                            time: Timestamp.fromDate(activity.time),
+                        }
+                    })                    
+                }
+            })
         } 
 
         return mapped;

@@ -13,12 +13,23 @@ export interface IOfferInfo<T> {
     description: string,
 }
 
+export interface IActivity<T> {
+    time: T,
+    event: string;
+}
+
+export interface ISchedule<T> {
+    day: number;
+    activities: IActivity<T>[]
+}
+
 export interface IOfferBase<T> extends IOfferInfo<T> {
     id: string;
     createdAt: T;
     updatedAt: T;
     business: IBusinessSummary;
     trail: ITrailSummary;
+    schedule: ISchedule<T>[];
 }
 
 export interface IOfferDB extends IOfferBase<Timestamp | FieldValue> {}
