@@ -1,17 +1,14 @@
 import { IBookingBase } from "@/src/core/models/Booking/Booking.types";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { Payment } from "@/src/core/models/Payment/Payment";
+import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { User } from "@/src/core/models/User/User";
 
 export const BookingLogic = {
-    toPay(draft: IBookingBase<Date>, payment: Payment){
+    toPay(draft: IBookingBase<Date>, payment: IPaymentSummary<Date>){
         draft.status = 'paid';
-        draft.payment.push({
-            id: payment.id,
-            date: payment.receipt.date,
-            amount: payment.receipt.amount,
-        })
+        if (!draft.payment) draft.payment = [];
+        draft.payment.push(payment)
     },
 
     setUser(draft: IBookingBase<Date>, user: User) {
@@ -36,5 +33,6 @@ export const BookingLogic = {
             date: offer.date,  
             price: offer.price, 
         }
+        draft.business = offer.business
     },
 }
