@@ -49,12 +49,12 @@ export default function useTrailWrite(params: TrailParams = {}): IUseTrailWrite{
      * @param key - if an object, a key must be provided
      * @param value - the value to be saved
      */
-    const onUpdatePress = (params: TEdit) => {
+    const onUpdatePress = (params: TEdit<Trail>) => {
         const { section, id, value } = params;
 
         try {
             if(section !== 'root' && !id)
-                throw new Error(`Missing key for ${section}`);
+                throw new Error(`Missing key for ${String(section)}`);
             
             
             const fieldConfig = information.find(f => f.section === section && f.id === id);
