@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+    Image,
     StyleSheet,
     TouchableOpacity,
     View
@@ -21,6 +22,30 @@ const TrailScreen = ({
     onBookPress 
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
+
+    const heroImage = useMemo(() => {
+        const images = [
+            require('@/src/assets/images/MT1.jpg'),
+            require('@/src/assets/images/MT2.jpg'),
+            require('@/src/assets/images/MT3.jpg'),
+            require('@/src/assets/images/MT4.jpg'),
+            require('@/src/assets/images/MT5.jpg'),
+        ];
+        
+        const uniqueString = trail?.id ? String(trail.id) : (trail?.name || "Unnamed Trail");
+
+        let hash = 0;
+        for (let i = 0; i < uniqueString.length; i++) {
+            const char = uniqueString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; 
+        }
+
+        const positiveHash = Math.abs(hash);
+        const imageIndex = positiveHash % images.length;
+        
+        return images[imageIndex];
+    }, [trail]);
 
     const name = trail?.name || "Unnamed Trail";
 
@@ -55,7 +80,11 @@ const TrailScreen = ({
                 style={styles.container}
             >
                 <View style={styles.imageContainer}>
-                    <View style={styles.imagePlaceholder} /> 
+                    <Image 
+                        source={heroImage} 
+                        style={styles.headerImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 <View style={styles.bodyContainer}>
@@ -128,9 +157,12 @@ const TrailScreen = ({
                     <CustomButton 
                         title="Hike" 
                         onPress={() => onHikePress(trail?.id)} 
-                        style={styles.footerBtn}
-                        // style={[styles.footerBtn, {color: Colors.SECONDARY}]}
                         variant="secondary"
+                        style={[
+                            styles.footerBtn, 
+                            { borderWidth: 1.5, borderColor: Colors.PRIMARY }
+                        ]}
+                        textStyle={{ color: Colors.PRIMARY }}
                     />
                 </View>
 
@@ -287,20 +319,20 @@ const styles = StyleSheet.create({
         height: 350,
         width: '100%',
         position: 'relative',
+        backgroundColor: Colors.GRAY_LIGHT,
     },
-    imagePlaceholder: {
+    headerImage: {
         width: '100%',
         height: '100%',
-        backgroundColor: Colors.GRAY_LIGHT,
     },
     backButton: {
         position: 'absolute',
-        top: 32,
+        top: 24,
         left: 16,
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: 'rgba(0,0,0,0.4)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -419,7 +451,8 @@ const styles = StyleSheet.create({
     },
     descriptionText: {
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 12,
+        lineHeight: 22,
+        marginBottom: -16,
     },
     tagContainer: {
         flexDirection: 'row',
@@ -466,8 +499,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_LIGHT,
 
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,

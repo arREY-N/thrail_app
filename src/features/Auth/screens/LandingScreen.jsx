@@ -1,5 +1,10 @@
 import React from 'react';
-import { Image, StyleSheet, View } from "react-native";
+import {
+    Image,
+    Platform,
+    StyleSheet,
+    View
+} from "react-native";
 
 import CustomButton from "@/src/components/CustomButton";
 import CustomText from "@/src/components/CustomText";
@@ -20,7 +25,7 @@ const LandingScreen = ({
                 
                 <View style={styles.imageWrapper}>
                     <Image 
-                        source={require('@/src/assets/images/Hiking.jpg')}
+                        source={require('@/src/assets/images/MT1.jpg')}
                         style={styles.heroImage}
                         resizeMode="cover"
                     />
@@ -115,11 +120,20 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
         alignItems: 'center',
 
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 10, 
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.SHADOW,
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+            },
+            android: {
+                elevation: 10,
+            },
+            web: {
+                boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)', 
+            }
+        })
     },  
     
     // dragIndicator: {

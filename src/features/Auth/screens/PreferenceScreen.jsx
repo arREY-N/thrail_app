@@ -28,7 +28,6 @@ const PreferenceScreen = ({
     const [stepIndex, setStepIndex] = useState(0);
     
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
-    const [showExitConfirmation, setShowExitConfirmation] = useState(false);
 
     const FLOW_YES = ['q1', 'q2', 'q3', 'q4', 'q5'];
     const FLOW_NO  = ['q1', 'q4', 'q5'];
@@ -64,20 +63,12 @@ const PreferenceScreen = ({
 
     const handleCloseModals = () => {
         setShowSaveConfirmation(false);
-        setShowExitConfirmation(false);
     };
 
     const handleBack = () => {
-        if (stepIndex === 0) {
-            setShowExitConfirmation(true);
-        } else {
+        if (stepIndex > 0) {
             setStepIndex(prev => prev - 1);
         }
-    };
-
-    const handleConfirmExit = () => {
-        setShowExitConfirmation(false);
-        router.replace('/(tabs)'); 
     };
 
     const isSelected = (optionValue) => {
@@ -182,36 +173,28 @@ const PreferenceScreen = ({
                 confirmText="Save"
                 cancelText="Cancel"
             />
-
-            <ConfirmationModal
-                visible={showExitConfirmation}
-                title="Skip Preferences"
-                message="You haven't finished setting up your profile. Are you sure you want to go back?"
-                onConfirm={handleConfirmExit}
-                onClose={handleCloseModals}
-                confirmText="Confirm"
-                cancelText="Cancel"
-            />
-
-            <CustomHeader 
-                onBackPress={handleBack}
-            />
+            <CustomHeader />
 
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={styles.container} 
                 contentContainerStyle={styles.contentContainer}
                 keyboardShouldPersistTaps="handled"
+                overScrollMode="never"
+                showsVerticalScrollIndicator={false}
             >
                 <View style={styles.formConstrainer}>
-                    <CustomText variant="subtitle" style={styles.pageTitle}>
-                        Preference
-                    </CustomText>
+                    
+                    <View style={styles.topSection}>
+                        <CustomText variant="subtitle" style={styles.pageTitle}>
+                            Preference
+                        </CustomText>
 
-                    <ErrorMessage error={error} />
+                        <ErrorMessage error={error} />
 
-                    <View style={styles.questionArea}>
-                        {renderContent()}
+                        <View style={styles.questionArea}>
+                            {renderContent()}
+                        </View>
                     </View>
 
                     <View style={styles.footer}>
@@ -223,26 +206,12 @@ const PreferenceScreen = ({
                                     size={24} 
                                     color={Colors.TEXT_SECONDARY} 
                                 />
-
                                 <CustomText style={styles.prevText}>
                                     Previous
                                 </CustomText>
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity 
-                                onPress={() => setShowExitConfirmation(true)} 
-                                style={styles.skipButton}
-                            >
-                                <CustomText style={styles.skipText}>
-                                    Skip
-                                </CustomText>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="chevrons-right"
-                                    size={20} 
-                                    color={Colors.TEXT_SECONDARY} 
-                                />
-                            </TouchableOpacity>
+                            <View style={styles.prevButtonPlaceholder} />
                         )}
 
                         <TouchableOpacity 
@@ -277,15 +246,19 @@ const styles = StyleSheet.create({
         flex: 1 
     },
     contentContainer: { 
-        flexGrow: 1, 
+        flexGrow: 1,
         paddingHorizontal: 16, 
-        paddingTop: 32 
+        paddingTop: 16,
     },
     formConstrainer: { 
         width: '100%', 
         maxWidth: 400, 
         alignSelf: 'center', 
-        flex: 1 
+        flexGrow: 1,
+        justifyContent: 'space-between',
+    },
+    topSection: {
+        flexGrow: 1,
     },
     pageTitle: { 
         textAlign: 'center', 
@@ -293,7 +266,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold' 
     },
     questionArea: { 
-        flex: 1, 
+        flexGrow: 1,
         paddingBottom: 32
     },
     question: { 
@@ -326,12 +299,13 @@ const styles = StyleSheet.create({
         marginTop: 32, 
         marginBottom: 32 
     },
-
     prevButton: {
-        
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
+    },
+    prevButtonPlaceholder: {
+        width: 100,
     },
     prevText: { 
         color: Colors.TEXT_SECONDARY, 
@@ -339,21 +313,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginLeft: 4
     },
-
-    skipButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        borderRadius: 16,
-        gap: 8,
-    },
-    skipText: {
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-
     nextButton: {
         backgroundColor: Colors.PRIMARY, 
         flexDirection: 'row',

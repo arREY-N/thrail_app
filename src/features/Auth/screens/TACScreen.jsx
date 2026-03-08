@@ -20,6 +20,11 @@ const TACScreen = ({
     const [isChecked, setIsChecked] = useState(false);
     const [showDeclineModal, setShowDeclineModal] = useState(false);
 
+    const [hasReadTerms, setHasReadTerms] = useState(false);
+    const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
+
+    const canAccept = hasReadTerms && hasReadPrivacy;
+
     const handleProceed = () => {
         if (isChecked && onAcceptPress) {
             onAcceptPress();
@@ -76,15 +81,21 @@ const TACScreen = ({
 
                     <View style={styles.documentWrapper}>
                         <View style={styles.documentBorder}>
-                            {activeTab === 'terms' ? <TermsContent /> : <PrivacyContent />}
+                            {activeTab === 'terms' ? (
+                                <TermsContent onScrollToBottom={() => setHasReadTerms(true)} />
+                            ) : (
+                                <PrivacyContent onScrollToBottom={() => setHasReadPrivacy(true)} />
+                            )}
                         </View>
                     </View>
 
                     <View style={styles.agreementContainer}>
                         <TouchableOpacity 
-                            style={styles.checkboxRow} 
-                            onPress={() => setIsChecked(!isChecked)}
-                            activeOpacity={1}
+                            style={[styles.checkboxRow, !canAccept && { opacity: 0.5 }]} 
+                            onPress={() => {
+                                if (canAccept) setIsChecked(!isChecked);
+                            }}
+                            activeOpacity={canAccept ? 0.7 : 1}
                         >
                             <View style={[styles.checkbox, isChecked && styles.checkedBox]}>
                                 {isChecked && <CustomIcon library="Feather" name="check" size={14} color={Colors.WHITE} />}
@@ -125,7 +136,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        // padding: 16,
         paddingHorizontal: 24,
         paddingVertical: 64,
         width: '100%',
@@ -229,7 +239,7 @@ const styles = StyleSheet.create({
     linkText: {
         fontWeight: '700',
         fontSize: 14,
-        color: Colors.TEXT_PRIMARY, 
+        color: Colors.PRIMARY,
     },
 
     buttonContainer: {

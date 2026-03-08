@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -32,52 +31,58 @@ const HomeScreen = ({
     const recList = recommendedTrails || [];
     const discList = discoverTrails || [];
 
-    const ListSection = ({ title, data, onViewAll }) => (
-        <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
+    const hasAnyTrails = recList.length > 0 || discList.length > 0;
 
-                <CustomText variant="subtitle" style={styles.sectionTitle}>
-                    {title}
-                </CustomText>
+    const ListSection = ({ title, data, onViewAll }) => {
+        const hasData = data && data.length > 0;
 
-                <TouchableOpacity onPress={onViewAll}>
-                    <CustomText variant="caption" style={styles.viewAllText}>
-                        View All
+        return (
+            <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+
+                    <CustomText variant="subtitle" style={styles.sectionTitle}>
+                        {title}
                     </CustomText>
-                </TouchableOpacity>
-            </View>
 
-            {data && data.length > 0 ? (
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.horizontalList} 
-                >
-                    {data.map((item) => (
-                        <MountainCard 
-                            key={`${title}-${item.id}`}
-                            item={item}
-                            onPress={() => onMountainPress(item.id)}
-                            onDownload={() => onDownloadPress(item.id)}
-                        />
-                    ))}
-                </ScrollView>
-            ) : (
-                <View style={styles.emptyStateContainer}>
-                    <CustomIcon 
-                        library="Ionicons" 
-                        name="trail-sign-outline" 
-                        size={32} 
-                        color={Colors.GRAY_MEDIUM} 
-                    />
-                    
-                    <CustomText variant="caption" style={styles.emptyStateText}>
-                        No trails available yet.
-                    </CustomText>
+                    <TouchableOpacity onPress={onViewAll}>
+                        <CustomText variant="caption" style={styles.viewAllText}>
+                            View All
+                        </CustomText>
+                    </TouchableOpacity>
                 </View>
-            )}
-        </View>
-    );
+
+                {hasData ? (
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.horizontalList} 
+                    >
+                        {data.map((item) => (
+                            <MountainCard 
+                                key={`${title}-${item.id}`}
+                                item={item}
+                                onPress={() => onMountainPress(item.id)}
+                                onDownload={() => onDownloadPress(item.id)}
+                            />
+                        ))}
+                    </ScrollView>
+                ) : (
+                    <View style={styles.emptyStateContainer}>
+                        <CustomIcon 
+                            library="Ionicons" 
+                            name="trail-sign-outline" 
+                            size={32} 
+                            color={Colors.GRAY_MEDIUM} 
+                        />
+                        
+                        <CustomText variant="caption" style={styles.emptyStateText}>
+                            No trails available yet.
+                        </CustomText>
+                    </View>
+                )}
+            </View>
+        );
+    };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -91,6 +96,9 @@ const HomeScreen = ({
                 style={styles.container} 
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                alwaysBounceVertical={false} 
+                overScrollMode={hasAnyTrails ? 'auto' : 'never'} 
+                scrollEnabled={hasAnyTrails}
             >
                 <WeatherSection 
                     locationTemp={locationTemp} 
@@ -137,7 +145,6 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
     },
     viewAllText: {
         textDecorationLine: 'underline',

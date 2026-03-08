@@ -13,8 +13,6 @@ import CustomDateInput from '@/src/components/CustomDateInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
-
-
 const CustomTextInput = ({ 
     label, 
     placeholder, 
@@ -47,6 +45,14 @@ const CustomTextInput = ({
             onChangeText(text);
         }
     };
+
+    let finalKeyboardType = keyboardType || 'default';
+    
+    if (type === 'phone') {
+        finalKeyboardType = 'number-pad';
+    } else if (secureTextEntry && showPassword && Platform.OS === 'android') {
+        finalKeyboardType = 'visible-password';
+    }
 
     return (
         <View style={[styles.container, style]}>
@@ -101,7 +107,8 @@ const CustomTextInput = ({
                             value={value}
                             onChangeText={handleTextChange} 
                             secureTextEntry={secureTextEntry && !showPassword}
-                            keyboardType={keyboardType || 'default'} 
+                            keyboardType={finalKeyboardType} 
+                            autoCorrect={secureTextEntry ? false : undefined}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
                             {...props} 
