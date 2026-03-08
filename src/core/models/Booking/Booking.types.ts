@@ -1,9 +1,9 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IOfferInfo } from "@/src/core/models/Offer/Offer.types";
+import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
-import { IPaymentSummary } from "../Payment/Payment.types";
 
 export type BookingStatus = 'reserved' | 'approved' | 'paid'  | 'cancelled' | 'refund'
 
@@ -13,7 +13,7 @@ export interface IBookingBase<T> {
     user: IUserSummary,
     business: IBusinessSummary
     trail: ITrailSummary
-    payment: IPaymentSummary<T>[] | [];
+    payment: IPaymentSummary<T>[];
     status: BookingStatus
     cancelledBy: string | null;
 }
