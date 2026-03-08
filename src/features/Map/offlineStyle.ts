@@ -4,7 +4,6 @@ export const buildOfflineStyle = (
 ) => ({
   version: 8 as const,
   glyphs: `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${maptilerKey}`,
-  sprite: "https://protomaps.github.io/basemaps-assets/sprites/v4/light",
   sources: {
     protomaps: {
       type: "vector",
