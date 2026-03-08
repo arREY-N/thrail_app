@@ -10,7 +10,6 @@ import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
 import { Colors } from '@/src/constants/colors';
 
- 
 export default function signup(){
     const router = useRouter();
     const error = useAuthStore(s => s.error)
