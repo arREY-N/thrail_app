@@ -1,3 +1,5 @@
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useAuthStore } from '@/src/core/stores/authStore';
 import {
     AntDesign,
     Feather,
@@ -6,18 +8,19 @@ import {
     Ionicons,
     MaterialCommunityIcons
 } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 
 import { useFonts } from 'expo-font';
-import { SplashScreen, Stack } from 'expo-router';
+import { SplashScreen } from 'expo-router';
 import { useEffect } from 'react';
-import { useAuthStore } from '../core/stores/authStore';
+import LoadingScreen from './loading';
 
-SplashScreen.preventAutoHideAsync();
+export default function RootLayout() { 
+    const { isLoading } = useAuthHook();
 
-export default function RootLayout() {
-    const initialize = useAuthStore((state) => state.initialize);
-    const user = useAuthStore(s => s.user);
-    const isLoading = useAuthStore(s => s.isLoading);
+    const initialize = useAuthStore.getState().initialize;
+    
+    SplashScreen.preventAutoHideAsync();
 
     const [fontsLoaded, fontError] = useFonts({
         ...AntDesign.font,
@@ -27,19 +30,10 @@ export default function RootLayout() {
         ...Ionicons.font,
         ...MaterialCommunityIcons.font,
     });
-
-    useEffect(() => {
-        if (fontsLoaded) {
-            console.log("Icons are loaded");
-        }
-    }, [fontsLoaded]);
-
     useEffect(() => {
         const unsub = initialize();
-        return () => {
-            if(unsub) unsub();
-        }
-    }, [user?.uid]);
+        return () => unsub?.();
+    }, []);
 
     useEffect(() => {
         if (fontsLoaded || fontError) {
@@ -47,9 +41,11 @@ export default function RootLayout() {
         }
     }, [fontsLoaded, fontError]);
 
-    if (!fontsLoaded || isLoading) {
-        return null;
-    }
 
+    console.log('root', isLoading)
+   
+    if(isLoading) return <LoadingScreen/>
+    
     return <Stack screenOptions = {{headerShown: false}}/>
+
 }

@@ -1,30 +1,13 @@
-import { useMountainsStore } from "@/src/core/stores/mountainsStore";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
+
+import useMountain from "@/src/core/hook/mountain/useMountain";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function mountainList(){
-    const router = useRouter();
-    const mountains = useMountainsStore(s => s.mountains);
-    const loadAllMountains = useMountainsStore(s => s.loadAllMountains);
-    const isLoading = useMountainsStore(s => s.isLoading);
-
-    useEffect(() => {
-        loadAllMountains();
-    },[]);
-
-    const onWritePress = (id) => {
-        if(id){
-            router.push({
-                pathname: '/mountain/write',
-                params: { mountainId: id }
-            })
-        } else {
-            router.push({
-                pathname: '/mountain/write'
-            })
-        }
-    }
+    const {
+        isLoading,
+        mountains,
+        onWritePress
+    } = useMountain();
 
     return(
         <TestMountainList

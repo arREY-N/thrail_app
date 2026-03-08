@@ -1,41 +1,45 @@
-import { useAppNavigation } from "@/src/core/hook/useAppNavigation";
-import useSuperadmin from "@/src/core/hook/useSuperadmin";
-import useTrailHook from "@/src/core/hook/useTrailHook";
+import LoadingScreen from "@/src/app/loading";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
+import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text } from "react-native";
 
 export default function viewTrail(){
     const { trailId } = useLocalSearchParams();
-
+    
     const { onBackPress, onDownloadPress } = useAppNavigation();
 
-    const { 
-        role, 
-        onWriteTrail 
-    } = useSuperadmin();
-
+    const { isSuperadmin } = useAuthHook();
+    
     const {
         trail,
         onHikePress,
-        onBookPress, 
-    } = useTrailHook({ trailId, mode: 'view' });
+        onWriteTrail, 
+    } = useTrailDomain({ trailId });
+
+    const {
+        onSeeTrailOffers
+    } = useOfferDomain({});
     
+    if(!trail) return <LoadingScreen/>;
+
     return(
         <>
-            { role === 'superadmin' && 
+            { isSuperadmin && 
                 <Pressable onPress={() => onWriteTrail(trailId)}>
                     <Text>EDIT</Text>
                 </Pressable>
             }
 
             <TrailScreen 
-                role={role}
                 trail={trail} 
                 onBackPress={onBackPress} 
                 onDownloadPress={onDownloadPress} 
                 onHikePress={onHikePress}
-                onBookPress={onBookPress}
+                onBookPress={onSeeTrailOffers}
                 onEditPress={onWriteTrail}
             />
         </>

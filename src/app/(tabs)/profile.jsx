@@ -1,32 +1,23 @@
-import { useAuthStore } from '@/src/core/stores/authStore';
-import { useRouter } from 'expo-router';
 import React from 'react';
 
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 
+import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 
 export default function profile(){
-    const router = useRouter();
-    const role = useAuthStore(s => s.role);
+    const {
+        profile,
+        role,
+        onSignOutPress,
+    } = useAuthHook();
 
-    const signOut = useAuthStore(s => s.signOut);
-    const profile = useAuthStore(s => s.profile);
-
-    async function onSignOutPress(){
-        await signOut();
-    }
-
-    function onApplyPress(){
-        router.push('/(main)/business/apply');
-    }
-
-    function onAdminPress(){
-        router.push('/(main)/admin')
-    }
-    
-    function onSuperadminPress() {
-        router.push('/(main)/superadmin');
-    }
+    const {
+        onAdminPress,
+        onSuperadminPress,
+        onViewAccountPress,
+        onApplyPress,
+    } = useProfileNavigation();
 
     return (
         <ProfileScreen

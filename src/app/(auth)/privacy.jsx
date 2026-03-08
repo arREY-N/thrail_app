@@ -1,13 +1,9 @@
-import { useRouter } from "expo-router";
 
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import PrivacyScreen from "@/src/features/Auth/screens/PrivacyScreen";
 
 export default function Privacy() {
-    const router = useRouter();
-
-    const onBackPress = () => {
-        router.back();
-    }
+    const { onBackPress } = useAppNavigation();
 
     return (
         <PrivacyScreen 

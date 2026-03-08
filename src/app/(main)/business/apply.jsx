@@ -1,59 +1,43 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+
 import {
     ScrollView,
     StyleSheet,
     View
 } from 'react-native';
 
+import LoadingScreen from '@/src/app/loading';
 import WriteComponent from '@/src/components/CustomWriteComponents';
-import { APPLICATION_CONSTANTS } from '@/src/constants/application';
 import { Colors } from '@/src/constants/colors';
-import { OPTIONS } from '@/src/constants/constants';
-import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useAuthStore } from '@/src/core/stores/authStore';
 
+import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
+import { Pressable, Text } from 'react-native';
 
 export default function applyBusiness(){
-    const router = useRouter();
+    const { role } = useAuthHook();
 
-    const [system, setSystem] = useState(null);
-    const profile = useAuthStore(s => s.profile);
+    const { onBackPress } = useAppNavigation();
+    const {
+        object,
+        options,
+        information,
+        error,
+        onSubmitPress,
+        onUpdatePress,
+    } = useApplyWrite();
 
-    const provinces = OPTIONS.provinces;
-
-    const application = useApplicationsStore(s => s.application);
-    const createApplication = useApplicationsStore(s => s.createApplication);
-    const error = useApplicationsStore(s => s.error);
-
-    const onEditProperty = useApplicationsStore(s => s.editProperty);
-
-    const information = APPLICATION_CONSTANTS.APPLICATION_INFO
-    const onApplyPress = async (businessData) => {
-        try{           
-            const appId = await createApplication({
-                ...businessData,
-                userId: profile.id, 
-            });
-            router.replace('/(tabs)');             
-        } catch (err) {
-            setSystem(error ? error.message : err.message );
-        }
-    }
-
-    const onBackPress = () => {
-        router.back();
-    }
+    if(!object) return <LoadingScreen/>
 
     return (
         <ApplyScreen
             information={information}
-            application={application}
-            system={system}
-            onEditProperty={onEditProperty}
-            provinces={provinces}
-            onApplyPress={onApplyPress}
+            application={object}
+            system={error}
+            onEditProperty={onUpdatePress}
+            provinces={options.provinces}
+            onApplyPress={onSubmitPress}
             onBackPress={onBackPress}
         />
     )
@@ -63,28 +47,39 @@ const TESTAPPLY = ({
     information,
     application,
     onEditProperty,
+    onApplyPress,
+    options,
+    error
 }) => {
-    const applicant = information.applicant;
-    const business = information.business;
-    const document = information.permits;
+    const root = information.filter(i => i.section === 'root');
+    const owner = information.filter(i => i.section === 'owner');
+    const permits = information.filter(i => i.section === 'permits');
 
     return(
         <ScrollView style={styles.scrollContent}>
             <WriteComponent
-                informationSet={applicant}
+                informationSet={root}
                 object={application}
                 onEditProperty={onEditProperty}
-            />
+                optionSet={options}
+                />
             <WriteComponent
-                informationSet={business}
+                informationSet={owner}
                 object={application}
                 onEditProperty={onEditProperty}
-            />
+                optionSet={options}
+                />
             <WriteComponent
-                informationSet={document}
+                informationSet={permits}
                 object={application}
                 onEditProperty={onEditProperty}
+                optionSet={options}
             />
+            
+            {error && <Text>{error}</Text>}
+            <Pressable onPress={() => onApplyPress()}>
+                <Text>Apply</Text>
+            </Pressable>
 
             <View style={{margin: 100}}/>
         </ScrollView>

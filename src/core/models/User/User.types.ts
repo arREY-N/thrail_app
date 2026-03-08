@@ -1,0 +1,38 @@
+import { FieldValue, Timestamp } from "firebase/firestore";
+
+export interface IUserSummary {
+    id: string;
+    username: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+}
+
+export interface IPreference {
+    experience: string;
+    hike_length: string[];
+    hiked: boolean;
+    location: string[];
+    province: string[];
+}
+
+export interface IUserBase<T> extends IUserSummary{
+    address: string;
+    birthday: T;
+    createdAt: T;
+    updatedAt: T;
+    onBoardingComplete: boolean;
+    phoneNumber: string;
+    preferences: IPreference;
+    role: Role;
+}
+
+export interface IUserDB extends IUserBase<Timestamp | FieldValue> {}
+export interface IUser extends IUserBase<Date> {}
+
+export type LogIn = {
+    email: string,
+    password: string,
+}
+
+export type Role = 'superadmin' | 'admin' | 'user';

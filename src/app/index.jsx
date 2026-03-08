@@ -1,33 +1,26 @@
+import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
-import { Redirect, useRouter } from "expo-router";
-import { useAuthStore } from "../core/stores/authStore";
+import { Redirect } from "expo-router";
 import LoadingScreen from './loading';
 
 export default function index() {
-    const router = useRouter();
-    const user = useAuthStore(s => s.user);
-    const profile = useAuthStore(s => s.profile);
-    const role = useAuthStore(s => s.role);
-    const isLoading = useAuthStore(s => s.isLoading);
-
-    const onLogIn = () => {
-        router.push('/(auth)/login');
-    }
-
-    const onSignUp = () => {
-        router.push('/(auth)/signup');
-    }
+    console.log('index');
     
-    const onPrivacy = () => {
-        router.push('/(auth)/privacy');
-    }
+    const {
+        user,
+        profile,
+        isLoading
+    } = useAuthHook();
 
-    const onTerms = () => {
-        router.push('/(auth)/terms')
-    }
-
-    if(isLoading) return <LoadingScreen/>
-
+    const { 
+        onLogIn, 
+        onSignUp, 
+        onPrivacy, 
+        onTerms 
+    } = useLandingNavigation(); 
+    
+    
     if(user){
         if(!profile) return <LoadingScreen/>
         
@@ -35,6 +28,8 @@ export default function index() {
             return <Redirect href={'/(tabs)'}/>
         else return <Redirect href={'/(auth)/preference'}/> 
     } 
+
+    if(isLoading) return <LoadingScreen/>
     
     return (
         <LandingScreen 
