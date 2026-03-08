@@ -1,34 +1,29 @@
-import CustomNavBar from "@/src/components/CustomNavBar";
-import { useAuthStore } from "@/src/core/stores/authStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
-import LoadingScreen from "../loading";
+import React from "react";
+
+import LoadingScreen from "@/src/app/loading";
+import CustomNavBar from "@/src/components/CustomNavBar";
+import useTrail from "@/src/core/hook/trail/useTrail";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 
 export default function homeLayout() {
-  const user = useAuthStore((s) => s.user);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const loadTrails = useTrailsStore((s) => s.loadAllTrails);
-  const profile = useAuthStore((s) => s.profile);
+    const { trailIsLoading } = useTrail();
+    const { authIsLoading } = useAuthHook();
 
-  useEffect(() => {
-    loadTrails();
-  }, []);
+    const loaded = !trailIsLoading && !authIsLoading
 
-  if (isLoading) return <LoadingScreen />;
-
-  if (!user) return <Redirect href={"/(auth)/landing"} />;
-
-  return (
-    <Tabs
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <CustomNavBar {...props} />}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="explore" />
-      <Tabs.Screen name="hike" />
-      <Tabs.Screen name="community" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
-  );
+    if(!loaded) return <LoadingScreen/>
+    
+    return (
+        <Tabs
+            screenOptions={{ headerShown: false }}
+            tabBar={(props) => <CustomNavBar {...props} />}
+        >
+            <Tabs.Screen name="index" />
+            <Tabs.Screen name="explore" />
+            <Tabs.Screen name="hike" />
+            <Tabs.Screen name="community" />
+            <Tabs.Screen name="profile" />
+        </Tabs>
+    );
 }

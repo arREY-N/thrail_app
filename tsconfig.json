@@ -13,5 +13,5 @@
     "**/*.jsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+, "src/constants/colors.js"    ]
 }

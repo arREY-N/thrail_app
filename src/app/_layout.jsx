@@ -1,3 +1,5 @@
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useAuthStore } from '@/src/core/stores/authStore';
 import {
     Roboto_400Regular,
     Roboto_700Bold,
@@ -8,60 +10,46 @@ import {
     FontAwesome5,
     FontAwesome6,
     Ionicons,
-    MaterialCommunityIcons,
-} from "@expo/vector-icons";
-import { useFonts } from "expo-font";
-import { SplashScreen, Stack } from "expo-router";
-import { useEffect } from "react";
-import { useAuthStore } from "../core/stores/authStore";
+    MaterialCommunityIcons
+} from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+import { useFonts } from 'expo-font';
+import { SplashScreen } from 'expo-router';
+import { useEffect } from 'react';
+import LoadingScreen from './loading';
 
-export default function RootLayout() {
-  const initialize = useAuthStore((state) => state.initialize);
-  const isLoading = useAuthStore((state) => state.isLoading);
-  // Emman's branch included user, leaving it here in case you need it for layout logic later
-  const user = useAuthStore((state) => state.user); 
+export default function RootLayout() { 
+    const { isLoading } = useAuthHook();
 
-  // Combine both Roboto AND the Vector Icons into one hook
-  const [fontsLoaded, fontError] = useFonts({
-    Roboto_400Regular,
-    Roboto_700Bold,
-    ...AntDesign.font,
-    ...Feather.font,
-    ...FontAwesome5.font,
-    ...FontAwesome6.font,
-    ...Ionicons.font,
-    ...MaterialCommunityIcons.font,
-  });
+    const initialize = useAuthStore.getState().initialize;
+    
+    SplashScreen.preventAutoHideAsync();
 
-  // Handle initialization
-  useEffect(() => {
-    const unsub = initialize();
-    return () => {
-      if (unsub) unsub();
-    };
-    // Used the empty array [] from HEAD. Emman's branch had [user?.uid], 
-    // but auth listeners should usually only be initialized once on mount.
-  }, []);
+    const [fontsLoaded, fontError] = useFonts({
+        ...AntDesign.font,
+        ...Feather.font,
+        ...FontAwesome5.font,
+        ...FontAwesome6.font,
+        ...Ionicons.font,
+        ...MaterialCommunityIcons.font,
+    });
+    useEffect(() => {
+        const unsub = initialize();
+        return () => unsub?.();
+    }, []);
 
-  // Throw font errors so Expo Router's Error Boundary can catch them
-  useEffect(() => {
-    if (fontError) throw fontError;
-  }, [fontError]);
+    useEffect(() => {
+        if (fontsLoaded || fontError) {
+            SplashScreen.hideAsync();
+        }
+    }, [fontsLoaded, fontError]);
 
-  // Hide the splash screen only when fonts are loaded AND auth is done loading
-  useEffect(() => {
-    if (fontsLoaded && !isLoading) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, isLoading]);
 
-  // Prevent rendering until everything is ready
-  if (!fontsLoaded || isLoading) {
-    return null;
-  }
+    console.log('root', isLoading)
+   
+    if(isLoading) return <LoadingScreen/>
+    
+    return <Stack screenOptions = {{headerShown: false}}/>
 
-  return <Stack screenOptions={{ headerShown: false }} />;
 }

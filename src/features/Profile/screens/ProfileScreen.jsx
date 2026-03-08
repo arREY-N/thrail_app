@@ -7,6 +7,7 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { formatDate } from '@/src/core/utility/date';
 
 const ProfileScreen = ({
     onSignOutPress, 
@@ -19,9 +20,7 @@ const ProfileScreen = ({
 
     const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-    const createdDate = profile?.createdAt?.toDate 
-        ? profile.createdAt.toDate().toLocaleDateString() 
-        : "N/A";
+    const createdDate = formatDate(profile.createdAt); 
 
     const handleSignOutClick = () => {
         setShowSignOutModal(true);

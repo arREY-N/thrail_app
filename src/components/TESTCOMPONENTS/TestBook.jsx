@@ -1,4 +1,5 @@
 import CustomTextInput from "@/src/components/CustomTextInput";
+import { formatDate } from "@/src/core/utility/date";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 const TESTBOOK = ({
@@ -24,7 +25,7 @@ const TESTBOOK = ({
                             <Text>Trail: {offer.trail.name ?? ''}</Text>
                             <Text>Price: {offer.price ?? ''}</Text>
                             <Text>Provider: {offer?.business.name ?? ''}</Text>
-                            <Text>Date: {offer.date ?? ''}</Text>
+                            <Text>Date: {formatDate(offer.hikeDate) ?? ''}</Text>
                         </View>
                         <View style={styles.card}>
                             <Text>User Information</Text>

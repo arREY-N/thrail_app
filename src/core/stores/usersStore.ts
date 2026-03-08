@@ -1,0 +1,209 @@
+import { UserRepository } from '@/src/core/repositories/userRepository';
+import { create } from 'zustand';
+import { BaseStore } from '../interface/storeInterface';
+import { User } from '../models/User/User';
+
+export interface UserState extends BaseStore<User> {
+    searched: User[];
+    loadUserByEmail: (email: string) => Promise<User[]>;
+}
+
+const init = {
+    data: [],
+    current: null,
+    isLoading: true,
+    error: null,
+    searched: [],
+}
+
+export const useUsersStore = create<UserState>((set, get) => ({
+    ...init,
+
+    fetchAll: async () => {
+        const data = get().data;
+        if(data.length > 0) return;
+
+        set({ isLoading: true, error: null });
+        
+        try {
+            const users = await UserRepository.fetchAll();
+            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
+            
+            set({
+                data: sorted,
+                isLoading: false,
+            })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: (err as Error).message ?? 'Failed loading users',
+                isLoading: false
+            })
+        }
+    },
+
+    refresh: async () => {
+        set({ isLoading: true, error: null });
+        
+        try {
+            const users = await UserRepository.fetchAll();
+            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
+            
+            set({
+                data: sorted,
+                isLoading: false,
+            })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: (err as Error).message ?? 'Failed loading users',
+                isLoading: false
+            })
+        }
+    },
+
+    load: async (id: string | null) => {
+        if(!id) {
+            set({ current: new User() })
+            return;
+        }
+
+        set({ isLoading: true, error: null })
+
+        try {
+            let user: User | undefined | null = null;
+            let data = get().data;
+
+            if(data.length > 0){
+                user = data.find(u => u.id === id);
+            }
+
+            if(!user){
+                user = await UserRepository.fetchById(id);
+            }
+
+            if(!user){
+                throw new Error(`Could not find user with id ${id}`);
+            }
+
+            const userInstance = new User(user);
+
+            set(() => {
+                const newData = data.find(d => d.id === userInstance.id)
+                    ? data
+                    : [userInstance, ...data];
+
+                const sorted = newData.sort((a, b) => a.lastname.localeCompare(b.lastname));
+                
+                return {
+                    data: sorted,
+                    current: userInstance,
+                    isLoading: false
+                }
+            })
+        } catch (err) {
+            console.error(err)
+            set({
+                error: (err as Error).message ?? `Failed loading user with id ${id}`,
+                isLoading: false
+            })
+        }
+    },
+
+    create: async () => {
+        const current = get().current;
+
+        if(!current){
+            set({  error: 'No new data to save' });
+            return false;
+        }
+
+        set({ isLoading: true, error: null });
+
+        try {
+            const validatedUser = new User(current);
+
+            const savedUser = await UserRepository.write(validatedUser);
+
+            set({
+                data: get().data.some(d => d.id === savedUser.id)
+                    ? [...get().data.filter(d => d.id !== savedUser.id), savedUser]
+                    : [...get().data, savedUser],
+                isLoading: false,
+            })
+
+            return true;
+        } catch (err) {
+            console.error(err);
+            set({
+                error: (err as Error).message,
+                isLoading: false
+            })
+        }
+
+        return true;
+    },
+
+    delete: async (id: string) => {
+        set({ isLoading: true, error: null });
+
+        try {
+            if(!id) throw new Error('Invalid user ID');
+
+            const success = await UserRepository.delete(id);
+ 
+            if(!success){
+                set({
+                    error: 'Failed deleting user',
+                    isLoading: false
+                })
+                return;
+            } 
+
+            set({
+                data: get().data.filter(d => d.id !== id),
+                isLoading: false,
+            })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: (err as Error).message ?? 'Failed deleting user',
+                isLoading: false
+            })
+        }
+    },
+    
+    reset: () => set(init),
+
+    loadUserByEmail: async (email: string): Promise<User[]> => {
+        set({ isLoading: true, error: null });
+
+        try {
+            const users = await UserRepository.fetchByEmail(email);
+            
+            if(users.length === 0){
+                throw new Error(`No user with email ${email}`)
+            }
+
+            set((state) => {
+                const searched = new Set(users.map(u => u.id));
+
+                const update = state.data.filter(u => searched.has(u.id));
+
+                return {
+                    data: [...update, ...users],
+                    searched: users,
+                    isLoading: false
+                }
+            });
+
+            return users;
+        } catch (err) {
+            set({
+                error: (err as Error).message ?? 'Failed retrieving user',
+                isLoading: false,
+            })
+            return []
+        }
+    },
+}))

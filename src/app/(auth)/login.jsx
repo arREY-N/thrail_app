@@ -1,31 +1,27 @@
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
-import { useRouter } from 'expo-router';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
-
-import { useAuthStore } from '@/src/core/stores/authStore';
 
 import CustomLoading from '@/src/components/CustomLoading';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+import { View } from 'react-native';
 
 export default function login(){
-    const { onBackPress, onSignUpPress } = useAppNavigation();
-
-    const router = useRouter();
+    const { 
+        onBackPress, 
+        onSignUpPress 
+    } = useAppNavigation();
     
-    const error = useAuthStore(s => s.error);
-    const profile = useAuthStore(s => s.profile);
-    const isLoading = useAuthStore(s => s.isLoading);
-    const user = useAuthStore(s => s.user);
-    const remember = useAuthStore(s => s.remember);
-    const reset = useAuthStore(s => s.reset);
-
-    const onLogInPress = useAuthStore(s => s.logIn);
-    const onRememberMePress = useAuthStore(s => s.rememberMe)
-    const onGmailLogIn = useAuthStore(s => s.gmailLogIn);    
-    const onForgotPassword = useAuthStore(s => s.forgotPassword);
-
-    const isLogingIn = isLoading || (user && !profile);
+    const { 
+        error,
+        remember,
+        reset,
+        onLogIn,
+        onRememberMePress,
+        onForgotPassword,
+        onGmailLogIn,
+        isLoading,
+    } = useAuthHook();    
 
     useEffect(() => {
         reset();
@@ -34,7 +30,7 @@ export default function login(){
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen 
-                onLogInPress={onLogInPress} 
+                onLogInPress={onLogIn} 
                 onSignUpPress={onSignUpPress} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
@@ -45,7 +41,7 @@ export default function login(){
             />
 
             <CustomLoading 
-                visible={isLogingIn} 
+                visible={isLoading} 
                 message="Signing in..." 
             />
         </View>

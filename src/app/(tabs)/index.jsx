@@ -1,60 +1,36 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React from 'react';
 
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
-import { useAuthStore } from '@/src/core/stores/authStore';
-import useBookingsStore from '@/src/core/stores/bookingsStore';
-import { useWeatherStore } from '@/src/core/stores/weatherStore';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
-import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
-import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import useRecommendation from '@/src/core/hook/recommendation/useRecommendation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import useWeather from '@/src/core/hook/weather/useWeather';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
-    const router = useRouter();
-    const { onMountainPress, onDownloadPress } = useAppNavigation();
+    const { profile } = useAuthHook();
     
-    const locationWeather = useWeatherStore(s => s.locationWeather);
-    const loadWeather = useWeatherStore(s => s.loadWeather);
-    const profile = useAuthStore(s => s.profile);
-    const recommendations = useRecommendationsStore(s => s.recommendations);
-    const loadUserBookings = useBookingsStore(s => s.loadUserBookings);
-    const recommendedTrails = useTrailsStore(s => s.recommendedTrails);
-    const trails = useTrailsStore(s => s.trails);
-    const setRecommendedTrails = useTrailsStore(s => s.setRecommendedTrails);
-    const loadRecommendations = useRecommendationsStore(s => s.loadRecommendations)
-    
-    useEffect(() => {
-        if(!profile || !profile.id) return;    
-        loadWeather();
-        loadUserBookings(profile.id);
-        loadRecommendations(profile.id);
-    }, [profile]);
-    
-    useEffect(() => {
-        if(trails){
-            setRecommendedTrails(recommendations?.trails);
-        }
-    }, [trails, recommendations])
+    const { 
+        onMountainPress, 
+        onDownloadPress, 
+        onWeatherPress, 
+        onViewAllRecommendationPress, 
+        onViewAllTrendingPress 
+    } = useAppNavigation();
 
-    const onWeatherPress = () => {
-        router.push('/(main)/home/weather')
-    }
-
-    const onViewAllRecommendationPress = () => {
-        router.replace({
-            pathname: '/explore',
-            params: { filter: 'recommendations'}
-        })
-    }
+    const { 
+        isLoading: weatherLoading, 
+        error: errorWeather, 
+        locationWeather 
+    } = useWeather();
     
-    const onViewAllTrendingPress = () => {
-        router.replace({
-            pathname: '/explore',
-            params: { filter: 'trending'}
-        })
-    }
-
+    const { 
+        recommendation, 
+        isLoading: loadingReco, 
+        error: errorReco,
+        recommendedTrails, 
+    } = useRecommendation({userId: profile.id});
+    
     return (
         <HomeScreen 
             locationTemp={locationWeather} 

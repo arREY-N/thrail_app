@@ -1,49 +1,25 @@
-import { useAppNavigation } from '@/src/core/hook/useAppNavigation';
-import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { View } from 'react-native';
 
-import { useAuthStore } from '@/src/core/stores/authStore';
 
 import CustomLoading from '@/src/components/CustomLoading';
+import useSignUp from '@/src/core/hook/auth/useSignUp';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
 import { Colors } from '@/src/constants/colors';
 
+import React from 'react';
  
 export default function signup(){
-    const router = useRouter();
-    const error = useAuthStore(s => s.error)
-    const validateSignUp = useAuthStore(s => s.validateSignUp);
-    const editAccount = useAuthStore(s => s.editAccount);
-    const isLoading = useAuthStore(s => s.isLoading);
-    const reset = useAuthStore(s => s.reset);
-
-    const onGmailSignUp = useAuthStore(s => s.gmailSignUp);
+    const {
+        error,
+        isLoading,
+        onGmailSignUp,
+        onSignUpPress,
+    } = useSignUp(true);
+    
     const { onBackPress, onLogIn } = useAppNavigation();
 
-    useEffect(() => {
-        console.log("Loading State Changed:", isLoading);
-    }, [isLoading]);
-
-    useEffect(() => {
-        reset();
-    },[]);
-
-    const onSignUpPress = async (email, password, username, confirmPassword) => {
-        editAccount({
-            email, 
-            password, 
-            username, 
-            confirmPassword
-        });   
-        
-        const validated = await validateSignUp();
-
-        if(validated) {
-            router.push('/(auth)/information');
-        }
-    }
 
     return (  
         <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
