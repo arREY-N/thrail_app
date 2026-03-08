@@ -40,6 +40,9 @@ const TACScreen = ({
         if (onDeclinePress) onDeclinePress();
     };
 
+    const isTermsActive = activeTab === 'terms';
+    const isPrivacyActive = activeTab === 'privacy';
+
     return (
         <ScreenWrapper backgroundColor="transparent">
             
@@ -59,29 +62,65 @@ const TACScreen = ({
                     
                     <View style={styles.tabContainer}>
                         <TouchableOpacity 
-                            style={[styles.tabButton, activeTab === 'terms' && styles.activeTab]}
+                            style={[
+                                styles.tabButton, 
+                                isTermsActive && styles.activeTab,
+                                isTermsActive && hasReadTerms && styles.activeTabRead
+                            ]}
                             onPress={() => setActiveTab('terms')}
                             activeOpacity={0.7}
                         >
-                            <CustomText style={[styles.tabText, activeTab === 'terms' && styles.activeTabText]}>
-                                Terms & Conditions
-                            </CustomText>
+                            <View style={styles.tabContentRow}>
+                                <CustomText style={[
+                                    styles.tabText, 
+                                    isTermsActive && styles.activeTabText,
+                                    isTermsActive && hasReadTerms && styles.activeTabTextRead
+                                ]}>
+                                    Terms & Conditions
+                                </CustomText>
+                                {hasReadTerms && (
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="check" 
+                                        size={14} 
+                                        color={isTermsActive ? Colors.WHITE : Colors.PRIMARY} 
+                                    />
+                                )}
+                            </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity 
-                            style={[styles.tabButton, activeTab === 'privacy' && styles.activeTab]}
+                            style={[
+                                styles.tabButton, 
+                                isPrivacyActive && styles.activeTab,
+                                isPrivacyActive && hasReadPrivacy && styles.activeTabRead
+                            ]}
                             onPress={() => setActiveTab('privacy')}
                             activeOpacity={0.7}
                         >
-                            <CustomText style={[styles.tabText, activeTab === 'privacy' && styles.activeTabText]}>
-                                Privacy Policy
-                            </CustomText>
+                            <View style={styles.tabContentRow}>
+                                <CustomText style={[
+                                    styles.tabText, 
+                                    isPrivacyActive && styles.activeTabText,
+                                    isPrivacyActive && hasReadPrivacy && styles.activeTabTextRead
+                                ]}>
+                                    Privacy Policy
+                                </CustomText>
+                                {hasReadPrivacy && (
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="check" 
+                                        size={14} 
+                                        color={isPrivacyActive ? Colors.WHITE : Colors.PRIMARY} 
+                                    />
+                                )}
+                            </View>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.documentWrapper}>
                         <View style={styles.documentBorder}>
-                            {activeTab === 'terms' ? (
+                            {isTermsActive ? (
                                 <TermsContent onScrollToBottom={() => setHasReadTerms(true)} />
                             ) : (
                                 <PrivacyContent onScrollToBottom={() => setHasReadPrivacy(true)} />
@@ -136,7 +175,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingVertical: 64,
         width: '100%',
     },
@@ -145,11 +184,11 @@ const styles = StyleSheet.create({
         height: '100%', 
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
-        paddingHorizontal: 16,
+        paddingHorizontal: 24,
         paddingVertical: 32,
         alignItems: 'center',
 
-        shadowColor: "#000",
+        shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.25,
         shadowRadius: 10,
@@ -158,28 +197,39 @@ const styles = StyleSheet.create({
     
     tabContainer: {
         flexDirection: 'row',
-        width: '90%',
+        width: '100%',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 16,
-        paddingVertical: 8,
-        paddingHorizontal: 8,
+        padding: 8,
         marginBottom: 16,
     },
     tabButton: {
         flex: 1,
         paddingVertical: 10,
+        paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
     },
     activeTab: {
         backgroundColor: Colors.WHITE,
-        
-        shadowColor: "#000",
+        borderRadius: 8,
+
+        shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
+    },
+    activeTabRead: {
+        backgroundColor: Colors.PRIMARY,
+    },
+    
+    tabContentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
     },
     tabText: {
         fontSize: 12,
@@ -189,6 +239,9 @@ const styles = StyleSheet.create({
     activeTabText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '700',
+    },
+    activeTabTextRead: {
+        color: Colors.WHITE,
     },
 
     documentWrapper: {
@@ -202,6 +255,13 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT, 
         borderRadius: 16,
         overflow: 'hidden', 
+    },
+    scrollReminder: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        marginTop: 8,
+        fontStyle: 'italic',
     },
 
     agreementContainer: {
@@ -244,10 +304,10 @@ const styles = StyleSheet.create({
 
     buttonContainer: {
         width: '100%',
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
         flexDirection: 'row',
-        gap: 8,
-        marginTop: 0,
+        gap: 16,
+        marginTop: 8,
     },
 });
 
