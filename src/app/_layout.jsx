@@ -14,7 +14,7 @@ import { useAuthStore } from '../core/stores/authStore';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout( error ) {
+export default function RootLayout() {
     const initialize = useAuthStore((state) => state.initialize);
     const user = useAuthStore(s => s.user);
     const isLoading = useAuthStore(s => s.isLoading);
