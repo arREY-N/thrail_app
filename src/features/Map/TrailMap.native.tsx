@@ -4,6 +4,8 @@ import * as Location from "expo-location";
 import * as Network from "expo-network";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
+  Linking,
   Platform,
   StatusBar,
   StyleSheet,
@@ -33,22 +35,66 @@ const TrailMap = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [forceOffline, setForceOffline] = useState(false);
 
+  // State to hold the active coordinates for your Firebase database
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null,
+  );
+
   const [assets] = useAssets([
     require("../../assets/tiles/thrail-offline-map.pmtiles"),
   ]);
 
   useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+
     (async () => {
-      // 1. Ask for permission
+      // 1. Ask for permission with the strict Settings fallback
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        setPermissionGranted(true);
-        Location.getCurrentPositionAsync({}).catch((e) => console.log(e));
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Location Required",
+          "Thrail needs your GPS to track your hike. Please enable it in your phone settings.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
       }
 
+      setPermissionGranted(true);
+
+      // 2. The Mountain-Optimized Tracker for Database Logging
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 5, // MAGIC NUMBER: Only update if they walk 5 meters
+          timeInterval: 5000, // Check no faster than every 5 seconds
+        },
+        (location) => {
+          const currentCoords: [number, number] = [
+            location.coords.longitude,
+            location.coords.latitude,
+          ];
+          console.log("Hiker moved 5m! New Coords:", currentCoords);
+          setUserLocation(currentCoords);
+
+          // TODO: Write your Firebase logic here to save currentCoords to the database!
+        },
+      );
+
+      // 3. Initial Network Check
       const networkState = await Network.getNetworkStateAsync();
       setIsOnline(!!networkState.isInternetReachable);
     })();
+
+    // Cleanup the GPS watcher when they leave the map screen
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, []);
 
   if (!assets || !assets[0]?.localUri) {
@@ -60,13 +106,11 @@ const TrailMap = () => {
   }
 
   const offlineTileUrl = `pmtiles://${assets[0].localUri}`;
-
-  // Determine which map we are currently using
   const actuallyOffline = forceOffline || !isOnline;
 
   return (
     <View style={styles.page}>
-      {/* / Network Status / Test Toggle Bar / */}
+      {/* Network Status / Test Toggle Bar */}
       <TouchableOpacity
         style={[
           styles.statusBar,
@@ -85,7 +129,6 @@ const TrailMap = () => {
         style={styles.map}
         logoEnabled={true}
         attributionEnabled={true}
-        // Conditionally swap the base style!
         mapStyle={
           actuallyOffline
             ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string)
@@ -93,7 +136,7 @@ const TrailMap = () => {
         }
       >
         <MapLibreGL.Camera
-          zoomLevel={12}
+          zoomLevel={16}
           minZoomLevel={10}
           maxZoomLevel={16}
           animationMode="flyTo"
@@ -102,7 +145,7 @@ const TrailMap = () => {
           followUserMode={UserTrackingMode.Follow}
         />
 
-        {/* --- OSM TRAILS (Always visible, online or offline) --- */}
+        {/* --- CUSTOM THESIS TRAILS --- */}
         <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
           <MapLibreGL.LineLayer
             id="layer-hiking"
@@ -122,6 +165,7 @@ const TrailMap = () => {
             visible={true}
             animated={true}
             showsUserHeadingIndicator={true}
+            minDisplacement={5}
           />
         )}
       </MapLibreGL.MapView>
@@ -133,7 +177,6 @@ const styles = StyleSheet.create({
   page: { flex: 1, height: "100%", width: "100%" },
   map: { flex: 1 },
   statusBar: {
-    // Add dynamic padding for the notch/system status bar
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
     paddingBottom: 12,
     paddingHorizontal: 12,
