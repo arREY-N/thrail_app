@@ -303,7 +303,6 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue }) =
                 )}
             </ScrollView>
 
-            {/* ONLY THIS LINE WAS CHANGED */}
             <StickyFooter 
                 title="Reserve" 
                 onPress={() => onContinue({ hikerDetails: formData, uploadedDocs })} 
