@@ -10,7 +10,7 @@ export interface IWriteComponentParams {
     informationSet: IFormField<any>[],
     object: any,
     optionSet?: { [key: string]: any[] | string[]; },
-    onEditProperty: (params: TEdit) => void
+    onEditProperty: (params: TEdit<any>) => void
 }
 
 const WriteComponent = (props: IWriteComponentParams) => {    
@@ -41,8 +41,8 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     label={`${label}${required ? '*' : ''}`}
                                     placeholder={label}
                                     value={val || ''}
-                                    onChangeText={(value: string) => onEditProperty({section, id, value})}
-                                    style={styles.inputSpacing} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} icon={undefined}                                />
+                                    onChangeText={(value: string) => onEditProperty({ section, id, value })}
+                                    style={styles.inputSpacing} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} icon={undefined} prefix={undefined} children={undefined}                                />
                             </View>
                         )
                     }
@@ -73,7 +73,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                         })
                                         : <Text>No available options</Text>
                                 }
-                             </View>
+                            </View>
                         )
                     }
 
@@ -89,12 +89,11 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         return(
                             <View key={label}>
                                 <CustomDropdown
-                                    label={`${label}${ required ? '*' : ''}`}
+                                    label={`${label}${required ? '*' : ''}`}
                                     placeholder={`Select ${label}`}
                                     options={options}
                                     value={val}
-                                    onSelect={(value: string) => onEditProperty({section, id, value})}
-                                />
+                                    onSelect={(value: string) => onEditProperty({ section, id, value })} children={undefined}                                />
                             </View>
                         )
                     }
@@ -104,17 +103,16 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         return(
                             <View key={label}>
                                 <CustomTextInput
-                                    placeholder={label} 
+                                    placeholder={label}
                                     label={`${label} ${required ? '*' : ''}`}
                                     value={val || ''}
-                                    onChangeText={(value: string) => onEditProperty({section, id, value})} 
-                                    secureTextEntry={undefined} 
-                                    keyboardType={undefined} 
-                                    isPasswordVisible={undefined} 
-                                    onTogglePassword={undefined} 
-                                    style={undefined} 
-                                    icon={undefined}                                
-                                />
+                                    onChangeText={(value: string) => onEditProperty({ section, id, value })}
+                                    secureTextEntry={undefined}
+                                    keyboardType={undefined}
+                                    isPasswordVisible={undefined}
+                                    onTogglePassword={undefined}
+                                    style={undefined}
+                                    icon={undefined} prefix={undefined} children={undefined}                                />
                             </View>
                         )
                     }
@@ -170,15 +168,14 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 label={`${label} ${required ? '*' : ''}`}
                                 placeholder="DD/MM/YYYY"
                                 value={formatDate(val)}
-                                onChangeText={(value: Date) => onEditProperty({section, id, value})}
-                                type="date" 
-                                secureTextEntry={undefined} 
-                                keyboardType={undefined} 
-                                isPasswordVisible={undefined} 
-                                onTogglePassword={undefined} 
-                                style={undefined} 
-                                icon={undefined}                            
-                            />
+                                onChangeText={(value: Date) => onEditProperty({ section, id, value })}
+                                type="date"
+                                secureTextEntry={undefined}
+                                keyboardType={undefined}
+                                isPasswordVisible={undefined}
+                                onTogglePassword={undefined}
+                                style={undefined}
+                                icon={undefined} prefix={undefined} children={undefined}                            />
                         )
                     }
                 })

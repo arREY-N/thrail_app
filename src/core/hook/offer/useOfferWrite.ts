@@ -1,83 +1,106 @@
-import { Property } from "@/src/core/types/Property";
-import { OFFER_INFORMATION } from "@/src/fields/offerFields";
+import { TEdit } from "@/src/core/interface/domainHookInterface";
+import { BusinessLogic } from "@/src/core/models/Business/logic/Business.logic";
+import { Offer } from "@/src/core/models/Offer/Offer";
+import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
+import { Trail } from "@/src/core/models/Trail/Trail";
+import { useBusinessesStore } from "@/src/core/stores/businessesStore";
+import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
-import { useEffect } from "react";
-import { useBusinessesStore } from "../../stores/businessesStore";
-import { useOffersStore } from "../../stores/offersStore";
-import { useTrailsStore } from "../../stores/trailsStore";
+import { produce } from "immer";
+import { useState } from "react";
 
 export type UseOfferParams = {
-    trailId: string | null,
-    businessId: string | null,
-    offerId: string | null,
-    mode: string | null,
+    trailId?: string | null,
+    businessId?: string | null,
+    offerId?: string | null,
+    mode?: string | null,
 }
 
-export function useOfferWrite(params: UseOfferParams){
+export function useOfferWrite(params: UseOfferParams = {}){
     const { offerId, businessId } = params
-    const loadBusinessAccount = useBusinessesStore(s => s.load);
-    const businessAccount = useBusinessesStore(s => s.current);
 
-    const loadOffer = useOffersStore(s => s.load);
-    const offer = useOffersStore(s => s.current);
-    const create = useOffersStore(s => s.create);
-    const remove = useOffersStore(s => s.delete);
-    const edit = useOffersStore(s => s.edit);
+    const businessAccount = useBusinessesStore(s => s.current);
     
+    const offers = useOffersStore(s => s.data);
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
-    const information = OFFER_INFORMATION;
 
-    const loadTrails = useTrailsStore(s => s.fetchAll);
-    const trails = useTrailsStore(s => s.data);
+    const create = useOffersStore(s => s.create);
 
-    useEffect(() => {
-        loadTrails();
-        loadBusinessAccount(businessId);
-        loadOffer({id: offerId, businessId});
-    }, [offerId, businessId])
+    const [localError, setLocalError] = useState<string | null>(null);
+    const [offer, setOffer] = useState<Offer>(() => {
+        const existing = offers.find(offer => offer.id === offerId);
 
-    const onEditProperty = (property: Property) => {
-        const { value, type } = property;
-        let finalValue = value;
-
-        if(type === 'object-select'){
-            const object = trails.find(t => t.general.name === property.value);
-            finalValue = object 
-                ? {id: object.id, name : object.general.name} 
-                : {trailId: '', trailName : '' };
+        if(!businessAccount) {
+            setLocalError('No business account');
+            return new Offer();
         }
 
-        edit({
-            ...property,
-            value: finalValue
-        })
+        const businessSummary = BusinessLogic.toSummary(businessAccount);
+
+        return existing
+            ? new Offer({ ...existing })
+            : new Offer({ business: businessSummary });
+    })
+
+    const onUpdatePress = (params: TEdit) => {
+        const { section, id, value } = params;
+    
+        try {
+            setOffer(prev => 
+                produce(prev, (draft) => {
+                    if(section === 'root'){
+                        draft[id] = value;
+                    } else {
+                        draft[section][id] = value;
+                    }
+                })
+            )
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed editing property')
+        }
+    }
+
+    const onSetTrail = (trail: Trail) => {
+        try {
+            setOffer(prev => 
+                produce(prev, (draft) => {
+                    const trailSummary = TrailLogic.toSummary(trail);
+
+                    draft.trail = trailSummary;
+                })
+            )
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed editing property')
+        }
     }
 
     const onSubmitPress = async () => {
-        console.log(businessAccount);
-        const id = await create(businessAccount);
-        if(!id) return;
-        router.back();    
+        try {
+            const success = await create(offer);
+            if(!success) throw new Error('Failed') 
+            router.back();
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed submitting')
+        }
+
     }
 
-    const options = {
-        trails: [...trails.map(m => m.general.name)]
-    }
 
-    const onRemovePress = (id: string) => {
-        remove({id, businessId: businessAccount?.id});
-        router.back();
+    const onRemovePress = async (id: string) => {
+        
+        
+        // remove({id, businessId: businessAccount?.id});
+        // router.back();
     }
 
     return {
-        information,
         offer,
-        options,
-        error,
+        error: error || localError,
         isLoading,
         onRemovePress,
-        onEditProperty,
+        onUpdatePress,
         onSubmitPress,
+        onSetTrail,
     }
 }

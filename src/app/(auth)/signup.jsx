@@ -8,8 +8,6 @@ import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
 import { Colors } from '@/src/constants/colors';
 
-import React from 'react';
- 
 export default function signup(){
     const {
         error,

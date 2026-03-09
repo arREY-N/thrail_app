@@ -8,30 +8,31 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
-import DetailsScreen from '@/src/features/Book/screens/DetailsScreen';
-import OffersScreen from '@/src/features/Book/screens/OffersScreen';
-import PaymentScreen from '@/src/features/Book/screens/PaymentScreen';
-import ReceiptScreen from '@/src/features/Book/screens/ReceiptScreen';
 
-const BookingScreen = ({ offers = [], onBackPress }) => {
-    
+import DetailsScreen from '@/src/features/Book/screens/ReservationFlow/DetailsScreen';
+import OffersScreen from '@/src/features/Book/screens/ReservationFlow/OffersScreen';
+import StatusScreen from '@/src/features/Book/screens/ReservationFlow/StatusScreen';
+
+const BookingScreen = ({ 
+    offers = [], 
+    onBackPress, 
+}) => {
     const [currentView, setCurrentView] = useState(1);
     
     const [bookingData, setBookingData] = useState({
         selectedOfferId: null,
         hikerDetails: null,
         uploadedDocs: null,
-        medicalCertUrl: null,
     });
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [pendingStep, setPendingStep] = useState(null);
     const [pendingHeaderBack, setPendingHeaderBack] = useState(false);
 
-    const lineFillPercentage = ((currentView - 1) / 3) * 100;
+    const lineFillPercentage = ((currentView - 1) / 2) * 100;
 
     const handleHeaderBackPress = () => {
-        if (currentView === 4) {
+        if (currentView === 3) {
             onBackPress();
             return;
         }
@@ -47,7 +48,9 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
     };
 
     const handleStepNavigation = (step) => {
-        if ((currentView === 2 || currentView === 3) && step < currentView) {
+        if (step > currentView) return;
+
+        if (currentView === 2 && step < currentView) {
             setPendingStep(step);
             setShowConfirmModal(true);
         } else {
@@ -58,7 +61,6 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
     const confirmNavigation = () => {
         if (pendingHeaderBack) {
             setShowConfirmModal(false);
-
             setTimeout(() => {
                 onBackPress(); 
                 setPendingHeaderBack(false);
@@ -67,25 +69,13 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
         }
 
         if (pendingStep !== null) {
-            setBookingData(prev => {
-                let clearedData = { ...prev };
-                
-                if (pendingStep === 1) {
-                    clearedData.hikerDetails = null;
-                    clearedData.uploadedDocs = null;
-                    clearedData.paymentMethod = null;
-                } else if (pendingStep === 2) {
-                    clearedData.paymentMethod = null;
-                }
-                
-                return clearedData;
-            });
-
+            if (pendingStep === 1) {
+                setBookingData({ ...bookingData, selectedOfferId: null });
+            }
             setCurrentView(pendingStep);
         }
         
         setShowConfirmModal(false);
-        
         setTimeout(() => {
             setPendingStep(null);
             setPendingHeaderBack(false);
@@ -94,7 +84,6 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
 
     const cancelNavigation = () => {
         setShowConfirmModal(false);
-        
         setTimeout(() => {
             setPendingStep(null);
             setPendingHeaderBack(false);
@@ -105,7 +94,7 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomHeader 
-                title="Book" 
+                title="Book Trail" 
                 onBackPress={handleHeaderBackPress}
             />
             
@@ -134,25 +123,16 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                             stepNum={2} 
                             title="Details" 
                             libraryName="Ionicons"
-                            iconName="person" 
+                            iconName="document-text" 
                             currentView={currentView}
                             onStepPress={handleStepNavigation}
                         />
 
                         <ProgressStep 
                             stepNum={3} 
-                            title="Payment"
-                            libraryName="FontAwesome5" 
-                            iconName="wallet" 
-                            currentView={currentView}
-                            onStepPress={handleStepNavigation}
-                        />
-
-                        <ProgressStep 
-                            stepNum={4} 
-                            title="Receipt" 
-                            libraryName="Ionicons"
-                            iconName="receipt" 
+                            title="Status"
+                            libraryName="MaterialCommunityIcons" 
+                            iconName="clock-check-outline" 
                             currentView={currentView}
                             onStepPress={handleStepNavigation}
                         />
@@ -166,11 +146,8 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                         offers={offers}
                         selectedOfferId={bookingData.selectedOfferId}
                         onContinue={(offerId) => {
-                            setBookingData({ 
-                                ...bookingData, 
-                                selectedOfferId: offerId 
-                            });
-                            setCurrentView(2); 
+                            setBookingData({ ...bookingData, selectedOfferId: offerId });
+                            setCurrentView(2);
                         }}
                     />
                 )}
@@ -182,37 +159,15 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                         savedDocs={bookingData.uploadedDocs}
                         
                         onContinue={(detailsData) => {
-                            setBookingData({ 
-                                ...bookingData, 
-                                ...detailsData 
-                            });
-                            setCurrentView(3); 
+                            setBookingData({ ...bookingData, ...detailsData });
+                            setCurrentView(3);
                         }}
                     />
                 )}
 
                 {currentView === 3 && (
-                    <PaymentScreen 
-                        selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
-                        savedMethod={bookingData.paymentMethod}
-
-                        onContinue={(paymentData) => {
-                            setBookingData({ 
-                                ...bookingData, 
-                                ...paymentData 
-                            });
-                            setCurrentView(4);
-                        }}
-                    />
-                )}
-
-                {currentView === 4 && (
-                    <ReceiptScreen 
-                        bookingData={bookingData}
-                        selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
-                        onFinish={() => {
-                            onBackPress(); 
-                        }}
+                    <StatusScreen 
+                        onReturn={onBackPress}
                     />
                 )}
             </View>
@@ -221,13 +176,13 @@ const BookingScreen = ({ offers = [], onBackPress }) => {
                 visible={showConfirmModal}
                 onClose={cancelNavigation}
                 onConfirm={confirmNavigation}
-                title={pendingHeaderBack ? "Cancel Booking?" : "Discard Changes?"}
+                title={pendingHeaderBack ? "Cancel Booking?" : "Go Back?"}
                 message={
                     pendingHeaderBack 
-                    ? "Are you sure you want to leave the booking process? All your progress will be lost." 
-                    : "If you go back now, you will lose the details you just entered."
+                    ? "Are you sure you want to leave? Your reservation progress will be lost." 
+                    : "If you go back to the Offers screen, you will need to re-select your package."
                 }
-                confirmText={pendingHeaderBack ? "Leave" : "Discard"}
+                confirmText={pendingHeaderBack ? "Leave" : "Go Back"}
                 cancelText="Keep Editing"
             />
 
@@ -240,7 +195,6 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 20,
         backgroundColor: Colors.BACKGROUND, 
-        
         shadowColor: Colors.SHADOW, 
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -249,7 +203,6 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        
         zIndex: 10,
         elevation: 4, 
     },
@@ -287,11 +240,6 @@ const styles = StyleSheet.create({
     contentContainer: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
-    },
-    placeholderView: {
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center',
     }
 });
 

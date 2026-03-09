@@ -1,36 +1,44 @@
 import LoadingScreen from "@/src/app/loading";
+import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
-// import TESTUSERBOOK from "@/src/components/TESTCOMPONENTS/TestUserBook";
-import BookingScreen from "@/src/features/Book/screens/BookingScreen";
+import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
+import BookingScreen from "@/src/features/Book/screens/ReservationFlow/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
-    const { trailId, mode } = useLocalSearchParams();
+    const { trailId } = useLocalSearchParams();
     const { onBackPress } = useAppNavigation();
 
     const {
-        list,
-        onBookNowPress,
-        bookingError,
-        offerError,
-        isLoading,
-    } = useOfferDomain({ trailId, mode });
+        isLoading: trailIsLoading,
+        error: offerError,
+        trailOffers,
+    } = useTrailOffer({ trailId });
 
-    if(isLoading) return <LoadingScreen/>;
+    const { 
+        isLoading: bookIsLoading,
+        error: bookError,
+        booking,
+        onUpdatePress,
+        onCompleteOffer,
+        onSetOffer,
+    } = useBookOffer({ trailId });
 
-    return (
+    if(trailIsLoading || bookIsLoading) return <LoadingScreen/>;
+
+    return (        
         <BookingScreen 
+            // TODO: Swap DUMMY_OFFERS back to trailOffers
+            // offers={trailOffers}
             offers={DUMMY_OFFERS}
-            onBookNowPress={onBookNowPress}
+            booking={booking}
+            error={offerError || bookError}
+            onSetOffer={onSetOffer}
+            onBookNowPress={onCompleteOffer}
             onBackPress={onBackPress}
+            onUpdatePress={onUpdatePress}
+            onCompleteOffer={onCompleteOffer}
         />
-
-        // <TESTUSERBOOK 
-        //     offers={filteredOffers}
-        //     onBookNowPress={onBookNowPress}
-        //     system={bookingError || offerError}
-        // />
     )
 }
 
@@ -76,7 +84,6 @@ const DUMMY_OFFERS = [
             'Organizer may cancel if 12 participants are not met.'
         ]
     },
-
     {
         id: 'offer-2',
         price: 400,
@@ -87,7 +94,6 @@ const DUMMY_OFFERS = [
         description: 'Standard hike package. Good for beginners.',
         business: { name: 'Local Guide Coop' }
     },
-
     {
         id: 'offer-3',
         price: 850,
@@ -98,7 +104,6 @@ const DUMMY_OFFERS = [
         description: 'Premium package (This event has already concluded).',
         business: { name: 'Peak Explorers' }
     },
-
     {
         id: 'offer-4',
         price: 650,
@@ -109,7 +114,6 @@ const DUMMY_OFFERS = [
         description: 'Weekend joiner hike (This event has already concluded).',
         business: { name: 'Weekend Warriors' }
     },
-
     {
         id: 'offer-5',
         price: 500,
@@ -120,7 +124,6 @@ const DUMMY_OFFERS = [
         description: 'Early morning hike to catch the sea of clouds.',
         business: { name: 'Cloud Chasers' }
     },
-
     {
         id: 'offer-6',
         price: 1200,

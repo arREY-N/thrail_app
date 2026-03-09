@@ -304,7 +304,7 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue }) =
             </ScrollView>
 
             <StickyFooter 
-                title="Continue to Payment" 
+                title="Reserve" 
                 onPress={() => onContinue({ hikerDetails: formData, uploadedDocs })} 
                 isDisabled={!isFormValid()}
             />

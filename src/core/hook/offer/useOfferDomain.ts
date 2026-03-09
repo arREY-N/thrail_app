@@ -1,7 +1,7 @@
+import { Offer } from "@/src/core/models/Offer/Offer";
+import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Offer } from "../../models/Offer/Offer";
-import { useOffersStore } from "../../stores/offersStore";
 
 export type UseOfferParams = {
     trailId: string | null,
@@ -24,8 +24,6 @@ export function useOfferDomain(params: UseOfferParams){
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
     
-    const [filteredOffers, setFilteredOffers] = useState<Offer[] |[]>([]);
-    const [date, setDate] = useState<Date>();
     const [list, setList] = useState<Offer[]>([]);
     
     useEffect(() => {
@@ -53,21 +51,6 @@ export function useOfferDomain(params: UseOfferParams){
             setList(offers);
         }
     }, [offers, trailOffers, businessOffers]);
-    
-    function filterOffers(){
-        if(date){
-            setFilteredOffers(() => list.filter(o => o.date === date).sort((a, b) => a.date.getDate() - b.date.getDate()))
-        } else {
-            setFilteredOffers(list);
-        }
-    }
-
-    function onBookNowPress(offerId: string){ 
-        router.push({ 
-            pathname: '/(main)/offer/view',
-            params: { offerId }
-        })
-    }
 
     function onSeeTrailOffers(trailId: string){
         router.push({
@@ -81,12 +64,7 @@ export function useOfferDomain(params: UseOfferParams){
         offers,
         error,
         list,
-        date,
         isLoading,
-        filteredOffers,
-        filterOffers,
-        setDate,
-        onBookNowPress,
         onSeeTrailOffers,
     }
 }

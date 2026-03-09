@@ -85,7 +85,9 @@ class OfferRepositoryImpl implements Repository<Offer>{
 
     async write(data: Offer): Promise<Offer> {
         try {            
-            const create = !data.id;
+            const offer = new Offer(data);
+
+            const create = !offer.id;
 
             const col = createOffersCollection(data.business.id);
 
@@ -93,12 +95,12 @@ class OfferRepositoryImpl implements Repository<Offer>{
                 ? doc(col)
                 : doc(col, data.id);
 
-            if(create) data.id = businessOfferRef.id;
+            if(create) offer.id = businessOfferRef.id;
             
             await setDoc(businessOfferRef, data, {merge: true});
 
-            console.log('Offer successfully sent to database:', data);
-            return data;
+            console.log('Offer successfully sent to database:', offer);
+            return offer;
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message ?? 'Failed creating offer')

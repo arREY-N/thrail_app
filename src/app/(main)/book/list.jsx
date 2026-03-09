@@ -1,6 +1,15 @@
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { useBookingsStore } from '@/src/core/stores/bookingsStore';
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
+} from "react-native";
+
+import BookingManagementScreen from '@/src/features/Book/screens/ManagementFlow/BookingManagementScreen';
 
 export default function listBook(){
     const userBookings = useBookingsStore((state) => state.userBookings);
@@ -8,6 +17,8 @@ export default function listBook(){
     const bookingErrors = useBookingsStore((state) => state.error);
     const cancelBooking = useBookingsStore((state) => state.cancelBooking);
     const profile = useAuthStore((state) => state.profile);
+
+    const { onBackPress } = useAppNavigation();
 
     const onCancelBookingPress = (bookingData) => {
         try {
@@ -20,16 +31,30 @@ export default function listBook(){
         }
     }
 
-    return(
-        !bookingsIsLoading ? 
-            <TESTBOOKING
-                bookings={userBookings}
-                isLoading={bookingsIsLoading}
-                error={bookingErrors}
-                onCancelBookingPress={onCancelBookingPress}
-            /> :
-            <Text>Loading</Text>
-    )
+    if (bookingsIsLoading) {
+        return <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>;
+    }
+
+    return (
+        <BookingManagementScreen 
+            userBookings={userBookings}
+            isLoading={bookingsIsLoading}
+            error={bookingErrors}
+            onBackPress={onBackPress}
+            onCancelBookingPress={onCancelBookingPress}
+        />
+    );
+
+    // return(
+    //     !bookingsIsLoading ? 
+    //         <TESTBOOKING
+    //             bookings={userBookings}
+    //             isLoading={bookingsIsLoading}
+    //             error={bookingErrors}
+    //             onCancelBookingPress={onCancelBookingPress}
+    //         /> :
+    //         <Text>Loading</Text>
+    // )
 }
 
 const TESTBOOKING = ({

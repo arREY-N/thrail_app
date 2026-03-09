@@ -2,9 +2,9 @@ import { Role } from "@/src/core/models/User/User.types";
 import { router } from "expo-router";
 
 export type UseAdminNavigationParams = {
-    userId: string;
-    businessId: string;
-    role: Role;
+    userId?: string;
+    businessId?: string;
+    role?: Role;
 }
 
 export default function useAdminNavigation(params: UseAdminNavigationParams){
@@ -25,7 +25,7 @@ export default function useAdminNavigation(params: UseAdminNavigationParams){
         router.push('/(main)/admin/personnel/write');
     }
 
-    const onWriteOffer = (id: string) => {
+    const onWriteOffer = (id: string | null = null) => {
         router.push({
             pathname: '/(main)/admin/offer/write',
             params: { offerId: id }
@@ -36,5 +36,6 @@ export default function useAdminNavigation(params: UseAdminNavigationParams){
         onManageAdminsPress,
         onManageOffersPress,
         onAddAdminPress,
+        onWriteOffer,
     }
 }

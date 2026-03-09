@@ -1,12 +1,12 @@
+import { SignUp } from "@/src/core/models/User/SignUp";
 import { useState } from "react";
-import { SignUp } from "../../models/User/SignUp";
 
 const preferenceTemplate = {
     q1: {
         question: 'Have you hiked before?',
         type: 'binary', 
         options: ['Yes', 'No'], 
-        answer: null,
+        answer: null as boolean | null,
         // follow: 'q2'
     },
     q2: {
@@ -53,15 +53,18 @@ export default function usePreference(){
             let saveAnswer: string | string[] | boolean | null = newAnswer;
 
             if(prev[question].type === 'multi-select'){
-                
-                const answers: string | string[] | null = prev[question].answer                
+                const answers: string | string[] | boolean | null = prev[question].answer;                
+                const answerArray = Array.isArray(answers) ? answers : [];
 
-                saveAnswer = answers?.includes(newAnswer) 
-                    ? answers.filter(a => a !== newAnswer)
-                    : [...answers ?? [], newAnswer] 
+                saveAnswer = answerArray.includes(newAnswer) 
+                    ? answerArray.filter(a => a !== newAnswer)
+                    : [...answerArray, newAnswer] 
             }
 
             // TODO revised how true/false values are saved
+            else if (prev[question].type === 'binary') {
+                saveAnswer = newAnswer === 'Yes' ? true : false;
+            }
 
             return(
                 {

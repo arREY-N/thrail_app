@@ -10,296 +10,388 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
+const formatDateToStandard = (dateObj) => {
+    if (!dateObj) return "";
+    
+    const shortMonths = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    
+    return `${shortMonths[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+};
+
 const OfferCalendar = ({ 
-    uniqueDates, 
+    uniqueDates = [], 
     selectedDate, 
     onSelectDate 
 }) => {
     
-    const initialViewDate = useMemo(() => {
-        const today = new Date();
-        return new Date(today.getFullYear(), today.getMonth(), 1); 
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    const [displayMonth, setDisplayMonth] = useState(() => {
+        return selectedDate 
+            ? new Date(selectedDate) 
+            : new Date();
+    });
+
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
+    
+    const weekDays = [
+        "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+    ];
+
+    const normalizedToday = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
     }, []);
 
-    const [viewDate, setViewDate] = useState(initialViewDate);
+    const todayFormatted = useMemo(() => formatDateToStandard(normalizedToday), [normalizedToday]);
 
-    const displayYear = viewDate.getFullYear();
-    const displayMonth = viewDate.getMonth(); 
+    const getDaysInMonth = (year, month) => {
+        return new Date(year, month + 1, 0).getDate();
+    };
     
-    const monthNames = [
-        "January", "February", "March", "April", 
-        "May", "June", "July", "August", 
-        "September", "October", "November", "December"
-    ];
-    const monthName = monthNames[displayMonth];
-
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    
-    const currentDay = todayDate.getDate();
-    const currentMonth = todayDate.getMonth();
-    const currentYear = todayDate.getFullYear();
+    const getFirstDayOfMonth = (year, month) => {
+        return new Date(year, month, 1).getDay();
+    };
 
     const handlePrevMonth = () => {
-        setViewDate(new Date(displayYear, displayMonth - 1, 1));
+        setDisplayMonth(new Date(
+            displayMonth.getFullYear(), 
+            displayMonth.getMonth() - 1, 
+            1
+        ));
     };
 
     const handleNextMonth = () => {
-        setViewDate(new Date(displayYear, displayMonth + 1, 1));
+        setDisplayMonth(new Date(
+            displayMonth.getFullYear(), 
+            displayMonth.getMonth() + 1, 
+            1
+        ));
     };
 
-    const calendarDays = useMemo(() => {
-        const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
-        const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
+    const handleDayPress = (dateObj, isPast) => {
+        if (isPast) return;
         
-        const days = [];
+        const formatted = formatDateToStandard(dateObj);
+        onSelectDate(formatted);
+    };
+
+    const calendarMatrix = useMemo(() => {
+        const year = displayMonth.getFullYear();
+        const month = displayMonth.getMonth();
         
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            days.push(null);
+        const daysInMonth = getDaysInMonth(year, month);
+        const firstDay = getFirstDayOfMonth(year, month);
+
+        let matrix = [];
+        let currentWeek = [];
+
+        for (let i = 0; i < firstDay; i++) {
+            currentWeek.push(null);
         }
-        
+
         for (let i = 1; i <= daysInMonth; i++) {
-            days.push(i);
+            currentWeek.push(new Date(year, month, i));
+            
+            if (currentWeek.length === 7) {
+                matrix.push(currentWeek);
+                currentWeek = [];
+            }
         }
-        return days;
-    }, [displayYear, displayMonth]);
 
-    const formatToMatchData = (year, month, day) => {
-        const shortMonths = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-        ];
-        return `${shortMonths[month]} ${day}, ${year}`;
-    };
+        if (currentWeek.length > 0) {
+            while (currentWeek.length < 7) {
+                currentWeek.push(null);
+            }
+            matrix.push(currentWeek);
+        }
+
+        return matrix;
+    }, [displayMonth]);
 
     return (
-        <View style={styles.calendarContainer}>
+        <View style={styles.container}>
             
-            <View style={styles.calendarHeader}>
-                <TouchableOpacity 
-                    onPress={handlePrevMonth} 
-                    style={styles.navButton}
-                    activeOpacity={0.7}
-                >
-                    <CustomIcon 
-                        library="Feather" 
-                        name="chevron-left" 
-                        size={24} 
-                        color={Colors.TEXT_PRIMARY} 
-                    />
-                </TouchableOpacity>
-
-                <CustomText 
-                    variant="h2" 
-                    style={styles.monthTitle}
-                >
-                    {monthName} {displayYear}
+            <TouchableOpacity 
+                style={[
+                    styles.dropdownButton, 
+                    isExpanded && styles.dropdownActive
+                ]} 
+                onPress={() => setIsExpanded(!isExpanded)}
+                activeOpacity={0.8}
+            >
+                <CustomText variant="body" style={styles.dropdownText}>
+                    {selectedDate || 'Select a Date'}
                 </CustomText>
+                
+                <CustomIcon 
+                    library="Ionicons" 
+                    name="calendar-outline" 
+                    size={20} 
+                    color={Colors.TEXT_SECONDARY} 
+                />
+            </TouchableOpacity>
 
-                <TouchableOpacity 
-                    onPress={handleNextMonth} 
-                    style={styles.navButton}
-                    activeOpacity={0.7}
-                >
-                    <CustomIcon 
-                        library="Feather" 
-                        name="chevron-right" 
-                        size={24} 
-                        color={Colors.TEXT_PRIMARY} 
-                    />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.daysOfWeekRow}>
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, idx) => (
-                    <CustomText 
-                        key={idx} 
-                        variant="caption" 
-                        style={styles.dayOfWeekText}
-                    >
-                        {day}
-                    </CustomText>
-                ))}
-            </View>
-
-            <View style={styles.grid}>
-                {calendarDays.map((dayNum, index) => {
+            {isExpanded && (
+                <View style={styles.calendarCard}>
                     
-                    const fullDateString = dayNum ? formatToMatchData(displayYear, displayMonth, dayNum) : null;
-                    const cellDate = dayNum ? new Date(displayYear, displayMonth, dayNum) : null;
-                    
-                    const isAvailable = fullDateString ? uniqueDates.includes(fullDateString) : false;
-                    const isSelected = selectedDate === fullDateString;
-                    const isToday = dayNum === currentDay && displayMonth === currentMonth && displayYear === currentYear;
-                    
-                    const isPast = cellDate ? cellDate < todayDate : false;
-                    
-                    const isExpiredOffer = isAvailable && isPast;
-                    const isActiveOffer = isAvailable && !isPast;
-
-                    return (
-                        <View 
-                            key={index} 
-                            style={styles.cellContainer}
-                        >
-                            {dayNum ? (
-                                <TouchableOpacity
-                                    style={[
-                                        styles.dayCircle,
-                                        isToday && !isSelected && !isActiveOffer && styles.todayDay, 
-                                        isActiveOffer && !isSelected && styles.availableDay, 
-                                        isExpiredOffer && !isSelected && styles.expiredDay,
-                                        isSelected && styles.selectedDay,
-                                        isSelected && isPast && styles.selectedExpiredDay
-                                    ]}
-                                    onPress={() => onSelectDate(fullDateString)}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomText 
-                                        variant="body"
-                                        style={[
-                                            styles.dayText,
-                                            isToday && !isSelected && !isActiveOffer && styles.todayDayText,
-                                            isActiveOffer && !isSelected && styles.availableDayText, 
-                                            isExpiredOffer && !isSelected && styles.expiredDayText,
-                                            isSelected && styles.selectedDayText,
-                                            isSelected && isPast && styles.selectedExpiredDayText
-                                        ]}
-                                    >
-                                        {dayNum}
-                                    </CustomText>
-                                    
-                                    {isActiveOffer && !isSelected && (
-                                        <View style={styles.indicatorDot} />
-                                    )}
-                                    
-                                    {isExpiredOffer && !isSelected && (
-                                        <View style={[styles.indicatorDot, styles.expiredIndicatorDot]} />
-                                    )}
-                                </TouchableOpacity>
-                            ) : null}
+                    <View style={styles.headerRow}>
+                        <CustomText variant="subtitle" style={styles.monthTitle}>
+                            {monthNames[displayMonth.getMonth()]} {displayMonth.getFullYear()}
+                        </CustomText>
+                        
+                        <View style={styles.controlsWrapper}>
+                            <TouchableOpacity 
+                                onPress={handlePrevMonth} 
+                                style={styles.controlButton}
+                            >
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevron-left" 
+                                    size={20} 
+                                    color={Colors.TEXT_PRIMARY} 
+                                />
+                            </TouchableOpacity>
+                            
+                            <View style={styles.controlDivider} />
+                            
+                            <TouchableOpacity 
+                                onPress={handleNextMonth} 
+                                style={styles.controlButton}
+                            >
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevron-right" 
+                                    size={20} 
+                                    color={Colors.TEXT_PRIMARY} 
+                                />
+                            </TouchableOpacity>
                         </View>
-                    );
-                })}
-            </View>
+                    </View>
+
+                    <View style={styles.weekDaysRow}>
+                        {weekDays.map((day, index) => (
+                            <CustomText 
+                                key={index} 
+                                variant="caption" 
+                                style={styles.weekDayText}
+                            >
+                                {day}
+                            </CustomText>
+                        ))}
+                    </View>
+
+                    <View style={styles.grid}>
+                        {calendarMatrix.map((week, weekIdx) => (
+                            <View 
+                                key={`week-${weekIdx}`} 
+                                style={styles.weekRow}
+                            >
+                                {week.map((dateObj, dayIdx) => {
+                                    
+                                    if (!dateObj) {
+                                        return (
+                                            <View 
+                                                key={`empty-${dayIdx}`} 
+                                                style={styles.dayCell} 
+                                            />
+                                        );
+                                    }
+
+                                    const cellDateNormalized = new Date(dateObj);
+                                    cellDateNormalized.setHours(0, 0, 0, 0);
+                                    const isPast = cellDateNormalized < normalizedToday;
+
+                                    const formattedString = formatDateToStandard(dateObj);
+                                    
+                                    const isSelected = formattedString === selectedDate;
+                                    const isToday = formattedString === todayFormatted;
+                                    const hasOffer = uniqueDates.includes(formattedString);
+
+                                    return (
+                                        <TouchableOpacity 
+                                            key={formattedString}
+                                            style={[
+                                                styles.dayCell, 
+                                                isSelected && styles.dayCellSelected,
+                                                isPast && styles.dayCellPast
+                                            ]}
+                                            onPress={() => handleDayPress(dateObj, isPast)}
+                                            activeOpacity={isPast ? 1 : 0.7}
+                                        >
+                                            <CustomText 
+                                                variant="body" 
+                                                style={[
+                                                    styles.dayText,
+                                                    isToday && !isSelected && styles.dayTextToday,
+                                                    isSelected && styles.dayTextSelected,
+                                                    !hasOffer && !isSelected && !isToday && styles.dayTextMuted,
+                                                    isPast && styles.dayTextPast
+                                                ]}
+                                            >
+                                                {dateObj.getDate()}
+                                            </CustomText>
+
+                                            {hasOffer && !isSelected && (
+                                                <View style={[
+                                                    styles.offerDot,
+                                                    isPast && styles.offerDotPast
+                                                ]} />
+                                            )}
+                                            
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        ))}
+                    </View>
+
+                </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    calendarContainer: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+    container: {
+        width: '100%',
+        marginBottom: 16,
     },
-    
-    calendarHeader: {
+    dropdownButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        backgroundColor: Colors.WHITE,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    dropdownActive: {
+        borderColor: Colors.PRIMARY,
+    },
+    dropdownText: {
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+    },
+    calendarCard: {
+        marginTop: 8,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 16,
     },
     monthTitle: {
-        marginBottom: 0,
         fontWeight: 'bold',
-        color: Colors.PRIMARY,
+        fontSize: 16,
     },
-    navButton: {
-        padding: 8, 
-    },
-    
-    daysOfWeekRow: {
+    controlsWrapper: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 8,
-    },
-    dayOfWeekText: {
-        width: 32, 
-        textAlign: 'center',
-        fontWeight: '600',
-    },
-    
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    cellContainer: {
-        width: '14.28%', 
-        aspectRatio: 1, 
-        justifyContent: 'center',
         alignItems: 'center',
-        padding: 2,
-    },
-    dayCircle: {
-        width: 36, 
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'transparent',
-    },
-    dayText: {
-        color: Colors.TEXT_PRIMARY, 
-    },
-    
-    todayDay: {
+        backgroundColor: '#F8F9FA',
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        backgroundColor: Colors.BACKGROUND,
     },
-    todayDayText: {
-        fontWeight: 'bold',
+    controlButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    controlDivider: {
+        width: 1,
+        height: 16,
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    weekDaysRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    weekDayText: {
+        width: 36,
+        textAlign: 'center',
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+        fontSize: 12,
+    },
+    grid: {
+        flexDirection: 'column',
+    },
+    weekRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
+    
+    dayCell: {
+        width: 36,
+        height: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 18,
+        position: 'relative',
+    },
+    dayCellSelected: {
+        backgroundColor: Colors.PRIMARY,
+    },
+    dayCellPast: {
+        opacity: 0.4,
+    },
+    
+    dayText: {
+        fontSize: 14,
+        fontWeight: '600',
         color: Colors.TEXT_PRIMARY,
     },
-    availableDay: {
-        backgroundColor: Colors.PRIMARY, 
+    dayTextSelected: {
+        color: Colors.WHITE,
     },
-    availableDayText: {
-        color: Colors.WHITE, 
-        fontWeight: 'bold',
-    },
-    expiredDay: {
-        backgroundColor: 'transparent', 
-    },
-    expiredDayText: {
-        color: Colors.TEXT_SECONDARY, 
-    },
-    selectedDay: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 2,
-        borderColor: Colors.PRIMARY,
-    },
-    selectedDayText: {
+    dayTextToday: {
         color: Colors.PRIMARY,
-        fontWeight: 'bold',
+        fontWeight: '900',
     },
-    selectedExpiredDay: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 2,
-        borderColor: Colors.GRAY_MEDIUM,
+    dayTextMuted: {
+        color: Colors.GRAY_MEDIUM,
+        fontWeight: '400',
     },
-    selectedExpiredDayText: {
+    dayTextPast: {
         color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
     },
-    indicatorDot: {
+    
+    offerDot: {
+        position: 'absolute',
+        bottom: 4,
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: Colors.WHITE,
-        position: 'absolute',
-        bottom: 4, 
+        backgroundColor: Colors.PRIMARY,
     },
-    expiredIndicatorDot: {
+    offerDotPast: {
         backgroundColor: Colors.GRAY_MEDIUM,
     }
 });
