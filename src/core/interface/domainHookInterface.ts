@@ -8,11 +8,11 @@ export interface IBaseDomainHook{
     error: string | null;
 }
 
-export interface TEdit {
+export interface TEdit<T> {
     /**Name of the group for nested objects within an entity.
      * Set to 'root' if the property is on the root level
      */
-    section: string;
+    section: keyof T | 'root';
     
     /**Name of the property to be edited*/
     id: string;
@@ -58,5 +58,5 @@ export interface IBaseWriteHook<T> {
     /** Use to edit the properties of an object. 
      * Must include the property name, to be saved value, 
      * and the section name if within a nested group */
-    onUpdatePress: (params: TEdit) => void;
+    onUpdatePress: (params: TEdit<T>) => void;
 }

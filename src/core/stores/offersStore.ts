@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import { Store } from "../interface/storeInterface";
-import { Business } from "../models/Business/Business";
-import { IBusinessSummary } from "../models/Business/Business.types";
 import { Offer } from "../models/Offer/Offer";
 import { OfferRepository } from "../repositories/offerRepository";
-import { editProperty } from "../utility/editProperty";
 
 type OfferParams = {
     id: string;
@@ -161,13 +158,14 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 trailOffers: offers,
                 isLoading: false
             })  
+
             console.log(get().trailOffers);
         } catch (err) {
             console.error((err as Error).message);
             set({
                 error: (err as Error).message || 'Failed writing offer',
                 isLoading: false
-            })
+            });
         }
     },
 
@@ -182,13 +180,13 @@ export const useOffersStore = create<OfferState>((set, get) => ({
             return;
         }
 
-        // if(!businessId){
-        //     set({ 
-        //         error: 'No Business ID selected',
-        //         isLoading: false,
-        //     });
-        //     return;
-        // }
+        if(!businessId){
+            set({ 
+                error: 'No Business ID selected',
+                isLoading: false,
+            });
+            return;
+        }
 
         try {
             const data = get().data;
@@ -226,17 +224,10 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         }
     },
 
-    create: async (data: Business) => {
+    create: async (offer: Offer) => {
         set({isLoading: true, error: null});
 
         try {
-            const business: IBusinessSummary = {
-                id: data.id || '',
-                name: data.name 
-            }
-
-            const offer = new Offer({...get().current, business});
-    
             const newOffer = await OfferRepository.write(offer);
 
             set(state => {
@@ -304,12 +295,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
     },
 
     edit: (property) => {
-        set((state) => {
-            if(!state.current) return state;
-            return {
-                current: editProperty(state.current, property)
-            }
-        })
+        
     },
 
     reset: () => set(init),

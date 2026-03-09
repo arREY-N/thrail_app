@@ -10,7 +10,7 @@ export interface IWriteComponentParams {
     informationSet: IFormField<any>[],
     object: any,
     optionSet?: { [key: string]: any[] | string[]; },
-    onEditProperty: (params: TEdit) => void
+    onEditProperty: (params: TEdit<any>) => void
 }
 
 const WriteComponent = (props: IWriteComponentParams) => {    

@@ -1,10 +1,11 @@
+import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
 import { create } from "zustand";
 
-interface BookState {
+interface BookState extends BaseStore<Booking>{
     loadUserBookings: (id: string) => Promise<void>;
-    create: (...args: any) => void;
+    create: (...args: any) => Promise<boolean>;
     checkBookings: (id: string) => boolean;
     cancelBooking: (booking: Booking, businessId: string) => Promise<void>;
     reset: () => void;
@@ -15,6 +16,8 @@ interface BookState {
 }
 
 const init = {
+    data: [],
+    current: new Booking(),
     userBookings: [],
     error: null,
     isLoading: false,
@@ -24,6 +27,23 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
     ...init,
 
     reset: () => set(init),
+
+    fetchAll: async () => {
+
+    },
+
+    refresh: async () => {
+
+    },
+
+    load: async () => {
+
+    },
+
+    delete: async () => {
+
+    },
+
 
     loadUserBookings: async (userId: string) => {
         // if(get().userBookings?.length > 0 && get().userBookings[0].userId === userId) return;
@@ -67,11 +87,13 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
                     isLoading: false,
                 }
             })
+            return true;
         } catch (err) {
             set({
                 error: (err as Error).message || 'Failed creating booking',
                 isLoading: false,
             })
+            return false;
         }
     },
 

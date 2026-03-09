@@ -1,18 +1,18 @@
+import { BookingStatus, IBooking, IBookingDB } from "@/src/core/models/Booking/Booking.types";
+import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
+import { IOfferInfo } from "@/src/core/models/Offer/Offer.types";
+import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
+import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
+import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
+import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
-import { toDate } from "../../utility/date";
-import { IBusinessSummary } from "../Business/Business.types";
-import { IOfferInfo } from "../Offer/Offer.types";
-import { IPaymentSummary } from "../Payment/Payment.types";
-import { ITrailSummary } from "../Trail/Trail.types";
-import { IUserSummary } from "../User/User.types";
-import { BookingStatus, IBooking, IBookingDB } from "./Booking.types";
 
 export class Booking implements IBooking {
     [key: string]: any;
     [immerable] = true
     id: string = '';
-    status: BookingStatus = 'reserved';
+    status: BookingStatus = 'pending';
     payment: IPaymentSummary<Date>[] = [];
     cancelledBy: string | null = null;
     offer: Pick<IOfferInfo<Date>, "date" | "price"> = {
@@ -34,6 +34,10 @@ export class Booking implements IBooking {
         id: "",
         name: ""
     };
+    emergencyContact: IEmergencyContact = {
+        name: "",
+        contactNumber: "",
+    }
     
     constructor(init?: Partial<Booking>){
         Object.assign(this, init)
@@ -73,7 +77,8 @@ export class Booking implements IBooking {
             payment: (this.payment || []).map(p => ({
                 ...p,
                 date: Timestamp.fromDate(p.date),
-            }))
+            })),
+            emergencyContact: this.emergencyContact,
         }
 
         return mapped;

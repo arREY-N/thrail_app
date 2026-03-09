@@ -16,6 +16,11 @@ export interface IPreference {
     province: string[];
 }
 
+export interface IEmergencyContact {
+    name: string;
+    contactNumber: string;
+}
+
 export interface IUserBase<T> extends IUserSummary{
     address: string;
     birthday: T;
@@ -25,6 +30,7 @@ export interface IUserBase<T> extends IUserSummary{
     phoneNumber: string;
     preferences: IPreference;
     role: Role;
+    emergencyContact: IEmergencyContact;
 }
 
 export interface IUserDB extends IUserBase<Timestamp | FieldValue> {}
