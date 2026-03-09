@@ -2,7 +2,7 @@ import LoadingScreen from "@/src/app/loading";
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
-import BookingScreen from "@/src/features/Book/screens/BookingScreen";
+import BookingScreen from "@/src/features/Book/screens/ReservationFlow/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
@@ -28,9 +28,12 @@ export default function listOffer(){
 
     return (        
         <BookingScreen 
-            offers={trailOffers}
+            // TODO: Swap DUMMY_OFFERS back to trailOffers
+            // offers={trailOffers}
+            offers={DUMMY_OFFERS}
             booking={booking}
             error={offerError || bookError}
+            onSetOffer={onSetOffer}
             onBookNowPress={onCompleteOffer}
             onBackPress={onBackPress}
             onUpdatePress={onUpdatePress}
@@ -81,7 +84,6 @@ const DUMMY_OFFERS = [
             'Organizer may cancel if 12 participants are not met.'
         ]
     },
-
     {
         id: 'offer-2',
         price: 400,
@@ -92,7 +94,6 @@ const DUMMY_OFFERS = [
         description: 'Standard hike package. Good for beginners.',
         business: { name: 'Local Guide Coop' }
     },
-
     {
         id: 'offer-3',
         price: 850,
@@ -103,7 +104,6 @@ const DUMMY_OFFERS = [
         description: 'Premium package (This event has already concluded).',
         business: { name: 'Peak Explorers' }
     },
-
     {
         id: 'offer-4',
         price: 650,
@@ -114,7 +114,6 @@ const DUMMY_OFFERS = [
         description: 'Weekend joiner hike (This event has already concluded).',
         business: { name: 'Weekend Warriors' }
     },
-
     {
         id: 'offer-5',
         price: 500,
@@ -125,7 +124,6 @@ const DUMMY_OFFERS = [
         description: 'Early morning hike to catch the sea of clouds.',
         business: { name: 'Cloud Chasers' }
     },
-
     {
         id: 'offer-6',
         price: 1200,
