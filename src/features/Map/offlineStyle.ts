@@ -8,6 +8,7 @@ export const buildOfflineStyle = (
     protomaps: {
       type: "vector",
       url: offlineTileUrl,
+      maxzoom: 14,
       attribution: "© OpenStreetMap contributors",
     },
   },

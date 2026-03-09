@@ -1,11 +1,9 @@
-import MapLibreGL, { UserTrackingMode } from "@maplibre/maplibre-react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import MapLibreGL from "@maplibre/maplibre-react-native";
 import { useAssets } from "expo-asset";
-import * as Location from "expo-location";
-import * as Network from "expo-network";
-import React, { useEffect, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
-  Linking,
   Platform,
   StatusBar,
   StyleSheet,
@@ -13,12 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
+import { useHikerGPS } from "./useHikerGPS";
 
 // Load trail data
 const rawMapData = require("../../assets/map_data/trails.json");
-
 const trailsGeoJSON = {
   type: "FeatureCollection",
   features: rawMapData.geometries.map((geometry: any) => ({
@@ -31,75 +30,33 @@ const trailsGeoJSON = {
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 const TrailMap = () => {
-  const [permissionGranted, setPermissionGranted] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const { userLocation, permissionGranted, isOnline, userHeading } =
+    useHikerGPS();
+
   const [forceOffline, setForceOffline] = useState(false);
-
-  // State to hold the active coordinates for your Firebase database
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(
-    null,
-  );
-
+  const cameraRef = useRef<any>(null);
   const [assets] = useAssets([
     require("../../assets/tiles/thrail-offline-map.pmtiles"),
   ]);
 
-  useEffect(() => {
-    let locationSubscription: Location.LocationSubscription | null = null;
-
-    (async () => {
-      // 1. Ask for permission with the strict Settings fallback
-      let { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Location Required",
-          "Thrail needs your GPS to track your hike. Please enable it in your phone settings.",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() },
-          ],
-        );
-        return;
-      }
-
-      setPermissionGranted(true);
-
-      // 2. The Mountain-Optimized Tracker for Database Logging
-      locationSubscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 5, // MAGIC NUMBER: Only update if they walk 5 meters
-          timeInterval: 5000, // Check no faster than every 5 seconds
-        },
-        (location) => {
-          const currentCoords: [number, number] = [
-            location.coords.longitude,
-            location.coords.latitude,
-          ];
-          console.log("Hiker moved 5m! New Coords:", currentCoords);
-          setUserLocation(currentCoords);
-
-          // TODO: Write your Firebase logic here to save currentCoords to the database!
-        },
+  const centerOnUser = () => {
+    if (userLocation && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: userLocation,
+        zoomLevel: 16,
+        animationDuration: 1000,
+      });
+    } else {
+      Alert.alert(
+        "Waiting for GPS",
+        "We haven't found your exact location yet.",
       );
-
-      // 3. Initial Network Check
-      const networkState = await Network.getNetworkStateAsync();
-      setIsOnline(!!networkState.isInternetReachable);
-    })();
-
-    // Cleanup the GPS watcher when they leave the map screen
-    return () => {
-      if (locationSubscription) {
-        locationSubscription.remove();
-      }
-    };
-  }, []);
+    }
+  };
 
   if (!assets || !assets[0]?.localUri) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.centered as any}>
         <Text>Loading Map Data...</Text>
       </View>
     );
@@ -109,24 +66,25 @@ const TrailMap = () => {
   const actuallyOffline = forceOffline || !isOnline;
 
   return (
-    <View style={styles.page}>
-      {/* Network Status / Test Toggle Bar */}
+    <View style={styles.page as any}>
+      {/* --- STATUS BAR --- */}
       <TouchableOpacity
         style={[
-          styles.statusBar,
+          styles.statusBar as any,
           { backgroundColor: actuallyOffline ? "#d9534f" : "#5cb85c" },
         ]}
         onPress={() => setForceOffline(!forceOffline)}
       >
-        <Text style={styles.statusText}>
+        <Text style={styles.statusText as any}>
           {actuallyOffline
             ? "📶 OFFLINE MODE (Tap to switch)"
             : "🌐 ONLINE: MapTiler (Tap to simulate Offline)"}
         </Text>
       </TouchableOpacity>
 
+      {/* --- MAIN MAP --- */}
       <MapLibreGL.MapView
-        style={styles.map}
+        style={styles.map as any}
         logoEnabled={true}
         attributionEnabled={true}
         mapStyle={
@@ -136,46 +94,95 @@ const TrailMap = () => {
         }
       >
         <MapLibreGL.Camera
-          zoomLevel={16}
+          ref={cameraRef}
+          defaultSettings={{
+            zoomLevel: 16,
+            centerCoordinate: userLocation || undefined,
+          }}
           minZoomLevel={10}
-          maxZoomLevel={16}
+          maxZoomLevel={20}
           animationMode="flyTo"
-          animationDuration={2000}
-          followUserLocation={true}
-          followUserMode={UserTrackingMode.Follow}
+          animationDuration={500}
         />
 
-        {/* --- CUSTOM THESIS TRAILS --- */}
         <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
           <MapLibreGL.LineLayer
             id="layer-hiking"
-            style={
-              {
-                lineColor: "#228B22",
-                lineWidth: 4,
-                lineCap: "round",
-                lineJoin: "round",
-              } as any
-            }
+            style={mapStyles.trailLine as any}
           />
         </MapLibreGL.ShapeSource>
 
-        {permissionGranted && (
-          <MapLibreGL.UserLocation
-            visible={true}
-            animated={true}
-            showsUserHeadingIndicator={true}
-            minDisplacement={5}
-          />
+        {/* --- CUSTOM COMPASS BLUE DOT --- */}
+        {userLocation && permissionGranted && (
+          <MapLibreGL.MarkerView
+            id="user-location-marker"
+            coordinate={userLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            {/* The wrapper view that literally rotates based on the compass! */}
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                transform: [{ rotate: `${userHeading}deg` }], // Spins the icon!
+              }}
+            >
+              {/* The Pointer Triangle (The "Front") */}
+              <View
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeftWidth: 6,
+                  borderRightWidth: 6,
+                  borderBottomWidth: 12,
+                  borderLeftColor: "transparent",
+                  borderRightColor: "transparent",
+                  borderBottomColor: "#0084FF", // Matches the blue dot
+                  marginBottom: -4, // Pulls the triangle down to connect to the dot
+                  zIndex: 2,
+                }}
+              />
+
+              {/* The Classic Blue Dot */}
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: "#0084FF",
+                  borderWidth: 3,
+                  borderColor: "#FFFFFF",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 3,
+                  elevation: 5,
+                  zIndex: 3,
+                }}
+              />
+            </View>
+          </MapLibreGL.MarkerView>
         )}
       </MapLibreGL.MapView>
+
+      {/* --- FLOATING BUTTON --- */}
+      <TouchableOpacity
+        style={styles.recenterButton as any}
+        onPress={centerOnUser}
+      >
+        <MaterialIcons name="my-location" size={24} color="#333" />
+      </TouchableOpacity>
     </View>
   );
 };
 
+// --- STYLES ---
 const styles = StyleSheet.create({
   page: { flex: 1, height: "100%", width: "100%" },
   map: { flex: 1 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   statusBar: {
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
     paddingBottom: 12,
@@ -185,6 +192,44 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   statusText: { color: "white", fontWeight: "bold", fontSize: 14 },
+  recenterButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    backgroundColor: "white",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
 });
+
+const mapStyles = {
+  trailLine: {
+    lineColor: "#228B22",
+    lineWidth: 4,
+    lineCap: "round",
+    lineJoin: "round",
+  },
+  userHalo: {
+    circleRadius: 14,
+    circleColor: "#FFFFFF",
+    circleOpacity: 0.5,
+    circlePitchAlignment: "map",
+  },
+  userDot: {
+    circleRadius: 8,
+    circleColor: "#0084FF",
+    circleStrokeWidth: 2,
+    circleStrokeColor: "#FFFFFF",
+    circlePitchAlignment: "map",
+  },
+};
 
 export default TrailMap;
