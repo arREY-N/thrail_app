@@ -134,7 +134,7 @@ const TACScreen = ({
                             <View style={styles.instructionBox}>
                                 <CustomIcon library="Feather" name="info" size={14} color={Colors.TEXT_SECONDARY} />
                                 <CustomText style={styles.instructionText}>
-                                    Please read through both documents to unlock the agreement.
+                                    Please read through both the Terms and Privacy tabs above to enable the agreement checkbox.
                                 </CustomText>
                             </View>
                         ) : null}
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F3F4F6',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 8,
