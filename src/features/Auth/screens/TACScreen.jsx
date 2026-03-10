@@ -129,6 +129,16 @@ const TACScreen = ({
                     </View>
 
                     <View style={styles.agreementContainer}>
+                        
+                        {!canAccept ? (
+                            <View style={styles.instructionBox}>
+                                <CustomIcon library="Feather" name="info" size={14} color={Colors.TEXT_SECONDARY} />
+                                <CustomText style={styles.instructionText}>
+                                    Please read through both documents to unlock the agreement.
+                                </CustomText>
+                            </View>
+                        ) : null}
+
                         <TouchableOpacity 
                             style={[styles.checkboxRow, !canAccept && { opacity: 0.5 }]} 
                             onPress={() => {
@@ -256,11 +266,21 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: 'hidden', 
     },
-    scrollReminder: {
+    
+    instructionBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        gap: 8,
+    },
+    instructionText: {
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        textAlign: 'center',
-        marginTop: 8,
         fontStyle: 'italic',
     },
 
@@ -311,4 +331,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TACScreen;
+export default TACScreen; 
