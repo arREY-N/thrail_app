@@ -1,6 +1,6 @@
+import TrailMap from "@/src/features/Map/TrailMap";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import TrailMap from "../../Map/TrailMap";
 
 const NavigationScreen: React.FC = () => {
   return (

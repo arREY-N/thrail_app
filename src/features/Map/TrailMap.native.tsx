@@ -96,13 +96,13 @@ const TrailMap = () => {
         <MapLibreGL.Camera
           ref={cameraRef}
           defaultSettings={{
-            zoomLevel: 16,
-            centerCoordinate: userLocation || undefined,
+            zoomLevel: 16
           }}
           minZoomLevel={10}
           maxZoomLevel={20}
           animationMode="flyTo"
           animationDuration={500}
+          centerCoordinate= {userLocation || undefined}
         />
 
         <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
