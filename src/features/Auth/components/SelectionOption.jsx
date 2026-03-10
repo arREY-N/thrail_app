@@ -14,6 +14,7 @@ const SelectionOption = ({
     label, 
     selected, 
     onPress,
+    style,
     children
 }) => {
 
@@ -21,7 +22,8 @@ const SelectionOption = ({
         <TouchableOpacity 
             style={[
                 styles.container, 
-                selected && styles.selectedContainer 
+                selected && styles.selectedContainer,
+                style
             ]} 
             onPress={onPress}
             activeOpacity={0.7}
