@@ -6,19 +6,16 @@ import {
 } from 'react-native';
 
 import LoadingScreen from '@/src/app/loading';
-import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
 
+import CustomTextInput from '@/src/components/CustomTextInput';
 import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
 import { Pressable, Text } from 'react-native';
 
 export default function applyBusiness(){
-    const { role } = useAuthHook();
-
     const { onBackPress } = useAppNavigation();
+    
     const {
         object,
         options,
@@ -31,7 +28,8 @@ export default function applyBusiness(){
     if(!object) return <LoadingScreen/>
 
     return (
-        <ApplyScreen
+        // <ApplyScreen
+        <TESTAPPLY
             information={information}
             application={object}
             system={error}
@@ -49,34 +47,68 @@ const TESTAPPLY = ({
     onEditProperty,
     onApplyPress,
     options,
-    error
+    system
 }) => {
-    const root = information.filter(i => i.section === 'root');
-    const owner = information.filter(i => i.section === 'owner');
-    const permits = information.filter(i => i.section === 'permits');
-
     return(
         <ScrollView style={styles.scrollContent}>
-            <WriteComponent
-                informationSet={root}
-                object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
-                />
-            <WriteComponent
-                informationSet={owner}
-                object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
-                />
-            <WriteComponent
-                informationSet={permits}
-                object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
+            <CustomTextInput 
+                label={'Email'} 
+                placeholder={'business@example.com'} 
+                value={application.owner.email} 
+                onChangeText={(text) => onEditProperty({
+                    section: 'owner',
+                    id: 'email',
+                    value: text
+                })} 
+                secureTextEntry={undefined} 
+                keyboardType={undefined} 
+                isPasswordVisible={undefined} 
+                onTogglePassword={undefined} 
+                style={undefined} 
+                icon={undefined} 
+                prefix={undefined} 
+                children={undefined}            
             />
-            
-            {error && <Text>{error}</Text>}
+
+            <CustomTextInput 
+                label={'Name'} 
+                placeholder={'Owner name'} 
+                value={application.owner.name} 
+                onChangeText={(text) => onEditProperty({
+                    section: 'owner',
+                    id: 'name',
+                    value: text
+                })} 
+                secureTextEntry={undefined} 
+                keyboardType={undefined} 
+                isPasswordVisible={undefined} 
+                onTogglePassword={undefined} 
+                style={undefined} 
+                icon={undefined} 
+                prefix={undefined} 
+                children={undefined}            
+            />
+
+            <CustomTextInput 
+                label={'Address'} 
+                placeholder={'Office Address'} 
+                value={application.address} 
+                onChangeText={(text) => onEditProperty({
+                    section: 'root',
+                    id: 'address',
+                    value: text
+                })} 
+                secureTextEntry={undefined} 
+                keyboardType={undefined} 
+                isPasswordVisible={undefined} 
+                onTogglePassword={undefined} 
+                style={undefined} 
+                icon={undefined} 
+                prefix={undefined} 
+                children={undefined}            
+            />
+
+            {system && <Text>{system}</Text>}
             <Pressable onPress={() => onApplyPress()}>
                 <Text>Apply</Text>
             </Pressable>

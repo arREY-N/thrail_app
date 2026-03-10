@@ -55,7 +55,7 @@ export type TestWriteOfferParams = {
     trails: Trail[];
     onSubmitOffer: () => Promise<void>;
     onDeleteOffer: (id: string) => Promise<void>;
-    onUpdateOffer: (params: TEdit) => void;
+    onUpdateOffer: (params: TEdit<Offer>) => void;
     onSetTrail: (trail: Trail) => void;
 }
 
