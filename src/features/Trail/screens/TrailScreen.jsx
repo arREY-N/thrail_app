@@ -47,23 +47,23 @@ const TrailScreen = ({
         return images[imageIndex];
     }, [trail]);
 
-    const name = trail?.name || "Unnamed Trail";
+    const name = trail?.general?.name || "Unnamed Trail";
 
-    const location = Array.isArray(trail?.province) 
-        ? trail.province.join(', ') 
-        : (trail?.province || "Unknown Location");  
+    const location = Array.isArray(trail?.general?.province) 
+        ? trail.general.province.join(', ') 
+        : (trail?.general?.province || "Unknown Location");  
 
-    const address = trail?.address || location;
-    const rating = trail?.score || "0.0"; 
-    const reviewsCount = trail?.reviews || "0";
+    const address = trail?.general?.address || location;
+    const rating = trail?.general?.rating || "0.0"; 
+    const reviewsCount = trail?.general?.reviewCount || "0";
 
     const stats = {
-        distance: trail?.length ? `${trail.length} km` : "--",
-        time: trail?.hours ? `${trail.hours} hr` : "--",
-        elevation: trail?.masl ? `${trail.masl} m` : "--",
+        distance: trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--",
+        time: trail?.difficulty?.hours ? `${trail.difficulty.hours} hr` : "--",
+        elevation: trail?.geography?.masl ? `${trail.geography.masl} m` : "--",
     };
 
-    return (
+return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
                 <CustomIcon 
@@ -180,39 +180,41 @@ const TrailScreen = ({
 };
 
 const TrailContent = ({ activeTab, stats, trail, location }) => {
+    const isFeatureEnabled = (nestedValue, flatValue) => {
+        if (nestedValue === true || String(nestedValue).toLowerCase() === 'true') return true;
+        if (flatValue === true || String(flatValue).toLowerCase() === 'true') return true;
+        return false;
+    };
+
+    const getArray = (nestedValue, flatValue) => {
+        if (Array.isArray(nestedValue) && nestedValue.length > 0) return nestedValue;
+        if (Array.isArray(flatValue) && flatValue.length > 0) return flatValue;
+        return [];
+    };
+
+    const qualityList = getArray(trail?.difficulty?.quality, trail?.quality);
+    const diffPoints = getArray(trail?.difficulty?.difficulty_points, trail?.difficulty_points);
+    const viewpoints = getArray(trail?.tourism?.viewpoint, trail?.viewpoint);
+    const circularity = trail?.difficulty?.circularity || trail?.circularity || '';
+
     switch (activeTab) {
         case 'Details':
             return (
                 <View style={styles.tabContent}>
                     <View style={styles.statsRow}>
                         <View style={styles.statItem}>
-                            <CustomText variant="body" style={styles.statValue}>
-                                {stats.distance}
-                            </CustomText>
-
-                            <CustomText variant="caption" style={styles.statLabel}>
-                                Distance
-                            </CustomText>
+                            <CustomText variant="body" style={styles.statValue}>{stats.distance}</CustomText>
+                            <CustomText variant="caption" style={styles.statLabel}>Distance</CustomText>
                         </View>
 
                         <View style={styles.statItem}>
-                            <CustomText variant="body" style={styles.statValue}>
-                                {stats.time}
-                            </CustomText>
-
-                            <CustomText variant="caption" style={styles.statLabel}>
-                                Est. Time
-                            </CustomText>
+                            <CustomText variant="body" style={styles.statValue}>{stats.time}</CustomText>
+                            <CustomText variant="caption" style={styles.statLabel}>Est. Time</CustomText>
                         </View>
 
                         <View style={styles.statItem}>
-                            <CustomText variant="body" style={styles.statValue}>
-                                {stats.elevation}
-                            </CustomText>
-
-                            <CustomText variant="caption" style={styles.statLabel}>
-                                Elevation
-                            </CustomText>
+                            <CustomText variant="body" style={styles.statValue}>{stats.elevation}</CustomText>
+                            <CustomText variant="caption" style={styles.statLabel}>Elevation</CustomText>
                         </View>
                     </View>
 
@@ -222,10 +224,10 @@ const TrailContent = ({ activeTab, stats, trail, location }) => {
                         </CustomText>
 
                         <CustomText style={styles.descriptionText}>
-                            This is a {formatList(trail?.quality) || 'scenic'} {trail?.circularity || ''} trail located in {location}.
+                            This is a {formatList(qualityList) || 'scenic'} {circularity} trail located in {location}.
                             {"\n\n"}
-                            {trail?.difficulty_points && trail.difficulty_points.length > 0 
-                                ? `Expect features such as ${formatList(trail.difficulty_points)}.` 
+                            {diffPoints.length > 0 
+                                ? `Expect features such as ${formatList(diffPoints)}.` 
                                 : 'A great trail for outdoor enthusiasts.'}
                         </CustomText>
                     </View>
@@ -236,18 +238,18 @@ const TrailContent = ({ activeTab, stats, trail, location }) => {
                         </CustomText>
 
                         <View style={styles.tagContainer}>
-                            {trail?.shelter && <Tag label="Shelter" />}
-                            {trail?.clean_water && <Tag label="Drinking Water" />}
-                            {trail?.resting && <Tag label="Resting Area" />}
-                            {trail?.information_board && <Tag label="Info Board" />}
-                            {trail?.community && <Tag label="Community" />}
+                            {isFeatureEnabled(trail?.tourism?.shelter, trail?.shelter) && <Tag label="Shelter" />}
+                            {isFeatureEnabled(trail?.tourism?.clean_water, trail?.clean_water) && <Tag label="Drinking Water" />}
+                            {isFeatureEnabled(trail?.tourism?.resting, trail?.resting) && <Tag label="Resting Area" />}
+                            {isFeatureEnabled(trail?.tourism?.information_board, trail?.information_board) && <Tag label="Info Board" />}
+                            {isFeatureEnabled(trail?.tourism?.community, trail?.community) && <Tag label="Community" />}
                             
-                            {trail?.river && <Tag label="River" />}
-                            {trail?.lake && <Tag label="Lake" />}
-                            {trail?.waterfall && <Tag label="Waterfall" />}
-                            {trail?.monument && <Tag label="Monument" />}
+                            {isFeatureEnabled(trail?.tourism?.river, trail?.river) && <Tag label="River" />}
+                            {isFeatureEnabled(trail?.tourism?.lake, trail?.lake) && <Tag label="Lake" />}
+                            {isFeatureEnabled(trail?.tourism?.waterfall, trail?.waterfall) && <Tag label="Waterfall" />}
+                            {isFeatureEnabled(trail?.tourism?.monument, trail?.monument) && <Tag label="Monument" />}
                             
-                            {Array.isArray(trail?.viewpoint) && trail.viewpoint.map((vp, index) => (
+                            {viewpoints.map((vp, index) => (
                                 <Tag key={`vp-${index}`} label={vp} />
                             ))}
                         </View>
@@ -258,16 +260,8 @@ const TrailContent = ({ activeTab, stats, trail, location }) => {
             return (
                 <View style={styles.tabContent}>
                     <View style={[styles.placeholderBox, { height: 150 }]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="cloud" 
-                            size={32} 
-                            color={Colors.GRAY_MEDIUM} 
-                        />
-
-                        <CustomText style={styles.placeholderText}>
-                            Weather Forecast Widget
-                        </CustomText>
+                        <CustomIcon library="Feather" name="cloud" size={32} color={Colors.GRAY_MEDIUM} />
+                        <CustomText style={styles.placeholderText}>Weather Forecast Widget</CustomText>
                     </View>
                 </View>
             );
@@ -275,16 +269,8 @@ const TrailContent = ({ activeTab, stats, trail, location }) => {
             return (
                 <View style={styles.tabContent}>
                     <View style={[styles.placeholderBox, { height: 100 }]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="message-square" 
-                            size={32} 
-                            color={Colors.GRAY_MEDIUM} 
-                        />
-                        
-                        <CustomText style={styles.placeholderText}>
-                            User Reviews List
-                        </CustomText>
+                        <CustomIcon library="Feather" name="message-square" size={32} color={Colors.GRAY_MEDIUM} />
+                        <CustomText style={styles.placeholderText}>User Reviews List</CustomText>
                     </View>
                 </View>
             );

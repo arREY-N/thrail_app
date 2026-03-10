@@ -136,34 +136,21 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 };
 
 const getMountainData = (item) => {
-    const name = item.general?.name || item.name || "Unnamed Mountain";
+    const name = item?.general?.name || "Unnamed Mountain";
 
     let location = "Unknown Location";
-    if (item.address) {
-        location = item.address;
-    } else if (item.general?.address) {
-        location = item.general.address;
-    } else if (item.province) {
-        location = Array.isArray(item.province) ? item.province[0] : item.province;
-    } else if (item.general?.province && Array.isArray(item.general.province) && item.general.province.length > 0) {
+    if (item?.general?.province && item.general.province.length > 0) {
         location = item.general.province[0];
-    } else if (item.location) {
-        location = item.location;
+    } else if (item?.general?.address) {
+        location = item.general.address;
     }
     
-    const rawLength = item.length || item.difficulty?.length;
-    const displayLength = rawLength ? `${rawLength} km` : "--";
+    const displayLength = item?.difficulty?.length ? `${item.difficulty.length} km` : "--";
+    const displayElev = item?.geography?.masl ? `${item.geography.masl} masl` : "--";
+    const displayTime = item?.difficulty?.hours ? `${item.difficulty.hours} h` : "--";
+    const score = item?.general?.rating || "N/A";
 
-    const rawElev = item.masl || item.geographical?.masl || item.difficulty?.gain || item.elevation;
-    const displayElev = rawElev ? `${rawElev} masl` : "--";
-
-    const rawTime = item.hours || item.difficulty?.hours || item.duration;
-    const displayTime = rawTime ? `${rawTime} h` : "--";
-
-    const score = item.score || item.rating || "5.0" || "N/A";
-
-    const rawTemp = item.weather?.temperature || item.temperature || "26" || "N/A"; 
-    const displayTemp = rawTemp ? `${rawTemp}°C` : null;
+    const displayTemp = item?.weather?.temperature ? `${item.weather.temperature}°C` : null;
 
     const images = [
         require('@/src/assets/images/MT1.jpg'),
@@ -173,7 +160,7 @@ const getMountainData = (item) => {
         require('@/src/assets/images/MT5.jpg'),
     ];
     
-    const uniqueString = item.id ? String(item.id) : name;
+    const uniqueString = item?.id ? String(item.id) : name;
 
     let hash = 0;
     for (let i = 0; i < uniqueString.length; i++) {
