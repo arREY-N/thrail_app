@@ -40,7 +40,9 @@ const PreferenceScreen = ({
         ? currentAnswer.length > 0 
         : currentAnswer !== null && currentAnswer !== undefined && currentAnswer !== '';
 
-    const progressPercentage = ((stepIndex + 1) / currentFlow.length) * 100;
+    const progressPercentage = stepIndex === 0 
+        ? (1 / FLOW_YES.length) * 100 
+        : ((stepIndex + 1) / currentFlow.length) * 100;
 
     const handleSelect = (value) => {
         setAnswer(currentStepKey, value);
