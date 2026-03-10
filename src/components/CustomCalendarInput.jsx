@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -203,7 +204,13 @@ const CustomCalendarInput = ({
                 ]} 
                 onPress={handleOpen}
             >
-                <View pointerEvents="none" style={styles.textInputWrapper}>
+                <View 
+                    style={[
+                        styles.textInputWrapper, 
+                        Platform.OS === 'web' && { pointerEvents: 'none' }
+                    ]}
+                    {...(Platform.OS !== 'web' ? { pointerEvents: 'none' } : {})}
+                >
                     <TextInput 
                         style={styles.inputText}
                         value={getDisplayDate()}
