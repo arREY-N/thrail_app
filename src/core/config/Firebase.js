@@ -32,7 +32,9 @@ const getEmulatorHost = () => {
   return "localhost";
 };
 
-if (__DEV__) {
+export const USE_EMULATORS = true;
+
+if (__DEV__ && USE_EMULATORS) {
   const emulatorHost = getEmulatorHost();
   console.log(`🚀 Connecting to Firebase at: ${emulatorHost}`);
   connectFirestoreEmulator(db, emulatorHost, 8080);

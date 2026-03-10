@@ -17,7 +17,7 @@ export default function applyBusiness(){
     const { onBackPress } = useAppNavigation();
     
     const {
-        object,
+        object: application,
         options,
         information,
         error,
@@ -25,17 +25,17 @@ export default function applyBusiness(){
         onUpdatePress,
     } = useApplyWrite();
 
-    if(!object) return <LoadingScreen/>
+    if(!application) return <LoadingScreen/>
 
     return (
         // <ApplyScreen
         <TESTAPPLY
             information={information}
-            application={object}
+            application={application}
+            options={options}
             system={error}
-            onEditProperty={onUpdatePress}
-            provinces={options.provinces}
-            onApplyPress={onSubmitPress}
+            onUpdatePress={onUpdatePress}
+            onSubmitPress={onSubmitPress}
             onBackPress={onBackPress}
         />
     )
