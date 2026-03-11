@@ -26,11 +26,13 @@ export default function listOffer(){
 
     if(trailIsLoading || bookIsLoading) return <LoadingScreen/>;
 
+    console.log('Trail offers: ', trailOffers);
     return (        
         <BookingScreen 
             // TODO: Swap DUMMY_OFFERS back to trailOffers
             // offers={trailOffers}
-            offers={DUMMY_OFFERS}
+            // TODO: offers still not showing
+            offers={trailOffers}
             booking={booking}
             error={offerError || bookError}
             onSetOffer={onSetOffer}
