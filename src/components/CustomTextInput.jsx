@@ -9,6 +9,7 @@ import {
 
 import { Colors } from '@/src/constants/colors';
 
+import CustomCalendarInput from '@/src/components/CustomCalendarInput';
 import CustomDateInput from '@/src/components/CustomDateInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -28,6 +29,8 @@ const CustomTextInput = ({
     iconLibrary = 'Feather', 
     prefix, 
     children,
+    showTodayButton,
+    allowFutureDates,
     ...props
 }) => {
 
@@ -64,6 +67,15 @@ const CustomTextInput = ({
                 > 
                     {children}
                 </CustomDateInput>
+            ) : type === 'calendar' ? (
+                <CustomCalendarInput 
+                    value={value} 
+                    onChangeText={onChangeText}
+                    label={label}
+                    placeholder={placeholder}
+                    showTodayButton={showTodayButton}
+                    allowFutureDates={allowFutureDates}
+                />
             ) : (
                 <>
                     {label && (

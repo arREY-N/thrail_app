@@ -42,7 +42,17 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     placeholder={label}
                                     value={val || ''}
                                     onChangeText={(value: string) => onEditProperty({ section, id, value })}
-                                    style={styles.inputSpacing} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} icon={undefined} prefix={undefined} children={undefined}                                />
+                                    style={styles.inputSpacing}
+                                    secureTextEntry={undefined}
+                                    keyboardType={undefined}
+                                    isPasswordVisible={undefined}
+                                    onTogglePassword={undefined}
+                                    icon={undefined}
+                                    prefix={undefined}
+                                    children={undefined}
+                                    showTodayButton={undefined}
+                                    allowFutureDates={undefined}
+                                    />
                             </View>
                         )
                     }
@@ -112,7 +122,12 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     isPasswordVisible={undefined}
                                     onTogglePassword={undefined}
                                     style={undefined}
-                                    icon={undefined} prefix={undefined} children={undefined}                                />
+                                    icon={undefined}
+                                    prefix={undefined}
+                                    children={undefined}
+                                    showTodayButton={undefined}
+                                    allowFutureDates={undefined}
+                                    />
                             </View>
                         )
                     }
@@ -175,7 +190,12 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 isPasswordVisible={undefined}
                                 onTogglePassword={undefined}
                                 style={undefined}
-                                icon={undefined} prefix={undefined} children={undefined}                            />
+                                icon={undefined}
+                                prefix={undefined}
+                                children={undefined}
+                                showTodayButton={undefined}
+                                allowFutureDates={undefined}
+                                />
                         )
                     }
                 })

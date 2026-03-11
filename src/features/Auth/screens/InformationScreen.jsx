@@ -83,7 +83,9 @@ const InformationScreen = ({
                             placeholder="DD/MM/YYYY"
                             value={birthday}
                             onChangeText={setBirthday}
-                            type="date"
+                            type="calendar"
+                            showTodayButton={false}
+                            allowFutureDates={false}
                         />
 
                         <CustomTextInput
