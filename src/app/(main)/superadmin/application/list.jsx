@@ -2,7 +2,7 @@ import useApply from "@/src/core/hook/apply/useApply";
 import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { formatDate } from "@/src/core/utility/date";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function listApplications(){
     const { role } = useAuthHook();
@@ -27,7 +27,7 @@ const TESTAPPLICATIONLIST = ({
     const rejectedApplication = applications.filter(a => a.status === 'rejected');
 
     return(
-        <View>
+        <ScrollView>
             <Text>APPLICATIONS</Text>
 
             <Text>PENDING APPLICATIONS</Text>
@@ -86,7 +86,7 @@ const TESTAPPLICATIONLIST = ({
                 })
                 : <Text>No pending applications</Text>
             }
-        </View>
+        </ScrollView>
     )
 }
 
