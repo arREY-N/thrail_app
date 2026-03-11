@@ -1,6 +1,6 @@
 // useHikerGPS.ts
+import NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
-import * as Network from "expo-network";
 import { useEffect, useState } from "react";
 import { Alert, Linking } from "react-native";
 
@@ -17,6 +17,11 @@ export const useHikerGPS = () => {
     let locationSubscription: Location.LocationSubscription | null = null;
     let headingSubscription: Location.LocationSubscription | null = null;
 
+    const unsubcribeNetwork =NetInfo.addEventListener((state) => {
+      console.log("Network changed! Is online?", state.isInternetReachable);
+      setIsOnline(!!state.isInternetReachable);
+    });
+    
     (async () => {
       // 1. Permission Check
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -55,10 +60,6 @@ export const useHikerGPS = () => {
         console.log("Compass Angle:", headingObj.magHeading);
         setUserHeading(headingObj.magHeading);
       });
-
-      // 3. Network Check
-      const networkState = await Network.getNetworkStateAsync();
-      setIsOnline(!!networkState.isInternetReachable);
     })();
 
     return () => {
@@ -67,6 +68,7 @@ export const useHikerGPS = () => {
       }
       if (headingSubscription) {
         headingSubscription.remove();
+        unsubcribeNetwork();
       }
     };
   }, []);
