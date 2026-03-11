@@ -3,6 +3,7 @@ import { SignUp } from "@/src/core/models/User/SignUp";
 import { User, userConverter } from "@/src/core/models/User/User";
 import { Role } from "@/src/core/models/User/User.types";
 import { AuthRepository } from "@/src/core/repositories/authRepository";
+import { TESTUSER } from "@/src/core/stores/dummyData";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
@@ -23,7 +24,7 @@ type CustomClaims = {
 };
 
 export interface AuthState {
-  user: FirebaseUser | null;
+  user: FirebaseUser | null | User;
   profile: User | null;
   isLoading: boolean;
   role: Role | null;
@@ -49,8 +50,8 @@ export interface AuthState {
 }
 
 const init = {
-  user: null,
-  profile: null,
+  user: TESTUSER,
+  profile: TESTUSER,
   isLoading: true,
   error: null,
   _unsubscribe: null,

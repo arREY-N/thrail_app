@@ -1,6 +1,7 @@
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { IRecommendedTrail } from '@/src/core/models/Recommendation/Recommendation.types';
 import { TrailRepository } from '@/src/core/repositories/trailRepository';
+import { dummyTrails } from '@/src/core/stores/dummyData';
 import { create } from "zustand";
 import { immer } from 'zustand/middleware/immer';
 import { Trail } from '../models/Trail/Trail';
@@ -18,7 +19,7 @@ export interface TrailState extends BaseStore<Trail> {
 }
 
 const init = {
-    data: [],
+    data: dummyTrails,
     current: null,
     isLoading: true,
     error: null,

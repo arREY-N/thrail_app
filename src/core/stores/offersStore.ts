@@ -1,3 +1,4 @@
+import { dummyOffers } from "@/src/core/stores/dummyData";
 import { create } from "zustand";
 import { Store } from "../interface/storeInterface";
 import { Offer } from "../models/Offer/Offer";
@@ -27,7 +28,7 @@ const OFFER_TEMPLATE = {
 }
 
 const init = {
-    data: [],
+    data: dummyOffers,
     current: null,
     isLoading: false,
     error: null,

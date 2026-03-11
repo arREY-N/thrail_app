@@ -17,7 +17,7 @@ export default function login(){
         error,
         remember,
         reset,
-        onLogIn,
+        //onLogIn,
         onRememberMePress,
         onForgotPassword,
         onGmailLogIn,
@@ -31,6 +31,10 @@ export default function login(){
     // TODO: Remove this when the temp hike screen is done
     const onTempHikePress = () => {
         router.push('/(auth)/tempHike');
+    }
+
+    const onLogIn = () => {
+        router.push('/(tabs)')
     }
 
     return (
