@@ -45,7 +45,7 @@ export default function writeOffer(){
             onUpdateOffer={onUpdatePress}
             onSetTrail={onSetTrail}
         />
-    )
+    ) 
 }
   
 export type TestWriteOfferParams = {
@@ -55,7 +55,7 @@ export type TestWriteOfferParams = {
     trails: Trail[];
     onSubmitOffer: () => Promise<void>;
     onDeleteOffer: (id: string) => Promise<void>;
-    onUpdateOffer: (params: TEdit) => void;
+    onUpdateOffer: (params: TEdit<Offer>) => void;
     onSetTrail: (trail: Trail) => void;
 }
 
@@ -72,23 +72,22 @@ const TESTWRITEOFFER = ({
     return (
         <ScrollView>
             <CustomTextInput 
-                label={'Description'} 
-                placeholder={'Offer description'} 
-                value={offer.description} 
+                label={'Description'}
+                placeholder={'Offer description'}
+                value={offer.description}
                 onChangeText={(text: string) => onUpdateOffer({
                     section: 'root',
                     id: 'description',
                     value: text
-                })} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined}            
-            />
+                })}
+                secureTextEntry={undefined}
+                keyboardType={undefined}
+                isPasswordVisible={undefined}
+                onTogglePassword={undefined}
+                style={undefined}
+                icon={undefined}
+                prefix={undefined}
+                children={undefined} showTodayButton={undefined} allowFutureDates={undefined}            />
 
             <Text>TRAIL: {offer.trail.name}</Text>
             

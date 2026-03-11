@@ -4,10 +4,10 @@ import { Application } from "@/src/core/models/Application/Application";
 import { User } from "@/src/core/models/User/User";
 import { useApplicationsStore } from "@/src/core/stores/applicationsStore";
 import { useAuthStore } from "@/src/core/stores/authStore";
-import setFinalValue from "@/src/core/utility/setFinalValue";
 import { validate } from "@/src/core/utility/validate";
 import { ApplicationUIConfig } from "@/src/fields/applicationFields";
 import { router } from "expo-router";
+import { produce } from "immer";
 import { useEffect, useState } from "react";
 
 export interface IApplyWrite extends IBaseWriteHook<Application> {
@@ -39,7 +39,7 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
                     id: profile?.id || '',
                     name: `${profile?.firstname} ${profile?.lastname}`,
                     email: profile?.email || '',
-                    validId: '',
+                    validId: profile?.validId || '',
                 }
             });
     })
@@ -53,35 +53,24 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
     const options = {
         provinces: [...OPTIONS.provinces],
     }
-    async function onUpdatePress(params: TEdit){
+    async function onUpdatePress(params: TEdit<Application>){
         const { section, id, value } = params;
 
         try {
             if(section !== 'root' && !id)
-                throw new Error(`Missing key for ${section}`);
+                throw new Error(`Missing key for ${String(section)}`);
             
-            const fieldConfig = information.find(f => f.section === section && f.id === id);
-            
-            const finalValue = setFinalValue<Application>({
-                fieldConfig,
-                draft: application,
-                section,
-                id,
-                value,
-            })
-            
-            setApplication(prev => {
-                return section === 'root'
-                    ? new Application({
-                        ...prev,
-                        [id]: finalValue
-                    })
-                    : new Application({
-                        ...prev,
-                        [section]: { ...(prev[section] as object), [id]: finalValue}
-                    })
-            })
 
+            setApplication(prev => 
+                produce(prev, (draft) => {
+
+                    if(section === 'root'){
+                        draft[id] = value;
+                    } else {
+                        draft[section][id] = value;
+                    }
+                })
+            )
         } catch (error) {
             setLocalError(error instanceof Error ? error.message : 'Failed saving trail');   
         }
@@ -90,6 +79,7 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
 
     async function onSubmitPress(){
         try {
+            console.log(application);
             if(!profile) throw new Error('Applicant must be logged in to apply for a business account.') 
                 
             const errors = validate(application, information)
