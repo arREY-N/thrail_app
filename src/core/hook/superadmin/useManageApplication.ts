@@ -51,10 +51,11 @@ export default function useManageApplication(params: UseManageApplicationParams 
             application.status = 'approved';
 
             const business = Business.fromApplication(application);
-    
+
+            const applicationId = application.id;
+            
             const created = await create(business, applicationId);
             
-            console.log(business);
             if(created) {
                 await approveApplication(application.id);
                 router.back();
