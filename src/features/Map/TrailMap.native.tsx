@@ -30,29 +30,18 @@ const trailsGeoJSON = {
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 const TrailMap = () => {
-  const { userLocation, permissionGranted, isOnline, userHeading } =
+  // Notice: We don't need userHeading here anymore! MapLibre handles it natively.
+  const { userLocation, permissionGranted, isOnline, exportHikeData } =
     useHikerGPS();
 
-  const [forceOffline, setForceOffline] = useState(false);
+  const [forceOffline, setForceOffline] = useState(true);
+  // NEW: State to track if the camera should be locked onto the user
+  const [isFollowing, setIsFollowing] = useState(true);
+  const lastZoomRef = useRef<number>(16);
   const cameraRef = useRef<any>(null);
   const [assets] = useAssets([
     require("../../assets/tiles/thrail-offline-map.pmtiles"),
   ]);
-
-  const centerOnUser = () => {
-    if (userLocation && cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: userLocation,
-        zoomLevel: 16,
-        animationDuration: 1000,
-      });
-    } else {
-      Alert.alert(
-        "Waiting for GPS",
-        "We haven't found your exact location yet.",
-      );
-    }
-  };
 
   if (!assets || !assets[0]?.localUri) {
     return (
@@ -61,6 +50,23 @@ const TrailMap = () => {
       </View>
     );
   }
+
+  const centerOnUser = () => {
+    // if (!userLocation) {
+    //   Alert.alert(
+    //     "Waiting for GPS",
+    //     "We haven't found your exact location yet.",
+    //   );
+    //   return;
+    // }
+    cameraRef.current?.setCamera({
+      centerCoordinate: userLocation,
+      zoomLevel: 18,
+      animationMode: "flyTo",
+      animationDuration: 500,
+    });
+    setIsFollowing(true);
+  };
 
   const offlineTileUrl = `pmtiles://${assets[0].localUri}`;
   const actuallyOffline = forceOffline || !isOnline;
@@ -92,17 +98,33 @@ const TrailMap = () => {
             ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string)
             : onlineStyle
         }
+        // NEW: If the user touches the screen to pan, stop following them!
+        onRegionWillChange={(event) => {
+          if (event.properties.isUserInteraction) {
+            const newZoom = event.properties.zoomLevel;
+            const isZoomOnly = Math.abs(newZoom - lastZoomRef.current) > 0.1;
+            lastZoomRef.current = newZoom;
+
+            if (isZoomOnly) {
+              setIsFollowing(false);
+            }
+          }
+        }}
       >
         <MapLibreGL.Camera
           ref={cameraRef}
-          defaultSettings={{
-            zoomLevel: 16
-          }}
+          defaultSettings={{ zoomLevel: 16 }}
           minZoomLevel={10}
           maxZoomLevel={20}
           animationMode="flyTo"
           animationDuration={500}
-          centerCoordinate= {userLocation || undefined}
+          // NEW: Use followUserLocation instead of centerCoordinate!
+          followUserMode={
+            isFollowing
+              ? MapLibreGL.UserTrackingMode.FollowWithHeading
+              : undefined
+          }
+          followUserLocation={isFollowing}
         />
 
         <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
@@ -112,58 +134,14 @@ const TrailMap = () => {
           />
         </MapLibreGL.ShapeSource>
 
-        {/* --- CUSTOM COMPASS BLUE DOT --- */}
-        {userLocation && permissionGranted && (
-          <MapLibreGL.MarkerView
-            id="user-location-marker"
-            coordinate={userLocation}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            {/* The wrapper view that literally rotates based on the compass! */}
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                transform: [{ rotate: `${userHeading}deg` }], // Spins the icon!
-              }}
-            >
-              {/* The Pointer Triangle (The "Front") */}
-              <View
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 6,
-                  borderRightWidth: 6,
-                  borderBottomWidth: 12,
-                  borderLeftColor: "transparent",
-                  borderRightColor: "transparent",
-                  borderBottomColor: "#0084FF", // Matches the blue dot
-                  marginBottom: -4, // Pulls the triangle down to connect to the dot
-                  zIndex: 2,
-                }}
-              />
-
-              {/* The Classic Blue Dot */}
-              <View
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: "#0084FF",
-                  borderWidth: 3,
-                  borderColor: "#FFFFFF",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 3,
-                  elevation: 5,
-                  zIndex: 3,
-                }}
-              />
-            </View>
-          </MapLibreGL.MarkerView>
+        {/* --- NATIVE COMPASS BLUE DOT (Zero Glitching!) --- */}
+        {permissionGranted && (
+          <MapLibreGL.UserLocation
+            visible={true}
+            renderMode={MapLibreGL.UserLocationRenderMode.Native}
+            showsUserHeadingIndicator={true}
+            androidRenderMode="compass" // Adds the smooth directional cone
+          />
         )}
       </MapLibreGL.MapView>
 
@@ -172,7 +150,17 @@ const TrailMap = () => {
         style={styles.recenterButton as any}
         onPress={centerOnUser}
       >
-        <MaterialIcons name="my-location" size={24} color="#333" />
+        {/* NEW: The icon turns Blue when it's actively tracking you, and dark grey when you are panning around */}
+        <MaterialIcons
+          name="my-location"
+          size={24}
+          color={isFollowing ? "#0084FF" : "#333"}
+        />
+      </TouchableOpacity>
+
+      {/* --- EXPORT CSV BUTTON --- */}
+      <TouchableOpacity style={styles.exportButton} onPress={exportHikeData}>
+        <MaterialIcons name="save-alt" size={24} color="#333" />
       </TouchableOpacity>
     </View>
   );
@@ -208,6 +196,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
+  exportButton: {
+    position: "absolute",
+    bottom: 90,
+    right: 20,
+    backgroundColor: "white",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
 });
 
 const mapStyles = {
@@ -216,19 +220,6 @@ const mapStyles = {
     lineWidth: 4,
     lineCap: "round",
     lineJoin: "round",
-  },
-  userHalo: {
-    circleRadius: 14,
-    circleColor: "#FFFFFF",
-    circleOpacity: 0.5,
-    circlePitchAlignment: "map",
-  },
-  userDot: {
-    circleRadius: 8,
-    circleColor: "#0084FF",
-    circleStrokeWidth: 2,
-    circleStrokeColor: "#FFFFFF",
-    circlePitchAlignment: "map",
   },
 };
 
