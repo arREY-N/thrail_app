@@ -52,7 +52,19 @@ const ApplyScreen = ({
     };
 
     const handleLocationSelect = (location) => {
-        onUpdatePress({ section: 'root', id: 'servicedLocation', value: location });
+        const currentLocations = Array.isArray(application?.servicedLocation) 
+            ? application.servicedLocation.flat(Infinity) 
+            : [];
+            
+        let newLocations;
+        
+        if (currentLocations.includes(location)) {
+            newLocations = currentLocations.filter(loc => loc !== location);
+        } else {
+            newLocations = [...currentLocations, location];
+        }
+        
+        onUpdatePress({ section: 'root', id: 'servicedLocation', value: newLocations });
     };
 
     const safeLocations = Array.isArray(application?.servicedLocation) 
