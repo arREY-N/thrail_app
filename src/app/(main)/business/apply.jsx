@@ -51,62 +51,183 @@ const TESTAPPLY = ({
 }) => {
     return(
         <ScrollView style={styles.scrollContent}>
-            <CustomTextInput 
-                label={'Email'} 
-                placeholder={'business@example.com'} 
-                value={application.owner.email} 
-                onChangeText={(text) => onEditProperty({
-                    section: 'owner',
-                    id: 'email',
-                    value: text
-                })} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined}            
-            />
 
-            <CustomTextInput 
-                label={'Name'} 
-                placeholder={'Owner name'} 
-                value={application.owner.name} 
-                onChangeText={(text) => onEditProperty({
-                    section: 'owner',
-                    id: 'name',
-                    value: text
-                })} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined}            
-            />
+            <View>
+                <CustomTextInput 
+                    label={'Business Name'} 
+                    placeholder={'Name of your business'} 
+                    value={application.name} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'root',
+                        id: 'name',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
 
-            <CustomTextInput 
-                label={'Address'} 
-                placeholder={'Office Address'} 
-                value={application.address} 
-                onChangeText={(text) => onEditProperty({
-                    section: 'root',
-                    id: 'address',
-                    value: text
-                })} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined}            
-            />
+                <CustomTextInput 
+                    label={'Address'} 
+                    placeholder={'Office Address'} 
+                    value={application.address} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'root',
+                        id: 'address',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+
+                <CustomTextInput 
+                    label={'Offered Locations'} 
+                    placeholder={'Office Address'} 
+                    value={application.servicedLocation} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'root',
+                        id: 'servicedLocation',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+            </View>
+
+            <View>
+                <CustomTextInput 
+                    label={'Name'} 
+                    placeholder={'Owner name'} 
+                    value={application.owner.name} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'owner',
+                        id: 'name',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+
+                <CustomTextInput 
+                    label={'Email'} 
+                    placeholder={'business@example.com'} 
+                    value={application.owner.email} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'owner',
+                        id: 'email',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+
+                <CustomTextInput 
+                    label={'Valid ID'} 
+                    placeholder={'Government issued ID'} 
+                    value={application.owner.id} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'owner',
+                        id: 'id',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+            </View>
+
+            <View>
+                <CustomTextInput 
+                    label={'BIR'} 
+                    placeholder={'BIR Number'} 
+                    value={application.bir} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'permits',
+                        id: 'bir',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+            
+                <CustomTextInput 
+                    label={'DTI'} 
+                    placeholder={'DTI Number'} 
+                    value={application.dti} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'permits',
+                        id: 'dti',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+            
+                <CustomTextInput 
+                    label={'DENR'} 
+                    placeholder={'DENR Number'} 
+                    value={application.denr} 
+                    onChangeText={(text) => onEditProperty({
+                        section: 'permits',
+                        id: 'denr',
+                        value: text
+                    })} 
+                    secureTextEntry={undefined} 
+                    keyboardType={undefined} 
+                    isPasswordVisible={undefined} 
+                    onTogglePassword={undefined} 
+                    style={undefined} 
+                    icon={undefined} 
+                    prefix={undefined} 
+                    children={undefined}            
+                />
+            </View>
 
             {system && <Text>{system}</Text>}
             <Pressable onPress={() => onApplyPress()}>
