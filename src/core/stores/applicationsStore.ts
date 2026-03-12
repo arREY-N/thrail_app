@@ -137,11 +137,11 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
 
             console.log(application);
 
-            await ApplicationRepository.write(application);
+            const created = await ApplicationRepository.write(application);
                     
             set((state) => {
                 return {
-                    data: [...state.data, application],
+                    data: [...state.data, created],
                     isLoading: false 
                 } 
             })

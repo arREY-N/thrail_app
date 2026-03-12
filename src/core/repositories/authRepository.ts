@@ -1,5 +1,6 @@
 import { auth, db } from '@/src/core/config/Firebase';
 import { getAuthErrorMessage } from '@/src/core/error/autherror';
+import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, } from 'firebase/auth';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -27,7 +28,7 @@ class AuthRepositoryImpl {
                 throw new Error(`${unavailable.join(', ')} already in use`);
         } catch (err) { 
             console.error(err);
-            throw new Error(getAuthErrorMessage(err));
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
     
@@ -55,7 +56,7 @@ class AuthRepositoryImpl {
             return user;
         } catch (err){
             console.error(err);
-            throw new Error(getAuthErrorMessage(err));
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
 
     }
@@ -69,7 +70,7 @@ class AuthRepositoryImpl {
             );
         } catch (err) {
             console.error(err);
-            throw new Error(getAuthErrorMessage(err));
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
 }

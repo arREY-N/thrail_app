@@ -45,11 +45,11 @@ class ApplicationRepositoryImpl implements ApplicationRepository{
                 throw new Error(`Application is ${app?.data().status}`);
             }
 
-            data.id = docref.id;
+            const newApplication = new Application({ ...data, id: docref.id });
 
-            await setDoc(docref, data, {merge: true});
+            await setDoc(docref, newApplication, {merge: true});
         
-            return data;
+            return newApplication;
         } catch (err) {
             if(err instanceof Error) throw err;
             throw new Error('Failed creating application');
