@@ -121,7 +121,7 @@ const TrailMap = () => {
           // NEW: Use followUserLocation instead of centerCoordinate!
           followUserMode={
             isFollowing
-              ? MapLibreGL.UserTrackingMode.FollowWithHeading
+              ? MapLibreGL.UserTrackingMode.FollowWithCourse
               : undefined
           }
           followUserLocation={isFollowing}
