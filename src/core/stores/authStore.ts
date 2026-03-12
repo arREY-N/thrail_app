@@ -1,9 +1,9 @@
-import { auth, db } from "@/src/core/config/Firebase";
+import { auth, db, NO_AUTH } from "@/src/core/config/Firebase";
 import { SignUp } from "@/src/core/models/User/SignUp";
 import { User, userConverter } from "@/src/core/models/User/User";
 import { Role } from "@/src/core/models/User/User.types";
 import { AuthRepository } from "@/src/core/repositories/authRepository";
-import { TESTUSER } from "@/src/core/stores/dummyData";
+import { TESTADMIN, TESTSUPERADMIN, TESTUSER } from "@/src/core/stores/dummyData";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
@@ -50,8 +50,8 @@ export interface AuthState {
 }
 
 const init = {
-  user: TESTUSER,
-  profile: TESTUSER,
+  user: null,
+  profile: null,
   isLoading: true,
   error: null,
   _unsubscribe: null,
@@ -151,6 +151,45 @@ export const useAuthStore = create<AuthState>()(
     logIn: async (email: string, password: string) => {
       set({ isChecking: true, error: null });
       try {
+
+        if(NO_AUTH) {
+          if(email === 'user'){
+            console.log('Logged in user');
+            set({
+              user: TESTUSER,
+              profile: TESTUSER,
+              role: TESTUSER.role,
+              businessId: TESTUSER.businessId,
+              isChecking: false,
+              error: null,
+            })
+            return;
+          }
+          if(email === 'admin'){
+            set({
+              user: TESTADMIN,
+              profile: TESTADMIN,
+              role: TESTADMIN.role,
+              businessId: TESTADMIN.id,
+              isChecking: false,
+              error: null,
+            })
+            return;
+          }
+          if(email === 'superadmin'){
+            set({
+              user: TESTSUPERADMIN,
+              profile: TESTSUPERADMIN,
+              role: TESTSUPERADMIN.role,
+              businessId: TESTSUPERADMIN.businessId,
+              isChecking: false,
+              error: null,
+            })
+            return;
+          }
+        }
+
+
         await AuthRepository.logIn({ email, password });
         set({ isChecking: false, error: null });
       } catch (err) {

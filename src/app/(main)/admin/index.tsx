@@ -21,6 +21,8 @@ export default function adminHome(){
     const {
         businessAccount,
     } = useAdmin({ businessId })
+
+    console.log(isLoading, businessAccount, businessId, profile, role)
     
     if(isLoading || !businessAccount || !businessId || !profile || !role) 
         return <LoadingScreen/> 
@@ -90,18 +92,16 @@ const TESTHOME =(params: screenParams) => {
             </View>
             
             <CustomButton 
-                title={'Manage Admins'} 
-                onPress={onManageAdminsPress} 
-                style={undefined} 
-                textStyle={undefined}
-            />
+                title={'Manage Admins'}
+                onPress={onManageAdminsPress}
+                style={undefined}
+                textStyle={undefined} children={undefined}            />
             
             <CustomButton 
-                title={'Manage Offers'} 
-                onPress={onManageOffersPress} 
-                style={undefined} 
-                textStyle={undefined}
-            />
+                title={'Manage Offers'}
+                onPress={onManageOffersPress}
+                style={undefined}
+                textStyle={undefined} children={undefined}            />
             
         </View>
     )

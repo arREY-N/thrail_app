@@ -17,7 +17,7 @@ export default function login(){
         error,
         remember,
         reset,
-        //onLogIn,
+        onLogIn,
         onRememberMePress,
         onForgotPassword,
         onGmailLogIn,
@@ -33,9 +33,7 @@ export default function login(){
         router.push('/(auth)/tempHike');
     }
 
-    const onLogIn = () => {
-        router.push('/(tabs)')
-    }
+    
 
     return (
         <View style={{ flex: 1 }}>

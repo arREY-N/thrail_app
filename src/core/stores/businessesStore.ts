@@ -1,8 +1,10 @@
+import { NO_AUTH } from "@/src/core/config/Firebase";
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
 import { Business } from "@/src/core/models/Business/Business";
 import { User } from "@/src/core/models/User/User";
 import { BusinessRepository } from "@/src/core/repositories/businessRepository";
+import { TESTBUSINESS } from "@/src/core/stores/dummyData";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -92,6 +94,13 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         if(!id){
             set({ current: new Business() })
             return;
+        }
+
+        if(NO_AUTH){
+            set({
+                current: TESTBUSINESS,
+                isLoading: false,
+            })
         }
 
         const data = get().data;        

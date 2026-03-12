@@ -1,3 +1,4 @@
+import { NO_AUTH } from "@/src/core/config/Firebase";
 import { dummyOffers } from "@/src/core/stores/dummyData";
 import { create } from "zustand";
 import { Store } from "../interface/storeInterface";
@@ -229,7 +230,20 @@ export const useOffersStore = create<OfferState>((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const newOffer = await OfferRepository.write(offer);
+
+            let newOffer = offer;
+
+            if(!NO_AUTH){
+                console.log('!no auth')
+                newOffer = await OfferRepository.write(offer);
+            } 
+
+            if(NO_AUTH){
+                console.log('no auth')
+                newOffer = new Offer({...newOffer, id: new Date().toISOString()})
+            }
+
+            console.log(newOffer);
 
             set(state => {
                 const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);

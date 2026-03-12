@@ -1,3 +1,4 @@
+import { Business } from "@/src/core/models/Business/Business";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { Trail } from "@/src/core/models/Trail/Trail";
@@ -15,6 +16,51 @@ export const TESTUSER = new User({
     role: 'user',
 })
 
+export const TESTADMIN = new User({
+    id: 'test-admin',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    email: 'admin@email.com',
+    firstname: 'Test',
+    lastname: 'Admin',
+    username: 'testadmin',
+    onBoardingComplete: true,
+    role: 'admin',
+})
+
+export const TESTBUSINESS = new Business({
+    id: 'test-admin',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    active: true,
+    name: 'Test Admin Outdoors',
+    establishedOn: new Date('2020-01-01'),
+    address: '123 Trail Street, Manila',
+    servicedLocation: ['Cavite', 'Batangas', 'Laguna'],
+    owner: {
+        id: 'test-admin',
+        name: 'Test Admin',
+        email: 'admin@email.com',
+        validId: '',
+    },
+    permits: {
+        bir: 'BIR-2020-001',
+        denr: 'DENR-2020-001',
+        dti: 'DTI-2020-001',
+    },
+})
+
+export const TESTSUPERADMIN = new User({
+    id: 'test-superadmin',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    email: 'superadmin@email.com',
+    firstname: 'Test',
+    lastname: 'Super Admin',
+    username: 'testsuperadmin',
+    onBoardingComplete: true,
+    role: 'superadmin',
+})
 
 export const dummyTrails: Trail[] = [
   new Trail({

@@ -1,4 +1,6 @@
+import { NO_AUTH } from "@/src/core/config/Firebase";
 import { useAuthStore } from "@/src/core/stores/authStore";
+import { router } from "expo-router";
 
 export function useAuthHook(){
     const role = useAuthStore(s => s.role);
@@ -9,7 +11,7 @@ export function useAuthHook(){
     const businessId = useAuthStore(s => s.businessId);
     const remember = useAuthStore(s => s.remember);
     const reset = useAuthStore(s => s.reset);
-    const onLogIn = useAuthStore(s => s.logIn);
+    const onLogInPress = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
     const onForgotPassword = useAuthStore(s => s.forgotPassword);
     const onGmailLogIn = useAuthStore(s => s.gmailLogIn)
@@ -20,6 +22,14 @@ export function useAuthHook(){
 
     const onSignOutPress = () => {
         signOut(); 
+    }
+
+    const onLogIn = (email: string, password: string) => {
+        onLogInPress(email, password);
+        if(NO_AUTH){
+            router.replace('/(tabs)')
+
+        }
     }
    
     return {
