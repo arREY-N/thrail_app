@@ -17,14 +17,14 @@ export const buildOfflineStyle = (
     {
       id: "background",
       type: "background",
-      paint: { "background-color": "#F2EFE9" },
+      paint: { "background-color": "#F8F4F0" },
     },
     {
       id: "earth",
       type: "fill",
       source: "protomaps",
       "source-layer": "earth",
-      paint: { "fill-color": "#EAE6DB" },
+      paint: { "fill-color": "#F2EBE5" },
     },
 
     // 2. DETAILED LANDUSE & NATURAL (Forests, Scrub, Sand, Parks)
@@ -34,7 +34,7 @@ export const buildOfflineStyle = (
       source: "protomaps",
       "source-layer": "natural",
       filter: ["in", "pmap:kind", "wood", "forest", "scrub"],
-      paint: { "fill-color": "#C1D5A5", "fill-opacity": 0.7 },
+      paint: { "fill-color": "#C3E6C4", "fill-opacity": 0.8 },
     },
     {
       id: "landuse-park",
@@ -42,7 +42,7 @@ export const buildOfflineStyle = (
       source: "protomaps",
       "source-layer": "landuse",
       filter: ["in", "pmap:kind", "park", "nature_reserve", "pitch"],
-      paint: { "fill-color": "#D3E4BE" },
+      paint: { "fill-color": "#D8F1B9" },
     },
     {
       id: "natural-sand",
@@ -50,7 +50,7 @@ export const buildOfflineStyle = (
       source: "protomaps",
       "source-layer": "natural",
       filter: ["==", "pmap:kind", "beach"],
-      paint: { "fill-color": "#F1EEDB" },
+      paint: { "fill-color": "#F6E9CD" },
     },
 
     // 3. WATER FEATURES
@@ -59,14 +59,22 @@ export const buildOfflineStyle = (
       type: "fill",
       source: "protomaps",
       "source-layer": "water",
-      paint: { "fill-color": "#8AB4F8" }, // Richer MapTiler blue
+      filter: [
+        "all",
+        ["!in", "pmap:kind", "wetland", "basin", "ditch", "drain", "playa", "playa_lake", "puddle"],
+        ["!in", "natural", "wetland", "marsh", "mud", "bog", "swamp"],
+        ["!in", "water", "fish_pond", "salt_pond", "basin", "wetland", "marsh", "wastewater", "aquaculture"],
+        ["!in", "landuse", "aquaculture", "basin", "salt_pond"]
+      ],
+      paint: { "fill-color": "#A0C8F0" }, 
     },
     {
       id: "waterway",
       type: "line",
       source: "protomaps",
       "source-layer": "waterway",
-      paint: { "line-color": "#8AB4F8", "line-width": 1.5 },
+      filter: ["!in", "pmap:kind", "ditch", "drain"],
+      paint: { "line-color": "#A0C8F0", "line-width": 1.5 },
     },
 
     // 4. BOUNDARIES
@@ -88,7 +96,7 @@ export const buildOfflineStyle = (
       type: "fill",
       source: "protomaps",
       "source-layer": "buildings",
-      paint: { "fill-color": "#D6D1C7", "fill-opacity": 0.6 },
+      paint: { "fill-color": "#E5E1D8", "fill-opacity": 0.8 },
     },
 
     // 6. DETAILED ROADS & TRAILS
@@ -127,7 +135,7 @@ export const buildOfflineStyle = (
       source: "protomaps",
       "source-layer": "roads",
       filter: ["in", "pmap:kind", "major_road", "medium_road"],
-      paint: { "line-color": "#FEF0C2", "line-width": 2 },
+      paint: { "line-color": "#FDE293", "line-width": 2 },
     },
     // Fourth: Thick bright orange inner line for highways
     {
@@ -136,7 +144,7 @@ export const buildOfflineStyle = (
       source: "protomaps",
       "source-layer": "roads",
       filter: ["==", "pmap:kind", "highway"],
-      paint: { "line-color": "#FAD47A", "line-width": 2.5 },
+      paint: { "line-color": "#F7A85C", "line-width": 2.5 },
     },
     // Fifth: The brown dashed lines for hiking trails and footpaths
     {
@@ -146,9 +154,9 @@ export const buildOfflineStyle = (
       "source-layer": "roads",
       filter: ["in", "pmap:kind", "path", "track", "footway", "pedestrian"],
       paint: {
-        "line-color": "#9E7B5A",
-        "line-width": 2,
-        "line-dasharray": [2, 2],
+        "line-color": "#8D5A30",
+        "line-width": 2.5,
+        "line-dasharray": [2, 1.5],
       },
     },
 
@@ -182,14 +190,14 @@ export const buildOfflineStyle = (
       layout: {
         "text-field": "{name}",
         "text-font": ["Noto Sans Bold"],
-        "text-size": 12,
+        "text-size": 11,
         "text-anchor": "top",
         "text-offset": [0, 0.5],
       },
       paint: {
-        "text-color": "#4A6B2A", // Forest green text for outdoor POIs
+        "text-color": "#2F4F2F", // Forest green text for outdoor POIs
         "text-halo-color": "#FFFFFF",
-        "text-halo-width": 1.5,
+        "text-halo-width": 2,
       },
     },
 

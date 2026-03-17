@@ -14,7 +14,8 @@ import {
 
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
-import { useHikerGPS } from "./useHikerGPS";
+import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
+import LoadingScreen from "@/src/app/loading";
 
 // Load trail data
 const rawMapData = require("../../assets/map_data/trails.json");
@@ -31,7 +32,7 @@ const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 const TrailMap = () => {
   // Notice: We don't need userHeading here anymore! MapLibre handles it natively.
-  const { userLocation, permissionGranted, isOnline, exportHikeData } =
+  const { userLocation, walkedPath, permissionGranted, isOnline, exportHikeData } =
     useHikerGPS();
 
   const [forceOffline, setForceOffline] = useState(true);
@@ -44,11 +45,7 @@ const TrailMap = () => {
   ]);
 
   if (!assets || !assets[0]?.localUri) {
-    return (
-      <View style={styles.centered as any}>
-        <Text>Loading Map Data...</Text>
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   const centerOnUser = () => {
@@ -73,20 +70,28 @@ const TrailMap = () => {
 
   return (
     <View style={styles.page as any}>
-      {/* --- STATUS BAR --- */}
-      <TouchableOpacity
-        style={[
-          styles.statusBar as any,
-          { backgroundColor: actuallyOffline ? "#d9534f" : "#5cb85c" },
-        ]}
-        onPress={() => setForceOffline(!forceOffline)}
-      >
-        <Text style={styles.statusText as any}>
-          {actuallyOffline
-            ? "📶 OFFLINE MODE (Tap to switch)"
-            : "🌐 ONLINE: MapTiler (Tap to simulate Offline)"}
-        </Text>
-      </TouchableOpacity>
+      {/* --- FLOATING STATUS PILL --- */}
+      <View style={styles.topControlContainer as any}>
+        <TouchableOpacity
+          style={styles.statusPill as any}
+          onPress={() => setForceOffline(!forceOffline)}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons
+            name={actuallyOffline ? "cloud-off" : "public"}
+            size={18}
+            color={actuallyOffline ? "#d9534f" : "#4A6B2A"}
+          />
+          <Text
+            style={[
+              styles.statusText as any,
+              { color: actuallyOffline ? "#d9534f" : "#4A6B2A" },
+            ]}
+          >
+            {actuallyOffline ? "Offline Mode" : "Online: MapTiler"}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* --- MAIN MAP --- */}
       <MapLibreGL.MapView
@@ -134,6 +139,25 @@ const TrailMap = () => {
           />
         </MapLibreGL.ShapeSource>
 
+        {walkedPath.length > 1 && (
+          <MapLibreGL.ShapeSource
+            id="walkedPathSource"
+            shape={{
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: walkedPath,
+              },
+              properties: {},
+            }}
+          >
+            <MapLibreGL.LineLayer
+              id="layer-walked-path"
+              style={mapStyles.walkedPathStyle as any}
+            />
+          </MapLibreGL.ShapeSource>
+        )}
+
         {/* --- NATIVE COMPASS BLUE DOT (Zero Glitching!) --- */}
         {permissionGranted && (
           <MapLibreGL.UserLocation
@@ -171,15 +195,28 @@ const styles = StyleSheet.create({
   page: { flex: 1, height: "100%", width: "100%" },
   map: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  statusBar: {
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
-    paddingBottom: 12,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  topControlContainer: {
+    position: 'absolute',
+    top: Platform.OS === "android" ? StatusBar.currentHeight! + 10 : 54,
+    width: '100%',
+    alignItems: 'center',
     zIndex: 10,
   },
-  statusText: { color: "white", fontWeight: "bold", fontSize: 14 },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    gap: 8,
+  },
+  statusText: { fontWeight: "700", fontSize: 13, letterSpacing: 0.5 },
   recenterButton: {
     position: "absolute",
     bottom: 30,
@@ -220,6 +257,13 @@ const mapStyles = {
     lineWidth: 4,
     lineCap: "round",
     lineJoin: "round",
+  },
+  walkedPathStyle: {
+    lineColor: "#FF5722", // Deep Vibrant Orange for user's recorded path
+    lineWidth: 4,
+    lineCap: "round",
+    lineJoin: "round",
+    lineDasharray: [2, 2], // Dashed to distinguish from solid map trails
   },
 };
 

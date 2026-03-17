@@ -1,11 +1,4 @@
 import NetInfo from "@react-native-community/netinfo";
-import {
-  documentDirectory,
-  getInfoAsync,
-  readAsStringAsync,
-  StorageAccessFramework,
-  writeAsStringAsync,
-} from "expo-file-system/legacy";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { useEffect, useState } from "react";
@@ -16,35 +9,9 @@ import {
   PermissionsAndroid,
   Platform,
 } from "react-native";
+import { exportHikeData, loadWalkedPathCoords, saveToCSV } from "../../utility/hikeStorage";
 
-const CSV_FILE_URI = (documentDirectory as string) + "thrail_current_hike.csv";
 const LOCATION_TASK = "background-location-task";
-
-// ✅ saveToCSV must be outside the hook so the background task can access it
-const saveToCSV = async (
-  lat: number | string,
-  lon: number | string,
-  alt: number | string,
-  timestamp: string,
-) => {
-  const newRow = `${timestamp},${lat},${lon},${alt}\n`;
-
-  try {
-    const fileInfo = await getInfoAsync(CSV_FILE_URI);
-    let currentContent = "";
-
-    if (!fileInfo.exists) {
-      currentContent = "timestamp,latitude,longitude,altitude\n";
-    } else {
-      currentContent = await readAsStringAsync(CSV_FILE_URI);
-    }
-
-    await writeAsStringAsync(CSV_FILE_URI, currentContent + newRow);
-    console.log("💾 Saved to CSV:", newRow.trim());
-  } catch (error) {
-    console.log("Error saving to CSV:", error);
-  }
-};
 
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
@@ -55,7 +22,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   const lat = location.coords.latitude;
   const lon = location.coords.longitude;
   const alt = location.coords.altitude ?? 0;
-  const timestamp = new Date(location.timestamp).toLocaleString();
+  const timestamp = new Date(location.timestamp).toISOString();
 
   await saveToCSV(lat, lon, alt, timestamp);
 });
@@ -66,38 +33,11 @@ export const useHikerGPS = () => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null,
   );
+  const [walkedPath, setWalkedPath] = useState<[number, number][]>([]);
 
-  const exportHikeData = async () => {
-    try {
-      const fileInfo = await getInfoAsync(CSV_FILE_URI);
-
-      if (!fileInfo.exists) {
-        Alert.alert("No Data", "You haven't recorded any hiking data yet!");
-        return;
-      }
-
-      const permissions =
-        await StorageAccessFramework.requestDirectoryPermissionsAsync();
-
-      if (permissions.granted) {
-        const fileContent = await readAsStringAsync(CSV_FILE_URI);
-
-        const newFileUri = await StorageAccessFramework.createFileAsync(
-          permissions.directoryUri,
-          "thrail_hike_data.csv",
-          "text/csv",
-        );
-
-        await writeAsStringAsync(newFileUri, fileContent);
-        Alert.alert(
-          "Success!",
-          "CSV file saved directly to your phone storage!",
-        );
-      }
-    } catch (error) {
-      console.log("Error saving file to device:", error);
-      Alert.alert("Error", "Could not save the file to your device.");
-    }
+  const loadWalkedPath = async () => {
+    const coords = await loadWalkedPathCoords();
+    setWalkedPath(coords);
   };
 
   useEffect(() => {
@@ -121,9 +61,13 @@ export const useHikerGPS = () => {
         if (nextState === "active") {
           const timestamp = new Date().toISOString();
           saveToCSV("APP_RESUMED", "", "", timestamp);
+          loadWalkedPath(); // Refresh path when returning to app
         }
       },
     );
+
+    // Initial load of the path
+    loadWalkedPath();
 
     (async () => {
       // ✅ Foreground permission
@@ -199,6 +143,7 @@ export const useHikerGPS = () => {
           }
 
           setUserLocation([lon, lat]);
+          setWalkedPath((prev) => [...prev, [lon, lat]]);
           saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
         },
       );
@@ -217,6 +162,7 @@ export const useHikerGPS = () => {
     permissionGranted,
     isOnline,
     userLocation,
+    walkedPath,
     exportHikeData,
   };
 };
