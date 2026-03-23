@@ -5,19 +5,34 @@ import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-export type BookingStatus = 'reserved' | 'approved' | 'paid'  | 'cancelled' | 'refund' | 'reschedule' | 'pending';
+export type BookingStatus = 
+    'for-reservation' | 
+    'for-payment' | 
+    'paid'  |
+    'completed' |
+
+    'for-cancellation' |
+    'cancellation-rejected' | 
+    'refund' | 
+
+    'for-reschedule' |
+    'reschedule-rejected' |
+    'rescheduled';
 
 
 export interface IBookingBase<T> {
     id: string;
+    createdAt: T;
+    updatedAt: T;
     offer: Pick<IOfferInfo<T>, 'date' | 'price'>;
     user: IUserSummary,
     business: IBusinessSummary
     trail: ITrailSummary
     payment: IPaymentSummary<T>[];
     status: BookingStatus
-    cancelledBy: string | null;
     emergencyContact: IEmergencyContact;
+    cancellationReason?: string;
+    cancelledBy?: string;
 }
 
 export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}

@@ -31,14 +31,14 @@ class BookingRepostoryImpl implements BookingRepositoryBase {
 
     async cancelBooking(booking: Booking, businessId: string): Promise<void> {
         try {
-            const approved = booking.status === 'approved' || booking.status === 'paid'
+            const approved = booking.status === 'paid'
 
             if(approved && !businessId) throw new Error('Only business owners can cancel approved or paid bookings'); 
 
             const bookingRef = doc(createBookingCollection(booking.user.id), booking.id);
             
             booking.cancelledBy = businessId;
-            booking.status = 'cancelled';
+            booking.status = 'refund';
 
             await setDoc(bookingRef, booking, {merge: true})
         } catch (err) {
@@ -55,11 +55,14 @@ class BookingRepostoryImpl implements BookingRepositoryBase {
         throw new Error('Method not implemented.');
     }
 
-    async write(data: Booking, ...args: any[]): Promise<Booking> {
+    async write(data: Booking): Promise<Booking> {
         try {
-            const bookingRef = doc(createBookingCollection(data.user.id));
+            const bookingRef = data.id 
+                ? doc(createBookingCollection(data.user.id), data.id)
+                : doc(createBookingCollection(data.user.id));
             
-            data.id = bookingRef.id;
+            if(!data.id)
+                data.id = bookingRef.id;
 
             await setDoc(
                 bookingRef, 
