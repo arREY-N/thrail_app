@@ -154,7 +154,6 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 return;
             }
             
-            console.log(offers);
             set({
                 trailOffers: offers,
                 isLoading: false
@@ -292,6 +291,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 error: (err as Error).message ?? 'Failed to delete offer',
                 isLoading: false
             })
+            throw err;
         }
     },
 
