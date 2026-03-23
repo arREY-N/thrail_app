@@ -16,8 +16,8 @@ export class Booking implements IBooking {
     updatedAt: Date = new Date();
     status: BookingStatus = 'for-reservation';
     payment: IPaymentSummary<Date>[] = [];
-    cancellationReason?: string;
-    cancelledBy?: string;
+    cancellationReason?: string = '';
+    cancelledBy?: string = '';
     offer: Pick<IOfferInfo<Date>, "date" | "price"> = {
         date: new Date(),
         price: 0,
