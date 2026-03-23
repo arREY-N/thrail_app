@@ -110,9 +110,9 @@ class OfferRepositoryImpl implements Repository<Offer>{
     async delete({id, businessId}: OfferParams): Promise<void> {
         try {
             const offerCollection = createOffersCollection(businessId)
-            const docRef = doc(offerCollection, id)
+            const docRef = doc(offerCollection, id);
+
             await deleteDoc(docRef);
-            console.log('Successfully deleted offer: ', id)
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message ?? 'Failed deleting');
