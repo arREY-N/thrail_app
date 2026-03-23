@@ -18,6 +18,7 @@ export interface IBookingBase<T> {
     status: BookingStatus
     cancelledBy: string | null;
     emergencyContact: IEmergencyContact;
+    documents: Record<string, boolean>; // New
 }
 
 export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}

@@ -38,7 +38,8 @@ export class Booking implements IBooking {
         name: "",
         contactNumber: "",
     }
-    
+    documents: Record<string, boolean> = {}; // New
+
     constructor(init?: Partial<Booking>){
         Object.assign(this, init)
     }
@@ -55,6 +56,7 @@ export class Booking implements IBooking {
                 ...p,
                 date: toDate(p.date),
             })),
+            documents: data.documents || {}, // New
         }
 
         return new Booking(mapped);
@@ -79,6 +81,7 @@ export class Booking implements IBooking {
                 date: Timestamp.fromDate(p.date),
             })),
             emergencyContact: this.emergencyContact,
+            documents: this.documents, // New
         }
 
         return mapped;
