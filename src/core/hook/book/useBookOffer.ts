@@ -29,7 +29,7 @@ export interface IUseBookOffer {
     
     onUpdatePress: (params: TEdit<Booking>) => void;
 
-    onCompleteOffer: () => void;
+    onCompleteBook: () => void;
 
     onCancelBookingPress: (booking: Booking, reason: string) => void;
 }
@@ -49,6 +49,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
     const isLoading = useBookingsStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
     const createBooking = useBookingsStore(s => s.create);
+    
     const [localError, setLocalError] = useState<string | null>(null);
 
     const [booking, setBooking] = useState<Booking>(() => {
@@ -84,8 +85,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         });
     });
 
-    
-
     const onSetOffer = (offer: Offer) => {
         try {
             setBooking(prev => 
@@ -113,13 +112,17 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         }
     }
 
-    const onCompleteOffer = () => {
-        console.error('UNIMPLEMENTED FUNCTION')
+    const onCompleteBook = async () => {
+        // TODO add booking information validation 
+        console.log(booking);
+        await createBooking(booking)
+        console.error('UNIMPLEMENTED FUNCTION');
     }
 
     const onUpdatePress = (params: TEdit<Booking>) => {
         const { section, id, value } = params;
 
+        console.log(params);
         try {
             setBooking(prev => 
                 produce(prev, (draft) => {                
@@ -167,7 +170,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         onSetOffer,
         onPayOffer,
         onUpdatePress,
-        onCompleteOffer,
+        onCompleteBook,
         onCancelBookingPress
     }
 }
