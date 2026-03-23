@@ -57,21 +57,29 @@ class BookingRepostoryImpl implements BookingRepositoryBase {
 
     async write(data: Booking): Promise<Booking> {
         try {
+            let booking = data;
+
             const bookingRef = data.id 
                 ? doc(createBookingCollection(data.user.id), data.id)
                 : doc(createBookingCollection(data.user.id));
-            
-            if(!data.id)
-                data.id = bookingRef.id;
 
+            if(!data.id){
+                console.log('Creating new booking with ID: ', bookingRef.id);
+                booking = new Booking({
+                    ...data,
+                    id: bookingRef.id,
+                });
+            }
+            
             await setDoc(
                 bookingRef, 
-                data, 
+                booking, 
                 {merge: true}
             );
 
             return data;
         } catch (err) {
+            console.log('Error writing booking: ', err);
             if(err instanceof Error) throw err
             throw new Error('An error occurred');
         }
