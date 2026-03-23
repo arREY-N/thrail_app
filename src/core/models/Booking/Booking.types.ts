@@ -31,6 +31,7 @@ export interface IBookingBase<T> {
     payment: IPaymentSummary<T>[];
     status: BookingStatus
     emergencyContact: IEmergencyContact;
+    documents: Record<string, boolean>; // New
     cancellationReason?: string;
     cancelledBy?: string;
 }

@@ -12,6 +12,8 @@ export class Offer implements IOffer {
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
     date: Date = new Date();
+    endDate: Date = new Date(); // New
+    duration: string = ''; // New
     description: string = '';
     price: number = 0;
     maxPax: number = 0;
@@ -19,6 +21,8 @@ export class Offer implements IOffer {
     reservedPax: number = 0;
     documents: string[] = [];
     inclusions: string[] = [];
+    thingsToBring: string[] = []; // New
+    reminders: string[] = []; // New
     business: IBusinessSummary = {
         id: "",
         name: ""
@@ -41,12 +45,16 @@ export class Offer implements IOffer {
             business: data.business,
             trail: data.trail,
             date: toDate(data.date),
+            endDate: toDate(data.endDate || data.date), // New
+            duration: data.duration || '', // New
             price: data.price,
             maxPax: data.maxPax,
             minPax: data.minPax,
             reservedPax: data.reservedPax,
             documents: data.documents,
             inclusions: data.inclusions,
+            thingsToBring: data.thingsToBring || [], // New
+            reminders: data.reminders || [], // New
             description: data.description,
             schedule: data.schedule.map(sched => {
                 return {
@@ -74,12 +82,16 @@ export class Offer implements IOffer {
             business: this.business,
             trail: this.trail,
             date: Timestamp.fromDate(this.date),
+            endDate: Timestamp.fromDate(this.endDate), // New
+            duration: this.duration, // New
             price: this.price,
             maxPax: this.maxPax,
             minPax: this.minPax,
             reservedPax: this.reservedPax,
             documents: this.documents,
             inclusions: this.inclusions,
+            thingsToBring: this.thingsToBring, // New
+            reminders: this.reminders, // New
             description: this.description,
             schedule: this.schedule.map(schedule => {
                 return {

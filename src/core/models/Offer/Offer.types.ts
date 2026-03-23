@@ -4,12 +4,16 @@ import { ITrailSummary } from "../Trail/Trail.types";
 
 export interface IOfferInfo<T> {
     date: T,
+    endDate: T; // New
+    duration: string; // New
     price: number,
     maxPax: number,
     minPax: number,
     reservedPax: number,
     documents: string[],
     inclusions: string[],
+    thingsToBring: string[]; // New
+    reminders: string[]; // New
     description: string,
 }
 
