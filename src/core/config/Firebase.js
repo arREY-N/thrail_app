@@ -6,19 +6,13 @@ import { Platform } from "react-native";
 import { persistence } from "./persistence";
 
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_APIKEY || "dummy-api-key",
-  authDomain:
-    process.env.EXPO_PUBLIC_FIREBASE_AUTHDOMAIN ||
-    "dummy-domain.firebaseapp.com",
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECTID || "dummy-project",
-  storageBucket:
-    process.env.EXPO_PUBLIC_FIREBASE_STORAGEBUCKET ||
-    "dummy-bucket.appspot.com",
-  messagingSenderId:
-    process.env.EXPO_PUBLIC_FIREBASE_MESSAGINGSENDERID || "1234567890",
-  appId:
-    process.env.EXPO_PUBLIC_FIREBASE_APPID || "1:1234567890:web:abcdef123456",
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENTID || "G-DUMMY123",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_APIKEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTHDOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECTID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGEBUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGINGSENDERID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APPID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENTID,
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
