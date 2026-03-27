@@ -15,7 +15,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_001",
 		createdAt: new Date("2026-03-01T08:10:00.000Z"),
 		updatedAt: new Date("2026-03-01T09:00:00.000Z"),
-		likes: 14,
+		likes: [reviewUsers[1], reviewUsers[3], reviewUsers[4]],
 		user: toUserSummary(reviewUsers[0]),
 		hike: {
 			...toTrailSummary(dummyTrails[0]),
@@ -34,7 +34,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_002",
 		createdAt: new Date("2026-03-02T06:45:00.000Z"),
 		updatedAt: new Date("2026-03-02T07:10:00.000Z"),
-		likes: 9,
+		likes: [reviewUsers[9], reviewUsers[8]],
 		user: toUserSummary(reviewUsers[1]),
 		hike: {
 			...toTrailSummary(dummyTrails[1]),
@@ -53,7 +53,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_003",
 		createdAt: new Date("2026-03-03T11:20:00.000Z"),
 		updatedAt: new Date("2026-03-03T12:05:00.000Z"),
-		likes: 21,
+		likes: [reviewUsers[1], reviewUsers[2], reviewUsers[3], reviewUsers[4]],
 		user: toUserSummary(reviewUsers[2]),
 		hike: {
 			...toTrailSummary(dummyTrails[2]),
@@ -72,7 +72,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_004",
 		createdAt: new Date("2026-03-04T07:55:00.000Z"),
 		updatedAt: new Date("2026-03-04T08:10:00.000Z"),
-		likes: 7,
+		likes: [reviewUsers[1], reviewUsers[2], reviewUsers[4], reviewUsers[5], reviewUsers[6]],
 		user: toUserSummary(reviewUsers[3]),
 		hike: {
 			...toTrailSummary(dummyTrails[0]),
@@ -91,8 +91,8 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_005",
 		createdAt: new Date("2026-03-05T09:40:00.000Z"),
 		updatedAt: new Date("2026-03-05T10:30:00.000Z"),
-		likes: 18,
-		user: toUserSummary(reviewUsers[4]),
+		likes: [reviewUsers[1], reviewUsers[2], reviewUsers[4], reviewUsers[6], reviewUsers[8]],
+		user: toUserSummary(reviewUsers[5]),
 		hike: {
 			...toTrailSummary(dummyTrails[1]),
 			predictedDifficulty: "Moderate",
@@ -110,7 +110,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_006",
 		createdAt: new Date("2026-03-06T05:25:00.000Z"),
 		updatedAt: new Date("2026-03-06T06:02:00.000Z"),
-		likes: 11,
+		likes: [reviewUsers[2], reviewUsers[4], reviewUsers[6], reviewUsers[8]],
 		user: toUserSummary(reviewUsers[5]),
 		hike: {
 			...toTrailSummary(dummyTrails[2]),
@@ -129,8 +129,8 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_007",
 		createdAt: new Date("2026-03-07T10:05:00.000Z"),
 		updatedAt: new Date("2026-03-07T10:50:00.000Z"),
-		likes: 24,
-		user: toUserSummary(reviewUsers[6]),
+		likes: [reviewUsers[1], reviewUsers[2]],
+		user: toUserSummary(reviewUsers[5]),
 		hike: {
 			...toTrailSummary(dummyTrails[0]),
 			predictedDifficulty: "Moderate",
@@ -148,7 +148,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_008",
 		createdAt: new Date("2026-03-08T08:30:00.000Z"),
 		updatedAt: new Date("2026-03-08T09:10:00.000Z"),
-		likes: 6,
+		likes: [reviewUsers[1], reviewUsers[2], reviewUsers[3], reviewUsers[4], reviewUsers[5]],
 		user: toUserSummary(reviewUsers[7]),
 		hike: {
 			...toTrailSummary(dummyTrails[1]),
@@ -167,7 +167,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_009",
 		createdAt: new Date("2026-03-09T12:15:00.000Z"),
 		updatedAt: new Date("2026-03-09T12:50:00.000Z"),
-		likes: 16,
+		likes: [reviewUsers[0], reviewUsers[1], reviewUsers[2], reviewUsers[9], reviewUsers[8]],
 		user: toUserSummary(reviewUsers[8]),
 		hike: {
 			...toTrailSummary(dummyTrails[2]),
@@ -186,7 +186,7 @@ export const dummyReviews: Review[] = [
 		id: "review_sample_010",
 		createdAt: new Date("2026-03-10T04:40:00.000Z"),
 		updatedAt: new Date("2026-03-10T05:05:00.000Z"),
-		likes: 12,
+		likes: [reviewUsers[7], reviewUsers[1], reviewUsers[3], reviewUsers[5]],
 		user: toUserSummary(reviewUsers[9]),
 		hike: {
 			...toTrailSummary(dummyTrails[0]),
