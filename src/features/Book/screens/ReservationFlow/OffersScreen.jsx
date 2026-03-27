@@ -12,6 +12,29 @@ import StickyFooter from '@/src/features/Book/components/StickyFooter';
 
 import { Colors } from '@/src/constants/colors';
 
+const formatDateToStandard = (dateObj) => {
+    if (!dateObj) return "";
+
+    let d;
+    if (typeof dateObj.toDate === 'function') {
+        d = dateObj.toDate();
+    } 
+    else if (dateObj instanceof Date) {
+        d = dateObj;
+    } 
+    else {
+        d = new Date(dateObj);
+    }
+    if (isNaN(d.getTime())) return "Invalid Date";
+
+    const shortMonths = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    
+    return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
 const OffersScreen = ({ 
     offers = [], 
     selectedOfferId, 
@@ -20,23 +43,17 @@ const OffersScreen = ({
     
     const uniqueDates = useMemo(() => {
         const dates = offers
-            .map(offer => offer.date)
+            .map(offer => formatDateToStandard(offer.date))
             .filter(Boolean);
             
         return [...new Set(dates)];
     }, [offers]);
 
     const getTodayString = () => {
-        const today = new Date();
-        const shortMonths = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-        ];
-        return `${shortMonths[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+        return formatDateToStandard(new Date());
     };
 
     const [selectedDate, setSelectedDate] = useState(getTodayString());
-    
     const [localSelectedId, setLocalSelectedId] = useState(selectedOfferId);
 
     useEffect(() => {
@@ -45,16 +62,14 @@ const OffersScreen = ({
             
             const preSelectedOffer = offers.find(o => o.id === selectedOfferId);
             if (preSelectedOffer && preSelectedOffer.date) {
-                setSelectedDate(preSelectedOffer.date);
+                setSelectedDate(formatDateToStandard(preSelectedOffer.date));
             }
         }
     }, [selectedOfferId, offers]);
 
     const filteredOffers = useMemo(() => {
-        if (!selectedDate) {
-            return [];
-        }
-        return offers.filter(offer => offer.date === selectedDate);
+        if (!selectedDate) return [];
+        return offers.filter(offer => formatDateToStandard(offer.date) === selectedDate); 
     }, [offers, selectedDate]);
 
     const isSelectedDatePast = useMemo(() => {
@@ -77,10 +92,7 @@ const OffersScreen = ({
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.calendarSectionWrapper}>
-                    <CustomText 
-                        variant="h2" 
-                        style={styles.sectionTitle}
-                    >
+                    <CustomText variant="h2" style={styles.sectionTitle}>
                         Select Date
                     </CustomText>
                     
@@ -92,17 +104,14 @@ const OffersScreen = ({
                 </View>
 
                 <View style={styles.offersSection}>
-                    <CustomText 
-                        variant="h2" 
-                        style={styles.sectionTitle}
-                    >
+                    <CustomText variant="h2" style={styles.sectionTitle}>
                         Available Offers
                     </CustomText>
                     
                     {filteredOffers.length > 0 ? (
                         filteredOffers.map((offer) => (
                             <OfferCardItem 
-                                key={offer.id}
+                                key={offer.id} 
                                 offer={offer}
                                 isSelected={localSelectedId === offer.id}
                                 isExpired={isSelectedDatePast}
@@ -117,10 +126,7 @@ const OffersScreen = ({
                         ))
                     ) : (
                         <View style={styles.emptyState}>
-                            <CustomText 
-                                variant="caption" 
-                                color={Colors.TEXT_SECONDARY}
-                            >
+                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
                                 No offers available for this date.
                             </CustomText>
                         </View>

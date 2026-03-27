@@ -21,16 +21,16 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
     const businessAccount = useBusinessesStore(s => s.current);
     
-    const offers = useOffersStore(s => s.data);
+    const offers = useOffersStore(s => s.businessOffers);
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
-
+    const remove = useOffersStore(s => s.delete);
     const create = useOffersStore(s => s.create);
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [offer, setOffer] = useState<Offer>(() => {
         const existing = offers.find(offer => offer.id === offerId);
-
+        
         if(!businessAccount) {
             setLocalError('No business account');
             return new Offer();
@@ -43,7 +43,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
             : new Offer({ business: businessSummary });
     })
 
-    const onUpdatePress = (params: TEdit) => {
+    const onUpdatePress = (params: TEdit<Offer>) => {
         const { section, id, value } = params;
     
         try {
@@ -88,10 +88,15 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
 
     const onRemovePress = async (id: string) => {
-        
-        
-        // remove({id, businessId: businessAccount?.id});
-        // router.back();
+        try {
+            if(!businessId) throw new Error('Business ID missing');
+            if(!id) throw new Error('Offer ID missing');
+
+            remove({ id, businessId });
+            router.back();
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed removing offer')  
+        }
     }
 
     return {

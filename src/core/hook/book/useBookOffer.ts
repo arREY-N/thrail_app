@@ -9,12 +9,15 @@ import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { router } from "expo-router";
 import { produce } from "immer";
 import { useState } from "react";
 
 export interface IUseBookOffer {
 
     booking: Booking,
+
+    bookings: Booking[],
 
     error: string | null;
 
@@ -26,7 +29,9 @@ export interface IUseBookOffer {
     
     onUpdatePress: (params: TEdit<Booking>) => void;
 
-    onCompleteOffer: () => void;
+    onCompleteBook: () => void;
+
+    onCancelBookingPress: (booking: Booking, reason: string) => void;
 }
 
 export type UseBookOfferParams = {
@@ -43,6 +48,9 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
+    const createBooking = useBookingsStore(s => s.create);
+    
+    const [localError, setLocalError] = useState<string | null>(null);
 
     const [booking, setBooking] = useState<Booking>(() => {
         const existing = bookings.find(booking => booking.id === bookingId);
@@ -77,8 +85,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         });
     });
 
-    const [localError, setLocalError] = useState<string | null>(null);
-
     const onSetOffer = (offer: Offer) => {
         try {
             setBooking(prev => 
@@ -106,13 +112,17 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         }
     }
 
-    const onCompleteOffer = () => {
-        console.error('UNIMPLEMENTED FUNCTION')
+    const onCompleteBook = async () => {
+        // TODO add booking information validation 
+        console.log(booking);
+        await createBooking(booking)
+        console.error('UNIMPLEMENTED FUNCTION');
     }
 
     const onUpdatePress = (params: TEdit<Booking>) => {
         const { section, id, value } = params;
 
+        console.log(params);
         try {
             setBooking(prev => 
                 produce(prev, (draft) => {                
@@ -128,13 +138,39 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         }
     }
 
+    const onCancelBookingPress = async (booking: Booking, reason: string) => {
+        try {
+            if(!booking)
+                throw new Error('No booking selected');
+            
+            if(!reason)
+                throw new Error('Cancellation reason is required'); 
+        
+            booking.status = 'for-cancellation';
+            booking.cancellationReason = reason;
+            booking.cancelledBy = profile?.id || 'unknown';
+            
+            console.log(booking);
+            const created = await createBooking(booking);
+            
+            if(!created)
+                throw new Error('Failed to cancel booking');
+
+            router.back();
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed cancelling booking')  
+        }
+    }
+
     return {
         booking,
+        bookings,
         error: localError || error,
         isLoading,
         onSetOffer,
         onPayOffer,
         onUpdatePress,
-        onCompleteOffer,
+        onCompleteBook,
+        onCancelBookingPress
     }
 }

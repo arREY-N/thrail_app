@@ -20,7 +20,7 @@ const LandingScreen = ({
 }) => {
 
     return (
-        <ScreenWrapper backgroundColor="#1A1A1A">
+        <ScreenWrapper>
             <View style={styles.container}>
                 
                 <View style={styles.imageWrapper}>

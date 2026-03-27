@@ -5,16 +5,19 @@ import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 
 export class Booking implements IBooking {
     [key: string]: any;
     [immerable] = true
     id: string = '';
-    status: BookingStatus = 'pending';
+    createdAt: Date = new Date();
+    updatedAt: Date = new Date();
+    status: BookingStatus = 'for-reservation';
     payment: IPaymentSummary<Date>[] = [];
-    cancelledBy: string | null = null;
+    cancellationReason?: string = '';
+    cancelledBy?: string = '';
     offer: Pick<IOfferInfo<Date>, "date" | "price"> = {
         date: new Date(),
         price: 0,
@@ -38,7 +41,8 @@ export class Booking implements IBooking {
         name: "",
         contactNumber: "",
     }
-    
+    documents: Record<string, boolean> = {}; // New
+
     constructor(init?: Partial<Booking>){
         Object.assign(this, init)
     }
@@ -46,6 +50,8 @@ export class Booking implements IBooking {
     static fromFirestore(id: string, data: IBookingDB): Booking {
         const mapped: IBooking = {
             ...data,
+            createdAt: toDate(data.createdAt),
+            updatedAt: toDate(data.updatedAt), 
             id,
             offer: {
                 ...data.offer,
@@ -55,6 +61,7 @@ export class Booking implements IBooking {
                 ...p,
                 date: toDate(p.date),
             })),
+            documents: data.documents || {}, // New
         }
 
         return new Booking(mapped);
@@ -65,8 +72,11 @@ export class Booking implements IBooking {
 
         const mapped: IBookingDB = {
             id: this.id,
+            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
+            updatedAt: serverTimestamp(),
             status: this.status,
             cancelledBy: this.cancelledBy,
+            cancellationReason: this.cancellationReason,
             offer: {
                 ...this.offer,
                 date: Timestamp.fromDate(this.offer.date),
@@ -79,6 +89,7 @@ export class Booking implements IBooking {
                 date: Timestamp.fromDate(p.date),
             })),
             emergencyContact: this.emergencyContact,
+            documents: this.documents, // New
         }
 
         return mapped;

@@ -90,18 +90,16 @@ const TESTHOME =(params: screenParams) => {
             </View>
             
             <CustomButton 
-                title={'Manage Admins'} 
-                onPress={onManageAdminsPress} 
-                style={undefined} 
-                textStyle={undefined}
-            />
+                title={'Manage Admins'}
+                onPress={onManageAdminsPress}
+                style={undefined}
+                textStyle={undefined} children={undefined}            />
             
             <CustomButton 
-                title={'Manage Offers'} 
-                onPress={onManageOffersPress} 
-                style={undefined} 
-                textStyle={undefined}
-            />
+                title={'Manage Offers'}
+                onPress={onManageOffersPress}
+                style={undefined}
+                textStyle={undefined} children={undefined}            />
             
         </View>
     )

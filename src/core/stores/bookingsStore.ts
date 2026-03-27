@@ -1,10 +1,10 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
+import { dummyBookings } from "@/src/core/stores/dummyData";
 import { create } from "zustand";
 
 interface BookState extends BaseStore<Booking>{
-    loadUserBookings: (id: string) => Promise<void>;
     create: (...args: any) => Promise<boolean>;
     checkBookings: (id: string) => boolean;
     cancelBooking: (booking: Booking, businessId: string) => Promise<void>;
@@ -18,7 +18,7 @@ interface BookState extends BaseStore<Booking>{
 const init = {
     data: [],
     current: new Booking(),
-    userBookings: [],
+    userBookings: dummyBookings,
     error: null,
     isLoading: false,
 }
@@ -32,21 +32,31 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
 
     },
 
-    refresh: async () => {
+    refresh: async (userId?: string | null) => {
+        set({isLoading: true, error: null});
 
+        try {
+            if(!userId) 
+                throw new Error('User ID is required for refreshing bookings');
+            
+            const userBookings = await BookingRepository.fetchUserBookings(userId);
+
+            set({
+                userBookings, 
+                isLoading: false,
+            })
+
+        } catch (err) {
+            set({
+                error: (err as Error).message || `Failed loading bookings for ${userId}`,
+                isLoading: false 
+            })
+        }
     },
 
-    load: async () => {
-
-    },
-
-    delete: async () => {
-
-    },
-
-
-    loadUserBookings: async (userId: string) => {
-        // if(get().userBookings?.length > 0 && get().userBookings[0].userId === userId) return;
+    load: async (userId: string) => {
+        if(get().userBookings?.length > 0 && get().userBookings[0].userId === userId) 
+            return;
 
         set({isLoading: true, error: null});
 
@@ -66,24 +76,23 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
         }
     },
 
-    create: async ({cancelledBy, bookingData}) => {
+    delete: async () => {
+
+    },
+
+    create: async (booking: Booking) => {
         set({isLoading: true, error: null});
 
         try {
-            console.log('Store: ', bookingData);
-
-            const bookingId = await BookingRepository.write({
-                ...bookingData,
-                ...cancelledBy
-            });
+            const data = await BookingRepository.write(booking);
 
             set((state) => {
-                console.log({ bookingId, ...bookingData })
+                const updated = state.userBookings.some(b => b.id === data.id) 
+                    ? state.userBookings.map(b => b.id === data.id ? data : b)
+                    : [...state.userBookings, data]
+
                 return {
-                    userBookings: [
-                        ...state.userBookings, 
-                        { bookingId, ...bookingData }
-                    ],
+                    userBookings: updated,
                     isLoading: false,
                 }
             })
@@ -125,7 +134,7 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
         try {
             await BookingRepository.cancelBooking(bookingData, businessId);
 
-            bookingData.status = 'cancelled';
+            bookingData.status = 'for-cancellation';
 
             set((state) => {
                 const newBookingList = state.userBookings.filter(

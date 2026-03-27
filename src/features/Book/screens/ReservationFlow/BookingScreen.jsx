@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+    StyleSheet,
+    View
+} from 'react-native';
 
-import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
-
 import { Colors } from '@/src/constants/colors';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
-
 import DetailsScreen from '@/src/features/Book/screens/ReservationFlow/DetailsScreen';
 import OffersScreen from '@/src/features/Book/screens/ReservationFlow/OffersScreen';
 import StatusScreen from '@/src/features/Book/screens/ReservationFlow/StatusScreen';
 
 const BookingScreen = ({ 
     offers = [], 
-    onBackPress, 
+    onBackPress,
+    onSetOffer,
+    onCompleteOffer
 }) => {
+    
     const [currentView, setCurrentView] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [bookingData, setBookingData] = useState({
         selectedOfferId: null,
@@ -25,77 +29,55 @@ const BookingScreen = ({
         uploadedDocs: null,
     });
 
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [pendingStep, setPendingStep] = useState(null);
-    const [pendingHeaderBack, setPendingHeaderBack] = useState(false);
-
     const lineFillPercentage = ((currentView - 1) / 2) * 100;
 
     const handleHeaderBackPress = () => {
         if (currentView === 3) {
             onBackPress();
-            return;
-        }
-
-        const hasProgress = currentView > 1 || bookingData.selectedOfferId !== null;
-
-        if (hasProgress) {
-            setPendingHeaderBack(true);
-            setShowConfirmModal(true);
+        } else if (currentView === 2) {
+            setCurrentView(1);
         } else {
             onBackPress();
         }
     };
 
     const handleStepNavigation = (step) => {
-        if (step > currentView) return;
-
-        if (currentView === 2 && step < currentView) {
-            setPendingStep(step);
-            setShowConfirmModal(true);
-        } else {
-            setCurrentView(step);
-        }
+        if (currentView === 3) return;
+        if (step > currentView || isSubmitting) return;
+        setCurrentView(step);
     };
 
-    const confirmNavigation = () => {
-        if (pendingHeaderBack) {
-            setShowConfirmModal(false);
-            setTimeout(() => {
-                onBackPress(); 
-                setPendingHeaderBack(false);
-            }, 300);
-            return;
-        }
-
-        if (pendingStep !== null) {
-            if (pendingStep === 1) {
-                setBookingData({ ...bookingData, selectedOfferId: null });
-            }
-            setCurrentView(pendingStep);
-        }
+    const handleReserve = async (detailsData) => {
+        setIsSubmitting(true);
         
-        setShowConfirmModal(false);
-        setTimeout(() => {
-            setPendingStep(null);
-            setPendingHeaderBack(false);
-        }, 300);
-    };
+        try {
+            const finalPayload = {
+                emergencyContact: {
+                    name: detailsData.hikerDetails.emergencyName,
+                    contactNumber: detailsData.hikerDetails.emergencyPhone
+                },
+                documents: detailsData.uploadedDocs
+            };
 
-    const cancelNavigation = () => {
-        setShowConfirmModal(false);
-        setTimeout(() => {
-            setPendingStep(null);
-            setPendingHeaderBack(false);
-        }, 300);
+            await onCompleteOffer(finalPayload);
+            
+            setBookingData({ ...bookingData, ...detailsData });
+            setCurrentView(3);
+
+        } catch (error) {
+            console.error("Booking failed:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomHeader 
-                title="Book Trail" 
-                onBackPress={handleHeaderBackPress}
+                title={currentView === 3 ? "Booking Status" : "Book Trail"} 
+                centerTitle={true}
+                onBackPress={currentView === 3 ? null : handleHeaderBackPress}
             />
             
             <View style={styles.progressWrapper}>
@@ -103,10 +85,12 @@ const BookingScreen = ({
                     
                     <View style={styles.lineWrapper}>
                         <View style={styles.progressLineBackground} />
-                        <View style={[
-                            styles.progressLineActive, 
-                            { width: `${lineFillPercentage}%` }
-                        ]} />
+                        <View 
+                            style={[
+                                styles.progressLineActive, 
+                                { width: `${lineFillPercentage}%` }
+                            ]} 
+                        />
                     </View>
                     
                     <View style={styles.progressRow}>
@@ -118,7 +102,6 @@ const BookingScreen = ({
                             currentView={currentView}
                             onStepPress={handleStepNavigation}
                         />
-
                         <ProgressStep 
                             stepNum={2} 
                             title="Details" 
@@ -127,7 +110,6 @@ const BookingScreen = ({
                             currentView={currentView}
                             onStepPress={handleStepNavigation}
                         />
-
                         <ProgressStep 
                             stepNum={3} 
                             title="Status"
@@ -137,15 +119,21 @@ const BookingScreen = ({
                             onStepPress={handleStepNavigation}
                         />
                     </View>
+
                 </View>
             </View>
 
             <View style={styles.contentContainer}>
+                
                 {currentView === 1 && (
                     <OffersScreen 
                         offers={offers}
                         selectedOfferId={bookingData.selectedOfferId}
                         onContinue={(offerId) => {
+                            const selectedOffer = offers.find(o => o.id === offerId);
+                            if (onSetOffer && selectedOffer) {
+                                onSetOffer(selectedOffer);
+                            }
                             setBookingData({ ...bookingData, selectedOfferId: offerId });
                             setCurrentView(2);
                         }}
@@ -157,34 +145,20 @@ const BookingScreen = ({
                         selectedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
                         savedDetails={bookingData.hikerDetails}
                         savedDocs={bookingData.uploadedDocs}
-                        
-                        onContinue={(detailsData) => {
-                            setBookingData({ ...bookingData, ...detailsData });
-                            setCurrentView(3);
-                        }}
+                        isSubmitting={isSubmitting} 
+                        onContinue={handleReserve} 
                     />
                 )}
 
                 {currentView === 3 && (
                     <StatusScreen 
                         onReturn={onBackPress}
+                        bookedOffer={offers.find(o => o.id === bookingData.selectedOfferId)}
+                        hikerDetails={bookingData.hikerDetails}
                     />
                 )}
-            </View>
 
-            <ConfirmationModal 
-                visible={showConfirmModal}
-                onClose={cancelNavigation}
-                onConfirm={confirmNavigation}
-                title={pendingHeaderBack ? "Cancel Booking?" : "Go Back?"}
-                message={
-                    pendingHeaderBack 
-                    ? "Are you sure you want to leave? Your reservation progress will be lost." 
-                    : "If you go back to the Offers screen, you will need to re-select your package."
-                }
-                confirmText={pendingHeaderBack ? "Leave" : "Go Back"}
-                cancelText="Keep Editing"
-            />
+            </View>
 
         </ScreenWrapper>
     );

@@ -1,16 +1,17 @@
+import { BaseStore } from "@/src/core/interface/storeInterface";
+import { Offer } from "@/src/core/models/Offer/Offer";
+import { OfferRepository } from "@/src/core/repositories/offerRepository";
 import { create } from "zustand";
-import { Store } from "../interface/storeInterface";
-import { Offer } from "../models/Offer/Offer";
-import { OfferRepository } from "../repositories/offerRepository";
 
 type OfferParams = {
     id: string;
     businessId: string;
 }
 
-export interface OfferState extends Store<Offer>{
+export interface OfferState extends Omit<BaseStore<Offer>, 'delete'>{
     trailOffers: Offer[];
     businessOffers: Offer[];
+    delete: (params: OfferParams) => Promise<void>;
 
     fetchOfferByBusiness: (id: string) => Promise<void>;
     fetchOfferByTrail: (id: string) => Promise<void>;
@@ -153,7 +154,6 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 return;
             }
             
-            console.log(offers);
             set({
                 trailOffers: offers,
                 isLoading: false
@@ -291,6 +291,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 error: (err as Error).message ?? 'Failed to delete offer',
                 isLoading: false
             })
+            throw err;
         }
     },
 
