@@ -38,7 +38,7 @@ const getEmulatorHost = () => {
   return "localhost";
 };
 
-export const USE_EMULATORS = false;
+export const USE_EMULATORS = true;
 
 if (__DEV__ && USE_EMULATORS) {
   const emulatorHost = getEmulatorHost();
