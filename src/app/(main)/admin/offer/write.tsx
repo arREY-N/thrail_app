@@ -5,7 +5,7 @@ import useTrail from "@/src/core/hook/trail/useTrail";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import OfferWriteScreen from "@/src/features/Admin/screens/OfferWriteScreen";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
 
 export default function writeOffer() {
@@ -30,6 +30,7 @@ export default function writeOffer() {
     
     return (
         <>
+            <Stack.Screen options={{ headerShown: false }} />
 
             <OfferWriteScreen
                 offer={offer}
