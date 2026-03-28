@@ -1,12 +1,12 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import {
-    AntDesign,
-    Feather,
-    FontAwesome5,
-    FontAwesome6,
-    Ionicons,
-    MaterialCommunityIcons,
+  AntDesign,
+  Feather,
+  FontAwesome5,
+  FontAwesome6,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 
@@ -42,7 +42,7 @@ export default function RootLayout() {
 
   console.log("root", isLoading);
 
-  // if(isLoading) return <LoadingScreen/>
+  if(isLoading) return <LoadingScreen/>
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
