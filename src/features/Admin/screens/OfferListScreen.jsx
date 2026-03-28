@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
     trailLabel: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
-        fontSize: 10,
-        letterSpacing: 1,
-        marginBottom: 2,
+        fontSize: 12,
+        letterSpacing: 2,
+        marginBottom: 8,
     },
     trailName: {
         fontSize: 18,
@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
     },
     priceInfo: {
         alignItems: 'flex-end',
+        gap: 0
     },
     priceText: {
         color: Colors.PRIMARY,
@@ -200,7 +201,8 @@ const styles = StyleSheet.create({
     },
     perPax: {
         color: Colors.TEXT_SECONDARY,
-        fontSize: 10,
+        marginTop: -4,
+        fontSize: 12,
     },
     divider: {
         height: 1,
