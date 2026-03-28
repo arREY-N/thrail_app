@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Platform,
     StyleSheet,
@@ -14,6 +14,52 @@ import CustomDateInput from '@/src/components/CustomDateInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
+export const formatLocalPhoneNumber = (text) => {
+    if (!text) return '';
+    let cleaned = text.replace(/\D/g, '');
+
+    if (cleaned.startsWith('0')) {
+        cleaned = cleaned.substring(1);
+    } else if (cleaned.startsWith('63')) {
+        cleaned = cleaned.substring(2);
+    }
+
+    while (cleaned.length > 0 && cleaned[0] !== '9') {
+        cleaned = cleaned.substring(1);
+    }
+
+    if (cleaned.length > 10) {
+        cleaned = cleaned.substring(0, 10);
+    }
+
+    let formatted = cleaned;
+    if (cleaned.length > 3) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+    }
+    if (cleaned.length > 6) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    }
+
+    return formatted;
+};
+
+export const cleanPhoneNumber = (formattedText) => {
+    if (!formattedText) return '';
+    let cleanNumber = formattedText.replace(/\s+/g, '');
+    
+    if (cleanNumber.length === 10) {
+        cleanNumber = '0' + cleanNumber;
+    }
+    
+    return cleanNumber;
+};
+
+export const formatCoordinate = (text) => {
+    if (!text) return '';
+    let cleaned = text.replace(/[^0-9.,-]/g, ''); 
+    return cleaned;
+};
+
 const CustomTextInput = ({ 
     label, 
     placeholder, 
@@ -25,17 +71,33 @@ const CustomTextInput = ({
     onTogglePassword,
     type = 'text',
     style,
+    inputStyle,
     icon, 
     iconLibrary = 'Feather', 
     prefix, 
     children,
     showTodayButton,
     allowFutureDates,
+    multiline,
     ...props
 }) => {
 
     const [isFocused, setIsFocused] = useState(false);
     const [internalShowPassword, setInternalShowPassword] = useState(false);
+
+    const [localValue, setLocalValue] = useState(value !== null && value !== undefined ? String(value) : '');
+
+    useEffect(() => {
+        if (type === 'coordinate' || type === 'numerical') {
+            const parsedParent = parseFloat(value);
+            const parsedLocal = parseFloat(localValue);
+            if (parsedParent !== parsedLocal && !(isNaN(parsedParent) && isNaN(parsedLocal))) {
+                setLocalValue(value !== null && value !== undefined ? String(value) : '');
+            }
+        } else {
+            setLocalValue(value !== null && value !== undefined ? String(value) : '');
+        }
+    }, [value, type]);
 
     const showPassword = onTogglePassword ? isPasswordVisible : internalShowPassword;
     const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
@@ -43,8 +105,18 @@ const CustomTextInput = ({
     const handleTextChange = (text) => {
         if (type === 'phone') {
             const formatted = formatLocalPhoneNumber(text);
+            setLocalValue(formatted);
             onChangeText(formatted);
+        } else if (type === 'coordinate') {
+            const formatted = formatCoordinate(text);
+            setLocalValue(formatted);
+            onChangeText(formatted);
+        } else if (type === 'numerical') {
+            let cleaned = text.replace(/[^0-9.]/g, '');
+            setLocalValue(cleaned);
+            onChangeText(cleaned);
         } else {
+            setLocalValue(text);
             onChangeText(text);
         }
     };
@@ -53,6 +125,8 @@ const CustomTextInput = ({
     
     if (type === 'phone') {
         finalKeyboardType = 'number-pad';
+    } else if (type === 'coordinate' || type === 'numerical') {
+        finalKeyboardType = 'numbers-and-punctuation'; 
     } else if (secureTextEntry && showPassword && Platform.OS === 'android') {
         finalKeyboardType = 'visible-password';
     }
@@ -88,8 +162,11 @@ const CustomTextInput = ({
                         styles.inputContainer,
                         { 
                             borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
-                            backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND
-                        }
+                            backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
+                        },
+                        multiline && { height: 'auto', alignItems: 'flex-start' },
+                        
+                        inputStyle 
                     ]}>
                         
                         {icon && (
@@ -113,16 +190,20 @@ const CustomTextInput = ({
                         )}
 
                         <TextInput 
-                            style={styles.input}
+                            style={[
+                                styles.input,
+                                multiline && { height: 'auto', textAlignVertical: 'top' } 
+                            ]}
                             placeholder={placeholder}
                             placeholderTextColor={Colors.TEXT_PLACEHOLDER}
-                            value={value}
+                            value={localValue}
                             onChangeText={handleTextChange} 
                             secureTextEntry={secureTextEntry && !showPassword}
                             keyboardType={finalKeyboardType} 
                             autoCorrect={secureTextEntry ? false : undefined}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
+                            multiline={multiline}
                             {...props} 
                         />
 
@@ -149,31 +230,6 @@ const CustomTextInput = ({
     );
 };
 
-const formatLocalPhoneNumber = (text) => {
-    let cleaned = text.replace(/\D/g, '');
-
-    if (cleaned.startsWith('09')) {
-        cleaned = cleaned.substring(1);
-    }
-    if (cleaned.startsWith('63')) {
-        cleaned = cleaned.substring(2);
-    }
-
-    if (cleaned.length > 10) {
-        cleaned = cleaned.substring(0, 10);
-    }
-
-    let formatted = cleaned;
-    if (cleaned.length > 3) {
-        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
-    }
-    if (cleaned.length > 6) {
-        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
-    }
-
-    return formatted;
-};
-
 const styles = StyleSheet.create({
     container: {
         marginBottom: 16,
@@ -196,7 +252,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         marginRight: 12,
     },
-    
+
     prefixContainer: {
         flexDirection: 'row',
         alignItems: 'center',
