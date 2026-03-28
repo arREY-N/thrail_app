@@ -10,6 +10,7 @@ import {
 } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 
+import LoadingScreen from "@/src/app/loading";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { useEffect } from "react";
