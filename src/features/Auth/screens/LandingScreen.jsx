@@ -25,15 +25,13 @@ const LandingScreen = ({
                 
                 <View style={styles.imageWrapper}>
                     <Image 
-                        source={require('@/src/assets/images/MT1.jpg')}
+                        source={require('@/src/assets/images/Mt.Tagapo.jpg')}
                         style={styles.heroImage}
                         resizeMode="cover"
                     />
                 </View>
 
                 <View style={styles.cardSection}>
-                    {/* <View style={styles.dragIndicator} /> */}
-
                     <View style={styles.contentConstrainer}>
                         
                         <View style={styles.headerContainer}>
@@ -112,9 +110,9 @@ const styles = StyleSheet.create({
 
     cardSection: {
         backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        marginTop: -32,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        marginTop: -32, 
         paddingHorizontal: 24,
         paddingTop: 32,
         paddingBottom: 32,
@@ -123,26 +121,19 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: {
                 shadowColor: Colors.SHADOW,
-                shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 12,
+                shadowOffset: { width: 0, height: -8 },
+                shadowOpacity: 0.15,
+                shadowRadius: 20,
             },
             android: {
-                elevation: 10,
+                elevation: 24,
             },
             web: {
-                boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.1)', 
+                boxShadow: '0px -8px 24px rgba(0, 0, 0, 0.12)', 
             }
         })
     },  
     
-    // dragIndicator: {
-    //     width: 40,
-    //     height: 5,
-    //     borderRadius: 3,
-    //     backgroundColor: Colors.GRAY_LIGHT,
-    // },
-
     contentConstrainer: {
         width: '100%',
         maxWidth: 400, 
@@ -162,23 +153,26 @@ const styles = StyleSheet.create({
     titleText: {
         textAlign: 'center',
         lineHeight: 40,
+        fontSize: 32,
     },
     subtitleText: {
         textAlign: 'center',
         color: Colors.TEXT_SECONDARY,
-        marginTop: 12,
+        marginTop: 16,
         paddingHorizontal: 16,
-        lineHeight: 22,
+        lineHeight: 24,
+        fontSize: 15,
     },
 
     buttonContainer: {
         width: '100%',
         gap: 16,
-        marginBottom: 24,
+        marginBottom: 32,
     },
     footerText: {
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
+        color: Colors.TEXT_SECONDARY,
     },
     linkText: {
         color: Colors.PRIMARY,

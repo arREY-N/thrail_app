@@ -30,6 +30,7 @@ const TrailScreen = ({
             require('@/src/assets/images/MT3.jpg'),
             require('@/src/assets/images/MT4.jpg'),
             require('@/src/assets/images/MT5.jpg'),
+            // require('@src/assetsimages/Mt.Tagapo.jpg'),
         ];
         
         const uniqueString = trail?.id ? String(trail.id) : (trail?.name || "Unnamed Trail");
@@ -249,7 +250,7 @@ const TrailContent = ({ activeTab, stats, trail, location }) => {
                             {isFeatureEnabled(trail?.tourism?.waterfall, trail?.waterfall) && <Tag label="Waterfall" />}
                             {isFeatureEnabled(trail?.tourism?.monument, trail?.monument) && <Tag label="Monument" />}
                             
-                            {viewpoints.map((vp, index) => (
+                            {viewpoints?.map((vp, index) => (
                                 <Tag key={`vp-${index}`} label={vp} />
                             ))}
                         </View>

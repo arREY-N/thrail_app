@@ -73,7 +73,7 @@ const StatusScreen = ({ onReturn, bookedOffer }) => {
                         color={Colors.TEXT_SECONDARY} 
                     />
                     <CustomText variant="caption" style={styles.infoText}>
-                        You will receive a notification as soon as your reservation status is updated.
+                        You will receive a notification as soon as your reservation is approved.
                     </CustomText>
                 </View>
 

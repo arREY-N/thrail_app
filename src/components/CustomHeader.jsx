@@ -47,7 +47,7 @@ const CustomHeader = ({
                 <View style={styles.centerTitleContainer}>
                     {children ? children : (
                         title ? (
-                            <CustomText variant="title" style={styles.centerTitle}>
+                            <CustomText variant="h2" style={styles.centerTitle}>
                                 {title}
                             </CustomText>
                         ) : null
