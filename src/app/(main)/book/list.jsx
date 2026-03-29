@@ -31,7 +31,7 @@ export default function listBook(){
                 bookings.length > 0 && bookings.map(u => {
                     return (
                         <>
-                            <Pressable onPress={() => onCancelBookingPress(u, reason)}>
+                            <Pressable onPress={() => onCancelBookingPress(u, reason)} key={u.id}>
                                 <Text>{u.trail.name}</Text>
                                 <Text>Cancel</Text>
                             </Pressable>
