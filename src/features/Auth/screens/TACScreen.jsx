@@ -132,26 +132,43 @@ const TACScreen = ({
                         
                         {!canAccept ? (
                             <View style={styles.instructionBox}>
-                                <CustomIcon library="Feather" name="info" size={14} color={Colors.TEXT_SECONDARY} />
+                                <View style={styles.iconCircle}>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="book-open" 
+                                        size={16} 
+                                        color={Colors.PRIMARY} 
+                                    />
+                                </View>
                                 <CustomText style={styles.instructionText}>
-                                    Please read through both the Terms and Privacy tabs above to enable the agreement checkbox.
+                                    To continue, please read through to the bottom of both Terms and Privacy tabs before accepting.
                                 </CustomText>
                             </View>
                         ) : null}
 
                         <TouchableOpacity 
-                            style={[styles.checkboxRow, !canAccept && { opacity: 0.5 }]} 
+                            style={[
+                                styles.checkboxRow, 
+                                !canAccept && { opacity: 0.5 }
+                            ]} 
                             onPress={() => {
                                 if (canAccept) setIsChecked(!isChecked);
                             }}
                             activeOpacity={canAccept ? 0.7 : 1}
                         >
                             <View style={[styles.checkbox, isChecked && styles.checkedBox]}>
-                                {isChecked && <CustomIcon library="Feather" name="check" size={14} color={Colors.WHITE} />}
+                                {isChecked && (
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="check" 
+                                        size={14} 
+                                        color={Colors.WHITE} 
+                                    />
+                                )}
                             </View>
                             
                             <CustomText variant="caption" style={styles.agreementText}>
-                                I have read and accept the <CustomText style={styles.linkText}>Terms & Conditions</CustomText> and <CustomText style={styles.linkText}>Privacy Policy</CustomText>.
+                                I have read and agree to follow the <CustomText style={styles.linkText}>Terms & Conditions</CustomText> and <CustomText style={styles.linkText}>Privacy Policy</CustomText>.
                             </CustomText>
                         </TouchableOpacity>
                     </View>
@@ -270,18 +287,29 @@ const styles = StyleSheet.create({
     instructionBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+        gap: 12,
+    },
+    iconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        marginBottom: 12,
-        gap: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     instructionText: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        fontStyle: 'italic',
+        flex: 1,
+        fontSize: 14,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: '500',
+        lineHeight: 18,
     },
 
     agreementContainer: {
@@ -311,14 +339,14 @@ const styles = StyleSheet.create({
     },
     agreementText: {
         flex: 1, 
-        fontSize: 12,
-        lineHeight: 18,
+        fontSize: 14,
+        lineHeight: 20,
         color: Colors.TEXT_PRIMARY,
         textAlign: 'left', 
     },
     linkText: {
         fontWeight: '700',
-        fontSize: 14,
+        fontSize: 13,
         color: Colors.PRIMARY,
     },
 
@@ -331,4 +359,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TACScreen; 
+export default TACScreen;

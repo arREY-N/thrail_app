@@ -24,7 +24,7 @@ export default function listOffer(){
         onSetOffer,
     } = useBookOffer({ trailId });
 
-    if(trailIsLoading || bookIsLoading) return <LoadingScreen/>;
+    if(trailIsLoading) return <LoadingScreen/>;
 
     return (        
         <BookingScreen 

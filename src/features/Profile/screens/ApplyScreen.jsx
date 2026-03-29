@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+    StyleSheet,
+    View
+} from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
+import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -67,9 +71,23 @@ const ApplyScreen = ({
         onUpdatePress({ section: 'root', id: 'servicedLocation', value: newLocations });
     };
 
+    const handleSimulateUpload = (section, docId) => {
+        const currentVal = application?.[section]?.[docId];
+        const newVal = currentVal ? '' : 'uploaded_document.pdf';
+        onUpdatePress({ section: section, id: docId, value: newVal });
+    };
+
     const safeLocations = Array.isArray(application?.servicedLocation) 
         ? application.servicedLocation.flat(Infinity) 
         : [];
+
+    const permitsList = [
+        { id: 'bir', label: 'BIR Certificate' },
+        { id: 'dti', label: 'DTI Registration' },
+        { id: 'denr', label: 'DENR Permit' }
+    ];
+
+    const isIdUploaded = !!application?.owner?.validId?.trim();
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -85,18 +103,19 @@ const ApplyScreen = ({
             />
 
             <CustomHeader 
-                title=" " 
+                title="Partner Application" 
+                centerTitle={true}
                 onBackPress={onBackPress}
             />
 
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
                 
-                <View style={styles.headerSection}>
-                    <CustomText variant="h2" style={styles.pageTitle}>
-                        Apply for a Partner Account
+                <View style={styles.introSection}>
+                    <CustomText variant="h2" style={styles.introTitle}>
+                        Get Started
                     </CustomText>
-                    <CustomText variant="caption" style={styles.pageSubtitle}>
-                        Fill in the details below to register your business on Thrail.
+                    <CustomText variant="body" style={styles.introText}>
+                        Fill in the details below to register your business on Thrail. All fields are required.
                     </CustomText>
                 </View>
 
@@ -113,7 +132,9 @@ const ApplyScreen = ({
                 <View style={styles.formContainer}>
                     
                     <View style={styles.sectionBlock}>
-                        <CustomText variant="h3" style={styles.sectionTitle}>Business Info</CustomText>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Business Info
+                        </CustomText>
                         <View style={styles.formCard}>
                             
                             <CustomTextInput
@@ -144,7 +165,9 @@ const ApplyScreen = ({
                                 style={styles.inputSpacing}
                             />
 
-                            <CustomText variant="label" style={styles.multiSelectLabel}>Offered Locations *</CustomText>
+                            <CustomText variant="label" style={styles.multiSelectLabel}>
+                                Offered Locations *
+                            </CustomText>
                             
                             <View style={styles.locationsContainer}>
                                 {options?.provinces?.map((province) => {
@@ -164,7 +187,9 @@ const ApplyScreen = ({
                     </View>
 
                     <View style={styles.sectionBlock}>
-                        <CustomText variant="h3" style={styles.sectionTitle}>Owner Info</CustomText>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Owner Info
+                        </CustomText>
                         <View style={styles.formCard}>
                             
                             <CustomTextInput
@@ -186,47 +211,42 @@ const ApplyScreen = ({
                                 style={styles.inputSpacing}
                             />
 
-                            <CustomTextInput
-                                label="Valid Government ID *"
-                                placeholder="Valid Government ID"
-                                value={application?.owner?.validId || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'owner', id: 'validId', value: val })}
-                                style={styles.inputSpacing}
+                            <CustomText variant="label" style={styles.multiSelectLabel}>
+                                Valid Government ID *
+                            </CustomText>
+                            
+                            <DocumentUploadCard 
+                                docName="ID Photo (Front & Back)"
+                                isUploaded={isIdUploaded}
+                                onUploadPress={() => handleSimulateUpload('owner', 'validId')}
                             />
 
                         </View>
                     </View>
 
                     <View style={styles.sectionBlock}>
-                        <CustomText variant="h3" style={styles.sectionTitle}>Permits & Documents</CustomText>
-                        <View style={styles.formCard}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Permits & Documents
+                        </CustomText>
+                        <CustomText variant="caption" style={styles.sectionSubtitle}>
+                            Please upload the requirements specific to this offer.
+                        </CustomText>
+                        
+                        {permitsList.map((permit) => {
+                            const isUploaded = !!application?.permits?.[permit.id]?.trim();
                             
-                            <CustomTextInput
-                                label="BIR *"
-                                placeholder="BIR"
-                                value={application?.permits?.bir || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'permits', id: 'bir', value: val })}
-                                style={styles.inputSpacing}
-                            />
-
-                            <CustomTextInput
-                                label="DTI *"
-                                placeholder="DTI"
-                                value={application?.permits?.dti || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'permits', id: 'dti', value: val })}
-                                style={styles.inputSpacing}
-                            />
-
-                            <CustomTextInput
-                                label="DENR *"
-                                placeholder="DENR"
-                                value={application?.permits?.denr || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'permits', id: 'denr', value: val })}
-                                style={styles.inputSpacing}
-                            />
-
-                        </View>
+                            return (
+                                <DocumentUploadCard 
+                                    key={permit.id}
+                                    docName={permit.label}
+                                    isUploaded={isUploaded}
+                                    onUploadPress={() => handleSimulateUpload('permits', permit.id)}
+                                />
+                            );
+                        })}
                     </View>
+
+                    <ErrorMessage error={"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque congue magna eget sapien placerat volutpat. Proin quis dui ut neque vestibulum sagittis euismod ac massa."} />
 
                     <View style={styles.buttonContainer}>
                         <CustomButton 
@@ -247,22 +267,22 @@ const ApplyScreen = ({
 
 const styles = StyleSheet.create({
     scrollContent: { 
-        paddingVertical: 32, 
+        paddingTop: 8, 
+        paddingBottom: 40, 
         paddingHorizontal: 16 
     },
-    headerSection: { 
+    introSection: { 
         marginBottom: 32, 
-        gap: 8, 
-        alignItems: 'center' 
+        paddingHorizontal: 4,
+        alignItems: 'flex-start'
     },
-    pageTitle: { 
-        fontWeight: 'bold', 
-        marginBottom: 0, 
-        textAlign: 'center' 
+    introTitle: {
+        marginBottom: 6,
+        color: Colors.TEXT_PRIMARY
     },
-    pageSubtitle: { 
-        textAlign: 'center', 
-        maxWidth: '85%' 
+    introText: { 
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 22,
     },
 
     successBox: { 
@@ -291,6 +311,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY, 
         marginLeft: 4 
+    },
+    sectionSubtitle: { 
+        marginBottom: 12, 
+        marginLeft: 4,
+        color: Colors.TEXT_SECONDARY 
     },
     
     formCard: {
@@ -330,7 +355,7 @@ const styles = StyleSheet.create({
     },
     
     buttonContainer: { 
-        marginTop: 16 
+        marginTop: 0 
     }
 });
 

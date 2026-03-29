@@ -101,7 +101,7 @@ const OfferCardItem = ({
                                 Itinerary
                             </CustomText>
                             <View style={styles.timelineContainer}>
-                                {offer.schedule.map((dayData, dayIdx) => (
+                                {offer.schedule?.map((dayData, dayIdx) => (
                                     <View 
                                         key={dayIdx} 
                                         style={styles.timelineDay}
@@ -113,7 +113,7 @@ const OfferCardItem = ({
                                             {dayData.day}
                                         </CustomText>
                                         
-                                        {dayData.activities.map((act, actIdx) => (
+                                        {dayData.activities?.map((act, actIdx) => (
                                             <View 
                                                 key={actIdx} 
                                                 style={styles.timelineRow}
@@ -147,7 +147,7 @@ const OfferCardItem = ({
                             >
                                 Inclusions
                             </CustomText>
-                            {offer.inclusions.map((item, idx) => (
+                            {offer.inclusions?.map((item, idx) => (
                                 <View 
                                     key={idx} 
                                     style={styles.bulletRow}
@@ -178,7 +178,7 @@ const OfferCardItem = ({
                                 Things to Bring
                             </CustomText>
                             <View style={styles.gridContainer}>
-                                {offer.thingsToBring.map((item, idx) => (
+                                {offer.thingsToBring?.map((item, idx) => (
                                     <View 
                                         key={idx} 
                                         style={styles.gridItem}
@@ -214,20 +214,32 @@ const OfferCardItem = ({
                                 </CustomText>
                             </View>
                             
-                            {offer.reminders.map((item, idx) => (
-                                <View 
-                                    key={idx} 
-                                    style={styles.warningRow}
-                                >
+                            {Array.isArray(offer.reminders) ? (
+                                offer.reminders?.map((item, idx) => (
+                                    <View 
+                                        key={idx} 
+                                        style={styles.warningRow}
+                                    >
+                                        <View style={styles.warningDot} />
+                                        <CustomText 
+                                            variant="caption"
+                                            style={styles.warningText}
+                                        >
+                                            {item}
+                                        </CustomText>
+                                    </View>
+                                ))
+                            ) : (
+                                <View style={styles.warningRow}>
                                     <View style={styles.warningDot} />
                                     <CustomText 
                                         variant="caption"
                                         style={styles.warningText}
                                     >
-                                        {item}
+                                        {offer.reminders}
                                     </CustomText>
                                 </View>
-                            ))}
+                            )}
                         </View>
                     )}
 

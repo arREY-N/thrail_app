@@ -20,7 +20,7 @@ const SearchBar = ({
 }) => {
 
     return (
-        <View style={{ overflow: 'hidden', paddingBottom: 0 }}>
+        <View style={styles.outerContainer}>
             <View style={styles.headerControls}>
                 <View style={styles.topControls}>
                     
@@ -74,6 +74,10 @@ const SearchBar = ({
 };
 
 const styles = StyleSheet.create({
+    outerContainer: { 
+        overflow: 'hidden', 
+        paddingBottom: 0 
+    },
     headerControls: {
         backgroundColor: Colors.BACKGROUND,
         paddingBottom: 16,

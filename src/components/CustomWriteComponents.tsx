@@ -33,26 +33,39 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     
                     const isRoot = section === 'root';
 
-                    if(type === 'text' || type == 'numerical'){
-                        const val: string | null = isRoot ? object[id] : object[section][id] || null;
+                    if(type === 'text' || type === 'numerical'){
+                        const rawVal = isRoot ? object[id] : object[section][id];
+                        
+                        const isCoordinate = id.toLowerCase().includes('lat') || id.toLowerCase().includes('long');
+                        const inputType = isCoordinate ? 'coordinate' : (type === 'numerical' ? 'numerical' : 'text');
+
+                        let displayVal = '';
+                        if (rawVal !== null && rawVal !== undefined) {
+                            if (type === 'numerical' && rawVal === 0) {
+                                displayVal = '';
+                            } else {
+                                displayVal = String(rawVal);
+                            }
+                        }
+
                         return(
                             <View key={label}>
                                 <CustomTextInput
-                                    label={`${label}${required ? '*' : ''}`}
+                                    label={`${label}${required ? ' *' : ''}`}
                                     placeholder={label}
-                                    value={val || ''}
-                                    onChangeText={(value: string) => onEditProperty({ section, id, value })}
+                                    value={displayVal}
+                                    onChangeText={(val: string) => onEditProperty({ section, id, value: val })}
+                                    type={inputType}
                                     style={styles.inputSpacing}
+                                    keyboardType={inputType === 'coordinate' || inputType === 'numerical' ? 'numbers-and-punctuation' : undefined}
                                     secureTextEntry={undefined}
-                                    keyboardType={undefined}
                                     isPasswordVisible={undefined}
                                     onTogglePassword={undefined}
                                     icon={undefined}
                                     prefix={undefined}
                                     children={undefined}
                                     showTodayButton={undefined}
-                                    allowFutureDates={undefined}
-                                    />
+                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                    />
                             </View>
                         )
                     }
@@ -99,7 +112,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         return(
                             <View key={label}>
                                 <CustomDropdown
-                                    label={`${label}${required ? '*' : ''}`}
+                                    label={`${label}${required ? ' *' : ''}`}
                                     placeholder={`Select ${label}`}
                                     options={options}
                                     value={val}
@@ -126,8 +139,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     prefix={undefined}
                                     children={undefined}
                                     showTodayButton={undefined}
-                                    allowFutureDates={undefined}
-                                    />
+                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                    />
                             </View>
                         )
                     }
@@ -148,7 +160,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     options && options.map(o => {
                                         return(
                                             <Pressable 
-                                                style={(val === o || val.name === o) ? styles.true : styles.false} 
+                                                style={(val === o || val?.name === o) ? styles.true : styles.false} 
                                                 onPress={() => onEditProperty({section, id, value: o})}>
                                                 <Text>{o}</Text>
                                             </Pressable>
@@ -194,8 +206,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 prefix={undefined}
                                 children={undefined}
                                 showTodayButton={undefined}
-                                allowFutureDates={undefined}
-                                />
+                                allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                />
                         )
                     }
                 })
@@ -227,7 +238,7 @@ const styles = StyleSheet.create({
     },
     pageTitle: {
         fontWeight: 'bold',
-        fontSize: 20, // Clean subtitle size
+        fontSize: 20,
         marginBottom: 6,
         color: Colors.TEXT_PRIMARY,
     },
