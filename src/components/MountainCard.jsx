@@ -13,7 +13,13 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
+const MountainCard = ({ 
+    item = {},
+    onPress,
+    onDownload,
+    onLikePress,
+    style
+}) => {
 
     const { 
         name, 
@@ -118,12 +124,12 @@ const MountainCard = ({ item = {}, onPress, onDownload, style }) => {
 
                     <TouchableOpacity 
                         style={styles.downloadButtonCircle}
-                        onPress={onDownload}
+                        onPress={onDownload & onLikePress}
                         activeOpacity={0.7}
                     >
                         <CustomIcon
                             library="Feather"
-                            name="download"
+                            name="heart"
                             size={18}
                             color={Colors.TEXT_INVERSE}
                         />
@@ -149,8 +155,7 @@ const getMountainData = (item) => {
     const displayElev = item?.geography?.masl ? `${item.geography.masl} masl` : "--";
     const displayTime = item?.difficulty?.hours ? `${item.difficulty.hours} h` : "--";
     const score = item?.general?.rating || "N/A";
-
-    const displayTemp = item?.weather?.temperature ? `${item.weather.temperature}°C` : null;
+    const displayTemp = item?.weather?.temperature ? `${item.weather.temperature}°C` : "-- °C";
 
     const images = [
         require('@/src/assets/images/MT1.jpg'),
