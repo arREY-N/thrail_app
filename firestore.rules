@@ -17,6 +17,17 @@ service cloud.firestore {
         && request.auth.uid == userId;
     }
 
+    match /users/{userId}/hikes/{hikeId}{
+        allow read: 
+      	    if request.auth != null;
+        allow create: 
+      	    if request.auth != null
+            && request.auth.uid == userId;
+        allow update, delete: 
+      	    if request.auth != null 
+            && request.auth.uid == userId;
+    }
+
     match /applications/{appId}{
         allow read: if request.auth != null;
         allow create:
