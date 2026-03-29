@@ -3,26 +3,30 @@ import { IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type DifficultyRating = "Easy" | "Just Right" | "Moderate" | "Hard" | "Extreme";
+export type DifficultyFactors = "d1" | "d2" | "d3"
+export type FavoredFactors = "f1" | "f2" | "f3"
 
-export interface IHikeTrail<T, TRating> extends ITrailSummary{
-    date: T;
+export interface IHikeSurvey<T, TRating> {
+    id: string;
+    hikeDate: T;
+    trail: ITrailSummary;
+
     overallRating: number;
-    perceivedDifficulty: TRating;
-    predictedDifficulty: TRating;
     trailMaintenance: TRating;
-    difficultyFactors: Array<string>;
-    favoredFactors: Array<string>;
+    difficultyFactors: DifficultyFactors[];
+    favoredFactors: FavoredFactors[];
     review: string;
     image: Array<string>;
+
+    predictedDifficulty: TRating;
+    perceivedDifficulty?: TRating | undefined;
 }
 
-export interface IReviewBase<T, TRating> {
-    id: string;
+export interface IReviewBase<T, TRating> extends IHikeSurvey<T, TRating> {
     createdAt: T;
     updatedAt: T;
     user: IUserSummary;
-    hike: IHikeTrail<T, TRating>;
-    likes: number;
+    likes: IUserSummary[];
 }
 
 export interface IReviewDB extends IReviewBase<Timestamp | FieldValue, number> {}

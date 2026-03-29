@@ -1,7 +1,7 @@
 import { db } from "@/src/core/config/Firebase";
 import { Repository } from "@/src/core/interface/repositoryInterface";
 import { Review, reviewConverter } from "@/src/core/models/Review/Review";
-import { collection, deleteDoc, doc, DocumentData, getDocs, limit, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, where } from "firebase/firestore";
 
 const createReviewsCollection = () => {
     return collection(db, 'reviews').withConverter(reviewConverter);
@@ -64,8 +64,21 @@ class ReviewRepositoryImpl implements Repository<Review> {
     }
 
 
-    fetchById(...args: any[]): Promise<Review | null> {
-        throw new Error("Method not implemented.");
+    async fetchById(id: string): Promise<Review | null> {
+        try {
+            const reviewCollection = createReviewsCollection();
+            const docRef = doc(reviewCollection, id);
+            const snapshot = await getDoc(docRef);
+
+            if (!snapshot.exists()) {
+                return null;
+            }
+
+            return snapshot.data();
+        } catch (error: unknown) {
+            console.error('Error fetching review by ID: ', error);
+            throw new Error('Failed to fetch review by ID');
+        }
     }
 
     async write(data: Review, ...args: any[]): Promise<Review> {
@@ -77,7 +90,9 @@ class ReviewRepositoryImpl implements Repository<Review> {
                 : doc(createReviewsCollection());
 
             if(!data.id)
-                review.id = reviewRef.id;
+                review = new Review({...data, id: reviewRef.id })
+
+            console.log('repository', review);
 
             await setDoc(
                 reviewRef,

@@ -1,54 +1,99 @@
+
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Review } from "@/src/core/models/Review/Review";
+import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export interface IReviewDomain {
     reviews: Review[];
-    review: Review;
     isLoading: boolean;
     error: string | null;
+
+    onWriteReviewPress: (id?: string) => void;
+    isOwned: (review: Review) => Boolean;
+    likeReview: (review: Review) => void;
+    isLiked: (review: Review) => Boolean;
+    refreshFeed: () => void;    
 }
 
 export type ReviewDomainParams = {
     reviewId?: string;
 }
 
-export default function useReview(params: ReviewDomainParams): IReviewDomain {
-    const { reviewId } = params;
+export default function useReview(): IReviewDomain {
+    const { profile } = useAuthHook();
 
     const reviews = useReviewStore(s => s.reviews);
-    const [review, setReview] = useState<Review>(() => {
-        return reviews.find(r => r.id === reviewId) || new Review({
-            hike: {
-                date: new Date(),
-                overallRating: 5,
-                perceivedDifficulty: 'Just Right',
-                predictedDifficulty: 'Just Right',
-                trailMaintenance: 'Just Right',
-                difficultyFactors: [],
-                favoredFactors: [],
-                review: 'test review',
-                image: [],
-                id: 'test mountain',
-                name: 'tagapo',
-            }
-        });
-    });
-
+    const loadReviews = useReviewStore(s => s.fetchAll);
+    const like = useReviewStore(s => s.likeReview);
     const isLoading = useReviewStore(s => s.isLoading);
     const error = useReviewStore(s => s.error);
-    
+    const refreshFeed = useReviewStore(s => s.refresh);
+    const [localError, setLocalError] = useState<string | null>(null);
+
     useEffect(() => {
-        if(reviewId) {
-            const found = reviews.find(r => r.id === reviewId);
-            if(found) setReview(found);
+        loadReviews();
+    }, []);
+
+    const onWriteReviewPress = (id?: string) => {
+        if(id){
+            router.push({
+                pathname: '/(main)/review/write',
+                params: { reviewId: id }
+                })
+        } else {
+            router.push({
+                pathname: '/(main)/review/write',
+            })
         }
-    }, [reviewId]);
+    }
+
+    const isOwned = (review: Review): Boolean => {
+        return review.user.id === profile?.id
+    }
+
+    const likeReview = (review: Review) => {
+        try {
+            if(!profile)
+                throw new Error('User must be logged in to like a review')
+            
+            let updated = isLiked(review)
+                ? review.likes.filter(u => u.id !== profile.id)
+                : [...review.likes, UserLogic.toSummary(profile)]
+    
+            like(new Review({...review, likes: updated}))
+
+        } catch (error) {
+            console.error(error);
+            setLocalError((error as Error).message)
+        }
+    }
+
+    const isLiked = (review: Review): Boolean => {
+        try {
+            if(!profile)
+                throw new Error('User must be logged in to like a review')
+
+            return review.likes.find(r => r.id === profile?.id)
+                ? true
+                : false
+        } catch (error) {
+            console.error(error);
+            setLocalError((error as Error).message)
+            return false;
+        }
+    }
 
     return {
+        onWriteReviewPress,
+        isOwned,
+        likeReview,
+        isLiked,
+        refreshFeed,
         reviews,
-        review,
         isLoading,
-        error
+        error: error || localError
     }
 }

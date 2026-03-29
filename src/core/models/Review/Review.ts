@@ -1,5 +1,6 @@
-import { ReviewLogic } from "@/src/core/models/Review/Logic/Review.logic";
-import { DifficultyRating, IHikeTrail, IReview, IReviewDB } from "@/src/core/models/Review/Review.types";
+import { toNumerical, toTextual } from "@/src/core/models/Review/Logic/Review.converter";
+import { DifficultyFactors, DifficultyRating, FavoredFactors, IReview, IReviewDB } from "@/src/core/models/Review/Review.types";
+import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
@@ -8,11 +9,8 @@ import { immerable } from "immer";
 export class Review implements IReview {
     [key: string]: any;
     [immerable] = true
-    id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
-    likes: number = 0;
-
     user: IUserSummary = {
         id: "",
         username: "",
@@ -20,20 +18,23 @@ export class Review implements IReview {
         lastname: "",
         email: ""
     };
-    hike: IHikeTrail<Date, DifficultyRating> = {
+    likes: IUserSummary[] = [];
+    id: string = '';
+    hikeDate: Date = new Date();
+    trail: ITrailSummary = {
         id: "",
-        name: "",
-        predictedDifficulty: "Just Right",
-        perceivedDifficulty: "Just Right",
-        date: new Date(),
-        overallRating: 0,
-        trailMaintenance: "Just Right",
-        difficultyFactors: [],
-        favoredFactors: [],
-        review: "",
-        image: []
-    }
-
+        name: ""
+    };
+    overallRating: number = 0;
+    trailMaintenance: DifficultyRating = 'Easy';
+    difficultyFactors: DifficultyFactors[] = [];
+    favoredFactors: FavoredFactors[] = [];
+    review: string = '';
+    image: string[] = [];
+    predictedDifficulty: DifficultyRating = 'Easy';
+    perceivedDifficulty?: DifficultyRating | undefined;
+    
+    
     constructor(init?: Partial<IReview>) {
         Object.assign(this, init);
     }
@@ -42,15 +43,12 @@ export class Review implements IReview {
         const mapped: IReview = {
             ...data,
             id,
-            hike: {
-                ...data.hike,
-                predictedDifficulty: ReviewLogic.toTextual(data.hike.predictedDifficulty),
-                perceivedDifficulty: ReviewLogic.toTextual(data.hike.perceivedDifficulty),
-                trailMaintenance: ReviewLogic.toTextual(data.hike.trailMaintenance),
-                date: toDate(data.hike.date),
-            },
+            trailMaintenance: toTextual(data.trailMaintenance),
+            hikeDate: toDate(data.hikeDate),
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
+            predictedDifficulty: toTextual(data.predictedDifficulty),
+            perceivedDifficulty: data.perceivedDifficulty !== undefined ? toTextual(data.perceivedDifficulty) : undefined,
         }
 
         return new Review(mapped);
@@ -65,13 +63,19 @@ export class Review implements IReview {
             updatedAt: serverTimestamp(),
             likes: this.likes,
             user: this.user,
-            hike: {
-                ...this.hike,
-                predictedDifficulty: ReviewLogic.toNumerical(this.hike.predictedDifficulty),
-                perceivedDifficulty: ReviewLogic.toNumerical(this.hike.perceivedDifficulty),
-                trailMaintenance: ReviewLogic.toNumerical(this.hike.trailMaintenance),
-                date: Timestamp.fromDate(this.hike.date),
-            },
+            trailMaintenance: toNumerical(this.hike.trailMaintenance),
+            hikeDate: Timestamp.fromDate(this.hike.date),
+            trail: this.trail,
+            overallRating: this.overallRating,
+            difficultyFactors: this.difficultyFactors,
+            favoredFactors: this.favoredFactors,
+            review: this.review,
+            image: this.image,
+            predictedDifficulty: toNumerical(this.predictedDifficulty),
+        }
+
+        if(this.perceivedDifficulty !== undefined) {
+            mapped.perceivedDifficulty = toNumerical(this.perceivedDifficulty)
         }
 
         return mapped;

@@ -1,36 +1,28 @@
-import { DifficultyRating } from "@/src/core/models/Review/Review.types";
+import { Review } from "@/src/core/models/Review/Review";
+import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
+import { Trail } from "@/src/core/models/Trail/Trail";
+import { UserLogic } from "@/src/core/models/User/logic/User.logic";
+import { User } from "@/src/core/models/User/User";
+
+export type ReviewObject = {
+    user: User;
+    trail: Trail;
+    review: Review;
+}
 
 export const ReviewLogic = {
-    toNumerical(rating: DifficultyRating): number {
-        switch (rating) {
-            case "Easy":
-                return 1;
-            case "Just Right":
-                return 2;
-            case "Moderate":
-                return 3;
-            case "Hard":
-                return 4;
-            case "Extreme":
-                return 5;
-            default:
-                throw new Error(`Unhandled difficulty rating: ${rating}`);
-        }
+    setReviewObject({user, trail, review}: ReviewObject): Review {
+        const userSummary = UserLogic.toSummary(user);
+        const trailSummary = TrailLogic.toSummary(trail);
+        return new Review({
+            ...review,
+            trail: {
+                ...trailSummary,
+            },
+            user: {
+                ...review.user,
+                ...userSummary,
+            }
+        })
     },
-    toTextual(rating: number): DifficultyRating {
-        switch (rating) {
-            case 1:
-                return "Easy";
-            case 2:
-                return "Just Right";    
-            case 3:
-                return "Moderate";
-            case 4:
-                return "Hard";  
-            case 5: 
-                return "Extreme";
-            default:
-                throw new Error(`Unhandled difficulty rating: ${rating}`);
-        }
-    }
 }
