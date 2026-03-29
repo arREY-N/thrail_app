@@ -40,7 +40,8 @@ const TESTPERSONNEL = ({
                     <CustomTextInput
                         placeholder="Email"
                         value={email}
-                        onChangeText={setEmail} label={undefined} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} style={undefined} icon={undefined}                    />
+                        onChangeText={setEmail} 
+                        label={undefined} secureTextEntry={undefined} keyboardType={undefined} isPasswordVisible={undefined} onTogglePassword={undefined} style={undefined} icon={undefined} inputStyle={undefined} prefix={undefined} children={undefined} showTodayButton={undefined} allowFutureDates={undefined} multiline={undefined}                    />
 
                     <Pressable onPress={() => onFindUserPress(email)}>
                         <Text>---Find user---</Text>
@@ -68,7 +69,7 @@ const TESTPERSONNEL = ({
                         }) : <Text>NO USER FOUND</Text>
                     }
                 </View> : <></>
-           }
+            }
 
             <Text>ADMINS</Text>
             { businessAdmins.map((a) => {

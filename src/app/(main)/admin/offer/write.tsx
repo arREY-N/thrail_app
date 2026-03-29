@@ -4,7 +4,7 @@ import { useOfferWrite } from "@/src/core/hook/offer/useOfferWrite";
 import useTrail from "@/src/core/hook/trail/useTrail";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import OfferWriteScreen from "@/src/features/Admin/screens/OfferWriteScreen";
+import OfferWriteScreen from "@/src/features/Admin/screens/Offer/OfferWriteScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
 
