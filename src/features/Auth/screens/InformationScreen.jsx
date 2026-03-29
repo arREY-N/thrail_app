@@ -76,7 +76,7 @@ const InformationScreen = ({
 
                         <CustomTextInput
                             label="Birthday *"
-                            placeholder="DD/MM/YYYY"
+                            placeholder="MM/DD/YYYY"
                             value={birthday}
                             onChangeText={setBirthday}
                             type="calendar"
