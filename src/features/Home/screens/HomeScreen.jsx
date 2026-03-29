@@ -11,10 +11,10 @@ import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { Colors } from '../../../constants/colors';
+import { Colors } from '@/src/constants/colors';
 
-import MountainCard from '../components/MountainCard';
-import WeatherSection from '../components/WeatherSection';
+import MountainCard from '@/src/components/MountainCard';
+import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 const HomeScreen = ({
     locationTemp, 
