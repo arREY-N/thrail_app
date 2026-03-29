@@ -6,10 +6,12 @@ import {
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomText from '@/src/components/CustomText';
+import MountainCard from '@/src/components/MountainCard';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
+import FilterModal from '@/src/features/Explore/components/FilterModal';
 import SearchBar from '@/src/features/Explore/components/SearchBar';
-import MountainCard from '@/src/features/Home/components/MountainCard';
 
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -35,6 +37,8 @@ const ExploreScreen = ({
     const [selectedCategory, setSelectedCategory] = useState('All');
     const categories = ['All', 'Recommended', 'Nearby', 'Discover', 'Challenge'];
 
+    const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+
     const filteredTrails = useMemo(() => {
         return filterTrailsByCategory(trails, selectedCategory);
     }, [selectedCategory, trails]);
@@ -52,15 +56,13 @@ const ExploreScreen = ({
                     categories={categories}
                     selectedCategory={selectedCategory}
                     onSelectCategory={setSelectedCategory}
-                    onFilterPress={() => console.log('Filter Pressed')}
+                    onFilterPress={() => setIsFilterModalVisible(true)}
                 />
 
                 <ResponsiveScrollView 
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    
-
                     <View style={[styles.listContainer, { gap }]}>
                         {filteredTrails.length > 0 ? (
                             filteredTrails.map((t) => (
@@ -68,7 +70,7 @@ const ExploreScreen = ({
                                     key={t.id}
                                     item={t}
                                     onPress={() => onViewMountain(t.id)}
-                                    onDownload={() => console.log("Download", t.name)}
+                                    onLikePress={() => console.log("Like", t.name)}
                                     style={{ width: cardWidth }} 
                                 />
                             ))
@@ -80,8 +82,16 @@ const ExploreScreen = ({
                             </View>
                         )}
                     </View>
-
                 </ResponsiveScrollView>
+
+                <FilterModal 
+                    visible={isFilterModalVisible}
+                    onClose={() => setIsFilterModalVisible(false)}
+                    onApply={(filters) => {
+                        console.log("Applied Filters:", filters);
+                    }}
+                />
+
             </View>
         </ScreenWrapper>
     );
@@ -133,9 +143,9 @@ const styles = StyleSheet.create({
     listContainer: {
         paddingHorizontal: 16,
         paddingTop: 16,
-        paddingBottom: 16,
+        paddingBottom: 32,
         flexDirection: 'row', 
-        flexWrap: 'wrap',     
+        flexWrap: 'wrap',    
     },
     emptyState: {
         paddingTop: 40,
