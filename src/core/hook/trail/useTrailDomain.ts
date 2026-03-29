@@ -33,7 +33,8 @@ export default function useTrailDomain(params: TrailParams | null = null){
     const onHikePress = (trailId: string) => {
         setHikingTrail(trailId);
         router.push({
-            pathname: '/(main)/hike/view'
+            pathname: '/(main)/hike/view',
+            params: { trailId },
         })
     }
 
