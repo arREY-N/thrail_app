@@ -49,10 +49,6 @@ export const TestCommunityScreen = (params: CommunityScreenParams) => {
     return(
         <ScrollView>
             <Text>Test Community Screen</Text>
-
-            <Pressable onPress={() => onWriteReviewPress()}>
-                <Text>Create New Review</Text>
-            </Pressable>
             
             <Pressable onPress={() => refreshFeed()}>
                 <Text>Refresh</Text>
@@ -61,7 +57,7 @@ export const TestCommunityScreen = (params: CommunityScreenParams) => {
             {
                 reviews.map(r => (
                     <View style={styles.review} key={r.id}>
-                            <Text>{r.hike.review}</Text>
+                            <Text>{r.review}</Text>
                             <Text>{r.likes.length}</Text>
                             <Pressable onPress={() => likeReview(r)}>
                                 { isLiked(r) 
