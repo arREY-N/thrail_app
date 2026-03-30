@@ -54,27 +54,26 @@ export const TestWriteReview = (params: TestWriteParams) => {
         <View>
             { error && <Text>{ error }</Text>}
             <Text>Write Review</Text>
-            <Text>For: { review.hike.name }</Text>
+            <Text>For: { review.trail.name }</Text>
             <CustomTextInput 
-                label={'Review'} 
-                placeholder={'Enter review'} 
-                value={review.hike.review} 
+                label={'Review'}
+                placeholder={'Enter review'}
+                value={review.review}
                 onChangeText={(value: string) => onUpdatePress({
-                    section: 'hike',
+                    section: 'root',
                     id: 'review',
                     value: value
-                })} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined} 
-                showTodayButton={undefined} 
-                allowFutureDates={undefined}            
-            />
+                })}
+                secureTextEntry={undefined}
+                keyboardType={undefined}
+                isPasswordVisible={undefined}
+                onTogglePassword={undefined}
+                style={undefined}
+                icon={undefined}
+                prefix={undefined}
+                children={undefined}
+                showTodayButton={undefined}
+                allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}            />
 
             <Pressable onPress={() => onSaveReview()}>
                 <Text>Save Review</Text>
