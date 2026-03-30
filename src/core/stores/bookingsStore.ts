@@ -16,7 +16,7 @@ interface BookState extends BaseStore<Booking>{
 }
 
 const init = {
-    data: [],
+    data: [...dummyBookings],
     current: new Booking(),
     userBookings: dummyBookings,
     error: null,

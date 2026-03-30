@@ -16,7 +16,15 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.thrail_app"
+      "package": "com.anonymous.thrail_app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "static"
@@ -25,15 +33,23 @@
       "expo-router",
       "expo-font",
       [
-        "@maplibre/maplibre-react-native",
+        "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Thrail to use your location to show you on the map."
+          "locationAlwaysAndWhenInUsePermission": "Allow Thrail to track your hike in the background so you never lose your trail.",
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
+      "@maplibre/maplibre-react-native",
       "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b6dba09b-d80c-45d8-ad39-273c63ef2f4e"
+      }
     }
   }
 }
