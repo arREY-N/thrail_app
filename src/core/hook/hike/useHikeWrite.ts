@@ -5,6 +5,7 @@ import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export interface IUseWriteHike {
@@ -19,6 +20,7 @@ export interface IUseWriteHike {
     onResumeHike: () => void;
     onCompleteHike: () => void;
     onResetHike: () => void;
+    onEmergencyPress: () => void;
 
     onAddReview: (trailId: string) => void;
 }
@@ -45,6 +47,7 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
     const timerStartTime = useHikesStore(s => s.timerStartTime);
     const active = useHikesStore(s => s.active);
 
+    const getLastKnownCoordinate = useHikesStore(s => s.getLastKnownCoordinate);
     const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
     const updateHikeStore = useHikesStore(s => s.updateHikeStore);
     const create = useHikesStore(s => s.create);
@@ -174,6 +177,8 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
 
         updateHikeStore({
             active: false,
+            elapsedTime: 0,
+            timerStartTime: null,
         })
 
         updateCurrentHike({ 
@@ -213,7 +218,12 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
         if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
             return;
         } 
-
+        useHikesStore.getState().addCoordinate({
+            latitude: Math.random() * 180 - 90,
+            longitude: Math.random() * 360 - 180,
+            altitude: Math.random() * 2000,
+            timestamp: new Date(),
+        })
         const now = Date.now();
 
         updateHikeStore({ elapsedTime: now - timerStartTime });
@@ -234,19 +244,33 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
     },[currentHike?.status])
 
 
-    const onAddReview = (trailId: string) => {
-        // if(hike && hike.status !== 'completed'){
-        //     setLocalError('cannot review an incomplete hike');
-        //     return;
-        // }
+    const onEmergencyPress = () => {
+        const coordinates = getLastKnownCoordinate();
+        const emergencyContact = booking?.emergencyContact;
+
+        if(!emergencyContact) {
+            setLocalError("No emergency contact available");
+        }
         
-        // console.log('add review', trailId);
-        // router.push({
-        //     pathname: '/(main)/review/write',
-        //     params: {
-        //         trailId: trailId
-        //     }
-        // })
+        console.error("TO IMPLEMENT");
+        console.log(coordinates);
+        onPauseHike();
+    }
+
+    const onAddReview = (trailId: string) => {
+        console.log(trailId)
+        if(currentHike && currentHike.status !== 'completed'){
+            setLocalError('cannot review an incomplete hike');
+            return;
+        }
+        
+        console.log('add review', trailId);
+        router.push({
+            pathname: '/(main)/review/write',
+            params: {
+                trailId: trailId
+            }
+        })
     }
 
 
@@ -258,13 +282,13 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
 
         elapsedTime,
 
+        onEmergencyPress,
         onStartHike,
         onAddReview,
         onPauseHike,
         onResumeHike,
         onCompleteHike,
         onResetHike,
-
     }
 }
     
