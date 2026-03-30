@@ -9,23 +9,8 @@ import {
   PermissionsAndroid,
   Platform,
 } from "react-native";
-import { exportHikeData, loadWalkedPathCoords, saveToCSV } from "../../utility/hikeStorage";
-
-const LOCATION_TASK = "background-location-task";
-
-// ✅ Background task must be defined outside the hook at the top level
-TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-  if (error) return;
-  const { locations } = data;
-  const location = locations[0];
-
-  const lat = location.coords.latitude;
-  const lon = location.coords.longitude;
-  const alt = location.coords.altitude ?? 0;
-  const timestamp = new Date(location.timestamp).toISOString();
-
-  await saveToCSV(lat, lon, alt, timestamp);
-});
+import { exportHikeData, saveToCSV } from "../../utility/hikeStorage";
+import { LOCATION_TASK } from "../../utility/locationTask";
 
 export const useHikerGPS = () => {
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -33,12 +18,7 @@ export const useHikerGPS = () => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null,
   );
-  const [walkedPath, setWalkedPath] = useState<[number, number][]>([]);
-
-  const loadWalkedPath = async () => {
-    const coords = await loadWalkedPathCoords();
-    setWalkedPath(coords);
-  };
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
 
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
@@ -61,13 +41,11 @@ export const useHikerGPS = () => {
         if (nextState === "active") {
           const timestamp = new Date().toISOString();
           saveToCSV("APP_RESUMED", "", "", timestamp);
-          loadWalkedPath(); // Refresh path when returning to app
         }
       },
     );
 
-    // Initial load of the path
-    loadWalkedPath();
+    // Initial tracking start
 
     (async () => {
       // ✅ Foreground permission
@@ -143,7 +121,7 @@ export const useHikerGPS = () => {
           }
 
           setUserLocation([lon, lat]);
-          setWalkedPath((prev) => [...prev, [lon, lat]]);
+          setRouteCoordinates((prev) => [...prev, [lon, lat]]);
           saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
         },
       );
@@ -162,7 +140,7 @@ export const useHikerGPS = () => {
     permissionGranted,
     isOnline,
     userLocation,
-    walkedPath,
+    routeCoordinates,
     exportHikeData,
   };
 };
