@@ -1,4 +1,5 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
+import { Coordinates } from "@/src/core/models/Hike/Hike.types";
 import { HikeRepository } from "@/src/core/repositories/hikeRepository";
 import { dummyHikes } from "@/src/core/stores/dummy/dummyHike";
 import { StateCreator } from "zustand";
@@ -13,6 +14,8 @@ export interface HikeState {
     timerStartTime: number;
     active: boolean;
 
+    getLastKnownCoordinate: () => Coordinates;
+    addCoordinate: (coordinate: Coordinates) => void;
     updateCurrentHike: (patch: Partial<Hike>) => void;  
     updateHikeStore: (patch: Partial<Hike>) => void;
 
@@ -31,6 +34,30 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     elapsedTime: 0,
     timerStartTime: 0,
     active: false,
+
+    addCoordinate: (coordinate: Coordinates) => set((state) => {
+        if(state.currentHike) {
+            if(!state.currentHike.coordinates){
+                state.currentHike.coordinates = [];
+            }
+            state.currentHike.coordinates.push(coordinate);
+            console.log('Hike coordinates: ', state.currentHike.coordinates);
+        }
+    }),
+
+    getLastKnownCoordinate: (): Coordinates => {
+        const coordinates = get().currentHike?.coordinates
+
+        if(!coordinates || coordinates.length === 0)
+            return {
+                latitude: 0,
+                longitude: 0,
+                altitude: 0,
+                timestamp: new Date(),
+            };
+        
+        return coordinates[coordinates.length - 1];
+    },
     
     updateCurrentHike: (patch) => set((state) => {
         if(state.currentHike) {

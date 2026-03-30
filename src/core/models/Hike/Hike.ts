@@ -1,9 +1,9 @@
-import { IHike, IHikeDB, Status } from "@/src/core/models/Hike/Hike.types";
+import { Coordinates, IHike, IHikeDB, Status } from "@/src/core/models/Hike/Hike.types";
 import { toNumerical, toTextual } from "@/src/core/models/Review/Logic/Review.converter";
 import { DifficultyFactors, DifficultyRating, FavoredFactors } from "@/src/core/models/Review/Review.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 
 export class Hike implements IHike {
@@ -28,6 +28,7 @@ export class Hike implements IHike {
     image: string[] = [];
     predictedDifficulty: DifficultyRating = 'Easy';
     perceivedDifficulty?: DifficultyRating | undefined;
+    coordinates: Coordinates[] = [];
 
     constructor(init?: Partial<IHike>) {
         Object.assign(this, init);
@@ -43,6 +44,12 @@ export class Hike implements IHike {
             startTime: data.startTime ? toDate(data.startTime) : undefined,
             endTime: data.endTime ? toDate(data.endTime) : undefined,
             trailMaintenance: toTextual(data.trailMaintenance),
+            coordinates: data.coordinates.map(coord => ({
+                latitude: coord.point.latitude,
+                longitude: coord.point.longitude,
+                altitude: coord.altitude,
+                timestamp: toDate(coord.timestamp)
+            }))
         }
         
         return new Hike(mapped);
@@ -62,6 +69,11 @@ export class Hike implements IHike {
             favoredFactors: this.favoredFactors,
             review: this.review,
             image: this.image,
+            coordinates: this.coordinates.map(coord => ({
+                point: new GeoPoint(coord.latitude, coord.longitude),
+                altitude: coord.altitude || 0,
+                timestamp: Timestamp.fromDate(coord.timestamp)
+            }))
         }
 
         if(this.perceivedDifficulty !== undefined) {
