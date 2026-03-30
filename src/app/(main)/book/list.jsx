@@ -1,33 +1,53 @@
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { Pressable, Text } from "react-native";
+import React, { useEffect, useState } from 'react';
 
-import CustomTextInput from '@/src/components/CustomTextInput';
 import useBookOffer from '@/src/core/hook/book/useBookOffer';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useAuthStore } from '@/src/core/stores/authStore';
+import useBookingsStore from '@/src/core/stores/bookingsStore';
+
+import CustomLoading from '@/src/components/CustomLoading';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { Colors } from '@/src/constants/colors';
+
 import BookingManagementScreen from '@/src/features/Book/screens/ManagementFlow/BookingManagementScreen';
-import { useState } from 'react';
 
 export default function listBook(){
     const { onBackPress } = useAppNavigation();
 
     const { 
-        booking,
         bookings,
         isLoading,
         error,
         onCancelBookingPress,
     } = useBookOffer();
 
+    const profile = useAuthStore((s) => s.profile);
+    const loadBookings = useBookingsStore((s) => s.load);
+
     const [reason, setReason] = useState('');
+
+    useEffect(() => {
+        if (profile?.id) {
+            loadBookings(profile.id);
+        }
+    }, [profile?.id, loadBookings]);
 
     // TODO: move loading display inside the component
     if (isLoading || !bookings) {
-        return <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>;
+        return (
+            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                <CustomLoading 
+                    visible={true} 
+                    message="Loading your bookings..." 
+                />
+            </ScreenWrapper>
+        );
     }
 
     console.log(error);
     return (
         <>
-            {
+            {/* {
                 bookings.length > 0 && bookings.map(u => {
                     return (
                         <>
@@ -38,12 +58,12 @@ export default function listBook(){
                         </>
                     )
                 })
-            }
-            <CustomTextInput
+            } */}
+            {/* <CustomTextInput
                 label="Reason for cancellation"
                 value={reason}
                 onChangeText={setReason}
-            />
+            /> */}
             <BookingManagementScreen 
                 userBookings={bookings}
                 isLoading={isLoading}

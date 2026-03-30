@@ -8,12 +8,14 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 
-import { Colors } from '@/src/constants/colors';
-
-const PaymentScreen = ({ selectedOffer, savedMethod, onContinue }) => {
-    
+const PaymentScreen = ({
+    selectedOffer,
+    savedMethod,
+    onContinue,
+}) => {
     const [selectedMethod, setSelectedMethod] = useState(savedMethod || null);
 
     const paymentMethods = [
@@ -25,32 +27,45 @@ const PaymentScreen = ({ selectedOffer, savedMethod, onContinue }) => {
 
     return (
         <View style={styles.container}>
-            <ScrollView 
+            <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.summarySection}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
+                    <CustomText
+                        variant="h2"
+                        style={styles.sectionTitle}
+                    >
                         Payment Summary
                     </CustomText>
-                    
+
                     <View style={styles.summaryCard}>
                         <View style={styles.summaryRow}>
-                            <CustomText variant="body" color={Colors.TEXT_SECONDARY}>
+                            <CustomText
+                                variant="body"
+                                color={Colors.TEXT_SECONDARY}
+                            >
                                 Tour Package
                             </CustomText>
                             <CustomText variant="label">
                                 ₱{totalPrice.toFixed(2)}
                             </CustomText>
                         </View>
-                        
+
                         <View style={styles.divider} />
-                        
+
                         <View style={styles.summaryRow}>
-                            <CustomText variant="h2" color={Colors.TEXT_PRIMARY}>
+                            <CustomText
+                                variant="h2"
+                                color={Colors.TEXT_PRIMARY}
+                                style={{ fontSize: 16 }}
+                            >
                                 Total
                             </CustomText>
-                            <CustomText variant="h2" color={Colors.PRIMARY}>
+                            <CustomText
+                                variant="h2"
+                                color={Colors.PRIMARY}
+                            >
                                 ₱{totalPrice.toFixed(2)}
                             </CustomText>
                         </View>
@@ -58,7 +73,10 @@ const PaymentScreen = ({ selectedOffer, savedMethod, onContinue }) => {
                 </View>
 
                 <View style={styles.methodsSection}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
+                    <CustomText
+                        variant="h2"
+                        style={styles.sectionTitle}
+                    >
                         Select Payment Method
                     </CustomText>
 
@@ -66,26 +84,30 @@ const PaymentScreen = ({ selectedOffer, savedMethod, onContinue }) => {
                         const isSelected = selectedMethod === method.id;
 
                         return (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 key={method.id}
                                 style={[
                                     styles.methodCard,
-                                    isSelected && styles.selectedMethodCard
+                                    isSelected && styles.selectedMethodCard,
                                 ]}
                                 activeOpacity={0.8}
                                 onPress={() => setSelectedMethod(method.id)}
                             >
                                 <View style={styles.methodIconWrapper}>
-                                    <CustomIcon 
+                                    <CustomIcon
                                         library={method.library}
                                         name={method.icon}
                                         size={24}
-                                        color={isSelected ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
+                                        color={
+                                            isSelected
+                                                ? Colors.PRIMARY
+                                                : Colors.GRAY_MEDIUM
+                                        }
                                     />
                                 </View>
-                                
-                                <CustomText 
-                                    variant="label" 
+
+                                <CustomText
+                                    variant="label"
                                     style={styles.methodName}
                                 >
                                     {method.name}
@@ -100,9 +122,9 @@ const PaymentScreen = ({ selectedOffer, savedMethod, onContinue }) => {
                 </View>
             </ScrollView>
 
-            <StickyFooter 
-                title={`Pay ₱${(totalPrice).toFixed(2)}`} 
-                onPress={() => onContinue({ paymentMethod: selectedMethod })} 
+            <StickyFooter
+                title={`Pay ₱${totalPrice.toFixed(2)}`}
+                onPress={() => onContinue({ paymentMethod: selectedMethod })}
                 isDisabled={!selectedMethod}
             />
         </View>
@@ -118,12 +140,13 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     scrollContent: {
-        paddingBottom: 100, 
+        paddingBottom: 100,
     },
     sectionTitle: {
         paddingTop: 16,
         paddingHorizontal: 0,
         marginBottom: 16,
+        fontSize: 16,
     },
     summarySection: {
         marginBottom: 24,
@@ -134,7 +157,6 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -164,7 +186,6 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,

@@ -1,30 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
+import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
 import { useAuthStore } from '@/src/core/stores/authStore';
+
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
+import TermsSignature from '@/src/features/Book/components/TermsSignature';
+
+const formatLocalPhoneNumber = (text) => {
+    if (!text) return '';
+    let cleaned = text.replace(/\D/g, '');
+    if (cleaned.length > 10) cleaned = cleaned.substring(0, 10);
+
+    let formatted = cleaned;
+    if (cleaned.length > 3) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+    }
+    if (cleaned.length > 6) {
+        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    }
+    return formatted;
+};
 
 const DetailsScreen = ({ 
     selectedOffer, 
     savedDetails, 
     savedDocs, 
     onContinue, 
-    isSubmitting 
+    isSubmitting
 }) => {
-    
+
     const { profile } = useAuthStore();
     const hasProfileData = !!(profile?.firstname || profile?.lastname);
+    const requiredDocuments = selectedOffer?.documents || [];
 
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
     
@@ -34,6 +48,8 @@ const DetailsScreen = ({
     } else if (profilePhone.startsWith('0')) {
         profilePhone = profilePhone.substring(1);
     }
+    
+    profilePhone = formatLocalPhoneNumber(profilePhone);
 
     const getInitialData = () => {
         if (savedDetails) return savedDetails;
@@ -50,7 +66,7 @@ const DetailsScreen = ({
     const [isEditingPhone, setIsEditingPhone] = useState(!hasProfileData); 
     const [showEditModal, setShowEditModal] = useState(false);
 
-    const requiredDocuments = selectedOffer?.documents || [];
+    const [isSignatureValid, setIsSignatureValid] = useState(false);
 
     useEffect(() => {
         setFormData(getInitialData());
@@ -78,7 +94,8 @@ const DetailsScreen = ({
     const isFormValid = () => {
         const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
         const areAllDocsUploaded = requiredDocuments.every(doc => uploadedDocs[doc]);
-        return isBasicInfoFilled && areAllDocsUploaded;
+
+        return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
 
     return (
@@ -87,7 +104,6 @@ const DetailsScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-
                 <View style={styles.section}>
                     <View style={styles.sectionHeaderRow}>
                         <CustomText variant="h2" style={styles.sectionTitleFlat}>
@@ -131,23 +147,23 @@ const DetailsScreen = ({
                     
                     <View style={styles.lockedInputContainer}>
                         <CustomTextInput 
-                            label="Full Name"
-                            value={profileFullName}
+                            label="Full Name" 
+                            value={profileFullName} 
                             editable={false} 
-                            style={styles.inputSpacing}
+                            style={styles.inputSpacing} 
                         />
                     </View>
 
                     <View style={!isEditingPhone ? styles.lockedInputContainer : {}}>
                         <CustomTextInput 
-                            label="Phone Number"
-                            placeholder="9XX XXX XXXX"
-                            prefix="+63"
+                            label="Phone Number" 
+                            placeholder="9XX XXX XXXX" 
+                            prefix="+63" 
                             type="phone"
-                            value={formData.phone  || ''}
-                            keyboardType="number-pad"
+                            value={formData.phone || ''} 
+                            keyboardType="number-pad" 
                             editable={isEditingPhone}
-                            onChangeText={(text) => handleInputChange('phone', text)}
+                            onChangeText={(text) => handleInputChange('phone', text)} 
                             maxLength={12}
                         />
                     </View>
@@ -159,21 +175,21 @@ const DetailsScreen = ({
                     </CustomText>
                     
                     <CustomTextInput 
-                        label="Contact Name"
+                        label="Contact Name" 
                         placeholder="Maria Dela Cruz"
-                        value={formData.emergencyName  || ''}
+                        value={formData.emergencyName || ''} 
                         onChangeText={(text) => handleInputChange('emergencyName', text)}
                         style={styles.inputSpacing}
                     />
 
                     <CustomTextInput 
-                        label="Contact Phone Number"
-                        placeholder="9XX XXX XXXX"
-                        prefix="+63"
+                        label="Contact Phone Number" 
+                        placeholder="9XX XXX XXXX" 
+                        prefix="+63" 
                         type="phone"
-                        value={formData.emergencyPhone  || ''}
+                        value={formData.emergencyPhone || ''} 
                         keyboardType="number-pad"
-                        onChangeText={(text) => handleInputChange('emergencyPhone', text)}
+                        onChangeText={(text) => handleInputChange('emergencyPhone', text)} 
                         maxLength={12}
                     />
                 </View>
@@ -187,66 +203,38 @@ const DetailsScreen = ({
                             Please upload the requirements specific to this offer.
                         </CustomText>
 
-                        {requiredDocuments.map((doc, index) => {
-                            const isUploaded = uploadedDocs[doc];
-                            
-                            return (
-                                <View key={index} style={styles.uploadCard}>
-                                    <View style={styles.uploadInfo}>
-                                        <View 
-                                            style={[
-                                                styles.iconWrapper, 
-                                                isUploaded ? styles.iconWrapperSuccess : styles.iconWrapperPending
-                                            ]}
-                                        >
-                                            <CustomIcon 
-                                                library="Feather" 
-                                                name={isUploaded ? "check" : "file-text"} 
-                                                size={20} 
-                                                color={isUploaded ? Colors.SUCCESS : Colors.PRIMARY} 
-                                            />
-                                        </View>
-                                        <CustomText variant="label" style={styles.docName}>
-                                            {doc}
-                                        </CustomText>
-                                    </View>
-
-                                    <TouchableOpacity 
-                                        style={[
-                                            styles.uploadBtn, 
-                                            isUploaded && styles.uploadedBtn
-                                        ]}
-                                        onPress={() => handleSimulateUpload(doc)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <CustomText 
-                                            variant="caption" 
-                                            style={isUploaded ? styles.uploadedBtnText : styles.uploadBtnText}
-                                        >
-                                            {isUploaded ? "Uploaded" : "Upload"}
-                                        </CustomText>
-                                    </TouchableOpacity>
-                                </View>
-                            );
-                        })}
+                        {requiredDocuments.map((doc, index) => (
+                            <DocumentUploadCard 
+                                key={index}
+                                docName={doc}
+                                isUploaded={uploadedDocs[doc]}
+                                onUploadPress={() => handleSimulateUpload(doc)}
+                            />
+                        ))}
                     </View>
                 )}
+
+                <TermsSignature 
+                    expectedName={profileFullName}
+                    onValidChange={(isValid) => setIsSignatureValid(isValid)}
+                />
+                
             </ScrollView>
 
             <StickyFooter 
                 title={isSubmitting ? "Reserving..." : "Reserve"} 
-                onPress={() => onContinue({ hikerDetails: formData, uploadedDocs })} 
                 isDisabled={!isFormValid() || isSubmitting}
+                onPress={() => onContinue({ hikerDetails: formData, uploadedDocs })} 
             />
 
             <ConfirmationModal 
-                visible={showEditModal}
-                onClose={() => setShowEditModal(false)}
+                visible={showEditModal} 
+                onClose={() => setShowEditModal(false)} 
                 onConfirm={confirmEditPhone}
-                title="Change Phone Number?"
-                message="Are you sure you want to use a different phone number for this booking? Please ensure it is an active number so your guide can easily reach you on the day of the hike."
-                confirmText="Edit Number"
+                title="Change Phone Number?" 
+                confirmText="Edit Number" 
                 cancelText="Cancel"
+                message="Are you sure you want to use a different phone number for this booking? Please ensure it is an active number so your guide can easily reach you on the day of the hike."
             />
         </View>
     );
@@ -266,7 +254,7 @@ const styles = StyleSheet.create({
     section: { 
         marginBottom: 0 
     },
-    
+
     sectionHeaderRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
@@ -290,7 +278,7 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         color: Colors.TEXT_SECONDARY 
     },
-    
+
     headerActionBtn: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -326,65 +314,6 @@ const styles = StyleSheet.create({
     },
     inputSpacing: { 
         marginBottom: 16 
-    },
-
-    uploadCard: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        backgroundColor: Colors.WHITE, 
-        padding: 16, 
-        borderRadius: 16, 
-        marginBottom: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
-        elevation: 2 
-    },
-    uploadInfo: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        flex: 1 
-    },
-    iconWrapper: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginRight: 12 
-    },
-    iconWrapperPending: { 
-        backgroundColor: Colors.BACKGROUND 
-    },
-    iconWrapperSuccess: { 
-        backgroundColor: '#E8F5E9' 
-    },
-    docName: { 
-        flex: 1, 
-        marginRight: 8 
-    },
-    uploadBtn: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
-        borderRadius: 20, 
-        backgroundColor: Colors.PRIMARY 
-    },
-    uploadedBtn: { 
-        backgroundColor: Colors.BACKGROUND, 
-        borderWidth: 1, 
-        borderColor: Colors.SUCCESS 
-    },
-    uploadBtnText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
-    },
-    uploadedBtnText: { 
-        color: Colors.SUCCESS, 
-        fontWeight: 'bold' 
     },
 });
 

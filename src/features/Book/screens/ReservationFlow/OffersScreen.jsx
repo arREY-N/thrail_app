@@ -13,90 +13,108 @@ import StickyFooter from '@/src/features/Book/components/StickyFooter';
 import { Colors } from '@/src/constants/colors';
 
 const formatDateToStandard = (dateObj) => {
-    if (!dateObj) return "";
+    if (!dateObj) return '';
 
     let d;
     if (typeof dateObj.toDate === 'function') {
         d = dateObj.toDate();
-    } 
-    else if (dateObj instanceof Date) {
+    } else if (dateObj instanceof Date) {
         d = dateObj;
-    } 
-    else {
+    } else if (dateObj.seconds) {
+        d = new Date(dateObj.seconds * 1000);
+    } else {
         d = new Date(dateObj);
     }
-    if (isNaN(d.getTime())) return "Invalid Date";
+
+    if (isNaN(d.getTime())) return 'Invalid Date';
 
     const shortMonths = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    
+
     return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 };
 
-const OffersScreen = ({ 
-    offers = [], 
-    selectedOfferId, 
-    onContinue 
-}) => {
-    
-    const uniqueDates = useMemo(() => {
-        const dates = offers
-            .map(offer => formatDateToStandard(offer.date))
-            .filter(Boolean);
-            
-        return [...new Set(dates)];
-    }, [offers]);
+const getTodayString = () => {
+    return formatDateToStandard(new Date());
+};
 
-    const getTodayString = () => {
-        return formatDateToStandard(new Date());
-    };
-
+const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
     const [selectedDate, setSelectedDate] = useState(getTodayString());
     const [localSelectedId, setLocalSelectedId] = useState(selectedOfferId);
+
+    const safeOffers = useMemo(() => {
+        return Array.isArray(offers) ? offers : [];
+    }, [offers]);
+
+    const uniqueDates = useMemo(() => {
+        const dates = safeOffers
+            .map((offer) => formatDateToStandard(offer?.date))
+            .filter(Boolean);
+
+        return [...new Set(dates)];
+    }, [safeOffers]);
+
+    const filteredOffers = useMemo(() => {
+        if (!selectedDate) return [];
+        return safeOffers.filter(
+            (offer) => formatDateToStandard(offer?.date) === selectedDate
+        );
+    }, [safeOffers, selectedDate]);
+
+    const isSelectedDatePast = useMemo(() => {
+        if (!selectedDate) return false;
+        
+        const selected = new Date(selectedDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        return selected < today;
+    }, [selectedDate]);
 
     useEffect(() => {
         if (selectedOfferId) {
             setLocalSelectedId(selectedOfferId);
+
+            const preSelectedOffer = safeOffers.find(
+                (o) => o.id === selectedOfferId
+            );
             
-            const preSelectedOffer = offers.find(o => o.id === selectedOfferId);
             if (preSelectedOffer && preSelectedOffer.date) {
                 setSelectedDate(formatDateToStandard(preSelectedOffer.date));
             }
+        } else {
+            setLocalSelectedId(null);
+            setSelectedDate(getTodayString());
         }
-    }, [selectedOfferId, offers]);
-
-    const filteredOffers = useMemo(() => {
-        if (!selectedDate) return [];
-        return offers.filter(offer => formatDateToStandard(offer.date) === selectedDate); 
-    }, [offers, selectedDate]);
-
-    const isSelectedDatePast = useMemo(() => {
-        if (!selectedDate) return false;
-        const selected = new Date(selectedDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return selected < today;
-    }, [selectedDate]);
+    }, [selectedOfferId, safeOffers]);
 
     const handleDateSelect = (date) => {
         setSelectedDate(date);
-        setLocalSelectedId(null); 
+        setLocalSelectedId(null);
+    };
+
+    const handleOfferSelect = (offerId) => {
+        if (localSelectedId === offerId) {
+            setLocalSelectedId(null);
+        } else {
+            setLocalSelectedId(offerId);
+        }
     };
 
     return (
         <View style={styles.container}>
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
+            <ScrollView
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.calendarSectionWrapper}>
                     <CustomText variant="h2" style={styles.sectionTitle}>
                         Select Date
                     </CustomText>
-                    
-                    <OfferCalendar 
+
+                    <OfferCalendar
                         uniqueDates={uniqueDates}
                         selectedDate={selectedDate}
                         onSelectDate={handleDateSelect}
@@ -107,26 +125,23 @@ const OffersScreen = ({
                     <CustomText variant="h2" style={styles.sectionTitle}>
                         Available Offers
                     </CustomText>
-                    
+
                     {filteredOffers.length > 0 ? (
                         filteredOffers.map((offer) => (
-                            <OfferCardItem 
-                                key={offer.id} 
+                            <OfferCardItem
+                                key={offer.id}
                                 offer={offer}
                                 isSelected={localSelectedId === offer.id}
                                 isExpired={isSelectedDatePast}
-                                onSelect={() => {
-                                    if (localSelectedId === offer.id) {
-                                        setLocalSelectedId(null);
-                                    } else {
-                                        setLocalSelectedId(offer.id);
-                                    }
-                                }} 
+                                onSelect={() => handleOfferSelect(offer.id)}
                             />
                         ))
                     ) : (
                         <View style={styles.emptyState}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                            <CustomText
+                                variant="caption"
+                                color={Colors.TEXT_SECONDARY}
+                            >
                                 No offers available for this date.
                             </CustomText>
                         </View>
@@ -134,9 +149,9 @@ const OffersScreen = ({
                 </View>
             </ScrollView>
 
-            <StickyFooter 
-                title="Continue" 
-                onPress={() => onContinue(localSelectedId)} 
+            <StickyFooter
+                title="Continue"
+                onPress={() => onContinue(localSelectedId)}
                 isDisabled={!localSelectedId}
             />
         </View>
@@ -148,17 +163,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
         paddingHorizontal: 16,
-        paddingTop: 16, 
+        paddingTop: 16,
         paddingBottom: 16,
     },
     scrollContent: {
-        paddingBottom: 100, 
+        paddingBottom: 100,
     },
     calendarSectionWrapper: {
         marginBottom: 8,
     },
     sectionTitle: {
-        paddingTop: 0, 
+        paddingTop: 0,
         paddingHorizontal: 0,
         marginBottom: 16,
         fontWeight: 'bold',
