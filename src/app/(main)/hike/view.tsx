@@ -24,7 +24,8 @@ export default function hikeView(){
         onPauseHike,
         onCompleteHike,
         onResumeHike,
-        onResetHike
+        onResetHike,
+        onEmergencyPress
     } = useWriteHike({hikeId, trailId});
 
     const formatTime = (ms: number) => {
@@ -51,6 +52,7 @@ export default function hikeView(){
                 elapsedTime={formatTime(elapsedTime)}
                 hikeId={hikeId}
                 trailId={trailId}
+                onEmergencyPress={onEmergencyPress}
             />        
         </>
     )
@@ -70,6 +72,7 @@ export type HikeViewParams = {
     onResumeHike: () => void;
     onResetHike: () => void;
     onAddReview: (trailId: string) => void;
+    onEmergencyPress: () => void;
 }
 
 export const TestView = (params: HikeViewParams) => {
@@ -85,6 +88,7 @@ export const TestView = (params: HikeViewParams) => {
         onCompleteHike,
         onResumeHike,
         onResetHike,
+        onEmergencyPress,
         onAddReview,
     } = params;
 
@@ -104,6 +108,9 @@ export const TestView = (params: HikeViewParams) => {
             <Text>Hike Review: {hike.review || 'No review available'} </Text>
             <Text>Predicted difficulty: { hike.predictedDifficulty }</Text>
             <Text>Hike status: { hike.status }</Text>
+            <Pressable onPress={() => onEmergencyPress()}>
+                <Text>EMERGENCY BUTTON</Text>
+            </Pressable>
             {booking && (
                 <View>
                     <Text>Booking ID: {booking.id}</Text>
