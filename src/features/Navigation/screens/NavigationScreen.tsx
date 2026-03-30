@@ -2,10 +2,10 @@ import TrailMap from "@/src/features/Map/TrailMap";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-const NavigationScreen: React.FC = () => {
+const NavigationScreen = ({ lon, lat }: any) => {
   return (
     <View style={styles.container}>
-      <TrailMap />
+      <TrailMap initialLon={lon} initialLat={lat} />
     </View>
   );
 };

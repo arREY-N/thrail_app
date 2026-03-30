@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-const TrailMap: React.FC = () => {
+const TrailMap: React.FC<any> = ({ initialLon, initialLat }: any) => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>🗺️ Map is not available on web.</Text>

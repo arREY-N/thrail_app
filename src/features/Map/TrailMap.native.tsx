@@ -1,7 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import MapLibreGL from "@maplibre/maplibre-react-native";
-import { useAssets } from "expo-asset";
-import React, { useRef, useState } from "react";
+import * as FileSystem from 'expo-file-system/legacy';
+import { Asset } from 'expo-asset';
+import React, { useEffect, useRef, useState } from "react";
+
 import {
   Alert,
   Platform,
@@ -30,9 +32,10 @@ const trailsGeoJSON = {
 
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
-const TrailMap = () => {
+
+const TrailMap = ({ initialLon, initialLat }: any) => {
   // Notice: We don't need userHeading here anymore! MapLibre handles it natively.
-  const { userLocation, walkedPath, permissionGranted, isOnline, exportHikeData } =
+  const { userLocation, routeCoordinates, permissionGranted, isOnline, exportHikeData } =
     useHikerGPS();
 
   const [forceOffline, setForceOffline] = useState(true);
@@ -40,22 +43,79 @@ const TrailMap = () => {
   const [isFollowing, setIsFollowing] = useState(true);
   const lastZoomRef = useRef<number>(16);
   const cameraRef = useRef<any>(null);
-  const [assets] = useAssets([
-    require("../../assets/tiles/thrail-offline-map.pmtiles"),
-  ]);
 
-  if (!assets || !assets[0]?.localUri) {
-    return <LoadingScreen />;
-  }
+  // We are completely bypassing the React Native `useAssets` hook because it continuously cancels and 
+  // restarts massive 35MB downloads during hot-reloads, causing the map to load indefinitely.
+  const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
+
+  useEffect(() => {
+    async function loadGiganticOfflineMap() {
+      try {
+        const fileUri = `${FileSystem.documentDirectory}thrail-offline-map.pmtiles`;
+        
+        // 1. Check if it exists AND is fully downloaded (Assuming 35MB is ~35,000,000 bytes)
+        const fileInfo = await FileSystem.getInfoAsync(fileUri);
+        
+        if (fileInfo.exists) {
+          if (fileInfo.size && fileInfo.size > 30000000) { // If it's larger than 30MB, it's good!
+            console.log("✅ Offline map cache is healthy! Bypassing download.");
+            setOfflineTileUrl(`pmtiles://${fileUri}`);
+            return;
+          } else {
+            console.log("⚠️ Found corrupted/incomplete map cache. Deleting and retrying...");
+            await FileSystem.deleteAsync(fileUri, { idempotent: true });
+          }
+        }
+
+        console.log("⬇️ Starting cache process for offline map...");
+        
+        // 2. Safely resolve and copy the asset (Works in Dev Emulator AND Prod APK)
+        const asset = Asset.fromModule(require("../../assets/tiles/thrail-offline-map.pmtiles"));
+        await asset.downloadAsync(); // Caches to Expo's local directory first
+        
+        if (asset.localUri) {
+          // 3. COPY it to the document directory instead of "downloading" a URL
+          await FileSystem.copyAsync({
+            from: asset.localUri,
+            to: fileUri
+          });
+          console.log("✅ Successfully copied map to Document Directory!");
+          setOfflineTileUrl(`pmtiles://${fileUri}`);
+        } else {
+          throw new Error("Asset failed to generate a localUri");
+        }
+        
+      } catch (error) {
+        console.warn("CRITICAL: Failed to cache the offline map:", error);
+      }
+    }
+
+    loadGiganticOfflineMap();
+  }, []);
+
+  // Fly to Trail: If trail coordinates exist, use cameraRef to pan and override GPS snap
+  useEffect(() => {
+    const parsedLon = Number(initialLon);
+    const parsedLat = Number(initialLat);
+
+    if (initialLon && initialLat && !isNaN(parsedLon) && !isNaN(parsedLat)) {
+      // Snap to exact trail coordinate so the camera perfectly centers on the green line
+    
+      // Small timeout ensures the Camera component has fully mounted natively
+      const timer = setTimeout(() => {
+        setIsFollowing(false);
+        cameraRef.current?.setCamera({
+          centerCoordinate: [parsedLon, parsedLat],
+          zoomLevel: 14,
+          animationDuration: 1000,
+          animationMode: "flyTo"
+        });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [initialLon, initialLat]);
 
   const centerOnUser = () => {
-    // if (!userLocation) {
-    //   Alert.alert(
-    //     "Waiting for GPS",
-    //     "We haven't found your exact location yet.",
-    //   );
-    //   return;
-    // }
     cameraRef.current?.setCamera({
       centerCoordinate: userLocation,
       zoomLevel: 18,
@@ -64,9 +124,17 @@ const TrailMap = () => {
     });
     setIsFollowing(true);
   };
-
-  const offlineTileUrl = `pmtiles://${assets[0].localUri}`;
+  
   const actuallyOffline = forceOffline || !isOnline;
+  const isDownloadingOfflineMap = actuallyOffline && offlineTileUrl === "";
+
+  if (isDownloadingOfflineMap) {
+    return <LoadingScreen />;
+  }
+
+  const activeStyle = actuallyOffline
+    ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string) 
+    : onlineStyle;
 
   return (
     <View style={styles.page as any}>
@@ -98,11 +166,7 @@ const TrailMap = () => {
         style={styles.map as any}
         logoEnabled={true}
         attributionEnabled={true}
-        mapStyle={
-          actuallyOffline
-            ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string)
-            : onlineStyle
-        }
+        mapStyle={activeStyle}
         // NEW: If the user touches the screen to pan, stop following them!
         onRegionWillChange={(event) => {
           if (event.properties.isUserInteraction) {
@@ -139,14 +203,14 @@ const TrailMap = () => {
           />
         </MapLibreGL.ShapeSource>
 
-        {walkedPath.length > 1 && (
+        {routeCoordinates.length >= 2 && (
           <MapLibreGL.ShapeSource
             id="walkedPathSource"
             shape={{
               type: "Feature",
               geometry: {
                 type: "LineString",
-                coordinates: walkedPath,
+                coordinates: routeCoordinates,
               },
               properties: {},
             }}
@@ -217,6 +281,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusText: { fontWeight: "700", fontSize: 13, letterSpacing: 0.5 },
+  downloadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(248, 244, 240, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 5, // Behind the top pill but above the map
+  },
+  downloadCard: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    width: '80%',
+  },
+  downloadText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  downloadSubText: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 6,
+    textAlign: 'center',
+  },
   recenterButton: {
     position: "absolute",
     bottom: 30,
