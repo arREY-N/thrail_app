@@ -2,7 +2,7 @@ import LoadingScreen from "@/src/app/loading";
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
-import BookingScreen from "@/src/features/Book/screens/ReservationFlow/BookingScreen";
+import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function listOffer(){
