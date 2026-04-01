@@ -51,6 +51,14 @@ const AdminHomeScreen = ({
         return fullName.length > 0 ? fullName : 'N/A';
     };
 
+    const formatLocation = (locationData) => {
+        if (!locationData) return 'N/A';
+        if (Array.isArray(locationData)) {
+            return locationData.join(', ');
+        }
+        return locationData; 
+    };
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
@@ -110,7 +118,7 @@ const AdminHomeScreen = ({
                         <InfoRow 
                             icon="map" 
                             label="Serviced Location" 
-                            value={businessAccount?.servicedLocation} 
+                            value={formatLocation(businessAccount?.servicedLocation)}
                         />
                         <InfoRow 
                             icon="calendar" 

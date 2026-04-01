@@ -163,6 +163,7 @@ const getMountainData = (item) => {
         require('@/src/assets/images/MT3.jpg'),
         require('@/src/assets/images/MT4.jpg'),
         require('@/src/assets/images/MT5.jpg'),
+        require("@/src/assets/images/Mt.Tagapo.jpg"),
     ];
     
     const uniqueString = item?.id ? String(item.id) : name;

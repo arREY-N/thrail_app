@@ -3,6 +3,7 @@ import {
     Animated,
     Dimensions,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -29,13 +30,13 @@ const FilterModal = ({ visible, onClose, onApply }) => {
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
             }).start();
         } else {
             Animated.timing(animValue, {
                 toValue: 0,
                 duration: 250,
-                useNativeDriver: true,
+                useNativeDriver: Platform.OS !== 'web',
             }).start(() => setRenderModal(false));
         }
     }, [visible]);

@@ -5,6 +5,7 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -19,6 +20,7 @@ const formatDate = (dateObj) => {
 const OfferListScreen = ({ 
     offers,
     isLoading, 
+    error,
     onAddOffer, 
     onEditOffer,
     onBackPress 
@@ -39,6 +41,8 @@ const OfferListScreen = ({
                     variant="primary"
                     style={styles.addButton}
                 />
+
+                <ErrorMessage error={error} />
 
                 {isLoading && (
                     <CustomText style={styles.loadingText}>Loading your offers...</CustomText>
@@ -132,6 +136,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
+
     loadingText: {
         textAlign: 'center',
         marginTop: 40,

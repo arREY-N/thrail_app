@@ -26,11 +26,12 @@ const CustomCalendarInput = ({
     label,
     placeholder = "MM/DD/YYYY", 
     showTodayButton = false, 
-    allowFutureDates = false 
+    allowFutureDates = false,
+    defaultMode = 'date'
 }) => {
 
     const [showPicker, setShowPicker] = useState(false);
-    const [mode, setMode] = useState('year'); 
+    const [mode, setMode] = useState(defaultMode); 
     const [viewDate, setViewDate] = useState(
         value instanceof Date && !isNaN(value) ? value : new Date()
     );
@@ -65,10 +66,18 @@ const CustomCalendarInput = ({
             viewDate.getFullYear() === value.getFullYear();
     };
 
-    const isFuture = (day) => {
-        if (allowFutureDates) return false;
+    const isPastDate = (day) => {
         const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        return checkDate > new Date(); 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return checkDate < today; 
+    };
+
+    const isFutureDate = (day) => {
+        const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return checkDate > today; 
     };
 
     const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -78,13 +87,13 @@ const CustomCalendarInput = ({
     const calendarGrid = [...blanks, ...days];
 
     const currentYear = new Date().getFullYear();
-    const years = Array.from(
-        { length: allowFutureDates ? 100 : 100 }, 
-        (_, i) => allowFutureDates ? currentYear + 5 - i : currentYear - i
-    );
+    
+    const years = allowFutureDates 
+        ? Array.from({ length: 12 }, (_, i) => currentYear + i) 
+        : Array.from({ length: 100 }, (_, i) => currentYear - i);
 
     const handleOpen = () => {
-        setMode('year');
+        setMode(defaultMode);
         setShowPicker(true);
     };
 
@@ -98,8 +107,11 @@ const CustomCalendarInput = ({
 
     const handleSelectDate = (day) => {
         const selectedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        if (!allowFutureDates && selectedDate > new Date()) return; 
+        if (allowFutureDates && selectedDate < today) return; 
+        if (!allowFutureDates && selectedDate > today) return; 
         
         onChangeText(selectedDate);
         setShowPicker(false);
@@ -122,7 +134,7 @@ const CustomCalendarInput = ({
 
                     const selected = isSelected(day);
                     const today = isToday(day);
-                    const disabled = isFuture(day);
+                    const disabled = allowFutureDates ? isPastDate(day) : isFutureDate(day);
 
                     return (
                         <TouchableOpacity 
@@ -183,26 +195,34 @@ const CustomCalendarInput = ({
     const renderMonthSelector = () => (
         <View style={styles.monthSelectorWrapper}>
             <View style={styles.selectorGrid}>
-                {SHORT_MONTHS.map((m, index) => (
-                    <TouchableOpacity 
-                        key={m} 
-                        style={[
-                            styles.monthCell, 
-                            viewDate.getMonth() === index && styles.selectorCellActive
-                        ]}
-                        onPress={() => {
-                            setViewDate(new Date(viewDate.getFullYear(), index, 1));
-                            setMode('date'); 
-                        }}
-                    >
-                        <CustomText style={[
-                            styles.selectorText, 
-                            viewDate.getMonth() === index && styles.selectorTextActive
-                        ]}>
-                            {m}
-                        </CustomText>
-                    </TouchableOpacity>
-                ))}
+                {SHORT_MONTHS.map((m, index) => {
+                    const isPastMonth = allowFutureDates 
+                        && viewDate.getFullYear() === currentYear 
+                        && index < new Date().getMonth();
+
+                    return (
+                        <TouchableOpacity 
+                            key={m} 
+                            style={[
+                                styles.monthCell, 
+                                viewDate.getMonth() === index && styles.selectorCellActive,
+                                isPastMonth && { opacity: 0.3 }
+                            ]}
+                            disabled={isPastMonth}
+                            onPress={() => {
+                                setViewDate(new Date(viewDate.getFullYear(), index, 1));
+                                setMode('date'); 
+                            }}
+                        >
+                            <CustomText style={[
+                                styles.selectorText, 
+                                viewDate.getMonth() === index && styles.selectorTextActive
+                            ]}>
+                                {m}
+                            </CustomText>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         </View>
     );
@@ -323,192 +343,48 @@ const CustomCalendarInput = ({
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        width: '100%', 
-        marginBottom: 16 
-    },
-    label: { 
-        marginBottom: 8, 
-        marginLeft: 2 
-    },
-    inputContainer: {
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Colors.BACKGROUND, 
-        borderWidth: 1, 
-        borderRadius: 12, 
-        height: 54, 
-        paddingHorizontal: 16,
-    },
-    textInputWrapper: { 
-        flex: 1 
-    },
-    inputText: { 
-        flex: 1, 
-        fontSize: 16, 
-        color: Colors.TEXT_PRIMARY, 
-        padding: 0, 
-        margin: 0,
-        outlineStyle: 'none'
-    },
+    container: { width: '100%', marginBottom: 16 },
+    label: { marginBottom: 8, marginLeft: 2 },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.BACKGROUND, borderWidth: 1, borderRadius: 12, height: 54, paddingHorizontal: 16 },
+    textInputWrapper: { flex: 1 },
+    inputText: { flex: 1, fontSize: 16, color: Colors.TEXT_PRIMARY, padding: 0, margin: 0, outlineStyle: 'none' },
 
-    modalOverlay: { 
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.4)', 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-    calendarCard: {
-        width: '90%', 
-        maxWidth: 360, 
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 20, 
-        padding: 20, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 10 }, 
-        shadowOpacity: 0.15, 
-        shadowRadius: 20, 
-        elevation: 10,
-    },
-    calendarHeader: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 20 
-    },
-    headerTitleContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 6 
-    },
-    headerTitle: { 
-        fontSize: 18, 
-        fontWeight: 'bold', 
-        color: Colors.TEXT_PRIMARY 
-    },
-    navButton: { 
-        padding: 4 
-    },
-    navButtonPlaceholder: { 
-        width: 32 
-    }, 
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    calendarCard: { width: '90%', maxWidth: 360, backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+    calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    headerTitleContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
+    navButton: { padding: 4 },
+    navButtonPlaceholder: { width: 32 }, 
     
-    dynamicContentContainer: { 
-        height: 330, 
-    }, 
+    dynamicContentContainer: { height: 330 }, 
 
-    weekdaysRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        marginBottom: 10 
-    },
-    weekdayText: { 
-        width: `${100 / 7}%`, 
-        textAlign: 'center', 
-        color: Colors.TEXT_SECONDARY, 
-        fontSize: 14, 
-        fontWeight: 'bold' 
-    },
-    daysGrid: { 
-        flexDirection: 'row', 
-        flexWrap: 'wrap' 
-    },
-    dayCell: { 
-        width: `${100 / 7}%`, 
-        height: 46, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        borderRadius: 12, 
-        marginBottom: 4 
-    },
-    dayCellSelected: { 
-        backgroundColor: Colors.PRIMARY 
-    },
-    dayText: { 
-        fontSize: 16, 
-        color: Colors.TEXT_PRIMARY 
-    },
-    dayTextSelected: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
-    },
-    dayTextToday: { 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold' 
-    },
-    dayTextDisabled: { 
-        color: Colors.GRAY_LIGHT 
-    },
+    weekdaysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    weekdayText: { width: `${100 / 7}%`, textAlign: 'center', color: Colors.TEXT_SECONDARY, fontSize: 14, fontWeight: 'bold' },
+    daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    dayCell: { width: `${100 / 7}%`, height: 46, justifyContent: 'center', alignItems: 'center', borderRadius: 12, marginBottom: 4 },
+    dayCellSelected: { backgroundColor: Colors.PRIMARY },
+    dayText: { fontSize: 16, color: Colors.TEXT_PRIMARY },
+    dayTextSelected: { color: Colors.WHITE, fontWeight: 'bold' },
+    dayTextToday: { color: Colors.PRIMARY, fontWeight: 'bold' },
+    dayTextDisabled: { color: Colors.GRAY_LIGHT },
 
-    monthSelectorWrapper: {
-        flex: 1,
-        justifyContent: 'center', 
-        paddingVertical: 4, 
-    },
-    selectorScroll: { 
-        flex: 1, 
-    },
-    scrollContent: {
-        paddingBottom: 16, 
-    },
-    selectorGrid: { 
-        flexDirection: 'row', 
-        flexWrap: 'wrap', 
-        justifyContent: 'space-between' 
-    },
+    monthSelectorWrapper: { flex: 1, justifyContent: 'center', paddingVertical: 4 },
+    selectorScroll: { flex: 1 },
+    scrollContent: { flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }, 
+    selectorGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     
-    monthCell: { 
-        width: '30%', 
-        height: 64, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        borderRadius: 16, 
-        marginBottom: 16 
-    },
-    
-    yearCell: { 
-        width: '30%', 
-        height: 52, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        borderRadius: 14, 
-        marginBottom: 12 
-    },
+    monthCell: { width: '30%', height: 64, justifyContent: 'center', alignItems: 'center', borderRadius: 16, marginBottom: 16 },
+    yearCell: { width: '30%', height: 52, justifyContent: 'center', alignItems: 'center', borderRadius: 14, marginBottom: 12 },
 
-    selectorCellActive: { 
-        backgroundColor: Colors.PRIMARY 
-    },
-    selectorText: { 
-        fontSize: 16, 
-        color: Colors.TEXT_PRIMARY 
-    },
-    selectorTextActive: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
-    },
+    selectorCellActive: { backgroundColor: Colors.PRIMARY },
+    selectorText: { fontSize: 16, color: Colors.TEXT_PRIMARY },
+    selectorTextActive: { color: Colors.WHITE, fontWeight: 'bold' },
 
-    footerRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginTop: 16, 
-        paddingTop: 16, 
-        borderTopWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT 
-    },
-    footerRowCenter: { 
-        justifyContent: 'center' 
-    },
-    footerButtonText: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold', 
-        fontSize: 15 
-    },
-    footerButtonTextToday: { 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold', 
-        fontSize: 15 
-    }
+    footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT },
+    footerRowCenter: { justifyContent: 'center' },
+    footerButtonText: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 15 },
+    footerButtonTextToday: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 15 }
 });
 
 export default CustomCalendarInput;
