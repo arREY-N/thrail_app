@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
+import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
 import { Colors } from '@/src/constants/colors';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
-import SummaryScreen from '@/src/features/Book/screens/Payment/SummaryScreen';
+import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 
 const PaymentScreen = ({
@@ -21,6 +23,7 @@ const PaymentScreen = ({
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
 
     const [currentStep, setCurrentStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [paymentType, setPaymentType] = useState('full');
     const [selectedMethod, setSelectedMethod] = useState(null);
@@ -33,7 +36,7 @@ const PaymentScreen = ({
 
     const handleHeaderBackPress = () => {
         if (currentStep === 3) {
-            setCurrentStep(2);
+            handleNextStep(); 
         } else if (currentStep === 2) {
             setCurrentStep(1);
         } else {
@@ -42,14 +45,21 @@ const PaymentScreen = ({
     };
 
     const handleStepNavigation = (step) => {
-        if (step > currentStep) return; 
+        if (currentStep === 3) return; 
+        if (step > currentStep || isSubmitting) return; 
         setCurrentStep(step);
     };
 
     const handleNextStep = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
+        if (currentStep === 1) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            setIsSubmitting(true);
+            setTimeout(() => {
+                setIsSubmitting(false);
+                setCurrentStep(3); 
+            }, 1200);
+        } else if (currentStep === 3) {
             onContinue({
                 paymentType,
                 paymentMethod: selectedMethod,
@@ -60,22 +70,27 @@ const PaymentScreen = ({
     };
 
     const getFooterConfig = () => {
-        if (currentStep === 1) return { title: "Continue", disabled: false };
-        if (currentStep === 2) return { title: "Continue", disabled: !(selectedMethod && isSignatureValid) };
-        if (currentStep === 3) return { title: "Submit Payment", disabled: !receiptImage };
+        if (currentStep === 1) return { title: "Continue", disabled: !(selectedMethod && isSignatureValid) };
+        if (currentStep === 2) return { title: "Submit Payment", disabled: !receiptImage };
+        if (currentStep === 3) return { title: "View Status", disabled: false }; 
         return { title: "Continue", disabled: false };
     };
 
     const footerConfig = getFooterConfig();
-    const lineFillPercentage = ((currentStep - 1) / 2) * 100;
+    const lineFillPercentage = ((currentStep - 1) / 2) * 100; 
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
+            <CustomLoading 
+                visible={isSubmitting} 
+                message="Loading..." 
+            />
+
             <CustomHeader 
-                title="Setup Payment" 
+                title={currentStep === 3 ? "Payment Status" : "Setup Payment"} 
                 centerTitle={true} 
-                onBackPress={handleHeaderBackPress} 
+                onBackPress={currentStep === 3 ? null : handleHeaderBackPress} 
             />
 
             <View style={styles.progressWrapper}>
@@ -88,14 +103,6 @@ const PaymentScreen = ({
                     <View style={styles.progressRow}>
                         <ProgressStep
                             stepNum={1}
-                            title="Summary"
-                            libraryName="Feather"
-                            iconName="file-text"
-                            currentView={currentStep}
-                            onStepPress={handleStepNavigation}
-                        />
-                        <ProgressStep
-                            stepNum={2}
                             title="Method"
                             libraryName="Feather"
                             iconName="credit-card"
@@ -103,10 +110,18 @@ const PaymentScreen = ({
                             onStepPress={handleStepNavigation}
                         />
                         <ProgressStep
-                            stepNum={3}
+                            stepNum={2}
                             title="Upload"
                             libraryName="Feather"
                             iconName="upload"
+                            currentView={currentStep}
+                            onStepPress={handleStepNavigation}
+                        />
+                        <ProgressStep
+                            stepNum={3}
+                            title="Status"
+                            libraryName="Feather"
+                            iconName="check-circle"
                             currentView={currentStep}
                             onStepPress={handleStepNavigation}
                         />
@@ -116,12 +131,6 @@ const PaymentScreen = ({
 
             <View style={styles.contentArea}>
                 {currentStep === 1 && (
-                    <SummaryScreen 
-                        bookingData={bookingData} 
-                        profileFullName={profileFullName} 
-                    />
-                )}
-                {currentStep === 2 && (
                     <MethodScreen 
                         amountToPay={amountToPay}
                         paymentType={paymentType}
@@ -132,13 +141,20 @@ const PaymentScreen = ({
                         setIsSignatureValid={setIsSignatureValid}
                     />
                 )}
-                {currentStep === 3 && (
+                {currentStep === 2 && (
                     <UploadScreen 
                         amountToPay={amountToPay}
                         selectedMethod={selectedMethod}
                         businessName={bookingData?.business?.name || 'Tour Provider'}
                         receiptImage={receiptImage}
                         setReceiptImage={setReceiptImage}
+                    />
+                )}
+                {currentStep === 3 && (
+                    <StatusScreen 
+                        selectedMethod={selectedMethod} 
+                        amountToPay={amountToPay} 
+                        bookingId={bookingData?.id} 
                     />
                 )}
             </View>
