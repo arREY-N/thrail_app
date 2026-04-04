@@ -272,7 +272,8 @@ const styles = StyleSheet.create({
         width: '100%',
         backgroundColor: Colors.BACKGROUND,
         paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingTop: 8,
+        paddingBottom: 24
     },
     footerConstrainer: {
         width: '100%',

@@ -6,9 +6,8 @@ import {
     View
 } from 'react-native';
 
-import { Colors } from '@/src/constants/colors';
-
 import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
 
 const ErrorMessage = ({ 
     error, 
@@ -20,14 +19,22 @@ const ErrorMessage = ({
 
     return (
         <View style={[styles.container, style]}>
-            <Feather name="alert-circle" size={18} color={Colors.ERROR} />
-            {children ? (
-                children
-            ) : (
-                <CustomText variant="caption" style={styles.text}>
-                    {error}
-                </CustomText>
-            )}
+            <Feather 
+                name="alert-circle" 
+                size={18} 
+                color={Colors.ERROR} 
+                style={styles.icon}
+            />
+            
+            <View style={styles.textContainer}>
+                {children ? (
+                    children
+                ) : (
+                    <CustomText variant="caption" style={styles.text}>
+                        {error}
+                    </CustomText>
+                )}
+            </View>
         </View>
     );
 };
@@ -35,20 +42,26 @@ const ErrorMessage = ({
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         backgroundColor: Colors.ERROR_BG, 
         borderWidth: 1,
         borderColor: Colors.ERROR_BORDER,    
-        padding: 10,
+        padding: 12,
         borderRadius: 8,
         marginBottom: 20,
         width: '100%',
         gap: 8,
     },
+    icon: {
+        marginTop: 2,
+    },
+    textContainer: {
+        flex: 1,
+    },
     text: {
         color: Colors.ERROR,
-        flex: 1,      
         fontWeight: '500',
+        lineHeight: 20,
     },
 });
 

@@ -1,3 +1,4 @@
+// TODO: remove the unused import once front end implemented
 import LoadingScreen from '@/src/app/loading';
 import UnauthorizedScreen from '@/src/app/unauthorized';
 import CustomButton from '@/src/components/CustomButton';
@@ -8,6 +9,11 @@ import { Business } from '@/src/core/models/Business/Business';
 import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { StyleSheet, Text, View } from "react-native";
+
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import AdminHomeScreen from '@/src/features/Admin/screens/AdminHomeScreen';
+import { Stack } from 'expo-router';
+
 
 export default function adminHome(){
     const {
@@ -21,6 +27,8 @@ export default function adminHome(){
     const {
         businessAccount,
     } = useAdmin({ businessId })
+
+    const { onBackPress } = useAppNavigation();
     
     if(isLoading || !businessAccount || !businessId || !profile || !role) 
         return <LoadingScreen/> 
@@ -38,12 +46,25 @@ export default function adminHome(){
     });
 
     return (
-        <TESTHOME 
-            businessAccount={businessAccount}
-            onManageAdminsPress={onManageAdminsPress}
-            onManageOffersPress={onManageOffersPress}
-            adminProfile={profile}
-            error={error}/>
+        <>
+            <Stack.Screen options={{ headerShown: false }} />
+
+            <AdminHomeScreen 
+                businessAccount={businessAccount}
+                onManageAdminsPress={onManageAdminsPress}
+                onManageOffersPress={onManageOffersPress}
+                adminProfile={profile}
+                error={error}
+                onBackPress={onBackPress}
+            />
+        </>
+
+        // <TESTHOME 
+        //     businessAccount={businessAccount}
+        //     onManageAdminsPress={onManageAdminsPress}
+        //     onManageOffersPress={onManageOffersPress}
+        //     adminProfile={profile}
+        //     error={error}/>
     );
 }
 

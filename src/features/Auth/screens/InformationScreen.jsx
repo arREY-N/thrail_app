@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
+import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -25,13 +25,9 @@ const InformationScreen = ({
     const [address, setAddress] = useState('');
 
     const handleContinue = () => {
-        let cleanNumber = phoneNumber.replace(/\s+/g, '');
-
-        if (cleanNumber.length === 10) {
-            cleanNumber = '0' + cleanNumber;
-        }
-
-        onContinuePress(cleanNumber, firstname, lastname, birthday, address);
+        const finalNumber = cleanPhoneNumber(phoneNumber);
+        
+        onContinuePress(finalNumber, firstname, lastname, birthday, address);
     };
     
     return (
@@ -80,7 +76,7 @@ const InformationScreen = ({
 
                         <CustomTextInput
                             label="Birthday *"
-                            placeholder="DD/MM/YYYY"
+                            placeholder="MM/DD/YYYY"
                             value={birthday}
                             onChangeText={setBirthday}
                             type="calendar"

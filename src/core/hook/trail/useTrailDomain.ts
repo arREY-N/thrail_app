@@ -113,11 +113,12 @@ export default function useTrailDomain(params: TrailParams | null = null){
         setHikingTrail(trailId);
         
         router.push({
-            pathname: '/(tabs)/hike',
-            params: {
+            pathname: '/(main)/hike/view',
+            params: { 
+                trailId,
                 lon: activeTrail?.geography?.startLong,
-                lat: activeTrail?.geography?.startLat,
-            }
+                lat: activeTrail?.geography?.startLat, 
+            },
         })
     }
 

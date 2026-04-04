@@ -52,11 +52,10 @@ const TESTPERSONNEL = ({
     return(
         <View>
             <CustomButton 
-                title={'Add Admins'} 
-                onPress={onAddAdminPress} 
-                style={undefined} 
-                textStyle={undefined}
-            />
+                title={'Add Admins'}
+                onPress={onAddAdminPress}
+                style={undefined}
+                textStyle={undefined} children={undefined}            />
 
             { businessAdmins.map((a) => {
                     return(
