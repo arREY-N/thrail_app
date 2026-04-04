@@ -52,6 +52,12 @@ export function useAppNavigation() {
         })
     }
 
+    const onGroupPress = () => {
+        router.push({
+            pathname: '/(main)/group/list',
+        })
+    }
+
     return {
         onTrailPress,
         onBackPress,
@@ -63,5 +69,6 @@ export function useAppNavigation() {
         onWeatherPress,
         onViewAllRecommendationPress,
         onViewAllTrendingPress,
+        onGroupPress,
     }
 }
