@@ -21,7 +21,12 @@ const getHeroBadgeStyle = (status) => {
                 textColor: Colors.STATUS_APPROVED_TEXT 
             };
         case 'paid':
-        case 'completed': 
+            return { 
+                label: 'VERIFYING', 
+                bgColor: Colors.STATUS_PENDING_BG, 
+                textColor: Colors.STATUS_PENDING_TEXT 
+            };
+        case 'completed':
             return { 
                 label: 'CONFIRMED', 
                 bgColor: Colors.STATUS_APPROVED_BG, 
@@ -30,6 +35,7 @@ const getHeroBadgeStyle = (status) => {
         case 'for-cancellation':
         case 'cancellation-rejected':
         case 'refund': 
+        case 'cancelled':
             return { 
                 label: 'CANCELLED', 
                 bgColor: Colors.STATUS_CANCELLED_BG, 
@@ -65,7 +71,7 @@ const HeroHeader = ({ booking }) => {
             </View>
 
             <CustomText variant="h1" style={styles.trailName}>
-                {trail?.name || 'Trail Name'}
+                {trail?.name || 'N/A'}
             </CustomText>
 
             <View style={styles.locationRow}>
@@ -76,7 +82,7 @@ const HeroHeader = ({ booking }) => {
                     color={Colors.TEXT_SECONDARY} 
                 />
                 <CustomText variant="body" style={styles.locationText}>
-                    {trail?.location || 'General Location, Philippines'}
+                    {trail?.location || 'N/A'}
                 </CustomText>
             </View>
         </View>
