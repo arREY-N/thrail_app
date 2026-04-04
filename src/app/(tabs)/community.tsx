@@ -1,3 +1,4 @@
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import { Review } from '@/src/core/models/Review/Review';
 import React from 'react';
@@ -14,6 +15,11 @@ export default function community(){
         refreshFeed,
     } = useReview();
 
+    const {
+        onGroupPress
+    } = useAppNavigation();
+
+
     return (
         <TestCommunityScreen 
             onWriteReviewPress={onWriteReviewPress}
@@ -22,6 +28,7 @@ export default function community(){
             likeReview={likeReview}
             isLiked={isLiked}
             refreshFeed={refreshFeed}
+            onGroupPress={onGroupPress}
         />
     )
 }
@@ -34,6 +41,7 @@ export type CommunityScreenParams = {
     likeReview: (review: Review) => void;
     isLiked: (review: Review) => Boolean;
     refreshFeed: () => void;
+    onGroupPress: () => void;
 }
 
 export const TestCommunityScreen = (params: CommunityScreenParams) => {
@@ -43,13 +51,17 @@ export const TestCommunityScreen = (params: CommunityScreenParams) => {
         isOwned,
         likeReview,
         isLiked,
-        refreshFeed
+        refreshFeed,
+        onGroupPress
+
     } = params;
 
     return(
         <ScrollView>
             <Text>Test Community Screen</Text>
-            
+            <Pressable onPress={onGroupPress}>
+                <Text>Go to Group</Text>
+            </Pressable>
             <Pressable onPress={() => refreshFeed()}>
                 <Text>Refresh</Text>
             </Pressable>
