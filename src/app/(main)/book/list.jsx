@@ -81,6 +81,7 @@ export default function listBook(){
 
 //Todo: remove this when the dummy data is not gonna use
 const DummyBookings = [
+    // 1. PENDING VERIFICATION (Documents Uploaded)
     {
         id: "dummy_001",
         createdAt: new Date(),
@@ -102,7 +103,7 @@ const DummyBookings = [
             contactNumber: "09171234567" 
         },
         business: { id: "bus_1", name: "Cloudstep Adventures" },
-        trail: { id: "trail_1", name: "Mt. Daraitan Traverse" },
+        trail: { id: "trail_1", name: "Mt. Daraitan Traverse", location: "Tanay, Rizal" },
         payment: [],
         offer: { 
             date: new Date("2026-05-12T07:00:00Z"), 
@@ -125,6 +126,7 @@ const DummyBookings = [
             ]
         }
     },
+    // 2. PAYMENT UNLOCKED (Documents Approved)
     {
         id: "dummy_002",
         createdAt: new Date(),
@@ -146,7 +148,7 @@ const DummyBookings = [
             contactNumber: "09171234567" 
         },
         business: { id: "bus_2", name: "Peakline Outdoor Co." },
-        trail: { id: "trail_2", name: "Mt. Batulao" },
+        trail: { id: "trail_2", name: "Mt. Batulao", location: "Nasugbu, Batangas" },
         payment: [],
         offer: { 
             date: new Date("2026-05-18T05:30:00Z"), 
@@ -169,11 +171,62 @@ const DummyBookings = [
             ]
         }
     },
+    // 3. VERIFYING PAYMENT
     {
         id: "dummy_003",
         createdAt: new Date(),
         updatedAt: new Date(),
         status: "paid",
+        cancellationReason: "",
+        cancelledBy: "",
+        pax: 2,
+        documents: { "Valid ID": true },
+        user: { 
+            id: "user_1", 
+            username: "juan_dela", 
+            firstname: "Juan", 
+            lastname: "Dela Cruz", 
+            email: "juan@example.com" 
+        },
+        emergencyContact: { 
+            name: "Maria Dela Cruz", 
+            contactNumber: "09171234567" 
+        },
+        business: { id: "bus_3", name: "Rizal Hikers Club" },
+        trail: { id: "trail_3", name: "Mt. Pamitinan", location: "Rodriguez, Rizal" },
+        payment: [
+            { 
+                id: "pay_2", 
+                date: new Date(), 
+                amount: 1000, 
+                method: "gcash", 
+                type: "full" 
+            }
+        ],
+        offer: { 
+            date: new Date("2026-05-25T06:00:00Z"), 
+            duration: "1 Day",
+            price: 1000,
+            inclusions: ["Guide Fee", "Environmental Fee"],
+            thingsToBring: ["Gloves for rock scrambling", "Trail water (2L)"],
+            reminders: ["Sharp limestone rocks, wear proper gloves."],
+            schedule: [
+                {
+                    day: 1,
+                    activities: [
+                        { time: new Date("2026-05-25T06:00:00Z"), event: "Meetup at Brgy. Wawa" },
+                        { time: new Date("2026-05-25T07:00:00Z"), event: "Start Ascent" }
+                    ]
+                }
+            ]
+        }
+    },
+    // 4. CONFIRMED (Fully Paid & Verified)
+    {
+        id: "dummy_004",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: "completed",
         cancellationReason: "",
         cancelledBy: "",
         pax: 1,
@@ -189,8 +242,8 @@ const DummyBookings = [
             name: "Maria Dela Cruz", 
             contactNumber: "09171234567" 
         },
-        business: { id: "bus_3", name: "Northwind Trek Services" },
-        trail: { id: "trail_3", name: "Mt. Pulag (Ambangeag Trail)" },
+        business: { id: "bus_4", name: "Northwind Trek Services" },
+        trail: { id: "trail_4", name: "Mt. Pulag (Ambangeag Trail)", location: "Kabayan, Benguet" },
         payment: [
             { 
                 id: "pay_1", 
@@ -228,8 +281,9 @@ const DummyBookings = [
             ]
         }
     },
+    // 5. CANCELLED / HISTORY
     {
-        id: "dummy_004",
+        id: "dummy_005",
         createdAt: new Date(),
         updatedAt: new Date(),
         status: "refund",
@@ -248,8 +302,8 @@ const DummyBookings = [
             name: "Maria Dela Cruz", 
             contactNumber: "09171234567" 
         },
-        business: { id: "bus_4", name: "Summit Seekers" },
-        trail: { id: "trail_4", name: "Mt. Makiling" },
+        business: { id: "bus_5", name: "Summit Seekers" },
+        trail: { id: "trail_5", name: "Mt. Makiling", location: "Los Baños, Laguna" },
         payment: [],
         offer: { 
             date: new Date("2026-04-20T06:00:00Z"), 
