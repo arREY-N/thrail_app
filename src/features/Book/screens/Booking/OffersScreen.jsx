@@ -7,7 +7,7 @@ import {
 
 import CustomText from '@/src/components/CustomText';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
-import OfferCardItem from '@/src/features/Book/components/OfferCardItem';
+import OfferCard from '@/src/features/Book/components/OfferCard';
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 
 import { Colors } from '@/src/constants/colors';
@@ -128,7 +128,7 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
 
                     {filteredOffers.length > 0 ? (
                         filteredOffers.map((offer) => (
-                            <OfferCardItem
+                            <OfferCard
                                 key={offer.id}
                                 offer={offer}
                                 isSelected={localSelectedId === offer.id}
