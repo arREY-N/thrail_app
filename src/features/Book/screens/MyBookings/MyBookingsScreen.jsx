@@ -46,14 +46,16 @@ const MyBookingsScreen = ({
     };
 
     const onBookingSelectPress = (booking) => {
-        setSelectedBooking(booking);
+    setSelectedBooking(booking);
 
-        if (booking.status === 'for-reservation') {
-            setCurrentView('document-status');
-        } else {
-            setCurrentView('overview');
-        }
-    };
+    if (booking.status === 'for-reservation' || booking.status === 'pending-docs') {
+        setCurrentView('document-status');
+    } else if (booking.status === 'paid') {
+        setCurrentView('payment-status');
+    } else {
+        setCurrentView('overview');
+    }
+};
 
     const onProceedToPaymentPress = () => {
         setCurrentView('payment');
