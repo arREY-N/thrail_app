@@ -12,13 +12,13 @@ import BookingCard from '@/src/features/Book/components/BookingCard';
 import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
-import BookedScreen from '@/src/features/Book/screens/MyBookings/BookedScreen';
+import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
 import DocumentStatusScreen from '@/src/features/Book/screens/MyBookings/DocumentStatusScreen';
 import PaymentStatusScreen from '@/src/features/Book/screens/MyBookings/PaymentStatusScreen';
 import ReceiptScreen from '@/src/features/Book/screens/MyBookings/ReceiptScreen';
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
 
-const BookingManagementScreen = ({
+const MyBookingsScreen = ({
     userBookings,
     error,
     onBackPress,
@@ -48,7 +48,7 @@ const BookingManagementScreen = ({
     const onBookingSelectPress = (booking) => {
         setSelectedBooking(booking);
 
-        if (booking.status === 'pending-docs' || booking.status === 'for-reservation') {
+        if (booking.status === 'for-reservation') {
             setCurrentView('document-status');
         } else {
             setCurrentView('overview');
@@ -121,7 +121,7 @@ const BookingManagementScreen = ({
 
     if (currentView === 'overview') {
         return (
-            <BookedScreen
+            <BookingDetailsScreen
                 booking={selectedBooking}
                 onBackPress={onHeaderBackPress}
                 onProceedToPayment={onProceedToPaymentPress}
@@ -207,4 +207,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BookingManagementScreen;
+export default MyBookingsScreen;
