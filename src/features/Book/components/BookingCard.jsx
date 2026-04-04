@@ -9,13 +9,19 @@ import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 const getStatusConfig = (status) => {
     switch (status) {
-        case 'paid':
         case 'completed':
             return { 
-                label: 'Paid', 
+                label: 'Confirmed', 
                 bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.STATUS_APPROVED_TEXT, 
+                textColor: Colors.PRIMARY, 
                 icon: 'check-circle' 
+            };
+        case 'paid':
+            return { 
+                label: 'Verifying', 
+                bgColor: Colors.STATUS_PENDING_BG, 
+                textColor: Colors.STATUS_PENDING_TEXT, 
+                icon: 'clock' 
             };
         case 'approved-docs': 
         case 'for-payment':
@@ -27,6 +33,9 @@ const getStatusConfig = (status) => {
             };
         case 'for-reservation':
         case 'pending-docs': 
+        case 'for-reschedule':
+        case 'reschedule-rejected':
+        case 'rescheduled':
             return { 
                 label: 'Pending', 
                 bgColor: Colors.STATUS_PENDING_BG,  
@@ -45,7 +54,7 @@ const getStatusConfig = (status) => {
             };
         default:
             return { 
-                label: status || 'Unknown', 
+                label: status ? status.toUpperCase() : 'UNKNOWN', 
                 bgColor: Colors.GRAY_ULTRALIGHT, 
                 textColor: Colors.TEXT_SECONDARY, 
                 icon: 'help-circle' 
@@ -146,7 +155,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
     },
-    
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -171,8 +179,8 @@ const styles = StyleSheet.create({
     statusPillText: {
         fontSize: 12,
         fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
-
     middleRow: {
         gap: 8,
         marginBottom: 4,
@@ -186,7 +194,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         fontSize: 13,
     },
-
     dottedDivider: {
         height: 1,
         borderWidth: 1,
