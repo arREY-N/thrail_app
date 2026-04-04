@@ -10,7 +10,17 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const OfferCardItem = ({ 
+const formatTime = (dateObj) => {
+    if (!dateObj) return '--:--';
+    try {
+        const d = typeof dateObj.toDate === 'function' ? dateObj.toDate() : new Date(dateObj);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        return '--:--';
+    }
+};
+
+const OfferCard = ({ 
     offer, 
     isSelected, 
     onSelect 
@@ -54,6 +64,20 @@ const OfferCardItem = ({
                             4.9 (60 reviews)
                         </CustomText>
                     </View>
+
+                    {offer.duration && (
+                        <View style={styles.durationRow}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="clock" 
+                                size={12} 
+                                color={Colors.TEXT_SECONDARY} 
+                            />
+                            <CustomText variant="caption" style={styles.durationText}>
+                                {offer.duration}
+                            </CustomText>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.priceInfo}>
@@ -69,6 +93,12 @@ const OfferCardItem = ({
                     >
                         / Per Person
                     </CustomText>
+                    
+                    {(offer.minPax || offer.maxPax) && (
+                        <CustomText variant="caption" style={styles.paxText}>
+                            {offer.minPax}-{offer.maxPax} Pax required
+                        </CustomText>
+                    )}
                 </View>
             </View>
 
@@ -106,12 +136,20 @@ const OfferCardItem = ({
                                         key={dayIdx} 
                                         style={styles.timelineDay}
                                     >
-                                        <CustomText 
-                                            variant="label"
-                                            style={styles.dayLabel}
-                                        >
-                                            {dayData.day}
-                                        </CustomText>
+                                        <View style={styles.dayHeaderRow}>
+                                            <CustomIcon 
+                                                library="Feather" 
+                                                name="calendar" 
+                                                size={16} 
+                                                color={Colors.PRIMARY} 
+                                            />
+                                            <CustomText 
+                                                variant="label"
+                                                style={styles.dayLabelText}
+                                            >
+                                                Day {dayData.day}
+                                            </CustomText>
+                                        </View>
                                         
                                         {dayData.activities?.map((act, actIdx) => (
                                             <View 
@@ -123,7 +161,7 @@ const OfferCardItem = ({
                                                     variant="label"
                                                     style={styles.timelineTime}
                                                 >
-                                                    {act.time}
+                                                    {formatTime(act.time)}
                                                 </CustomText>
                                                 <CustomText 
                                                     variant="caption"
@@ -258,7 +296,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -300,6 +337,17 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         gap: 6,
     },
+    durationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        gap: 6,
+    },
+    durationText: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 12,
+        marginBottom: 2,
+    },
     priceInfo: { 
         alignItems: 'flex-end', 
         justifyContent: 'flex-start',
@@ -313,6 +361,11 @@ const styles = StyleSheet.create({
     perPerson: { 
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
+    },
+    paxText: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 4,
     },
     
     expandedContent: {
@@ -354,11 +407,16 @@ const styles = StyleSheet.create({
     timelineDay: { 
         marginBottom: 20,
     },
-    dayLabel: { 
+    dayHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        marginTop: 4,
+        gap: 8,
+    },
+    dayLabelText: { 
         fontWeight: 'bold', 
         color: Colors.PRIMARY, 
-        marginBottom: 12, 
-        marginTop: 4,
     },
     timelineRow: { 
         flexDirection: 'row', 
@@ -372,7 +430,7 @@ const styles = StyleSheet.create({
         width: 10, 
         height: 10, 
         borderRadius: 5, 
-        backgroundColor: Colors.GRAY_MEDIUM,
+        backgroundColor: Colors.PRIMARY, 
     },
     timelineTime: { 
         width: 80, 
@@ -398,7 +456,7 @@ const styles = StyleSheet.create({
         width: 4,
         height: 4, 
         borderRadius: 2, 
-        backgroundColor: Colors.GRAY_MEDIUM, 
+        backgroundColor: Colors.PRIMARY, 
         marginRight: 10,
         marginTop: 9,
     },
@@ -431,7 +489,7 @@ const styles = StyleSheet.create({
         width: 4, 
         height: 4, 
         borderRadius: 2, 
-        backgroundColor: Colors.GRAY_MEDIUM, 
+        backgroundColor: Colors.PRIMARY, 
         marginTop: 9, 
     },
     warningText: { 
@@ -440,4 +498,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default OfferCardItem;
+export default OfferCard;
