@@ -31,8 +31,7 @@ const BookingDetailsScreen = ({
     const totalAmount = booking?.offer?.price || 0;
     const amountPaid = booking?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
     const remainingBalance = totalAmount - amountPaid;
-    const totalPax = booking?.pax || 1; 
-    const duration = booking?.offer?.duration;
+    
     const documents = booking?.documents || {};
     const user = booking?.user;
     const emergencyContact = booking?.emergencyContact;
@@ -53,14 +52,21 @@ const BookingDetailsScreen = ({
                 secondaryButton: {
                     title: "Confirm Cancel",
                     variant: "outline",
-                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
-                    textStyle: { color: Colors.ERROR },
+                    style: { 
+                        borderColor: Colors.ERROR, 
+                        borderRadius: 12 
+                    },
+                    textStyle: { 
+                        color: Colors.ERROR 
+                    },
                     onPress: () => onCancelConfirm(booking, "User requested cancellation")
                 },
                 primaryButton: {
                     title: "Keep Booking",
                     variant: "primary",
-                    style: { borderRadius: 12 },
+                    style: { 
+                        borderRadius: 12 
+                    },
                     onPress: () => setIsCanceling(false)
                 }
             };
@@ -69,8 +75,13 @@ const BookingDetailsScreen = ({
         const cancelBtnStyle = {
             title: "Cancel",
             variant: "outline",
-            style: { borderColor: Colors.GRAY_MEDIUM, borderRadius: 12 },
-            textStyle: { color: Colors.TEXT_SECONDARY },
+            style: { 
+                borderColor: Colors.GRAY_MEDIUM, 
+                borderRadius: 12 
+            },
+            textStyle: { 
+                color: Colors.TEXT_SECONDARY 
+            },
             onPress: () => setIsCanceling(true)
         };
 
@@ -80,7 +91,9 @@ const BookingDetailsScreen = ({
                 primaryButton: { 
                     title: "Reschedule", 
                     variant: "primary", 
-                    style: { borderRadius: 12 },
+                    style: { 
+                        borderRadius: 12 
+                    },
                     onPress: () => onReschedule(booking) 
                 }
             };
@@ -92,7 +105,10 @@ const BookingDetailsScreen = ({
                 primaryButton: { 
                     title: "Complete Payment", 
                     variant: "primary", 
-                    style: { borderRadius: 12, backgroundColor: '#006B2B' }, 
+                    style: { 
+                        borderRadius: 12, 
+                        backgroundColor: '#006B2B' 
+                    }, 
                     onPress: () => onProceedToPayment(booking) 
                 }
             };
@@ -103,13 +119,17 @@ const BookingDetailsScreen = ({
                 secondaryButton: { 
                     title: "Reschedule", 
                     variant: "outline", 
-                    style: { borderRadius: 12 },
+                    style: { 
+                        borderRadius: 12 
+                    },
                     onPress: () => onReschedule(booking) 
                 },
                 primaryButton: { 
                     title: "View Receipt", 
                     variant: "primary", 
-                    style: { borderRadius: 12 },
+                    style: { 
+                        borderRadius: 12 
+                    },
                     onPress: () => onViewReceipt(booking) 
                 }
             };
@@ -149,35 +169,43 @@ const BookingDetailsScreen = ({
                         icon="file-text"
                         defaultOpen={currentStatus === 'for-reservation'}
                     >
-                        {Object.entries(documents).map(([docName, isApproved], idx) => (
-                            <View key={idx} style={styles.documentRow}>
-                                <View style={styles.docNameRow}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name={isApproved ? "check-circle" : "clock"} 
-                                        size={18} 
-                                        color={isApproved ? Colors.SUCCESS : Colors.WARNING} 
-                                    />
-                                    <CustomText variant="body" style={styles.documentText}>
-                                        {docName}
+                        {Object.entries(documents).map(([docName, isUploadedValue], idx) => {
+                            const isDocApproved = isUploadedValue && currentStatus !== 'for-reservation';
+
+                            return (
+                                <View key={idx} style={styles.documentRow}>
+                                    <View style={styles.docNameRow}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={isDocApproved ? "check-circle" : "clock"} 
+                                            size={18} 
+                                            color={isDocApproved ? Colors.SUCCESS : Colors.WARNING} 
+                                        />
+                                        <CustomText variant="body" style={styles.documentText}>
+                                            {docName}
+                                        </CustomText>
+                                    </View>
+                                    <CustomText 
+                                        variant="caption" 
+                                        style={[
+                                            styles.documentStatusText, 
+                                            { color: isDocApproved ? Colors.SUCCESS : Colors.WARNING }
+                                        ]}
+                                    >
+                                        {isDocApproved ? 'Approved' : 'Pending Review'}
                                     </CustomText>
                                 </View>
-                                <CustomText 
-                                    variant="caption" 
-                                    style={[
-                                        styles.documentStatusText, 
-                                        { color: isApproved ? Colors.SUCCESS : Colors.WARNING }
-                                    ]}
-                                >
-                                    {isApproved ? 'Approved' : 'Pending'}
-                                </CustomText>
-                            </View>
-                        ))}
+                            );
+                        })}
                     </AccordionItem>
                 )}
 
                 {(user || emergencyContact) && (
-                    <AccordionItem title="Personal Information" icon="user" defaultOpen={false}>
+                    <AccordionItem 
+                        title="Personal Information" 
+                        icon="user" 
+                        defaultOpen={false}
+                    >
                         {user && (
                             <View style={styles.attendeeBlock}>
                                 <CustomText variant="caption" style={styles.attendeeLabel}>
@@ -211,7 +239,11 @@ const BookingDetailsScreen = ({
                 )}
 
                 {inclusions.length > 0 && (
-                    <AccordionItem title="Inclusions" icon="archive" defaultOpen={false}>
+                    <AccordionItem 
+                        title="Inclusions" 
+                        icon="archive" 
+                        defaultOpen={false}
+                    >
                         {inclusions.map((item, idx) => (
                             <View key={idx} style={styles.bulletRow}>
                                 <View style={styles.tinyDot} />
@@ -275,11 +307,15 @@ const BookingDetailsScreen = ({
                 )}
 
                 {reminders.length > 0 && (
-                    <AccordionItem title="Important Reminders" icon="alert-circle" defaultOpen={!isCancelled}>
+                    <AccordionItem 
+                        title="Important Reminders" 
+                        icon="alert-circle" 
+                        defaultOpen={!isCancelled}
+                    >
                         {Array.isArray(reminders) ? (
                             reminders.map((item, idx) => (
                                 <View key={idx} style={styles.bulletRow}>
-                                    <View style={[styles.tinyDot, { backgroundColor: Colors.ERROR }]} />
+                                    <View style={styles.tinyDot} />
                                     <CustomText variant="caption" style={styles.bulletText}>
                                         {item}
                                     </CustomText>
