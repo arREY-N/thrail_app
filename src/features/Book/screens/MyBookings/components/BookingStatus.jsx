@@ -16,14 +16,15 @@ const getStepIndex = (status) => {
         case 'approved-docs':
             return 1; // Approved
         case 'paid':
-        case 'completed':
             return 2; // Paid
+        case 'completed':
+            return 3; // Confirmed Payment
         default:
             return -1; // Cancelled
     }
 };
 
-const BookingProgress = ({ status }) => {
+const BookingStatus = ({ status }) => {
     const currentStep = getStepIndex(status);
 
     if (currentStep === -1) return null;
@@ -38,7 +39,7 @@ const BookingProgress = ({ status }) => {
                     color={Colors.TEXT_PRIMARY} 
                 />
                 <CustomText variant="label" style={styles.title}>
-                    Booking Progress
+                    Booking Status
                 </CustomText>
             </View>
 
@@ -96,6 +97,25 @@ const BookingProgress = ({ status }) => {
                         style={[styles.stepText, currentStep >= 2 && styles.activeText]}
                     >
                         Paid
+                    </CustomText>
+                </View>
+
+                <View style={[styles.line, currentStep >= 3 ? styles.activeLine : styles.inactiveLine]} />
+
+                <View style={styles.stepWrapper}>
+                    <View style={[styles.circle, currentStep >= 3 ? styles.activeCircle : styles.inactiveCircle]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="check" 
+                            size={12} 
+                            color={currentStep >= 3 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
+                        />
+                    </View>
+                    <CustomText 
+                        variant="caption" 
+                        style={[styles.stepText, currentStep >= 3 && styles.activeText]}
+                    >
+                        Confirmed
                     </CustomText>
                 </View>
 
@@ -175,4 +195,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BookingProgress;
+export default BookingStatus;

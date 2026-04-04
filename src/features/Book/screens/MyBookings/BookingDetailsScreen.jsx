@@ -11,7 +11,7 @@ import { Colors } from '@/src/constants/colors';
 import { formatTime } from '@/src/utils/dateFormatter';
 
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem.jsx';
-import BookingProgress from '@/src/features/Book/screens/MyBookings/components/BookingProgress';
+import BookingStatus from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import CancellationReasonCard from '@/src/features/Book/screens/MyBookings/components/CancellationReasonCard';
 import CancelWarningBox from '@/src/features/Book/screens/MyBookings/components/CancelWarningBox';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
@@ -141,7 +141,7 @@ const BookingDetailsScreen = ({
                     <CancellationReasonCard reason={cancellationReason} />
                 )}
 
-                <BookingProgress status={currentStatus} />
+                <BookingStatus status={currentStatus} />
 
                 {Object.keys(documents).length > 0 && (
                     <AccordionItem 
