@@ -49,7 +49,7 @@ const BookingStatus = ({ status }) => {
                     <View style={[styles.circle, currentStep >= 0 ? styles.activeCircle : styles.inactiveCircle]}>
                         <CustomIcon 
                             library="Feather" 
-                            name="check" 
+                            name="clock" 
                             size={16} 
                             color={currentStep >= 0 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
                         />
@@ -88,7 +88,7 @@ const BookingStatus = ({ status }) => {
                         <CustomIcon 
                             library="FontAwesome5" 
                             name="money-bill-wave" 
-                            size={12} 
+                            size={14} 
                             color={currentStep >= 2 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
                         />
                     </View>
@@ -107,7 +107,7 @@ const BookingStatus = ({ status }) => {
                         <CustomIcon 
                             library="Feather" 
                             name="check" 
-                            size={12} 
+                            size={16} 
                             color={currentStep >= 3 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
                         />
                     </View>
@@ -134,7 +134,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { 
+            width: 0, 
+            height: 2 
+        },
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
