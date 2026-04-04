@@ -8,7 +8,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function hikeView(){
-    const { hikeId: rawId , trailId: rawTrail} = useLocalSearchParams();
+    const { hikeId: rawId , trailId: rawTrail, lon, lat} = useLocalSearchParams();
     
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
@@ -52,6 +52,8 @@ export default function hikeView(){
                 elapsedTime={formatTime(elapsedTime)}
                 hikeId={hikeId}
                 trailId={trailId}
+                lon={lon}
+                lat={lat}
                 onEmergencyPress={onEmergencyPress}
             />        
         </>
@@ -65,6 +67,8 @@ export type HikeViewParams = {
     elapsedTime: string;
     hikeId?: string;
     trailId?: string;
+    lon?: string | string[];
+    lat?: string | string[];
 
     onStartHike: ({hikeId, trailId}: { hikeId?: string; trailId?: string }) => void;
     onPauseHike: () => void;
@@ -160,7 +164,7 @@ export const TestView = (params: HikeViewParams) => {
                     </Pressable>
                 }
             </View>
-            <NavigationScreen/>
+            <NavigationScreen lon={params.lon} lat={params.lat}/>
         </ScrollView>
     )
 }

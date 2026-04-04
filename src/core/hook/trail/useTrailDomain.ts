@@ -20,87 +20,10 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     useEffect(() => {
         fetchAllTrails();
-        load(params?.trailId);
+        load(params?.trailId ?? null);
     }, [params?.trailId])
 
-    const tempoTrails = [
-        {
-            id: 'mock_tagapo',
-            name: 'Mount Tagapo',
-            province: 'Rizal',
-            address: 'Talim Island, Rizal',
-            score: 4.8,
-            masl: 438,
-            length: 5,
-            geography: { startLat: 14.3392772, startLong: 121.2325293 }
-        },
-        {
-            id: 'mock_marami',
-            name: 'Mount Marami',
-            province: 'Rizal',
-            address: 'Tanay, Rizal',
-            score: 4.9,
-            masl: 739,
-            length: 7,
-            geography: { startLat: 14.1986108, startLong: 120.6858334 }
-        },
-        {
-            id: 'mock_batulao',
-            name: 'Mount Batulao',
-            province: 'Batangas',
-            address: 'Nasugbu, Batangas',
-            score: 4.7,
-            masl: 811,
-            length: 9,
-            geography: { startLat: 14.0399434, startLong: 120.8023782    }
-        },
-        {
-            id: 'mock_makiling',
-            name: 'Mount Makiling',
-            province: 'Laguna',
-            address: 'Los Baños, Laguna',
-            score: 4.6,
-            masl: 1090,
-            length: 12,
-            geography: { startLat: 14.1352241, startLong: 121.1944517 }
-        },
-        {
-            id: 'mock_maculot',
-            name: 'Mount Maculot',
-            province: 'Batangas',
-            address: 'Cuenca, Batangas',
-            score: 4.8,
-            masl: 930,
-            length: 4,
-            geography: { startLat: 13.9208682, startLong: 121.0516961 }
-        }
-    ];
-
-    let activeTrail = trail as any;
-    const matchedMock = tempoTrails.find(t => t.id === params?.trailId);
-    
-    if (matchedMock) {
-        activeTrail = {
-            id: matchedMock.id,
-            general: {
-                name: matchedMock.name,
-                address: matchedMock.address,
-                province: [matchedMock.province],
-                mountain: [matchedMock.name],
-                rating: matchedMock.score,
-                reviewCount: 150
-            },
-            geography: matchedMock.geography,
-            difficulty: {
-                length: matchedMock.length,
-                gain: matchedMock.masl,
-                slope: 10,
-                hours: 4,
-                circularity: 'Out and Back'
-            },
-            tourism: {}
-        };
-    }
+    const activeTrail = trail as any;
 
     const onViewTrail = (trailId: string) => {
         router.push({
@@ -136,8 +59,8 @@ export default function useTrailDomain(params: TrailParams | null = null){
         }
     }
 
-    return{
-        trails: [...tempoTrails, ...(trails || [])],
+    return {
+        trails,
         trail: activeTrail,
         hikingTrail,
         setOnHike,
