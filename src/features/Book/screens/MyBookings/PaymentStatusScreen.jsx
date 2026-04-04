@@ -12,17 +12,18 @@ import { Colors } from '@/src/constants/colors';
 const PaymentStatusScreen = ({ 
     bookingData, 
     onBackPress, 
-    onViewDetails 
+    onViewDetails,
+    submittedAmount
 }) => {
     const businessName = bookingData?.business?.name || "Tour Provider";
-    
-    const amountPaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const databasePaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const displayAmount = databasePaid > 0 ? databasePaid : (submittedAmount || bookingData?.offer?.price || 0);
 
     const steps = [
         { 
             id: 1, 
             label: 'Proof Uploaded', 
-            desc: `Your payment receipt for ₱${amountPaid.toFixed(2)} was received.`,
+            desc: `Your payment receipt for ₱${displayAmount.toFixed(2)} was received.`,
             isDone: true 
         },
         { 
