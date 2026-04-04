@@ -20,6 +20,7 @@ export interface GroupState {
 
     sendMessage: (groupId: string, message: Message) => void;
     markAsRead: (groupId: string, message: Message, userSummary: IUserSummary) => void;
+    createGroup: (group: Group) => void;
 }
 
 export const useGroupStore = create<GroupState>((set, get) => ({
@@ -84,5 +85,14 @@ export const useGroupStore = create<GroupState>((set, get) => ({
 
     markAsRead: async (groupId: string, message: Message, userSummary: IUserSummary) => {
         await MessageRepository.markMessageAsRead(groupId, message.id, userSummary);
+    },
+
+    createGroup: async (group: Group) => {
+        try {
+            await MessageRepository.writeGroup(group);
+        } catch (error) {
+            console.error("Failed to create group:", error);
+            throw error;
+        }
     }
 }));

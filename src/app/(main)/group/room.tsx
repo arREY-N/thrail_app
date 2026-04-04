@@ -1,9 +1,10 @@
 import CustomTextInput from "@/src/components/CustomTextInput";
 import { useGroup } from "@/src/core/hook/group/useGroup";
+import { Group } from "@/src/core/models/Group/Group";
 import { Message } from "@/src/core/models/Message/Message";
 import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { FlatList, Pressable, Text, View, ViewToken } from "react-native";
 
@@ -14,24 +15,37 @@ export default function groupRoom() {
 
     const { 
         messages, 
+        currentGroup,
         sendMessage,
         onViewableItemsChanged
     } = useGroup(roomId);
 
-    
+    if(!currentGroup) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>No group found</Text>
+            </View>
+        )
+    };
+
     return(
-        <TestGroupRoom
-            roomId={roomId}
-            messages={messages}
-            sendMessage={sendMessage}
-            onViewableItemsChanged={onViewableItemsChanged}
-        />
+        <>
+            <Stack.Screen options={{ title: currentGroup.GroupName, headerShown: true }}/>
+            <TestGroupRoom
+                roomId={roomId}
+                messages={messages}
+                currentGroup={currentGroup}
+                sendMessage={sendMessage}
+                onViewableItemsChanged={onViewableItemsChanged}
+            />
+        </>
     )
 }
 
 export type GroupRoomParams = {
     roomId: string;
     messages: Message[];
+    currentGroup: Group;
     sendMessage: (content: string) => void;
     onViewableItemsChanged?: (info: { 
         viewableItems: ViewToken[]; 
@@ -61,7 +75,7 @@ export const TestGroupRoom = (params: GroupRoomParams) => {
     }
     return (
         <View style={{ flex: 1, padding: 20 }}>
-            <Text>Group Room - {params.roomId}</Text>
+            <Text>Group Name: {params.currentGroup?.GroupName}</Text>
 
             <CustomTextInput 
                 label={'message'} 

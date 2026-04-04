@@ -1,9 +1,10 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Group } from "@/src/core/models/Group/Group";
 import { Message } from "@/src/core/models/Message/Message";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ViewToken } from "react-native";
 
 export const useGroup = (groupId: string) => {
@@ -19,7 +20,8 @@ export const useGroup = (groupId: string) => {
     );
 
     const markAsRead = useGroupStore(s => s.markAsRead);
-    
+    const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+    const groups = useGroupStore(s => s.groups);
 
     const messages = rawMessages ?? [];
 
@@ -27,7 +29,7 @@ export const useGroup = (groupId: string) => {
         if (!groupId) return;
 
         subscribe(groupId);
-        
+        setCurrentGroup(groups.find(g => g.id === groupId) ?? null);    
         return () => unsubscribe(groupId);
 
     }, [groupId, subscribe, unsubscribe,]);
@@ -48,8 +50,8 @@ export const useGroup = (groupId: string) => {
     const processedMessages = useRef(new Set<string>());
 
     const onViewableItemsChanged = useCallback(({ changed }: { 
-    viewableItems: ViewToken<Message>[]; 
-    changed: ViewToken<Message>[] 
+        viewableItems: ViewToken<Message>[]; 
+        changed: ViewToken<Message>[] 
     }) => {
         changed.forEach((token) => {
             const message = token.item;
@@ -74,6 +76,7 @@ export const useGroup = (groupId: string) => {
 
     return { 
         messages, 
+        currentGroup,
         sendMessage,
         onViewableItemsChanged 
     };

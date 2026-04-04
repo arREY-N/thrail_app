@@ -1,9 +1,13 @@
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BusinessLogic } from "@/src/core/models/Business/logic/Business.logic";
+import { Group } from "@/src/core/models/Group/Group";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { Trail } from "@/src/core/models/Trail/Trail";
+import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { useBusinessesStore } from "@/src/core/stores/businessesStore";
+import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { produce } from "immer";
@@ -18,15 +22,15 @@ export type UseOfferParams = {
 
 export function useOfferWrite(params: UseOfferParams = {}){
     const { offerId, businessId } = params
+    const { profile } = useAuthHook();
 
     const businessAccount = useBusinessesStore(s => s.current);
-    
     const offers = useOffersStore(s => s.businessOffers);
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
     const remove = useOffersStore(s => s.delete);
     const create = useOffersStore(s => s.create);
-
+    const createGroup = useGroupStore(s => s.createGroup);
     const [localError, setLocalError] = useState<string | null>(null);
     const [offer, setOffer] = useState<Offer>(() => {
         const existing = offers.find(offer => offer.id === offerId);
@@ -77,7 +81,36 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
     const onSubmitPress = async () => {
         try {
+            if(!profile)
+                throw new Error('User profile not found');
+
             const success = await create(offer);
+            const group = new Group({
+                admins: [UserLogic.toSummary(profile)],
+                participantsIds: [profile.id],
+                business: offer.business,
+                trail: offer.trail,
+                offer: {
+                    id: offer.id,
+                    date: offer.date,
+                    documents: offer.documents,
+                    schedule: offer.schedule,
+                    endDate: offer.endDate,
+                    duration: offer.duration,
+                    price: offer.price,
+                    maxPax: offer.maxPax,
+                    minPax: offer.minPax,
+                    reservedPax: offer.reservedPax,
+                    inclusions: offer.inclusions,
+                    thingsToBring: offer.thingsToBring,
+                    reminders: offer.reminders,
+                    description: offer.description
+                },
+                status: 'active',
+            })
+            
+            createGroup(group);
+
             if(!success) throw new Error('Failed') 
             router.back();
         } catch (error) {

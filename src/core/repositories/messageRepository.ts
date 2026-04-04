@@ -8,6 +8,8 @@ export interface ChatRepositoryInterface {
   listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe;
   listenToMessages(groupId: string, onUpdate: (messages: Message[]) => void): Unsubscribe;
   sendMessage(groupId: string, message: Message): Promise<void>;
+  writeGroup(group: Group): Promise<void>;
+  markMessageAsRead(groupId: string, messageId: string, userSummary: IUserSummary): Promise<void>;
 }
 
 
@@ -15,7 +17,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
     listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups'),
-            where('memberIds', 'array-contains', userId),
+            where('participantsIds', 'array-contains', userId),
             orderBy('updatedAt', 'desc')
         ).withConverter(GroupConverter);
 
@@ -33,6 +35,23 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
         return onSnapshot(q, (snapshot) => {
             onUpdate(snapshot.docs.map(doc => doc.data()));
         });
+    }
+
+    async writeGroup(group: Group): Promise<void> {
+        try {
+            const create = group.id === '';
+
+            const ref = create
+                ? doc(collection(db, 'groups')).withConverter(GroupConverter)
+                : doc(collection(db, 'groups'), group.id).withConverter(GroupConverter);
+            
+            console.log(ref.path);
+
+            await setDoc(ref, group, {merge: true});
+        } catch (error) {
+            console.error('MessageRepository Error:', error);
+            throw error;
+        }
     }
 
     async sendMessage(groupId: string, message: Message): Promise<void> {

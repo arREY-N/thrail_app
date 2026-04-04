@@ -15,10 +15,9 @@ export class Group implements IGroup {
     id: string = '';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
+    participantsIds: string[] = [];
     members: IUserSummary[] = [];
-    memberIds: string[] = [];
     admins: IUserSummary[] = [];
-    adminIds: string[] = [];
     business: IBusinessSummary = {
         id: '',
         name: '',
@@ -85,8 +84,7 @@ export class Group implements IGroup {
                 ...data.lastMessage,
                 timesent: toDate(data.lastMessage.timesent)
             } : null,
-            memberIds: data.memberIds ?? [],
-            adminIds: data.adminIds ?? []
+            participantsIds: data.participantsIds ?? []
         };
         
         return new Group(mapped);
@@ -100,9 +98,8 @@ export class Group implements IGroup {
             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
             updatedAt: serverTimestamp(),
             members: this.members,
-            memberIds: this.memberIds,
+            participantsIds: this.participantsIds,
             admins: this.admins,
-            adminIds: this.adminIds,
             business: this.business,
             trail: this.trail,
             offer: {
