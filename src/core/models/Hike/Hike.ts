@@ -44,7 +44,7 @@ export class Hike implements IHike {
             startTime: data.startTime ? toDate(data.startTime) : undefined,
             endTime: data.endTime ? toDate(data.endTime) : undefined,
             trailMaintenance: toTextual(data.trailMaintenance),
-            coordinates: data.coordinates.map(coord => ({
+            coordinates: (data.coordinates || []).map(coord => ({
                 latitude: coord.point.latitude,
                 longitude: coord.point.longitude,
                 altitude: coord.altitude,

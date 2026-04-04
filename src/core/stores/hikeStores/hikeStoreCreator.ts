@@ -1,7 +1,6 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Coordinates } from "@/src/core/models/Hike/Hike.types";
 import { HikeRepository } from "@/src/core/repositories/hikeRepository";
-import { dummyHikes } from "@/src/core/stores/dummy/dummyHike";
 import { StateCreator } from "zustand";
 
 export interface HikeState {
@@ -27,7 +26,7 @@ export interface HikeState {
 }
 
 export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]]> = (set, get) => ({
-    hikes: dummyHikes,
+    hikes: [],
     isLoading: false,
     error: null,
     currentHike: null,
