@@ -7,57 +7,7 @@ import {
 } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
-
 import { Colors } from '@/src/constants/colors';
-
-const getPillStyles = (tab, isActive) => {
-    if (!isActive) {
-        return {
-            bgColor: Colors.GRAY_ULTRALIGHT,
-            borderColor: Colors.GRAY_LIGHT,
-            textColor: Colors.TEXT_SECONDARY,
-        };
-    }
-
-    switch (tab) {
-        case 'All':
-            return {
-                bgColor: Colors.PRIMARY,
-                borderColor: Colors.PRIMARY,
-                textColor: Colors.WHITE,
-            };
-        case 'Pending':
-            return {
-                bgColor: Colors.STATUS_PENDING_BG,
-                borderColor: Colors.STATUS_PENDING_BORDER,
-                textColor: Colors.STATUS_PENDING_TEXT,
-            };
-        case 'Approved':
-            return {
-                bgColor: Colors.STATUS_APPROVED_BG,
-                borderColor: Colors.STATUS_APPROVED_BORDER,
-                textColor: Colors.STATUS_APPROVED_TEXT,
-            };
-        case 'Paid':
-            return {
-                bgColor: Colors.STATUS_APPROVED_BG,
-                borderColor: Colors.SUCCESS,
-                textColor: Colors.STATUS_APPROVED_TEXT,
-            };
-        case 'Cancelled':
-            return {
-                bgColor: Colors.STATUS_CANCELLED_BG,
-                borderColor: Colors.STATUS_CANCELLED_BORDER,
-                textColor: Colors.ERROR,
-            };
-        default:
-            return {
-                bgColor: Colors.GRAY_MEDIUM,
-                borderColor: Colors.GRAY_MEDIUM,
-                textColor: Colors.WHITE,
-            };
-    }
-};
 
 const BookTabs = ({ 
     tabs,
@@ -75,17 +25,13 @@ const BookTabs = ({
             >
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab;
-                    const styleConfig = getPillStyles(tab, isActive);
                     
                     return (
                         <TouchableOpacity
                             key={tab}
                             style={[
                                 styles.tabPill, 
-                                { 
-                                    backgroundColor: styleConfig.bgColor,
-                                    borderColor: styleConfig.borderColor,
-                                }
+                                isActive ? styles.activePill : styles.inactivePill
                             ]}
                             onPress={() => onTabChange(tab)}
                             activeOpacity={0.7}
@@ -94,7 +40,7 @@ const BookTabs = ({
                                 variant="label" 
                                 style={[
                                     styles.tabText, 
-                                    { color: styleConfig.textColor }
+                                    isActive ? styles.activeText : styles.inactiveText
                                 ]}
                             >
                                 {tab}
@@ -120,11 +66,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, 
         paddingVertical: 8, 
         borderRadius: 20, 
-        borderWidth: 1.5,
+        borderWidth: 1,
+    },
+    activePill: {
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
+    },
+    inactivePill: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
     },
     tabText: { 
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    activeText: {
+        color: Colors.WHITE,
+    },
+    inactiveText: {
+        color: Colors.TEXT_SECONDARY,
     },
 });
 
