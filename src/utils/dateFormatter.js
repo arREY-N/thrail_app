@@ -20,3 +20,17 @@ export const formatBookingDate = (dateObj, shortMonth = false) => {
 
     return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} • ${hours}:${minutes} ${ampm}`;
 };
+
+export const formatTime = (date) => {
+    if (!date) return '';
+    
+    const d = new Date(date);
+    
+    if (isNaN(d.getTime())) return '';
+
+    return d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+};
