@@ -119,8 +119,6 @@ const ApplyScreen = ({
                     </CustomText>
                 </View>
 
-                {isError && <ErrorMessage error={system} />}
-
                 {isSuccess && (
                     <View style={styles.successBox}>
                         <CustomText style={styles.successText}>
@@ -154,6 +152,7 @@ const ApplyScreen = ({
                                 onChangeText={(val) => onUpdatePress({ section: 'root', id: 'establishedOn', value: val })}
                                 showTodayButton={true}
                                 allowFutureDates={false}
+                                defaultMode="year"
                                 style={styles.inputSpacing}
                             />
 
@@ -246,7 +245,7 @@ const ApplyScreen = ({
                         })}
                     </View>
 
-                    <ErrorMessage error={"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque congue magna eget sapien placerat volutpat. Proin quis dui ut neque vestibulum sagittis euismod ac massa."} />
+                    {isError && <ErrorMessage error={system} />}
 
                     <View style={styles.buttonContainer}>
                         <CustomButton 

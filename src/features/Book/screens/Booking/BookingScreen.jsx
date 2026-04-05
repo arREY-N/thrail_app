@@ -7,9 +7,9 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
-import DetailsScreen from '@/src/features/Book/screens/ReservationFlow/DetailsScreen';
-import OffersScreen from '@/src/features/Book/screens/ReservationFlow/OffersScreen';
-import StatusScreen from '@/src/features/Book/screens/ReservationFlow/StatusScreen';
+import DetailsScreen from '@/src/features/Book/screens/Booking/DetailsScreen';
+import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
+import StatusScreen from '@/src/features/Book/screens/Booking/StatusScreen';
 
 const BookingScreen = ({
     offers = [],
@@ -18,9 +18,7 @@ const BookingScreen = ({
     onCompleteOffer,
     onUpdatePress,
 }) => {
-    // ==========================================
-    // State
-    // ==========================================
+
     const [currentView, setCurrentView] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitPhase, setSubmitPhase] = useState('idle');
@@ -34,9 +32,6 @@ const BookingScreen = ({
     const safeOffers = Array.isArray(offers) ? offers : [];
     const lineFillPercentage = ((currentView - 1) / 2) * 100;
 
-    // ==========================================
-    // Handlers
-    // ==========================================
     const resetStateAndGoBack = () => {
         setCurrentView(1);
         setBookingData({
@@ -64,9 +59,8 @@ const BookingScreen = ({
     };
 
     const handleReserve = (detailsData) => {
-        setIsSubmitting(true); // Triggers the CustomLoading screen!
+        setIsSubmitting(true);
 
-        // 1. Sync data to the backend state BEFORE saving
         if (onUpdatePress) {
             onUpdatePress({
                 section: 'root',
@@ -86,40 +80,32 @@ const BookingScreen = ({
 
         setBookingData((prev) => ({ ...prev, ...detailsData }));
 
-        // 2. Trigger the submission phase
         setSubmitPhase('ready_to_submit');
     };
 
-    // ==========================================
-    // Effects
-    // ==========================================
     useEffect(() => {
         if (submitPhase === 'ready_to_submit') {
             const processBooking = async () => {
                 try {
                     await onCompleteOffer();
                 } catch (backendError) {
-                    // Silently swallow unimplemented error
+
                 }
 
                 setCurrentView(3);
-                setIsSubmitting(false); // Hides loading screen
+                setIsSubmitting(false);
                 setSubmitPhase('idle');
             };
 
-            // Wait 250ms to ensure the Zustand store has settled with the Emergency Contact
             const timer = setTimeout(() => {
                 processBooking();
             }, 250);
 
             return () => clearTimeout(timer);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [submitPhase]);
 
-    // ==========================================
-    // Render
-    // ==========================================
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomLoading

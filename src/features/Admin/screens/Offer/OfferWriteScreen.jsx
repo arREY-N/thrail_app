@@ -169,8 +169,10 @@ const OfferWriteScreen = ({
                                 label="Start Date *"
                                 placeholder="Select Date"
                                 value={offer.date || null}
-                                allowFutureDates={true}
                                 onChangeText={(val) => onUpdateOffer({ section: 'root', id: 'date', value: val })}
+                                allowFutureDates={true}
+                                showTodayButton={true}
+                                defaultMode="date"
                                 style={styles.inputSpacing}
                             />
                         </View>
@@ -180,8 +182,10 @@ const OfferWriteScreen = ({
                                 label="End Date *"
                                 placeholder="Select Date"
                                 value={offer.endDate || null}
-                                allowFutureDates={true}
                                 onChangeText={(val) => onUpdateOffer({ section: 'root', id: 'endDate', value: val })}
+                                allowFutureDates={true}
+                                showTodayButton={true}
+                                defaultMode="date"
                                 style={styles.inputSpacing}
                             />
                         </View>

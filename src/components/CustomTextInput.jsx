@@ -78,6 +78,7 @@ const CustomTextInput = ({
     children,
     showTodayButton,
     allowFutureDates,
+    defaultMode,
     multiline,
     ...props
 }) => {
@@ -149,6 +150,7 @@ const CustomTextInput = ({
                     placeholder={placeholder}
                     showTodayButton={showTodayButton}
                     allowFutureDates={allowFutureDates}
+                    defaultMode={defaultMode}
                 />
             ) : (
                 <>
