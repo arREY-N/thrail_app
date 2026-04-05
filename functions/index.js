@@ -228,3 +228,65 @@ exports.checkEmail = onCall(async (request) => {
         emailAvailable: !userRecord 
     };
 })
+
+exports.createPaymongoSource = onCall(async (request) => {
+    const { amount, type, returnUrl } = request.data;
+    const auth = request.auth;
+
+    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (!amount || !type) throw new HttpsError('invalid-argument', 'Amount and type are required');
+    if (!['gcash', 'paymaya', 'maya'].includes(type)) throw new HttpsError('invalid-argument', 'Invalid payment type');
+
+    const PAYMONGO_SECRET_KEY = process.env.EXPO_PUBLIC_PAYMONGO_SECRET_KEY;
+    const encodedKey = Buffer.from(PAYMONGO_SECRET_KEY).toString('base64');
+    
+    // PayMongo uses 'paymaya' internally
+    const sourceType = type === 'maya' ? 'paymaya' : type;
+    const redirectUrl = returnUrl || 'thrailapp://';
+
+    try {
+        const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${encodedKey}`
+            },
+            body: JSON.stringify({
+                data: {
+                    attributes: {
+                        send_email_receipt: false,
+                        show_description: false,
+                        show_line_items: true,
+                        line_items: [
+                            {
+                                currency: 'PHP',
+                                amount: Math.round(amount * 100),
+                                name: 'Booking Payment',
+                                quantity: 1
+                            }
+                        ],
+                        payment_method_types: [sourceType],
+                        success_url: redirectUrl,
+                        cancel_url: redirectUrl
+                    }
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.text();
+            console.error('PayMongo API Error Details:', errorDetails);
+            throw new Error(`[${response.status}] ${errorDetails}`);
+        }
+
+        const data = await response.json();
+        return {
+            id: data.data.id,
+            checkout_url: data.data.attributes.checkout_url,
+            status: 'pending'
+        };
+    } catch (err) {
+        console.error("PayMongo Checkout Session Failed: ", err);
+        throw new HttpsError('internal', err.message || 'Failed to initialize PayMongo checkout');
+    }
+});

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
@@ -13,6 +13,11 @@ import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
+
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/src/core/config/Firebase';
 
 const PaymentScreen = ({
     bookingData,
@@ -50,9 +55,55 @@ const PaymentScreen = ({
         setCurrentStep(step);
     };
 
-    const handleNextStep = () => {
+    const handleNextStep = async () => {
         if (currentStep === 1) {
-            setCurrentStep(2);
+            if (['gcash', 'maya'].includes(selectedMethod)) {
+                setIsSubmitting(true);
+                try {
+                    const createPaymongoSource = httpsCallable(functions, 'createPaymongoSource');
+                    
+                    // Create return URL automatically based on the environment
+                    const rawUrl = Linking.createURL('payment-result');
+                    const appUrl = Platform.OS === 'web' ? rawUrl : Linking.createURL('payment-result', { scheme: 'thrailapp' });
+                    
+                    // Wrap the deep link in a secure HTTPS redirector to bypass PayMongo's strict URL validator
+                    const secureReturnUrl = `https://httpbin.org/redirect-to?url=${encodeURIComponent(appUrl)}`;
+                    
+                    const response = await createPaymongoSource({
+                        amount: amountToPay,
+                        type: selectedMethod,
+                        returnUrl: secureReturnUrl
+                    });
+                    
+                    const checkoutUrl = response.data.checkout_url;
+                    
+                    // Open browser and listen for the actual app deep link to close
+                    const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, appUrl, {
+                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+                        toolbarColor: Colors.PRIMARY,
+                        windowName: 'PayMongoCheckout',
+                        windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
+                    });
+                    
+                    if (result.type === 'cancel') {
+                        // User closed the browser manually
+                        setIsSubmitting(false);
+                        return;
+                    }
+
+                    // Proceed to Status, passing PayMongo source ID as the "receipt" 
+                    // before going to the status tab
+                    setReceiptImage({ uri: 'paymongo_source', id: response.data.id });
+                    setCurrentStep(3);
+                } catch (error) {
+                    console.error("Payment Error:", error);
+                    alert("Failed to initialize payment: " + error.message);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            } else {
+                setCurrentStep(2);
+            }
         } else if (currentStep === 2) {
             setIsSubmitting(true);
             setTimeout(() => {

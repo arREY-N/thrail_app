@@ -9,6 +9,9 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 import LoadingScreen from "@/src/app/loading";
 import { useFonts } from "expo-font";
