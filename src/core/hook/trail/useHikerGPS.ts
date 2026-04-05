@@ -174,7 +174,9 @@ export const useHikerGPS = () => {
       appStateSubscription.remove();
       if (locationSubscription) locationSubscription.remove();
       if (gpsTimeoutTimer) clearTimeout(gpsTimeoutTimer);
-      Location.stopLocationUpdatesAsync(LOCATION_TASK); // ✅ stop background task on unmount
+      Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => {
+        console.log("Background task wasn't running or already stopped.");
+      }); // ✅ stop background task on unmount
       unsubscribeNetwork();
     };
   }, []);
