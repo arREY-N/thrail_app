@@ -15,7 +15,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
-const AdminHomeScreen = ({ 
+const DashboardScreen = ({ 
     businessAccount, 
     onManageAdminsPress, 
     onManageOffersPress,
@@ -316,4 +316,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default AdminHomeScreen;
+export default DashboardScreen;
