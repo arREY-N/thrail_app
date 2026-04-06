@@ -11,7 +11,7 @@ import { formatDate } from '@/src/core/utility/date';
 import { StyleSheet, Text, View } from "react-native";
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import AdminHomeScreen from '@/src/features/Admin/screens/AdminHomeScreen';
+import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 import { Stack } from 'expo-router';
 
 
@@ -49,7 +49,7 @@ export default function adminHome(){
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <AdminHomeScreen 
+            <DashboardScreen 
                 businessAccount={businessAccount}
                 onManageAdminsPress={onManageAdminsPress}
                 onManageOffersPress={onManageOffersPress}
