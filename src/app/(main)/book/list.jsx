@@ -33,6 +33,14 @@ export default function listBook(){
         }
     }, [profile?.id, loadBookings]);
 
+    useEffect(() => {
+        if (bookings && bookings.length > 0) {
+            console.log("\n\n=== 🚀 LIVE BOOKINGS DATA FROM FIREBASE ===");
+            console.log(JSON.stringify(bookings, null, 2));
+            console.log("================================================\n\n");
+        }
+    }, [bookings]);
+
     // TODO: move loading display inside the component
     if (isLoading || !bookings) {
         return (
@@ -47,6 +55,10 @@ export default function listBook(){
 
     //Todo: remove this when the dummy data is not gonna use
     const displayBookings = [...DummyBookings, ...(bookings || [])]
+
+    if (error) {
+        console.log("Booking Fetch Error: ", error);
+    }
 
     console.log(error);
     return (
