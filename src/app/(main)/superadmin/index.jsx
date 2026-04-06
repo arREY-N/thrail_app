@@ -1,37 +1,48 @@
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import DashboardScreen from '@/src/features/SuperAdmin/screens/DashboardScreen';
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function superadminDashboard(){
-    const {
-        businesses,
-        trails,
-        superadmin,
-        admin,
-        users,
-        mountains,
-        applications,
-        onManageBusinessPress,
-        onManageTrailsPress,
-        onManageUsersPress,
-        onManageMountainPress,
-        onManageApplicationPress,
-    } = useSuperadminDomain();
+    // const {
+    //     businesses,
+    //     trails,
+    //     superadmin,
+    //     admin,
+    //     users,
+    //     mountains,
+    //     applications,
+    //     onManageBusinessPress,
+    //     onManageTrailsPress,
+    //     onManageUsersPress,
+    //     onManageMountainPress,
+    //     onManageApplicationPress,
+    // } = useSuperadminDomain();
+
+    const superadminData = useSuperadminDomain();
+    const onBackPress = useAppNavigation();
 
     return(
-        <TESTSUPERADMIN
-            businessCount={businesses.length}
-            trailCount={trails.length}
-            userCount={users.length}
-            adminCount={admin.length}
-            superadminCount={superadmin.length}
-            mountainCount={mountains.length}
-            applicationCount={applications.length}
-            onManageBusinessPress={onManageBusinessPress}
-            onManageTrailsPress={onManageTrailsPress}
-            onManageUsersPress={onManageUsersPress}
-            onManageMountainPress={onManageMountainPress}
-            onManageApplicationPress={onManageApplicationPress}
+        <DashboardScreen 
+            {...superadminData}
+            pendingApplication={[]}
+            onBackPress={onBackPress}
         />
+
+        // <TESTSUPERADMIN
+        //     businessCount={businesses.length}
+        //     trailCount={trails.length}
+        //     userCount={users.length}
+        //     adminCount={admin.length}
+        //     superadminCount={superadmin.length}
+        //     mountainCount={mountains.length}
+        //     applicationCount={applications.length}
+        //     onManageBusinessPress={onManageBusinessPress}
+        //     onManageTrailsPress={onManageTrailsPress}
+        //     onManageUsersPress={onManageUsersPress}
+        //     onManageMountainPress={onManageMountainPress}
+        //     onManageApplicationPress={onManageApplicationPress}
+        // />
     )
 }
 
