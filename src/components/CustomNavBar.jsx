@@ -93,9 +93,8 @@ const CustomNavBar = ({
 }) => {
     const insets = useSafeAreaInsets();
     
-    const bottomPadding = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 16;
-    
-    const exactHeight = 64 + bottomPadding;
+    const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 12);
+    const exactHeight = 70 + bottomPadding;
 
     return (
         <View 
@@ -151,7 +150,7 @@ const CustomNavBar = ({
                                 {
                                     color: isFocused ? Colors.PRIMARY : Colors.TEXT_PRIMARY,
                                     fontWeight: isFocused ? '700' : '500',
-                                },
+                                }
                             ]}
                         >
                             {config.label}
@@ -184,7 +183,7 @@ const styles = StyleSheet.create({
     tabItem: {
         flex: 1,
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         height: '100%',
         gap: 4,
     },
@@ -203,6 +202,7 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         textAlign: 'center',
         includeFontPadding: false, 
+        marginBottom: 4,
     },
 });
 
