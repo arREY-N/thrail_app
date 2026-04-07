@@ -30,12 +30,13 @@ const LogInScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
+            <CustomHeader onBackPress={onBackPress} />
+
             <ResponsiveScrollView 
                 minHeight={600} 
                 style={AuthStyles.container} 
                 contentContainerStyle={AuthStyles.scrollContent}
             >
-                <CustomHeader onBackPress={onBackPress} />
 
                 <View style={AuthStyles.contentContainer}>
                     <View style={AuthStyles.formConstrainer}>

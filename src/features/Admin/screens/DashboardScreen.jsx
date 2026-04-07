@@ -15,7 +15,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
-const AdminHomeScreen = ({ 
+const DashboardScreen = ({ 
     businessAccount, 
     onManageAdminsPress, 
     onManageOffersPress,
@@ -49,6 +49,14 @@ const AdminHomeScreen = ({
         if (!adminProfile) return '--';
         const fullName = `${adminProfile.firstname || ''} ${adminProfile.lastname || ''}`.trim();
         return fullName.length > 0 ? fullName : 'N/A';
+    };
+
+    const formatLocation = (locationData) => {
+        if (!locationData) return 'N/A';
+        if (Array.isArray(locationData)) {
+            return locationData.join(', ');
+        }
+        return locationData; 
     };
 
     return (
@@ -110,7 +118,7 @@ const AdminHomeScreen = ({
                         <InfoRow 
                             icon="map" 
                             label="Serviced Location" 
-                            value={businessAccount?.servicedLocation} 
+                            value={formatLocation(businessAccount?.servicedLocation)}
                         />
                         <InfoRow 
                             icon="calendar" 
@@ -308,4 +316,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default AdminHomeScreen;
+export default DashboardScreen;

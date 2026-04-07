@@ -5,8 +5,12 @@ import useTrail from "@/src/core/hook/trail/useTrail";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+
 export default function listTrail(){
-    const { onTrailPress } = useAppNavigation();
+    const { onTrailPress, onBackPress } = useAppNavigation();
 
     const { onWriteTrail } = useSuperadminNavigation();
 
@@ -15,12 +19,20 @@ export default function listTrail(){
     if(isLoading) return <LoadingScreen/>
     
     return (
-        <TESTCREATETRAIL 
-            onViewTrail={onTrailPress}
-            trails={trails}
-            isLoading={isLoading}
-            onWriteTrail={onWriteTrail}
-        />
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TESTCREATETRAIL 
+                onViewTrail={onTrailPress}
+                trails={trails}
+                isLoading={isLoading}
+                onWriteTrail={onWriteTrail}
+            />
+        </ScreenWrapper>
     )
 }
 

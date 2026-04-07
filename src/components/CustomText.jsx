@@ -27,6 +27,10 @@ const CustomText = ({
             variantStyle = styles.h2;
             break;
 
+        case 'h3':
+            variantStyle = styles.h3;
+            break;
+
         case 'label':
             variantStyle = styles.label;
             break;
@@ -70,6 +74,12 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: Colors.TEXT_PRIMARY,
         marginBottom: 12,
+    },
+    h3: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 8,
     },
     body: {
         fontSize: 16,

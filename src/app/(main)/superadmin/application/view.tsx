@@ -9,6 +9,11 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function viewApplication(){
     const { applicationId } = useLocalSearchParams();
     const appId = getSearchParam(applicationId);
@@ -19,8 +24,17 @@ export default function viewApplication(){
 
     if(controller.isLoading) return <LoadingScreen/>
 
+    const { onBackPress } = useAppNavigation();
+
     return(
-        <TESTAPPLICATION {...controller}/>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications"
+                centerTitle={true}
+                onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined}            />
+
+            <TESTAPPLICATION {...controller}/>
+        </ScreenWrapper>  
     )
 }
 

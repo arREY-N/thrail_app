@@ -5,6 +5,11 @@ import { Business } from '@/src/core/models/Business/Business';
 import { formatDate } from '@/src/core/utility/date';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function listBusiness(){
     const {
         applications,
@@ -17,19 +22,28 @@ export default function listBusiness(){
         onDeleteBusinessPress,
     } = useSuperadmin(null);
 
+    const { onBackPress } = useAppNavigation();
 
     console.log('Applications: ', applications);
     return(
-        <TESTBUSINESS
-            applications={applications}
-            businesses={businesses}
-            applicationsIsLoading={applicationLoading}
-            businessIsLoading={businessLoading}
-            reloadBusinesses={reloadBusinesses}
-            reloadApplications={reloadApplications}
-            approveApplicationPress={onApproveApplicationPress}
-            onDeletePress={onDeleteBusinessPress}
-        />
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Business" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TESTBUSINESS
+                applications={applications}
+                businesses={businesses}
+                applicationsIsLoading={applicationLoading}
+                businessIsLoading={businessLoading}
+                reloadBusinesses={reloadBusinesses}
+                reloadApplications={reloadApplications}
+                approveApplicationPress={onApproveApplicationPress}
+                onDeletePress={onDeleteBusinessPress}
+            />
+        </ScreenWrapper>
     )
 }
 

@@ -4,17 +4,32 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { formatDate } from "@/src/core/utility/date";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function listApplications(){
     const { role } = useAuthHook();
     const { onViewApplicationPress } = useSuperadminDomain();
 
     const { applications } = useApply({ role });
 
+    const { onBackPress } = useAppNavigation();
+
     return(
-        <TESTAPPLICATIONLIST
-            applications={applications}
-            onViewApplicationPress={onViewApplicationPress}
-        />
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TESTAPPLICATIONLIST
+                applications={applications}
+                onViewApplicationPress={onViewApplicationPress}
+            />
+        </ScreenWrapper>
     )
 }
 

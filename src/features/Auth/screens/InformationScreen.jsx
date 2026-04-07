@@ -82,6 +82,7 @@ const InformationScreen = ({
                             type="calendar"
                             showTodayButton={false}
                             allowFutureDates={false}
+                            defaultMode="year"
                         />
 
                         <CustomTextInput

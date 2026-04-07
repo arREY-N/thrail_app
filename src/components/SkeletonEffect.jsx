@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
     Animated,
     Easing,
+    Platform,
     StyleSheet
 } from 'react-native';
 
@@ -17,13 +18,13 @@ const SkeletonEffect = ({ style }) => {
                     toValue: 1,
                     duration: 800,
                     easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(opacity, {
                     toValue: 0.3,
                     duration: 800,
                     easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
         ).start();

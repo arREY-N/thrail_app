@@ -2,6 +2,11 @@
 import useMountain from "@/src/core/hook/mountain/useMountain";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function mountainList(){
     const {
         isLoading,
@@ -9,12 +14,22 @@ export default function mountainList(){
         onWritePress
     } = useMountain();
 
+    const { onBackPress } = useAppNavigation();
+
     return(
-        <TestMountainList
-            isLoading={isLoading}
-            mountains={mountains}
-            onWritePress={onWritePress}
-        />
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TestMountainList
+                isLoading={isLoading}
+                mountains={mountains}
+                onWritePress={onWritePress}
+            />
+        </ScreenWrapper>
     )
 }
 

@@ -6,6 +6,11 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function WriteMountain(){
     const { mountainId: rawId } = useLocalSearchParams();
 
@@ -15,8 +20,18 @@ export default function WriteMountain(){
 
     if(controller.isLoading) return <LoadingScreen/>;
 
+    const { onBackPress } = useAppNavigation();
+
     return(
-        <TestWriteMountain {...controller}/>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TestWriteMountain {...controller}/>
+        </ScreenWrapper>
     )
 }
 

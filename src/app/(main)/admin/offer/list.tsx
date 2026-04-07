@@ -1,13 +1,15 @@
+import { useLocalSearchParams } from "expo-router";
+import React from "react";
+
 import useAdminOffer from "@/src/core/hook/admin/useAdminOffer";
 import useAdminNavigation from "@/src/core/hook/navigation/useAdminNavigation";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { toDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import { useLocalSearchParams } from "expo-router";
-import React from "react";
+
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-export default function adminOfferList(){
+export default function adminOfferList() {
     const { businessId: rawId } = useLocalSearchParams();
     const id = getSearchParam(rawId);
 
@@ -34,6 +36,7 @@ export default function adminOfferList(){
     //             onAddOffer={onWriteOffer} 
     //             onEditOffer={onWriteOffer}
     //             onBackPress={onBackPress}
+    //             error={error}
     //         />
     //     </>
     // );
