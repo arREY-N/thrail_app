@@ -1,6 +1,6 @@
-import { BookingStatus, IBooking, IBookingDB } from "@/src/core/models/Booking/Booking.types";
+import { BookingStatus, IBooking, IBookingDB, Requirements } from "@/src/core/models/Booking/Booking.types";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferInfo } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
 import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
@@ -18,9 +18,10 @@ export class Booking implements IBooking {
     payment: IPaymentSummary<Date>[] = [];
     cancellationReason?: string = '';
     cancelledBy?: string = '';
-    offer: Pick<IOfferInfo<Date>, "date" | "price"> = {
+    offer: Pick<IOfferBase<Date>, "date" | "price" | "id"> = {
         date: new Date(),
         price: 0,
+        id: ""
     };
     user: IUserSummary = {
         id: "",
@@ -41,7 +42,7 @@ export class Booking implements IBooking {
         name: "",
         contactNumber: "",
     }
-    documents: Record<string, boolean> = {}; // New
+    documents: Requirements[] = [];
 
     constructor(init?: Partial<Booking>){
         Object.assign(this, init)
