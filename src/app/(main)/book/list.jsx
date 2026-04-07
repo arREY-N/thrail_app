@@ -1,5 +1,5 @@
 // TODO: remove the unused import once front end implemented
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import useBookOffer from '@/src/core/hook/book/useBookOffer';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
@@ -20,12 +20,11 @@ export default function listBook(){
         isLoading,
         error,
         onCancelBookingPress,
+        getBookOffer,
     } = useBookOffer();
 
     const profile = useAuthStore((s) => s.profile);
     const loadBookings = useBookingsStore((s) => s.load);
-
-    const [reason, setReason] = useState('');
 
     useEffect(() => {
         if (profile?.id) {
@@ -33,7 +32,14 @@ export default function listBook(){
         }
     }, [profile?.id, loadBookings]);
 
-    // TODO: move loading display inside the component
+    useEffect(() => {
+        if (bookings && bookings.length > 0) {
+            console.log("\n\n=== 🚀 LIVE BOOKINGS DATA FROM FIREBASE ===");
+            console.log(JSON.stringify(bookings, null, 2));
+            console.log("================================================\n\n");
+        }
+    }, [bookings]);
+
     if (isLoading || !bookings) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -48,7 +54,10 @@ export default function listBook(){
     //Todo: remove this when the dummy data is not gonna use
     const displayBookings = [...DummyBookings, ...(bookings || [])]
 
-    console.log(error);
+    if (error) {
+        console.log("Booking Fetch Error: ", error);
+    }
+    
     return (
         <>
             {/* {

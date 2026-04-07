@@ -2,13 +2,15 @@ import React from 'react';
 import {
     Image,
     Platform,
+    StatusBar,
     StyleSheet,
     View
 } from "react-native";
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import CustomButton from "@/src/components/CustomButton";
 import CustomText from "@/src/components/CustomText";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from '@/src/constants/colors';
 
@@ -18,76 +20,79 @@ const LandingScreen = ({
     onTermsPress, 
     onPrivacyPress  
 }) => {
+    const insets = useSafeAreaInsets();
 
     return (
-        <ScreenWrapper>
-            <View style={styles.container}>
-                
-                <View style={styles.imageWrapper}>
-                    <Image 
-                        source={require('@/src/assets/images/Mt.Tagapo.jpg')}
-                        style={styles.heroImage}
-                        resizeMode="cover"
-                    />
-                </View>
+        <View style={styles.container}>
+            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+            
+            <View style={styles.imageWrapper}>
+                <Image 
+                    source={require('@/src/assets/images/Mt.Tagapo.jpg')}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                />
+            </View>
 
-                <View style={styles.cardSection}>
-                    <View style={styles.contentConstrainer}>
+            <View style={[
+                styles.cardSection, 
+                { paddingBottom: Math.max(insets.bottom + 16, 32) }
+            ]}>
+                <View style={styles.contentConstrainer}>
+                    
+                    <View style={styles.headerContainer}>
+                        <CustomText variant="label" style={styles.welcomeText}>
+                            WELCOME TO THRAIL
+                        </CustomText>
                         
-                        <View style={styles.headerContainer}>
-                            <CustomText variant="label" style={styles.welcomeText}>
-                                WELCOME TO THRAIL
-                            </CustomText>
-                            
-                            <CustomText variant="h1" style={styles.titleText}>
-                                Your Next Trail
-                            </CustomText>
-                            <CustomText variant="h1" style={styles.titleText}>
-                                Begins Here
-                            </CustomText>
+                        <CustomText variant="h1" style={styles.titleText}>
+                            Your Next Trail
+                        </CustomText>
+                        <CustomText variant="h1" style={styles.titleText}>
+                            Begins Here
+                        </CustomText>
 
-                            <CustomText variant="body" style={styles.subtitleText}>
-                                Discover breathtaking mountains, book local guides, and start your adventure today.
-                            </CustomText>
-                        </View>
-
-                        <View style={styles.buttonContainer}>
-                            <CustomButton 
-                                title="Sign Up" 
-                                onPress={onSignUpPress} 
-                                variant="primary" 
-                            />
-                            <CustomButton 
-                                title="Log In" 
-                                onPress={onLogInPress} 
-                                variant="outline" 
-                            />
-                        </View>
-
-                        <CustomText variant="caption" style={styles.footerText}>
-                            By continuing, you agree to our{' '}
-                            <CustomText 
-                                variant="caption" 
-                                style={styles.linkText}
-                                onPress={onTermsPress}
-                            >
-                                Terms of Service
-                            </CustomText>
-                            {' '}and{' '}
-                            <CustomText 
-                                variant="caption" 
-                                style={styles.linkText}
-                                onPress={onPrivacyPress}
-                            >
-                                Privacy Policy
-                            </CustomText>
-                            .
+                        <CustomText variant="body" style={styles.subtitleText}>
+                            Discover breathtaking mountains, book local guides, and start your adventure today.
                         </CustomText>
                     </View>
-                </View>
 
+                    <View style={styles.buttonContainer}>
+                        <CustomButton 
+                            title="Sign Up" 
+                            onPress={onSignUpPress} 
+                            variant="primary" 
+                        />
+                        <CustomButton 
+                            title="Log In" 
+                            onPress={onLogInPress} 
+                            variant="outline" 
+                        />
+                    </View>
+
+                    <CustomText variant="caption" style={styles.footerText}>
+                        By continuing, you agree to our{' '}
+                        <CustomText 
+                            variant="caption" 
+                            style={styles.linkText}
+                            onPress={onTermsPress}
+                        >
+                            Terms of Service
+                        </CustomText>
+                        {' '}and{' '}
+                        <CustomText 
+                            variant="caption" 
+                            style={styles.linkText}
+                            onPress={onPrivacyPress}
+                        >
+                            Privacy Policy
+                        </CustomText>
+                        .
+                    </CustomText>
+                </View>
             </View>
-        </ScreenWrapper>
+
+        </View>
     );
 };
 
@@ -115,7 +120,6 @@ const styles = StyleSheet.create({
         marginTop: -32, 
         paddingHorizontal: 24,
         paddingTop: 32,
-        paddingBottom: 32,
         alignItems: 'center',
 
         ...Platform.select({

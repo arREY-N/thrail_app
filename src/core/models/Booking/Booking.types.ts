@@ -1,5 +1,5 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferInfo } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
 import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
@@ -11,6 +11,8 @@ export type BookingStatus =
     'paid'  |
     'completed' |
 
+    'reservation-rejected' |
+    
     'for-cancellation' |
     'cancellation-rejected' | 
     'refund' | 
@@ -19,19 +21,24 @@ export type BookingStatus =
     'reschedule-rejected' |
     'rescheduled';
 
+export type Requirements = {
+    name: string;
+    file: string;
+    valid: boolean;
+}
 
 export interface IBookingBase<T> {
     id: string;
     createdAt: T;
     updatedAt: T;
-    offer: Pick<IOfferInfo<T>, 'date' | 'price'>;
+    offer: Pick<IOfferBase<T>, 'date' | 'price' | 'id'>;
     user: IUserSummary,
     business: IBusinessSummary
     trail: ITrailSummary
     payment: IPaymentSummary<T>[];
     status: BookingStatus
     emergencyContact: IEmergencyContact;
-    documents: Record<string, boolean>; // New
+    documents: Requirements[]
     cancellationReason?: string;
     cancelledBy?: string;
 }

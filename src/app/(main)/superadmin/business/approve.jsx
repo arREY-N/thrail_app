@@ -2,6 +2,11 @@ import CustomTextInput from '@/src/components/CustomTextInput';
 import useSuperadmin from '@/src/core/hook/superadmin/useSuperadmin';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+
 export default function approveBusiness(){
     const {
         application,
@@ -10,13 +15,23 @@ export default function approveBusiness(){
         onRejectApplicationPress
     } = useSuperadmin();
 
+    const { onBackPress } = useAppNavigation();
+
     return(
-        <TESTAPPLICATIONAPPROVE
-            application={application}
-            applicationsIsLoading={applicationLoading}
-            onApproveApplicationPress={onApproveApplicationPress}
-            onRejectApplicationPress={onRejectApplicationPress}
-        />
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomHeader 
+                title="Applications" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+            />
+
+            <TESTAPPLICATIONAPPROVE
+                application={application}
+                applicationsIsLoading={applicationLoading}
+                onApproveApplicationPress={onApproveApplicationPress}
+                onRejectApplicationPress={onRejectApplicationPress}
+            />
+        </ScreenWrapper>
     )
 }
 

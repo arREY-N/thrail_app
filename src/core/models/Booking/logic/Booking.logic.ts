@@ -30,9 +30,11 @@ export const BookingLogic = {
 
     setOffer(draft: IBookingBase<Date>, offer: Offer){
         draft.offer = {
+            id: offer.id,
             date: offer.date,  
             price: offer.price, 
         }
         draft.business = offer.business
     },
+    
 }

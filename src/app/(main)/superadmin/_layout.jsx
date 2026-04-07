@@ -11,5 +11,5 @@ export default function superadminLayout(){
 
     if(!user || role !== 'superadmin') return <UnauthorizedScreen/>
     
-    return <Stack screenOptions={{title: 'Dashboard'}}/>
+    return <Stack screenOptions={{ headerShown: false}}/>
 }

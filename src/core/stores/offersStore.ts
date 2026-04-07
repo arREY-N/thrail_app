@@ -2,6 +2,7 @@ import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { OfferRepository } from "@/src/core/repositories/offerRepository";
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
 type OfferParams = {
     id: string;
@@ -15,16 +16,8 @@ export interface OfferState extends Omit<BaseStore<Offer>, 'delete'>{
 
     fetchOfferByBusiness: (id: string) => Promise<void>;
     fetchOfferByTrail: (id: string) => Promise<void>;
-}
-
-const OFFER_TEMPLATE = {
-    date: null,
-    price: null,
-    description: null,
-    documents: [],
-    duration: null,
-    inclusions: [],
-    trail: null,
+    loadOffer: (offerId: string) => Promise<void>;  
+    fetchOfferById: (id: string) => Promise<Offer>;
 }
 
 const init = {
@@ -38,7 +31,8 @@ const init = {
     businessOffers: [],
 }
 
-export const useOffersStore = create<OfferState>((set, get) => ({
+export const useOffersStore = create<OfferState>()(
+    immer((set, get) => ({
     ...init,
 
     fetchAll: async () => {
@@ -67,32 +61,24 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 isLoading: false
             })
         } catch (err) {
-            console.error((err as Error).message);
-            set({
-                error: (err as Error).message,
-                isLoading: false,
-            })
+            set({ isLoading: false })
+            throw err;
         }
     },
 
     fetchOfferByBusiness: async (id: string) => {
         set({ isLoading: true, error: null })
         
-        if(!id){
-            set({
-                isLoading: false,
-                error: 'No ID selected',
-            })
-            return;
-        }        
-
         try {
-            const data = get().data;
+            if(!id)
+                throw new Error('No ID provided')
+              
+            const data = get().businessOffers;
 
             let offers: Offer[] = [];
 
             if(data.length > 0) {
-                offers = data.filter(o => o.business.id ===id);
+                offers = data.filter(o => o.business.id === id);
             };
             
             if(offers.length === 0){
@@ -112,26 +98,52 @@ export const useOffersStore = create<OfferState>((set, get) => ({
                 isLoading: false
             })
         } catch (err) {
-            console.error((err as Error).message);
-            set({
-                error: (err as Error).message,
-                isLoading: false,
-            })
+            set({ isLoading: false })
+            throw err
+        }
+    },
+
+    fetchOfferById: async (id: string): Promise<Offer> => {
+        try {
+            set({ isLoading: true, error: null });
+
+            let offer = null;
+
+            if(get().data.length > 0) {
+                offer = get().data.find(o => o.id === id);
+            }
+
+            if(!offer){
+                offer = get().trailOffers.find(o => o.id === id);
+            }
+
+            if(!offer){
+                offer = get().businessOffers.find(o => o.id === id);
+            }
+
+            if(!offer){
+                offer = await OfferRepository.fetch(id);
+            }
+
+            if(!offer){
+                throw new Error('No offer found');
+            }
+
+            return offer;
+        } catch (error) {
+            set({ isLoading: false })
+            throw error
         }
     },
 
     fetchOfferByTrail: async (id: string) => {
         set({ isLoading: true, error: null });
         
-        if(!id){
-            set({
-                isLoading: false, 
-                error: 'No trail ID selected'
-            });
-            return;
-        }
-
+        
         try {
+            if(!id)
+                throw new Error('No ID provided')
+
             const data = get().data;
 
             let offers: Offer[] = [];
@@ -160,6 +172,41 @@ export const useOffersStore = create<OfferState>((set, get) => ({
             })  
 
             console.log(get().trailOffers);
+        } catch (err) {
+            set({
+                error: (err as Error).message || 'Failed writing offer',
+                isLoading: false
+            });
+            throw err;
+        }
+    },
+
+    loadOffer: async (offerId: string) => {
+        try {
+            if(!offerId)
+                throw new Error('No offer ID provided');
+
+            set({ isLoading: true, error: null })
+
+            let offer = null;
+
+            if(get().data.length > 0){
+                offer = get().data.find(o => o.id === offerId);
+            }
+
+            if(!offer){
+                offer = await OfferRepository.fetch(offerId)
+            }
+
+            if(!offer)
+               throw new Error('Offer not found in loadoffer');
+            
+            set((state) => {
+                state.current = offer;
+                state.isLoading = false;
+                state.error = null;
+                state.data = [...state.data.filter(o => o.id !== offer.id), offer]
+            })
         } catch (err) {
             console.error((err as Error).message);
             set({
@@ -205,7 +252,7 @@ export const useOffersStore = create<OfferState>((set, get) => ({
 
             if(!offer){
                 set({
-                    error: 'Offer not found',
+                    error: 'Offer not found in load',
                     isLoading: false,
                 })
                 return;
@@ -300,4 +347,4 @@ export const useOffersStore = create<OfferState>((set, get) => ({
     },
 
     reset: () => set(init),
-}))
+})));
