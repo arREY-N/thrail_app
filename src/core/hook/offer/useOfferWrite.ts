@@ -20,6 +20,8 @@ export type UseOfferParams = {
     mode?: string | null,
 }
 
+export type FormMode = 'create' | 'edit';
+
 export function useOfferWrite(params: UseOfferParams = {}){
     const { offerId, businessId } = params
     const { profile } = useAuthHook();
@@ -31,6 +33,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
     const remove = useOffersStore(s => s.delete);
     const create = useOffersStore(s => s.create);
     const createGroup = useGroupStore(s => s.createGroup);
+    const [mode, setMode] = useState<FormMode>('create');
     const [localError, setLocalError] = useState<string | null>(null);
     const [offer, setOffer] = useState<Offer>(() => {
         const existing = offers.find(offer => offer.id === offerId);
@@ -41,6 +44,11 @@ export function useOfferWrite(params: UseOfferParams = {}){
         }
 
         const businessSummary = BusinessLogic.toSummary(businessAccount);
+
+        if(existing) {
+            alert('editing existing offer');
+            setMode('edit');
+        }
 
         return existing
             ? new Offer({ ...existing })
@@ -83,6 +91,11 @@ export function useOfferWrite(params: UseOfferParams = {}){
         try {
             if(!profile)
                 throw new Error('User profile not found');
+
+            if(mode === 'edit'){
+                alert('Message from business regarding the changes made; to be used for the notification.');
+            }
+            
 
             const success = await create(offer);
             const group = new Group({

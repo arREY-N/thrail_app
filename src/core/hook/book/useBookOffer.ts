@@ -8,48 +8,30 @@ import { Payment } from "@/src/core/models/Payment/Payment";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
+import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useState } from "react";
-
-export interface IUseBookOffer {
-
-    booking: Booking,
-
-    bookings: Booking[],
-
-    error: string | null;
-
-    isLoading: boolean;
-
-    onSetOffer: (offer: Offer) => void;
-
-    onPayOffer: () => void;
-    
-    onUpdatePress: (params: TEdit<Booking>) => void;
-
-    onCompleteBook: () => void;
-
-    onCancelBookingPress: (booking: Booking, reason: string) => void;
-}
 
 export type UseBookOfferParams = {
     bookingId?: string;
     trailId?: string;
 }
 
-export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookOffer {
+export default function useBookOffer(params: UseBookOfferParams = {}) {
     const { bookingId, trailId } = params;
 
     const { profile } = useAuthHook();
 
     const bookings = useBookingsStore(s => s.userBookings);
+    const fetchOffer = useOffersStore(s => s.fetchOfferById);
+
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
     const createBooking = useBookingsStore(s => s.create);
-    
+
     const [localError, setLocalError] = useState<string | null>(null);
 
     const [booking, setBooking] = useState<Booking>(() => {
@@ -84,6 +66,23 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
             trail: trailSummary 
         });
     });
+
+    const getBookOffer = async (offerId: string): Promise<Offer | null> => {
+        try {
+            if(!offerId) 
+                throw new Error('No offer ID found for booking');
+            
+            const offer = await fetchOffer(offerId);
+            
+            if(!offer)
+                throw new Error ('Failed to fetch offer for booking');
+            
+            return offer
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed to fetch offer for booking');
+            return null;
+        }
+    }
 
     const onSetOffer = (offer: Offer) => {
         try {
@@ -171,6 +170,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}): IUseBookO
         onPayOffer,
         onUpdatePress,
         onCompleteBook,
-        onCancelBookingPress
+        onCancelBookingPress,
+        getBookOffer,
     }
 }

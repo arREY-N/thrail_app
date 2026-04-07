@@ -1,5 +1,5 @@
 // TODO: remove the unused import once front end implemented
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import useBookOffer from '@/src/core/hook/book/useBookOffer';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
@@ -20,12 +20,11 @@ export default function listBook(){
         isLoading,
         error,
         onCancelBookingPress,
+        getBookOffer,
     } = useBookOffer();
 
     const profile = useAuthStore((s) => s.profile);
     const loadBookings = useBookingsStore((s) => s.load);
-
-    const [reason, setReason] = useState('');
 
     useEffect(() => {
         if (profile?.id) {
@@ -41,7 +40,6 @@ export default function listBook(){
         }
     }, [bookings]);
 
-    // TODO: move loading display inside the component
     if (isLoading || !bookings) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -59,8 +57,7 @@ export default function listBook(){
     if (error) {
         console.log("Booking Fetch Error: ", error);
     }
-
-    console.log(error);
+    
     return (
         <>
             {/* {

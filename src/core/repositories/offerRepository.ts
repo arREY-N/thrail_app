@@ -82,12 +82,31 @@ class OfferRepositoryImpl implements Repository<Offer>{
             throw new Error('Failed to fetch offer')
         }
     }
+    
+    async fetch(offerId: string): Promise<Offer | null> {
+        try {
+            const offerCollection = createOffersGroupCollection();
+            const ref = query(offerCollection, where('id', '==', offerId));
+            const snap = await getDocs(ref);
+
+            if(snap.empty) {
+                console.log('No offer found in repo', offerId);
+                return null
+            };
+
+            console.log('Sucessfully fetched offer: ', snap.docs[0].id);
+            return snap.docs[0].data();
+        } catch (err: any) {
+            console.error(err.message);
+            throw new Error('Failed to fetch offer')
+        }
+    }
 
     async write(data: Offer): Promise<Offer> {
         try {            
-            const offer = new Offer(data);
+            let offer = new Offer(data);
 
-            const create = !offer.id;
+            const create = offer.id === '';
 
             const col = createOffersCollection(data.business.id);
 
@@ -97,9 +116,13 @@ class OfferRepositoryImpl implements Repository<Offer>{
 
             if(create) offer.id = businessOfferRef.id;
             
-            await setDoc(businessOfferRef, data, {merge: true});
+            await setDoc(businessOfferRef, offer, {merge: true});
 
-            console.log('Offer successfully sent to database:', offer);
+            if(!create) {
+                // TODO: implement notification to reserved users about the changes in the offer
+                alert('notify reserved users about the changes');
+            }
+
             return offer;
         } catch (err: any) {
             console.error(err.message);

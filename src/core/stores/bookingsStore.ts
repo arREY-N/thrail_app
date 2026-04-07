@@ -1,35 +1,68 @@
-import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
-import { dummyBookings } from "@/src/core/stores/dummyData";
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-interface BookState extends BaseStore<Booking>{
+interface BookState{
     create: (...args: any) => Promise<boolean>;
     checkBookings: (id: string) => boolean;
     cancelBooking: (booking: Booking, businessId: string) => Promise<void>;
     reset: () => void;
+    fetchOfferBookings: (offerId: string, role: string) => Promise<void>;
+    loadById: (bookingId: string) => Promise<void>; 
+    loadAll: (role: string) => Promise<void>;
 
+    data: Booking[];
     error: string | null;
     isLoading: boolean;
     userBookings: Booking[];
+    offerBookings: Booking[];
 }
 
 const init = {
-    data: [...dummyBookings],
-    current: new Booking(),
-    userBookings: dummyBookings,
+    data: [],
+    userBookings: [],
+    businessBookings: [],
+    offerBookings: [],
     error: null,
     isLoading: false,
 }
 
-export const useBookingsStore = create<BookState>()((set, get) => ({
+export const useBookingsStore = create<BookState>()(immer((set, get) => ({
     ...init,
 
     reset: () => set(init),
 
-    fetchAll: async () => {
+    loadAll: async (role: string) => {
+        set({isLoading: true, error: null});
+        try {
+            if(role !== 'superadmin')
+                throw new Error('Only superadmins can fetch all bookings');
 
+            const bookings = await BookingRepository.fetchAll();
+            set({ userBookings: bookings, isLoading: false });
+        } catch (error) {
+            set({ isLoading: false });
+            throw error
+        }
+    },
+
+    fetchOfferBookings: async (offerId: string, role: string) => {
+        set({isLoading: true, error: null});
+        try {
+            if(role !== 'admin')
+                throw new Error('Only admins can fetch bookings for their offers');
+
+            const offerBookings = await BookingRepository.fetchOfferBookings(offerId);
+
+            set({
+                offerBookings,
+                isLoading: false,
+            })
+        } catch (err) {
+            set({ isLoading: false })
+            throw err
+        }
     },
 
     refresh: async (userId?: string | null) => {
@@ -47,10 +80,8 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
             })
 
         } catch (err) {
-            set({
-                error: (err as Error).message || `Failed loading bookings for ${userId}`,
-                isLoading: false 
-            })
+            set({ isLoading: false })
+            throw err
         }
     },
 
@@ -69,40 +100,79 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
             })
 
         } catch (err) {
-            set({
-                error: (err as Error).message || `Failed loading bookings for ${userId}`,
-                isLoading: false 
-            })
+            set({ isLoading: false })
+            throw err;
         }
+    },
+
+    loadById: async (bookingId: string) => {
+        try {
+            set({ isLoading: true, error: null });
+
+            let booking = null;
+
+            if(get().data.length > 0){
+                booking = get().data.find(b => b.id === bookingId);
+            }
+
+            if(!booking){
+                booking = await BookingRepository.fetchById(bookingId);
+            }
+
+            set((state) => {
+                state.data = booking ? [...state.data.filter(b => b.id !== booking.id), booking] : state.data;
+                state.isLoading = false;
+            })
+        } catch (error) {
+            set({ isLoading: false })
+            throw error;
+        } 
     },
 
     delete: async () => {
 
     },
 
-    create: async (booking: Booking) => {
+    create: async (booking: Booking, isAdmin: Boolean = false) => {
         set({isLoading: true, error: null});
 
         try {
+            console.log('Creating/updating booking: ', booking);
             const data = await BookingRepository.write(booking);
 
             set((state) => {
-                const updated = state.userBookings.some(b => b.id === data.id) 
-                    ? state.userBookings.map(b => b.id === data.id ? data : b)
-                    : [...state.userBookings, data]
-
-                return {
-                    userBookings: updated,
-                    isLoading: false,
+                const index = isAdmin
+                    ? state.offerBookings.findIndex(b => b.id === booking.id)
+                    : state.userBookings.findIndex(b => b.id === booking.id); 
+                    
+                console.log(isAdmin)
+                console.log(index)
+                if(index !== -1){
+                    if(isAdmin){
+                        state.offerBookings[index] = data;
+                    } else {
+                        state.userBookings[index] = data;
+                    }
+                } else {
+                    if(isAdmin){
+                        state.offerBookings.push(data);
+                    } else {
+                        state.userBookings.push(data);
+                    }
                 }
+
+                
+                state.isLoading = false;
             })
+            if(isAdmin) {
+                console.log('offerbooking: ', get().offerBookings)
+            } else {
+                console.log('userbooking: ', get().userBookings)
+            }
             return true;
         } catch (err) {
-            set({
-                error: (err as Error).message || 'Failed creating booking',
-                isLoading: false,
-            })
-            return false;
+            set({ isLoading: false, })
+            throw err;
         }
     },
 
@@ -119,13 +189,9 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
             
             return true;
         } catch (err) {
-            set({
-                error: (err as Error).message,
-                isLoading: false,
-            })
+            set({ isLoading: false, })
+            throw err;
         }
-
-        return false;
     },
 
     cancelBooking: async (bookingData: Booking, businessId: string) => {
@@ -147,12 +213,10 @@ export const useBookingsStore = create<BookState>()((set, get) => ({
                 }
             });
         } catch (err) {
-            set({
-                isLoading: false,
-                error: (err as Error).message || 'Failed cancelling booking'
-            })
+            set({ isLoading: false })
+            throw err;
         }
     }
-}));
+})));
 
 export default useBookingsStore
