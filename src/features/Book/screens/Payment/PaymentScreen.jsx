@@ -60,7 +60,7 @@ const PaymentScreen = ({
             if (['gcash', 'maya'].includes(selectedMethod)) {
                 setIsSubmitting(true);
                 try {
-                    const createPaymongoSource = httpsCallable(functions, 'createPaymongoSource');
+                    const createPaymongoCheckout = httpsCallable(functions, 'createPaymongoCheckout');
                     
                     // Create return URL automatically based on the environment
                     const rawUrl = Linking.createURL('payment-result');
@@ -69,7 +69,7 @@ const PaymentScreen = ({
                     // Wrap the deep link in a secure HTTPS redirector to bypass PayMongo's strict URL validator
                     const secureReturnUrl = `https://httpbin.org/redirect-to?url=${encodeURIComponent(appUrl)}`;
                     
-                    const response = await createPaymongoSource({
+                    const response = await createPaymongoCheckout({
                         amount: amountToPay,
                         type: selectedMethod,
                         returnUrl: secureReturnUrl
