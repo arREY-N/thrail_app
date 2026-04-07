@@ -20,8 +20,10 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     useEffect(() => {
         fetchAllTrails();
-        load(params?.trailId);
+        load(params?.trailId ?? null);
     }, [params?.trailId])
+
+    const activeTrail = trail as any;
 
     const onViewTrail = (trailId: string) => {
         router.push({
@@ -32,9 +34,14 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     const onHikePress = (trailId: string) => {
         setHikingTrail(trailId);
+        
         router.push({
             pathname: '/(main)/hike/view',
-            params: { trailId },
+            params: { 
+                trailId,
+                lon: activeTrail?.geography?.startLong,
+                lat: activeTrail?.geography?.startLat, 
+            },
         })
     }
 
@@ -52,9 +59,9 @@ export default function useTrailDomain(params: TrailParams | null = null){
         }
     }
 
-    return{
+    return {
         trails,
-        trail,
+        trail: activeTrail,
         hikingTrail,
         setOnHike,
         onViewTrail,
