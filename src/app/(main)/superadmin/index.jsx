@@ -25,7 +25,7 @@ export default function superadminDashboard(){
     return(
         <DashboardScreen 
             {...superadminData}
-            pendingApplication={[]}
+            // pendingApplication={[]}
             onBackPress={onBackPress}
         />
 

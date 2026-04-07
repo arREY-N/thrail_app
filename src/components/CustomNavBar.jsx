@@ -93,7 +93,7 @@ const CustomNavBar = ({
 }) => {
     const insets = useSafeAreaInsets();
     
-    const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 12);
+    const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
     const exactHeight = 70 + bottomPadding;
 
     return (
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         textAlign: 'center',
         includeFontPadding: false, 
-        marginBottom: 4,
+        // marginBottom: 4,
     },
 });
 
