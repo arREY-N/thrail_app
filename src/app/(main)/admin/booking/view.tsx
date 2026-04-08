@@ -4,15 +4,20 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text } from "react-native";
+
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import BookingReviewScreen from "@/src/features/Admin/screens/Booking/BookingReviewScreen";
 
 export default function adminViewBooking() {
     const { bookingId: rawId, offerId: rawOfferId } = useLocalSearchParams();
 
     const bookingId = getSearchParam(rawId);
     const offerId = getSearchParam(rawOfferId);
+
+    const { onBackPress } = useAppNavigation();
 
     const { 
         offer,
@@ -30,16 +35,31 @@ export default function adminViewBooking() {
     
     console.log('Loaded booking: ', booking);
     return (
-        <TestOfferView
-            offer={offer}
-            offers={offers}
-            booking={booking}
-            onApproveBooking={onApproveBooking}
-            onRejectBooking={onRejectBooking}
-            onRescheduleBooking={onRescheduleBooking}
-            onRefund={onRefund}
-            error={error}
-        />
+        <>
+            <Stack.Screen options={{ headerShown: false }} />
+
+            <BookingReviewScreen
+                booking={booking}
+                offers={offers}
+                onBackPress={onBackPress}
+                onApprove={onApproveBooking}
+                onReject={onRejectBooking}
+                onReschedule={onRescheduleBooking}
+                onRefund={onRefund}
+                error={error}            
+            />
+        </>
+
+        // <TestOfferView
+        //     offer={offer}
+        //     offers={offers}
+        //     booking={booking}
+        //     onApproveBooking={onApproveBooking}
+        //     onRejectBooking={onRejectBooking}
+        //     onRescheduleBooking={onRescheduleBooking}
+        //     onRefund={onRefund}
+        //     error={error}
+        // />
     )
 }
 
@@ -75,23 +95,24 @@ export const TestOfferView = (params: TestAdminOfferView) => {
                 </>
             )}
             <CustomTextInput 
-                label={'Rejection Reason'} 
-                placeholder={undefined} 
-                value={rejectionReason} 
-                onChangeText={setRejectionReason} 
-                secureTextEntry={undefined} 
-                keyboardType={undefined} 
-                isPasswordVisible={undefined} 
-                onTogglePassword={undefined} 
-                style={undefined} 
-                inputStyle={undefined} 
-                icon={undefined} 
-                prefix={undefined} 
-                children={undefined} 
-                showTodayButton={undefined} 
-                allowFutureDates={undefined} 
-                multiline={undefined}            
-            />
+                label={'Rejection Reason'}
+                placeholder={undefined}
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+                secureTextEntry={undefined}
+                keyboardType={undefined}
+                isPasswordVisible={undefined}
+                onTogglePassword={undefined}
+                style={undefined}
+                inputStyle={undefined}
+                icon={undefined}
+                prefix={undefined}
+                children={undefined}
+                showTodayButton={undefined}
+                allowFutureDates={undefined}
+                multiline={undefined} 
+                defaultMode={undefined}
+                />
 
             <Pressable onPress={() => onApproveBooking()}>
                 <Text>Approve</Text>
