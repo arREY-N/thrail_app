@@ -9,20 +9,22 @@ import { Colors } from '@/src/constants/colors';
 const getHeroBadgeStyle = (status) => {
     switch (status) {
         case 'for-reservation': 
+        case 'pending-docs':
             return { 
-                label: 'PENDING', 
+                label: 'PENDING DOCS', 
                 bgColor: Colors.STATUS_PENDING_BG, 
                 textColor: Colors.STATUS_PENDING_TEXT 
             };
+        case 'approved-docs':
         case 'for-payment': 
             return { 
-                label: 'APPROVED', 
+                label: 'APPROVED - AWAITING PAYMENT', 
                 bgColor: Colors.STATUS_APPROVED_BG, 
                 textColor: Colors.STATUS_APPROVED_TEXT 
             };
         case 'paid':
             return { 
-                label: 'VERIFYING', 
+                label: 'VERIFYING PAYMENT', 
                 bgColor: Colors.STATUS_PENDING_BG, 
                 textColor: Colors.STATUS_PENDING_TEXT 
             };
@@ -37,7 +39,7 @@ const getHeroBadgeStyle = (status) => {
         case 'refund': 
         case 'cancelled':
             return { 
-                label: 'CANCELLED', 
+                label: 'CANCELLED / REFUND', 
                 bgColor: Colors.STATUS_CANCELLED_BG, 
                 textColor: Colors.STATUS_CANCELLED_TEXT 
             };
@@ -48,6 +50,12 @@ const getHeroBadgeStyle = (status) => {
                 label: 'RESCHEDULING', 
                 bgColor: Colors.STATUS_PENDING_BG, 
                 textColor: Colors.STATUS_PENDING_TEXT 
+            };
+        case 'reservation-rejected':
+            return { 
+                label: 'ACTION REQUIRED - DOCS REJECTED', 
+                bgColor: Colors.ERROR_BG, 
+                textColor: Colors.ERROR 
             };
         default: 
             return { 

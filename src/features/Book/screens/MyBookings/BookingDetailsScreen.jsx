@@ -24,7 +24,7 @@ const BookingDetailsScreen = ({
     onProceedToPayment, 
     onReschedule, 
     onViewReceipt,
-    onCancelConfirm 
+    onCancelConfirm
 }) => {
     const [isCanceling, setIsCanceling] = useState(false);
 
@@ -32,7 +32,7 @@ const BookingDetailsScreen = ({
     const amountPaid = booking?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
     const remainingBalance = totalAmount - amountPaid;
     
-    const documents = booking?.documents || {};
+    const documents = booking?.documents || [];
     const user = booking?.user;
     const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
@@ -85,7 +85,7 @@ const BookingDetailsScreen = ({
             onPress: () => setIsCanceling(true)
         };
 
-        if (currentStatus === 'for-reservation') {
+        if (currentStatus === 'for-reservation' || currentStatus === 'pending-docs') {
             return {
                 secondaryButton: cancelBtnStyle,
                 primaryButton: { 
@@ -99,7 +99,7 @@ const BookingDetailsScreen = ({
             };
         }
 
-        if (currentStatus === 'for-payment') {
+        if (currentStatus === 'for-payment' || currentStatus === 'approved-docs') {
             return {
                 secondaryButton: cancelBtnStyle,
                 primaryButton: { 
@@ -137,6 +137,31 @@ const BookingDetailsScreen = ({
         return null; 
     };
 
+    const renderDocumentRow = (docName, isDocApproved, idx) => (
+        <View key={idx} style={styles.documentRow}>
+            <View style={styles.docNameRow}>
+                <CustomIcon 
+                    library="Feather" 
+                    name={isDocApproved ? "check-circle" : "clock"} 
+                    size={18} 
+                    color={isDocApproved ? Colors.SUCCESS : Colors.WARNING} 
+                />
+                <CustomText variant="body" style={styles.documentText}>
+                    {docName}
+                </CustomText>
+            </View>
+            <CustomText 
+                variant="caption" 
+                style={[
+                    styles.documentStatusText, 
+                    { color: isDocApproved ? Colors.SUCCESS : Colors.WARNING }
+                ]}
+            >
+                {isDocApproved ? 'Approved' : 'Pending Review'}
+            </CustomText>
+        </View>
+    );
+
     const footerConfig = getFooterConfig();
 
     return (
@@ -163,40 +188,19 @@ const BookingDetailsScreen = ({
 
                 <BookingStatus status={currentStatus} />
 
-                {Object.keys(documents).length > 0 && (
+                {((Array.isArray(documents) && documents.length > 0) || Object.keys(documents).length > 0) && (
                     <AccordionItem 
                         title="Required Documents" 
                         icon="file-text"
-                        defaultOpen={currentStatus === 'for-reservation'}
+                        defaultOpen={currentStatus === 'for-reservation' || currentStatus === 'pending-docs'}
                     >
-                        {Object.entries(documents).map(([docName, isUploadedValue], idx) => {
-                            const isDocApproved = isUploadedValue && currentStatus !== 'for-reservation';
-
-                            return (
-                                <View key={idx} style={styles.documentRow}>
-                                    <View style={styles.docNameRow}>
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name={isDocApproved ? "check-circle" : "clock"} 
-                                            size={18} 
-                                            color={isDocApproved ? Colors.SUCCESS : Colors.WARNING} 
-                                        />
-                                        <CustomText variant="body" style={styles.documentText}>
-                                            {docName}
-                                        </CustomText>
-                                    </View>
-                                    <CustomText 
-                                        variant="caption" 
-                                        style={[
-                                            styles.documentStatusText, 
-                                            { color: isDocApproved ? Colors.SUCCESS : Colors.WARNING }
-                                        ]}
-                                    >
-                                        {isDocApproved ? 'Approved' : 'Pending Review'}
-                                    </CustomText>
-                                </View>
-                            );
-                        })}
+                        {Array.isArray(documents) 
+                            ? documents.map((doc, idx) => renderDocumentRow(doc.name, doc.valid, idx))
+                            : Object.entries(documents).map(([docName, isValid], idx) => {
+                                const isDocApproved = isValid && currentStatus !== 'for-reservation';
+                                return renderDocumentRow(docName, isDocApproved, idx);
+                            })
+                        }
                     </AccordionItem>
                 )}
 
