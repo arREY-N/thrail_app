@@ -53,8 +53,7 @@ firestore-debug.log
 eas.json
 desktop.ini
 
-google-services.json
-
+/google-services.json
 firebase-messaging-sw.js
 
 setSuperAdmin.js
