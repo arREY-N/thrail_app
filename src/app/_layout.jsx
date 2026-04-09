@@ -9,26 +9,18 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 import LoadingScreen from "@/src/app/loading";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { useEffect } from "react";
 
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 export default function RootLayout() {
   const { isLoading } = useAuthHook();
-  
-  
+
   const initialize = useAuthStore.getState().initialize;
 
   SplashScreen.preventAutoHideAsync();

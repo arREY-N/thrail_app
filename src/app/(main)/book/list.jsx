@@ -32,14 +32,6 @@ export default function listBook(){
         }
     }, [profile?.id, loadBookings]);
 
-    useEffect(() => {
-        if (bookings && bookings.length > 0) {
-            console.log("\n\n=== 🚀 LIVE BOOKINGS DATA FROM FIREBASE ===");
-            console.log(JSON.stringify(bookings, null, 2));
-            console.log("================================================\n\n");
-        }
-    }, [bookings]);
-
     if (isLoading || !bookings) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -53,10 +45,6 @@ export default function listBook(){
 
     //Todo: remove this when the dummy data is not gonna use
     const displayBookings = [...DummyBookings, ...(bookings || [])]
-
-    if (error) {
-        console.log("Booking Fetch Error: ", error);
-    }
     
     return (
         <>
@@ -83,6 +71,7 @@ export default function listBook(){
                 error={error}
                 onBackPress={onBackPress}
                 onCancelBookingPress={onCancelBookingPress}
+                getBookOffer={getBookOffer}
             />
         </>
     );

@@ -23,6 +23,7 @@ const OfferListScreen = ({
     error,
     onAddOffer, 
     onEditOffer,
+    onViewOfferBookings,
     onBackPress 
 }) => {
     const safeOffers = offers || []; 
@@ -106,6 +107,13 @@ const OfferListScreen = ({
                                 <CustomText variant="caption" style={styles.description} numberOfLines={2}>
                                     {offer.description}
                                 </CustomText>
+
+                                <CustomButton 
+                                    title="View Bookings"
+                                    onPress={() => onViewOfferBookings(offer.id)}
+                                    variant="primary"
+                                    style={styles.viewBookingsButton}
+                                />
 
                                 <CustomButton 
                                     title="Edit Offer"
@@ -237,6 +245,10 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         lineHeight: 18,
         marginBottom: 16,
+    },
+    viewBookingsButton: {
+        paddingVertical: 10,
+        marginBottom: 8,
     },
     editButton: {
         paddingVertical: 10,

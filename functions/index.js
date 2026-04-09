@@ -1,8 +1,11 @@
 const admin = require("firebase-admin");
 const {setGlobalOptions} = require("firebase-functions");
 const { onCall, HttpsError } = require("firebase-functions/https");
+const { defineSecret } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+
+const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 
 admin.initializeApp();
 
@@ -228,3 +231,107 @@ exports.checkEmail = onCall(async (request) => {
         emailAvailable: !userRecord 
     };
 })
+
+exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (request) => {
+    const { amount, type, returnUrl } = request.data;
+    const auth = request.auth;
+
+    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (!amount || !type) throw new HttpsError('invalid-argument', 'Amount and type are required');
+    if (!['gcash', 'paymaya', 'maya'].includes(type)) throw new HttpsError('invalid-argument', 'Invalid payment type');
+
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+
+    if (!PAYMONGO_SECRET_KEY) {
+        throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing in environment.');
+    }
+
+    const encodedKey = Buffer.from(PAYMONGO_SECRET_KEY).toString('base64');
+    
+    // PayMongo uses 'paymaya' internally
+    const sourceType = type === 'maya' ? 'paymaya' : type;
+    const redirectUrl = returnUrl || 'thrailapp://';
+
+    try {
+        const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${encodedKey}`
+            },
+            body: JSON.stringify({
+                data: {
+                    attributes: {
+                        send_email_receipt: false,
+                        show_description: false,
+                        show_line_items: true,
+                        line_items: [
+                            {
+                                currency: 'PHP',
+                                amount: Math.round(amount * 100),
+                                name: 'Booking Payment',
+                                quantity: 1
+                            }
+                        ],
+                        payment_method_types: [sourceType],
+                        success_url: redirectUrl,
+                        cancel_url: redirectUrl
+                    }
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.text();
+            console.error('PayMongo API Error Details:', errorDetails);
+            
+            if (response.status === 401 || response.status === 403) {
+                throw new Error("Payment service is currently unavailable. Please notify the Thrail administrators.");
+            }
+
+            let paymongoError = null;
+            try {
+                const parsed = JSON.parse(errorDetails);
+                if (parsed.errors && parsed.errors.length > 0) {
+                    paymongoError = parsed.errors[0];
+                }
+            } catch (e) {
+                // Silently fails, falls back to generic timeout/network error below
+            }
+
+            if (paymongoError) {
+                const code = paymongoError.code || '';
+                const detail = paymongoError.detail || '';
+                const pointer = paymongoError.source?.pointer || '';
+
+                if (code === 'AMOUNT_EXCEED_LIMIT' || (pointer === 'amount' && detail.toLowerCase().includes('exceed'))) {
+                    throw new Error("This booking exceeds the ₱100,000 maximum transaction limit for GCash/Maya. Please use a different payment method or pay in installments.");
+                }
+                if (code === 'parameter_invalid' && pointer === 'amount' && detail.toLowerCase().includes('least')) {
+                    throw new Error("The booking amount (or 50% downpayment) is too small. The minimum payment required by GCash/Maya is ₱100.");
+                }
+                if (code === 'parameter_format_invalid' && pointer === 'return_url') {
+                    throw new Error("An internal routing error occurred while generating your booking checkout. Please try again.");
+                }
+                if (code === 'SYSTEM_ERROR' || code === 'PY0016' || response.status >= 500) {
+                    throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
+                }
+                
+                // Fallback for an unmapped PayMongo error
+                throw new Error(detail || "An unexpected error occurred with the payment gateway.");
+            }
+            
+            throw new Error("Could not connect to the payment gateway. Please check your internet connection and try booking again.");
+        }
+
+        const data = await response.json();
+        return {
+            id: data.data.id,
+            checkout_url: data.data.attributes.checkout_url,
+            status: 'pending'
+        };
+    } catch (err) {
+        console.error("PayMongo Checkout Session Failed: ", err);
+        throw new HttpsError('internal', err.message || 'Failed to initialize PayMongo checkout');
+    }
+});

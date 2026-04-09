@@ -13,7 +13,6 @@ import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
 import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
-import DocumentStatusScreen from '@/src/features/Book/screens/MyBookings/DocumentStatusScreen';
 import PaymentStatusScreen from '@/src/features/Book/screens/MyBookings/PaymentStatusScreen';
 import ReceiptScreen from '@/src/features/Book/screens/MyBookings/ReceiptScreen';
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
@@ -23,6 +22,7 @@ const MyBookingsScreen = ({
     error,
     onBackPress,
     onCancelBookingPress, 
+    getBookOffer
 }) => {
     const [currentView, setCurrentView] = useState('list'); 
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -46,16 +46,14 @@ const MyBookingsScreen = ({
     };
 
     const onBookingSelectPress = (booking) => {
-    setSelectedBooking(booking);
+        setSelectedBooking(booking);
 
-    if (booking.status === 'for-reservation' || booking.status === 'pending-docs') {
-        setCurrentView('document-status');
-    } else if (booking.status === 'paid') {
-        setCurrentView('payment-status');
-    } else {
-        setCurrentView('overview');
-    }
-};
+        if (booking.status === 'paid') {
+            setCurrentView('payment-status');
+        } else {
+            setCurrentView('overview'); 
+        }
+    };
 
     const onProceedToPaymentPress = () => {
         setCurrentView('payment');
@@ -125,6 +123,7 @@ const MyBookingsScreen = ({
         return (
             <BookingDetailsScreen
                 booking={selectedBooking}
+                getBookOffer={getBookOffer}
                 onBackPress={onHeaderBackPress}
                 onProceedToPayment={onProceedToPaymentPress}
                 onViewReceipt={() => setCurrentView('receipt')}

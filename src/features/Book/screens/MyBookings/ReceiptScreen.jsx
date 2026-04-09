@@ -16,7 +16,7 @@ const ReceiptScreen = ({
 }) => {
     const transactionRef = `TRX-${bookingData?.id?.toUpperCase() || 'N/A'}`;
     const formattedDate = formatBookingDate(bookingData?.offer?.date);
-    const totalPaid = bookingData?.offer?.price || 0;
+    const totalPaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>

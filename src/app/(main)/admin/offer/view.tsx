@@ -3,13 +3,18 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text } from "react-native";
+
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen";
 
 export default function viewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
 
     const offerId = getSearchParam(rawOfferId);
+
+    const { onBackPress } = useAppNavigation();
 
     const { 
         offerBookings,
@@ -19,13 +24,26 @@ export default function viewOffer() {
     } = useOfferBooking({ offerId });
 
     return (
-        <TestOfferView
-            offerId={offerId}
-            offer={offer}
-            bookings={offerBookings}
-            onViewBooking={onViewBooking}
-            error={error} 
-        />
+        <>
+            <Stack.Screen options={{ headerShown: false }} />
+
+            <OfferViewScreen
+                offerId={offerId}
+                offer={offer}
+                bookings={offerBookings}
+                onViewBooking={onViewBooking}
+                onBackPress={onBackPress}
+                error={error} 
+            />
+        </>
+
+        // <TestOfferView
+        //     offerId={offerId}
+        //     offer={offer}
+        //     bookings={offerBookings}
+        //     onViewBooking={onViewBooking}
+        //     error={error} 
+        // />
     )
 }
 

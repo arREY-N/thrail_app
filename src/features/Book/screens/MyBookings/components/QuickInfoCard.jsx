@@ -8,7 +8,7 @@ import { Colors } from '@/src/constants/colors';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 const QuickInfoCard = ({ booking }) => {
-    const formattedDate = formatBookingDate(booking?.offer?.date) || 'TBA';
+    const formattedDate = formatBookingDate(booking?.offer?.date, booking?.offer?.endDate) || 'TBA';
     const guideName = booking?.business?.name || 'N/A';
 
     const rawDuration = booking?.offer?.duration || 'N/A';

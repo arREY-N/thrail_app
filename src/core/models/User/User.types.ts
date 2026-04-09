@@ -21,12 +21,6 @@ export interface IEmergencyContact {
     contactNumber: string;
 }
 
-export interface NotificationToken<T> {
-    token: string;
-    platform: 'web' | 'ios' | 'android';
-    lastUpdated: T;
-}
-
 export interface IUserBase<T> extends IUserSummary{
     address: string;
     birthday: T;
@@ -37,7 +31,6 @@ export interface IUserBase<T> extends IUserSummary{
     preferences: IPreference;
     role: Role;
     emergencyContact: IEmergencyContact;
-    fcmToken: NotificationToken<T>[];
 }
 
 export interface IUserDB extends IUserBase<Timestamp | FieldValue> {}
