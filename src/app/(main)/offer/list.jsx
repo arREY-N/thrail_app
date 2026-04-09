@@ -29,9 +29,12 @@ export default function listOffer(){
         localError,
         validId,
         medicalCertificate,
-        pickValidId,
-        pickMedicalCertificate,
+        bir,
+        dti,
+        denr,
+        pickDocument,
     } = useFileUpload();
+
 
     if(trailIsLoading) return <LoadingScreen/>;
 
