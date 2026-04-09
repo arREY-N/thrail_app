@@ -10,9 +10,10 @@ import {
   User as FirebaseUser,
   onIdTokenChanged,
   signOut,
-  Unsubscribe,
+  Unsubscribe
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
+import { Platform } from "react-native";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -269,16 +270,28 @@ export const useAuthStore = create<AuthState>()(
       return get().remember;
     },
 
-    gmailSignUp: () => {
-      set({
-        error: "Function to be added soon",
-      });
+    gmailSignUp: async () => {
+      try {
+        if(Platform.OS === 'web') {
+          await AuthRepository.webSignUpWithGoogle();
+        } else {
+          await AuthRepository.signUpWithGoogle();
+        }
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+      }
     },
 
-    gmailLogIn: () => {
-      set({
-        error: "Function to be added soon",
-      });
+    gmailLogIn: async () => {
+      try {
+        if(Platform.OS === 'web') {
+          await AuthRepository.webSignUpWithGoogle();
+        } else {
+          await AuthRepository.signUpWithGoogle();
+        }
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+      }
     },
 
     forgotPassword: () => {

@@ -1,7 +1,8 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, initializeAuth } from "firebase/auth";
+import { connectAuthEmulator, getAuth, GoogleAuthProvider, initializeAuth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
+import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 import { persistence } from "./persistence";
 
@@ -23,6 +24,9 @@ export const auth = persistence
 
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
+export const provider = new GoogleAuthProvider();
+export const storage = getStorage();
+
 export { app };
 
 const getEmulatorHost = () => {
@@ -40,4 +44,5 @@ if (__DEV__ && USE_EMULATORS) {
   connectFirestoreEmulator(db, emulatorHost, 8080);
   connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
   connectFunctionsEmulator(functions, emulatorHost, 5001);
+  connectStorageEmulator(storage, emulatorHost, 9199);
 }
