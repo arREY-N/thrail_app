@@ -1,5 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
+import useFileUpload from "@/src/core/hook/file/useFileUpload";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
@@ -23,6 +24,14 @@ export default function listOffer(){
         onCompleteBook,
         onSetOffer,
     } = useBookOffer({ trailId });
+
+    const {
+        localError,
+        validId,
+        medicalCertificate,
+        pickValidId,
+        pickMedicalCertificate,
+    } = useFileUpload();
 
     if(trailIsLoading) return <LoadingScreen/>;
 
