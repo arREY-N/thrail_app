@@ -13,7 +13,6 @@ import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
 import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
-import DocumentStatusScreen from '@/src/features/Book/screens/MyBookings/DocumentStatusScreen';
 import PaymentStatusScreen from '@/src/features/Book/screens/MyBookings/PaymentStatusScreen';
 import ReceiptScreen from '@/src/features/Book/screens/MyBookings/ReceiptScreen';
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
