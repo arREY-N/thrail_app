@@ -5,13 +5,13 @@ import {
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
+import CustomSearchHeader from '@/src/components/CustomSearchHeader'; // Standardized Component
 import CustomText from '@/src/components/CustomText';
 import MountainCard from '@/src/components/MountainCard';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import FilterModal from '@/src/features/Explore/components/FilterModal';
-import SearchBar from '@/src/features/Explore/components/SearchBar';
 
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -20,7 +20,6 @@ const ExploreScreen = ({
     trails, 
     onViewMountain 
 }) => {
-
     const { width } = useBreakpoints();
     
     const containerPadding = 16;
@@ -34,14 +33,23 @@ const ExploreScreen = ({
 
     const cardWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
 
-    const [selectedCategory, setSelectedCategory] = useState('All');
     const categories = ['All', 'Recommended', 'Nearby', 'Discover', 'Challenge'];
-
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
     const filteredTrails = useMemo(() => {
-        return filterTrailsByCategory(trails, selectedCategory);
-    }, [selectedCategory, trails]);
+        let categoryFiltered = filterTrailsByCategory(trails, selectedCategory);
+        
+        if (searchQuery.trim().length > 0) {
+            const query = searchQuery.toLowerCase();
+            categoryFiltered = categoryFiltered.filter(t => 
+                t.general?.name?.toLowerCase().includes(query) ||
+                t.general?.province?.some(p => p.toLowerCase().includes(query))
+            );
+        }
+        return categoryFiltered;
+    }, [selectedCategory, trails, searchQuery]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -52,11 +60,16 @@ const ExploreScreen = ({
                     showDefaultIcons={true} 
                 />
 
-                <SearchBar 
-                    categories={categories}
-                    selectedCategory={selectedCategory}
-                    onSelectCategory={setSelectedCategory}
-                    onFilterPress={() => setIsFilterModalVisible(true)}
+                <CustomSearchHeader 
+                    searchPlaceholder="Search mountains or locations..."
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    rightIconLibrary="Ionicons"
+                    rightIconName="filter"
+                    onRightButtonPress={() => setIsFilterModalVisible(true)}
+                    tabs={categories}
+                    activeTab={selectedCategory}
+                    onTabSelect={setSelectedCategory}
                 />
 
                 <ResponsiveScrollView 
@@ -70,7 +83,7 @@ const ExploreScreen = ({
                                     key={t.id}
                                     item={t}
                                     onPress={() => onViewMountain(t.id)}
-                                    onLikePress={() => console.log("Like", t.name)}
+                                    onLikePress={() => console.log("Like", t.general?.name)}
                                     style={{ width: cardWidth }} 
                                 />
                             ))
@@ -107,7 +120,6 @@ const filterTrailsByCategory = (trails, category) => {
         case 'Nearby':
             return trails.filter(t => {
                 const address = t.address || "";
-                
                 const provinceData = t.province;
                 const isRizal = Array.isArray(provinceData) 
                     ? provinceData.includes('Rizal') 
@@ -138,12 +150,12 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND, 
     },
     scrollContent: {
-        paddingBottom: 0,
+        paddingBottom: 32,
     },
     listContainer: {
         paddingHorizontal: 16,
         paddingTop: 16,
-        paddingBottom: 32,
+        paddingBottom: 0,
         flexDirection: 'row', 
         flexWrap: 'wrap',    
     },
