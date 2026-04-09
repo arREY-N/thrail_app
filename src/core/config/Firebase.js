@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, initializeAuth } from "firebase/auth";
+import { connectAuthEmulator, getAuth, GoogleAuthProvider, initializeAuth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 import { Platform } from "react-native";
@@ -23,6 +23,8 @@ export const auth = persistence
 
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
+export const provider = new GoogleAuthProvider();
+
 export { app };
 
 const getEmulatorHost = () => {

@@ -4,7 +4,6 @@ import React, { useEffect } from 'react';
 import CustomLoading from '@/src/components/CustomLoading';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
-import { router } from 'expo-router';
 import { View } from 'react-native';
 
 export default function login(){
@@ -28,11 +27,6 @@ export default function login(){
         reset();
     }, []);
 
-    // TODO: Remove this when the temp hike screen is done
-    const onTempHikePress = () => {
-        router.push('/(auth)/tempHike');
-    }
-
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen 
@@ -43,7 +37,7 @@ export default function login(){
                 onBackPress={onBackPress}
                 onRememberMePress={onRememberMePress}
                 remember={remember}
-                onGmailLogIn={onTempHikePress}
+                onGmailLogIn={onGmailLogIn}
             />
 
             <CustomLoading 
