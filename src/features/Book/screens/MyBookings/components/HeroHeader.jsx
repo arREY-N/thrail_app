@@ -70,8 +70,10 @@ const HeroHeader = ({ booking }) => {
     const badge = getHeroBadgeStyle(booking?.status);
     const trail = booking?.trail;
 
+    const hasValidLocation = trail?.location && trail.location.trim() !== '' && trail.location !== 'N/A';
+
     return (
-        <View style={styles.container}>
+<View style={styles.container}>
             <View style={[styles.badgeContainer, { backgroundColor: badge.bgColor }]}>
                 <CustomText variant="caption" style={[styles.badgeText, { color: badge.textColor }]}>
                     {badge.label}
@@ -82,17 +84,19 @@ const HeroHeader = ({ booking }) => {
                 {trail?.name || 'N/A'}
             </CustomText>
 
-            <View style={styles.locationRow}>
-                <CustomIcon 
-                    library="Feather" 
-                    name="map-pin" 
-                    size={16} 
-                    color={Colors.TEXT_SECONDARY} 
-                />
-                <CustomText variant="body" style={styles.locationText}>
-                    {trail?.location || 'N/A'}
-                </CustomText>
-            </View>
+            {hasValidLocation && (
+                <View style={styles.locationRow}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name="map-pin" 
+                        size={16} 
+                        color={Colors.TEXT_SECONDARY} 
+                    />
+                    <CustomText variant="body" style={styles.locationText}>
+                        {trail.location}
+                    </CustomText>
+                </View>
+            )}
         </View>
     );
 };
