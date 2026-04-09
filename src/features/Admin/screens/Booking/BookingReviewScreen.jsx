@@ -60,10 +60,11 @@ const BookingReviewScreen = ({
 
     const handleFinalDecision = () => {
         const allApproved = docStates.every(d => d.valid === true);
+        
         if (allApproved) {
-            onApprove(); 
+            onApprove(docStates); 
         } else {
-            onReject(rejectionReason); 
+            onReject(rejectionReason, docStates); 
         }
         setIsConfirmVisible(false);
     };
@@ -149,7 +150,7 @@ const BookingReviewScreen = ({
                     <View style={styles.reasonBox}>
                         <CustomTextInput 
                             label="Rejection Reason *"
-                            placeholder="Explain what need to fix"
+                            placeholder="Explain what needs to be fixed..."
                             value={rejectionReason}
                             onChangeText={setRejectionReason}
                             multiline={true}
@@ -176,7 +177,7 @@ const BookingReviewScreen = ({
                 primaryButton={{
                     title: "Submit Review",
                     onPress: () => setIsConfirmVisible(true),
-                    disabled: isDecisionIncomplete || (hasRejections && !rejectionReason)
+                    disabled: isDecisionIncomplete || (hasRejections && !rejectionReason.trim())
                 }}
             />
 
@@ -185,7 +186,7 @@ const BookingReviewScreen = ({
                 onClose={() => setIsConfirmVisible(false)}
                 onConfirm={handleFinalDecision}
                 title="Process Decision"
-                message={hasRejections ? "Ask hiker for corrections?" : "Approve for 1?"}
+                message={hasRejections ? "Are you sure you want to reject this booking and request document corrections?" : "All documents are valid. Approve this booking for payment?"}
             />
         </ScreenWrapper>
     );
