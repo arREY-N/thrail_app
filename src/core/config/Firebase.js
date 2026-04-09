@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, initializeAuth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
+import { getMessaging, isSupported } from "firebase/messaging";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 import { persistence } from "./persistence";
@@ -27,11 +28,18 @@ export const functions = getFunctions(app);
 export const provider = new GoogleAuthProvider();
 export const storage = getStorage();
 
+export const getFirebaseMessaging = async () => {
+  if (Platform.OS === 'web' && await isSupported()) {
+    return getMessaging(app);
+  }
+  return null;
+};
+
 export { app };
 
 const getEmulatorHost = () => {
   if (Platform.OS === "android") {
-    return process.env.EXPO_PUBLIC_EMULATOR_HOST || "10.0.2.2";
+    return "192.168.1.5";
   }
   return "localhost";
 };

@@ -1,5 +1,5 @@
 import { ISignUp } from "@/src/core/models/User/SignUp.types";
-import { IEmergencyContact, IPreference, IUser, IUserDB, Role } from "@/src/core/models/User/User.types";
+import { IEmergencyContact, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -19,6 +19,7 @@ export class User implements IUser{
     birthday: Date = new Date();
     onBoardingComplete: boolean = false;
     phoneNumber: string = '';
+    fcmToken: NotificationToken<Date>[] = [];
     preferences: IPreference = {
         experience: '',
         hike_length: [],
@@ -51,6 +52,10 @@ export class User implements IUser{
         const mapped: IUser = {
             ...data,
             id,
+            fcmToken: (data.fcmToken || []).map(token => ({
+                ...token,
+                lastUpdated: toDate(token.lastUpdated),
+            })),
             birthday: toDate(data.birthday),
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
@@ -77,6 +82,10 @@ export class User implements IUser{
             preferences: this.preferences,
             role: this.role,
             emergencyContact: this.emergencyContact,
+            fcmToken: (this.fcmToken || [] ).map(token => ({
+                ...token,
+                lastUpdated: Timestamp.fromDate(token.lastUpdated),
+            })),
         }
 
         return mapped;

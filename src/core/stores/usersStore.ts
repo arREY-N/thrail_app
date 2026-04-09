@@ -1,3 +1,4 @@
+import { NotificationToken } from '@/src/core/models/User/User.types';
 import { UserRepository } from '@/src/core/repositories/userRepository';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
@@ -6,6 +7,7 @@ import { User } from '../models/User/User';
 export interface UserState extends BaseStore<User> {
     searched: User[];
     loadUserByEmail: (email: string) => Promise<User[]>;
+    addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;  
 }
 
 const init = {
@@ -205,5 +207,24 @@ export const useUsersStore = create<UserState>((set, get) => ({
             })
             return []
         }
+    },
+
+    addUserNotificationToken: async (token: NotificationToken<Date>, user: User) => {
+        try {
+            const tokenExisting = user.fcmToken.find(t => t.token === token.token);
+
+            const updatedUser = new User({
+                ...user,
+                fcmToken: tokenExisting 
+                    ? user.fcmToken.map(t => t.token === token.token ? token : t)
+                    : [...user.fcmToken, token]
+            });
+
+            const newUser = await UserRepository.write(updatedUser);
+            console.log("Updated user with new notification token:", newUser);
+
+        } catch (err) {
+            console.error("Failed to add notification token:", err);
+        }   
     },
 }))
