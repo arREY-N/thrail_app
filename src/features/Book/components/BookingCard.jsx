@@ -31,6 +31,13 @@ const getStatusConfig = (status) => {
                 textColor: Colors.STATUS_APPROVED_TEXT, 
                 icon: 'check-circle' 
             };
+        case 'reservation-rejected':
+            return { 
+                label: 'Action Required', 
+                bgColor: Colors.ERROR_BG, // Or '#FFF5F5'
+                textColor: Colors.ERROR, 
+                icon: 'alert-circle' 
+            };
         case 'for-reservation':
         case 'pending-docs': 
         case 'for-reschedule':
@@ -62,15 +69,12 @@ const getStatusConfig = (status) => {
     }
 };
 
-const BookingCard = ({ 
-    booking, 
-    onSelectBooking 
-}) => {
+const BookingCard = ({ booking, onSelectBooking }) => {
     const statusConfig = getStatusConfig(booking.status);
     
     const trailName = booking.trail?.name || 'Hiking Package';
     const businessName = booking.business?.name || 'Independent Guide';
-    const formattedDate = formatBookingDate(booking.offer?.date, true);
+    const formattedDate = formatBookingDate(booking.offer?.date, booking.offer?.endDate, true);
     const price = booking.offer?.price || 0;
 
     return (
