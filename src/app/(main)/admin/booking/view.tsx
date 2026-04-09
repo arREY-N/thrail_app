@@ -24,6 +24,7 @@ export default function adminViewBooking() {
         offers,
         booking,
         error,
+        isLoading,
         onApproveBooking,
         onRejectBooking, 
         onRescheduleBooking,
@@ -46,6 +47,7 @@ export default function adminViewBooking() {
                 onReject={onRejectBooking}
                 onReschedule={onRescheduleBooking}
                 onRefund={onRefund}
+                isLoading={isLoading}
                 error={error}            
             />
         </>
