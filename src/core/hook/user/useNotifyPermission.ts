@@ -2,12 +2,14 @@ import { requestNotificationPermission } from '@/src/core/hook/notification/useN
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { NotificationToken } from '@/src/core/models/User/User.types';
 import { useUsersStore } from '@/src/core/stores/usersStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 export function useNotifyPermission() {
     const [token, setToken] = useState<string | null>(null);
     const { profile } = useAuthHook();
+
+    const hasRun = useRef(false);
 
     const addUserNotificationToken = useUsersStore(s => s.addUserNotificationToken);
 
@@ -49,10 +51,12 @@ export function useNotifyPermission() {
             }
 
             await addUserNotificationToken(newToken, profile);
+
+            hasRun.current = true;
         };
 
         fetchToken();
-    }, []);
+    }, [profile, addUserNotificationToken]);
 
     return token;
 }
