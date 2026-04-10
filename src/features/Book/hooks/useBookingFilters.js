@@ -25,7 +25,8 @@ export default function useBookingFilters(userBookings) {
                     'pending-docs', 
                     'for-payment', 
                     'approved-docs', 
-                    'for-reschedule'
+                    'for-reschedule',
+                    'reservation-rejected'
                 ].includes(status);
                 
                 const isUpcoming = [

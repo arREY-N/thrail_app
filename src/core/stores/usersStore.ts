@@ -1,3 +1,4 @@
+import { NotificationToken } from '@/src/core/models/User/User.types';
 import { UserRepository } from '@/src/core/repositories/userRepository';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
@@ -6,6 +7,8 @@ import { User } from '../models/User/User';
 export interface UserState extends BaseStore<User> {
     searched: User[];
     loadUserByEmail: (email: string) => Promise<User[]>;
+    loadUser: (id: string) => Promise<User | null>;
+    addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;  
 }
 
 const init = {
@@ -18,6 +21,30 @@ const init = {
 
 export const useUsersStore = create<UserState>((set, get) => ({
     ...init,
+
+    loadUser: async (id: string): Promise<User | null> => {
+        set({ isLoading: true, error: null }) 
+        try {
+            const user = await UserRepository.fetchById(id);
+
+            if(!user){
+                throw new Error(`Could not find user with id ${id}`);
+            }
+
+            set({
+                isLoading: false,
+            })
+
+            return new User(user);
+        } catch (error) {
+            console.error((error as Error).message);
+            set({
+                error: (error as Error).message ?? `Failed loading user with id ${id}`,
+                isLoading: false
+            })
+            return null;
+        }
+    },
 
     fetchAll: async () => {
         const data = get().data;
@@ -205,5 +232,23 @@ export const useUsersStore = create<UserState>((set, get) => ({
             })
             return []
         }
+    },
+
+    addUserNotificationToken: async (token: NotificationToken<Date>, user: User) => {
+        try {
+            const tokenExisting = user.fcmTokens.find(t => t.token === token.token);
+
+            if(!tokenExisting) {
+                const updatedUser = new User({
+                    ...user,
+                    fcmTokens: [...user.fcmTokens, token]
+                });
+    
+                const newUser = await UserRepository.write(updatedUser);
+                console.log("Updated user with new notification token:", newUser);
+            }
+        } catch (err) {
+            console.error("Failed to add notification token:", err);
+        }   
     },
 }))

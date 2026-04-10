@@ -16,6 +16,7 @@ const CustomButton = ({
     variant = 'primary',
     style,
     textStyle,
+    disabled,
     children
 }) => {
     
@@ -33,11 +34,13 @@ const CustomButton = ({
     return (
         <Pressable 
             onPress={onPress}
+            disabled={disabled}
             style={({ pressed }) => [
                 styles.baseButton, 
                 buttonStyle, 
                 style,
-                pressed && styles.pressed
+                pressed && !disabled && styles.pressed,
+                disabled && { opacity: 0.5 }
             ]}
         >
             {children ? (

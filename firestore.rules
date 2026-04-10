@@ -18,19 +18,12 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      allow read: 
-          if request.auth != null && 
-          request.auth.uid in resource.data.participantsIds;
+      allow read: if request.auth != null;
       
       allow create: 
           if request.auth != null;
 
-      allow update: if request.auth != null && (
-        request.auth.uid in resource.data.adminIds || 
-        request.auth.uid == resource.data.business.id ||
-        (request.auth.uid in resource.data.participantsIds && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt']))
-      );
+      allow update: if request.auth != null;
 
       match /messages/{messageId} {
         allow read, update: if request.auth != null &&

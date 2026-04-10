@@ -2,7 +2,7 @@ import { db } from "@/src/core/config/Firebase";
 import { Group, GroupConverter } from "@/src/core/models/Group/Group";
 import { Message, MessageConverter } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User.types";
-import { arrayUnion, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc, where } from "firebase/firestore";
 
 export interface ChatRepositoryInterface {
   listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe;
@@ -10,10 +10,26 @@ export interface ChatRepositoryInterface {
   sendMessage(groupId: string, message: Message): Promise<void>;
   writeGroup(group: Group): Promise<void>;
   markMessageAsRead(groupId: string, messageId: string, userSummary: IUserSummary): Promise<void>;
+  fetchGroup(groupId: string): Promise<Group>;
 }
 
 
 class MessageRepositoryImpl implements ChatRepositoryInterface {
+    async fetchGroup(groupId: string): Promise<Group> {
+        try {
+            const docRef = doc(db, 'groups', groupId).withConverter(GroupConverter);
+            const docSnap = await getDoc(docRef);
+
+            if (!docSnap.exists())
+                throw new Error('Group not found');
+                        
+            return docSnap.data();
+        } catch (error) {
+            console.error('MessageRepository Error:', error);
+            throw error;
+        }
+    }
+
     listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups'),

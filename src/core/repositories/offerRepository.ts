@@ -122,7 +122,7 @@ class OfferRepositoryImpl implements Repository<Offer>{
                 // TODO: implement notification to reserved users about the changes in the offer
                 alert('notify reserved users about the changes');
             }
-
+            console.log('Created offer: ', offer)
             return offer;
         } catch (err: any) {
             console.error(err.message);
