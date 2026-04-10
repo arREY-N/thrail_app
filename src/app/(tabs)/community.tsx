@@ -75,7 +75,6 @@ export default function community(){
             likeReview={likeReview}
             isLiked={testIsLiked}
             onRefresh={refreshFeed}
-            onLeaderboardPress={onLeaderboardPress}
             onGroupPress={onGroupPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}
