@@ -1,8 +1,11 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
+import { Requirements } from "@/src/core/models/Booking/Booking.types";
+import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
+import { useUsersStore } from "@/src/core/stores/usersStore";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
@@ -26,29 +29,65 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
     const loadOffer = useOffersStore(s => s.loadOffer);
     const loadBooking = useBookingsStore(s => s.loadById);
     const create = useBookingsStore(s => s.create);
-    
+    const fetchUser = useUsersStore(s => s.loadUser);
     const [offer, setOffer] = useState<Offer | null>(null);
     const [booking, setBooking] = useState<Booking | null>(null);
 
+
     useEffect(() => {
         setLocalError(null);
-        if(offerId && bookingId) {
-            loadOffer(offerId);
-            loadBooking(bookingId);
+        try{
+            if(offerId && bookingId) {
+                loadOffer(offerId);
+                loadBooking(bookingId);
+            }
+        } catch (error) {
+            console.error('Error loading offer or booking: ', error);
+            setLocalError((error as Error).message || 'Failed to load offer or booking');
         }
     }, [offerId, bookingId]);
 
     useEffect(() => {
-        if(offerId){
-            setOffer(offers.find(o => o.id === offerId) || null);
+        try {
+            if(offerId){
+                setOffer(offers.find(o => o.id === offerId) || null);
+            }
+    
+            if(bookingId){
+                setBooking(bookings.find(b => b.id === bookingId) || null);
+            }
+        } catch (error) {
+            console.error('Error setting offer or booking: ', error);
+            setLocalError((error as Error).message || 'Failed to set offer or booking');
         }
+    },[offers, bookings, offerId, bookingId])
 
-        if(bookingId){
-            setBooking(bookings.find(b => b.id === bookingId) || null);
+    const onValidateDocument = (document: Requirements, valid: 'approved' | 'rejected') => {
+        try {
+            if(!booking)
+                throw new Error('Booking not found');
+            setBooking(prev =>
+                produce(prev, (draft) => {
+                    if (!draft) return;
+
+                    const docIndex = draft.documents.findIndex(d => d.name === document.name);
+
+                    if (docIndex !== -1) {
+                        draft.documents[docIndex].valid = valid; 
+                        console.log(`Success: ${document.name} set to ${valid}`);
+                    } else {
+                        console.error('Document name not found in array');
+                    }
+                }
+            ))
+        } catch (error) {
+            console.error('Error approving document: ', error);
+            setLocalError((error as Error).message || 'Failed to approve document');
         }
-    },[offers, bookings, offer, booking])
+        console.log('Validated booking: ', booking);
+    }                   
 
-    const onApproveBooking = (forceApprove: boolean = false) => {
+    const onApproveBooking = async (forceApprove: boolean = false) => {
         try {
             if(!booking)
                 throw new Error('Booking not found');
@@ -65,13 +104,25 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 if(forceApprove){
                     alert('Force approving booking');
                 }
+
+                if(!BookingLogic.checkDocuments(booking)){
+                    setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
+                    return;
+                }
     
                 const approvedBook = new Booking({
                     ...booking,
                     status: 'for-payment',
                 })
-        
-                create(approvedBook, true);
+                
+                const success = await create(approvedBook, true)
+                console.log('Status updated to for-payment: ', approvedBook);
+                
+                if(!success){
+                    setLocalError('Failed to approve booking');
+                    return;
+                }
+            
                 router.back();
             } else {
                 setLocalError(`Cannot approve this booking with status ${booking?.status}`);
@@ -93,6 +144,11 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
             if((booking.status === 'reservation-rejected' || booking.status === 'cancellation-rejected') && !forceReject){
                 setLocalError(`Booking has been rejected by ${booking.cancelledBy} due to ${booking.cancellationReason}`);
+                return;
+            }
+
+            if(!BookingLogic.checkDocuments(booking)){
+                setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
                 return;
             }
 
@@ -188,6 +244,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         onRefund,
         onApproveBooking,
         onRejectBooking,
-        onRescheduleBooking
+        onRescheduleBooking,
+        onValidateDocument,
     }
 }

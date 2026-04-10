@@ -8,6 +8,7 @@ import { Payment } from "@/src/core/models/Payment/Payment";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
+import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
@@ -31,6 +32,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const isLoading = useBookingsStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
     const createBooking = useBookingsStore(s => s.create);
+    const joinGroup = useGroupStore(s => s.joinGroup)
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -112,10 +114,33 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     }
 
     const onCompleteBook = async () => {
-        // TODO add booking information validation 
-        console.log(booking);
-        await createBooking(booking)
-        console.error('UNIMPLEMENTED FUNCTION');
+        try {
+            
+            if(!profile)
+                throw new Error('No user found');
+    
+            console.log(booking);
+            const offer = await fetchOffer(booking.offer.id);
+    
+            if(!offer) 
+                throw new Error('Offer not found for booking');
+        
+    
+            const finalBooking = new Booking({
+                ...booking,
+                trail: offer.trail,
+                user: UserLogic.toSummary(profile),
+            })
+            
+            await createBooking(finalBooking)
+    
+            await joinGroup(offer.id, UserLogic.toSummary(profile));
+            
+            router.back();
+        } catch (error) {
+            console.error('Error completing booking: ', error);
+            setLocalError((error as Error).message || 'Failed completing booking')      
+        }
     }
 
     const onUpdatePress = (params: TEdit<Booking>) => {

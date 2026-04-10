@@ -18,7 +18,9 @@ export interface OfferState extends Omit<BaseStore<Offer>, 'delete'>{
     fetchOfferByTrail: (id: string) => Promise<void>;
     loadOffer: (offerId: string) => Promise<void>;  
     fetchOfferById: (id: string) => Promise<Offer>;
+    createOffer: (offer: Offer) => Promise<Offer | null>;
 }
+
 
 const init = {
     data: [],
@@ -182,11 +184,11 @@ export const useOffersStore = create<OfferState>()(
     },
 
     loadOffer: async (offerId: string) => {
+        set({ isLoading: true, error: null })
         try {
             if(!offerId)
                 throw new Error('No offer ID provided');
 
-            set({ isLoading: true, error: null })
 
             let offer = null;
 
@@ -210,9 +212,9 @@ export const useOffersStore = create<OfferState>()(
         } catch (err) {
             console.error((err as Error).message);
             set({
-                error: (err as Error).message || 'Failed writing offer',
                 isLoading: false
             });
+            throw err;
         }
     },
 
@@ -268,6 +270,33 @@ export const useOffersStore = create<OfferState>()(
                 error: (err as Error).message || 'Failed writing offer',
                 isLoading: false
             })
+        }
+    },
+
+    createOffer: async (offer: Offer): Promise<Offer | null> => {
+        set({isLoading: true, error: null});
+
+        try {
+            const newOffer = await OfferRepository.write(offer);
+
+            set(state => {
+                const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
+                const offers = [...newOfferList, newOffer];
+                
+                return {
+                    businessOffers: offers,
+                    data: offers,
+                    isLoading: false
+                }
+            });
+            return newOffer;
+        } catch (err) {
+            console.error((err as Error).message);
+            set({
+                error: (err as Error).message ?? 'Failed to create new offer',
+                isLoading: false
+            })
+            return null;
         }
     },
 

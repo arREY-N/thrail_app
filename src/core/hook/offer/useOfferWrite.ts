@@ -31,7 +31,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
     const error = useOffersStore(s => s.error);
     const isLoading = useOffersStore(s => s.isLoading);
     const remove = useOffersStore(s => s.delete);
-    const create = useOffersStore(s => s.create);
+    const create = useOffersStore(s => s.createOffer);
     const createGroup = useGroupStore(s => s.createGroup);
     const [mode, setMode] = useState<FormMode>('create');
     const [localError, setLocalError] = useState<string | null>(null);
@@ -98,7 +98,11 @@ export function useOfferWrite(params: UseOfferParams = {}){
             
 
             const success = await create(offer);
+
+            if(!success) throw new Error('Failed creating offer');
+
             const group = new Group({
+                id: success.id,
                 admins: [UserLogic.toSummary(profile)],
                 participantsIds: [profile.id],
                 business: offer.business,
