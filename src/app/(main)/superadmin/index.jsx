@@ -20,10 +20,10 @@ export default function superadminDashboard(){
     // } = useSuperadminDomain();
 
     const superadminData = useSuperadminDomain();
-    const onBackPress = useAppNavigation();
+    const { onBackPress } = useAppNavigation();
 
     return(
-        <DashboardScreen 
+        <DashboardScreen
             {...superadminData}
             // pendingApplication={[]}
             onBackPress={onBackPress}
