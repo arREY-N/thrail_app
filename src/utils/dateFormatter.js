@@ -52,3 +52,51 @@ export const formatTime = (date) => {
         hour12: true,
     });
 };
+
+// Formats Firebase Timestamps or Date objects into a clean "MMM DD, YYYY" string
+export const formatDateToStandard = (dateObj) => {
+    if (!dateObj) return '';
+
+    let d;
+    if (typeof dateObj.toDate === 'function') {
+        d = dateObj.toDate();
+    } else if (dateObj instanceof Date) {
+        d = dateObj;
+    } else if (dateObj.seconds) {
+        d = new Date(dateObj.seconds * 1000);
+    } else {
+        d = new Date(dateObj);
+    }
+
+    if (isNaN(d.getTime())) return 'Invalid Date';
+
+    const shortMonths = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+
+    return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
+// Android/Hermes Safe String Parser for "MMM DD, YYYY" back to a Date object
+export const safeParseDateString = (dateString) => {
+    if (!dateString) return new Date();
+    
+    // Try standard JS parsing first (Works on iOS/Web)
+    const parsed = new Date(dateString);
+    if (!isNaN(parsed.getTime())) return parsed;
+    
+    // Fallback for Hermes engine (Android) parsing "MMM DD, YYYY"
+    const parts = dateString.replace(',', '').split(' ');
+    if (parts.length === 3) {
+        const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = shortMonths.indexOf(parts[0]);
+        const day = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
+        
+        if (month !== -1 && !isNaN(day) && !isNaN(year)) {
+            return new Date(year, month, day);
+        }
+    }
+    return new Date();
+};

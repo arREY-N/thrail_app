@@ -5,36 +5,13 @@ import {
     View
 } from 'react-native';
 
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCard from '@/src/features/Book/components/OfferCard';
-import StickyFooter from '@/src/features/Book/components/StickyFooter';
 
 import { Colors } from '@/src/constants/colors';
-
-const formatDateToStandard = (dateObj) => {
-    if (!dateObj) return '';
-
-    let d;
-    if (typeof dateObj.toDate === 'function') {
-        d = dateObj.toDate();
-    } else if (dateObj instanceof Date) {
-        d = dateObj;
-    } else if (dateObj.seconds) {
-        d = new Date(dateObj.seconds * 1000);
-    } else {
-        d = new Date(dateObj);
-    }
-
-    if (isNaN(d.getTime())) return 'Invalid Date';
-
-    const shortMonths = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-
-    return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-};
+import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
 const getTodayString = () => {
     return formatDateToStandard(new Date());
@@ -63,10 +40,11 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
         );
     }, [safeOffers, selectedDate]);
 
+    // Bulletproof Android check for past dates
     const isSelectedDatePast = useMemo(() => {
         if (!selectedDate) return false;
         
-        const selected = new Date(selectedDate);
+        const selected = safeParseDateString(selectedDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -149,10 +127,12 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                 </View>
             </ScrollView>
 
-            <StickyFooter
-                title="Continue"
-                onPress={() => onContinue(localSelectedId)}
-                isDisabled={!localSelectedId}
+            <CustomStickyFooter
+                primaryButton={{
+                    title: "Continue",
+                    onPress: () => onContinue(localSelectedId),
+                    disabled: !localSelectedId
+                }}
             />
         </View>
     );

@@ -6,36 +6,15 @@ import {
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import StickyFooter from '@/src/features/Book/components/StickyFooter';
-
-const formatDate = (dateObj) => {
-    if (!dateObj) return "TBA";
-    
-    let d;
-    if (typeof dateObj.toDate === 'function') {
-        d = dateObj.toDate();
-    } else if (dateObj instanceof Date) {
-        d = dateObj;
-    } else {
-        d = new Date(dateObj);
-    }
-
-    if (isNaN(d.getTime())) return "TBA";
-
-    const shortMonths = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-    
-    return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-};
+import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 const StatusScreen = ({ onReturn, bookedOffer }) => {
     
     const trailName = bookedOffer?.business?.name || bookedOffer?.trail?.name || "Hiking Package";
-    const hikeDate = formatDate(bookedOffer?.date || bookedOffer?.hikeDate);
+    const hikeDate = formatBookingDate(bookedOffer?.date || bookedOffer?.hikeDate);
     const price = bookedOffer?.price || 0;
     const duration = bookedOffer?.duration || "1 Day";
     const minPax = bookedOffer?.minPax || 1;
@@ -180,9 +159,11 @@ const StatusScreen = ({ onReturn, bookedOffer }) => {
 
             </ScrollView>
 
-            <StickyFooter 
-                title="Return to Trail" 
-                onPress={onReturn} 
+            <CustomStickyFooter 
+                primaryButton={{
+                    title: "Return to Trail",
+                    onPress: onReturn
+                }}
             />
         </View>
     );
