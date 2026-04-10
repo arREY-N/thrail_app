@@ -5,6 +5,7 @@ import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
+import { Pressable, Text } from "react-native";
 
 export default function listOffer(){
     const { trailId } = useLocalSearchParams();
@@ -33,12 +34,17 @@ export default function listOffer(){
         dti,
         denr,
         pickDocument,
+        onPayOffer,
     } = useFileUpload();
 
-
+    console.log('trailIsLoading: ', trailIsLoading)
     if(trailIsLoading) return <LoadingScreen/>;
 
-    return (        
+    return (      
+        <>
+            <Pressable onPress={() => onPayOffer(1500)}>
+                <Text>Pay Now</Text>
+            </Pressable>
         <BookingScreen 
             offers={trailOffers}
             booking={booking}
@@ -49,5 +55,6 @@ export default function listOffer(){
             onUpdatePress={onUpdatePress}
             onCompleteOffer={onCompleteBook}
         />
+        </>  
     )
 }

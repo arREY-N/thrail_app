@@ -32,7 +32,8 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const isLoading = useBookingsStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
     const createBooking = useBookingsStore(s => s.create);
-    const joinGroup = useGroupStore(s => s.joinGroup)
+    const joinGroup = useGroupStore(s => s.joinGroup);
+    const checkGroupExists = useGroupStore(s => s.checkGroupExists);
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -98,7 +99,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    const onPayOffer = () => {
+    const onPayOffer = (amount: number) => {
         try {
             // TODO connect to gateway and get the receipt
             const payment = new Payment();
@@ -113,7 +114,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    const onCompleteBook = async () => {
+    const onCompleteBook = async (): Promise<boolean> => {
         try {
             
             if(!profile)
@@ -124,7 +125,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     
             if(!offer) 
                 throw new Error('Offer not found for booking');
-        
     
             const finalBooking = new Booking({
                 ...booking,
@@ -132,14 +132,20 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
                 user: UserLogic.toSummary(profile),
             })
             
+            const group = await checkGroupExists(offer.id);
+
+            if(!group) 
+                throw new Error('Cannot continue with booking as group has not been set yet.');
+
             await createBooking(finalBooking)
-    
-            await joinGroup(offer.id, UserLogic.toSummary(profile));
+
+            await joinGroup(group, UserLogic.toSummary(profile));
             
-            router.back();
+            return true;
         } catch (error) {
             console.error('Error completing booking: ', error);
             setLocalError((error as Error).message || 'Failed completing booking')      
+            return false;
         }
     }
 

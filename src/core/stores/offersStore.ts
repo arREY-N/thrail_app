@@ -56,6 +56,7 @@ export const useOffersStore = create<OfferState>()(
                     error: 'No offers found',
                     isLoading: false
                 })
+                return;
             }
             
             set({
@@ -63,7 +64,7 @@ export const useOffersStore = create<OfferState>()(
                 isLoading: false
             })
         } catch (err) {
-            set({ isLoading: false })
+            set({ isLoading: false, error: (err as Error).message || 'Failed fetching offers' })
             throw err;
         }
     },
@@ -93,6 +94,7 @@ export const useOffersStore = create<OfferState>()(
                     error: 'No offers found',
                     isLoading: false
                 })
+                return;
             }
             
             set({
@@ -131,6 +133,8 @@ export const useOffersStore = create<OfferState>()(
                 throw new Error('No offer found');
             }
 
+            set({ isLoading: false, error: null });
+
             return offer;
         } catch (error) {
             set({ isLoading: false })
@@ -140,7 +144,6 @@ export const useOffersStore = create<OfferState>()(
 
     fetchOfferByTrail: async (id: string) => {
         set({ isLoading: true, error: null });
-        
         
         try {
             if(!id)

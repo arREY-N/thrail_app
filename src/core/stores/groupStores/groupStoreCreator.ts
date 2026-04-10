@@ -21,7 +21,8 @@ export interface GroupState {
     sendMessage: (groupId: string, message: Message) => void;
     markAsRead: (groupId: string, message: Message, userSummary: IUserSummary) => void;
     createGroup: (group: Group) => void;
-    joinGroup: (groupId: string, userSummary: IUserSummary) => Promise<void>;
+    joinGroup: (group: Group, userSummary: IUserSummary) => Promise<void>;
+    checkGroupExists: (groupId: string) => Promise<Group | null>;
 }
 
 export const useGroupStore = create<GroupState>((set, get) => ({
@@ -97,12 +98,18 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         }
     },
 
-    joinGroup: async (groupId: string, userSummary: IUserSummary): Promise<void> => {
+    checkGroupExists: async (groupId: string): Promise<Group | null> => {
         try {
-            const group = await MessageRepository.fetchGroup(groupId);
-            
-            if(!group) throw new Error('Group not found');
+            const group = await MessageRepository.fetchGroup(groupId);  
+            return group;
+        } catch (error) {
+            console.error("Failed to check group existence:", error);
+            throw error;
+        }
+    },
 
+    joinGroup: async (group: Group, userSummary: IUserSummary): Promise<void> => {
+        try {
             const newGroup = new Group({
                 ...group,
                 members: [...(group.members || []), userSummary],

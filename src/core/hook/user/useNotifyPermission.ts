@@ -15,10 +15,13 @@ export function useNotifyPermission() {
 
     useEffect(() => {
         const fetchToken = async () => {
+            if (hasRun.current === true) {
+                return;
+            }
             const result = await requestNotificationPermission();
             console.log("Notification Permission Token:", result);
             setToken(result);
-            
+
             if(!result) {
                 console.warn("No notification token obtained. User may have denied permission or an error occurred.");
                 return;
@@ -50,13 +53,19 @@ export function useNotifyPermission() {
                 return;
             }
 
+            if(profile.fcmTokens.some(t => t.token === newToken.token)) {
+                console.log("Notification token already exists for user profile.");
+                return;
+            }
+
             await addUserNotificationToken(newToken, profile);
 
+            console.log('Notification token added to user profile:', newToken);
             hasRun.current = true;
         };
 
         fetchToken();
-    }, [profile, addUserNotificationToken]);
+    }, [profile?.id, addUserNotificationToken]);
 
     return token;
 }

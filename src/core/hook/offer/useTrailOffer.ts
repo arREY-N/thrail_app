@@ -22,12 +22,18 @@ export function useTrailOffer(params: UseTrailOfferParams): IUseTrailOffer{
     const [localError, setLocalError] = useState<string | null>(null)
 
     useEffect(() => {
-        try {
-            if(!trailId) return;
-            fetchOfferByTrail(trailId);
-        } catch (error) {
-            setLocalError(`Failed fetching offers for trail ${trailId}`)
+        const fetch = async () => {
+            try {
+                console.log('Fetching offers for trailId started');
+                if(!trailId) return;
+                await fetchOfferByTrail(trailId);
+                console.log('Fetched offers for trailId done');
+            } catch (error) {
+                setLocalError(`Failed fetching offers for trail ${trailId}`)
+            }
         }
+
+        fetch();
     }, [trailId])
 
     return {

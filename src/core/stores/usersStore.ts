@@ -238,16 +238,15 @@ export const useUsersStore = create<UserState>((set, get) => ({
         try {
             const tokenExisting = user.fcmTokens.find(t => t.token === token.token);
 
-            const updatedUser = new User({
-                ...user,
-                fcmTokens: tokenExisting 
-                    ? user.fcmTokens.map(t => t.token === token.token ? token : t)
-                    : [...user.fcmTokens, token]
-            });
-
-            const newUser = await UserRepository.write(updatedUser);
-            console.log("Updated user with new notification token:", newUser);
-
+            if(!tokenExisting) {
+                const updatedUser = new User({
+                    ...user,
+                    fcmTokens: [...user.fcmTokens, token]
+                });
+    
+                const newUser = await UserRepository.write(updatedUser);
+                console.log("Updated user with new notification token:", newUser);
+            }
         } catch (err) {
             console.error("Failed to add notification token:", err);
         }   

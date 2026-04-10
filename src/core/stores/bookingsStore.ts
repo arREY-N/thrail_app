@@ -137,16 +137,13 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            console.log('Creating/updating booking: ', booking);
             const data = await BookingRepository.write(booking);
 
             set((state) => {
                 const index = isAdmin
                     ? state.offerBookings.findIndex(b => b.id === booking.id)
                     : state.userBookings.findIndex(b => b.id === booking.id); 
-                    
-                console.log(isAdmin)
-                console.log(index)
+                
                 if(index !== -1){
                     if(isAdmin){
                         state.offerBookings[index] = data;
@@ -160,15 +157,9 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
                         state.userBookings.push(data);
                     }
                 }
-
                 
                 state.isLoading = false;
             })
-            if(isAdmin) {
-                console.log('offerbooking: ', get().offerBookings)
-            } else {
-                console.log('userbooking: ', get().userBookings)
-            }
             return true;
         } catch (err) {
             set({ isLoading: false, })
