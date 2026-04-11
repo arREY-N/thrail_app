@@ -71,3 +71,9 @@ export interface ITourism {
     viewpoint: ViewpointType[] | [];
 }
 
+export interface ICoordinate {
+    latitude: number;
+    longitude: number;
+    altitude: number;
+}
+
