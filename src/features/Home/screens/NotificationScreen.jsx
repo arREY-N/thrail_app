@@ -72,6 +72,7 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title="Notifications" 
+                centerTitle={true}
                 onBackPress={onBackPress}
             />
 
