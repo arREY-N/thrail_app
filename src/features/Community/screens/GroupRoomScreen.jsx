@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
     Bubble,
@@ -27,6 +27,8 @@ const GroupRoomScreen = ({
     onBackPress
 }) => {
     
+    const [isFocused, setIsFocused] = useState(false);
+
     const giftedChatMessages = useMemo(() => {
         if (!messages) return [];
         return messages.map(m => ({
@@ -37,6 +39,7 @@ const GroupRoomScreen = ({
                 _id: m.senderId,
                 name: m.senderName,
             },
+            readBy: m.readBy || [] 
         })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [messages]);
 
@@ -72,6 +75,7 @@ const GroupRoomScreen = ({
 
     const renderBubble = (props) => {
         const isLeft = props.position === 'left';
+        const isRight = props.position === 'right';
         const senderId = props.currentMessage.user._id;
         const senderName = props.currentMessage.user.name;
         
@@ -80,8 +84,14 @@ const GroupRoomScreen = ({
             props.previousMessage.user && 
             props.previousMessage.user._id === senderId;
 
+        const isLastInCluster = !props.nextMessage || !props.nextMessage.user || props.nextMessage.user._id !== senderId;
+
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
+
+        const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
+        const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
+        const readByNames = readByUsers.map(u => u.username).join(', ');
 
         return (
             <View style={styles.bubbleWrapper}>
@@ -115,6 +125,15 @@ const GroupRoomScreen = ({
                         left: styles.timeContainerLeft,
                     }}
                 />
+
+                {hasReadReceipts && (
+                    <View style={styles.readReceiptContainer}>
+                        <CustomIcon library="Ionicons" name="checkmark-done" size={14} color={Colors.PRIMARY} />
+                        <CustomText variant="caption" style={styles.readReceiptText}>
+                            Seen by {readByNames}
+                        </CustomText>
+                    </View>
+                )}
             </View>
         );
     };
@@ -155,12 +174,18 @@ const GroupRoomScreen = ({
         return (
             <Composer
                 {...props}
-                textInputStyle={styles.composerTextInput}
+                textInputStyle={[
+                    styles.composerTextInput,
+                    isFocused && styles.composerTextInputFocused
+                ]}
                 placeholderTextColor={Colors.TEXT_PLACEHOLDER}
                 textInputProps={{
                     ...props.textInputProps,
+                    onFocus: () => setIsFocused(true),
+                    onBlur: () => setIsFocused(false),
                     style: [
                         styles.composerTextInput, 
+                        isFocused && styles.composerTextInputFocused,
                         Platform.OS === 'web' && { outlineStyle: 'none' }
                     ]
                 }}
@@ -188,6 +213,7 @@ const GroupRoomScreen = ({
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title={headerTitle}
+                centerTitle={true}
                 onBackPress={onBackPress}
             />
             <View style={styles.container}>
@@ -299,6 +325,19 @@ const styles = StyleSheet.create({
     timeTextRight: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10 },
     timeTextLeft: { color: Colors.TEXT_SECONDARY, fontSize: 10 },
 
+    readReceiptContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginTop: 2,
+        marginRight: 4,
+        gap: 4,
+    },
+    readReceiptText: {
+        fontSize: 10,
+        color: Colors.TEXT_SECONDARY,
+    },
+
     dayWrapper: {
         backgroundColor: Colors.GRAY_MEDIUM,
         paddingHorizontal: 16,
@@ -314,45 +353,52 @@ const styles = StyleSheet.create({
     },
 
     inputToolbar: {
-        backgroundColor: Colors.WHITE,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_ULTRALIGHT,
-        paddingTop: 6,
-        paddingBottom: 6,
+        backgroundColor: Colors.BACKGROUND,
+        borderTopWidth: 0, 
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
     inputToolbarPrimary: {
-        alignItems: 'center',
+        alignItems: 'flex-end', 
     },
     
     composerTextInput: {
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         color: Colors.TEXT_PRIMARY,
         fontSize: 15,
         lineHeight: 20,
-        paddingHorizontal: 12,
-        paddingTop: Platform.OS === 'web' ? 10 : 8,
-        minHeight: 40,
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'web' ? 10 : 12,
+        paddingBottom: Platform.OS === 'web' ? 10 : 12,
+        borderRadius: 24, 
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        minHeight: 44,
+        maxHeight: 120,
         marginTop: 0,
         marginBottom: 0,
+        marginRight: 8, 
+    },
+    composerTextInputFocused: {
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.WHITE,
     },
 
     sendContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
-        marginLeft: 8,
+        marginBottom: 4, 
     },
     sendButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
     sendIcon: {
         marginLeft: 2, 
-        marginTop: 2,
     }
 });
 
