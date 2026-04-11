@@ -14,7 +14,7 @@ import { Colors } from '@/src/constants/colors';
 const WeatherSkeleton = ({ onBackPress }) => {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Weather" onBackPress={onBackPress} />
+            <CustomHeader title="Weather" centerTitle={true} onBackPress={onBackPress} />
             
             <View style={styles.scrollContent}>
                 

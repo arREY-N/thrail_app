@@ -30,7 +30,7 @@ const OfferListScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Manage Offers" onBackPress={onBackPress} />
+            <CustomHeader title="Manage Offers" centerTitle={true} onBackPress={onBackPress} />
 
             <ScrollView 
                 showsVerticalScrollIndicator={false}

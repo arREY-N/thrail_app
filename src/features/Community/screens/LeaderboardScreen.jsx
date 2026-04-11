@@ -85,7 +85,7 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title="Leaderboard" 
-                centerTitle 
+                centerTitle={true}
                 onBackPress={onBackPress} 
             />
 

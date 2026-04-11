@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     Platform,
     RefreshControl,
@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import * as Location from 'expo-location';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -16,10 +15,10 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { useWeather } from '@/src/hooks/useWeather';
-import { useLocation } from '@/src/hooks/useLocation';
 import { formatSunTime } from '@/src/core/utility/date';
 import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
+import { useLocation } from '@/src/hooks/useLocation';
+import { useWeather } from '@/src/hooks/useWeather';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
 
@@ -84,6 +83,7 @@ const WeatherScreen = ({
 
             <CustomHeader 
                 title="Weather" 
+                centerTitle={true}
                 onBackPress={onBackPress} 
             />
 

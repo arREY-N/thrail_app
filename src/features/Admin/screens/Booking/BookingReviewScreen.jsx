@@ -93,7 +93,7 @@ const BookingReviewScreen = ({
     if (isLoading) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader title="Review Documents" centerTitle onBackPress={onBackPress} />
+                <CustomHeader title="Review Documents" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.centerContent}>
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
                     <CustomText style={{marginTop: 16, color: Colors.TEXT_SECONDARY}}>Loading booking details...</CustomText>
@@ -116,7 +116,7 @@ const BookingReviewScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Review Documents" centerTitle onBackPress={onBackPress} />
+            <CustomHeader title="Review Documents" centerTitle={true} onBackPress={onBackPress} />
             
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 

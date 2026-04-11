@@ -64,6 +64,7 @@ const DashboardScreen = ({
             
             <CustomHeader 
                 title="Admin Dashboard" 
+                centerTitle={true}
                 onBackPress={onBackPress} 
             />
 
