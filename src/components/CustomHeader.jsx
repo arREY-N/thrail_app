@@ -34,7 +34,8 @@ const CustomHeader = ({
         ]}>
             <View style={styles.titleRow}>
                 
-                <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard}>
+                {/* === LEFT SECTION === */}
+                <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard} pointerEvents="box-none">
                     {onBackPress ? (
                         <TouchableOpacity 
                             onPress={onBackPress} 
@@ -60,8 +61,9 @@ const CustomHeader = ({
                     )}
                 </View>
 
+                {/* === CENTER SECTION === */}
                 {centerTitle && (
-                    <View style={styles.centerBox}>
+                    <View style={styles.centerBox} pointerEvents="none">
                         {children ? children : (
                             <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
                                 {title}
@@ -70,8 +72,8 @@ const CustomHeader = ({
                     </View>
                 )}
 
-
-                <View style={centerTitle ? styles.rightBoxCentered : styles.rightBoxStandard}>
+                {/* === RIGHT SECTION === */}
+                <View style={centerTitle ? styles.rightBoxCentered : styles.rightBoxStandard} pointerEvents="box-none">
                     <View style={styles.rightActionsInner}>
                         {showDefaultIcons && (
                             <>
@@ -106,6 +108,7 @@ const CustomHeader = ({
 
             </View>
 
+            {/* Embedded Search Bar */}
             {hasSearch && (
                 <CustomSearchBar {...searchProps} />
             )}
@@ -120,13 +123,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
         zIndex: 100,
     },
-
     flatHeader: {
         elevation: 0,
         shadowOpacity: 0,
         borderBottomWidth: 0,
     },
-
     withSearchShadowAndRadius: {
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -146,33 +147,36 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 8,
     },
-    
     leftBoxCentered: {
         flex: 1,
         alignItems: 'flex-start',
+        zIndex: 10,
     },
     leftBoxStandard: {
         flex: 1,
         alignItems: 'flex-start',
+        zIndex: 10,
     },
     centerBox: {
-        flex: 2,
+        ...StyleSheet.absoluteFillObject,
         alignItems: 'center',
         justifyContent: 'center',
+        zIndex: 1,
     },
     rightBoxCentered: {
         flex: 1,
         alignItems: 'flex-end',
+        zIndex: 10,
     },
     rightBoxStandard: {
         alignItems: 'flex-end',
+        zIndex: 10,
     },
     rightActionsInner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
     },
-
     backButton: {
         padding: 8,
         marginLeft: -8, 
