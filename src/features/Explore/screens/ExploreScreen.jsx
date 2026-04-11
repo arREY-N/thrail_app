@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
-import CustomSearchHeader from '@/src/components/CustomSearchHeader'; // Standardized Component
 import CustomText from '@/src/components/CustomText';
 import MountainCard from '@/src/components/MountainCard';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
@@ -58,18 +57,18 @@ const ExploreScreen = ({
                 <CustomHeader 
                     title="Explore"
                     showDefaultIcons={true} 
-                />
-
-                <CustomSearchHeader 
-                    searchPlaceholder="Search mountains or locations..."
-                    searchValue={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    rightIconLibrary="Ionicons"
-                    rightIconName="filter"
-                    onRightButtonPress={() => setIsFilterModalVisible(true)}
-                    tabs={categories}
-                    activeTab={selectedCategory}
-                    onTabSelect={setSelectedCategory}
+                    hasSearch={true}
+                    searchProps={{
+                        searchPlaceholder: "Search mountains or locations...",
+                        searchValue: searchQuery,
+                        onSearchChange: setSearchQuery,
+                        rightIconLibrary: "Ionicons",
+                        rightIconName: "filter",
+                        onRightButtonPress: () => setIsFilterModalVisible(true),
+                        tabs: categories,
+                        activeTab: selectedCategory,
+                        onTabSelect: setSelectedCategory
+                    }}
                 />
 
                 <ResponsiveScrollView 
@@ -116,7 +115,6 @@ const filterTrailsByCategory = (trails, category) => {
     switch (category) {
         case 'Recommended':
             return trails.filter(t => (t.score || 0) >= 4.6);
-        
         case 'Nearby':
             return trails.filter(t => {
                 const address = t.address || "";
@@ -124,20 +122,16 @@ const filterTrailsByCategory = (trails, category) => {
                 const isRizal = Array.isArray(provinceData) 
                     ? provinceData.includes('Rizal') 
                     : (provinceData || "").includes('Rizal');
-
                 return address.includes('Rizal') || isRizal;
             });
-
         case 'Discover':
             return trails.slice(0, 3); 
-        
         case 'Challenge':
             return trails.filter(t => {
                 const elev = Number(t.masl || 0);
                 const len = Number(t.length || 0);
                 return elev > 600 || len > 10;
             });
-
         case 'All':
         default:
             return trails;
