@@ -1,26 +1,25 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import MapLibreGL from "@maplibre/maplibre-react-native";
-import * as FileSystem from 'expo-file-system/legacy';
-import { Asset } from 'expo-asset';
+import { Asset } from "expo-asset";
+import * as FileSystem from "expo-file-system/legacy";
 import React, { useEffect, useRef, useState } from "react";
 
 import {
-  Alert,
   Platform,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
+import LoadingScreen from "@/src/app/loading";
+import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
-import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
-import LoadingScreen from "@/src/app/loading";
 
 // Load trail data
-const rawMapData = require("../../assets/map_data/trails.json");
+const rawMapData = require("../../assets/map_data/trails_3D.json");
 const trailsGeoJSON = {
   type: "FeatureCollection",
   features: rawMapData.geometries.map((geometry: any) => ({
@@ -32,11 +31,15 @@ const trailsGeoJSON = {
 
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
-
 const TrailMap = ({ initialLon, initialLat }: any) => {
   // Notice: We don't need userHeading here anymore! MapLibre handles it natively.
-  const { userLocation, routeCoordinates, permissionGranted, isOnline, exportHikeData } =
-    useHikerGPS();
+  const {
+    userLocation,
+    routeCoordinates,
+    permissionGranted,
+    isOnline,
+    exportHikeData,
+  } = useHikerGPS();
 
   const [forceOffline, setForceOffline] = useState(true);
   // NEW: State to track if the camera should be locked onto the user
@@ -44,7 +47,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
   const lastZoomRef = useRef<number>(16);
   const cameraRef = useRef<any>(null);
 
-  // We are completely bypassing the React Native `useAssets` hook because it continuously cancels and 
+  // We are completely bypassing the React Native `useAssets` hook because it continuously cancels and
   // restarts massive 35MB downloads during hot-reloads, causing the map to load indefinitely.
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
 
@@ -52,39 +55,43 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     async function loadGiganticOfflineMap() {
       try {
         const fileUri = `${FileSystem.documentDirectory}thrail-offline-map.pmtiles`;
-        
+
         // 1. Check if it exists AND is fully downloaded (Assuming 35MB is ~35,000,000 bytes)
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
-        
+
         if (fileInfo.exists) {
-          if (fileInfo.size && fileInfo.size > 30000000) { // If it's larger than 30MB, it's good!
+          if (fileInfo.size && fileInfo.size > 30000000) {
+            // If it's larger than 30MB, it's good!
             console.log("✅ Offline map cache is healthy! Bypassing download.");
             setOfflineTileUrl(`pmtiles://${fileUri}`);
             return;
           } else {
-            console.log("⚠️ Found corrupted/incomplete map cache. Deleting and retrying...");
+            console.log(
+              "⚠️ Found corrupted/incomplete map cache. Deleting and retrying...",
+            );
             await FileSystem.deleteAsync(fileUri, { idempotent: true });
           }
         }
 
         console.log("⬇️ Starting cache process for offline map...");
-        
+
         // 2. Safely resolve and copy the asset (Works in Dev Emulator AND Prod APK)
-        const asset = Asset.fromModule(require("../../assets/tiles/thrail-offline-map.pmtiles"));
+        const asset = Asset.fromModule(
+          require("../../assets/tiles/thrail-offline-map.pmtiles"),
+        );
         await asset.downloadAsync(); // Caches to Expo's local directory first
-        
+
         if (asset.localUri) {
           // 3. COPY it to the document directory instead of "downloading" a URL
           await FileSystem.copyAsync({
             from: asset.localUri,
-            to: fileUri
+            to: fileUri,
           });
           console.log("✅ Successfully copied map to Document Directory!");
           setOfflineTileUrl(`pmtiles://${fileUri}`);
         } else {
           throw new Error("Asset failed to generate a localUri");
         }
-        
       } catch (error) {
         console.warn("CRITICAL: Failed to cache the offline map:", error);
       }
@@ -100,7 +107,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
 
     if (initialLon && initialLat && !isNaN(parsedLon) && !isNaN(parsedLat)) {
       // Snap to exact trail coordinate so the camera perfectly centers on the green line
-    
+
       // Small timeout ensures the Camera component has fully mounted natively
       const timer = setTimeout(() => {
         setIsFollowing(false);
@@ -108,7 +115,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
           centerCoordinate: [parsedLon, parsedLat],
           zoomLevel: 14,
           animationDuration: 1000,
-          animationMode: "flyTo"
+          animationMode: "flyTo",
         });
       }, 500);
       return () => clearTimeout(timer);
@@ -124,7 +131,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     });
     setIsFollowing(true);
   };
-  
+
   const actuallyOffline = forceOffline || !isOnline;
   const isDownloadingOfflineMap = actuallyOffline && offlineTileUrl === "";
 
@@ -133,7 +140,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
   }
 
   const activeStyle = actuallyOffline
-    ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string) 
+    ? buildOfflineStyle(offlineTileUrl, MAPTILER_KEY as string)
     : onlineStyle;
 
   return (
@@ -260,16 +267,16 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   topControlContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: Platform.OS === "android" ? StatusBar.currentHeight! + 10 : 54,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     zIndex: 10,
   },
   statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 24,
@@ -283,35 +290,35 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: "700", fontSize: 13, letterSpacing: 0.5 },
   downloadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(248, 244, 240, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(248, 244, 240, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 5, // Behind the top pill but above the map
   },
   downloadCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 24,
     borderRadius: 16,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    width: '80%',
+    width: "80%",
   },
   downloadText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginTop: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   downloadSubText: {
     fontSize: 13,
-    color: '#666',
+    color: "#666",
     marginTop: 6,
-    textAlign: 'center',
+    textAlign: "center",
   },
   recenterButton: {
     position: "absolute",

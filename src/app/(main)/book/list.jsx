@@ -32,7 +32,7 @@ export default function listBook(){
         }
     }, [profile?.id, loadBookings]);
 
-    if (isLoading || !bookings) {
+    if (isLoading) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
                 <CustomLoading 

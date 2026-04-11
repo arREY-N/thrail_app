@@ -7,6 +7,7 @@ import {
 } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
+import { getMessaging, isSupported } from "firebase/messaging";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 import { persistence } from "./persistence";
@@ -31,6 +32,13 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app);
 export const provider = new GoogleAuthProvider();
 export const storage = getStorage();
+
+export const getFirebaseMessaging = async () => {
+  if (Platform.OS === 'web' && await isSupported()) {
+    return getMessaging(app);
+  }
+  return null;
+};
 
 export { app };
 

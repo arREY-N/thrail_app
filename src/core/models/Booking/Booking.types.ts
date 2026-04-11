@@ -24,7 +24,7 @@ export type BookingStatus =
 export type Requirements = {
     name: string;
     file: string;
-    valid: boolean;
+    valid: 'pending' | 'approved' | 'rejected';
 }
 
 export interface IBookingBase<T> {

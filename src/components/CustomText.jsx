@@ -9,8 +9,8 @@ import { Colors } from '@/src/constants/colors';
 const CustomText = ({ 
     children, 
     variant = 'body', 
-    color, 
-    style, 
+    color = undefined, 
+    style = {}, 
     ...props 
 }) => {
     

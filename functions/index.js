@@ -5,12 +5,162 @@ const { defineSecret } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
+const { FieldPath } = admin.firestore;
+
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 
 admin.initializeApp();
 
-
 setGlobalOptions({ maxInstances: 10 });
+
+exports.onAddBooking = functions.firestore
+    .document('users/{userId}/bookings/{bookingId}')
+    .onCreate(async (snapshot, context) => {
+        const data = snapshot.data();
+        const { userId } = context.params;
+
+        const businessId = data.business?.id;
+        if (!businessId) {
+            console.log('Missing businessId');
+            return;
+        }
+
+        const userDoc = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .get();
+
+        const user = userDoc.data();
+        const userName = user?.firstname || 'A user';
+
+        const adminIds = await admin.firestore()
+            .collection('businesses')
+            .doc(businessId)
+            .collection('admins')
+            .get()
+            .then(query => query.docs.map(doc => doc.data().id));
+
+        console.log(adminIds);
+
+        if (!adminIds.length) return;
+
+        const chunkSize = 10;
+        const chunks = [];
+        for (let i = 0; i < adminIds.length; i += chunkSize) {
+            chunks.push(adminIds.slice(i, i + chunkSize));
+        }   
+
+        const userDocs = await Promise.all(
+            adminIds.map(id =>
+                admin.firestore().collection('users').doc(id).get()
+            )
+        );
+
+        let tokens = [];
+
+        userDocs.forEach(doc => {
+            if (!doc.exists) return;
+            const userTokens = doc.data().fcmTokens || [];
+            tokens.push(...userTokens);
+        });
+
+        if (!tokens.length) {
+            console.log('No admin tokens found');
+            return;
+        }
+
+        const uniqueTokens = [...new Set(tokens.map(t => t.token))];
+
+        const trailName = data.trail?.name || 'a trail';
+
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: uniqueTokens,
+            notification: {
+                title: `New Booking for ${trailName}`,
+                body: `${userName} just booked a hike for ${trailName}`
+            }
+        });
+
+
+        const validTokens = tokens.filter((t, i) => {
+            const res = response.responses[i];
+            if (res?.success) return true;
+
+            const error = res?.error?.code;
+            return ![
+                'messaging/registration-token-not-registered',
+                'messaging/invalid-registration-token'
+            ].includes(error);
+        });
+    }
+);
+
+exports.onBookingStatusChange = functions.firestore
+    .document('users/{userId}/bookings/{bookingId}')
+    .onUpdate(async (change, context) => {
+        const before = change.before.data();
+        const after = change.after.data();
+
+        console.log(before, after);
+        
+        if (before.status === after.status) return;
+
+        const { userId } = context.params;
+
+        const userDoc = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .get();
+
+        const tokens = userDoc.data()?.fcmTokens || [];
+
+        console.log(tokens.length, 'tokens found for user:', userId);
+        if (!tokens.length) return;
+
+        const data = after;
+
+        const trailName = data.trail?.name || 'your trail';
+        const businessName = data.business?.name || 'the organizer';
+
+        const dateStr = data.date?.toDate
+            ? data.date.toDate().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                })
+            : '';
+
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: tokens.map(t => t.token),
+            notification: {
+                title: "Booking Update",
+                body: `Your booking for ${trailName} with ${businessName} on ${dateStr} has been ${data.status}.`
+            }
+        });
+
+        const validTokens = tokens.filter((t, i) => {
+            const res = response.responses[i];
+            console.log(`Token: ${t.token}, Success: ${res.success}, Error: ${res.error?.code}`);
+            if (res.success) return true;
+
+            const error = res.error?.code;
+
+            console.log(`Error for token ${t.token}: ${error}`);
+            return ![
+                'messaging/registration-token-not-registered',
+                'messaging/invalid-registration-token'
+            ].includes(error);
+        });
+
+        if (validTokens.length !== tokens.length) {
+            await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .update({ fcmTokens: validTokens });
+        }
+        console.log(`Booking status change notification sent to ${response.successCount} tokens, ${response.failureCount} failures for user: ${userId}`);
+    }
+);
 
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     const account = await admin.auth().getUser(user.uid);

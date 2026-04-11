@@ -136,12 +136,13 @@ class BookingRepostoryImpl {
     async write(data: Booking): Promise<Booking> {
         try {
             let booking = data;
+            console.log('to create: ', booking);
 
-            const bookingRef = data.id 
+            const bookingRef = data.id !== ""
                 ? doc(createBookingCollection(data.user.id), data.id)
                 : doc(createBookingCollection(data.user.id));
 
-            if(!data.id){
+            if(data.id === ""){
                 console.log('Creating new booking with ID: ', bookingRef.id);
                 booking = new Booking({
                     ...data,
@@ -149,12 +150,14 @@ class BookingRepostoryImpl {
                 });
             }
             
+            console.log('Final Writing booking: ', booking);
             await setDoc(
                 bookingRef, 
                 booking, 
                 {merge: true}
             );
-
+            
+            console.log('Final booking: ', booking);
             return booking;
         } catch (err) {
             console.log('Error writing booking: ', err);

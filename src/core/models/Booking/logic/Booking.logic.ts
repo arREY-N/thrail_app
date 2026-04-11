@@ -36,5 +36,23 @@ export const BookingLogic = {
         }
         draft.business = offer.business
     },
-    
+
+    checkDocuments(draft: IBookingBase<Date>): boolean {
+        if(!draft.documents || draft.documents.length === 0) {
+            console.warn('No documents provided for booking: ', draft.id);
+            return false;
+        }
+
+        if(!Array.isArray(draft.documents)){
+            throw new Error('Documents should be an array');
+        }
+
+        const pending = draft.documents.filter(d => d.valid === 'pending');
+
+        if(pending.length > 0) {
+            console.warn('There are still pending documents for booking: ', draft.id, pending);
+            return false;
+        }
+        return true;
+    }
 }

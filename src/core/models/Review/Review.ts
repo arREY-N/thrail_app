@@ -32,7 +32,7 @@ export class Review implements IReview {
     review: string = '';
     image: string[] = [];
     predictedDifficulty: DifficultyRating = 'Easy';
-    perceivedDifficulty?: DifficultyRating | undefined;
+    perceivedDifficulty: DifficultyRating = 'undefined';
     
     
     constructor(init?: Partial<IReview>) {
@@ -43,14 +43,14 @@ export class Review implements IReview {
         const mapped: IReview = {
             ...data,
             id,
-            trailMaintenance: toTextual(data.trailMaintenance),
+            trailMaintenance: (data.trailMaintenance && data.trailMaintenance > 0) ? toTextual(data.trailMaintenance) : 'undefined',
             hikeDate: toDate(data.hikeDate),
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
-            predictedDifficulty: toTextual(data.predictedDifficulty),
-            perceivedDifficulty: data.perceivedDifficulty !== undefined ? toTextual(data.perceivedDifficulty) : undefined,
+            predictedDifficulty: (data.predictedDifficulty && data.predictedDifficulty > 0) ? toTextual(data.predictedDifficulty) : 'undefined',
+            perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
         }
-
+        console.log('Mapped Review from Firestore: ', mapped);
         return new Review(mapped);
     }
 
@@ -63,7 +63,7 @@ export class Review implements IReview {
             updatedAt: serverTimestamp(),
             likes: this.likes,
             user: this.user,
-            trailMaintenance: toNumerical(this.hike.trailMaintenance),
+            trailMaintenance: this.trailMaintenance ? toNumerical(this.hike.trailMaintenance) : 0,
             hikeDate: Timestamp.fromDate(this.hike.date),
             trail: this.trail,
             overallRating: this.overallRating,
@@ -71,11 +71,8 @@ export class Review implements IReview {
             favoredFactors: this.favoredFactors,
             review: this.review,
             image: this.image,
-            predictedDifficulty: toNumerical(this.predictedDifficulty),
-        }
-
-        if(this.perceivedDifficulty !== undefined) {
-            mapped.perceivedDifficulty = toNumerical(this.perceivedDifficulty)
+            predictedDifficulty: (this.predictedDifficulty !== 'undefined') ? toNumerical(this.predictedDifficulty) : 0,
+            perceivedDifficulty: (this.perceivedDifficulty !== 'undefined') ? toNumerical(this.perceivedDifficulty) : 0
         }
 
         return mapped;

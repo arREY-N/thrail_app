@@ -18,7 +18,8 @@ const MountainCard = ({
     onPress,
     onDownload,
     onLikePress,
-    style
+    style,
+    weatherBadge
 }) => {
 
     const { 
@@ -28,7 +29,6 @@ const MountainCard = ({
         displayElev, 
         displayTime, 
         score,
-        displayTemp,
         heroImage
     } = getMountainData(item);
 
@@ -58,16 +58,16 @@ const MountainCard = ({
                     </CustomText>
                 </View>
 
-                {displayTemp && (
+                {weatherBadge && (
                     <View style={[styles.glassPill, styles.weatherPosition]}>
                         <CustomIcon
                             library="Ionicons"
-                            name="partly-sunny" 
+                            name={weatherBadge.icon} 
                             size={14}
                             color={Colors.WHITE}
                         />
                         <CustomText variant="caption" style={styles.badgeText}>
-                            {displayTemp}
+                            {`${weatherBadge.temperature}°C`}
                         </CustomText>
                     </View>
                 )}
@@ -155,7 +155,6 @@ const getMountainData = (item) => {
     const displayElev = item?.geography?.masl ? `${item.geography.masl} masl` : "--";
     const displayTime = item?.difficulty?.hours ? `${item.difficulty.hours} h` : "--";
     const score = item?.general?.rating || "N/A";
-    const displayTemp = item?.weather?.temperature ? `${item.weather.temperature}°C` : "-- °C";
 
     const images = [
         require('@/src/assets/images/MT1.jpg'),
@@ -185,8 +184,7 @@ const getMountainData = (item) => {
         displayLength, 
         displayElev, 
         displayTime, 
-        score, 
-        displayTemp,
+        score,
         heroImage
     };
 };

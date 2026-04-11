@@ -16,7 +16,7 @@ const CustomIcon = ({
     name, 
     size = 24, 
     color = Colors.PRIMARY, 
-    style 
+    style = {}
 }) => {
 
     const commonProps = {

@@ -28,17 +28,18 @@ export default function adminViewBooking() {
         onApproveBooking,
         onRejectBooking, 
         onRescheduleBooking,
-        onRefund
+        onValidateDocument,
+        onRefund,
     } = useApproveBooking({ bookingId, offerId });
 
     if(!booking) return <Text>Booking not found</Text>;
     if(!offer) return <Text>Offer not found</Text>;
     
     console.log('Loaded booking: ', booking);
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-
             <BookingReviewScreen
                 booking={booking}
                 offers={offers}
@@ -51,17 +52,6 @@ export default function adminViewBooking() {
                 error={error}            
             />
         </>
-
-        // <TestOfferView
-        //     offer={offer}
-        //     offers={offers}
-        //     booking={booking}
-        //     onApproveBooking={onApproveBooking}
-        //     onRejectBooking={onRejectBooking}
-        //     onRescheduleBooking={onRescheduleBooking}
-        //     onRefund={onRefund}
-        //     error={error}
-        // />
     )
 }
 
