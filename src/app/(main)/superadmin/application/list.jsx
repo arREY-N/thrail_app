@@ -51,7 +51,7 @@ const TESTAPPLICATIONLIST = ({
                     console.log(a);
                     console.log(formatDate(a.createdAt));
                     return(
-                        <View style={styles.group}>
+                        <View style={styles.group} key={a.id}>
                             <Pressable onPress={() => onViewApplicationPress(a.id)}>
                                 <Text>Application ID: {a.id}</Text>
                                 <Text>Applicant: {a.name}</Text>
