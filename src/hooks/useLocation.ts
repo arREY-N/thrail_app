@@ -17,6 +17,7 @@ export const useLocation = (props?: UseLocationProps) => {
             : null
     );
     const [resolvedName, setResolvedName] = useState<string | null>(propLocationName || null);
+    const [geocodedName, setGeocodedName] = useState<string | null>(null);
     const [isLocating, setIsLocating] = useState<boolean>(!propLatitude || !propLocationName);
 
     // 1. Fetch coords if completely missing
@@ -52,10 +53,8 @@ export const useLocation = (props?: UseLocationProps) => {
         return () => { isMounted = false; };
     }, [propLatitude, propLongitude]);
 
-    // 2. Reverse Geocode if name is missing but we have coords
+    // 2. Reverse Geocode if we have coords
     useEffect(() => {
-        if (propLocationName) return; 
-
         const effLat = propLatitude !== undefined ? propLatitude : coords?.latitude;
         const effLon = propLongitude !== undefined ? propLongitude : coords?.longitude;
 
@@ -69,13 +68,22 @@ export const useLocation = (props?: UseLocationProps) => {
                     });
                     if (geocodeResult && geocodeResult.length > 0) {
                         const loc = geocodeResult[0];
-                        const nameToUse = loc.city || loc.subregion || loc.region || 'Current Location';
-                        if (isMounted) setResolvedName(nameToUse);
+                        // loc.name contains specific landmarks or point of interests (like mountains/trails)
+                        const nameToUse = loc.name || loc.city || loc.subregion || loc.region || 'Current Location';
+                        const geoDetails = [loc.city || loc.subregion, loc.region].filter(Boolean).join(', ');
+                        
+                        if (isMounted) {
+                            if (!propLocationName) setResolvedName(nameToUse);
+                            setGeocodedName(geoDetails || nameToUse);
+                        }
                     } else if (isMounted) {
-                        setResolvedName("Current Location");
+                        if (!propLocationName) setResolvedName("Current Location");
                     }
                 } catch (err) {
-                    if (isMounted) setResolvedName("Current Location");
+                    if (isMounted) {
+                        if (!propLocationName) setResolvedName("Current Location");
+                        setGeocodedName("Location unavailable");
+                    }
                 } finally {
                     if (isMounted) setIsLocating(false);
                 }
@@ -88,6 +96,7 @@ export const useLocation = (props?: UseLocationProps) => {
         latitude: propLatitude !== undefined ? propLatitude : coords?.latitude,
         longitude: propLongitude !== undefined ? propLongitude : coords?.longitude,
         locationName: propLocationName || resolvedName || (isLocating ? "Locating..." : "Current Location"),
+        geocodedName,
         isLocating
     };
 };

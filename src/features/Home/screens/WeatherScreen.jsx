@@ -35,7 +35,8 @@ const WeatherScreen = ({
     const { 
         latitude: activeLat, 
         longitude: activeLon, 
-        locationName: displayName 
+        locationName: displayName,
+        geocodedName
     } = useLocation({ 
         propLatitude: latitude, 
         propLongitude: longitude, 
@@ -108,16 +109,23 @@ const WeatherScreen = ({
                                     C
                                 </CustomText>
                             </View>
-                            <View style={styles.locationRow}>
-                                <CustomIcon 
-                                    library="FontAwesome6" 
-                                    name="location-dot" 
-                                    size={16} 
-                                    color={Colors.BLACK} 
-                                />
-                                <CustomText variant="body" style={styles.locationLabel}>
-                                    {displayName}
-                                </CustomText>
+                            <View style={styles.locationWrapper}>
+                                <View style={styles.locationRow}>
+                                    <CustomIcon 
+                                        library="FontAwesome6" 
+                                        name="location-dot" 
+                                        size={16} 
+                                        color={Colors.BLACK} 
+                                    />
+                                    <CustomText variant="body" style={styles.locationLabel}>
+                                        {displayName}
+                                    </CustomText>
+                                </View>
+                                {geocodedName !== displayName && (
+                                    <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
+                                        {geocodedName || "Fetching exact location..."}
+                                    </CustomText>
+                                )}
                             </View>
                         </View>
 
@@ -289,6 +297,8 @@ const styles = StyleSheet.create({
     },
     heroTextWrapper: {
         alignItems: 'flex-start',
+        flex: 1,
+        paddingRight: 16,
     },
     tempContainer: {
         flexDirection: 'row',
@@ -308,14 +318,24 @@ const styles = StyleSheet.create({
         marginLeft: 2,
         color: Colors.TEXT_PRIMARY,
     },
+    locationWrapper: {
+        alignItems: 'flex-start',
+        marginTop: -8,
+    },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginTop: -4,
     },
     locationLabel: {
         fontWeight: '600',
+    },
+    geocodedLabel: {
+        marginLeft: 20,
+        marginTop: 0,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+        fontSize: 12,
     },
     heroDivider: {
         height: 2,
