@@ -68,6 +68,9 @@ const TrailScreen = ({
         elevation: trail?.geography?.masl ? `${trail.geography.masl} m` : "--",
     };
 
+    const latitude = trail?.geography?.latitude ?? trail?.location?.latitude ?? null;
+    const longitude = trail?.geography?.longitude ?? trail?.location?.longitude ?? null;
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
@@ -163,7 +166,11 @@ const TrailScreen = ({
                         />
                     )}
                     {activeTab === 'Weather' && (
-                        <TrailWeatherTab />
+                        <TrailWeatherTab 
+                            latitude={latitude} 
+                            longitude={longitude}
+                            trail={trail}
+                        />
                     )}
                     {activeTab === 'Reviews' && (
                         <TrailReviewsTab />

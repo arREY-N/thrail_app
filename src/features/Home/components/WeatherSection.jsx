@@ -9,29 +9,26 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
 
-const WeatherSection = ({ locationTemp, onPress }) => {
+const WeatherSection = ({ weatherData, loading, error, onPress }) => {
 
-    const getWeatherIcon = (temp) => {
-        if (!temp) return 'partly-sunny-outline';
-        
-        if (temp >= 30) {
-            return 'sunny';
-        } else if (temp >= 24) {
-            return 'partly-sunny';
-        } else {
-            return 'cloudy';
-        }
-    };
+    const { icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
 
-    const iconName = getWeatherIcon(locationTemp?.temperature);
+    const hasData = weatherData && !loading && !error;
+    const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : '--';
+    
+    // For Day/Night. Let's get today's forecast from weatherData.forecast[0]
+    const today = weatherData?.forecast?.[0];
+    const dayTemp = today?.temperatureMax !== undefined ? Math.round(today.temperatureMax) : '--';
+    const nightTemp = today?.temperatureMin !== undefined ? Math.round(today.temperatureMin) : '--';
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
             <View style={styles.row}>
                 <View style={styles.leftColumn}>
                     <CustomText variant="title" style={styles.tempText}>
-                        {locationTemp?.temperature ? `${locationTemp.temperature}°C` : '--'}
+                        {hasData ? `${temperature}°C` : '--'}
                     </CustomText>
                     
                     <View style={styles.locationRow}>
@@ -43,21 +40,30 @@ const WeatherSection = ({ locationTemp, onPress }) => {
                         />
                         
                         <CustomText variant="caption" style={styles.locationText}>
-                            {locationTemp?.location || 'Locating...'}
+                            {loading ? 'Locating...' : (error ? 'Location Error' : 'Current Location')}
                         </CustomText>
                     </View>
                 </View>
 
                 <View style={styles.rightColumn}>
-                    <CustomIcon 
-                        library="Ionicons" 
-                        name={iconName}
-                        size={40} 
-                        color={Colors.TEXT_SECONDARY} 
-                    />
+                    {hasData ? (
+                        <CustomIcon 
+                            library={library} 
+                            name={icon}
+                            size={40} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
+                    ) : (
+                        <CustomIcon 
+                            library="Ionicons" 
+                            name="partly-sunny-outline"
+                            size={40} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
+                    )}
                     
                     <CustomText variant="caption" style={styles.dayNightText}>
-                        Day {locationTemp?.day || '--'}° / Night {locationTemp?.night || '--'}°
+                        Day {dayTemp}° / Night {nightTemp}°
                     </CustomText>
                 </View>
             </View>

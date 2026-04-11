@@ -30,3 +30,18 @@ export const toDate = (value: Timestamp | FieldValue | any ) : Date => {
     const date = new Date(value);
     return isNaN(date.getTime()) ? new Date() : date;
 }
+
+export const formatSunTime = (isoString: string): string => {
+    // Open-Meteo returns time in Asia/Manila, we parse directly without timezone offset translations.
+    if (!isoString) return "--";
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "--";
+    
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        // Optional depending on your environment, but standard date parser of "YYYY-MM-DDTHH:mm"
+        // assumes local time. Since it's already Asia/Manila, it will format correctly locally.
+    });
+};

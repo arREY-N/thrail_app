@@ -133,8 +133,9 @@ const styles = StyleSheet.create({
         right: 0,
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: -1,
+        zIndex: 0,
         height: '100%',
+        pointerEvents: 'none',
     },
     centerTitle: {
         color: Colors.TEXT_PRIMARY, 

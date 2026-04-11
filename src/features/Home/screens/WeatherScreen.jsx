@@ -3,8 +3,11 @@ import {
     Platform,
     RefreshControl,
     StyleSheet,
-    View
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import * as Location from 'expo-location';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -13,43 +16,65 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { useWeather } from '@/src/hooks/useWeather';
+import { useLocation } from '@/src/hooks/useLocation';
+import { formatSunTime } from '@/src/core/utility/date';
+import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
 
-const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress, isFetching }) => {
+const WeatherScreen = ({ 
+    latitude, 
+    longitude, 
+    locationName, 
+    onBackPress, 
+    onRefreshPress 
+}) => {
     
-    const [testLoading, setTestLoading] = useState(true);
+    // Abstracted hooks for fetching coords and reverse geocoding
+    const { 
+        latitude: activeLat, 
+        longitude: activeLon, 
+        locationName: displayName 
+    } = useLocation({ 
+        propLatitude: latitude, 
+        propLongitude: longitude, 
+        propLocationName: locationName 
+    });
+
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setTestLoading(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    const isLoading = testLoading || !locationWeather;
-
-    const temperature = locationWeather?.temperature ?? "--";
-    const location = locationWeather?.location ?? "Location Not Set";
-    const dayTemp = locationWeather?.day ?? "--";
-    const nightTemp = locationWeather?.night ?? "--";
-
-    const precipAmount = locationWeather?.precipitation?.amount ? `${locationWeather.precipitation.amount} mm` : "--";
-    const precipChance = locationWeather?.precipitation?.chance ? `${Math.round(locationWeather.precipitation.chance * 100)}%` : "--";
-    const wind = locationWeather?.wind ? `${locationWeather.wind} m/s` : "--";
-    const humidity = locationWeather?.humidity ? `${Math.round(locationWeather.humidity * 100)}%` : "--";
-    const uvIndex = locationWeather?.UV ? String(locationWeather.UV) : "--";
+    // Weather hook
+    const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        if (onRefreshPress) {
-            await onRefreshPress(); 
-        }
+        if (onRefreshPress) await onRefreshPress(); 
+        await refetch();
         setRefreshing(false);
-    }, [onRefreshPress]);
+    }, [onRefreshPress, refetch]);
 
-    if (isLoading) {
+    const hasData = weatherData && !error;
+    const { condition, icon: mainIcon, library: mainLib } = getWeatherInfoUI(weatherData?.weatherCode);
+    const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : "--";
+    const dayTemp = weatherData?.forecast?.[0]?.temperatureMax !== undefined ? Math.round(weatherData.forecast[0].temperatureMax) : "--";
+    const nightTemp = weatherData?.forecast?.[0]?.temperatureMin !== undefined ? Math.round(weatherData.forecast[0].temperatureMin) : "--";
+    
+    const wind = weatherData?.windSpeed !== undefined ? `${weatherData.windSpeed} km/h` : "--";
+    const precipAmount = weatherData?.precipitationSum !== undefined ? `${weatherData.precipitationSum} mm` : "--";
+    const precipChance = weatherData?.precipitationProbability !== undefined ? `${weatherData.precipitationProbability}%` : "--";
+    const uvIndex = weatherData?.uvIndex !== undefined ? String(weatherData.uvIndex) : "--";
+    const humidity = weatherData?.humidity !== undefined ? `${Math.round(weatherData.humidity)}%` : "--";
+    const sunrise = weatherData?.sunrise ? formatSunTime(weatherData.sunrise) : "--:-- AM";
+    const sunset = weatherData?.sunset ? formatSunTime(weatherData.sunset) : "--:-- PM";
+
+    let updateText = null;
+    if (weatherData?.isStale && weatherData?.lastUpdated) {
+        const minDiff = Math.max(1, Math.floor((new Date() - new Date(weatherData.lastUpdated)) / 60000));
+        updateText = `Last updated ${minDiff} min${minDiff > 1 ? 's' : ''} ago`;
+    }
+
+    if (loading && !weatherData) {
         return <WeatherSkeleton onBackPress={onBackPress} />;
     }
 
@@ -72,7 +97,7 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress, isFetchin
                     />
                 }
             >
-                <View style={styles.heroSection}>
+                <Animated.View entering={FadeIn.duration(800)} style={styles.heroSection}>
                     <View style={styles.heroTop}>
                         <View style={styles.heroTextWrapper}>
                             <View style={styles.tempContainer}>
@@ -91,14 +116,14 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress, isFetchin
                                     color={Colors.BLACK} 
                                 />
                                 <CustomText variant="body" style={styles.locationLabel}>
-                                    {location}
+                                    {displayName}
                                 </CustomText>
                             </View>
                         </View>
 
                         <CustomIcon 
-                            library="MaterialCommunityIcons" 
-                            name="weather-partly-cloudy" 
+                            library={mainLib} 
+                            name={hasData ? mainIcon : "cloud"} 
                             size={96} 
                             color={Colors.BLACK} 
                         />
@@ -108,78 +133,102 @@ const WeatherScreen = ({ locationWeather, onBackPress, onRefreshPress, isFetchin
                     
                     <View style={styles.heroBottom}>
                         <CustomText variant="body" style={styles.heroSubText}>
-                            Mostly Cloudy
+                            {hasData ? condition : "Loading"}
+                            {updateText ? `  •  ${updateText}` : ''}
                         </CustomText>
                         <CustomText variant="body" style={styles.heroSubText}>
                             Day: {dayTemp}° | Night: {nightTemp}°
                         </CustomText>
                     </View>
-                </View>
+                </Animated.View>
 
-                <View style={styles.fullWidthCard}>
-                    <View style={styles.cardHeader}>
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="calendar" 
-                            size={18} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                        <CustomText variant="body" style={styles.cardHeaderTitle}>
-                            4-Day Forecast
+                {error ? (
+                    <Animated.View entering={FadeInDown.springify()} style={styles.errorContainer}>
+                        <CustomIcon library="Feather" name="alert-triangle" size={48} color={Colors.ERROR} />
+                        <CustomText variant="body" style={styles.errorText}>
+                            {error || "Unable to load weather data."}
                         </CustomText>
-                    </View>
-                    <View style={styles.forecastRow}>
-                        <ForecastItem day="Mon" icon="weather-sunny" low="25" high="32" />
-                        <ForecastItem day="Tue" icon="weather-cloudy" low="26" high="29" />
-                        <ForecastItem day="Wed" icon="weather-pouring" low="26" high="30" />
-                        <ForecastItem day="Thu" icon="weather-lightning" low="26" high="30" />
-                    </View>
-                </View>
+                        <TouchableOpacity style={styles.retryBtn} onPress={refetch}>
+                            <CustomText style={styles.retryText}>Retry Connection</CustomText>
+                        </TouchableOpacity>
+                    </Animated.View>
+                ) : (
+                    <>
+                        <Animated.View entering={FadeInDown.delay(100).springify().damping(14)} style={styles.fullWidthCard}>
+                            <View style={styles.cardHeader}>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="calendar" 
+                                    size={18} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText variant="body" style={styles.cardHeaderTitle}>
+                                    4-Day Forecast
+                                </CustomText>
+                            </View>
+                            <View style={styles.forecastRow}>
+                                {weatherData?.forecast?.slice(0, 4).map((day, idx) => {
+                                    const { icon, library } = getWeatherInfoUI(day.weatherCode);
+                                    const dayName = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' });
+                                    return (
+                                        <ForecastItem 
+                                            key={idx}
+                                            day={dayName} 
+                                            icon={icon} 
+                                            lib={library}
+                                            low={Math.round(day.temperatureMin)} 
+                                            high={Math.round(day.temperatureMax)} 
+                                        />
+                                    );
+                                })}
+                            </View>
+                        </Animated.View>
 
-                <View style={styles.bentoGrid}>
-                    <BentoBox title="Wind" value={wind} desc="From Southeast" icon="wind" lib="Feather" />
-                    <BentoBox title="Precipitation" value={precipAmount} desc={`${precipChance} chance`} icon="rainy" lib="Ionicons" />
-                    <BentoBox title="UV Index" value={uvIndex} desc="Moderate" icon="sun" lib="Feather" />
-                    <BentoBox title="Humidity" value={humidity} desc="Humid air" icon="water" lib="Ionicons" />
-                </View>
-
-                <View style={styles.fullWidthCard}>
-                    <View style={styles.cardHeader}>
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="sunny" 
-                            size={18} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                        <CustomText variant="body" style={styles.cardHeaderTitle}>
-                            Sun
-                        </CustomText>
-                    </View>
-                    
-                    <View style={styles.sunTimeRow}>
-                        <View style={styles.sunItem}>
-                            <CustomIcon library="Feather" name="sunrise" size={32} color={Colors.BLACK} />
-                            <CustomText variant="subtitle" style={styles.sunTimeText}>6:02 AM</CustomText>
-                            <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                        <View style={styles.bentoGrid}>
+                            <BentoBox index={0} title="Wind" value={wind} desc="Current speed" icon="wind" lib="Feather" />
+                            <BentoBox index={1} title="Precipitation" value={precipAmount} desc={`${precipChance} chance`} icon="rainy" lib="Ionicons" />
+                            <BentoBox index={2} title="UV Index" value={uvIndex} desc="Current level" icon="sun" lib="Feather" />
+                            <BentoBox index={3} title="Humidity" value={humidity} desc="Relative humidity" icon="water" lib="Ionicons" />
                         </View>
 
-                        <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
-                            <CustomIcon library="Feather" name="sunset" size={32} color={Colors.BLACK} />
-                            <CustomText variant="subtitle" style={styles.sunTimeText}>6:15 PM</CustomText>
-                            <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
-                        </View>
-                    </View>
-                </View>
+                        <Animated.View entering={FadeInDown.delay(400).springify().damping(14)} style={styles.fullWidthCard}>
+                            <View style={styles.cardHeader}>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="sunny" 
+                                    size={18} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText variant="body" style={styles.cardHeaderTitle}>
+                                    Sun
+                                </CustomText>
+                            </View>
+                            
+                            <View style={styles.sunTimeRow}>
+                                <View style={styles.sunItem}>
+                                    <CustomIcon library="Feather" name="sunrise" size={32} color={Colors.BLACK} />
+                                    <CustomText variant="subtitle" style={styles.sunTimeText}>{sunrise}</CustomText>
+                                    <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                                </View>
 
+                                <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
+                                    <CustomIcon library="Feather" name="sunset" size={32} color={Colors.BLACK} />
+                                    <CustomText variant="subtitle" style={styles.sunTimeText}>{sunset}</CustomText>
+                                    <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
+                                </View>
+                            </View>
+                        </Animated.View>
+                    </>
+                )}
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
 };
 
-const ForecastItem = ({ day, icon, low, high }) => (
+const ForecastItem = ({ day, icon, lib, low, high }) => (
     <View style={styles.fItem}>       
         <View style={styles.fIconWrapper}>
-            <CustomIcon library="MaterialCommunityIcons" name={icon} size={32} color={Colors.BLACK} />
+            <CustomIcon library={lib || "MaterialCommunityIcons"} name={icon} size={32} color={Colors.BLACK} />
         </View>
         <CustomText variant="caption" style={styles.fDay}>{day}</CustomText>
         <View style={styles.fTempRow}>
@@ -190,8 +239,11 @@ const ForecastItem = ({ day, icon, low, high }) => (
     </View>
 );
 
-const BentoBox = ({ title, value, desc, icon, lib }) => (
-    <View style={styles.bentoBox}>
+const BentoBox = ({ title, value, desc, icon, lib, index = 0 }) => (
+    <Animated.View 
+        entering={FadeInDown.delay(150 + (index * 50)).springify().damping(14)} 
+        style={styles.bentoBox}
+    >
         <View style={styles.bentoHeader}>
             <CustomIcon library={lib} name={icon} size={18} color={Colors.TEXT_SECONDARY} />
             <CustomText variant="body" style={styles.bentoTitle}>{title}</CustomText>
@@ -200,7 +252,7 @@ const BentoBox = ({ title, value, desc, icon, lib }) => (
             <CustomText variant="subtitle" style={styles.bentoValue}>{value}</CustomText>
             <CustomText variant="caption" style={styles.bentoDesc}>{desc}</CustomText>
         </View>
-    </View>
+    </Animated.View>
 );
 
 const dropShadow = Platform.select({
@@ -241,18 +293,19 @@ const styles = StyleSheet.create({
     tempContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 4,
     },
     mainTemp: {
-        fontSize: 64,
+        fontSize: 72,
         fontWeight: '700',
         color: Colors.TEXT_PRIMARY,
-        letterSpacing: -4,
-        lineHeight: 90,
+        letterSpacing: -3,
+        includeFontPadding: false,
     },
     tempUnit: {
+        fontSize: 24,
         fontWeight: 'bold',
-        marginTop: 20,
+        marginTop: 12,
+        marginLeft: 2,
         color: Colors.TEXT_PRIMARY,
     },
     locationRow: {
@@ -385,6 +438,29 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textTransform: 'uppercase',
     },
+    
+    errorContainer: {
+        marginTop: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        gap: 16,
+    },
+    errorText: {
+        color: Colors.ERROR,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    retryBtn: {
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+    },
+    retryText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+    }
 });
 
 export default WeatherScreen;

@@ -1,3 +1,5 @@
+export const FALLBACK_COORDINATES = { latitude: 14.5995, longitude: 120.9842 };
+
 export const OPTIONS = {
     provinces: [
         'Cavite', 

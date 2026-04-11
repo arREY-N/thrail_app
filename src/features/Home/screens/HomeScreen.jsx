@@ -2,7 +2,8 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    Platform
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -12,12 +13,14 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { useWeather } from '@/src/hooks/useWeather';
+import { useLocation } from '@/src/hooks/useLocation';
 
 import MountainCard from '@/src/components/MountainCard';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 const HomeScreen = ({
-    locationTemp, 
+    locationTemp, // unused now but left for signature consistency
     onWeatherPress,
     onViewAllRecommendationPress,
     onViewAllTrendingPress,
@@ -28,6 +31,9 @@ const HomeScreen = ({
     onDownloadPress,
 }) => {
     
+    const { latitude, longitude } = useLocation();
+    const { weatherData, loading, error } = useWeather(latitude, longitude);
+
     const recList = recommendedTrails || [];
     const discList = discoverTrails || [];
 
@@ -101,7 +107,9 @@ const HomeScreen = ({
                 scrollEnabled={hasAnyTrails}
             >
                 <WeatherSection 
-                    locationTemp={locationTemp} 
+                    weatherData={weatherData}
+                    loading={loading}
+                    error={error}
                     onPress={onWeatherPress} 
                 />
 
