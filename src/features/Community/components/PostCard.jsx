@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         width: 'auto',
         marginHorizontal: 16,
-        height: 220,
+        height: 200,
         borderRadius: 16,
         marginBottom: 16,
         overflow: 'hidden', 
@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     mountainTitleOverlay: {
         color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
+        marginBottom: 0,
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,
