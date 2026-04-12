@@ -33,7 +33,8 @@ const DetailsScreen = ({
     savedDetails, 
     savedDocs, 
     onContinue, 
-    isSubmitting
+    isSubmitting,
+    pickDocument
 }) => {
 
     const { profile } = useAuthStore();
@@ -62,6 +63,7 @@ const DetailsScreen = ({
 
     const [formData, setFormData] = useState(getInitialData());
     const [uploadedDocs, setUploadedDocs] = useState(savedDocs || {});
+    const [uploadingDocs, setUploadingDocs] = useState({});
     
     const [isEditingPhone, setIsEditingPhone] = useState(!hasProfileData); 
     const [showEditModal, setShowEditModal] = useState(false);
@@ -77,8 +79,28 @@ const DetailsScreen = ({
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSimulateUpload = (docName) => {
-        setUploadedDocs(prev => ({ ...prev, [docName]: !prev[docName] }));
+    const handleRealUpload = async (docName) => {
+        setUploadingDocs(prev => ({ ...prev, [docName]: true }));
+        
+        try {
+            let docKey = 'validId'; 
+            const lower = docName.toLowerCase();
+            if (lower.includes('medical') || lower.includes('cert')) docKey = 'medicalCertificate';
+            else if (lower.includes('bir')) docKey = 'bir';
+            else if (lower.includes('dti')) docKey = 'dti';
+            else if (lower.includes('denr')) docKey = 'denr';
+            else if (lower.includes('id')) docKey = 'validId';
+
+            const uploadedUrl = await pickDocument(docKey);
+            
+            if (uploadedUrl) {
+                setUploadedDocs(prev => ({ ...prev, [docName]: uploadedUrl }));
+            }
+        } catch (error) {
+            console.log("Upload failed or canceled:", error);
+        } finally {
+            setUploadingDocs(prev => ({ ...prev, [docName]: false }));
+        }
     };
 
     const confirmEditPhone = () => {
@@ -93,11 +115,10 @@ const DetailsScreen = ({
 
     const isFormValid = () => {
         const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
-        const areAllDocsUploaded = requiredDocuments.every(doc => uploadedDocs[doc]);
+        const areAllDocsUploaded = requiredDocuments.every(doc => !!uploadedDocs[doc]);
 
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
-
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -207,8 +228,9 @@ const DetailsScreen = ({
                             <DocumentUploadCard 
                                 key={index}
                                 docName={doc}
-                                isUploaded={uploadedDocs[doc]}
-                                onUploadPress={() => handleSimulateUpload(doc)}
+                                isUploaded={!!uploadedDocs[doc]} // Truthy check for URL
+                                isUploading={uploadingDocs[doc]} // Pass loading state!
+                                onUploadPress={() => handleRealUpload(doc)} // Trigger real upload
                             />
                         ))}
                     </View>

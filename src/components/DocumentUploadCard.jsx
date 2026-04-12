@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -7,7 +7,8 @@ import { Colors } from '@/src/constants/colors';
 
 const DocumentUploadCard = ({ 
     docName, 
-    isUploaded, 
+    isUploaded,
+    isUploading,
     onUploadPress 
 }) => {
     return (
@@ -38,13 +39,18 @@ const DocumentUploadCard = ({
                 ]}
                 onPress={onUploadPress} 
                 activeOpacity={0.7}
+                disabled={isUploading || isUploaded}
             >
-                <CustomText 
-                    variant="caption" 
-                    style={isUploaded ? styles.uploadedBtnText : styles.uploadBtnText}
-                >
-                    {isUploaded ? "Uploaded" : "Upload"}
-                </CustomText>
+                {isUploading ? (
+                    <ActivityIndicator size="small" color={Colors.WHITE} />
+                ) : (
+                    <CustomText 
+                        variant="caption" 
+                        style={isUploaded ? styles.uploadedBtnText : styles.uploadBtnText}
+                    >
+                        {isUploaded ? "Uploaded" : "Upload"}
+                    </CustomText>
+                )}
             </TouchableOpacity>
         </View>
     );
@@ -94,6 +100,8 @@ const styles = StyleSheet.create({
         paddingVertical: 8, 
         paddingHorizontal: 16, 
         borderRadius: 20, 
+        minWidth: 80,
+        alignItems: 'center',
         backgroundColor: Colors.PRIMARY 
     },
     uploadedBtn: { 

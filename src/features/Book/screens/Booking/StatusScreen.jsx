@@ -11,7 +11,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-const StatusScreen = ({ onReturn, bookedOffer }) => {
+const StatusScreen = ({ onReturn, bookedOffer, isSuccess = true }) => {
     
     const trailName = bookedOffer?.business?.name || bookedOffer?.trail?.name || "Hiking Package";
     const hikeDate = formatBookingDate(bookedOffer?.date || bookedOffer?.hikeDate);
@@ -21,6 +21,8 @@ const StatusScreen = ({ onReturn, bookedOffer }) => {
     const maxPax = bookedOffer?.maxPax || 10;
     const inclusions = bookedOffer?.inclusions || [];
 
+    const isError = !isSuccess;
+
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -28,134 +30,100 @@ const StatusScreen = ({ onReturn, bookedOffer }) => {
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.headerSection}>
-                    <View style={styles.iconCircle}>
+                    <View style={[styles.iconCircle, isError && styles.iconCircleError]}>
                         <CustomIcon 
                             library="Feather" 
-                            name="check" 
+                            name={isError ? "x" : "check"} 
                             size={40} 
                             color={Colors.WHITE} 
                         />
                     </View>
                     <CustomText variant="h1" style={styles.title}>
-                        Request Submitted!
+                        {isError ? "Booking Failed" : "Request Submitted!"}
                     </CustomText>
                     <CustomText variant="body" style={styles.subtitle}>
-                        Your reservation request has been successfully sent to the tour provider.
+                        {isError 
+                            ? "There was an issue processing your reservation. The group may be unavailable or the offer is invalid. Please try again."
+                            : "Your reservation request has been successfully sent to the tour provider."}
                     </CustomText>
                 </View>
 
-                <View style={styles.infoBanner}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="info" 
-                        size={16} 
-                        color={Colors.TEXT_SECONDARY} 
-                    />
-                    <CustomText variant="caption" style={styles.infoText}>
-                        You will receive a notification as soon as your reservation is approved.
-                    </CustomText>
-                </View>
-
-                <View style={styles.summaryCard}>
-                    <CustomText variant="h3" style={styles.summaryTitle}>
-                        Reservation Summary
-                    </CustomText>
-                    
-                    <View style={styles.divider} />
-
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailLabelRow}>
+                {!isError && (
+                    <>
+                        <View style={styles.infoBanner}>
                             <CustomIcon 
                                 library="Feather" 
-                                name="map-pin" 
+                                name="info" 
                                 size={16} 
                                 color={Colors.TEXT_SECONDARY} 
                             />
-                            <CustomText variant="caption" style={styles.detailLabel}>
-                                Package
+                            <CustomText variant="caption" style={styles.infoText}>
+                                You will receive a notification as soon as your reservation is approved.
                             </CustomText>
                         </View>
-                        <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
-                            {trailName}
-                        </CustomText>
-                    </View>
 
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailLabelRow}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="calendar" 
-                                size={16} 
-                                color={Colors.TEXT_SECONDARY} 
-                            />
-                            <CustomText variant="caption" style={styles.detailLabel}>
-                                Date
+                        <View style={styles.summaryCard}>
+                            <CustomText variant="h3" style={styles.summaryTitle}>
+                                Reservation Summary
                             </CustomText>
-                        </View>
-                        <CustomText variant="body" style={styles.detailValue}>
-                            {hikeDate}
-                        </CustomText>
-                    </View>
+                            
+                            <View style={styles.divider} />
 
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailLabelRow}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="clock" 
-                                size={16} 
-                                color={Colors.TEXT_SECONDARY} 
-                            />
-                            <CustomText variant="caption" style={styles.detailLabel}>
-                                Duration
-                            </CustomText>
-                        </View>
-                        <CustomText variant="body" style={styles.detailValue}>
-                            {duration}
-                        </CustomText>
-                    </View>
-
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailLabelRow}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="users" 
-                                size={16} 
-                                color={Colors.TEXT_SECONDARY} 
-                            />
-                            <CustomText variant="caption" style={styles.detailLabel}>
-                                Group Size
-                            </CustomText>
-                        </View>
-                        <CustomText variant="body" style={styles.detailValue}>
-                            {minPax} - {maxPax} Pax
-                        </CustomText>
-                    </View>
-
-                    {inclusions.length > 0 && (
-                        <>
-                            <View style={[styles.divider, styles.marginTopSmall]} />
-                            <CustomText variant="caption" style={styles.inclusionsTitle}>
-                                Includes:
-                            </CustomText>
-                            <View style={styles.inclusionsWrapper}>
-                                <CustomText variant="caption" style={styles.inclusionsText}>
-                                    {inclusions.join('  •  ')}
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLabelRow}>
+                                    <CustomIcon library="Feather" name="map-pin" size={16} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText variant="caption" style={styles.detailLabel}>Package</CustomText>
+                                </View>
+                                <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
+                                    {trailName}
                                 </CustomText>
                             </View>
-                        </>
-                    )}
 
-                    <View style={[styles.divider, styles.marginTopLarge]} />
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLabelRow}>
+                                    <CustomIcon library="Feather" name="calendar" size={16} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText variant="caption" style={styles.detailLabel}>Date</CustomText>
+                                </View>
+                                <CustomText variant="body" style={styles.detailValue}>{hikeDate}</CustomText>
+                            </View>
 
-                    <View style={styles.totalRow}>
-                        <CustomText variant="body" style={styles.totalLabel}>
-                            Total Amount
-                        </CustomText>
-                        <CustomText variant="h2" style={styles.totalValue}>
-                            ₱{price}
-                        </CustomText>
-                    </View>
-                </View>
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLabelRow}>
+                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText variant="caption" style={styles.detailLabel}>Duration</CustomText>
+                                </View>
+                                <CustomText variant="body" style={styles.detailValue}>{duration}</CustomText>
+                            </View>
+
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailLabelRow}>
+                                    <CustomIcon library="Feather" name="users" size={16} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText variant="caption" style={styles.detailLabel}>Group Size</CustomText>
+                                </View>
+                                <CustomText variant="body" style={styles.detailValue}>{minPax} - {maxPax} Pax</CustomText>
+                            </View>
+
+                            {inclusions.length > 0 && (
+                                <>
+                                    <View style={[styles.divider, styles.marginTopSmall]} />
+                                    <CustomText variant="caption" style={styles.inclusionsTitle}>Includes:</CustomText>
+                                    <View style={styles.inclusionsWrapper}>
+                                        <CustomText variant="caption" style={styles.inclusionsText}>
+                                            {inclusions.join('  •  ')}
+                                        </CustomText>
+                                    </View>
+                                </>
+                            )}
+
+                            <View style={[styles.divider, styles.marginTopLarge]} />
+
+                            <View style={styles.totalRow}>
+                                <CustomText variant="body" style={styles.totalLabel}>Total Amount</CustomText>
+                                <CustomText variant="h2" style={styles.totalValue}>₱{price}</CustomText>
+                            </View>
+                        </View>
+                    </>
+                )}
 
             </ScrollView>
 
@@ -198,6 +166,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3, 
         shadowRadius: 8, 
         elevation: 6,
+    },
+    iconCircleError: {
+        backgroundColor: Colors.ERROR,
+        shadowColor: Colors.ERROR,
     },
     title: { 
         marginBottom: 12, 

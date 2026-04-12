@@ -17,11 +17,14 @@ const BookingScreen = ({
     onSetOffer,
     onCompleteOffer,
     onUpdatePress,
+    pickDocument
 }) => {
 
     const [currentView, setCurrentView] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitPhase, setSubmitPhase] = useState('idle');
+
+    const [isBookingSuccess, setIsBookingSuccess] = useState(false); 
 
     const [bookingData, setBookingData] = useState({
         selectedOfferId: null,
@@ -39,6 +42,7 @@ const BookingScreen = ({
             hikerDetails: null,
             uploadedDocs: null,
         });
+        setIsBookingSuccess(false);
         onBackPress();
     };
 
@@ -71,27 +75,36 @@ const BookingScreen = ({
                 },
             });
 
+            const formattedDocsArray = Object.keys(detailsData.uploadedDocs || {}).map((docName) => ({
+                name: docName,
+                file: detailsData.uploadedDocs[docName],
+                valid: 'pending' 
+            }));
+
             onUpdatePress({
                 section: 'root',
                 id: 'documents',
-                value: detailsData.uploadedDocs || {},
+                value: formattedDocsArray, 
             });
         }
 
         setBookingData((prev) => ({ ...prev, ...detailsData }));
-
         setSubmitPhase('ready_to_submit');
     };
 
     useEffect(() => {
         if (submitPhase === 'ready_to_submit') {
             const processBooking = async () => {
+                let successFlag = false; 
+                
                 try {
-                    await onCompleteOffer();
+                    successFlag = await onCompleteOffer();
                 } catch (backendError) {
-
+                    console.error("Booking Error:", backendError);
+                    successFlag = false;
                 }
 
+                setIsBookingSuccess(successFlag);
                 setCurrentView(3);
                 setIsSubmitting(false);
                 setSubmitPhase('idle');
@@ -204,6 +217,7 @@ const BookingScreen = ({
                         savedDocs={bookingData.uploadedDocs}
                         isSubmitting={isSubmitting}
                         onContinue={handleReserve}
+                        pickDocument={pickDocument}
                     />
                 )}
 
@@ -214,6 +228,7 @@ const BookingScreen = ({
                             (o) => o.id === bookingData.selectedOfferId
                         )}
                         hikerDetails={bookingData.hikerDetails}
+                        isSuccess={isBookingSuccess} // Passed to StatusScreen!
                     />
                 )}
             </View>
