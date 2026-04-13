@@ -3,7 +3,7 @@ const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
-// Tell Metro to treat .pmtiles as a valid asset file
-config.resolver.assetExts.push("pmtiles");
+// Tell Metro to treat .pmtiles and .geojson as valid asset files
+config.resolver.assetExts.push("pmtiles", "geojson");
 
 module.exports = config;
