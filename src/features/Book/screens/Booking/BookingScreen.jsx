@@ -16,8 +16,7 @@ const BookingScreen = ({
     onBackPress,
     onSetOffer,
     onCompleteOffer,
-    onUpdatePress,
-    pickDocument
+    onUpdatePress
 }) => {
 
     const [currentView, setCurrentView] = useState(1);
@@ -217,18 +216,24 @@ const BookingScreen = ({
                         savedDocs={bookingData.uploadedDocs}
                         isSubmitting={isSubmitting}
                         onContinue={handleReserve}
-                        pickDocument={pickDocument}
                     />
                 )}
 
                 {currentView === 3 && (
                     <StatusScreen
-                        onReturn={resetStateAndGoBack}
+                        onReturn={() => {
+                            if (isBookingSuccess) {
+                                resetStateAndGoBack();
+                            } else {
+                                setCurrentView(2); 
+                                setIsBookingSuccess(false);
+                            }
+                        }}
                         bookedOffer={safeOffers.find(
                             (o) => o.id === bookingData.selectedOfferId
                         )}
                         hikerDetails={bookingData.hikerDetails}
-                        isSuccess={isBookingSuccess} // Passed to StatusScreen!
+                        isSuccess={isBookingSuccess} 
                     />
                 )}
             </View>

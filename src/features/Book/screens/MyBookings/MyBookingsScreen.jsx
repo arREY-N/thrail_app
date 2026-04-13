@@ -148,16 +148,6 @@ const MyBookingsScreen = ({
         );
     }
 
-    if (currentView === 'document-status') {
-        return (
-            <DocumentStatusScreen 
-                bookingData={selectedBooking}
-                onBackPress={() => setCurrentView('list')}
-                onViewDetails={() => setCurrentView('overview')}
-            />
-        );
-    }
-
     if (currentView === 'payment-status') {
         return (
             <PaymentStatusScreen 
