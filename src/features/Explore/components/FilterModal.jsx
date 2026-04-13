@@ -140,7 +140,6 @@ const FilterModal = ({ visible, onClose, onApply }) => {
                         />
                     </ScrollView>
 
-                    {/* Footer Actions */}
                     <View style={styles.footer}>
                         <CustomButton 
                             title="Clear All" 
