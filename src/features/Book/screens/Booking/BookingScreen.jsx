@@ -222,12 +222,7 @@ const BookingScreen = ({
                 {currentView === 3 && (
                     <StatusScreen
                         onReturn={() => {
-                            if (isBookingSuccess) {
-                                resetStateAndGoBack();
-                            } else {
-                                setCurrentView(2); 
-                                setIsBookingSuccess(false);
-                            }
+                            resetStateAndGoBack();
                         }}
                         bookedOffer={safeOffers.find(
                             (o) => o.id === bookingData.selectedOfferId
