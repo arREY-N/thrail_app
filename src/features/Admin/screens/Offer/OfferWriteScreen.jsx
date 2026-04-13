@@ -69,18 +69,20 @@ const OfferWriteScreen = ({
 
     const handleAddToArray = (field, currentArray, value) => {
         if (!value.trim()) return;
-        if (currentArray?.includes(value.trim())) return;
-        const newArray = [...(currentArray || []), value.trim()];
+        const arr = Array.isArray(currentArray) ? currentArray : [];
+        if (arr.includes(value.trim())) return;
+        const newArray = [...arr, value.trim()];
         handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
     const handleRemoveFromArray = (field, currentArray, valueToRemove) => {
-        const newArray = currentArray.filter((item) => item !== valueToRemove);
+        const arr = Array.isArray(currentArray) ? currentArray : [];
+        const newArray = arr.filter((item) => item !== valueToRemove);
         handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
     const handleTogglePreset = (field, currentArray, presetValue) => {
-        const arr = currentArray || [];
+        const arr = Array.isArray(currentArray) ? currentArray : [];
         if (arr.includes(presetValue)) {
             handleUpdate({ section: 'root', id: field, value: arr.filter(i => i !== presetValue) });
         } else {
@@ -132,11 +134,26 @@ const OfferWriteScreen = ({
     const handleSaveClick = () => {
         if (!isReadyToSubmit) return;
         
-        if (isEditing && hasUnsavedChanges) {
-            setShowSaveConfirmModal(true);
-        } else {
-            onSubmitOffer();
+        if (docInput.trim()) {
+            handleAddToArray('documents', offer.documents, docInput);
+            setDocInput('');
         }
+        if (incInput.trim()) {
+            handleAddToArray('inclusions', offer.inclusions, incInput);
+            setIncInput('');
+        }
+        if (bringInput.trim()) {
+            handleAddToArray('thingsToBring', offer.thingsToBring, bringInput);
+            setBringInput('');
+        }
+
+        setTimeout(() => {
+            if (isEditing && hasUnsavedChanges) {
+                setShowSaveConfirmModal(true);
+            } else {
+                onSubmitOffer();
+            }
+        }, 100);
     };
 
     return (
@@ -328,7 +345,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Required Documents" 
                             placeholder="e.g. Valid ID" 
-                            items={offer.documents} 
+                            items={Array.isArray(offer.documents) ? offer.documents : []} 
                             inputValue={docInput} 
                             setInputValue={setDocInput} 
                             onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
@@ -340,7 +357,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Inclusions" 
                             placeholder="e.g. Guide Fee" 
-                            items={offer.inclusions} 
+                            items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
                             inputValue={incInput} 
                             setInputValue={setIncInput} 
                             onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
@@ -352,7 +369,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Things to Bring" 
                             placeholder="e.g. 2L Water" 
-                            items={offer.thingsToBring} 
+                            items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
                             inputValue={bringInput} 
                             setInputValue={setBringInput} 
                             onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
