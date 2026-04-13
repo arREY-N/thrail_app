@@ -33,7 +33,6 @@ export default function listOffer(){
         bir,
         dti,
         denr,
-        pickDocument,
         onPayOffer,
     } = useFileUpload();
 
@@ -55,7 +54,6 @@ export default function listOffer(){
                 onBackPress={onBackPress}
                 onUpdatePress={onUpdatePress}
                 onCompleteOffer={onCompleteBook}
-                pickDocument={pickDocument}
             />
         </>  
     )
