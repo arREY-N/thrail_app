@@ -10,7 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
@@ -19,15 +19,15 @@ import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 
 // Load trail data
-const rawMapData = require("../../assets/map_data/trails_3D.json");
-const trailsGeoJSON = {
-  type: "FeatureCollection",
-  features: rawMapData.geometries.map((geometry: any) => ({
-    type: "Feature",
-    geometry,
-    properties: {},
-  })),
-};
+const rawMapData = require("../../assets/map_data/trails_3D_final.geojson");
+// const trailsGeoJSON = {
+//   type: "FeatureCollection",
+//   features: rawMapData.geometries.map((geometry: any) => ({
+//     type: "Feature",
+//     geometry,
+//     properties: {},
+//   })),
+// };
 
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
@@ -203,7 +203,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
           followUserLocation={isFollowing}
         />
 
-        <MapLibreGL.ShapeSource id="trailSource" shape={trailsGeoJSON as any}>
+        <MapLibreGL.ShapeSource id="trailSource" shape={rawMapData as any}>
           <MapLibreGL.LineLayer
             id="layer-hiking"
             style={mapStyles.trailLine as any}
