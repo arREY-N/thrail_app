@@ -28,13 +28,22 @@ const formatLocalPhoneNumber = (text) => {
     return formatted;
 };
 
+const getStrictDocKey = (docName) => {
+    if (!docName) return 'validId';
+    const lower = docName.toLowerCase();
+    if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
+    if (lower.includes('bir')) return 'bir';
+    if (lower.includes('dti')) return 'dti';
+    if (lower.includes('denr')) return 'denr';
+    return 'validId';
+};
+
 const DetailsScreen = ({ 
     selectedOffer, 
     savedDetails, 
     savedDocs, 
     onContinue, 
-    isSubmitting,
-    pickDocument
+    isSubmitting
 }) => {
 
     const { profile } = useAuthStore();
@@ -63,7 +72,6 @@ const DetailsScreen = ({
 
     const [formData, setFormData] = useState(getInitialData());
     const [uploadedDocs, setUploadedDocs] = useState(savedDocs || {});
-    const [uploadingDocs, setUploadingDocs] = useState({});
     
     const [isEditingPhone, setIsEditingPhone] = useState(!hasProfileData); 
     const [showEditModal, setShowEditModal] = useState(false);
@@ -77,30 +85,6 @@ const DetailsScreen = ({
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleRealUpload = async (docName) => {
-        setUploadingDocs(prev => ({ ...prev, [docName]: true }));
-        
-        try {
-            let docKey = 'validId'; 
-            const lower = docName.toLowerCase();
-            if (lower.includes('medical') || lower.includes('cert')) docKey = 'medicalCertificate';
-            else if (lower.includes('bir')) docKey = 'bir';
-            else if (lower.includes('dti')) docKey = 'dti';
-            else if (lower.includes('denr')) docKey = 'denr';
-            else if (lower.includes('id')) docKey = 'validId';
-
-            const uploadedUrl = await pickDocument(docKey);
-            
-            if (uploadedUrl) {
-                setUploadedDocs(prev => ({ ...prev, [docName]: uploadedUrl }));
-            }
-        } catch (error) {
-            console.log("Upload failed or canceled:", error);
-        } finally {
-            setUploadingDocs(prev => ({ ...prev, [docName]: false }));
-        }
     };
 
     const confirmEditPhone = () => {
@@ -119,6 +103,7 @@ const DetailsScreen = ({
 
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
+    
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -228,9 +213,11 @@ const DetailsScreen = ({
                             <DocumentUploadCard 
                                 key={index}
                                 docName={doc}
-                                isUploaded={!!uploadedDocs[doc]} // Truthy check for URL
-                                isUploading={uploadingDocs[doc]} // Pass loading state!
-                                onUploadPress={() => handleRealUpload(doc)} // Trigger real upload
+                                docKey={getStrictDocKey(doc)} 
+                                isUploaded={uploadedDocs[doc]}
+                                onUploadSuccess={(url) => {
+                                    setUploadedDocs(prev => ({ ...prev, [doc]: url }));
+                                }}
                             />
                         ))}
                     </View>
@@ -276,7 +263,6 @@ const styles = StyleSheet.create({
     section: { 
         marginBottom: 0 
     },
-
     sectionHeaderRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
@@ -300,7 +286,6 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         color: Colors.TEXT_SECONDARY 
     },
-
     headerActionBtn: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -329,14 +314,13 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontWeight: 'bold' 
     },
-
     lockedInputContainer: { 
         opacity: 0.6, 
         marginBottom: 8 
     },
     inputSpacing: { 
         marginBottom: 16 
-    },
+    }
 });
 
 export default DetailsScreen;

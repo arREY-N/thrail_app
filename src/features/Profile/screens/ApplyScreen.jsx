@@ -39,7 +39,8 @@ const ApplyScreen = ({
         
         !!application?.owner?.name?.trim() &&
         !!application?.owner?.email?.trim() &&
-        !!application?.owner?.validId?.trim() &&
+        !!application?.owner?.validIdFront?.trim() &&
+        !!application?.owner?.validIdBack?.trim() &&
         
         !!application?.permits?.bir?.trim() &&
         !!application?.permits?.dti?.trim() &&
@@ -71,12 +72,6 @@ const ApplyScreen = ({
         onUpdatePress({ section: 'root', id: 'servicedLocation', value: newLocations });
     };
 
-    const handleSimulateUpload = (section, docId) => {
-        const currentVal = application?.[section]?.[docId];
-        const newVal = currentVal ? '' : 'uploaded_document.pdf';
-        onUpdatePress({ section: section, id: docId, value: newVal });
-    };
-
     const safeLocations = Array.isArray(application?.servicedLocation) 
         ? application.servicedLocation.flat(Infinity) 
         : [];
@@ -86,8 +81,6 @@ const ApplyScreen = ({
         { id: 'dti', label: 'DTI Registration' },
         { id: 'denr', label: 'DENR Permit' }
     ];
-
-    const isIdUploaded = !!application?.owner?.validId?.trim();
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -215,9 +208,17 @@ const ApplyScreen = ({
                             </CustomText>
                             
                             <DocumentUploadCard 
-                                docName="ID Photo (Front & Back)"
-                                isUploaded={isIdUploaded}
-                                onUploadPress={() => handleSimulateUpload('owner', 'validId')}
+                                docName="ID Photo (Front)"
+                                docKey="validId"  
+                                isUploaded={application?.owner?.validIdFront}
+                                onUploadSuccess={(url) => onUpdatePress({ section: 'owner', id: 'validIdFront', value: url })}
+                            />
+
+                            <DocumentUploadCard 
+                                docName="ID Photo (Back)"
+                                docKey="validId"  
+                                isUploaded={application?.owner?.validIdBack}
+                                onUploadSuccess={(url) => onUpdatePress({ section: 'owner', id: 'validIdBack', value: url })}
                             />
 
                         </View>
@@ -232,14 +233,15 @@ const ApplyScreen = ({
                         </CustomText>
                         
                         {permitsList.map((permit) => {
-                            const isUploaded = !!application?.permits?.[permit.id]?.trim();
+                            const isUploaded = application?.permits?.[permit.id];
                             
                             return (
                                 <DocumentUploadCard 
                                     key={permit.id}
                                     docName={permit.label}
+                                    docKey={permit.id}
                                     isUploaded={isUploaded}
-                                    onUploadPress={() => handleSimulateUpload('permits', permit.id)}
+                                    onUploadSuccess={(url) => onUpdatePress({ section: 'permits', id: permit.id, value: url })}
                                 />
                             );
                         })}
@@ -283,7 +285,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         lineHeight: 22,
     },
-
     successBox: { 
         backgroundColor: Colors.SUCCESS, 
         padding: 12, 
@@ -298,7 +299,6 @@ const styles = StyleSheet.create({
         fontSize: 14, 
         fontWeight: '500' 
     },
-    
     formContainer: { 
         gap: 24 
     },
@@ -316,7 +316,6 @@ const styles = StyleSheet.create({
         marginLeft: 4,
         color: Colors.TEXT_SECONDARY 
     },
-    
     formCard: {
         backgroundColor: Colors.WHITE, 
         borderRadius: 24, 
@@ -333,12 +332,10 @@ const styles = StyleSheet.create({
     inputSpacing: { 
         marginBottom: 16 
     },
-    
     multiSelectLabel: { 
         marginBottom: 8, 
         marginLeft: 2 
     },
-    
     locationsContainer: { 
         marginTop: 4,
         flexDirection: 'row',
@@ -352,7 +349,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         backgroundColor: Colors.BACKGROUND,
     },
-    
     buttonContainer: { 
         marginTop: 0 
     }
