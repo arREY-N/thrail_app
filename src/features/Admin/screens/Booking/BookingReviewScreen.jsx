@@ -32,7 +32,6 @@ const BookingReviewScreen = ({
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState(null);
 
-    // --- ARCHITECTURAL FIX: Infer State from Backend Status ---
     const currentStatus = booking?.status;
     const isApprovedStatus = ['for-payment', 'paid', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
@@ -44,7 +43,6 @@ const BookingReviewScreen = ({
         const mapDocument = (name, file, valid) => {
             let inferredValid = valid ?? null;
             
-            // If the backend didn't save the array, we infer the visual state from the overall status
             if (isApprovedStatus) inferredValid = true;
             if (isRejectedStatus && inferredValid === null) inferredValid = false;
 
@@ -72,7 +70,6 @@ const BookingReviewScreen = ({
     };
 
     const toggleDocDecision = (index, isValid) => {
-        // Prevent changing decisions if the review is already submitted
         if (isReviewComplete) return; 
         
         const updated = [...docStates];
@@ -219,7 +216,6 @@ const BookingReviewScreen = ({
                     </View>
                 )}
 
-                {/* Show read-only reason if already rejected, OR show input box if actively rejecting */}
                 {isRejectedStatus && booking?.cancellationReason ? (
                     <View style={styles.reasonBox}>
                         <CustomText variant="label" style={{color: Colors.ERROR, marginBottom: 8}}>Rejection Reason</CustomText>
@@ -270,7 +266,6 @@ const BookingReviewScreen = ({
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* ONLY show the footer if the review is NOT complete */}
             {!isReviewComplete && (
                 <CustomStickyFooter
                     primaryButton={{
