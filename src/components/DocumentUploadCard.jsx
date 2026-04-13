@@ -10,6 +10,8 @@ const DocumentUploadCard = ({
     docName, 
     docKey,
     isUploaded,
+    isRejected = false, 
+    rejectionReason = '',
     onUploadSuccess 
 }) => {
     
@@ -19,7 +21,7 @@ const DocumentUploadCard = ({
     const { pickDocument } = useFileUpload();
 
     const isUrl = typeof isUploaded === 'string' && isUploaded.startsWith('http');
-    const isComplete = !!isUploaded;
+    const isComplete = !!isUploaded && !isRejected;
 
     const handleUploadPress = async () => {
         setIsUploading(true);
@@ -63,6 +65,13 @@ const DocumentUploadCard = ({
         btnStyle = styles.uploadedBtn;
         btnText = "Change";
         btnTextStyle = styles.uploadedBtnText;
+    } else if (isRejected) {
+        iconName = "x-circle";
+        iconColor = Colors.ERROR;
+        wrapperStyle = styles.iconWrapperError;
+        btnStyle = styles.errorBtn;
+        btnText = "Re-upload";
+        btnTextStyle = styles.errorBtnText;
     } else if (isError) {
         iconName = "alert-circle";
         iconColor = Colors.ERROR;     
@@ -73,45 +82,58 @@ const DocumentUploadCard = ({
     }
 
     return (
-        <View style={[styles.uploadCard, isError && styles.uploadCardError]}>
-            <View style={styles.uploadInfo}>
-                <View style={[styles.iconWrapper, wrapperStyle]}>
-                    <CustomIcon library="Feather" name={iconName} size={20} color={iconColor} />
+        <View style={styles.container}>
+            <View style={[styles.uploadCard, (isError || isRejected) && styles.uploadCardError]}>
+                <View style={styles.uploadInfo}>
+                    <View style={[styles.iconWrapper, wrapperStyle]}>
+                        <CustomIcon library="Feather" name={iconName} size={20} color={iconColor} />
+                    </View>
+                    <CustomText variant="label" style={styles.docName} numberOfLines={2}>
+                        {docName}
+                    </CustomText>
                 </View>
-                <CustomText variant="label" style={styles.docName} numberOfLines={2}>
-                    {docName}
-                </CustomText>
-            </View>
-            
-            <View style={styles.actionContainer}>
-                {isComplete && isUrl && (
-                    <TouchableOpacity style={styles.viewBtn} onPress={handleViewPress} activeOpacity={0.7}>
-                        <CustomText variant="caption" style={styles.viewBtnText}>
-                            View
-                        </CustomText>
-                    </TouchableOpacity>
-                )}
-
-                <TouchableOpacity 
-                    style={btnStyle}
-                    onPress={handleUploadPress} 
-                    activeOpacity={0.7}
-                    disabled={isUploading}
-                >
-                    {isUploading ? (
-                        <ActivityIndicator size="small" color={Colors.WHITE} />
-                    ) : (
-                        <CustomText variant="caption" style={btnTextStyle}>
-                            {btnText}
-                        </CustomText>
+                
+                <View style={styles.actionContainer}>
+                    {(isComplete || isRejected) && isUrl && (
+                        <TouchableOpacity style={styles.viewBtn} onPress={handleViewPress} activeOpacity={0.7}>
+                            <CustomText variant="caption" style={styles.viewBtnText}>
+                                View
+                            </CustomText>
+                        </TouchableOpacity>
                     )}
-                </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={btnStyle}
+                        onPress={handleUploadPress} 
+                        activeOpacity={0.7}
+                        disabled={isUploading}
+                    >
+                        {isUploading ? (
+                            <ActivityIndicator size="small" color={Colors.WHITE} />
+                        ) : (
+                            <CustomText variant="caption" style={btnTextStyle}>
+                                {btnText}
+                            </CustomText>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {isRejected && Boolean(rejectionReason) && (
+                <View style={styles.rejectionReasonBox}>
+                    <CustomText variant="caption" style={styles.rejectionReasonText}>
+                        Admin Note: {rejectionReason}
+                    </CustomText>
+                </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        marginBottom: 12,
+    },
     uploadCard: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -119,7 +141,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         padding: 16, 
         borderRadius: 16, 
-        marginBottom: 12, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         shadowColor: Colors.SHADOW, 
@@ -153,7 +174,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_APPROVED_BG 
     },
     iconWrapperError: { 
-        backgroundColor: Colors.ERROR_BORDER 
+        backgroundColor: Colors.WHITE 
     }, 
     docName: { 
         flex: 1 
@@ -212,7 +233,26 @@ const styles = StyleSheet.create({
     viewBtnText: { 
         color: Colors.SUCCESS, 
         fontWeight: 'bold' 
-    }
+    },
+    rejectionReasonBox: { 
+        backgroundColor: Colors.ERROR_BG, 
+        padding: 10, 
+        borderRadius: 8, 
+        marginTop: 4, 
+        marginLeft: 16,
+        marginRight: 16,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        borderTopWidth: 0,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+    },
+    rejectionReasonText: { 
+        color: Colors.ERROR, 
+        fontSize: 12, 
+        lineHeight: 18,
+        fontStyle: 'italic'
+    },
 });
 
 export default DocumentUploadCard;
