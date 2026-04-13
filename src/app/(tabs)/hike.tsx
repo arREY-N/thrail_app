@@ -3,9 +3,11 @@ import { Hike } from '@/src/core/models/Hike/Hike';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useIsFocused } from '@react-navigation/native';
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 
 export default function hike(){
+    const isFocused = useIsFocused();
     const { 
         hikes,
         viewHike,
@@ -15,7 +17,7 @@ export default function hike(){
 
     return (
         <View style={{ flex: 1 }}>
-            <NavigationScreen/>
+            { isFocused && <NavigationScreen/> }
             <TestListHike 
                 hikes={hikes} 
                 viewHike={viewHike}

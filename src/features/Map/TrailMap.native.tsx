@@ -18,19 +18,9 @@ import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 
-// Load trail data
-const rawMapData = require("../../assets/map_data/trails_3D_final.geojson");
-// const trailsGeoJSON = {
-//   type: "FeatureCollection",
-//   features: rawMapData.geometries.map((geometry: any) => ({
-//     type: "Feature",
-//     geometry,
-//     properties: {},
-//   })),
-// };
-
+// Natively resolve the .geojson asset without loading a 21MB object into Javascript memory
+const rawMapDataAsset = require("../../assets/map_data/trails_3D_final.geojson");
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
-
 const TrailMap = ({ initialLon, initialLat }: any) => {
   // Notice: We don't need userHeading here anymore! MapLibre handles it natively.
   const {
@@ -42,51 +32,50 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
   } = useHikerGPS();
 
   const [forceOffline, setForceOffline] = useState(true);
-  // NEW: State to track if the camera should be locked onto the user
   const [isFollowing, setIsFollowing] = useState(true);
   const lastZoomRef = useRef<number>(16);
   const cameraRef = useRef<any>(null);
 
-  // We are completely bypassing the React Native `useAssets` hook because it continuously cancels and
-  // restarts massive 35MB downloads during hot-reloads, causing the map to load indefinitely.
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
+  const [geoJsonUrl, setGeoJsonUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadGiganticOfflineMap() {
+    async function resolveGeoJson() {
+      try {
+        const geoAsset = Asset.fromModule(rawMapDataAsset);
+        await geoAsset.downloadAsync();
+        if (geoAsset.localUri) {
+          setGeoJsonUrl(geoAsset.localUri);
+        }
+      } catch (e) {
+        console.warn("Failed to load map geojson asset:", e);
+      }
+    }
+
+    async function resolveOfflineMap() {
       try {
         const fileUri = `${FileSystem.documentDirectory}thrail-offline-map.pmtiles`;
-
-        // 1. Check if it exists AND is fully downloaded (Assuming 35MB is ~35,000,000 bytes)
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
 
         if (fileInfo.exists) {
           if (fileInfo.size && fileInfo.size > 30000000) {
-            // If it's larger than 30MB, it's good!
             console.log("✅ Offline map cache is healthy! Bypassing download.");
             setOfflineTileUrl(`pmtiles://${fileUri}`);
             return;
           } else {
-            console.log(
-              "⚠️ Found corrupted/incomplete map cache. Deleting and retrying...",
-            );
+            console.log("⚠️ Found corrupted/incomplete map cache. Deleting and retrying...");
             await FileSystem.deleteAsync(fileUri, { idempotent: true });
           }
         }
 
         console.log("⬇️ Starting cache process for offline map...");
-
-        // 2. Safely resolve and copy the asset (Works in Dev Emulator AND Prod APK)
         const asset = Asset.fromModule(
           require("../../assets/tiles/thrail-offline-map.pmtiles"),
         );
-        await asset.downloadAsync(); // Caches to Expo's local directory first
+        await asset.downloadAsync();
 
         if (asset.localUri) {
-          // 3. COPY it to the document directory instead of "downloading" a URL
-          await FileSystem.copyAsync({
-            from: asset.localUri,
-            to: fileUri,
-          });
+          await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
           console.log("✅ Successfully copied map to Document Directory!");
           setOfflineTileUrl(`pmtiles://${fileUri}`);
         } else {
@@ -97,18 +86,16 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       }
     }
 
-    loadGiganticOfflineMap();
+    // Run them in parallel!
+    Promise.all([resolveGeoJson(), resolveOfflineMap()]);
   }, []);
 
-  // Fly to Trail: If trail coordinates exist, use cameraRef to pan and override GPS snap
+  // Fly to Trail
   useEffect(() => {
     const parsedLon = Number(initialLon);
     const parsedLat = Number(initialLat);
 
     if (initialLon && initialLat && !isNaN(parsedLon) && !isNaN(parsedLat)) {
-      // Snap to exact trail coordinate so the camera perfectly centers on the green line
-
-      // Small timeout ensures the Camera component has fully mounted natively
       const timer = setTimeout(() => {
         setIsFollowing(false);
         cameraRef.current?.setCamera({
@@ -135,7 +122,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
   const actuallyOffline = forceOffline || !isOnline;
   const isDownloadingOfflineMap = actuallyOffline && offlineTileUrl === "";
 
-  if (isDownloadingOfflineMap) {
+  if (isDownloadingOfflineMap || !geoJsonUrl) {
     return <LoadingScreen />;
   }
 
@@ -174,7 +161,6 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
         logoEnabled={true}
         attributionEnabled={true}
         mapStyle={activeStyle}
-        // NEW: If the user touches the screen to pan, stop following them!
         onRegionWillChange={(event) => {
           if (event.properties.isUserInteraction) {
             const newZoom = event.properties.zoomLevel;
@@ -194,7 +180,6 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
           maxZoomLevel={20}
           animationMode="flyTo"
           animationDuration={500}
-          // NEW: Use followUserLocation instead of centerCoordinate!
           followUserMode={
             isFollowing
               ? MapLibreGL.UserTrackingMode.FollowWithCourse
@@ -203,12 +188,14 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
           followUserLocation={isFollowing}
         />
 
-        <MapLibreGL.ShapeSource id="trailSource" shape={rawMapData as any}>
-          <MapLibreGL.LineLayer
-            id="layer-hiking"
-            style={mapStyles.trailLine as any}
-          />
-        </MapLibreGL.ShapeSource>
+        {geoJsonUrl && (
+          <MapLibreGL.ShapeSource id="trailSource" url={geoJsonUrl}>
+            <MapLibreGL.LineLayer
+              id="layer-hiking"
+              style={mapStyles.trailLine as any}
+            />
+          </MapLibreGL.ShapeSource>
+        )}
 
         {routeCoordinates.length >= 2 && (
           <MapLibreGL.ShapeSource
