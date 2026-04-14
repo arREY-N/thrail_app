@@ -5,9 +5,7 @@ import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useUsersStore } from "@/src/core/stores/usersStore";
 import { router } from "expo-router";
-import { produce } from "immer";
 import { useEffect, useState } from "react";
 
 export type UseApproveBookingParams = {
@@ -29,10 +27,9 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
     const loadOffer = useOffersStore(s => s.loadOffer);
     const loadBooking = useBookingsStore(s => s.loadById);
     const create = useBookingsStore(s => s.create);
-    const fetchUser = useUsersStore(s => s.loadUser);
+    
     const [offer, setOffer] = useState<Offer | null>(null);
     const [booking, setBooking] = useState<Booking | null>(null);
-
 
     useEffect(() => {
         setLocalError(null);
@@ -47,6 +44,8 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }, [offerId, bookingId]);
 
+    // UI/UX FIX (April 14): Normalization logic added to prevent app crashes when 
+    // encountering legacy bookings where `documents` was stored as an object instead of an array.
     useEffect(() => {
         try {
             if(offerId){
@@ -54,79 +53,57 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             }
     
             if(bookingId){
-                setBooking(bookings.find(b => b.id === bookingId) || null);
+                const b = bookings.find(b => b.id === bookingId);
+                if (b) {
+                    let normalizedDocs = b.documents;
+                    if (!Array.isArray(b.documents)) {
+                        normalizedDocs = Object.entries(b.documents || {}).map(([key, value]: [string, any]) => ({
+                            name: value.name || key,
+                            file: value.file || '',
+                            valid: value.valid || 'pending'
+                        }));
+                    }
+                    setBooking(new Booking({ ...b, documents: normalizedDocs }));
+                } else {
+                    setBooking(null);
+                }
             }
         } catch (error) {
             console.error('Error setting offer or booking: ', error);
             setLocalError((error as Error).message || 'Failed to set offer or booking');
         }
-    },[offers, bookings, offerId, bookingId])
+    }, [offers, bookings, offerId, bookingId]);
 
-    const onValidateDocument = (document: Requirements, valid: 'approved' | 'rejected') => {
+    // BACKEND SYNC FIX (April 14): Function signature updated. 
+    // It now accepts `validatedDocuments` directly from the UI state rather than relying 
+    // on internal hook state, ensuring 100% synchronization when the Admin clicks "Submit Review".
+    const onApproveBooking = async (validatedDocuments: Requirements[]) => {
         try {
-            if(!booking)
-                throw new Error('Booking not found');
-            setBooking(prev =>
-                produce(prev, (draft) => {
-                    if (!draft) return;
+            if(!booking) throw new Error('Booking not found');
 
-                    const docIndex = draft.documents.findIndex(d => d.name === document.name);
-
-                    if (docIndex !== -1) {
-                        draft.documents[docIndex].valid = valid; 
-                        console.log(`Success: ${document.name} set to ${valid}`);
-                    } else {
-                        console.error('Document name not found in array');
-                    }
-                }
-            ))
-        } catch (error) {
-            console.error('Error approving document: ', error);
-            setLocalError((error as Error).message || 'Failed to approve document');
-        }
-        console.log('Validated booking: ', booking);
-    }                   
-
-    const onApproveBooking = async (forceApprove: boolean = false) => {
-        try {
-            if(!booking)
-                throw new Error('Booking not found');
-
-            if(booking.status === 'for-reservation' || forceApprove){
-                setBooking(prev => 
-                    produce(prev, (draft) => {
-                        if(draft && draft.id === booking.id){
-                            draft.status = 'for-payment';
-                        }
-                    })
-                )
-
-                if(forceApprove){
-                    alert('Force approving booking');
-                }
-
-                if(!BookingLogic.checkDocuments(booking)){
-                    setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
-                    return;
-                }
-    
-                const approvedBook = new Booking({
-                    ...booking,
-                    status: 'for-payment',
-                })
-                
-                const success = await create(approvedBook, true)
-                console.log('Status updated to for-payment: ', approvedBook);
-                
-                if(!success){
-                    setLocalError('Failed to approve booking');
-                    return;
-                }
+            // Instantiates a new Booking object with the strictly validated array from the UI
+            const approvedBook = new Booking({
+                ...booking,
+                documents: validatedDocuments, 
+                status: 'for-payment',
+            });
             
-                router.back();
-            } else {
-                setLocalError(`Cannot approve this booking with status ${booking?.status}`);
+            // Runs a final logic check to ensure the Admin hasn't accidentally passed a 'pending' document
+            if(!BookingLogic.checkDocuments(approvedBook)){
+                setLocalError('Cannot approve booking with pending documents. Please validate all documents first.');
+                return;
             }
+            
+            // Commits to database
+            const success = await create(approvedBook, true);
+            console.log('Status updated to for-payment: ', approvedBook);
+            
+            if(!success){
+                setLocalError('Failed to approve booking');
+                return;
+            }
+        
+            router.back();
 
         } catch (error) {
             console.error('Error approving booking: ', error);
@@ -134,52 +111,42 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }
 
-    const onRejectBooking = (reason: string, forceReject: boolean = false) => {  
+    // BACKEND SYNC FIX (April 14): Function signature updated. 
+    // Accepts `validatedDocuments` array from the UI to properly save the individual 'rejected' status
+    // alongside the global rejection reason.
+    const onRejectBooking = async (reason: string, validatedDocuments: Requirements[]) => {  
         try {
-            if(!reason)
-                throw new Error('Rejection reason is required');
-            
-            if(!booking)
-                throw new Error('Booking not found');
-
-            if((booking.status === 'reservation-rejected' || booking.status === 'cancellation-rejected') && !forceReject){
-                setLocalError(`Booking has been rejected by ${booking.cancelledBy} due to ${booking.cancellationReason}`);
-                return;
-            }
-
-            if(!BookingLogic.checkDocuments(booking)){
-                setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
-                return;
-            }
-
-            if(forceReject){
-                alert('Force rejecting booking');
-            }
-            
-            setBooking(prev => 
-                produce(prev, (draft) => {
-                    if(draft){
-                        draft.status = 'reservation-rejected';
-                        draft.cancellationReason = reason;
-                        draft.cancelledBy = `${profile?.firstname} ${profile?.lastname}`;
-                    }
-                })
-            )   
-
-            if(!profile){
-                console.error('Admin must be logged in to reject a booking');
+            if(!reason) throw new Error('Rejection reason is required');
+            if(!booking) throw new Error('Booking not found');
+            if(!profile) {
                 setLocalError('Admin must be logged in to reject a booking');
                 return;
             }
+
+            // Instantiates a new Booking object with the rejected status and audit trail
             const rejectedBook = new Booking({  
                 ...booking,
+                documents: validatedDocuments, 
                 status: 'reservation-rejected',
                 cancellationReason: reason,
                 cancelledBy: `${profile?.firstname} ${profile?.lastname}`
             });
-            console.log('Rejecting booking: ', rejectedBook)
 
-            create(rejectedBook, true);
+            // Runs a final logic check to ensure the Admin has addressed all pending documents
+            if(!BookingLogic.checkDocuments(rejectedBook)){
+                setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
+                return;
+            }
+
+            console.log('Rejecting booking: ', rejectedBook);
+
+            // Commits to database
+            const success = await create(rejectedBook, true);
+            if(!success){
+                setLocalError('Failed to reject booking');
+                return;
+            }
+
             router.back();
         } catch (error) {
             console.error('Error rejecting booking: ', error);
@@ -245,6 +212,5 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         onApproveBooking,
         onRejectBooking,
         onRescheduleBooking,
-        onValidateDocument,
     }
 }

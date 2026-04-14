@@ -55,6 +55,9 @@ const OfferViewScreen = ({
                             bgColor = Colors.STATUS_APPROVED_BG;
                         }
 
+                        const firstName = b.user?.firstname || 'Unknown';
+                        const lastName = b.user?.lastname || 'Hiker';
+
                         return (
                             <TouchableOpacity 
                                 key={b.id} 
@@ -68,7 +71,7 @@ const OfferViewScreen = ({
                                     </View>
                                     <View style={styles.hikerTextGroup}>
                                         <CustomText variant="label" style={styles.hikerName}>
-                                            {b.user?.firstname} {b.user?.lastname}
+                                            {firstName} {lastName}
                                         </CustomText>
                                         <CustomText variant="caption">
                                             {formatBookingDate(b.createdAt)}
@@ -78,7 +81,7 @@ const OfferViewScreen = ({
                                 
                                 <View style={[styles.statusBadge, { backgroundColor: bgColor }]}>
                                     <CustomText variant="caption" style={[styles.badgeText, { color: statusColor }]}>
-                                        {isPending ? "NEEDS REVIEW" : b.status.toUpperCase().replace('-', ' ')}
+                                        {isPending ? "NEEDS REVIEW" : (b.status || 'unknown').toUpperCase().replace('-', ' ')}
                                     </CustomText>
                                 </View>
                             </TouchableOpacity>

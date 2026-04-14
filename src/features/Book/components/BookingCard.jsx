@@ -34,12 +34,12 @@ const getStatusConfig = (status) => {
         case 'reservation-rejected':
             return { 
                 label: 'Action Required', 
-                bgColor: Colors.ERROR_BG, // Or '#FFF5F5'
+                bgColor: Colors.ERROR_BG,
                 textColor: Colors.ERROR, 
                 icon: 'alert-circle' 
             };
         case 'for-reservation':
-        case 'pending-docs': 
+        case 'pending-docs':
         case 'for-reschedule':
         case 'reschedule-rejected':
         case 'rescheduled':
