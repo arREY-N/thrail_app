@@ -31,13 +31,25 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     exportHikeData,
   } = useHikerGPS();
 
+  const lonStr = Array.isArray(initialLon) ? initialLon[0] : initialLon;
+  const latStr = Array.isArray(initialLat) ? initialLat[0] : initialLat;
+  const parsedLon = Number(lonStr);
+  const parsedLat = Number(latStr);
+  const hasInitialCoords = !!(lonStr && latStr && !isNaN(parsedLon) && !isNaN(parsedLat));
+
   const [forceOffline, setForceOffline] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(true);
+  // Do not follow user initially if we have a trail constraint, so we don't jump to user
+  const [isFollowing, setIsFollowing] = useState(!hasInitialCoords);
   const lastZoomRef = useRef<number>(16);
   const cameraRef = useRef<any>(null);
 
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
   const [geoJsonUrl, setGeoJsonUrl] = useState<string | null>(null);
+
+  // FIX: Track when the map has actually finished rendering.
+  // Previously, the fly-to timer fired while the map was still showing <LoadingScreen />,
+  // so cameraRef.current was null and the setCamera call silently did nothing.
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     async function resolveGeoJson() {
@@ -63,7 +75,9 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
             setOfflineTileUrl(`pmtiles://${fileUri}`);
             return;
           } else {
-            console.log("⚠️ Found corrupted/incomplete map cache. Deleting and retrying...");
+            console.log(
+              "⚠️ Found corrupted/incomplete map cache. Deleting and retrying...",
+            );
             await FileSystem.deleteAsync(fileUri, { idempotent: true });
           }
         }
@@ -92,22 +106,17 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
 
   // Fly to Trail
   useEffect(() => {
-    const parsedLon = Number(initialLon);
-    const parsedLat = Number(initialLat);
+    if (!mapReady || !hasInitialCoords) return;
 
-    if (initialLon && initialLat && !isNaN(parsedLon) && !isNaN(parsedLat)) {
-      const timer = setTimeout(() => {
-        setIsFollowing(false);
-        cameraRef.current?.setCamera({
-          centerCoordinate: [parsedLon, parsedLat],
-          zoomLevel: 14,
-          animationDuration: 1000,
-          animationMode: "flyTo",
-        });
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [initialLon, initialLat]);
+    // We no longer need to parse here since we do it at the component top level
+    setIsFollowing(false);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [parsedLon, parsedLat],
+      zoomLevel: 14,
+      animationDuration: 800, // Smoothly zoom in
+      animationMode: "flyTo",
+    });
+  }, [hasInitialCoords, parsedLon, parsedLat, mapReady]);
 
   const centerOnUser = () => {
     cameraRef.current?.setCamera({
@@ -131,6 +140,9 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     : onlineStyle;
 
   return (
+    // FIX: Replaced height:"100%" with height:"100%" anchored to a parent that
+    // now has an explicit height (set in NavigationScreen). Previously the parent
+    // only had minHeight so height:"100%" resolved to 0, making the map invisible.
     <View style={styles.page as any}>
       {/* --- FLOATING STATUS PILL --- */}
       <View style={styles.topControlContainer as any}>
@@ -155,12 +167,17 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* --- MAIN MAP --- */}
       <MapLibreGL.MapView
         style={styles.map as any}
         logoEnabled={true}
         attributionEnabled={true}
         mapStyle={activeStyle}
+        compassEnabled={true}
+        compassViewPosition={1} // Top Right
+        compassViewMargins={{ x: 20, y: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 50 : 70 }}
+        // FIX: This is what flips mapReady to true, which then triggers the
+        // fly-to effect above. Without this, the camera fires into null.
+        onDidFinishLoadingMap={() => setMapReady(true)}
         onRegionWillChange={(event) => {
           if (event.properties.isUserInteraction) {
             const newZoom = event.properties.zoomLevel;
@@ -175,7 +192,10 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       >
         <MapLibreGL.Camera
           ref={cameraRef}
-          defaultSettings={{ zoomLevel: 16 }}
+          defaultSettings={{ 
+            zoomLevel: hasInitialCoords ? 12 : 16,
+            centerCoordinate: hasInitialCoords ? [parsedLon, parsedLat] : undefined,
+          }}
           minZoomLevel={10}
           maxZoomLevel={20}
           animationMode="flyTo"
@@ -216,23 +236,21 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
           </MapLibreGL.ShapeSource>
         )}
 
-        {/* --- NATIVE COMPASS BLUE DOT (Zero Glitching!) --- */}
         {permissionGranted && (
           <MapLibreGL.UserLocation
             visible={true}
             renderMode={MapLibreGL.UserLocationRenderMode.Native}
             showsUserHeadingIndicator={true}
-            androidRenderMode="compass" // Adds the smooth directional cone
+            androidRenderMode="compass"
           />
         )}
       </MapLibreGL.MapView>
 
-      {/* --- FLOATING BUTTON --- */}
+      {/* --- FLOATING RECENTER BUTTON --- */}
       <TouchableOpacity
         style={styles.recenterButton as any}
         onPress={centerOnUser}
       >
-        {/* NEW: The icon turns Blue when it's actively tracking you, and dark grey when you are panning around */}
         <MaterialIcons
           name="my-location"
           size={24}
@@ -275,38 +293,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusText: { fontWeight: "700", fontSize: 13, letterSpacing: 0.5 },
-  downloadOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(248, 244, 240, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 5, // Behind the top pill but above the map
-  },
-  downloadCard: {
-    backgroundColor: "#fff",
-    padding: 24,
-    borderRadius: 16,
-    alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    width: "80%",
-  },
-  downloadText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  downloadSubText: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 6,
-    textAlign: "center",
-  },
   recenterButton: {
     position: "absolute",
     bottom: 30,
@@ -349,11 +335,11 @@ const mapStyles = {
     lineJoin: "round",
   },
   walkedPathStyle: {
-    lineColor: "#FF5722", // Deep Vibrant Orange for user's recorded path
+    lineColor: "#FF5722",
     lineWidth: 4,
     lineCap: "round",
     lineJoin: "round",
-    lineDasharray: [2, 2], // Dashed to distinguish from solid map trails
+    lineDasharray: [2, 2],
   },
 };
 
