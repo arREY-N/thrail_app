@@ -8,6 +8,7 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { FieldPath } = admin.firestore;
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
+const { Buffer } = require('buffer');
 
 admin.initializeApp();
 
