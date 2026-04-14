@@ -1,3 +1,44 @@
+export const Palette = {
+    // Neutrals
+    TrueBlack:  '#000000',
+    Neutral950: '#040906',
+    Neutral900: '#111827',
+    Neutral500: '#686868',
+    Neutral400: '#A2A2A2',
+    Neutral200: '#D9D9D9',
+    Neutral100: '#F5F5F5',
+    Neutral50:  '#E5E7EB',
+    White:      '#FFFFFF',
+    OffWhite:   '#FAFCFA',
+
+    // Greens
+    Green700:   '#2E7D32',
+    Green400:   '#7DBC81',
+    Green100:   '#C8E6C9',
+    Green50:    '#E8F5E9',
+    
+    // Reds
+    Red700:     '#D32F2F',
+    Red100:     '#FFCDD2',
+    Red50:      '#FFEBEE',
+    
+    // Blues
+    Blue600:    '#1976D2',
+    Blue100:    '#BBDEFB',
+    Blue50:     '#E3F2FD',
+
+    // Yellows & Ambers
+    Yellow700:  '#F57F17',
+    Yellow600:  '#FBC02D',
+    Yellow100:  '#FFF9C4',
+    Yellow50:   '#FFFDE7',
+    Amber500:   '#F59E0B',
+
+    // Transparencies
+    BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
+    GrayAlpha25:  '#C4C4C440',
+};
+
 export const Colors = {
     // Brand & Backgrounds
     PRIMARY:          Palette.Green700, 
@@ -67,47 +108,6 @@ export const Colors = {
     
     WEATHER_DANGER_BG:      Palette.Red700,
     WEATHER_DANGER_TEXT:    Palette.White,
-};
-
-export const Palette = {
-    // Neutrals
-    TrueBlack:  '#000000',
-    Neutral950: '#040906',
-    Neutral900: '#111827',
-    Neutral500: '#686868',
-    Neutral400: '#A2A2A2',
-    Neutral200: '#D9D9D9',
-    Neutral100: '#F5F5F5',
-    Neutral50:  '#E5E7EB',
-    White:      '#FFFFFF',
-    OffWhite:   '#FAFCFA',
-
-    // Greens
-    Green700:   '#2E7D32',
-    Green400:   '#7DBC81',
-    Green100:   '#C8E6C9',
-    Green50:    '#E8F5E9',
-    
-    // Reds
-    Red700:     '#D32F2F',
-    Red100:     '#FFCDD2',
-    Red50:      '#FFEBEE',
-    
-    // Blues
-    Blue600:    '#1976D2',
-    Blue100:    '#BBDEFB',
-    Blue50:     '#E3F2FD',
-
-// Yellows & Ambers
-    Yellow700:  '#F57F17',
-    Yellow600:  '#FBC02D',
-    Yellow100:  '#FFF9C4',
-    Yellow50:   '#FFFDE7',
-    Amber500:   '#F59E0B',
-
-    // Transparencies
-    BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
-    GrayAlpha25:  '#C4C4C440',
 };
 
 // Color Samples
