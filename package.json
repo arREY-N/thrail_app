@@ -9,7 +9,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "fire": "firebase emulators:start --only functions,auth,firestore,storage --import=./emulator_data --export-on-exit=./emulator_data"
+    "fire": "firebase emulators:start --only functions,auth,firestore,storage --import=./emulator_data --export-on-exit=./emulator_data",
+    "test": "jest"
   },
   "dependencies": {
     "@expo-google-fonts/roboto": "^0.4.2",
@@ -76,7 +77,7 @@
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata)"
     ]
   }
 }

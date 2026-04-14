@@ -17,7 +17,7 @@ import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/src/core/config/Firebase';
+import { functions, USE_EMULATORS, app } from '@/src/core/config/Firebase';
 
 const PaymentScreen = ({
     bookingData,
@@ -66,8 +66,14 @@ const PaymentScreen = ({
                     const rawUrl = Linking.createURL('payment-result');
                     const appUrl = Platform.OS === 'web' ? rawUrl : Linking.createURL('payment-result', { scheme: 'thrailapp' });
                     
-                    // Wrap the deep link in a secure HTTPS redirector to bypass PayMongo's strict URL validator
-                    const secureReturnUrl = `https://httpbin.org/redirect-to?url=${encodeURIComponent(appUrl)}`;
+                    // Always use the production HTTPS cloud function even in DEV. 
+                    // This is because PayMongo and mobile browsers forcefully upgrade URLs to HTTPS, 
+                    // which causes SSL errors when trying to hit the local unencrypted 10.0.2.2 emulator.
+                    const projectId = app.options.projectId || 'thrail';
+                    const redirectFunctionUrl = `https://us-central1-${projectId}.cloudfunctions.net/paymongoRedirect`;
+
+                    // Wrap the deep link in our custom Firebase HTTP function to bypass PayMongo's strict URL validator
+                    const secureReturnUrl = `${redirectFunctionUrl}?url=${encodeURIComponent(appUrl)}`;
                     
                     const response = await createPaymongoCheckout({
                         amount: amountToPay,
@@ -85,8 +91,8 @@ const PaymentScreen = ({
                         windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
                     });
                     
-                    if (result.type === 'cancel') {
-                        // User closed the browser manually
+                    if (result.type !== 'success') {
+                        // User closed the browser manually or the action was dismissed
                         setIsSubmitting(false);
                         return;
                     }
