@@ -19,9 +19,6 @@ import { Colors } from '@/src/constants/colors';
 const CustomComposer = (props) => {
     const [isFocused, setIsFocused] = useState(false);
 
-    // MAGIC FIX: When you hit send, GiftedChat empties props.text.
-    // If it's empty, we force the height instantly back to 44. 
-    // If you are typing, we let GiftedChat expand the box normally.
     const currentHeight = !props.text ? 44 : props.composerHeight;
 
     return (
