@@ -1,16 +1,14 @@
 import React from 'react';
-import {
-    Platform,
-    StyleSheet,
-    View
-} from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import SkeletonEffect from '@/src/components/SkeletonEffect';
-
 import { Colors } from '@/src/constants/colors';
 
+// ==========================================
+// 1. MAIN SCREEN SKELETON
+// ==========================================
 const WeatherSkeleton = ({ onBackPress }) => {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -18,67 +16,76 @@ const WeatherSkeleton = ({ onBackPress }) => {
             
             <View style={styles.scrollContent}>
                 
+                {/* Hero */}
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
-                        <View style={{ gap: 8 }}>
-                            <SkeletonEffect style={{ width: 140, height: 80, borderRadius: 16 }} />
-                            <SkeletonEffect style={{ width: 100, height: 20 }} />
+                        <View style={styles.heroTextCol}>
+                            <SkeletonEffect style={styles.heroTempSkeleton} />
+                            <SkeletonEffect style={styles.heroLocSkeleton} />
                         </View>
-                        <SkeletonEffect style={{ width: 96, height: 96, borderRadius: 48 }} />
+                        <SkeletonEffect style={styles.heroIconSkeleton} />
                     </View>
-                    <SkeletonEffect style={{ width: '100%', height: 2, marginVertical: 16 }} />
+                    <SkeletonEffect style={styles.heroDividerSkeleton} />
                     <View style={styles.heroBottom}>
-                        <SkeletonEffect style={{ width: 100, height: 20 }} />
-                        <SkeletonEffect style={{ width: 150, height: 20 }} />
+                        <SkeletonEffect style={styles.heroSubTextLeft} />
+                        <SkeletonEffect style={styles.heroSubTextRight} />
                     </View>
                 </View>
                 
+                {/* Forecast Row */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <SkeletonEffect style={{ width: 20, height: 20, borderRadius: 10 }} />
-                        <SkeletonEffect style={{ width: 100, height: 16 }} />
+                        <SkeletonEffect style={styles.headerIconSkeleton} />
+                        <SkeletonEffect style={styles.headerTextSkeleton} />
                     </View>
                     <View style={styles.forecastRow}>
                         {[1, 2, 3, 4].map((i) => (
-                            <View key={i} style={styles.fItem}>
-                                <SkeletonEffect style={{ width: 32, height: 32, borderRadius: 16 }} />
-                                <SkeletonEffect style={{ width: 30, height: 14, marginTop: 4 }} />
-                                <SkeletonEffect style={{ width: 40, height: 18, marginTop: 4 }} />
-                            </View>
+                            <SkeletonEffect key={i} style={styles.forecastPillSkeleton} />
                         ))}
                     </View>
                 </View>
 
+                {/* Bento Grid */}
                 <View style={styles.bentoGrid}>
                     {[1, 2, 3, 4].map((i) => (
                         <View key={i} style={styles.bentoBox}>
-                            <View style={styles.bentoHeader}>
-                                <SkeletonEffect style={{ width: 20, height: 20, borderRadius: 10 }} />
-                                <SkeletonEffect style={{ width: 60, height: 16 }} />
+                            <View style={styles.bentoHeaderRow}>
+                                <SkeletonEffect style={styles.bentoIconSkeleton} />
+                                <SkeletonEffect style={styles.bentoTitleSkeleton} />
                             </View>
-                            <View>
-                                <SkeletonEffect style={{ width: 50, height: 24, marginBottom: 8 }} />
-                                <SkeletonEffect style={{ width: 80, height: 14 }} />
+                            <View style={styles.bentoMiddle}>
+                                <SkeletonEffect style={styles.bentoValueSkeleton} />
+                            </View>
+                            <View style={styles.bentoBottom}>
+                                <SkeletonEffect style={styles.bentoDescSkeleton} />
                             </View>
                         </View>
                     ))}
                 </View>
 
+                {/* Sun Row */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
-                        <SkeletonEffect style={{ width: 20, height: 20, borderRadius: 10 }} />
-                        <SkeletonEffect style={{ width: 60, height: 16 }} />
+                        <SkeletonEffect style={styles.headerIconSkeleton} />
+                        <SkeletonEffect style={styles.headerTextSkeleton} />
                     </View>
                     <View style={styles.sunTimeRow}>
                         <View style={styles.sunItem}>
-                            <SkeletonEffect style={{ width: 32, height: 32, borderRadius: 16 }} />
-                            <SkeletonEffect style={{ width: 60, height: 20 }} />
-                            <SkeletonEffect style={{ width: 50, height: 14 }} />
+                            <SkeletonEffect style={styles.sunIconSkeleton} />
+                            <View>
+                                <SkeletonEffect style={styles.sunTimeSkeleton} />
+                                <SkeletonEffect style={styles.sunLabelSkeleton} />
+                            </View>
                         </View>
-                        <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
-                            <SkeletonEffect style={{ width: 32, height: 32, borderRadius: 16 }} />
-                            <SkeletonEffect style={{ width: 60, height: 20 }} />
-                            <SkeletonEffect style={{ width: 50, height: 14 }} />
+                        
+                        <View style={styles.sunConnector} />
+
+                        <View style={[styles.sunItem, styles.sunItemRight]}>
+                            <SkeletonEffect style={styles.sunIconSkeleton} />
+                            <View style={styles.sunItemRightAlign}>
+                                <SkeletonEffect style={styles.sunTimeSkeleton} />
+                                <SkeletonEffect style={styles.sunLabelSkeleton} />
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -88,87 +95,276 @@ const WeatherSkeleton = ({ onBackPress }) => {
     );
 };
 
+// ==========================================
+// 2. TRAIL WIDGET SKELETON
+// ==========================================
+export const WeatherWidgetSkeleton = () => {
+    return (
+        <View style={styles.widgetContainer}>
+            <SkeletonEffect style={styles.safetyBannerSkeleton} />
+            
+            <View style={styles.widgetHero}>
+                <SkeletonEffect style={styles.widgetTempSkeleton} />
+                <SkeletonEffect style={styles.widgetLocSkeleton} />
+            </View>
+
+            <View style={styles.widgetForecastRow}>
+                {[1, 2, 3, 4].map((i) => (
+                    <SkeletonEffect key={i} style={styles.widgetForecastPill} />
+                ))}
+            </View>
+
+            <View style={styles.bentoGrid}>
+                {[1, 2, 3, 4].map((i) => (
+                    <SkeletonEffect key={i} style={styles.widgetBentoBox} />
+                ))}
+            </View>
+        </View>
+    );
+};
+
 const dropShadow = Platform.select({
-    ios: {
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
+    ios: { 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.06, 
+        shadowRadius: 10 
     },
-    android: {
-        elevation: 3,
+    android: { 
+        elevation: 3 
     },
-    web: {
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+    web: { 
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.06)' 
     }
 });
 
 const styles = StyleSheet.create({
-    scrollContent: {
-        padding: 16,
-        gap: 16,
-        paddingBottom: 32,
+    scrollContent: { 
+        padding: 16, 
+        gap: 16, 
+        paddingBottom: 32 
     },
-    heroSection: {
-        paddingVertical: 16,
+    widgetContainer: { 
+        paddingVertical: 8 
     },
-    heroTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    
+    // Skeletons - Hero
+    heroSection: { 
+        paddingVertical: 12, 
+        paddingHorizontal: 8 
     },
-    heroBottom: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    heroTop: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
     },
-    fullWidthCard: {
+    heroTextCol: { 
+        gap: 8 
+    },
+    heroTempSkeleton: { 
+        width: 140, 
+        height: 70, 
+        borderRadius: 16 
+    },
+    heroLocSkeleton: { 
+        width: 120, 
+        height: 20 
+    },
+    heroIconSkeleton: { 
+        width: 90, 
+        height: 90, 
+        borderRadius: 45 
+    },
+    heroDividerSkeleton: { 
+        width: '100%', 
+        height: 1, 
+        marginVertical: 20 
+    },
+    heroBottom: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        paddingHorizontal: 4 
+    },
+    heroSubTextLeft: { 
+        width: 100, 
+        height: 16 
+    },
+    heroSubTextRight: { 
+        width: 140, 
+        height: 16 
+    },
+
+    // Skeletons - Cards
+    fullWidthCard: { 
         backgroundColor: Colors.WHITE, 
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 20, 
+        padding: 20, 
         gap: 16,
-        ...dropShadow, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...dropShadow 
     },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    cardHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8 
     },
-    forecastRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
+    headerIconSkeleton: { 
+        width: 20, 
+        height: 20, 
+        borderRadius: 10 
     },
-    fItem: {
-        alignItems: 'center',
-        gap: 4,
+    headerTextSkeleton: { 
+        width: 100, 
+        height: 16 
     },
-    bentoGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginHorizontal: -8,
+    
+    // Skeletons - Forecast
+    forecastRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between',
+        overflow: 'hidden',
     },
-    bentoBox: {
-        backgroundColor: Colors.WHITE, 
+    forecastPillSkeleton: { 
+        width: 70, 
+        height: 100, 
         borderRadius: 16,
-        padding: 16,
-        margin: 8,
-        flex: 1,
-        minWidth: 140,
-        minHeight: 160,
+        marginRight: 12,
+    },
+
+    // Skeletons - Bento
+    bentoGrid: { 
+        flexDirection: 'row', 
+        flexWrap: 'wrap', 
+        justifyContent: 'space-between', 
+        gap: 16 
+    },
+    bentoBox: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 20, 
+        padding: 16, 
+        width: '47.5%', 
+        minHeight: 140, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...dropShadow 
+    },
+    bentoHeaderRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8 
+    },
+    bentoIconSkeleton: { 
+        width: 20, 
+        height: 20, 
+        borderRadius: 10 
+    },
+    bentoTitleSkeleton: { 
+        width: 60, 
+        height: 16 
+    },
+    bentoMiddle: {
+        marginTop: 16,
+        height: 36,
+        justifyContent: 'flex-end',
+    },
+    bentoValueSkeleton: { 
+        width: 80, 
+        height: 32, 
+        borderRadius: 4
+    },
+    bentoBottom: {
+        marginTop: 12,
+    },
+    bentoDescSkeleton: { 
+        width: 100, 
+        height: 14,
+        borderRadius: 4
+    },
+
+    // Skeletons - Sun
+    sunTimeRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between' 
+    },
+    sunItem: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 12 
+    },
+    sunItemRight: {
+        alignItems: 'flex-end',
+    },
+    sunItemRightAlign: {
+        alignItems: 'flex-end',
+    },
+    sunIconSkeleton: { 
+        width: 32, 
+        height: 32, 
+        borderRadius: 16 
+    },
+    sunTimeSkeleton: { 
+        width: 80, 
+        height: 24,
+        marginBottom: 4,
+        borderRadius: 4
+    },
+    sunLabelSkeleton: { 
+        width: 50, 
+        height: 14,
+        borderRadius: 4
+    },
+    sunConnector: { 
+        flex: 1, 
+        height: 1, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        borderStyle: 'dashed',
+        marginHorizontal: 16,
+    },
+
+    // Widget specific
+    safetyBannerSkeleton: { 
+        width: '100%', 
+        height: 48, 
+        borderRadius: 12, 
+        marginBottom: 32 
+    },
+    widgetHero: { 
+        alignItems: 'center', 
+        marginBottom: 32 
+    },
+    widgetTempSkeleton: { 
+        width: 120, 
+        height: 70, 
+        borderRadius: 16, 
+        marginBottom: 12 
+    },
+    widgetLocSkeleton: { 
+        width: 100, 
+        height: 20 
+    },
+    widgetForecastRow: { 
+        flexDirection: 'row', 
         justifyContent: 'space-between',
-        ...dropShadow, 
+        marginBottom: 24,
+        overflow: 'hidden'
     },
-    bentoHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    widgetForecastPill: { 
+        width: 70, 
+        height: 100, 
+        borderRadius: 16,
+        marginRight: 12,
     },
-    sunTimeRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    sunItem: {
-        gap: 8,
+    widgetBentoBox: {
+        width: '47.5%', 
+        minHeight: 140,
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 20, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...dropShadow 
     }
 });
 
