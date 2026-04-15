@@ -9,6 +9,7 @@ export interface HikeState {
     hikes: Hike[];
     isLoading: boolean;
     error: string | null;
+    gpsError: string | null;
 
     currentHike: Hike | null;
     elapsedTime: number;
@@ -25,7 +26,7 @@ export interface HikeState {
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
     updateCurrentHike: (patch: Partial<Hike>) => void;  
-    updateHikeStore: (patch: Partial<Hike>) => void;
+    updateHikeStore: (patch: Partial<HikeState>) => void;
 
     fetchAll: (userId: string) => Promise<void>;
     refresh: (userId: string) => Promise<void>;
@@ -42,6 +43,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     hikes: [],
     isLoading: false,
     error: null,
+    gpsError: null,
     currentHike: null,
     elapsedTime: 0,
     timerStartTime: 0,
@@ -61,10 +63,10 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const activeGroupId = get().activeGroupId;
             const active = get().active;
 
-            if(!profile) throw new Error("Cannot save coordinates without user");
-            if(!currentHike) throw new Error("Cannot save coordinates active hike");
-
             if(!active) return;
+
+            if(!profile) throw new Error("Cannot save coordinates without user");
+            if(!currentHike) throw new Error("Cannot save coordinates without active hike");
 
             if(coordinates.length % 5 === 0 && coordinates.length !== 0 && get().currentHike) {
                 console.log('Adding coordinate to hike after 5 new coordinates collected');

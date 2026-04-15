@@ -9,6 +9,7 @@ const { height: screenHeight } = Dimensions.get("window");
 const NavigationScreen = ({ lon, lat }: any) => {
   // Pull live data from the teammate's global store to verify it works
   const currentHike = useHikesStore((state: any) => state.currentHike);
+  const gpsError = useHikesStore((state: any) => state.gpsError);
   const liveCoordinatesCount = currentHike?.coordinates?.length || 0;
 
   // Normalize lon/lat in case they come in as arrays from useLocalSearchParams
@@ -38,6 +39,12 @@ const NavigationScreen = ({ lon, lat }: any) => {
     <View style={styles.container}>
       <TrailMap initialLon={normalizedLon} initialLat={normalizedLat} />
 
+      {gpsError && (
+        <View style={styles.errorIndicatorPill}>
+          <Text style={styles.errorText}>{gpsError}</Text>
+        </View>
+      )}
+
       <View style={styles.liveIndicatorPill}>
         <Animated.View style={[styles.pulsingDot, { opacity }]} />
         <Text style={styles.debugText}>Tracking</Text>
@@ -55,6 +62,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BACKGROUND,
     width: "100%",
     // Edge-to-edge layout, no margins or borders
+  },
+  errorIndicatorPill: {
+    position: "absolute",
+    top: 40,
+    alignSelf: "center",
+    backgroundColor: "#FF3B30", // Crisp danger red
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 30,
+    zIndex: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 6,
+      },
+      web: {
+        boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)",
+      },
+    }),
+  },
+  errorText: {
+    color: Colors.WHITE,
+    fontWeight: "bold",
+    fontSize: 14,
   },
   liveIndicatorPill: {
     position: "absolute",
