@@ -1,5 +1,5 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IGroup, IGroupDB } from "@/src/core/models/Group/Group.types";
+import { IGroup, IGroupDB, IGroupMember } from "@/src/core/models/Group/Group.types";
 import { IMessageBase } from "@/src/core/models/Message/Message.types";
 import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
@@ -16,7 +16,7 @@ export class Group implements IGroup {
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
     participantsIds: string[] = [];
-    members: IUserSummary[] = [];
+    members: IGroupMember[] = [];
     admins: IUserSummary[] = [];
     business: IBusinessSummary = {
         id: '',
