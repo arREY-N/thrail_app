@@ -388,7 +388,7 @@ exports.checkEmail = https.onCall(async (request) => {
     };
 })
 
- exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (request) => {
+ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
      const { amount, type, returnUrl } = request.data;
      const auth = request.auth;
 
