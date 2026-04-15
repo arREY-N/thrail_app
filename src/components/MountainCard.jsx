@@ -32,6 +32,8 @@ const MountainCard = ({
         heroImage
     } = getMountainData(item);
 
+    const filledWeatherIcon = weatherBadge?.icon?.replace('-outline', '') || 'cloud';
+
     return (
         <TouchableOpacity 
             style={[styles.cardContainer, style]} 
@@ -62,7 +64,7 @@ const MountainCard = ({
                     <View style={[styles.glassPill, styles.weatherPosition]}>
                         <CustomIcon
                             library="Ionicons"
-                            name={weatherBadge.icon} 
+                            name={filledWeatherIcon} 
                             size={14}
                             color={Colors.WHITE}
                         />
