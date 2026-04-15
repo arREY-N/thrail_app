@@ -1,7 +1,9 @@
 import useWriteHike from "@/src/core/hook/hike/useHikeWrite";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { formatDate } from "@/src/core/utility/date";
+import { formatTime } from "@/src/core/utility/formatTime";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -12,7 +14,7 @@ export default function hikeView(){
     
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
-
+    const { onBackPress } = useAppNavigation();
     const {
         hike,
         booking,
@@ -28,13 +30,16 @@ export default function hikeView(){
         onEmergencyPress
     } = useWriteHike({hikeId, trailId});
 
-    const formatTime = (ms: number) => {
-        const s = Math.floor(ms / 1000) % 60;
-        const m = Math.floor(ms / 60000) % 60;
-        const h = Math.floor(ms / 3600000);
-        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
+    if((hikeId && hike?.id !== hikeId) || (trailId && hike?.trail.id !== trailId)) {
+        return (
+            <View>
+                <Pressable onPress={() => onBackPress()}>
+                    Back
+                </Pressable>
+                <Text>Hike in progress: {hike?.trail.name} </Text>
+            </View>
+        )
+    }
 
     return(
         <>
