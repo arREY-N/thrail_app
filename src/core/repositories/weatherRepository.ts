@@ -94,7 +94,8 @@ export const fetchWeatherFromApi = async (
       sunset: rawData.daily.sunset[0] ?? "",
       isStale: false,
       lastUpdated: new Date().toISOString(),
-      forecast: rawData.daily.time.slice(0, 4).map((dateStr, i) => ({
+      forecast: rawData.daily.time.map((dateStr, i) => ({
+      // forecast: rawData.daily.time.slice(0, 4).map((dateStr, i) => ({
         date: dateStr,
         temperatureMax: Math.round(rawData.daily.temperature_2m_max[i]),
         temperatureMin: Math.round(rawData.daily.temperature_2m_min[i]),
