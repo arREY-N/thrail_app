@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
     Platform,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -22,6 +23,14 @@ import { useWeather } from '@/src/hooks/useWeather';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
 
+const getMetricAlertLevel = (type, value) => {
+    if (value === undefined || value === null) return 'normal';
+    if (type === 'wind') return value >= 60 ? 'danger' : value >= 40 ? 'warning' : 'normal';
+    if (type === 'precip') return value >= 70 ? 'danger' : value >= 50 ? 'warning' : 'normal';
+    if (type === 'uv') return value >= 8 ? 'danger' : value >= 6 ? 'warning' : 'normal';
+    return 'normal';
+};
+
 const WeatherScreen = ({ 
     latitude, 
     longitude, 
@@ -30,12 +39,11 @@ const WeatherScreen = ({
     onRefreshPress 
 }) => {
     
-    // Abstracted hooks for fetching coords and reverse geocoding
     const { 
         latitude: activeLat, 
         longitude: activeLon, 
-        locationName: displayName,
-        geocodedName
+        locationName: displayName, 
+        geocodedName 
     } = useLocation({ 
         propLatitude: latitude, 
         propLongitude: longitude, 
@@ -60,11 +68,16 @@ const WeatherScreen = ({
     const dayTemp = weatherData?.forecast?.[0]?.temperatureMax !== undefined ? Math.round(weatherData.forecast[0].temperatureMax) : "--";
     const nightTemp = weatherData?.forecast?.[0]?.temperatureMin !== undefined ? Math.round(weatherData.forecast[0].temperatureMin) : "--";
     
-    const wind = weatherData?.windSpeed !== undefined ? `${weatherData.windSpeed} km/h` : "--";
-    const precipAmount = weatherData?.precipitationSum !== undefined ? `${weatherData.precipitationSum} mm` : "--";
-    const precipChance = weatherData?.precipitationProbability !== undefined ? `${weatherData.precipitationProbability}%` : "--";
-    const uvIndex = weatherData?.uvIndex !== undefined ? String(weatherData.uvIndex) : "--";
-    const humidity = weatherData?.humidity !== undefined ? `${Math.round(weatherData.humidity)}%` : "--";
+    const windRaw = weatherData?.windSpeed;
+    const precipRaw = weatherData?.precipitationProbability;
+    const uvRaw = weatherData?.uvIndex;
+    const humidityRaw = weatherData?.humidity;
+    
+    const windVal = windRaw !== undefined ? windRaw : "--";
+    const precipVal = precipRaw !== undefined ? precipRaw : "--";
+    const uvVal = uvRaw !== undefined ? Math.round(uvRaw) : "--";
+    const humVal = humidityRaw !== undefined ? Math.round(humidityRaw) : "--";
+    
     const sunrise = weatherData?.sunrise ? formatSunTime(weatherData.sunrise) : "--:-- AM";
     const sunset = weatherData?.sunset ? formatSunTime(weatherData.sunset) : "--:-- PM";
 
@@ -74,18 +87,11 @@ const WeatherScreen = ({
         updateText = `Last updated ${minDiff} min${minDiff > 1 ? 's' : ''} ago`;
     }
 
-    if (loading && !weatherData) {
-        return <WeatherSkeleton onBackPress={onBackPress} />;
-    }
+    if (loading && !weatherData) return <WeatherSkeleton onBackPress={onBackPress} />;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-
-            <CustomHeader 
-                title="Weather" 
-                centerTitle={true}
-                onBackPress={onBackPress} 
-            />
+            <CustomHeader title="Weather" centerTitle={true} onBackPress={onBackPress} />
 
             <ResponsiveScrollView 
                 style={styles.container}
@@ -93,8 +99,8 @@ const WeatherScreen = ({
                 refreshControl={
                     <RefreshControl 
                         refreshing={refreshing} 
-                        onRefresh={onRefresh}
-                        colors={[Colors.PRIMARY]}
+                        onRefresh={onRefresh} 
+                        colors={[Colors.PRIMARY]} 
                     />
                 }
             >
@@ -102,24 +108,18 @@ const WeatherScreen = ({
                     <View style={styles.heroTop}>
                         <View style={styles.heroTextWrapper}>
                             <View style={styles.tempContainer}>
-                                <CustomText variant="title" style={styles.mainTemp}>
-                                    {temperature}°
-                                </CustomText>
-                                <CustomText variant="subtitle" style={styles.tempUnit}>
-                                    C
-                                </CustomText>
+                                <CustomText style={styles.mainTemp}>{temperature}°</CustomText>
+                                <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
                             </View>
                             <View style={styles.locationWrapper}>
                                 <View style={styles.locationRow}>
                                     <CustomIcon 
-                                        library="FontAwesome6" 
-                                        name="location-dot" 
+                                        library="Ionicons" 
+                                        name="location-sharp" 
                                         size={16} 
-                                        color={Colors.BLACK} 
+                                        color={Colors.PRIMARY} 
                                     />
-                                    <CustomText variant="body" style={styles.locationLabel}>
-                                        {displayName}
-                                    </CustomText>
+                                    <CustomText variant="label" style={styles.locationLabel}>{displayName}</CustomText>
                                 </View>
                                 {geocodedName !== displayName && (
                                     <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
@@ -128,23 +128,21 @@ const WeatherScreen = ({
                                 )}
                             </View>
                         </View>
-
                         <CustomIcon 
                             library={mainLib} 
-                            name={hasData ? mainIcon : "cloud"} 
-                            size={96} 
-                            color={Colors.BLACK} 
+                            name={hasData ? mainIcon : "cloud-outline"} 
+                            size={90} 
+                            color={Colors.PRIMARY} 
                         />
                     </View>
                     
                     <View style={styles.heroDivider} />
                     
                     <View style={styles.heroBottom}>
-                        <CustomText variant="body" style={styles.heroSubText}>
-                            {hasData ? condition : "Loading"}
-                            {updateText ? `  •  ${updateText}` : ''}
+                        <CustomText variant="label" style={styles.heroSubText}>
+                            {hasData ? condition : "Loading"}{updateText ? `  •  ${updateText}` : ''}
                         </CustomText>
-                        <CustomText variant="body" style={styles.heroSubText}>
+                        <CustomText variant="label" style={styles.heroSubText}>
                             Day: {dayTemp}° | Night: {nightTemp}°
                         </CustomText>
                     </View>
@@ -152,7 +150,7 @@ const WeatherScreen = ({
 
                 {error ? (
                     <Animated.View entering={FadeInDown.springify()} style={styles.errorContainer}>
-                        <CustomIcon library="Feather" name="alert-triangle" size={48} color={Colors.ERROR} />
+                        <CustomIcon library="Ionicons" name="warning-outline" size={48} color={Colors.ERROR} />
                         <CustomText variant="body" style={styles.errorText}>
                             {error || "Unable to load weather data."}
                         </CustomText>
@@ -166,63 +164,116 @@ const WeatherScreen = ({
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
                                     library="Ionicons" 
-                                    name="calendar" 
-                                    size={18} 
-                                    color={Colors.TEXT_SECONDARY} 
+                                    name="calendar-outline" 
+                                    size={20} 
+                                    color={Colors.PRIMARY} 
                                 />
-                                <CustomText variant="body" style={styles.cardHeaderTitle}>
-                                    4-Day Forecast
-                                </CustomText>
+                                <CustomText variant="label" style={styles.cardHeaderTitle}>7-Day Forecast</CustomText>
                             </View>
-                            <View style={styles.forecastRow}>
-                                {weatherData?.forecast?.slice(0, 4).map((day, idx) => {
+                            
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false} 
+                                contentContainerStyle={styles.forecastRow}
+                            >
+                                {weatherData?.forecast?.map((day, idx) => {
                                     const { icon, library } = getWeatherInfoUI(day.weatherCode);
                                     const dayName = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' });
                                     return (
                                         <ForecastItem 
-                                            key={idx}
+                                            key={idx} 
                                             day={dayName} 
                                             icon={icon} 
                                             lib={library}
                                             low={Math.round(day.temperatureMin)} 
                                             high={Math.round(day.temperatureMax)} 
+                                            isToday={idx === 0}
                                         />
                                     );
                                 })}
-                            </View>
+                            </ScrollView>
                         </Animated.View>
 
                         <View style={styles.bentoGrid}>
-                            <BentoBox index={0} title="Wind" value={wind} desc="Current speed" icon="wind" lib="Feather" />
-                            <BentoBox index={1} title="Precipitation" value={precipAmount} desc={`${precipChance} chance`} icon="rainy" lib="Ionicons" />
-                            <BentoBox index={2} title="UV Index" value={uvIndex} desc="Current level" icon="sun" lib="Feather" />
-                            <BentoBox index={3} title="Humidity" value={humidity} desc="Relative humidity" icon="water" lib="Ionicons" />
+                            <BentoBox 
+                                index={0} 
+                                title="Wind" 
+                                value={windVal} 
+                                unit="km/h" 
+                                desc="Current speed" 
+                                icon="wind" 
+                                lib="Feather" 
+                                alertLevel={getMetricAlertLevel('wind', windRaw)} 
+                            />
+                            <BentoBox 
+                                index={1} 
+                                title="Precipitation" 
+                                value={precipVal} 
+                                unit="%" 
+                                desc="Chance of rain" 
+                                icon="rainy-outline" 
+                                lib="Ionicons" 
+                                alertLevel={getMetricAlertLevel('precip', precipRaw)} 
+                            />
+                            <BentoBox 
+                                index={2} 
+                                title="UV Index" 
+                                value={uvVal} 
+                                unit="" 
+                                desc="Current level"
+                                icon="thermometer-outline"  
+                                lib="Ionicons" 
+                                alertLevel={getMetricAlertLevel('uv', uvRaw)} 
+                            />
+                            <BentoBox 
+                                index={3} 
+                                title="Humidity" 
+                                value={humVal} 
+                                unit="%" 
+                                desc="Relative humidity" 
+                                icon="water-outline" 
+                                lib="Ionicons" 
+                            />
                         </View>
 
                         <Animated.View entering={FadeInDown.delay(400).springify().damping(14)} style={styles.fullWidthCard}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
                                     library="Ionicons" 
-                                    name="sunny" 
-                                    size={18} 
-                                    color={Colors.TEXT_SECONDARY} 
+                                    name="sunny-outline" 
+                                    size={20} 
+                                    color={Colors.PRIMARY} 
                                 />
-                                <CustomText variant="body" style={styles.cardHeaderTitle}>
-                                    Sun
-                                </CustomText>
+                                <CustomText variant="label" style={styles.cardHeaderTitle}>Sun</CustomText>
                             </View>
                             
                             <View style={styles.sunTimeRow}>
                                 <View style={styles.sunItem}>
-                                    <CustomIcon library="Feather" name="sunrise" size={32} color={Colors.BLACK} />
-                                    <CustomText variant="subtitle" style={styles.sunTimeText}>{sunrise}</CustomText>
-                                    <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="sunrise" 
+                                        size={32} 
+                                        color={Colors.PRIMARY} 
+                                    />
+                                    <View>
+                                        <CustomText style={styles.sunTimeText}>{sunrise}</CustomText>
+                                        <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                                    </View>
                                 </View>
+                                
+                                <View style={styles.sunConnector} />
 
-                                <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
-                                    <CustomIcon library="Feather" name="sunset" size={32} color={Colors.BLACK} />
-                                    <CustomText variant="subtitle" style={styles.sunTimeText}>{sunset}</CustomText>
-                                    <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
+                                <View style={[styles.sunItem, { alignItems: 'flex-end', textAlign: 'right' }]}>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="sunset" 
+                                        size={32} 
+                                        color={Colors.PRIMARY} 
+                                    />
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <CustomText style={styles.sunTimeText}>{sunset}</CustomText>
+                                        <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
+                                    </View>
                                 </View>
                             </View>
                         </Animated.View>
@@ -233,253 +284,317 @@ const WeatherScreen = ({
     );
 };
 
-const ForecastItem = ({ day, icon, lib, low, high }) => (
-    <View style={styles.fItem}>       
+const ForecastItem = ({ day, icon, lib, low, high, isToday }) => (
+    <View style={[styles.fItem, isToday && styles.fItemToday]}>       
+        <CustomText variant="label" style={[styles.fDay, isToday && styles.fDayToday]}>
+            {isToday ? "Today" : day}
+        </CustomText>
         <View style={styles.fIconWrapper}>
-            <CustomIcon library={lib || "MaterialCommunityIcons"} name={icon} size={32} color={Colors.BLACK} />
+            <CustomIcon 
+                library={lib} 
+                name={icon} 
+                size={26} 
+                color={Colors.PRIMARY} 
+            />
         </View>
-        <CustomText variant="caption" style={styles.fDay}>{day}</CustomText>
         <View style={styles.fTempRow}>
-            <CustomText variant="body" style={styles.fTempHigh}>{high}°</CustomText>
+            <CustomText variant="label" style={styles.fTempHigh}>{high}°</CustomText>
             <CustomText style={styles.fTempSeparator}>/</CustomText>
             <CustomText variant="caption" style={styles.fTempLow}>{low}°</CustomText>
         </View> 
     </View>
 );
 
-const BentoBox = ({ title, value, desc, icon, lib, index = 0 }) => (
-    <Animated.View 
-        entering={FadeInDown.delay(150 + (index * 50)).springify().damping(14)} 
-        style={styles.bentoBox}
-    >
-        <View style={styles.bentoHeader}>
-            <CustomIcon library={lib} name={icon} size={18} color={Colors.TEXT_SECONDARY} />
-            <CustomText variant="body" style={styles.bentoTitle}>{title}</CustomText>
-        </View>
-        <View>
-            <CustomText variant="subtitle" style={styles.bentoValue}>{value}</CustomText>
-            <CustomText variant="caption" style={styles.bentoDesc}>{desc}</CustomText>
-        </View>
-    </Animated.View>
-);
+const BentoBox = ({ title, value, unit, desc, icon, lib, index = 0, alertLevel = 'normal' }) => {
+    const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
+    const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
+
+    return (
+        <Animated.View 
+            entering={FadeInDown.delay(150 + (index * 50)).springify().damping(14)} 
+            style={styles.bentoBox}
+        >
+            <View style={styles.bentoHeader}>
+                <CustomIcon library={lib} name={icon} size={20} color={iconColor} />
+                <CustomText variant="label" style={styles.bentoTitle}>{title}</CustomText>
+            </View>
+
+            <View style={styles.bentoMiddle}>
+                <CustomText style={[styles.bentoValue, { color: valueColor }]}>
+                    {value !== undefined ? value : '--'}
+                </CustomText>
+                {unit ? (
+                    <CustomText style={[styles.bentoUnit, { color: valueColor }]}>
+                        {unit}
+                    </CustomText>
+                ) : null}
+            </View>
+
+            <View style={styles.bentoBottom}>
+                <CustomText variant="caption" style={styles.bentoDesc}>{desc}</CustomText>
+            </View>
+        </Animated.View>
+    );
+};
 
 const dropShadow = Platform.select({
     ios: {
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
     },
     android: {
         elevation: 3,
     },
     web: {
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.06)',
     }
 });
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { 
+        flex: 1 
     },
-    scrollContent: {
-        padding: 16,
-        gap: 16,
-        paddingBottom: 32,
-    },
-    heroSection: {
-        paddingVertical: 16,
-    },
-    heroTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    heroTextWrapper: {
-        alignItems: 'flex-start',
-        flex: 1,
-        paddingRight: 16,
-    },
-    tempContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    mainTemp: {
-        fontSize: 72,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
-        letterSpacing: -3,
-        includeFontPadding: false,
-    },
-    tempUnit: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: 12,
-        marginLeft: 2,
-        color: Colors.TEXT_PRIMARY,
-    },
-    locationWrapper: {
-        alignItems: 'flex-start',
-        marginTop: -8,
-    },
-    locationRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    locationLabel: {
-        fontWeight: '600',
-    },
-    geocodedLabel: {
-        marginLeft: 20,
-        marginTop: 0,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500',
-        fontSize: 12,
-    },
-    heroDivider: {
-        height: 2,
-        backgroundColor: Colors.GRAY_LIGHT,
-        marginVertical: 16,
-        opacity: 0.5,
-    },
-    heroBottom: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    heroSubText: {
-        fontWeight: '500',
-        color: Colors.TEXT_SECONDARY,
-    },
-
-    fullWidthCard: {
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 16,
-        padding: 16,
-        gap: 16,
-        ...dropShadow, 
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    cardHeaderTitle: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-    },
-
-    forecastRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-    },
-    fItem: {
-        alignItems: 'center',
-        gap: 4,
-    },
-    fIconWrapper: {
-        height: 32, 
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    fDay: {
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY, 
-    },
-    fTempRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    fTempHigh: {
-        fontWeight: '800',
-        color: Colors.TEXT_PRIMARY,
-    },
-    fTempSeparator: {
-        fontSize: 14,
-        color: Colors.GRAY_MEDIUM, 
-        marginHorizontal: 4,
-    },
-    fTempLow: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: Colors.TEXT_SECONDARY, 
-    },
-
-    bentoGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginHorizontal: -8,
-    },
-    bentoBox: {
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 16,
-        padding: 16,
-        margin: 8,
-        flex: 1,
-        minWidth: 140,
-        minHeight: 160,
-        justifyContent: 'space-between',
-        ...dropShadow, 
-    },
-    bentoHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    bentoTitle: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-    },
-    bentoValue: {
-        fontWeight: 'bold',
-        marginBottom: 8, 
-    },
-    bentoDesc: {
-        fontWeight: '500',
-        color: Colors.TEXT_SECONDARY,
-    },
-
-    sunTimeRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 0,
-    },
-    sunItem: {
-        gap: 8,
-    },
-    sunTimeText: {
-        fontWeight: 'bold',
-        marginBottom: 0,
-    },
-    sunLabel: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-        textTransform: 'uppercase',
+    scrollContent: { 
+        padding: 16, 
+        gap: 16, 
+        paddingBottom: 40 
     },
     
-    errorContainer: {
-        marginTop: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        gap: 16,
+    heroSection: { 
+        paddingVertical: 12, 
+        paddingHorizontal: 8 
     },
-    errorText: {
-        color: Colors.ERROR,
-        textAlign: 'center',
-        marginBottom: 8,
+    heroTop: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
     },
-    retryBtn: {
-        backgroundColor: Colors.PRIMARY,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
+    heroTextWrapper: { 
+        alignItems: 'flex-start', 
+        flex: 1 
     },
-    retryText: {
-        color: Colors.WHITE,
+    tempContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'flex-start' 
+    },
+    mainTemp: { 
+        fontSize: 64, 
+        fontWeight: '900', 
+        color: Colors.TEXT_PRIMARY, 
+        letterSpacing: -2, 
+        includeFontPadding: false 
+    },
+    tempUnit: { 
+        marginTop: 12, 
+        marginLeft: 2 
+    },
+    locationWrapper: { 
+        alignItems: 'flex-start', 
+        marginTop: -4 
+    },
+    locationRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 6, 
+        marginLeft: 4 
+    },
+    locationLabel: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+    geocodedLabel: { 
+        marginLeft: 24, 
+        marginTop: 2 
+    },
+    heroDivider: { 
+        height: 1, 
+        backgroundColor: Colors.GRAY_LIGHT, 
+        marginVertical: 20 
+    },
+    heroBottom: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        paddingHorizontal: 4 
+    },
+    heroSubText: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+
+    fullWidthCard: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 20, 
+        padding: 20, 
+        gap: 16, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...dropShadow 
+    },
+    cardHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8, 
+        marginBottom: 4 
+    },
+    cardHeaderTitle: { 
+        color: Colors.TEXT_SECONDARY, 
+        textTransform: 'uppercase', 
+        letterSpacing: 0.5 
+    },
+
+    forecastRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 12, 
+        paddingRight: 16 
+    },
+    fItem: { 
+        alignItems: 'center', 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        paddingVertical: 16, 
+        paddingHorizontal: 12, 
+        borderRadius: 16, 
+        gap: 4, 
+        minWidth: 70,
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+    fItemToday: {
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
+    },
+    fIconWrapper: { 
+        height: 36, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    fDay: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+    fDayToday: {
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
+    },
+    fTempRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+    },
+    fTempHigh: { 
+        color: Colors.TEXT_PRIMARY 
+    },
+    fTempSeparator: { 
+        fontSize: 12, 
+        color: Colors.GRAY_MEDIUM, 
+        marginHorizontal: 2 
+    },
+    fTempLow: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+
+    bentoGrid: { 
+        flexDirection: 'row', 
+        flexWrap: 'wrap', 
+        justifyContent: 'space-between', 
+        gap: 16 
+    },
+    bentoBox: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 20, 
+        padding: 16, 
+        width: '47.5%', 
+        minHeight: 140, 
+        display: 'flex',
+        flexDirection: 'column',
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...dropShadow 
+    },
+    bentoHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8 
+    },
+    bentoTitle: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+    bentoMiddle: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'flex-end', 
+        justifyContent: 'flex-start',
+        marginTop: 16,
+    },
+    bentoValue: { 
+        fontSize: 32, 
+        fontWeight: '900', 
+        includeFontPadding: false,
+    },
+    bentoUnit: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginLeft: 4,
+        marginBottom: 4, 
+    },
+    bentoBottom: {
+        marginTop: 16,
+        justifyContent: 'flex-end',
+    },
+    bentoDesc: { 
+        color: Colors.TEXT_SECONDARY 
+    },
+
+    sunTimeRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between' 
+    },
+    sunItem: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 12 
+    },
+    sunTimeText: { 
+        fontSize: 20, 
+        fontWeight: '800', 
+        color: Colors.TEXT_PRIMARY, 
+        marginBottom: 2 
+    },
+    sunLabel: { 
+        color: Colors.TEXT_SECONDARY, 
+        textTransform: 'uppercase', 
+        letterSpacing: 0.5 
+    },
+    sunConnector: { 
+        flex: 1, 
+        height: 1, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        borderStyle: 'dashed',
+        marginHorizontal: 16,
+    },
+    
+    errorContainer: { 
+        marginTop: 60, 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: 24, 
+        gap: 16 
+    },
+    errorText: { 
+        color: Colors.ERROR, 
+        textAlign: 'center', 
+        marginBottom: 8 
+    },
+    retryBtn: { 
+        backgroundColor: Colors.PRIMARY, 
+        paddingHorizontal: 24, 
+        paddingVertical: 12, 
+        borderRadius: 12 
+    },
+    retryText: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold' 
     }
 });
 

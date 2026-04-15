@@ -6,9 +6,6 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 
-// ==========================================
-// 1. MAIN SCREEN SKELETON
-// ==========================================
 const WeatherSkeleton = ({ onBackPress }) => {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -16,7 +13,6 @@ const WeatherSkeleton = ({ onBackPress }) => {
             
             <View style={styles.scrollContent}>
                 
-                {/* Hero */}
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
                         <View style={styles.heroTextCol}>
@@ -32,7 +28,6 @@ const WeatherSkeleton = ({ onBackPress }) => {
                     </View>
                 </View>
                 
-                {/* Forecast Row */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
                         <SkeletonEffect style={styles.headerIconSkeleton} />
@@ -45,7 +40,6 @@ const WeatherSkeleton = ({ onBackPress }) => {
                     </View>
                 </View>
 
-                {/* Bento Grid */}
                 <View style={styles.bentoGrid}>
                     {[1, 2, 3, 4].map((i) => (
                         <View key={i} style={styles.bentoBox}>
@@ -63,7 +57,6 @@ const WeatherSkeleton = ({ onBackPress }) => {
                     ))}
                 </View>
 
-                {/* Sun Row */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
                         <SkeletonEffect style={styles.headerIconSkeleton} />
@@ -95,9 +88,6 @@ const WeatherSkeleton = ({ onBackPress }) => {
     );
 };
 
-// ==========================================
-// 2. TRAIL WIDGET SKELETON
-// ==========================================
 export const WeatherWidgetSkeleton = () => {
     return (
         <View style={styles.widgetContainer}>
@@ -147,8 +137,7 @@ const styles = StyleSheet.create({
     widgetContainer: { 
         paddingVertical: 8 
     },
-    
-    // Skeletons - Hero
+
     heroSection: { 
         paddingVertical: 12, 
         paddingHorizontal: 8 
@@ -194,7 +183,6 @@ const styles = StyleSheet.create({
         height: 16 
     },
 
-    // Skeletons - Cards
     fullWidthCard: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 20, 
@@ -218,8 +206,7 @@ const styles = StyleSheet.create({
         width: 100, 
         height: 16 
     },
-    
-    // Skeletons - Forecast
+
     forecastRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between',
@@ -232,7 +219,6 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
 
-    // Skeletons - Bento
     bentoGrid: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
@@ -282,7 +268,6 @@ const styles = StyleSheet.create({
         borderRadius: 4
     },
 
-    // Skeletons - Sun
     sunTimeRow: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -324,7 +309,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 16,
     },
 
-    // Widget specific
     safetyBannerSkeleton: { 
         width: '100%', 
         height: 48, 

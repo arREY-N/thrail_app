@@ -27,8 +27,7 @@ const WeatherSection = ({ weatherData, loading, error, onPress }) => {
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
             <View style={styles.row}>
-                
-                {/* LEFT COLUMN: Main Temp & Location */}
+
                 <View style={styles.leftColumn}>
                     <View style={styles.tempWrapper}>
                         <CustomText style={styles.tempText}>
@@ -52,7 +51,6 @@ const WeatherSection = ({ weatherData, loading, error, onPress }) => {
                     </View>
                 </View>
 
-                {/* RIGHT COLUMN: Icon & Day/Night Badge */}
                 <View style={styles.rightColumn}>
                     {hasData ? (
                         <CustomIcon 
@@ -89,11 +87,9 @@ const styles = StyleSheet.create({
         marginBottom: 16,     
         paddingHorizontal: 24, 
         paddingVertical: 20,
-        // Using GRAY_ULTRALIGHT to separate it from standard white cards
         backgroundColor: Colors.WHITE,
         borderRadius: 24,     
         
-        // Deep, soft shadow for premium lift
         ...Platform.select({
             ios: {
                 shadowColor: Colors.SHADOW,
@@ -115,7 +111,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     
-    // --- Left Column Styles ---
     leftColumn: {
         justifyContent: 'center',
         gap: 12,
@@ -143,13 +138,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginLeft: 4, // Aligns icon beautifully with the heavy font
+        marginLeft: 4,
     },
     locationText: {
         color: Colors.TEXT_SECONDARY,
     },
 
-    // --- Right Column Styles ---
     rightColumn: {
         alignItems: 'flex-end',
         justifyContent: 'center',
