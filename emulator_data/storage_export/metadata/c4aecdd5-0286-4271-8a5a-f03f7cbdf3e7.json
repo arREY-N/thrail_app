@@ -1,0 +1,19 @@
+{
+  "name": "users/9fO1ouJP4NMO5nLV9nIY5EarozNi/documents/1776112784373_file.png",
+  "bucket": "thrail.firebasestorage.app",
+  "metageneration": 1,
+  "generation": 1776112784684,
+  "contentType": "image/png",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "269238ea-1141-4c54-91d2-cff5ce38d831"
+  ],
+  "etag": "JXc7amGrXaKW+0GgNNIr0fl7VfA",
+  "customMetadata": {},
+  "timeCreated": "2026-04-13T20:39:44.685Z",
+  "updated": "2026-04-13T20:39:44.685Z",
+  "size": 4784,
+  "md5Hash": "6OwoETOWOJgtXAhYNE1KxA==",
+  "crc32c": "2665059792"
+}
