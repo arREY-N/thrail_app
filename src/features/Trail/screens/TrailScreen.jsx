@@ -65,7 +65,7 @@ const TrailScreen = ({
     const stats = {
         distance: trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--",
         time: trail?.difficulty?.hours ? `${trail.difficulty.hours} hr` : "--",
-        elevation: trail?.geography?.masl ? `${trail.geography.masl} m` : "--",
+        elevation: trail?.difficulty?.elevation ? `${trail.difficulty.elevation} m` : "--",
     };
 
     const latitude = trail?.geography?.latitude ?? trail?.location?.latitude ?? null;

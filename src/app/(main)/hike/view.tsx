@@ -4,11 +4,12 @@ import { Hike } from "@/src/core/models/Hike/Hike";
 import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
+import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function hikeView(){
-    const { hikeId: rawId , trailId: rawTrail, lon, lat} = useLocalSearchParams();
+    const { hikeId: rawId , trailId: rawTrail, lon: paramLon, lat: paramLat} = useLocalSearchParams();
     
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
@@ -27,6 +28,12 @@ export default function hikeView(){
         onResetHike,
         onEmergencyPress
     } = useWriteHike({hikeId, trailId});
+
+    // Fallback logic to grab the trail from global store if lon/lat were missing
+    const trails = useTrailsStore(s => s.data);
+    const fullTrailData = trails.find(t => t.id === (trailId || hike?.trail?.id));
+    const lon = paramLon || fullTrailData?.geography?.startLong?.toString();
+    const lat = paramLat || fullTrailData?.geography?.startLat?.toString();
 
     const formatTime = (ms: number) => {
         const s = Math.floor(ms / 1000) % 60;

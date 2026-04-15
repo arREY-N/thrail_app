@@ -8,6 +8,7 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { FieldPath } = admin.firestore;
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
+const { Buffer } = require('buffer');
 
 admin.initializeApp();
 
@@ -438,6 +439,9 @@ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (re
             if (response.status === 401 || response.status === 403) {
                 throw new Error("Payment service is currently unavailable. Please notify the Thrail administrators.");
             }
+            if (response.status >= 500) {
+                throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
+            }
 
             let paymongoError = null;
             try {
@@ -463,7 +467,7 @@ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (re
                 if (code === 'parameter_format_invalid' && pointer === 'return_url') {
                     throw new Error("An internal routing error occurred while generating your booking checkout. Please try again.");
                 }
-                if (code === 'SYSTEM_ERROR' || code === 'PY0016' || response.status >= 500) {
+                if (code === 'SYSTEM_ERROR' || code === 'PY0016') {
                     throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
                 }
                 
@@ -484,4 +488,33 @@ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (re
         console.error("PayMongo Checkout Session Failed: ", err);
         throw new HttpsError('internal', err.message || 'Failed to initialize PayMongo checkout');
     }
+});
+
+exports.paymongoRedirect = functions.https.onRequest((req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) {
+        res.status(400).send("Missing URL parameter");
+        return;
+    }
+
+    // Using an HTML meta-refresh and JS redirect ensures the app scheme 
+    // is correctly invoked by the WebView, avoiding standard 302 errors.
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta http-equiv="refresh" content="0;url=${targetUrl}">
+        </head>
+        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+            <p>Returning to app...</p>
+            <script>
+                setTimeout(function() {
+                    window.location.href = "${targetUrl}";
+                }, 100);
+            </script>
+        </body>
+        </html>
+    `;
+    res.status(200).send(html);
 });
