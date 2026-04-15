@@ -57,8 +57,8 @@ export default function hikeView(){
                 elapsedTime={formatTime(elapsedTime)}
                 hikeId={hikeId}
                 trailId={trailId}
-                lon={lon}
-                lat={lat}
+                lon={paramLon}
+                lat={paramLat}
                 onEmergencyPress={onEmergencyPress}
             />        
         </>
