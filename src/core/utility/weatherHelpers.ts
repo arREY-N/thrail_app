@@ -24,20 +24,20 @@ export const formatSunTime = (isoString: string): string => {
 };
 
 export const getWeatherInfoUI = (code: number | undefined | null): { condition: string, icon: string, library: string } => {
-    if (code === undefined || code === null) return { condition: 'Unknown', icon: 'cloud', library: 'Ionicons' };
+    if (code === undefined || code === null) return { condition: 'Unknown', icon: 'cloud-outline', library: 'Ionicons' };
     
-    if (code === 0) return { condition: 'Clear Sky', icon: 'sunny', library: 'Ionicons' }; 
-    if (code <= 2) return { condition: 'Partly Cloudy', icon: 'partly-sunny', library: 'Ionicons' };
-    if (code === 3) return { condition: 'Overcast', icon: 'cloudy', library: 'Ionicons' };
-    if (code <= 48) return { condition: 'Fog', icon: 'cloud', library: 'Ionicons' };
-    if (code <= 57) return { condition: 'Drizzle', icon: 'rainy', library: 'Ionicons' };
-    if (code <= 67) return { condition: 'Rain', icon: 'rainy', library: 'Ionicons' };
-    if (code <= 77) return { condition: 'Snow', icon: 'snow', library: 'Ionicons' };
-    if (code <= 82) return { condition: 'Showers', icon: 'rainy', library: 'Ionicons' };
-    if (code <= 86) return { condition: 'Snow Showers', icon: 'snow', library: 'Ionicons' };
-    if (code >= 95) return { condition: 'Thunderstorm', icon: 'thunderstorm', library: 'Ionicons' };
+    if (code === 0) return { condition: 'Clear Sky', icon: 'sunny-outline', library: 'Ionicons' }; 
+    if (code <= 2) return { condition: 'Partly Cloudy', icon: 'partly-sunny-outline', library: 'Ionicons' };
+    if (code === 3) return { condition: 'Overcast', icon: 'cloudy-outline', library: 'Ionicons' };
+    if (code <= 48) return { condition: 'Fog', icon: 'cloud-offline-outline', library: 'Ionicons' };
+    if (code <= 57) return { condition: 'Drizzle', icon: 'rainy-outline', library: 'Ionicons' };
+    if (code <= 67) return { condition: 'Rain', icon: 'rainy-outline', library: 'Ionicons' };
+    if (code <= 77) return { condition: 'Snow', icon: 'snow-outline', library: 'Ionicons' };
+    if (code <= 82) return { condition: 'Showers', icon: 'rainy-outline', library: 'Ionicons' };
+    if (code <= 86) return { condition: 'Snow Showers', icon: 'snow-outline', library: 'Ionicons' };
+    if (code >= 95) return { condition: 'Thunderstorm', icon: 'thunderstorm-outline', library: 'Ionicons' };
     
-    return { condition: 'Unknown', icon: 'cloud', library: 'Ionicons' };
+    return { condition: 'Unknown', icon: 'cloud-outline', library: 'Ionicons' };
 };
 
 export const getWeatherDescription = (wmoCode: number): string => {
