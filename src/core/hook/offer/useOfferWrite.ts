@@ -108,27 +108,26 @@ export function useOfferWrite(params: UseOfferParams = {}){
                 business: offer.business,
                 trail: offer.trail,
                 offer: {
-                    id: offer.id,
-                    date: offer.date,
-                    documents: offer.documents,
-                    schedule: offer.schedule,
-                    endDate: offer.endDate,
-                    duration: offer.duration,
-                    price: offer.price,
-                    maxPax: offer.maxPax,
-                    minPax: offer.minPax,
-                    reservedPax: offer.reservedPax,
-                    inclusions: offer.inclusions,
-                    thingsToBring: offer.thingsToBring,
-                    reminders: offer.reminders,
-                    description: offer.description
+                    id: success.id,
+                    date: success.date,
+                    documents: success.documents,
+                    schedule: success.schedule,
+                    endDate: success.endDate,
+                    duration: success.duration,
+                    price: success.price,
+                    maxPax: success.maxPax,
+                    minPax: success.minPax,
+                    reservedPax: success.reservedPax,
+                    inclusions: success.inclusions,
+                    thingsToBring: success.thingsToBring,
+                    reminders: success.reminders,
+                    description: success.description
                 },
                 status: 'active',
             })
             
             createGroup(group);
 
-            if(!success) throw new Error('Failed') 
             router.back();
         } catch (error) {
             setLocalError((error as Error).message || 'Failed submitting')
