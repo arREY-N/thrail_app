@@ -1,6 +1,7 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Hike } from "@/src/core/models/Hike/Hike";
+import { Location } from "@/src/core/models/Location/Location";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
@@ -21,6 +22,7 @@ export interface IUseWriteHike {
     onCompleteHike: () => void;
     onResetHike: () => void;
     onEmergencyPress: () => void;
+    tick: () => void;
 
     onAddReview: (trailId: string) => void;
 }
@@ -41,7 +43,8 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
     const isLoading = useHikesStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
     const hikes = useHikesStore(s => s.hikes);
-    
+    const coordinates = useHikesStore(s => s.coordinates);
+
     const currentHike = useHikesStore(s => s.currentHike);
     const elapsedTime = useHikesStore(s => s.elapsedTime);
     const timerStartTime = useHikesStore(s => s.timerStartTime);
@@ -51,6 +54,7 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
     const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
     const updateHikeStore = useHikesStore(s => s.updateHikeStore);
     const create = useHikesStore(s => s.create);
+    const startHike = useHikesStore(s => s.startHike);
 
     const [booking, setBooking] = useState<Booking | null>(null);
 
@@ -114,13 +118,28 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
             setLocalError("No hike data available to start");
             return;
         }
-
+        
         updateHikeStore({
             currentHike: found,
         })
-    },[hikeId, trailId, profile?.id])
 
+        return () => {
+            if(currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked')){
+                console.log('will update hike store active hike to null since hike is: ', currentHike.status);
+                updateHikeStore({ currentHike: null });
+                console.log('updated: ', currentHike)
+            } else {
+                console.log('Retain active hike unless completed. currently ', currentHike?.status);
+            }
+        }
+    },[currentHike?.status, hikeId, trailId, profile?.id])
+    
     const onStartHike = () => {
+        if(!profile?.id) {
+            setLocalError("User ID is required to start hike");
+            return;
+        }
+
         if(!currentHike) {
             setLocalError("No hike loaded to start");
             return;
@@ -131,16 +150,7 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
             return;
         }
 
-        updateCurrentHike({
-            status: 'started',
-            startTime: new Date(),
-        });
-
-        updateHikeStore({
-            active: true,
-            elapsedTime: 0,
-            timerStartTime: Date.now(),
-        })
+        startHike(profile!.id);
     };
 
     const onPauseHike = () => {
@@ -218,12 +228,13 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
         if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
             return;
         } 
-        useHikesStore.getState().addCoordinate({
+        useHikesStore.getState().addCoordinate(new Location({
             latitude: Math.random() * 180 - 90,
             longitude: Math.random() * 360 - 180,
             altitude: Math.random() * 2000,
             timestamp: new Date(),
-        })
+        }));
+        
         const now = Date.now();
 
         updateHikeStore({ elapsedTime: now - timerStartTime });
@@ -279,9 +290,9 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
         error: error || localError,
         isLoading,
         booking,
-
         elapsedTime,
-
+        
+        tick,
         onEmergencyPress,
         onStartHike,
         onAddReview,

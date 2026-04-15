@@ -1,5 +1,5 @@
 import { DifficultyRating, IHikeSurvey } from "@/src/core/models/Review/Review.types";
-import { GeoPoint, Timestamp } from "firebase/firestore";
+import { FieldValue, GeoPoint, Timestamp } from "firebase/firestore";
 
 export type Status = 'unhiked' | 'started' | 'paused' | 'completed'
 
@@ -13,17 +13,16 @@ export interface Coordinates {
 export interface CoordinatesDB {
     point: GeoPoint;
     altitude: number;
-    timestamp: Timestamp;
+    timestamp: Timestamp | FieldValue;
 }
 
-export interface IHikeBase<T, TRating, TCoordinates> extends IHikeSurvey<T, TRating>{
+export interface IHikeBase<T, TRating> extends IHikeSurvey<T, TRating>{
     status: Status;
     mode: 'booked' | 'direct';
     bookingId?: string | undefined;
     startTime?: T | undefined;
     endTime?: T | undefined;
-    coordinates: TCoordinates[];
 }
 
-export interface IHikeDB extends IHikeBase<Timestamp, number, CoordinatesDB>{}
-export interface IHike extends IHikeBase<Date, DifficultyRating, Coordinates>{}
+export interface IHikeDB extends IHikeBase<Timestamp, number>{}
+export interface IHike extends IHikeBase<Date, DifficultyRating>{}
