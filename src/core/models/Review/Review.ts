@@ -50,7 +50,7 @@ export class Review implements IReview {
             predictedDifficulty: (data.predictedDifficulty && data.predictedDifficulty > 0) ? toTextual(data.predictedDifficulty) : 'undefined',
             perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
         }
-        console.log('Mapped Review from Firestore: ', mapped);
+        
         return new Review(mapped);
     }
 

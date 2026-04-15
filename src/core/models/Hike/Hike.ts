@@ -1,9 +1,9 @@
-import { Coordinates, IHike, IHikeDB, Status } from "@/src/core/models/Hike/Hike.types";
+import { IHike, IHikeDB, Status } from "@/src/core/models/Hike/Hike.types";
 import { toNumerical, toTextual } from "@/src/core/models/Review/Logic/Review.converter";
 import { DifficultyFactors, DifficultyRating, FavoredFactors } from "@/src/core/models/Review/Review.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 
 export class Hike implements IHike {
@@ -27,8 +27,7 @@ export class Hike implements IHike {
     review: string = '';
     image: string[] = [];
     predictedDifficulty: DifficultyRating = 'Easy';
-    perceivedDifficulty?: DifficultyRating | undefined;
-    coordinates: Coordinates[] = [];
+    perceivedDifficulty: DifficultyRating = 'undefined';
 
     constructor(init?: Partial<IHike>) {
         Object.assign(this, init);
@@ -40,16 +39,10 @@ export class Hike implements IHike {
             id,
             hikeDate: toDate(data.hikeDate),
             predictedDifficulty: toTextual(data.predictedDifficulty),
-            perceivedDifficulty: data.perceivedDifficulty !== undefined ? toTextual(data.perceivedDifficulty) : undefined,
+            perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
             startTime: data.startTime ? toDate(data.startTime) : undefined,
             endTime: data.endTime ? toDate(data.endTime) : undefined,
             trailMaintenance: toTextual(data.trailMaintenance),
-            coordinates: (data.coordinates || []).map(coord => ({
-                latitude: coord.point.latitude,
-                longitude: coord.point.longitude,
-                altitude: coord.altitude,
-                timestamp: toDate(coord.timestamp)
-            }))
         }
         
         return new Hike(mapped);
@@ -69,15 +62,7 @@ export class Hike implements IHike {
             favoredFactors: this.favoredFactors,
             review: this.review,
             image: this.image,
-            coordinates: this.coordinates.map(coord => ({
-                point: new GeoPoint(coord.latitude, coord.longitude),
-                altitude: coord.altitude || 0,
-                timestamp: Timestamp.fromDate(coord.timestamp)
-            }))
-        }
-
-        if(this.perceivedDifficulty !== undefined) {
-            mapped.perceivedDifficulty = toNumerical(this.perceivedDifficulty)
+            perceivedDifficulty: this.perceivedDifficulty !== 'undefined' ? toNumerical(this.perceivedDifficulty) : 0
         }
 
         if(this.mode === 'booked' && this.bookingId) {

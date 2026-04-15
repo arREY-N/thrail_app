@@ -1,31 +1,31 @@
 // TODO: remove the unused import once front end implemented
-import React, { useEffect } from "react";
+import React from "react";
 
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAuthStore } from "@/src/core/stores/authStore";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
 
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 
+import useBook from '@/src/core/hook/book/useBook';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 
-export default function listBook() {
-  const { onBackPress } = useAppNavigation();
+export default function listBook(){
+    const { onBackPress } = useAppNavigation();
+    const { profile } = useAuthHook();
 
-  const { bookings, isLoading, error, onCancelBookingPress, getBookOffer } =
-    useBookOffer();
+    const { 
+        bookings,
+        error,
+        onCancelBookingPress,
+        getBookOffer,
+    } = useBookOffer();
 
-  const profile = useAuthStore((s) => s.profile);
-  const loadBookings = useBookingsStore((s) => s.load);
-
-  useEffect(() => {
-    if (profile?.id) {
-      loadBookings(profile.id);
-    }
-  }, [profile?.id, loadBookings]);
+    const {
+        isLoading
+    } = useBook({userId: profile?.id});
 
   if (isLoading) {
     return (
@@ -35,12 +35,12 @@ export default function listBook() {
     );
   }
 
-  //Todo: remove this when the dummy data is not gonna use
-  const displayBookings = [...DummyBookings, ...(bookings || [])];
-
-  return (
-    <>
-      {/* {
+    //Todo: remove this when the dummy data is not gonna use
+    const displayBookings = [...DummyBookings, ...(bookings || [])]
+    
+    return (
+        <>
+            {/* {
                 bookings.length > 0 && bookings.map(u => {
                     return (
                         <>
@@ -52,21 +52,21 @@ export default function listBook() {
                     )
                 })
             } */}
-      {/* <CustomTextInput
+            {/* <CustomTextInput
                 label="Reason for cancellation"
                 value={reason}
                 onChangeText={setReason}
             /> */}
-      <MyBookingsScreen
-        userBookings={displayBookings}
-        isLoading={isLoading}
-        error={error}
-        onBackPress={onBackPress}
-        onCancelBookingPress={onCancelBookingPress}
-        getBookOffer={getBookOffer}
-      />
-    </>
-  );
+            <MyBookingsScreen 
+                userBookings={displayBookings}
+                isLoading={isLoading}
+                error={error}
+                onBackPress={onBackPress}
+                onCancelBookingPress={onCancelBookingPress}
+                getBookOffer={getBookOffer}
+            />
+        </>
+    );
 }
 
 //Todo: remove this when the dummy data is not gonna use

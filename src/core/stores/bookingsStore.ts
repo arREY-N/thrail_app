@@ -4,14 +4,15 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 interface BookState{
-    create: (...args: any) => Promise<boolean>;
+    create: (...args: any) => Promise<Booking>;
     checkBookings: (id: string) => boolean;
     cancelBooking: (booking: Booking, businessId: string) => Promise<void>;
     reset: () => void;
     fetchOfferBookings: (offerId: string, role: string) => Promise<void>;
     loadById: (bookingId: string) => Promise<void>; 
     loadAll: (role: string) => Promise<void>;
-
+    load: (userId: string) => Promise<void>;
+    
     data: Booking[];
     error: string | null;
     isLoading: boolean;
@@ -86,7 +87,7 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
     },
 
     load: async (userId: string) => {
-        if(get().userBookings?.length > 0 && get().userBookings[0].userId === userId) 
+        if(get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) 
             return;
 
         set({isLoading: true, error: null});
@@ -160,7 +161,7 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
                 
                 state.isLoading = false;
             })
-            return true;
+            return data;
         } catch (err) {
             set({ isLoading: false, })
             throw err;

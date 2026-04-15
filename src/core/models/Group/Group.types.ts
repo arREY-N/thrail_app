@@ -5,13 +5,16 @@ import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
+export interface IGroupMember extends IUserSummary {
+    bookingId: string;
+}
 
 export interface IGroupBase<T> {
     id: string;
     createdAt: T;
     updatedAt: T;
     participantsIds: string[];
-    members: IUserSummary[];
+    members: IGroupMember[];
     admins: IUserSummary[];
     business: IBusinessSummary;
     trail: ITrailSummary;

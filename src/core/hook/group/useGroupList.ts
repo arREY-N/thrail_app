@@ -5,8 +5,7 @@ import { useEffect } from "react";
 
 export const useGroupList = (userId: string) => {
     const { groups, setGroups } = useGroupStore();
-        
-    console.log(userId)
+    
     useEffect(() => {
         if (!userId) return;
         const unsubscribe = MessageRepository.listenToUserGroups(userId, setGroups);

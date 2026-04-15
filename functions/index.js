@@ -1,18 +1,23 @@
 const admin = require("firebase-admin");
-const {setGlobalOptions} = require("firebase-functions");
-const { onCall, HttpsError } = require("firebase-functions/https");
+const {setGlobalOptions} = require("firebase-functions/v2");
+const { https } = require("firebase-functions/v2");
+const { HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
-
+const cors = require('cors')({origin: true});
 const { FieldPath } = admin.firestore;
+
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const { Buffer } = require('buffer');
 
 admin.initializeApp();
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({ 
+    region: 'us-central1', 
+    maxInstances: 10 
+});
 
 exports.onAddBooking = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
@@ -199,7 +204,7 @@ exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     console.log(`User doc and recommendation collection created for: ${userRef}`);
 });
 
-exports.createAdmin = onCall(async (request) => {
+exports.createAdmin = https.onCall(async (request) => {
     const { userId, businessId } = request.data;
     const caller = request.auth;
     const db = admin.firestore();
@@ -256,13 +261,13 @@ exports.createAdmin = onCall(async (request) => {
     }
 });
 
-exports.createBusiness = onCall(async (request) => {
+exports.createBusiness = https.onCall(async (request) => {
     const { data, applicationId } = request.data;
     const auth = request.auth;
 
-    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (!auth) throw new Error('unauthenticated: Authentication Required');
     if (auth.token.role !== 'superadmin') {
-        throw new HttpsError('permission-denied', 'Only superadmins can approve applications');
+        throw new Error('permission-denied:  Only superadmins can approve applications');
     }
 
     const userId = data.owner?.id;
@@ -328,7 +333,7 @@ exports.createBusiness = onCall(async (request) => {
     }
 });
 
-exports.deleteUser = onCall(async (request) => {
+exports.deleteUser = https.onCall(async (request) => {
     const { userId } = request.data;
     const caller = request.auth;
     
@@ -361,7 +366,7 @@ exports.deleteUser = onCall(async (request) => {
     }
 })
 
-exports.checkEmail = onCall(async (request) => {
+exports.checkEmail = https.onCall(async (request) => {
     const { email, username } = request.data;
     
     if(!email.trim()) throw new HttpsError('invalid-argument', 'No email provided');
@@ -383,58 +388,58 @@ exports.checkEmail = onCall(async (request) => {
     };
 })
 
-exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (request) => {
-    const { amount, type, returnUrl } = request.data;
-    const auth = request.auth;
+ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (request) => {
+     const { amount, type, returnUrl } = request.data;
+     const auth = request.auth;
 
-    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
-    if (!amount || !type) throw new HttpsError('invalid-argument', 'Amount and type are required');
-    if (!['gcash', 'paymaya', 'maya'].includes(type)) throw new HttpsError('invalid-argument', 'Invalid payment type');
+     if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+     if (!amount || !type) throw new HttpsError('invalid-argument', 'Amount and type are required');
+     if (!['gcash', 'paymaya', 'maya'].includes(type)) throw new HttpsError('invalid-argument', 'Invalid payment type');
 
-    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+     const PAYMONGO_SECRET_KEY = paymongoSecret.value();
 
-    if (!PAYMONGO_SECRET_KEY) {
-        throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing in environment.');
-    }
+     if (!PAYMONGO_SECRET_KEY) {
+         throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing in environment.');
+     }
 
-    const encodedKey = Buffer.from(PAYMONGO_SECRET_KEY).toString('base64');
+     const encodedKey = Buffer.from(PAYMONGO_SECRET_KEY).toString('base64');
     
-    // PayMongo uses 'paymaya' internally
-    const sourceType = type === 'maya' ? 'paymaya' : type;
-    const redirectUrl = returnUrl || 'thrailapp://';
+     // PayMongo uses 'paymaya' internally
+     const sourceType = type === 'maya' ? 'paymaya' : type;
+     const redirectUrl = returnUrl || 'thrailapp://';
 
-    try {
-        const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${encodedKey}`
-            },
-            body: JSON.stringify({
-                data: {
-                    attributes: {
-                        send_email_receipt: false,
-                        show_description: false,
-                        show_line_items: true,
-                        line_items: [
-                            {
-                                currency: 'PHP',
-                                amount: Math.round(amount * 100),
-                                name: 'Booking Payment',
-                                quantity: 1
-                            }
-                        ],
-                        payment_method_types: [sourceType],
-                        success_url: redirectUrl,
-                        cancel_url: redirectUrl
-                    }
-                }
-            })
-        });
+     try {
+         const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
+             method: 'POST',
+             headers: {
+                 'Content-Type': 'application/json',
+                 'Authorization': `Basic ${encodedKey}`
+             },
+             body: JSON.stringify({
+                 data: {
+                     attributes: {
+                         send_email_receipt: false,
+                         show_description: false,
+                         show_line_items: true,
+                         line_items: [
+                             {
+                                 currency: 'PHP',
+                                 amount: Math.round(amount * 100),
+                                 name: 'Booking Payment',
+                                 quantity: 1
+                             }
+                         ],
+                         payment_method_types: [sourceType],
+                         success_url: redirectUrl,
+                         cancel_url: redirectUrl
+                     }
+                 }
+             })
+         });
 
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error('PayMongo API Error Details:', errorDetails);
+         if (!response.ok) {
+             const errorDetails = await response.text();
+             console.error('PayMongo API Error Details:', errorDetails);
             
             if (response.status === 401 || response.status === 403) {
                 throw new Error("Payment service is currently unavailable. Please notify the Thrail administrators.");
@@ -443,20 +448,20 @@ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (re
                 throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
             }
 
-            let paymongoError = null;
-            try {
-                const parsed = JSON.parse(errorDetails);
-                if (parsed.errors && parsed.errors.length > 0) {
-                    paymongoError = parsed.errors[0];
-                }
-            } catch (e) {
-                // Silently fails, falls back to generic timeout/network error below
-            }
+             let paymongoError = null;
+             try {
+                 const parsed = JSON.parse(errorDetails);
+                 if (parsed.errors && parsed.errors.length > 0) {
+                     paymongoError = parsed.errors[0];
+                 }
+             } catch (e) {
+                 // Silently fails, falls back to generic timeout/network error below
+             }
 
-            if (paymongoError) {
-                const code = paymongoError.code || '';
-                const detail = paymongoError.detail || '';
-                const pointer = paymongoError.source?.pointer || '';
+             if (paymongoError) {
+                 const code = paymongoError.code || '';
+                 const detail = paymongoError.detail || '';
+                 const pointer = paymongoError.source?.pointer || '';
 
                 if (code === 'AMOUNT_EXCEED_LIMIT' || (pointer === 'amount' && detail.toLowerCase().includes('exceed'))) {
                     throw new Error("This booking exceeds the ₱100,000 maximum transaction limit for GCash/Maya. Please use a different payment method or pay in installments.");
@@ -471,12 +476,12 @@ exports.createPaymongoCheckout = onCall({ secrets: [paymongoSecret] }, async (re
                     throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
                 }
                 
-                // Fallback for an unmapped PayMongo error
-                throw new Error(detail || "An unexpected error occurred with the payment gateway.");
-            }
+                 // Fallback for an unmapped PayMongo error
+                 throw new Error(detail || "An unexpected error occurred with the payment gateway.");
+             }
             
-            throw new Error("Could not connect to the payment gateway. Please check your internet connection and try booking again.");
-        }
+             throw new Error("Could not connect to the payment gateway. Please check your internet connection and try booking again.");
+         }
 
         const data = await response.json();
         return {

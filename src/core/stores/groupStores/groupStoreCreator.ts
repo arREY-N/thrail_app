@@ -1,4 +1,5 @@
 import { Group } from "@/src/core/models/Group/Group";
+import { IGroupMember } from "@/src/core/models/Group/Group.types";
 import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 import { MessageRepository } from "@/src/core/repositories/messageRepository";
@@ -21,7 +22,7 @@ export interface GroupState {
     sendMessage: (groupId: string, message: Message) => void;
     markAsRead: (groupId: string, message: Message, userSummary: IUserSummary) => void;
     createGroup: (group: Group) => void;
-    joinGroup: (group: Group, userSummary: IUserSummary) => Promise<void>;
+    joinGroup: (group: Group, member: IGroupMember) => Promise<void>;
     checkGroupExists: (groupId: string) => Promise<Group | null>;
 }
 
@@ -108,12 +109,12 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         }
     },
 
-    joinGroup: async (group: Group, userSummary: IUserSummary): Promise<void> => {
+    joinGroup: async (group: Group, member: IGroupMember): Promise<void> => {
         try {
             const newGroup = new Group({
                 ...group,
-                members: [...(group.members || []), userSummary],
-                participantsIds: [...(group.participantsIds || []), userSummary.id],
+                members: [...(group.members || []), member],
+                participantsIds: [...(group.participantsIds || []), member.id],
             })
 
             await MessageRepository.writeGroup(newGroup);

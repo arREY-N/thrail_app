@@ -1,10 +1,10 @@
-import { auth, db, provider } from '@/src/core/config/Firebase';
+import { auth, db, functions, provider } from '@/src/core/config/Firebase';
 import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
 import { collection, doc, setDoc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import { SignUp } from '../models/User/SignUp';
 import { CredentialResponse, UserCredential } from '../models/User/SignUp.types';
 import { User, userConverter } from '../models/User/User';
@@ -19,9 +19,11 @@ const userCollection = collection(db, 'users').withConverter(userConverter);
 
 class AuthRepositoryImpl {
     async checkUserCredentials(userCredentials: UserCredential): Promise<void> {
-        const functions = getFunctions();
         const checkCredentials = httpsCallable(functions, 'checkEmail');
         
+        console.log("functions instance: ", functions);
+        console.log('callable: ', checkCredentials);
+
         try {
             const response = await checkCredentials(userCredentials);
             

@@ -56,7 +56,7 @@ export class Offer implements IOffer {
             thingsToBring: data.thingsToBring || [], // New
             reminders: data.reminders || [], // New
             description: data.description,
-            schedule: data.schedule.map(sched => {
+            schedule: (data.schedule ?? []).map(sched => {
                 return {
                     day: sched.day,
                     activities: sched.activities.map(activity => {
