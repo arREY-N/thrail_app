@@ -152,12 +152,11 @@ export const useOffersStore = create<OfferState>()(
             const data = get().data;
 
             let offers: Offer[] = [];
-            console.log(data);
 
             if(data.length > 0){
-                offers = data.filter(o => o.trail.id === id)
+                offers = data.filter(o => o.trail?.id === id)
             }
-
+            
             if(offers.length === 0){
                 offers = await OfferRepository.fetchAllTrailOffers(id);
             }
@@ -176,7 +175,6 @@ export const useOffersStore = create<OfferState>()(
                 isLoading: false
             })  
 
-            console.log(get().trailOffers);
         } catch (err) {
             set({
                 error: (err as Error).message || 'Failed writing offer',
