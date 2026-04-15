@@ -13,20 +13,22 @@ import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 import { produce } from "immer";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type UseBookOfferParams = {
     bookingId?: string;
     trailId?: string;
+    offerId?: string;
 }
 
 export default function useBookOffer(params: UseBookOfferParams = {}) {
-    const { bookingId, trailId } = params;
+    const { bookingId, trailId, offerId } = params;
 
     const { profile } = useAuthHook();
 
     const bookings = useBookingsStore(s => s.userBookings);
     const fetchOffer = useOffersStore(s => s.fetchOfferById);
+    const load = useBookingsStore(s => s.load); 
 
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
@@ -37,38 +39,92 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
 
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const [booking, setBooking] = useState<Booking>(() => {
-        const existing = bookings.find(booking => booking.id === bookingId);
+    const [booking, setBooking] = useState<Booking | null>(null);
+    
+        // const [booking, setBooking] = useState<Booking>(() => {
+    //     const existing = bookings.find(booking => booking.id === bookingId);
 
-        if(existing) return new Booking({ ...existing });
+    //     if(existing) return new Booking({ ...existing });
 
-        if(!profile) {
-            setLocalError('User must be logged in'); 
-            return new Booking();
-        }
+    //     if(!profile) {
+    //         setLocalError('User must be logged in'); 
+    //         return new Booking();
+    //     }
         
-        if(!trailId) {
-            setLocalError('No trail ID provided');
-            return new Booking();
+    //     if(!trailId) {
+    //         setLocalError('No trail ID provided');
+    //         return new Booking();
+    //     }
+
+    //     const trail = trails.find(trail => trail.id === trailId);
+
+    //     if(!trail) {
+    //         setLocalError(`No trail found with id ${trailId}`);
+    //         return new Booking();
+    //     }
+
+    //     const trailSummary = TrailLogic.toSummary(trail);
+    //     const user = UserLogic.toSummary(profile)
+    //     const emergencyContact = profile.emergencyContact;
+
+    //     return new Booking({ 
+    //         user, 
+    //         emergencyContact, 
+    //         trail: trailSummary 
+    //     });
+    // });
+
+    useEffect(() => {
+        const fetch = async () => {
+
+            try {
+                console.log('in here')
+                let booking = null;
+    
+                console.log('Bookings available in store:', bookings);
+                
+                if(bookings.length === 0 && profile) {
+                    load(profile.id);
+                }
+    
+                if(offerId) {
+                    console.log('Looking for booking with offerId:', offerId);
+                    booking = bookings.find(booking => booking.offer.id === offerId);
+                    
+                    if(!booking)
+                        throw new Error ('Failed to fetch offer for booking');
+                } else if (bookingId) {
+                    console.log('Looking for booking with bookingId:', bookingId);
+                    booking = bookings.find(booking => booking.id === bookingId);   
+                    if(!booking)
+                        throw new Error ('Failed to fetch booking by ID');
+                } else if (trailId) {
+                    console.log('Looking for booking with trailId:', trailId);
+                    const trail = trails.find(trail => trail.id === trailId);
+    
+                    if(!trail)
+                        throw new Error(`No trail found with id ${trailId}`);
+                    
+                    if(!profile) {
+                        throw new Error('User must be logged in'); 
+                    }
+    
+                    booking = new Booking({ 
+                        user: UserLogic.toSummary(profile), 
+                        emergencyContact: profile.emergencyContact, 
+                        trail: TrailLogic.toSummary(trail) 
+                    });
+                }
+                
+                console.log('Setting booking in useBookOffer hook:', booking);
+                setBooking(new Booking({ ...booking }));
+            } catch (error) {
+                setLocalError((error as Error).message || 'Failed to fetch offer for booking');
+            }
         }
 
-        const trail = trails.find(trail => trail.id === trailId);
-
-        if(!trail) {
-            setLocalError(`No trail found with id ${trailId}`);
-            return new Booking();
-        }
-
-        const trailSummary = TrailLogic.toSummary(trail);
-        const user = UserLogic.toSummary(profile)
-        const emergencyContact = profile.emergencyContact;
-
-        return new Booking({ 
-            user, 
-            emergencyContact, 
-            trail: trailSummary 
-        });
-    });
+        fetch();
+    }, [offerId, bookingId, trailId])
 
     const getBookOffer = async (offerId: string): Promise<Offer | null> => {
         try {
@@ -83,14 +139,15 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             return offer
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to fetch offer for booking');
-            return null;
         }
+        return null;
     }
 
     const onSetOffer = (offer: Offer) => {
         try {
             setBooking(prev => 
                 produce(prev, (draft) => {
+                    if(!draft) return;
                     BookingLogic.setOffer(draft, offer);
                 })
             );
@@ -102,10 +159,14 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const onPayOffer = (amount: number) => {
         try {
             // TODO connect to gateway and get the receipt
+            if(!booking)
+                throw new Error('No booking found');
+
             const payment = new Payment();
             const summary = PaymentLogic.toSummary(payment);
             setBooking(prev => 
                 produce(prev, (draft) => {
+                    if(!draft) return;
                     BookingLogic.toPay(draft, summary);
                 })
             )
@@ -120,7 +181,9 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             if(!profile)
                 throw new Error('No user found');
     
-            console.log(booking);
+            if(!booking)
+                throw new Error('No booking found');
+
             const offer = await fetchOffer(booking.offer.id);
     
             if(!offer) 
@@ -137,9 +200,14 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             if(!group) 
                 throw new Error('Cannot continue with booking as group has not been set yet.');
 
-            await createBooking(finalBooking)
+            const created = await createBooking(finalBooking)
 
-            await joinGroup(group, UserLogic.toSummary(profile));
+            const member = {
+                ...UserLogic.toSummary(profile),
+                bookingId: created.id,
+            }
+
+            await joinGroup(group, member);
             
             return true;
         } catch (error) {
@@ -155,7 +223,9 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         console.log(params);
         try {
             setBooking(prev => 
-                produce(prev, (draft) => {                
+                produce(prev, (draft) => { 
+                    if(!draft) return;
+
                     if(section === 'root'){
                         draft[id] = value;
                     } else {
