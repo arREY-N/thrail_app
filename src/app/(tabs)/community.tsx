@@ -1,9 +1,10 @@
+import { router } from 'expo-router';
 import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
-
 import { Review } from '@/src/core/models/Review/Review';
+
 import CommunityScreen from '@/src/features/Community/screens/CommunityScreen';
 
 export default function community(){
@@ -58,7 +59,7 @@ export default function community(){
     const combinedReviews = [...reviews, ...dummyReviews];
 
     const onLeaderboardPress = () => {
-        console.log("Navigating to Leaderboard");
+        router.push('/(main)/leaderboard');
     };
 
     const testIsLiked = (item: Review) => {
@@ -75,6 +76,7 @@ export default function community(){
             likeReview={likeReview}
             isLiked={testIsLiked}
             onRefresh={refreshFeed}
+            onLeaderboardPress={onLeaderboardPress} 
             onGroupPress={onGroupPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}

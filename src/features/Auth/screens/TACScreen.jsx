@@ -71,11 +71,15 @@ const TACScreen = ({
                             activeOpacity={0.7}
                         >
                             <View style={styles.tabContentRow}>
-                                <CustomText style={[
-                                    styles.tabText, 
-                                    isTermsActive && styles.activeTabText,
-                                    isTermsActive && hasReadTerms && styles.activeTabTextRead
-                                ]}>
+                                <CustomText 
+                                    numberOfLines={1} 
+                                    adjustsFontSizeToFit={true}
+                                    style={[
+                                        styles.tabText, 
+                                        isTermsActive && styles.activeTabText,
+                                        isTermsActive && hasReadTerms && styles.activeTabTextRead
+                                    ]}
+                                >
                                     Terms & Conditions
                                 </CustomText>
                                 {hasReadTerms && (
@@ -99,11 +103,15 @@ const TACScreen = ({
                             activeOpacity={0.7}
                         >
                             <View style={styles.tabContentRow}>
-                                <CustomText style={[
-                                    styles.tabText, 
-                                    isPrivacyActive && styles.activeTabText,
-                                    isPrivacyActive && hasReadPrivacy && styles.activeTabTextRead
-                                ]}>
+                                <CustomText 
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit={true}
+                                    style={[
+                                        styles.tabText, 
+                                        isPrivacyActive && styles.activeTabText,
+                                        isPrivacyActive && hasReadPrivacy && styles.activeTabTextRead
+                                    ]}
+                                >
                                     Privacy Policy
                                 </CustomText>
                                 {hasReadPrivacy && (
@@ -214,34 +222,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 32,
         alignItems: 'center',
-
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.25,
         shadowRadius: 10,
         elevation: 10,
     },
-    
     tabContainer: {
         flexDirection: 'row',
         width: '100%',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 16,
-        padding: 8,
+        padding: 4, 
         marginBottom: 16,
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 4, 
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: 12,
     },
     activeTab: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 8,
-
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
@@ -251,17 +255,17 @@ const styles = StyleSheet.create({
     activeTabRead: {
         backgroundColor: Colors.PRIMARY,
     },
-    
     tabContentRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 6,
     },
     tabText: {
         fontSize: 12,
         fontWeight: '600',
         color: Colors.TEXT_SECONDARY,
+        flexShrink: 1, 
     },
     activeTabText: {
         color: Colors.TEXT_SECONDARY,
@@ -270,7 +274,6 @@ const styles = StyleSheet.create({
     activeTabTextRead: {
         color: Colors.WHITE,
     },
-
     documentWrapper: {
         flex: 1, 
         width: '100%',
@@ -283,7 +286,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: 'hidden', 
     },
-    
     instructionBox: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -311,7 +313,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 18,
     },
-
     agreementContainer: {
         width: '100%',
         marginBottom: 16,
@@ -349,7 +350,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: Colors.PRIMARY,
     },
-
     buttonContainer: {
         width: '100%',
         paddingHorizontal: 8,

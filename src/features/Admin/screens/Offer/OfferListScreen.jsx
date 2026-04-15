@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -26,11 +27,34 @@ const OfferListScreen = ({
     onViewOfferBookings,
     onBackPress 
 }) => {
-    const safeOffers = offers || []; 
+    
+    const sortedOffers = useMemo(() => {
+        if (!offers) return [];
+        return [...offers].sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA; 
+        });
+    }, [offers]);
+
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedEditId, setSelectedEditId] = useState(null);
+
+    const handleEditPress = (offerId) => {
+        setSelectedEditId(offerId);
+        setShowEditModal(true);
+    };
+
+    const confirmEdit = () => {
+        setShowEditModal(false);
+        if (selectedEditId) {
+            onEditOffer(selectedEditId);
+        }
+    };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Manage Offers" onBackPress={onBackPress} />
+            <CustomHeader title="Manage Offers" centerTitle={true} onBackPress={onBackPress} />
 
             <ScrollView 
                 showsVerticalScrollIndicator={false}
@@ -49,7 +73,7 @@ const OfferListScreen = ({
                     <CustomText style={styles.loadingText}>Loading your offers...</CustomText>
                 )}
 
-                {!isLoading && safeOffers.length === 0 && (
+                {!isLoading && sortedOffers.length === 0 && (
                     <View style={styles.emptyState}>
                         <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_MEDIUM} />
                         <CustomText variant="h3" style={styles.emptyTitle}>No Offers Yet</CustomText>
@@ -59,9 +83,9 @@ const OfferListScreen = ({
                     </View>
                 )}
 
-                {!isLoading && safeOffers.length > 0 && (
+                {!isLoading && sortedOffers.length > 0 && (
                     <View style={styles.listContainer}>
-                        {safeOffers.map(offer => (
+                        {sortedOffers.map(offer => (
                             <View key={offer.id} style={styles.offerCard}>
                                 
                                 <View style={styles.cardHeader}>
@@ -117,7 +141,7 @@ const OfferListScreen = ({
 
                                 <CustomButton 
                                     title="Edit Offer"
-                                    onPress={() => onEditOffer(offer.id)}
+                                    onPress={() => handleEditPress(offer.id)}
                                     variant="outline"
                                     style={styles.editButton}
                                 />
@@ -126,6 +150,16 @@ const OfferListScreen = ({
                     </View>
                 )}
             </ScrollView>
+
+            <ConfirmationModal 
+                visible={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                title="Edit Active Offer?"
+                message="Editing this offer will change the details and requirements for all future bookings. Are you sure you want to proceed?"
+                confirmText="Yes, Edit Offer"
+                cancelText="Cancel"
+                onConfirm={confirmEdit}
+            />
         </ScreenWrapper>
     );
 };
@@ -144,7 +178,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
-
     loadingText: {
         textAlign: 'center',
         marginTop: 40,

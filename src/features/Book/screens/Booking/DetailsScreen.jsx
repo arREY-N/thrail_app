@@ -28,6 +28,16 @@ const formatLocalPhoneNumber = (text) => {
     return formatted;
 };
 
+const getStrictDocKey = (docName) => {
+    if (!docName) return 'validId';
+    const lower = docName.toLowerCase();
+    if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
+    if (lower.includes('bir')) return 'bir';
+    if (lower.includes('dti')) return 'dti';
+    if (lower.includes('denr')) return 'denr';
+    return 'validId';
+};
+
 const DetailsScreen = ({ 
     selectedOffer, 
     savedDetails, 
@@ -77,10 +87,6 @@ const DetailsScreen = ({
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSimulateUpload = (docName) => {
-        setUploadedDocs(prev => ({ ...prev, [docName]: !prev[docName] }));
-    };
-
     const confirmEditPhone = () => {
         setIsEditingPhone(true);
         setShowEditModal(false);
@@ -93,11 +99,11 @@ const DetailsScreen = ({
 
     const isFormValid = () => {
         const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
-        const areAllDocsUploaded = requiredDocuments.every(doc => uploadedDocs[doc]);
+        const areAllDocsUploaded = requiredDocuments.every(doc => !!uploadedDocs[doc]);
 
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
-
+    
     return (
         <View style={styles.container}>
             <ScrollView 
@@ -207,8 +213,11 @@ const DetailsScreen = ({
                             <DocumentUploadCard 
                                 key={index}
                                 docName={doc}
+                                docKey={getStrictDocKey(doc)} 
                                 isUploaded={uploadedDocs[doc]}
-                                onUploadPress={() => handleSimulateUpload(doc)}
+                                onUploadSuccess={(url) => {
+                                    setUploadedDocs(prev => ({ ...prev, [doc]: url }));
+                                }}
                             />
                         ))}
                     </View>
@@ -254,7 +263,6 @@ const styles = StyleSheet.create({
     section: { 
         marginBottom: 0 
     },
-
     sectionHeaderRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
@@ -278,7 +286,6 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         color: Colors.TEXT_SECONDARY 
     },
-
     headerActionBtn: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -307,14 +314,13 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontWeight: 'bold' 
     },
-
     lockedInputContainer: { 
         opacity: 0.6, 
         marginBottom: 8 
     },
     inputSpacing: { 
         marginBottom: 16 
-    },
+    }
 });
 
 export default DetailsScreen;

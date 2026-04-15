@@ -76,7 +76,7 @@ const PersonnelWriteScreen = ({
     if (!isOwner) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader title="Personnel" onBackPress={onBackPress} />
+                <CustomHeader title="Personnel" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.unauthorized}>
                     <CustomIcon 
                         library="Feather" 
@@ -97,7 +97,7 @@ const PersonnelWriteScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Personnel" onBackPress={onBackPress} />
+            <CustomHeader title="Personnel" centerTitle={true} onBackPress={onBackPress} />
 
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
                 

@@ -39,8 +39,9 @@ const UploadScreen = ({
                 
                 <DocumentUploadCard 
                     docName={`${selectedMethod === 'gcash' ? 'GCash' : 'Maya'} Receipt`}
-                    isUploaded={!!receiptImage}
-                    onUploadPress={() => setReceiptImage(!receiptImage ? 'mock_image_data' : null)}
+                    docKey="receipt"
+                    isUploaded={receiptImage}
+                    onUploadSuccess={(url) => setReceiptImage(url)}
                 />
             </View>
         </ScrollView>

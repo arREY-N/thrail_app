@@ -6,6 +6,7 @@ import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupRoom from "@/src/core/hook/group/useGroupRoom";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import GroupRoomScreen from "@/src/features/Community/screens/GroupRoomScreen";
 
@@ -26,6 +27,19 @@ export default function groupRoom() {
         sendMessage,
         onViewableItemsChanged,
     } = useGroupRoom(roomId);
+
+    const uploadDocument = useFilesStore(s => s.uploadDocument);
+
+    const handleAttachPress = async () => {
+        try {
+            const url = await uploadDocument();
+            if (url) {
+                sendMessage(`[Attachment]: ${url}`);
+            }
+        } catch (error) {
+            console.log("Upload failed or canceled:", error);
+        }
+    };
 
     if(!currentGroup) {
         return (
@@ -52,6 +66,7 @@ export default function groupRoom() {
                 onViewableItemsChanged={onViewableItemsChanged}
                 headerTitle={headerTitle}   
                 onBackPress={onBackPress}         
+                onAttachPress={handleAttachPress}
             />
         </>
     )

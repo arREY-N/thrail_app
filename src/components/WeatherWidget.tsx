@@ -1,20 +1,20 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, Text } from 'react-native';
-import { useWeather } from '../hooks/useWeather';
-import CustomText from './CustomText';
-import CustomIcon from './CustomIcon';
-import SkeletonEffect from './SkeletonEffect';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../constants/colors';
 import { ProcessedWeatherData } from '../core/types/weather';
-import { 
-  getWeatherInfoUI, 
-  getHikingSafetyStatus, 
-  formatForecastDay, 
-  formatSunTime, 
-  getWindDirection, 
-  getUVLabel, 
-  getHumidityLabel 
+import {
+  formatForecastDay,
+  formatSunTime,
+  getHikingSafetyStatus,
+  getHumidityLabel,
+  getUVLabel,
+  getWeatherInfoUI,
+  getWindDirection
 } from '../core/utility/weatherHelpers';
+import { useWeather } from '../hooks/useWeather';
+import CustomIcon from './CustomIcon';
+import CustomText from './CustomText';
+import SkeletonEffect from './SkeletonEffect';
 
 interface WeatherWidgetProps {
     latitude: number;
@@ -44,7 +44,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
   const getSafetyColor = (level: string) => {
     switch (level) {
       case 'SAFE':
-        return Colors.SUCCESS;
+        return Colors.PRIMARY;
       case 'CAUTION':
         return Colors.WARNING;
       case 'DANGER':
@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BACKGROUND,
     borderRadius: 16,
     marginTop: 8,
-    marginBottom: 100, // Extra margin to ensure Sunrise row clears the absolute footer
   },
   centerContent: {
     alignItems: 'center',

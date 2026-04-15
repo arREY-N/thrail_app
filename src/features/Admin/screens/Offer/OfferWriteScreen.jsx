@@ -37,6 +37,8 @@ const OfferWriteScreen = ({
 }) => {
     const isEditing = Boolean(offer?.id && offer.id !== '');
 
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
     const [docInput, setDocInput] = useState('');
     const [incInput, setIncInput] = useState('');
     const [bringInput, setBringInput] = useState('');
@@ -44,10 +46,11 @@ const OfferWriteScreen = ({
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [showTrailModal, setShowTrailModal] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [showBackWarningModal, setShowBackWarningModal] = useState(false);
+    const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
     const [days, setDays] = useState('');
     const [nights, setNights] = useState('');
-
     const [focusedDuration, setFocusedDuration] = useState(null);
 
     useEffect(() => {
@@ -59,24 +62,31 @@ const OfferWriteScreen = ({
         }
     }, [offer?.id]);
 
+    const handleUpdate = (params) => {
+        setHasUnsavedChanges(true);
+        onUpdateOffer(params);
+    };
+
     const handleAddToArray = (field, currentArray, value) => {
         if (!value.trim()) return;
-        if (currentArray?.includes(value.trim())) return;
-        const newArray = [...(currentArray || []), value.trim()];
-        onUpdateOffer({ section: 'root', id: field, value: newArray });
+        const arr = Array.isArray(currentArray) ? currentArray : [];
+        if (arr.includes(value.trim())) return;
+        const newArray = [...arr, value.trim()];
+        handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
     const handleRemoveFromArray = (field, currentArray, valueToRemove) => {
-        const newArray = currentArray.filter((item) => item !== valueToRemove);
-        onUpdateOffer({ section: 'root', id: field, value: newArray });
+        const arr = Array.isArray(currentArray) ? currentArray : [];
+        const newArray = arr.filter((item) => item !== valueToRemove);
+        handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
     const handleTogglePreset = (field, currentArray, presetValue) => {
-        const arr = currentArray || [];
+        const arr = Array.isArray(currentArray) ? currentArray : [];
         if (arr.includes(presetValue)) {
-            onUpdateOffer({ section: 'root', id: field, value: arr.filter(i => i !== presetValue) });
+            handleUpdate({ section: 'root', id: field, value: arr.filter(i => i !== presetValue) });
         } else {
-            onUpdateOffer({ section: 'root', id: field, value: [...arr, presetValue] });
+            handleUpdate({ section: 'root', id: field, value: [...arr, presetValue] });
         }
     };
 
@@ -92,7 +102,7 @@ const OfferWriteScreen = ({
         if (newDays && newNights && Number(newDays) > 0 && Number(newNights) > 0) durString += ', ';
         if (newNights && Number(newNights) > 0) durString += `${newNights} Night${newNights > 1 ? 's' : ''}`;
         
-        onUpdateOffer({ section: 'root', id: 'duration', value: durString });
+        handleUpdate({ section: 'root', id: 'duration', value: durString });
     };
 
     const isFormValid = () => {
@@ -113,12 +123,45 @@ const OfferWriteScreen = ({
     const totalDays = offer?.schedule?.length || 0;
     const totalActivities = offer?.schedule?.reduce((acc, curr) => acc + (curr.activities?.length || 0), 0) || 0;
 
+    const handleHeaderBack = () => {
+        if (hasUnsavedChanges) {
+            setShowBackWarningModal(true);
+        } else {
+            onBackPress();
+        }
+    };
+
+    const handleSaveClick = () => {
+        if (!isReadyToSubmit) return;
+        
+        if (docInput.trim()) {
+            handleAddToArray('documents', offer.documents, docInput);
+            setDocInput('');
+        }
+        if (incInput.trim()) {
+            handleAddToArray('inclusions', offer.inclusions, incInput);
+            setIncInput('');
+        }
+        if (bringInput.trim()) {
+            handleAddToArray('thingsToBring', offer.thingsToBring, bringInput);
+            setBringInput('');
+        }
+
+        setTimeout(() => {
+            if (isEditing && hasUnsavedChanges) {
+                setShowSaveConfirmModal(true);
+            } else {
+                onSubmitOffer();
+            }
+        }, 100);
+    };
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title={isEditing ? "Edit Offer" : "Add New Offer"} 
                 centerTitle={true}
-                onBackPress={onBackPress} 
+                onBackPress={handleHeaderBack} 
             />
             
             <ScrollView 
@@ -147,7 +190,7 @@ const OfferWriteScreen = ({
                         prefix="₱" 
                         value={offer.price ? String(offer.price) : ''}
                         keyboardType="numeric"
-                        onChangeText={(text) => onUpdateOffer({ section: 'root', id: 'price', value: Number(text) || 0 })}
+                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
                         style={styles.inputSpacing}
                     />
 
@@ -155,7 +198,7 @@ const OfferWriteScreen = ({
                         label="Description *"
                         placeholder="Type the full description here..."
                         value={offer.description}
-                        onChangeText={(text) => onUpdateOffer({ section: 'root', id: 'description', value: text })}
+                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
                         multiline={true}
                         numberOfLines={5}
                         style={styles.inputSpacing}
@@ -169,7 +212,7 @@ const OfferWriteScreen = ({
                                 label="Start Date *"
                                 placeholder="Select Date"
                                 value={offer.date || null}
-                                onChangeText={(val) => onUpdateOffer({ section: 'root', id: 'date', value: val })}
+                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'date', value: val })}
                                 allowFutureDates={true}
                                 showTodayButton={true}
                                 defaultMode="date"
@@ -182,7 +225,7 @@ const OfferWriteScreen = ({
                                 label="End Date *"
                                 placeholder="Select Date"
                                 value={offer.endDate || null}
-                                onChangeText={(val) => onUpdateOffer({ section: 'root', id: 'endDate', value: val })}
+                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'endDate', value: val })}
                                 allowFutureDates={true}
                                 showTodayButton={true}
                                 defaultMode="date"
@@ -259,7 +302,7 @@ const OfferWriteScreen = ({
                                 placeholder="Min Pax"
                                 value={offer.minPax ? String(offer.minPax) : ''}
                                 keyboardType="numeric"
-                                onChangeText={(text) => onUpdateOffer({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
+                                onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
                                 style={styles.noMarginBottom}
                             />
                         </View>
@@ -271,7 +314,7 @@ const OfferWriteScreen = ({
                                 placeholder="Max Pax"
                                 value={offer.maxPax ? String(offer.maxPax) : ''}
                                 keyboardType="numeric"
-                                onChangeText={(text) => onUpdateOffer({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
+                                onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
                                 style={styles.noMarginBottom}
                             />
                         </View>
@@ -302,7 +345,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Required Documents" 
                             placeholder="e.g. Valid ID" 
-                            items={offer.documents} 
+                            items={Array.isArray(offer.documents) ? offer.documents : []} 
                             inputValue={docInput} 
                             setInputValue={setDocInput} 
                             onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
@@ -314,7 +357,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Inclusions" 
                             placeholder="e.g. Guide Fee" 
-                            items={offer.inclusions} 
+                            items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
                             inputValue={incInput} 
                             setInputValue={setIncInput} 
                             onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
@@ -326,7 +369,7 @@ const OfferWriteScreen = ({
                         <DynamicListBuilder 
                             label="Things to Bring" 
                             placeholder="e.g. 2L Water" 
-                            items={offer.thingsToBring} 
+                            items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
                             inputValue={bringInput} 
                             setInputValue={setBringInput} 
                             onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
@@ -340,7 +383,7 @@ const OfferWriteScreen = ({
                         label="Reminders"
                         placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
                         value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : offer.reminders} 
-                        onChangeText={(text) => onUpdateOffer({ section: 'root', id: 'reminders', value: text })}
+                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text })}
                         multiline={true}
                         numberOfLines={4}
                         style={styles.inputSpacing}
@@ -352,11 +395,7 @@ const OfferWriteScreen = ({
                     <View style={styles.buttonContainer}>
                         <CustomButton 
                             title={isLoading ? "Saving..." : "Save Offer"}
-                            onPress={() => {
-                                if (isReadyToSubmit) {
-                                    onSubmitOffer();
-                                }
-                            }}
+                            onPress={handleSaveClick}
                             variant="primary"
                             style={!isReadyToSubmit ? styles.disabledButton : undefined}
                         />
@@ -398,7 +437,7 @@ const OfferWriteScreen = ({
                                         key={trail.id}
                                         style={[styles.modalOption, isSelected && styles.modalOptionSelected]}
                                         onPress={() => {
-                                            onUpdateOffer({
+                                            handleUpdate({
                                                 section: 'root',
                                                 id: 'trail',
                                                 value: { id: trail.id, name: trail.general.name }
@@ -425,7 +464,7 @@ const OfferWriteScreen = ({
                 onClose={() => setShowScheduleModal(false)}
                 initialSchedule={offer.schedule}
                 onSave={(newSchedule) => {
-                    onUpdateOffer({ section: 'root', id: 'schedule', value: newSchedule });
+                    handleUpdate({ section: 'root', id: 'schedule', value: newSchedule });
                     setShowScheduleModal(false);
                 }}
             />
@@ -443,6 +482,34 @@ const OfferWriteScreen = ({
                 onClose={() => setIsDeleteModalVisible(false)}
                 isDestructive={true} 
             />
+
+            <ConfirmationModal 
+                visible={showBackWarningModal}
+                title="Discard Changes?"
+                message="You have unsaved changes. Are you sure you want to leave without saving?"
+                confirmText="Discard"
+                cancelText="Keep Editing"
+                onConfirm={() => {
+                    setShowBackWarningModal(false);
+                    onBackPress();
+                }}
+                onClose={() => setShowBackWarningModal(false)}
+                isDestructive={true} 
+            />
+
+            <ConfirmationModal 
+                visible={showSaveConfirmModal}
+                title="Save Changes?"
+                message="Are you sure you want to apply these changes? This will instantly update the details for all new hikers looking at this offer."
+                confirmText={isLoading ? "Saving..." : "Save Changes"}
+                cancelText="Cancel"
+                onConfirm={() => {
+                    setShowSaveConfirmModal(false);
+                    onSubmitOffer();
+                }}
+                onClose={() => setShowSaveConfirmModal(false)}
+            />
+
         </ScreenWrapper>
     );
 };

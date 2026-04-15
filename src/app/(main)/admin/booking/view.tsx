@@ -1,12 +1,7 @@
-import CustomTextInput from "@/src/components/CustomTextInput";
 import useApproveBooking from "@/src/core/hook/admin/useApproveBooking";
-import { Booking } from "@/src/core/models/Booking/Booking";
-import { Offer } from "@/src/core/models/Offer/Offer";
-import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Text } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import BookingReviewScreen from "@/src/features/Admin/screens/Booking/BookingReviewScreen";
@@ -28,7 +23,7 @@ export default function adminViewBooking() {
         onApproveBooking,
         onRejectBooking, 
         onRescheduleBooking,
-        onValidateDocument,
+        // onValidateDocument,
         onRefund,
     } = useApproveBooking({ bookingId, offerId });
 
@@ -40,6 +35,7 @@ export default function adminViewBooking() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
+            
             <BookingReviewScreen
                 booking={booking}
                 offers={offers}
@@ -55,87 +51,87 @@ export default function adminViewBooking() {
     )
 }
 
-export type TestAdminOfferView = {
-    offer: Offer | null;
-    offers: Offer[];
-    booking: Booking | null;
-    error: string | null;
-    onApproveBooking: (force?: boolean) => void;
-    onRejectBooking: (reason: string, force?: boolean) => void;
-    onRescheduleBooking: (offer: Offer) => void;
-    onRefund: () => void;
-}
+// export type TestAdminOfferView = {
+//     offer: Offer | null;
+//     offers: Offer[];
+//     booking: Booking | null;
+//     error: string | null;
+//     onApproveBooking: (force?: boolean) => void;
+//     onRejectBooking: (reason: string, force?: boolean) => void;
+//     onRescheduleBooking: (offer: Offer) => void;
+//     onRefund: () => void;
+// }
 
-export const TestOfferView = (params: TestAdminOfferView) => {
-    const { error, offer, booking, onApproveBooking, onRejectBooking, onRefund } = params;
+// export const TestOfferView = (params: TestAdminOfferView) => {
+//     const { error, offer, booking, onApproveBooking, onRejectBooking, onRefund } = params;
 
-    const [rejectionReason, setRejectionReason] = useState('');
-    if(!offer) return <Text>Offer not found</Text>;
-    if(!booking) return <Text>Booking not found</Text>;
+//     const [rejectionReason, setRejectionReason] = useState('');
+//     if(!offer) return <Text>Offer not found</Text>;
+//     if(!booking) return <Text>Booking not found</Text>;
     
-    return(
-        <ScrollView>
-            { error && <Text>{error}</Text>}
-            <Text>Reservation by: {booking.user.firstname} {booking.user.lastname}</Text>
-            <Text>Description: {offer.description}</Text>
-            <Text>Price: {offer.price}</Text>
-            <Text>Status: {booking.status}</Text>
-            { booking.status === 'reservation-rejected' && (
-                <>
-                    <Text>Cancelled by: {booking.cancelledBy} </Text>
-                    <Text>Reason: {booking.cancellationReason} </Text>
-                </>
-            )}
-            <CustomTextInput 
-                label={'Rejection Reason'}
-                placeholder={undefined}
-                value={rejectionReason}
-                onChangeText={setRejectionReason}
-                secureTextEntry={undefined}
-                keyboardType={undefined}
-                isPasswordVisible={undefined}
-                onTogglePassword={undefined}
-                style={undefined}
-                inputStyle={undefined}
-                icon={undefined}
-                prefix={undefined}
-                children={undefined}
-                showTodayButton={undefined}
-                allowFutureDates={undefined}
-                multiline={undefined} 
-                defaultMode={undefined}
-                />
+//     return(
+//         <ScrollView>
+//             { error && <Text>{error}</Text>}
+//             <Text>Reservation by: {booking.user.firstname} {booking.user.lastname}</Text>
+//             <Text>Description: {offer.description}</Text>
+//             <Text>Price: {offer.price}</Text>
+//             <Text>Status: {booking.status}</Text>
+//             { booking.status === 'reservation-rejected' && (
+//                 <>
+//                     <Text>Cancelled by: {booking.cancelledBy} </Text>
+//                     <Text>Reason: {booking.cancellationReason} </Text>
+//                 </>
+//             )}
+//             <CustomTextInput 
+//                 label={'Rejection Reason'}
+//                 placeholder={undefined}
+//                 value={rejectionReason}
+//                 onChangeText={setRejectionReason}
+//                 secureTextEntry={undefined}
+//                 keyboardType={undefined}
+//                 isPasswordVisible={undefined}
+//                 onTogglePassword={undefined}
+//                 style={undefined}
+//                 inputStyle={undefined}
+//                 icon={undefined}
+//                 prefix={undefined}
+//                 children={undefined}
+//                 showTodayButton={undefined}
+//                 allowFutureDates={undefined}
+//                 multiline={undefined} 
+//                 defaultMode={undefined}
+//                 />
 
-            <Pressable onPress={() => onApproveBooking()}>
-                <Text>Approve</Text>
-            </Pressable>
-            <Pressable onPress={() => onApproveBooking(true)}>
-                <Text>Force Approve</Text>
-            </Pressable>
+//             <Pressable onPress={() => onApproveBooking()}>
+//                 <Text>Approve</Text>
+//             </Pressable>
+//             <Pressable onPress={() => onApproveBooking(true)}>
+//                 <Text>Force Approve</Text>
+//             </Pressable>
 
-            <Pressable onPress={() => onRejectBooking(rejectionReason)}>
-                <Text>Reject</Text>
-            </Pressable>
+//             <Pressable onPress={() => onRejectBooking(rejectionReason)}>
+//                 <Text>Reject</Text>
+//             </Pressable>
 
 
-            <Pressable onPress={() => onRejectBooking(rejectionReason, true)}>
-                <Text>Force Reject</Text>
-            </Pressable>
+//             <Pressable onPress={() => onRejectBooking(rejectionReason, true)}>
+//                 <Text>Force Reject</Text>
+//             </Pressable>
 
-            <Pressable onPress={() => onRefund()}>
-                <Text>Refund</Text>
-            </Pressable>
+//             <Pressable onPress={() => onRefund()}>
+//                 <Text>Refund</Text>
+//             </Pressable>
 
-            <Text>RESCHEDULE TO DIFFERENT OFFER</Text>
-            { 
-                params.offers.map(o => o.id !== params.booking?.offer.id && (
-                    <Pressable key={o.id} onPress={() => params.onRescheduleBooking(o)}>
-                        <Text>Offer ID: {o.id}</Text>
-                        <Text>Price: {o.price}</Text>
-                        <Text>Date: {formatDate(o.date)}</Text>
-                    </Pressable>
-                ))
-            }
-        </ScrollView>
-    )
-}
+//             <Text>RESCHEDULE TO DIFFERENT OFFER</Text>
+//             { 
+//                 params.offers.map(o => o.id !== params.booking?.offer.id && (
+//                     <Pressable key={o.id} onPress={() => params.onRescheduleBooking(o)}>
+//                         <Text>Offer ID: {o.id}</Text>
+//                         <Text>Price: {o.price}</Text>
+//                         <Text>Date: {formatDate(o.date)}</Text>
+//                     </Pressable>
+//                 ))
+//             }
+//         </ScrollView>
+//     )
+// }

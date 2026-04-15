@@ -67,6 +67,7 @@ const PersonnelListScreen = ({
             
             <CustomHeader 
                 title="Personnel" 
+                centerTitle={true}
                 onBackPress={onBackPress} 
                 rightActions={
                     <CustomButton 

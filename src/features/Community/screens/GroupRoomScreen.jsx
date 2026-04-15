@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
     Bubble,
     Composer,
     Day,
     GiftedChat,
     InputToolbar,
-    Send,
+    MessageText,
     Time
 } from 'react-native-gifted-chat';
 
@@ -16,6 +16,33 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
+const CustomComposer = (props) => {
+    const [isFocused, setIsFocused] = useState(false);
+
+    const currentHeight = !props.text ? 44 : props.composerHeight;
+
+    return (
+        <Composer
+            {...props}
+            placeholderTextColor={Colors.TEXT_PLACEHOLDER}
+            textInputProps={{
+                ...props.textInputProps,
+                onFocus: () => setIsFocused(true),
+                onBlur: () => setIsFocused(false),
+                style: [
+                    styles.composerTextInput,
+                    isFocused && styles.composerTextInputFocused,
+                    Platform.OS === 'web' && { outlineStyle: 'none' },
+                    { 
+                        height: currentHeight,
+                        textAlignVertical: 'top' 
+                    }
+                ]
+            }}
+        />
+    );
+};
+
 const GroupRoomScreen = ({ 
     roomId,
     messages, 
@@ -24,7 +51,8 @@ const GroupRoomScreen = ({
     sendMessage,
     onViewableItemsChanged,
     headerTitle,
-    onBackPress
+    onBackPress,
+    onAttachPress 
 }) => {
     
     const giftedChatMessages = useMemo(() => {
@@ -37,6 +65,7 @@ const GroupRoomScreen = ({
                 _id: m.senderId,
                 name: m.senderName,
             },
+            readBy: m.readBy || [] 
         })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [messages]);
 
@@ -72,6 +101,7 @@ const GroupRoomScreen = ({
 
     const renderBubble = (props) => {
         const isLeft = props.position === 'left';
+        const isRight = props.position === 'right';
         const senderId = props.currentMessage.user._id;
         const senderName = props.currentMessage.user.name;
         
@@ -80,8 +110,13 @@ const GroupRoomScreen = ({
             props.previousMessage.user && 
             props.previousMessage.user._id === senderId;
 
+        const isLastInCluster = !props.nextMessage || !props.nextMessage.user || props.nextMessage.user._id !== senderId;
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
+
+        const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
+        const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
+        const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
 
         return (
             <View style={styles.bubbleWrapper}>
@@ -90,11 +125,14 @@ const GroupRoomScreen = ({
                         <CustomText variant="caption" style={styles.senderNameText}>
                             {senderName}
                         </CustomText>
-                        {isAdmin && (
+                        
+                        {isAdmin ? (
                             <View style={styles.adminBadge}>
-                                <CustomText variant="caption" style={styles.adminBadgeText}>
-                                    Admin
-                                </CustomText>
+                                <CustomText variant="caption" style={styles.adminBadgeText}>Admin</CustomText>
+                            </View>
+                        ) : (
+                            <View style={styles.hikerBadge}>
+                                <CustomText variant="caption" style={styles.hikerBadgeText}>Hiker</CustomText>
                             </View>
                         )}
                     </View>
@@ -115,81 +153,104 @@ const GroupRoomScreen = ({
                         left: styles.timeContainerLeft,
                     }}
                 />
+
+                {hasReadReceipts && (
+                    <View style={styles.readReceiptContainer}>
+                        <CustomIcon library="Ionicons" name="checkmark-done" size={14} color={Colors.PRIMARY} />
+                        <CustomText variant="caption" style={styles.readReceiptText}>
+                            Seen by {readByNames}
+                        </CustomText>
+                    </View>
+                )}
             </View>
         );
     };
 
-    const renderDay = (props) => {
-        return (
-            <Day
-                {...props}
-                wrapperStyle={styles.dayWrapper}
-                textStyle={styles.dayText}
-            />
-        );
+    const renderMessageText = (props) => {
+        const { currentMessage, position } = props;
+        
+        if (currentMessage.text && currentMessage.text.startsWith('[Attachment]:')) {
+            const url = currentMessage.text.replace('[Attachment]:', '').trim();
+            const isRight = position === 'right';
+            
+            return (
+                <TouchableOpacity 
+                    style={styles.attachmentContainer}
+                    onPress={() => {
+                        if (Platform.OS === 'web') {
+                            window.open(url, '_blank');
+                        } else {
+                            Linking.openURL(url);
+                        }
+                    }}
+                    activeOpacity={0.8}
+                >
+                    <View style={[styles.attachmentIconBox, isRight ? styles.attachmentIconBoxRight : styles.attachmentIconBoxLeft]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="paperclip" 
+                            size={20} 
+                            color={isRight ? Colors.PRIMARY : Colors.WHITE} 
+                        />
+                    </View>
+                    <View style={styles.attachmentTextGroup}>
+                        <CustomText style={[styles.attachmentTitle, isRight ? styles.attachmentTitleRight : styles.attachmentTitleLeft]}>
+                            File Attachment
+                        </CustomText>
+                        <CustomText style={[styles.attachmentSubtitle, isRight ? styles.attachmentSubtitleRight : styles.attachmentSubtitleLeft]} numberOfLines={1}>
+                            Click to view document
+                        </CustomText>
+                    </View>
+                </TouchableOpacity>
+            );
+        }
+
+        return <MessageText {...props} />;
     };
 
-    const renderTime = (props) => {
-        return (
-            <Time
-                {...props}
-                timeTextStyle={{
-                    right: styles.timeTextRight,
-                    left: styles.timeTextLeft,
-                }}
-            />
-        );
-    };
+    const renderDay = (props) => (
+        <Day {...props} wrapperStyle={styles.dayWrapper} textStyle={styles.dayText} />
+    );
 
-    const renderInputToolbar = (props) => {
-        return (
-            <InputToolbar
-                {...props}
-                containerStyle={styles.inputToolbar}
-                primaryStyle={styles.inputToolbarPrimary}
-            />
-        );
-    };
+    const renderTime = (props) => (
+        <Time {...props} timeTextStyle={{ right: styles.timeTextRight, left: styles.timeTextLeft }} />
+    );
 
-    const renderComposer = (props) => {
-        return (
-            <Composer
-                {...props}
-                textInputStyle={styles.composerTextInput}
-                placeholderTextColor={Colors.TEXT_PLACEHOLDER}
-                textInputProps={{
-                    ...props.textInputProps,
-                    style: [
-                        styles.composerTextInput, 
-                        Platform.OS === 'web' && { outlineStyle: 'none' }
-                    ]
-                }}
-            />
-        );
-    };
+    const renderInputToolbar = (props) => (
+        <InputToolbar {...props} containerStyle={styles.inputToolbar} primaryStyle={styles.inputToolbarPrimary} />
+    );
+
+    const renderActions = () => (
+        <View style={styles.actionButtonContainer}>
+            <TouchableOpacity onPress={onAttachPress} style={styles.actionButton} activeOpacity={0.7}>
+                <CustomIcon library="Feather" name="plus" size={24} color={Colors.PRIMARY} />
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderComposer = (props) => <CustomComposer {...props} />;
 
     const renderSend = (props) => {
+        const hasText = props.text && props.text.trim().length > 0;
         return (
-            <Send {...props} containerStyle={styles.sendContainer}>
-                <View style={styles.sendButton}>
-                    <CustomIcon 
-                        library="Ionicons" 
-                        name="send" 
-                        size={16} 
-                        color={Colors.WHITE} 
-                        style={styles.sendIcon} 
-                    />
+            <TouchableOpacity 
+                style={styles.sendContainer}
+                disabled={!hasText}
+                onPress={() => {
+                    if (hasText && props.onSend) props.onSend({ text: props.text.trim() }, true);
+                }}
+                activeOpacity={0.7}
+            >
+                <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
+                    <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
                 </View>
-            </Send>
+            </TouchableOpacity>
         );
     };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title={headerTitle}
-                onBackPress={onBackPress}
-            />
+            <CustomHeader title={headerTitle} centerTitle={true} onBackPress={onBackPress} />
             <View style={styles.container}>
                 <GiftedChat
                     messages={giftedChatMessages}
@@ -199,7 +260,9 @@ const GroupRoomScreen = ({
                         name: currentUser?.username || 'User',
                     }}
                     renderBubble={renderBubble}
+                    renderMessageText={renderMessageText} 
                     renderInputToolbar={renderInputToolbar}
+                    renderActions={renderActions}
                     renderComposer={renderComposer}
                     renderSend={renderSend}
                     renderDay={renderDay}
@@ -211,7 +274,7 @@ const GroupRoomScreen = ({
                     
                     bottomOffset={0} 
                     placeholder="Type a message..."
-                    alwaysShowSend
+                    alwaysShowSend={true}
                     
                     listViewProps={{
                         showsVerticalScrollIndicator: false,
@@ -225,134 +288,254 @@ const GroupRoomScreen = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.BACKGROUND,
+    container: { 
+        flex: 1, 
+        backgroundColor: Colors.BACKGROUND 
     },
     
-    bubbleWrapper: {
-        marginBottom: 4,
+    bubbleWrapper: { 
+        marginBottom: 4, 
+        flexShrink: 1, 
+        maxWidth: '100%' 
     },
-    nameHeaderContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: 4,
-        marginBottom: 2,
-        gap: 6,
+    nameHeaderContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginLeft: 4, 
+        marginBottom: 2, 
+        gap: 6 
     },
-    senderNameText: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
+    senderNameText: { 
+        fontSize: 12, 
+        color: Colors.TEXT_SECONDARY, 
+        fontWeight: 'bold' 
     },
-    adminBadge: {
+    
+    adminBadge: { 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
+        paddingHorizontal: 6, 
+        paddingVertical: 2, 
+        borderRadius: 8, 
+        borderWidth: 1, 
+        borderColor: Colors.STATUS_APPROVED_BORDER 
     },
-    adminBadgeText: {
-        fontSize: 9,
-        color: Colors.STATUS_APPROVED_TEXT,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
+    adminBadgeText: { 
+        fontSize: 9, 
+        color: Colors.STATUS_APPROVED_TEXT, 
+        fontWeight: 'bold', 
+        textTransform: 'uppercase' 
+    },
+    
+    hikerBadge: { 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        paddingHorizontal: 6, 
+        paddingVertical: 2, 
+        borderRadius: 8, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT 
+    },
+    hikerBadgeText: { 
+        fontSize: 9, 
+        color: Colors.TEXT_SECONDARY, 
+        fontWeight: 'bold', 
+        textTransform: 'uppercase' 
     },
 
-    bubbleRight: {
-        backgroundColor: Colors.PRIMARY,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
+    bubbleRight: { 
+        backgroundColor: Colors.PRIMARY, 
+        borderTopLeftRadius: 16, 
+        borderTopRightRadius: 16, 
+        borderBottomLeftRadius: 16, 
         borderBottomRightRadius: 4, 
-        padding: 2,
+        padding: 2, 
+        flexShrink: 1 
     },
-    bubbleLeft: {
-        backgroundColor: Colors.WHITE,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+    bubbleLeft: { 
+        backgroundColor: Colors.WHITE, 
+        borderTopLeftRadius: 16, 
+        borderTopRightRadius: 16, 
         borderBottomLeftRadius: 4, 
-        borderBottomRightRadius: 16,
-        padding: 2,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    textRight: {
-        color: Colors.WHITE,
-        fontSize: 15,
-        lineHeight: 22,
-    },
-    textLeft: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 15,
-        lineHeight: 22,
+        borderBottomRightRadius: 16, 
+        padding: 2, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: 1 }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 2, 
+        elevation: 1, 
+        flexShrink: 1 
     },
     
-    timeContainerRight: { justifyContent: 'flex-end' },
-    timeContainerLeft: { justifyContent: 'flex-end' },
-    timeTextRight: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10 },
-    timeTextLeft: { color: Colors.TEXT_SECONDARY, fontSize: 10 },
-
-    dayWrapper: {
-        backgroundColor: Colors.GRAY_MEDIUM,
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 16,
-        marginTop: 16,
-        marginBottom: 8,
+    textRight: { 
+        color: Colors.WHITE, 
+        fontSize: 15, 
+        lineHeight: 22 
     },
-    dayText: {
-        color: Colors.WHITE,
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-
-    inputToolbar: {
-        backgroundColor: Colors.WHITE,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_ULTRALIGHT,
-        paddingTop: 6,
-        paddingBottom: 6,
-    },
-    inputToolbarPrimary: {
-        alignItems: 'center',
+    textLeft: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontSize: 15, 
+        lineHeight: 22 
     },
     
-    composerTextInput: {
-        backgroundColor: Colors.WHITE,
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 15,
-        lineHeight: 20,
-        paddingHorizontal: 12,
-        paddingTop: Platform.OS === 'web' ? 10 : 8,
-        minHeight: 40,
-        marginTop: 0,
-        marginBottom: 0,
+    attachmentContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        padding: 12, 
+        gap: 12, 
+        minWidth: 200, 
+        maxWidth: 250 
+    },
+    attachmentIconBox: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 8, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    attachmentIconBoxRight: { 
+        backgroundColor: Colors.WHITE 
+    },
+    attachmentIconBoxLeft: { 
+        backgroundColor: Colors.PRIMARY 
+    },
+    attachmentTextGroup: { 
+        flexShrink: 1 
+    },
+    attachmentTitle: { 
+        fontWeight: 'bold', 
+        fontSize: 14 
+    },
+    attachmentTitleRight: { 
+        color: Colors.WHITE 
+    },
+    attachmentTitleLeft: { 
+        color: Colors.TEXT_PRIMARY 
+    },
+    attachmentSubtitle: { 
+        fontSize: 12, 
+        marginTop: 2 
+    },
+    attachmentSubtitleRight: { 
+        color: 'rgba(255,255,255,0.8)' 
+    },
+    attachmentSubtitleLeft: { 
+        color: Colors.TEXT_SECONDARY 
     },
 
-    sendContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-        marginLeft: 8,
+    timeContainerRight: { 
+        justifyContent: 'flex-end' 
     },
-    sendButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
+    timeContainerLeft: { 
+        justifyContent: 'flex-end' 
     },
-    sendIcon: {
-        marginLeft: 2, 
-        marginTop: 2,
+    timeTextRight: { 
+        color: 'rgba(255, 255, 255, 0.7)', 
+        fontSize: 10 
+    },
+    timeTextLeft: { 
+        color: Colors.TEXT_SECONDARY, 
+        fontSize: 10 
+    },
+
+    readReceiptContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'flex-end', 
+        marginTop: 2, 
+        marginRight: 4, 
+        gap: 4 
+    },
+    readReceiptText: { 
+        fontSize: 10, 
+        color: Colors.TEXT_SECONDARY 
+    },
+
+    dayWrapper: { 
+        backgroundColor: Colors.GRAY_MEDIUM, 
+        paddingHorizontal: 16, 
+        paddingVertical: 6, 
+        borderRadius: 16, 
+        marginTop: 16, 
+        marginBottom: 8 
+    },
+    dayText: { 
+        color: Colors.WHITE, 
+        fontSize: 12, 
+        fontWeight: 'bold' 
+    },
+
+    inputToolbar: { 
+        backgroundColor: Colors.BACKGROUND, 
+        borderTopWidth: 0, 
+        paddingHorizontal: 12, 
+        paddingVertical: 8 
+    },
+    inputToolbarPrimary: { 
+        alignItems: 'flex-end' 
+    },
+    
+    actionButtonContainer: { 
+        height: 44, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginRight: 8 
+    },
+    actionButton: { 
+        width: 36, 
+        height: 36, 
+        borderRadius: 18, 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+
+    composerTextInput: { 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        color: Colors.TEXT_PRIMARY, 
+        fontSize: 15, 
+        lineHeight: 20, 
+        paddingHorizontal: 16, 
+        paddingTop: Platform.OS === 'web' ? 10 : 12, 
+        paddingBottom: Platform.OS === 'web' ? 10 : 12, 
+        borderRadius: 24, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        minHeight: 44, 
+        maxHeight: 120, 
+        marginTop: 0, 
+        marginBottom: 0, 
+        marginRight: 8 
+    },
+    composerTextInputFocused: { 
+        borderColor: Colors.PRIMARY, 
+        backgroundColor: Colors.WHITE 
+    },
+
+    sendContainer: { 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginBottom: 4, 
+        marginRight: 4 
+    },
+    sendButton: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        borderWidth: 1 
+    },
+    sendButtonActive: { 
+        backgroundColor: Colors.PRIMARY, 
+        borderColor: Colors.PRIMARY 
+    },
+    sendButtonInactive: { 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        borderColor: Colors.GRAY_LIGHT 
+    },
+    sendIcon: { 
+        marginLeft: 2 
     }
 });
 

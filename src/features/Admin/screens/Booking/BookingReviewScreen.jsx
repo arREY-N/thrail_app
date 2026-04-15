@@ -26,62 +26,89 @@ const BookingReviewScreen = ({
     error 
 }) => {
     const [docStates, setDocStates] = useState([]);
+    const [viewedDocs, setViewedDocs] = useState({});
     const [rejectionReason, setRejectionReason] = useState('');
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
     
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState(null);
 
-    // --- ARCHITECTURAL FIX: Infer State from Backend Status ---
     const currentStatus = booking?.status;
     const isApprovedStatus = ['for-payment', 'paid', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
     const isReviewComplete = isApprovedStatus || isRejectedStatus;
 
     useEffect(() => {
-        if (!booking?.documents) return;
+        if (!booking?.documents) {
+            setDocStates([]);
+            setViewedDocs({});
+            return;
+        }
 
         const mapDocument = (name, file, valid) => {
-            let inferredValid = valid ?? null;
+            let validState = 'pending';
+            if (valid === 'approved' || valid === true) validState = 'approved';
+            if (valid === 'rejected' || valid === false) validState = 'rejected';
             
-            // If the backend didn't save the array, we infer the visual state from the overall status
-            if (isApprovedStatus) inferredValid = true;
-            if (isRejectedStatus && inferredValid === null) inferredValid = false;
-
-            return { name, file, valid: inferredValid };
+            if (isApprovedStatus) validState = 'approved';
+            if (isRejectedStatus && validState === 'pending') validState = 'rejected';
+            
+            return { name: name || 'Unnamed Document', file, valid: validState };
         };
 
         if (Array.isArray(booking.documents)) {
-            setDocStates(booking.documents.map(doc => mapDocument(doc.name, doc.file, doc.valid)));
+            const mapped = booking.documents.map((doc, index) => mapDocument(doc.name || `Requirement ${index + 1}`, doc.file, doc.valid));
+            setDocStates(mapped);
+            
+            const initialViewed = {};
+            mapped.forEach((d, i) => {
+                if (d.valid !== 'pending') initialViewed[i] = true;
+            });
+            setViewedDocs(initialViewed);
+
         } else if (typeof booking.documents === 'object') {
-            const normalized = Object.entries(booking.documents).map(([key, value]) => 
+            const mapped = Object.entries(booking.documents).map(([key, value]) => 
                 mapDocument(value.name || key, value.file || '', value.valid)
             );
-            setDocStates(normalized);
+            setDocStates(mapped);
+            
+            const initialViewed = {};
+            mapped.forEach((d, i) => {
+                if (d.valid !== 'pending') initialViewed[i] = true;
+            });
+            setViewedDocs(initialViewed);
         }
-    }, [booking]);
+    }, [booking, booking?.documents]);
 
-    const handleViewFile = async (url) => {
+    const handleViewFile = async (url, index) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
         const supported = await Linking.canOpenURL(url);
         if (supported) {
+            setViewedDocs(prev => ({ ...prev, [index]: true }));
             await Linking.openURL(url);
         } else {
             Alert.alert("Error", "Cannot open this file URL.");
         }
     };
 
-    const toggleDocDecision = (index, isValid) => {
-        // Prevent changing decisions if the review is already submitted
+    const toggleDocDecision = (index, statusString) => {
         if (isReviewComplete) return; 
         
+        if (!viewedDocs[index] && docStates[index].valid === 'pending') {
+            Alert.alert(
+                "Review Required", 
+                "Please open the attachment to review the document before making a decision."
+            );
+            return;
+        }
+
         const updated = [...docStates];
-        updated[index].valid = isValid;
+        updated[index] = { ...updated[index], valid: statusString };
         setDocStates(updated);
     };
 
     const handleFinalDecision = () => {
-        const allApproved = docStates.every(d => d.valid === true);
+        const allApproved = docStates.every(d => d.valid === 'approved');
         if (allApproved) {
             onApprove(docStates); 
         } else {
@@ -93,7 +120,7 @@ const BookingReviewScreen = ({
     if (isLoading) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader title="Review Documents" centerTitle onBackPress={onBackPress} />
+                <CustomHeader title="Review Documents" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.centerContent}>
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
                     <CustomText style={{marginTop: 16, color: Colors.TEXT_SECONDARY}}>Loading booking details...</CustomText>
@@ -106,8 +133,8 @@ const BookingReviewScreen = ({
         return null; 
     }
 
-    const hasRejections = docStates.some(d => d.valid === false);
-    const isDecisionIncomplete = docStates.length > 0 && docStates.some(d => d.valid === null);
+    const hasRejections = docStates.some(d => d.valid === 'rejected');
+    const isDecisionIncomplete = docStates.length > 0 && docStates.some(d => d.valid === 'pending');
     
     const availableOffers = offers 
         ? offers.filter(o => o.id !== booking.offer.id)
@@ -116,7 +143,7 @@ const BookingReviewScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Review Documents" centerTitle onBackPress={onBackPress} />
+            <CustomHeader title="Review Documents" centerTitle={true} onBackPress={onBackPress} />
             
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 
@@ -167,59 +194,76 @@ const BookingReviewScreen = ({
 
                 <CustomText variant="h3" style={styles.sectionTitle}>Submitted Requirements</CustomText>
 
-                {docStates.length > 0 ? docStates.map((doc, index) => (
-                    <View key={index} style={[
-                        styles.docCard, 
-                        doc.valid === true && styles.cardApproved,
-                        doc.valid === false && styles.cardRejected
-                    ]}>
-                        <View style={styles.docHeader}>
-                            <CustomText style={styles.docName}>{doc.name}</CustomText>
-                            {doc.valid !== null && (
-                                <View style={[styles.badge, { backgroundColor: doc.valid ? Colors.STATUS_APPROVED_BG : Colors.ERROR_BG }]}>
-                                    <CustomText variant="caption" style={[styles.badgeText, { color: doc.valid ? Colors.SUCCESS : Colors.ERROR }]}>
-                                        {doc.valid ? "VALID" : "INVALID"}
-                                    </CustomText>
-                                </View>
+                {docStates.length > 0 ? docStates.map((doc, index) => {
+                    const needsReview = !viewedDocs[index] && doc.valid === 'pending';
+
+                    return (
+                        <View key={index} style={[
+                            styles.docCard, 
+                            doc.valid === 'approved' && styles.cardApproved,
+                            doc.valid === 'rejected' && styles.cardRejected
+                        ]}>
+                            <View style={styles.docHeader}>
+                                <CustomText style={styles.docName}>{doc.name}</CustomText>
+                                {doc.valid !== 'pending' && (
+                                    <View style={[styles.badge, { backgroundColor: doc.valid === 'approved' ? Colors.STATUS_APPROVED_BG : Colors.ERROR_BG }]}>
+                                        <CustomText variant="caption" style={[styles.badgeText, { color: doc.valid === 'approved' ? Colors.SUCCESS : Colors.ERROR }]}>
+                                            {doc.valid === 'approved' ? "VALID" : "INVALID"}
+                                        </CustomText>
+                                    </View>
+                                )}
+                            </View>
+                            
+                            <TouchableOpacity 
+                                style={[styles.viewFileBtn, needsReview && styles.viewFileBtnHighlight]} 
+                                onPress={() => handleViewFile(doc.file, index)}
+                                activeOpacity={0.7}
+                            >
+                                <CustomIcon library="Feather" name="eye" size={16} color={needsReview ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY} />
+                                <CustomText style={[styles.viewFileText, needsReview && { color: Colors.STATUS_PENDING_TEXT }]}>Open Attachment</CustomText>
+                            </TouchableOpacity>
+
+                            {needsReview && (
+                                <CustomText style={styles.viewRequiredText}>
+                                    * Please open the attachment first to unlock options
+                                </CustomText>
                             )}
-                        </View>
-                        
-                        <TouchableOpacity 
-                            style={styles.viewFileBtn} 
-                            onPress={() => handleViewFile(doc.file)}
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon library="Feather" name="eye" size={16} color={Colors.PRIMARY} />
-                            <CustomText style={styles.viewFileText}>Open Attachment</CustomText>
-                        </TouchableOpacity>
 
-                        <View style={styles.btnRow}>
-                            <TouchableOpacity 
-                                style={[styles.decisionBtn, doc.valid === true && styles.btnActiveApprove, isReviewComplete && { opacity: 0.8 }]}
-                                onPress={() => toggleDocDecision(index, true)}
-                                activeOpacity={isReviewComplete ? 1 : 0.7}
-                            >
-                                <CustomIcon library="Feather" name="check" size={16} color={doc.valid === true ? Colors.WHITE : Colors.SUCCESS} />
-                                <CustomText style={[styles.btnText, doc.valid === true && {color: Colors.WHITE}]}>Approve</CustomText>
-                            </TouchableOpacity>
+                            <View style={styles.btnRow}>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.decisionBtn, 
+                                        doc.valid === 'approved' && styles.btnActiveApprove, 
+                                        (isReviewComplete || needsReview) && { opacity: 0.4 } 
+                                    ]}
+                                    onPress={() => toggleDocDecision(index, 'approved')}
+                                    activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
+                                >
+                                    <CustomIcon library="Feather" name="check" size={16} color={doc.valid === 'approved' ? Colors.WHITE : Colors.SUCCESS} />
+                                    <CustomText style={[styles.btnText, doc.valid === 'approved' && {color: Colors.WHITE}]}>Approve</CustomText>
+                                </TouchableOpacity>
 
-                            <TouchableOpacity 
-                                style={[styles.decisionBtn, doc.valid === false && styles.btnActiveReject, isReviewComplete && { opacity: 0.8 }]}
-                                onPress={() => toggleDocDecision(index, false)}
-                                activeOpacity={isReviewComplete ? 1 : 0.7}
-                            >
-                                <CustomIcon library="Feather" name="x" size={16} color={doc.valid === false ? Colors.WHITE : Colors.ERROR} />
-                                <CustomText style={[styles.btnText, doc.valid === false && {color: Colors.WHITE}]}>Reject</CustomText>
-                            </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.decisionBtn, 
+                                        doc.valid === 'rejected' && styles.btnActiveReject, 
+                                        (isReviewComplete || needsReview) && { opacity: 0.4 } 
+                                    ]}
+                                    onPress={() => toggleDocDecision(index, 'rejected')}
+                                    activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
+                                >
+                                    <CustomIcon library="Feather" name="x" size={16} color={doc.valid === 'rejected' ? Colors.WHITE : Colors.ERROR} />
+                                    <CustomText style={[styles.btnText, doc.valid === 'rejected' && {color: Colors.WHITE}]}>Reject</CustomText>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
-                )) : (
+                    );
+                }) : (
                     <View style={styles.emptyState}>
                         <CustomText variant="caption">No documents attached.</CustomText>
                     </View>
                 )}
 
-                {/* Show read-only reason if already rejected, OR show input box if actively rejecting */}
                 {isRejectedStatus && booking?.cancellationReason ? (
                     <View style={styles.reasonBox}>
                         <CustomText variant="label" style={{color: Colors.ERROR, marginBottom: 8}}>Rejection Reason</CustomText>
@@ -270,7 +314,6 @@ const BookingReviewScreen = ({
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* ONLY show the footer if the review is NOT complete */}
             {!isReviewComplete && (
                 <CustomStickyFooter
                     primaryButton={{
@@ -308,228 +351,46 @@ const BookingReviewScreen = ({
 };
 
 const styles = StyleSheet.create({
-    centerContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    scrollContent: { 
-        padding: 16, 
-        paddingBottom: 120 
-    },
-    completedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        gap: 8
-    },
-    hikerCard: { 
-        backgroundColor: Colors.WHITE, 
-        padding: 20, 
-        borderRadius: 20, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        marginBottom: 20 
-    },
-    label: { 
-        color: Colors.PRIMARY, 
-        fontSize: 11, 
-        letterSpacing: 1, 
-        marginBottom: 12 
-    },
-    hikerRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 16 
-    },
-    avatarLarge: { 
-        width: 50, 
-        height: 50, 
-        borderRadius: 25, 
-        backgroundColor: Colors.SECONDARY, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-    avatarText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold', 
-        fontSize: 18 
-    },
-    hikerInfoGroup: { 
-        flex: 1 
-    },
-    sectionTitle: { 
-        marginBottom: 16, 
-        fontWeight: 'bold', 
-        marginLeft: 4 
-    },
-    docCard: { 
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        padding: 16, 
-        marginBottom: 16 
-    },
-    cardApproved: { 
-        borderColor: Colors.SUCCESS, 
-        backgroundColor: Colors.STATUS_APPROVED_BG 
-    },
-    cardRejected: { 
-        borderColor: Colors.ERROR, 
-        backgroundColor: Colors.ERROR_BG 
-    },
-    docHeader: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 12 
-    },
-    docName: { 
-        fontSize: 15, 
-        fontWeight: '600' 
-    },
-    badge: { 
-        paddingHorizontal: 8, 
-        paddingVertical: 2, 
-        borderRadius: 6 
-    },
-    badgeText: { 
-        fontWeight: 'bold', 
-        fontSize: 10 
-    },
-    viewFileBtn: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: 8, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        padding: 12, 
-        borderRadius: 12, 
-        marginBottom: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT 
-    },
-    viewFileText: { 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold', 
-        fontSize: 13 
-    },
-    btnRow: { 
-        flexDirection: 'row', 
-        gap: 12 
-    },
-    decisionBtn: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: 8, 
-        paddingVertical: 12, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        backgroundColor: Colors.WHITE 
-    },
-    btnActiveApprove: { 
-        backgroundColor: Colors.SUCCESS, 
-        borderColor: Colors.SUCCESS 
-    },
-    btnActiveReject: { 
-        backgroundColor: Colors.ERROR, 
-        borderColor: Colors.ERROR 
-    },
-    btnText: { 
-        fontWeight: 'bold', 
-        fontSize: 14, 
-        color: Colors.TEXT_PRIMARY 
-    },
-    reasonBox: { 
-        marginBottom: 24, 
-        paddingHorizontal: 4,
-    },
-    readOnlyReason: {
-        backgroundColor: Colors.ERROR_BG, 
-        padding: 16, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.ERROR_BORDER
-    },
-    textArea: {
-        minHeight: 140,
-        height: 140,
-        textAlignVertical: 'top',
-        paddingTop: 16,
-        paddingBottom: 16,
-    },
-    dropdownButton: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        borderRadius: 12,
-        marginBottom: 16,
-        backgroundColor: Colors.WHITE,
-    },
-    dropdownText: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    dropdownPlaceholder: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 16,
-    },
-    refundBtn: { 
-        marginTop: 12, 
-        padding: 16, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.ERROR,  
-        alignItems: 'center' 
-    },
-    refundText: { 
-        color: Colors.ERROR, 
-        fontWeight: 'bold' 
-    },
-    emptyState: { 
-        padding: 40, 
-        alignItems: 'center' 
-    },
-    cardDivider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 16,
-    },
-    emergencyRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    iconCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emergencyTextGroup: {
-        flex: 1,
-    },
-    emergencyName: {
-        fontWeight: 'bold',
-        fontSize: 15,
-        color: Colors.TEXT_PRIMARY,
-    },
+    centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scrollContent: { padding: 16, paddingBottom: 120 },
+    completedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, marginBottom: 16, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, gap: 8 },
+    hikerCard: { backgroundColor: Colors.WHITE, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, marginBottom: 20 },
+    label: { color: Colors.PRIMARY, fontSize: 11, letterSpacing: 1, marginBottom: 12 },
+    hikerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    avatarLarge: { width: 50, height: 50, borderRadius: 25, backgroundColor: Colors.SECONDARY, justifyContent: 'center', alignItems: 'center' },
+    avatarText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 18 },
+    hikerInfoGroup: { flex: 1 },
+    sectionTitle: { marginBottom: 16, fontWeight: 'bold', marginLeft: 4 },
+    docCard: { backgroundColor: Colors.WHITE, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, padding: 16, marginBottom: 16 },
+    cardApproved: { borderColor: Colors.SUCCESS, backgroundColor: Colors.STATUS_APPROVED_BG },
+    cardRejected: { borderColor: Colors.ERROR, backgroundColor: Colors.ERROR_BG },
+    docHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    docName: { fontSize: 15, fontWeight: '600' },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    badgeText: { fontWeight: 'bold', fontSize: 10 },
+    viewFileBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
+    viewFileBtnHighlight: { backgroundColor: Colors.STATUS_PENDING_BG, borderColor: Colors.STATUS_PENDING_BORDER, borderWidth: 1 }, 
+    viewFileText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 13 },
+    viewRequiredText: { color: Colors.TEXT_SECONDARY, fontSize: 12, textAlign: 'center', marginBottom: 8, fontStyle: 'italic' }, 
+    btnRow: { flexDirection: 'row', gap: 12 },
+    decisionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, backgroundColor: Colors.WHITE },
+    btnActiveApprove: { backgroundColor: Colors.SUCCESS, borderColor: Colors.SUCCESS },
+    btnActiveReject: { backgroundColor: Colors.ERROR, borderColor: Colors.ERROR },
+    btnText: { fontWeight: 'bold', fontSize: 14, color: Colors.TEXT_PRIMARY },
+    reasonBox: { marginBottom: 24, paddingHorizontal: 4 },
+    readOnlyReason: { backgroundColor: Colors.ERROR_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR_BORDER },
+    textArea: { minHeight: 140, height: 140, textAlignVertical: 'top', paddingTop: 16, paddingBottom: 16 },
+    dropdownButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, borderRadius: 12, marginBottom: 16, backgroundColor: Colors.WHITE },
+    dropdownText: { color: Colors.TEXT_PRIMARY, fontSize: 16, fontWeight: '500' },
+    dropdownPlaceholder: { color: Colors.TEXT_SECONDARY, fontSize: 16 },
+    refundBtn: { backgroundColor: Colors.ERROR_BG, marginTop: 12, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR_BORDER, alignItems: 'center' },
+    refundText: { color: Colors.ERROR, fontWeight: 'bold' },
+    emptyState: { padding: 40, alignItems: 'center' },
+    cardDivider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginVertical: 16 },
+    emergencyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.STATUS_APPROVED_BG, justifyContent: 'center', alignItems: 'center' },
+    emergencyTextGroup: { flex: 1 },
+    emergencyName: { fontWeight: 'bold', fontSize: 15, color: Colors.TEXT_PRIMARY }
 });
 
 export default BookingReviewScreen;

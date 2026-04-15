@@ -33,7 +33,6 @@ export default function listOffer(){
         bir,
         dti,
         denr,
-        pickDocument,
         onPayOffer,
     } = useFileUpload();
 
@@ -45,16 +44,17 @@ export default function listOffer(){
             <Pressable onPress={() => onPayOffer(1500)}>
                 <Text>Pay Now</Text>
             </Pressable>
-        <BookingScreen 
-            offers={trailOffers}
-            booking={booking}
-            error={offerError || bookError}
-            onSetOffer={onSetOffer}
-            onBookNowPress={onCompleteBook}
-            onBackPress={onBackPress}
-            onUpdatePress={onUpdatePress}
-            onCompleteOffer={onCompleteBook}
-        />
+
+            <BookingScreen 
+                offers={trailOffers}
+                booking={booking}
+                error={offerError || bookError}
+                onSetOffer={onSetOffer}
+                onBookNowPress={onCompleteBook}
+                onBackPress={onBackPress}
+                onUpdatePress={onUpdatePress}
+                onCompleteOffer={onCompleteBook}
+            />
         </>  
     )
 }

@@ -32,9 +32,13 @@ export function useOfferWrite(params: UseOfferParams = {}){
     const isLoading = useOffersStore(s => s.isLoading);
     const remove = useOffersStore(s => s.delete);
     const create = useOffersStore(s => s.createOffer);
+    
     const createGroup = useGroupStore(s => s.createGroup);
+    const checkGroupExists = useGroupStore(s => s.checkGroupExists);
+    
     const [mode, setMode] = useState<FormMode>('create');
     const [localError, setLocalError] = useState<string | null>(null);
+    
     const [offer, setOffer] = useState<Offer>(() => {
         const existing = offers.find(offer => offer.id === offerId);
         
@@ -46,7 +50,6 @@ export function useOfferWrite(params: UseOfferParams = {}){
         const businessSummary = BusinessLogic.toSummary(businessAccount);
 
         if(existing) {
-            alert('editing existing offer');
             setMode('edit');
         }
 
@@ -78,7 +81,6 @@ export function useOfferWrite(params: UseOfferParams = {}){
             setOffer(prev => 
                 produce(prev, (draft) => {
                     const trailSummary = TrailLogic.toSummary(trail);
-
                     draft.trail = trailSummary;
                 })
             )
@@ -92,16 +94,10 @@ export function useOfferWrite(params: UseOfferParams = {}){
             if(!profile)
                 throw new Error('User profile not found');
 
-            if(mode === 'edit'){
-                alert('Message from business regarding the changes made; to be used for the notification.');
-            }
-            
-
             const success = await create(offer);
+            if(!success) throw new Error('Failed creating/updating offer');
 
-            if(!success) throw new Error('Failed creating offer');
-
-            const group = new Group({
+            const groupBlueprint = new Group({
                 id: success.id,
                 admins: [UserLogic.toSummary(profile)],
                 participantsIds: [profile.id],
@@ -124,17 +120,36 @@ export function useOfferWrite(params: UseOfferParams = {}){
                     description: success.description
                 },
                 status: 'active',
-            })
-            
-            createGroup(group);
+            });
+
+            if (mode === 'create') {
+                await createGroup(groupBlueprint);
+            } else if (mode === 'edit') {
+                let groupExists = false;
+                
+                try {
+                    const existingGroup = await checkGroupExists(offer.id);
+                    if (existingGroup) {
+                        groupExists = true;
+                    }
+                } catch (e) {
+                    console.log('Group not found in DB. Catching error to heal the offer.');
+                    groupExists = false;
+                }
+
+                if (!groupExists) {
+                    console.log('Healing broken offer: Creating missing group...');
+                    await createGroup(groupBlueprint);
+                } else {
+                    console.log('Offer updated successfully. Existing group preserved.');
+                }
+            }
 
             router.back();
         } catch (error) {
-            setLocalError((error as Error).message || 'Failed submitting')
+            setLocalError((error as Error).message || 'Failed submitting');
         }
-
     }
-
 
     const onRemovePress = async (id: string) => {
         try {

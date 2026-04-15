@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
@@ -14,10 +14,10 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/src/core/config/Firebase';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { httpsCallable } from 'firebase/functions';
 
 const PaymentScreen = ({
     bookingData,
@@ -29,6 +29,7 @@ const PaymentScreen = ({
 
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [paymentError, setPaymentError] = useState(null);
     
     const [paymentType, setPaymentType] = useState('full');
     const [selectedMethod, setSelectedMethod] = useState(null);
@@ -57,6 +58,8 @@ const PaymentScreen = ({
 
     const handleNextStep = async () => {
         if (currentStep === 1) {
+            setPaymentError(null);
+
             if (['gcash', 'maya'].includes(selectedMethod)) {
                 setIsSubmitting(true);
                 try {
@@ -85,9 +88,10 @@ const PaymentScreen = ({
                         windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
                     });
                     
-                    if (result.type === 'cancel') {
+                    if (result.type === 'cancel' || result.type === 'dismiss') {
                         // User closed the browser manually
                         setIsSubmitting(false);
+                        setPaymentError("Payment process was cancelled. You can try again when you are ready.");
                         return;
                     }
 
@@ -95,9 +99,10 @@ const PaymentScreen = ({
                     // before going to the status tab
                     setReceiptImage({ uri: 'paymongo_source', id: response.data.id });
                     setCurrentStep(3);
+
                 } catch (error) {
                     console.error("Payment Error:", error);
-                    alert("Failed to initialize payment: " + error.message);
+                    setPaymentError(error.message || "Failed to initialize payment gateway. Please try again or use another method.");
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -190,6 +195,7 @@ const PaymentScreen = ({
                         setSelectedMethod={setSelectedMethod}
                         profileFullName={profileFullName}
                         setIsSignatureValid={setIsSignatureValid}
+                        paymentError={paymentError}
                     />
                 )}
                 {currentStep === 2 && (

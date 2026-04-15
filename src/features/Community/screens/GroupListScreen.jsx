@@ -99,6 +99,7 @@ const GroupListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title="Your Groups"
+                centerTitle={true}
                 onBackPress={onBackPress}
             />
             <View style={styles.container}>
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     messageRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between', // Pushes time to the right
+        justifyContent: 'space-between',
     },
     lastMessage: {
         flex: 1,

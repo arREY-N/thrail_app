@@ -40,6 +40,7 @@ export default function useFileUpload(){
                     setDENR(documentUrl);
                     break;
             }
+            return documentUrl;
         } catch (error) {
             if (error instanceof Error) {
                 setLocalError(error.message);
@@ -47,6 +48,7 @@ export default function useFileUpload(){
             else {
                 console.error('Unexpected error:', error);
             }
+            throw error;
         }
     }
 
