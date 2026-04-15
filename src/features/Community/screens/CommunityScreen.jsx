@@ -13,8 +13,8 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
+import PostCard from '@/src/components/PostCard';
 import { Colors } from '@/src/constants/colors';
-import PostCard from '@/src/features/Community/components/PostCard';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const CommunityScreen = ({ 
@@ -42,16 +42,33 @@ const CommunityScreen = ({
         let filtered = [...reviews];
 
         if (searchQuery.trim().length > 0) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(r => 
-                (r.review && r.review.toLowerCase().includes(query)) ||
-                (r.userName && r.userName.toLowerCase().includes(query)) ||
-                (r.mountainName && r.mountainName.toLowerCase().includes(query))
-            );
+            const query = searchQuery.trim().toLowerCase();
+            
+            filtered = filtered.filter(r => {
+                const reviewText = String(r.review || '').toLowerCase();
+                const userText = String(r.userName || '').toLowerCase();
+                const mountainText = String(r.mountainName || r.trailName || '').toLowerCase();
+                const locationText = String(r.location || '').toLowerCase();
+
+                return reviewText.includes(query) || 
+                       userText.includes(query) || 
+                       mountainText.includes(query) || 
+                       locationText.includes(query);
+            });
         }
         
         if (activeTab === 'Popular') {
-            filtered.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+            filtered.sort((a, b) => {
+                const aLikes = Array.isArray(a.likes) ? a.likes.length : (Number(a.likes) || 0);
+                const bLikes = Array.isArray(b.likes) ? b.likes.length : (Number(b.likes) || 0);
+                return bLikes - aLikes;
+            });
+        } else if (activeTab === 'Latest') {
+            filtered.sort((a, b) => {
+                const dateA = new Date(a.rawReview?.createdAt || a.rawReview?.hikeDate || a.date).getTime();
+                const dateB = new Date(b.rawReview?.createdAt || b.rawReview?.hikeDate || b.date).getTime();
+                return (dateB || 0) - (dateA || 0); 
+            });
         }
 
         return filtered;
@@ -69,6 +86,7 @@ const CommunityScreen = ({
                         searchPlaceholder: "Search posts or hikers...",
                         searchValue: searchQuery,
                         onSearchChange: setSearchQuery,
+                        onChangeText: setSearchQuery,
                         rightIconLibrary: "MaterialCommunityIcons",
                         rightIconName: "podium",
                         onRightButtonPress: onLeaderboardPress,
@@ -112,9 +130,10 @@ const CommunityScreen = ({
                         renderItem={({ item }) => (
                             <PostCard 
                                 review={item}
+                                variant="community"
                                 onLike={() => likeReview(item)}
                                 isLiked={isLiked(item)}
-                                onEdit={() => onWriteReviewPress(item.id)}
+                                onEdit={() => onWriteReviewPress(item)}
                                 isOwned={isOwned(item)}
                             />
                         )}

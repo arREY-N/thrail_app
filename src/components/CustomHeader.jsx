@@ -24,7 +24,15 @@ const CustomHeader = ({
     children
 }) => {
 
-    const { onNotificationPress, onBookingPress } = useAppNavigation();
+    const { 
+        onNotificationPress, 
+        onBookingPress,
+    } = useAppNavigation();
+
+    const enhancedSearchProps = {
+        ...searchProps,
+        onChangeText: searchProps.onChangeText || searchProps.onSearchChange,
+    };
 
     return (
         <View style={[
@@ -110,7 +118,7 @@ const CustomHeader = ({
 
             {/* Embedded Search Bar */}
             {hasSearch && (
-                <CustomSearchBar {...searchProps} />
+                <CustomSearchBar {...enhancedSearchProps} />
             )}
             
         </View>
