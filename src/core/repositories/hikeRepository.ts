@@ -63,7 +63,6 @@ class HikeRepositoryImpl implements BaseRepository<Hike>{
 
     async writeCoordinates(userId: string, hikeId: string, coordinates: Location[]): Promise<void> {
         try {
-            console.log('Writing: ', userId, hikeId, coordinates);
             const coordRef = doc(collection(db, 'users', userId, 'hikes', hikeId, 'coordinates'));
             
             const lastTimestamp = coordinates[coordinates.length -1].timestamp;
@@ -82,8 +81,6 @@ class HikeRepositoryImpl implements BaseRepository<Hike>{
                     lastCoordinate: Timestamp.fromDate(lastTimestamp),
                 },
             )
-
-            console.log(`Successfully wrote ${coordinates.length} coordinates for hike ${hikeId}`);
         } catch (error) {
             console.error('Error writing coordinates: ', error);
             throw new Error(error instanceof Error ? error.message : 'Failed writing coordinates');

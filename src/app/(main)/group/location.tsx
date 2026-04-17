@@ -1,4 +1,3 @@
-import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupLocation from "@/src/core/hook/group/useGroupLocation";
 import { Booking } from "@/src/core/models/Booking/Booking";
@@ -11,22 +10,24 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function GroupLocationScreen() {
-    const { groupId: rawId, bookingId: rawBookingId } = useLocalSearchParams();
+    const { groupId: rawId } = useLocalSearchParams();
     
     const groupId = getSearchParam(rawId);
-    const bookingId = getSearchParam(rawBookingId);
     
     const {
         currentGroup,
-    } = useGroup(groupId);
-
-    const {
         booking,
-    } = useBookOffer({ bookingId: bookingId });
+    } = useGroup(groupId);
 
     const {
         onStartSharingLocation,
         onStopSharingLocation,
+        onStartHike,
+        onPauseHike,
+        onResumeHike,
+        onCompleteHike,
+        onEmergencyPress,
+        onSendPicture,
         error,
         isLive,
         currentHike,
@@ -41,6 +42,12 @@ export default function GroupLocationScreen() {
                 booking={booking}
                 onStartSharingLocation={onStartSharingLocation}
                 onStopSharingLocation={onStopSharingLocation}
+                onStartHike={onStartHike}
+                onPauseHike={onPauseHike}
+                onResumeHike={onResumeHike}
+                onCompleteHike={onCompleteHike}
+                onEmergencyPress={onEmergencyPress}
+                onSendPicture={onSendPicture}
                 error={error}
                 isLive={isLive}
                 currentHike={currentHike}
@@ -51,10 +58,17 @@ export default function GroupLocationScreen() {
 }
 
 export type TestScreenParams = {
+    onStartSharingLocation: () => void;
+    onStopSharingLocation: () => void;
+    onStartHike: (group: Group, booking: Booking) => void;
+    onPauseHike: () => void;
+    onResumeHike: () => void;
+    onCompleteHike: () => void;
+    onEmergencyPress: () => void;
+    onSendPicture: () => void;
+
     group: Group | null;
     booking: Booking | null;
-    onStartSharingLocation: (group: Group, booking: Booking) => void;
-    onStopSharingLocation: () => void;
     error: string | null;
     isLive: boolean;
     currentHike: Hike | null;
@@ -62,7 +76,7 @@ export type TestScreenParams = {
 }
 
 const TESTSCREEN = (params: TestScreenParams) => {
-    const { group, booking, location } = params;
+    const { group, booking, location, currentHike } = params;
 
     if(!group || !booking) {
         return (
@@ -76,17 +90,55 @@ const TESTSCREEN = (params: TestScreenParams) => {
         <ScrollView>
             <Text>{group.GroupName}</Text>
             { 
-                ([...group.members, ...group.admins]).map((m, index) => (
-                    <Text key={`${m.id}_${index}`}>{m.username}</Text>
-                ))
+                ([...group.members, ...group.admins]).map((m, index) => {
+                    const bookingId = group.members.find(member => member.id === m.id)?.bookingId;
+                    return (
+                        <Text key={`${m.id}_${index}`}>{index + 1}: {m.username} - {bookingId}</Text>
+                    )
+                }
+            )
             }
 
-            <Pressable onPress={() => params.onStartSharingLocation(group, booking)} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
-                <Text style={{ color: 'white' }}>Start Sharing Location</Text>
-            </Pressable>
-            <Pressable onPress={params.onStopSharingLocation} style={{ marginTop: 20, padding: 10, backgroundColor: 'red' }}>
-                <Text style={{ color: 'white' }}>Stop Sharing Location</Text>
-            </Pressable>
+            { currentHike?.status !== 'started' && (
+                <Pressable onPress={() => params.onStartHike(group, booking)} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                    <Text style={{ color: 'white' }}>START HIKE</Text>
+                </Pressable>
+            )}
+
+            { currentHike?.status === 'started' && (
+                <>
+                    <Pressable onPress={() => params.onPauseHike()} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                        <Text style={{ color: 'white' }}>Pause Hike</Text>
+                    </Pressable>
+                    <Pressable onPress={() => params.onCompleteHike()} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                        <Text style={{ color: 'white' }}>Complete Hike</Text>
+                    </Pressable>
+                </>
+            )}
+
+            { currentHike?.status === 'paused' && (
+                <>
+                    <Pressable onPress={() => params.onResumeHike()} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                        <Text style={{ color: 'white' }}>Resume Hike</Text>
+                    </Pressable>
+                    <Pressable onPress={() => params.onCompleteHike()} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                        <Text style={{ color: 'white' }}>Complete Hike</Text>
+                    </Pressable>
+                </>
+            )}
+
+            { !params.isLive && (
+                <Pressable onPress={() => params.onStartSharingLocation()} style={{ marginTop: 20, padding: 10, backgroundColor: 'green' }}>    
+                    <Text style={{ color: 'white' }}>Start Sharing Location</Text>
+                </Pressable>
+            )}
+
+            { params.isLive && (
+                <Pressable onPress={params.onStopSharingLocation} style={{ marginTop: 20, padding: 10, backgroundColor: 'red' }}>
+                    <Text style={{ color: 'white' }}>Stop Sharing Location</Text>
+                </Pressable>
+            )}
+
             <Text>Booking information </Text>
             <Text>ID: {booking.id}</Text>
             <Text>Created: {formatDate(booking.createdAt)}</Text>
@@ -94,16 +146,26 @@ const TESTSCREEN = (params: TestScreenParams) => {
             {params.error && <Text style={{ color: 'red', marginTop: 20 }}>{params.error}</Text>}
             {params.isLive && <Text style={{ color: 'green', marginTop: 20 }}>Location is live!</Text>}
             
+            <Pressable onPress={params.onEmergencyPress} style={{ marginTop: 20, padding: 10, backgroundColor: 'red' }}>
+                <Text style={{ color: 'white' }}>Send Emergency Alert</Text>
+            </Pressable>
+            
+            <Pressable onPress={params.onSendPicture} style={{ marginTop: 20, padding: 10, backgroundColor: 'red' }}>
+                <Text style={{ color: 'white' }}>Send Picture</Text>
+            </Pressable>
             
             {
                 params.isLive && (location ?? []).map(loc => {
-                    const user = group.members.find(member => member.id === loc.id);
+                    const user = [ ...group.members, ...group.admins ].find(member => member.id === loc.id);
                     const userStatus = Date.now() - new Date(loc.timestamp).getTime() > (5 * 1000) ? 'inactive' : 'active' 
                     return (
                         <View style={{ marginTop: 20, padding: 10, borderWidth: 1, borderColor: 'gray' }} key={loc.id}>
                             <Text>User: {user?.firstname} </Text>
                             <Text>Status: {userStatus} </Text>
-                            <Text>Long: {loc.longitude}, Lat: {loc.latitude}, Time: {formatDate(loc.timestamp)}</Text>
+                            <Text>Lat: {loc.latitude}</Text>
+                            <Text>Long: {loc.longitude}</Text>
+                            <Text>Alt: {loc.altitude}</Text>
+                            <Text>Time: {formatDate(loc.timestamp)}</Text>
                         </View>
 
                     )
