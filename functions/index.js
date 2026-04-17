@@ -19,6 +19,86 @@ setGlobalOptions({
     maxInstances: 10 
 });
 
+exports.onNewMessage = functions.firestore
+    .document('groups/{groupId}/messages/{messageId}')
+    .onCreate(async (snapshot, context) => {
+        const data = snapshot.data();
+        if (!data) return null;
+
+        const { content, senderName, senderId } = data;
+        const groupId = context.params.groupId;
+
+        const groupDoc = await admin.firestore().collection('groups').doc(groupId).get();
+        const group = groupDoc.data();
+
+        if (!group) {
+            console.error(`Group ${groupId} not found`);
+            return null;
+        }
+
+        const recipientIds = (group.members || [])
+            .map(m => m.id)
+            .filter(id => id && id !== senderId);
+
+        if (recipientIds.length === 0) return null;
+
+        const tokens = [];
+        const userSnapshots = await admin.firestore()
+            .collection('users')
+            .where(admin.firestore.FieldPath.documentId(), 'in', recipientIds.slice(0, 30)) 
+            .get();
+
+        userSnapshots.forEach(doc => {
+            const userTokens = doc.data().fcmTokens || [];
+            tokens.push(...userTokens.map(t => typeof t === 'string' ? t : t.token));
+        });
+
+        const uniqueTokens = [...new Set(tokens)].filter(t => !!t);
+
+        if (uniqueTokens.length === 0) return null;
+
+        const groupName = `${group.business?.name || 'Organizer'}_${group.trail?.name || 'Trail'}`;
+        
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: uniqueTokens,
+            notification: {
+                title: groupName,
+                body: `${senderName}: ${content}`
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'default', 
+                    clickAction: 'fcm.ACTION.HELLO',
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                        badge: 1,
+                        sound: 'default',
+                        priority: 10 
+                    }
+                }
+            }
+        });
+
+        const tokensToRemove = [];
+        response.responses.forEach((res, idx) => {
+            if (!res.success) {
+                const errorCode = res.error?.code;
+                if (errorCode === 'messaging/registration-token-not-registered' || 
+                    errorCode === 'messaging/invalid-registration-token') {
+                    tokensToRemove.push(uniqueTokens[idx]);
+                }
+            }
+        });
+
+        console.log(`Sent ${response.successCount} messages. ${tokensToRemove.length} stale tokens found.`);
+    }
+);
+
 exports.onAddBooking = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
     .onCreate(async (snapshot, context) => {
