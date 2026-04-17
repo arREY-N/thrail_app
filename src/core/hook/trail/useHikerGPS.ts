@@ -12,9 +12,9 @@ import {
 import { exportHikeData, saveToCSV } from "../../utility/hikeStorage";
 import { LOCATION_TASK } from "../../utility/locationTask";
 // NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
+import { Location as LocationModel } from "@/src/core/models/Location/Location";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { HikeState } from "@/src/core/stores/hikeStores/hikeStoreCreator";
-import { Location as LocationModel } from "@/src/core/models/Location/Location";
 
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {

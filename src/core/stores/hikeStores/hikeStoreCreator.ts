@@ -31,7 +31,7 @@ export interface HikeState {
     fetchAll: (userId: string) => Promise<void>;
     refresh: (userId: string) => Promise<void>;
     load: (id: string, userId: string) => Promise<Hike | null>;
-    create: (hike: Hike, userId: string) => Promise<void>;
+    create: (userId: string, hike?: Hike) => Promise<void>;
     remove: (id: string, userId: string) => Promise<void>;
     startHike: (userId: string) => Promise<void>;
 
@@ -56,7 +56,6 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     addCoordinate: async (coordinate: Location) => {
         try {
-            console.log('Added coordinate: ', coordinate);
             const coordinates = get().coordinates;
             const profile = useAuthStore.getState().profile;
             const currentHike = get().currentHike;
@@ -71,11 +70,6 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             if(coordinates.length % 5 === 0 && coordinates.length !== 0 && get().currentHike) {
                 console.log('Adding coordinate to hike after 5 new coordinates collected');
                 
-                console.log(
-                    profile.id,
-                    currentHike.id,
-                    coordinates.slice(1)
-                )
                 await HikeRepository.writeCoordinates(
                     profile.id,
                     currentHike.id,
@@ -215,6 +209,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             const updated = await HikeRepository.write(active, userId);
             
+            console.log('updated: ', updated);
+
             set({
                 currentHike: updated,
                 coordinates: [new Location()],
@@ -286,7 +282,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         }
     },
 
-    create: async (hike: Hike, userId: string): Promise<void> => {
+    create: async (userId: string, hike?: Hike): Promise<void> => {
         set({isLoading: true, error: null});
 
         try {
@@ -294,7 +290,13 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 throw new Error("User ID is required to create hike");
             }
 
-            const response = await HikeRepository.write(hike, userId);
+            const toUploadHike = get().currentHike ?? hike;
+
+            if(!toUploadHike) {
+                throw new Error("No hike data provided to create");
+            }
+
+            const response = await HikeRepository.write(toUploadHike, userId);
             
             set((state) => {
                 const index = state.hikes.findIndex(h => h.id === response.id);

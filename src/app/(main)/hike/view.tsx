@@ -20,6 +20,7 @@ export default function hikeView(){
         booking,
         error,
         elapsedTime,
+        isLoading,
         
         onStartHike,
         onAddReview,
@@ -27,7 +28,7 @@ export default function hikeView(){
         onCompleteHike,
         onResumeHike,
         onResetHike,
-        onEmergencyPress
+        onEmergencyPress,
     } = useWriteHike({hikeId, trailId});
 
     if((hikeId && hike?.id !== hikeId) || (trailId && hike?.trail.id !== trailId)) {
@@ -40,6 +41,7 @@ export default function hikeView(){
             </View>
         )
     }
+
 
     return(
         <>
@@ -60,6 +62,7 @@ export default function hikeView(){
                 lon={paramLon}
                 lat={paramLat}
                 onEmergencyPress={onEmergencyPress}
+                isLoading={isLoading}
             />        
         </>
     )
@@ -74,6 +77,7 @@ export type HikeViewParams = {
     trailId?: string;
     lon?: string | string[];
     lat?: string | string[];
+    isLoading: boolean;
 
     onStartHike: ({hikeId, trailId}: { hikeId?: string; trailId?: string }) => void;
     onPauseHike: () => void;
@@ -92,6 +96,7 @@ export const TestView = (params: HikeViewParams) => {
         elapsedTime,
         hikeId,
         trailId,
+        isLoading,
         onStartHike,
         onPauseHike,
         onCompleteHike,
@@ -110,6 +115,7 @@ export const TestView = (params: HikeViewParams) => {
 
     return(
         <ScrollView>
+            { isLoading && <Text>Loading...</Text>}
             { error && <Text style={{color: 'red'}}>Error: {error}</Text>}
             <Text>Elapsed Time: {elapsedTime} ms</Text>
             <Text>Hike View</Text>

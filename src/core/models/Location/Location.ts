@@ -27,7 +27,7 @@ export class Location implements ILocation {
     toFirestore(): ILocationDB {
         const mapped: ILocationDB = {
             point: new GeoPoint(this.latitude, this.longitude),
-            altitude: 0,
+            altitude: this.altitude,
             timestamp: this.timestamp ? Timestamp.fromDate(this.timestamp) : serverTimestamp(),
         };
 

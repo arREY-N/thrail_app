@@ -8,6 +8,7 @@ import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 export interface IUseWriteHike {
     hike: Hike | null;
@@ -22,7 +23,6 @@ export interface IUseWriteHike {
     onCompleteHike: () => void;
     onResetHike: () => void;
     onEmergencyPress: () => void;
-    tick: () => void;
 
     onAddReview: (trailId: string) => void;
 }
@@ -32,7 +32,7 @@ export type IUseWriteHikeParams = {
     trailId?: string;
 }
 
-export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike {
+export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWriteHike {
     const { hikeId, trailId } = params;
     const { profile } = useAuthHook();
 
@@ -132,7 +132,7 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
                 console.log('Retain active hike unless completed. currently ', currentHike?.status);
             }
         }
-    },[currentHike?.status, hikeId, trailId, profile?.id])
+    },[hikeId, trailId, profile?.id])
     
     const onStartHike = () => {
         if(!profile?.id) {
@@ -202,7 +202,7 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
             endTime: new Date(),
         })
         
-        await create(completedHike, profile!.id)
+        await create(profile!.id, completedHike);
     }
 
     const onResetHike = () => {
@@ -224,35 +224,37 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
         })
     }
 
-    const tick = () => {
-        if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
-            return;
-        } 
-        useHikesStore.getState().addCoordinate(new Location({
-            latitude: Math.random() * 180 - 90,
-            longitude: Math.random() * 360 - 180,
-            altitude: Math.random() * 2000,
-            timestamp: new Date(),
-        }));
-        
-        const now = Date.now();
-
-        updateHikeStore({ elapsedTime: now - timerStartTime });
+    if(Platform.OS === 'web') {
+        const tick = () => {
+            if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
+                return;
+            } 
+            useHikesStore.getState().addCoordinate(new Location({
+                latitude: Math.random() * 180 - 90,
+                longitude: Math.random() * 360 - 180,
+                altitude: Math.random() * 2000,
+                timestamp: new Date(),
+            }));
+            
+            const now = Date.now();
+    
+            updateHikeStore({ elapsedTime: now - timerStartTime });
+        }
+    
+        useEffect(() => {
+            let interval: ReturnType<typeof setInterval> | undefined;
+    
+            if(currentHike?.status === 'started') {
+                interval = setInterval(() => {
+                    tick();
+                }, 1000);
+            }
+    
+            return () => {
+                if(interval) clearInterval(interval);
+            }
+        },[currentHike?.status])
     }
-
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval> | undefined;
-
-        if(currentHike?.status === 'started') {
-            interval = setInterval(() => {
-                tick();
-            }, 1000);
-        }
-
-        return () => {
-            if(interval) clearInterval(interval);
-        }
-    },[currentHike?.status])
 
 
     const onEmergencyPress = () => {
@@ -292,7 +294,6 @@ export default function useWriteHike(params: IUseWriteHikeParams): IUseWriteHike
         booking,
         elapsedTime,
         
-        tick,
         onEmergencyPress,
         onStartHike,
         onAddReview,
