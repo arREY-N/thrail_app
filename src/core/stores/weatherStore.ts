@@ -20,6 +20,14 @@ const init = {
     isLoading: false,
 };
 
+// In-memory cache validity: 30 minutes
+const MEMORY_CACHE_TTL_MS = 30 * 60 * 1000;
+
+const isMemoryCacheFresh = (lastUpdated?: string): boolean => {
+    if (!lastUpdated) return false;
+    return Date.now() - new Date(lastUpdated).getTime() < MEMORY_CACHE_TTL_MS;
+};
+
 export const useWeatherStore = create<WeatherState>()((set, get) => ({
     ...init, 
 
@@ -34,8 +42,8 @@ export const useWeatherStore = create<WeatherState>()((set, get) => ({
             await clearWeatherCache(lat, lon);
         } else {
             const existingData = get().data[key];
-            if (existingData && !existingData.isStale) {
-                return; // Memory cache hit
+            if (existingData && isMemoryCacheFresh(existingData.lastUpdated)) {
+                return; // Memory cache hit and still fresh
             }
         }
 
