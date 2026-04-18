@@ -113,7 +113,10 @@ class BusinessRepositoryImpl implements BusinessRepository{
                 email: user.email,
             })
 
-            const uid = await createAdmin(admin.toFirestore());
+            const uid = await createAdmin({
+                userId: user.id,
+                businessId,
+            });
             
             if(!uid) throw new Error('Admin creation failed');
 

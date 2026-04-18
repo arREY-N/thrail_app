@@ -285,20 +285,20 @@ exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
 });
 
 exports.createAdmin = https.onCall(async (request) => {
-    const { userId, businessId } = request.data;
-    const caller = request.auth;
-    const db = admin.firestore();
-    
-    if(!caller) throw new Error('Authentication required');
-    
-    if(!userId) throw new Error('User ID required');
-    
-    if(!businessId) throw new Error('Business ID required');
-
-    if(caller.token.role !== 'admin' && caller.token.owner !== businessId) 
-        throw new Error('Permission denied, only business owners can create admin accounts');
-
     try{
+        const { userId, businessId } = request.data;
+        const caller = request.auth;
+        const db = admin.firestore();
+
+        if(!caller) throw new Error('Authentication required');
+        
+        if(!userId) throw new Error('User ID required');
+        
+        if(!businessId) throw new Error('Business ID required');
+    
+        if(caller.token.role !== 'admin' && caller.token.owner !== businessId) 
+            throw new Error('Permission denied, only business owners can create admin accounts');
+    
         await admin.auth().setCustomUserClaims(userId, {
             role: 'admin',
             businessId
@@ -337,7 +337,7 @@ exports.createAdmin = https.onCall(async (request) => {
         return { user: doc.data().uid };
     } catch (error) {
         console.error('Error setting default role: ', error);
-        throw new Error(error.message);
+        throw new HttpsError('internal', error.message);
     }
 });
 
