@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "thrail",
     "name": "thrail_app",
     "slug": "thrail_app",
     "version": "1.0.0",

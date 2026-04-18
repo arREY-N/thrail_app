@@ -1,5 +1,8 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
+import { UserLogic } from "@/src/core/models/User/logic/User.logic";
+import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +15,10 @@ export const useGroup = (groupId: string) => {
     const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
     const groups = useGroupStore(s => s.groups);
     const [bookingId, setBookingId] = useState<string>();
-
+    const [booking, setBooking] = useState<Booking | null>(null);
+    const bookings = useBookingsStore(s => s.userBookings);
+    const [localError, setLocalError] = useState<string | null>(null);
+    const load = useBookingsStore(s => s.load);
     useEffect(() => {
         if (!groupId) return;
 
@@ -21,19 +27,50 @@ export const useGroup = (groupId: string) => {
         
         return () => unsubscribe(groupId);
         
-    }, [groupId, subscribe, unsubscribe, currentGroup]);
+    }, [groupId, subscribe, unsubscribe]);
     
     useEffect(() => {
-        if (currentGroup && profile) {
-            const bookingId = currentGroup?.members.find(m => m.id === profile?.id)?.bookingId;
-            
-            if(!bookingId) {
-                console.warn(`No bookingId found for user ${profile.id} in group ${groupId}`);
-                return;
+        const fetch = async () => {
+
+            if (currentGroup && profile) {
+                console.log('current group: ', currentGroup);
+                console.log('profile: ', profile);
+                const bookingId = currentGroup.members.find(m => m.id === profile?.id)?.bookingId;
+                console.log('found bookingId: ', bookingId);
+                if(profile.role === 'admin' && !bookingId) {    
+                    console.log('is admin');
+                    setBooking(new Booking({
+                        id: 'admin-booking',
+                        status: 'paid',
+                        trail: currentGroup.trail,
+                        business: currentGroup.business,
+                        user: UserLogic.toSummary(profile),
+    
+                    }));
+                    return;
+                }
+    
+                if(!bookingId) {
+                    console.warn(`No bookingId found for user ${profile.id} in group ${groupId}`);
+                    setLocalError('No booking found for this user in the selected group');
+                    return;
+                }
+                
+                await load(profile.id);
+                const found = bookings.find(booking => booking.id === bookingId);   
+                if(!found) {
+                    console.log('failed to fetch booking by ID');
+                    setLocalError('Failed to fetch booking by ID');
+                    return;
+                }
+    
+                console.log(found)
+                setBooking(found);
             }
-            
-            setBookingId(bookingId ?? null);
         }
+
+        fetch();
+        
     }, [currentGroup, profile?.id]);
 
     const onViewGroupLocation = (groupId: string) => {
@@ -45,7 +82,7 @@ export const useGroup = (groupId: string) => {
     
     return {  
         currentGroup,
-        bookingId,
+        booking,
         onViewGroupLocation
     };
 };

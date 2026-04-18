@@ -12,9 +12,9 @@ import {
 import { exportHikeData, saveToCSV } from "../../utility/hikeStorage";
 import { LOCATION_TASK } from "../../utility/locationTask";
 // NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
+import { Location as LocationModel } from "@/src/core/models/Location/Location";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { HikeState } from "@/src/core/stores/hikeStores/hikeStoreCreator";
-
 
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
@@ -32,6 +32,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
 
 export const useHikerGPS = () => {
   const addCoordinate = useHikesStore((state: HikeState) => state.addCoordinate);
+  const updateHikeStore = useHikesStore((state: HikeState) => state.updateHikeStore);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
@@ -39,6 +40,10 @@ export const useHikerGPS = () => {
   );
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [walkedPath, setWalkedPath] = useState<[number, number][]>([]);
+  
+  // Set global store GPS error
+  const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
+
 
   /* 
    * --- DEPRECATED CSV PARSING LOGIC ---
@@ -83,8 +88,21 @@ export const useHikerGPS = () => {
     // loadWalkedPath(); // <-- Commented out: The trail line now strictly starts empty (`[]`) for each fresh session.
 
     (async () => {
-      // ✅ Foreground permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      try {
+        // ✅ Check if GPS services are actually enabled on device
+        const isGpsEnabled = await Location.hasServicesEnabledAsync();
+        if (!isGpsEnabled) {
+          setGpsError("Device GPS is turned off. Please enable it in your phone settings.");
+          Alert.alert(
+            "GPS Disabled",
+            "Your device's GPS services are turned off. Please enable them to track your hike.",
+            [{ text: "OK", style: "default" }]
+          );
+          return;
+        }
+
+        // ✅ Foreground permission
+        const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Location Required", "Please enable GPS in settings.", [
           { text: "Cancel", style: "cancel" },
@@ -140,12 +158,14 @@ export const useHikerGPS = () => {
 
           if (isGpsLost) {
             isGpsLost = false;
+            setGpsError(null);
             saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
           }
 
           if (gpsTimeoutTimer) clearTimeout(gpsTimeoutTimer);
           gpsTimeoutTimer = setTimeout(() => {
             isGpsLost = true;
+            setGpsError("GPS signal lost. Searching for satellites...");
             const lostTimestamp = new Date().toISOString();
             saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
           }, GPS_TIMEOUT_MS);
@@ -160,14 +180,18 @@ export const useHikerGPS = () => {
           saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
 
           // Global Store Integration
-          addCoordinate({
+          addCoordinate(new LocationModel({
             latitude: lat,
             longitude: lon,
             altitude: alt,
             timestamp: new Date(timestamp),
-          });
+          }));
         },
       );
+      } catch (err: any) {
+        console.error("Failed to start location tracking:", err);
+        setGpsError("Failed to initialize GPS: " + err.message);
+      }
     })();
 
     return () => {
