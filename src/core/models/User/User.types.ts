@@ -21,6 +21,12 @@ export interface IEmergencyContact {
     contactNumber: string;
 }
 
+export interface IMedicalProfile {  // New
+    hasCondition: boolean;
+    details: string;
+    clearanceUri?: string;
+}
+
 export interface NotificationToken<T> {
     token: string;
     platform: 'web' | 'ios' | 'android';
@@ -35,6 +41,7 @@ export interface IUserBase<T> extends IUserSummary{
     onBoardingComplete: boolean;
     phoneNumber: string;
     preferences: IPreference;
+    medicalProfile: IMedicalProfile;  // New
     role: Role;
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;

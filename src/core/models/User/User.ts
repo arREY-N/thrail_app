@@ -1,5 +1,5 @@
 import { ISignUp } from "@/src/core/models/User/SignUp.types";
-import { IEmergencyContact, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/User.types";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -26,6 +26,10 @@ export class User implements IUser{
         hiked: false,
         location: [],
         province: [],
+    };
+    medicalProfile: IMedicalProfile = {  // New
+        hasCondition: false,
+        details: '',
     };
     emergencyContact: IEmergencyContact = {
         name: '',
@@ -84,6 +88,7 @@ export class User implements IUser{
             onBoardingComplete: this.onBoardingComplete,
             phoneNumber: this.phoneNumber,
             preferences: this.preferences,
+            medicalProfile: this.medicalProfile, // New
             role: this.role,
             emergencyContact: this.emergencyContact,
         }
