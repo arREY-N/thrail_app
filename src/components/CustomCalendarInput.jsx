@@ -27,7 +27,8 @@ const CustomCalendarInput = ({
     placeholder = "MM/DD/YYYY", 
     showTodayButton = false, 
     allowFutureDates = false,
-    defaultMode = 'date'
+    defaultMode = 'date',
+    maximumDate
 }) => {
 
     const [showPicker, setShowPicker] = useState(false);
@@ -41,6 +42,8 @@ const CustomCalendarInput = ({
             setViewDate(value);
         }
     }, [value]);
+
+    const effectiveMaxDate = maximumDate || (allowFutureDates ? null : new Date());
 
     const getDisplayDate = () => {
         if (!value || !(value instanceof Date) || isNaN(value)) return '';
@@ -87,10 +90,11 @@ const CustomCalendarInput = ({
     const calendarGrid = [...blanks, ...days];
 
     const currentYear = new Date().getFullYear();
+    const topYear = effectiveMaxDate ? effectiveMaxDate.getFullYear() : currentYear;
     
-    const years = allowFutureDates 
+    const years = allowFutureDates && !maximumDate
         ? Array.from({ length: 12 }, (_, i) => currentYear + i) 
-        : Array.from({ length: 100 }, (_, i) => currentYear - i);
+        : Array.from({ length: 100 }, (_, i) => topYear - i);
 
     const handleOpen = () => {
         setMode(defaultMode);
@@ -200,15 +204,21 @@ const CustomCalendarInput = ({
                         && viewDate.getFullYear() === currentYear 
                         && index < new Date().getMonth();
 
+                    const isFutureMonth = effectiveMaxDate
+                        && viewDate.getFullYear() === effectiveMaxDate.getFullYear()
+                        && index > effectiveMaxDate.getMonth();
+
+                    const disabled = isPastMonth || isFutureMonth;
+
                     return (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             key={m} 
                             style={[
                                 styles.monthCell, 
                                 viewDate.getMonth() === index && styles.selectorCellActive,
-                                isPastMonth && { opacity: 0.3 }
+                                disabled && { opacity: 0.3 }
                             ]}
-                            disabled={isPastMonth}
+                            disabled={disabled}
                             onPress={() => {
                                 setViewDate(new Date(viewDate.getFullYear(), index, 1));
                                 setMode('date'); 
