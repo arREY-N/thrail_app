@@ -18,7 +18,7 @@ import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 
-const rawMapDataAsset = require("../../assets/map_data/trails_3D_final.geojson");
+const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 // Minimum valid PMTiles size — adjust if your file is smaller
