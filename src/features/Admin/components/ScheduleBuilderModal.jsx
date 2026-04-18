@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
-import CustomDropdown from '@/src/components/CustomDropdown';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
@@ -49,15 +48,36 @@ const parseTimeToDate = (timeString) => {
     return d; 
 };
 
-const PERIOD_OPTIONS = ['AM', 'PM']; 
+const AMPMToggle = ({ value, onChange }) => (
+    <View style={styles.toggleContainer}>
+        <TouchableOpacity 
+            style={[styles.toggleOption, value === 'AM' && styles.toggleSelected]} 
+            onPress={() => onChange('AM')}
+            activeOpacity={0.8}
+        >
+            <CustomText style={[styles.toggleText, value === 'AM' && styles.toggleTextSelected]}>AM</CustomText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+            style={[styles.toggleOption, value === 'PM' && styles.toggleSelected]} 
+            onPress={() => onChange('PM')}
+            activeOpacity={0.8}
+        >
+            <CustomText style={[styles.toggleText, value === 'PM' && styles.toggleTextSelected]}>PM</CustomText>
+        </TouchableOpacity>
+    </View>
+);
 
-const ScheduleBuilderModal = ({ visible, onClose, onSave, initialSchedule = [] }) => {
+const ScheduleBuilderModal = ({ visible, onClose, onSave, initialSchedule = [], offerDays = 0 }) => {
     const [schedule, setSchedule] = useState([]);
+    const [focusedField, setFocusedField] = useState(null);
 
     useEffect(() => {
         if (visible) {
+            const targetDays = parseInt(offerDays, 10) || 0;
+            let formattedSchedule = [];
+
             if (initialSchedule && initialSchedule.length > 0) {
-                const formattedSchedule = initialSchedule.map(day => ({
+                formattedSchedule = initialSchedule.map(day => ({
                     day: day.day,
                     activities: day.activities.map(act => {
                         const fullTimeStr = formatTime(act.time); 
@@ -67,35 +87,36 @@ const ScheduleBuilderModal = ({ visible, onClose, onSave, initialSchedule = [] }
                         return {
                             hourVal: h || '',
                             minuteVal: m || '',
-                            periodVal: period || '',
+                            periodVal: period || 'AM',
                             event: act.event
                         };
                     })
                 }));
-                setSchedule(formattedSchedule);
-            } else {
-
-                setSchedule([{ day: 1, activities: [{ hourVal: '', minuteVal: '', periodVal: '', event: '' }] }]);
             }
+
+            if (targetDays > 0) {
+                if (formattedSchedule.length > targetDays) {
+                    formattedSchedule = formattedSchedule.slice(0, targetDays);
+                } else if (formattedSchedule.length < targetDays) {
+                    const daysToAdd = targetDays - formattedSchedule.length;
+                    for (let i = 0; i < daysToAdd; i++) {
+                        formattedSchedule.push({ 
+                            day: formattedSchedule.length + 1, 
+                            activities: [{ hourVal: '', minuteVal: '', periodVal: 'AM', event: '' }] 
+                        });
+                    }
+                }
+            } else {
+                formattedSchedule = [];
+            }
+
+            setSchedule(formattedSchedule);
         }
-    }, [visible, initialSchedule]);
-
-    const handleAddDay = () => {
-        const nextDayNum = schedule.length + 1;
-
-        setSchedule([...schedule, { day: nextDayNum, activities: [{ hourVal: '', minuteVal: '', periodVal: '', event: '' }] }]);
-    };
-
-    const handleRemoveDay = (dayIndex) => {
-        const newSchedule = schedule.filter((_, idx) => idx !== dayIndex);
-        const renumbered = newSchedule.map((d, i) => ({ ...d, day: i + 1 }));
-        setSchedule(renumbered);
-    };
+    }, [visible, initialSchedule, offerDays]);
 
     const handleAddActivity = (dayIndex) => {
         const newSchedule = [...schedule];
-
-        newSchedule[dayIndex].activities.push({ hourVal: '', minuteVal: '', periodVal: '', event: '' });
+        newSchedule[dayIndex].activities.push({ hourVal: '', minuteVal: '', periodVal: 'AM', event: '' });
         setSchedule(newSchedule);
     };
 
@@ -135,98 +156,109 @@ const ScheduleBuilderModal = ({ visible, onClose, onSave, initialSchedule = [] }
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                        {schedule.map((dayItem, dayIndex) => (
-                            <View key={`day-${dayIndex}`} style={styles.dayCard}>
-                                
-                                <View style={styles.dayHeader}>
-                                    <CustomText style={styles.dayTitle}>
-                                        Day {dayItem.day}
-                                    </CustomText>
-                                    <TouchableOpacity onPress={() => handleRemoveDay(dayIndex)}>
-                                        <CustomText style={styles.deleteDayText}>Delete Day</CustomText>
+                        
+                        {offerDays <= 0 ? (
+                            <View style={styles.emptyState}>
+                                <CustomIcon library="Feather" name="calendar" size={48} color={Colors.GRAY_MEDIUM} />
+                                <CustomText variant="h3" style={styles.emptyTitle}>Set Duration First</CustomText>
+                                <CustomText style={styles.emptySubtitle}>
+                                    Please enter the number of Days in the main form before building the itinerary.
+                                </CustomText>
+                            </View>
+                        ) : (
+                            schedule.map((dayItem, dayIndex) => (
+                                <View key={`day-${dayIndex}`} style={styles.dayCard}>
+                                    
+                                    <View style={styles.dayHeader}>
+                                        <CustomText style={styles.dayTitle}>
+                                            Day {dayItem.day}
+                                        </CustomText>
+                                    </View>
+
+                                    {dayItem.activities.map((activity, actIndex) => {
+                                        const isHourFocused = focusedField === `${dayIndex}-${actIndex}-hour`;
+                                        const isMinFocused = focusedField === `${dayIndex}-${actIndex}-min`;
+
+                                        return (
+                                            <View key={`act-${actIndex}`} style={styles.activityBlock}>
+                                                
+                                                <View style={styles.activityTimeRow}>
+                                                    
+                                                    <View style={styles.timeInputContainer}>
+                                                        <View style={[styles.timeInputBox, isHourFocused ? styles.inputFocused : styles.inputUnfocused]}>
+                                                            <TextInput 
+                                                                placeholder="12"
+                                                                value={activity.hourVal}
+                                                                keyboardType="numeric"
+                                                                maxLength={2}
+                                                                onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'hourVal', val)}
+                                                                style={styles.rawTimeInput}
+                                                                placeholderTextColor={Colors.TEXT_PLACEHOLDER}
+                                                                onFocus={() => setFocusedField(`${dayIndex}-${actIndex}-hour`)}
+                                                                onBlur={() => setFocusedField(null)}
+                                                            />
+                                                        </View>
+
+                                                        <CustomText style={styles.timeColon}>:</CustomText>
+
+                                                        <View style={[styles.timeInputBox, isMinFocused ? styles.inputFocused : styles.inputUnfocused]}>
+                                                            <TextInput 
+                                                                placeholder="00"
+                                                                value={activity.minuteVal}
+                                                                keyboardType="numeric"
+                                                                maxLength={2}
+                                                                onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'minuteVal', val)}
+                                                                style={styles.rawTimeInput}
+                                                                placeholderTextColor={Colors.TEXT_PLACEHOLDER}
+                                                                onFocus={() => setFocusedField(`${dayIndex}-${actIndex}-min`)}
+                                                                onBlur={() => setFocusedField(null)}
+                                                            />
+                                                        </View>
+                                                    </View>
+
+                                                    <View style={styles.dropdownWrapper}>
+                                                        <AMPMToggle 
+                                                            value={activity.periodVal} 
+                                                            onChange={(val) => handleUpdateActivity(dayIndex, actIndex, 'periodVal', val)} 
+                                                        />
+                                                    </View>
+
+                                                    <View style={styles.deleteActWrapper}>
+                                                        <TouchableOpacity 
+                                                            style={styles.deleteActBtn}
+                                                            onPress={() => handleRemoveActivity(dayIndex, actIndex)}
+                                                        >
+                                                            <CustomIcon library="Feather" name="minus-circle" size={24} color={Colors.ERROR} />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                <View style={styles.eventInputWrapper}>
+                                                    <CustomTextInput 
+                                                        placeholder="Event description (e.g. Meet up at parking)"
+                                                        value={activity.event}
+                                                        onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'event', val)}
+                                                        style={styles.noMargin}
+                                                    />
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
+
+                                    <TouchableOpacity style={styles.addActBtn} onPress={() => handleAddActivity(dayIndex)}>
+                                        <CustomIcon library="Feather" name="plus" size={16} color={Colors.PRIMARY} />
+                                        <CustomText style={styles.addActText}>Add Activity</CustomText>
                                     </TouchableOpacity>
                                 </View>
-
-                                {dayItem.activities.map((activity, actIndex) => (
-                                    <View key={`act-${actIndex}`} style={styles.activityBlock}>
-                                        
-                                        <View style={styles.activityTimeRow}>
-                                            
-                                            <View style={styles.timeInputContainer}>
-                                                <View style={styles.timeInputBox}>
-                                                    <TextInput 
-                                                        placeholder="08"
-                                                        value={activity.hourVal}
-                                                        keyboardType="numeric"
-                                                        maxLength={2}
-                                                        onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'hourVal', val)}
-                                                        style={styles.rawTimeInput}
-                                                        placeholderTextColor={Colors.TEXT_SECONDARY}
-                                                    />
-                                                </View>
-
-                                                <CustomText style={styles.timeColon}>:</CustomText>
-
-                                                <View style={styles.timeInputBox}>
-                                                    <TextInput 
-                                                        placeholder="00"
-                                                        value={activity.minuteVal}
-                                                        keyboardType="numeric"
-                                                        maxLength={2}
-                                                        onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'minuteVal', val)}
-                                                        style={styles.rawTimeInput}
-                                                        placeholderTextColor={Colors.TEXT_SECONDARY}
-                                                    />
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.dropdownWrapper}>
-                                                <View style={styles.dropdownContainerOverride}>
-                                                    <CustomDropdown 
-                                                        options={PERIOD_OPTIONS} 
-                                                        value={activity.periodVal}
-                                                        onSelect={(val) => handleUpdateActivity(dayIndex, actIndex, 'periodVal', val)} 
-                                                        placeholder="AM/PM" 
-                                                    />
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.deleteActWrapper}>
-                                                <TouchableOpacity 
-                                                    style={styles.deleteActBtn}
-                                                    onPress={() => handleRemoveActivity(dayIndex, actIndex)}
-                                                >
-                                                    <CustomIcon library="Feather" name="minus-circle" size={24} color={Colors.ERROR} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-
-                                        <View style={styles.eventInputWrapper}>
-                                            <CustomTextInput 
-                                                placeholder="Event description (e.g. Meet up at parking)"
-                                                value={activity.event}
-                                                onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'event', val)}
-                                                style={styles.noMargin}
-                                            />
-                                        </View>
-                                    </View>
-                                ))}
-
-                                <TouchableOpacity style={styles.addActBtn} onPress={() => handleAddActivity(dayIndex)}>
-                                    <CustomIcon library="Feather" name="plus" size={14} color={Colors.PRIMARY} />
-                                    <CustomText style={styles.addActText}>Add Activity</CustomText>
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-
-                        <TouchableOpacity style={styles.addDayBtn} onPress={handleAddDay}>
-                            <CustomText style={styles.addDayText}>+ Add Another Day</CustomText>
-                        </TouchableOpacity>
+                            ))
+                        )}
                     </ScrollView>
 
-                    <View style={styles.footer}>
-                        <CustomButton title="Save Itinerary" onPress={handleSave} variant="primary" />
-                    </View>
+                    {offerDays > 0 && (
+                        <View style={styles.footer}>
+                            <CustomButton title="Save Itinerary" onPress={handleSave} variant="primary" />
+                        </View>
+                    )}
 
                 </View>
             </View>
@@ -265,6 +297,22 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 60,
+        paddingHorizontal: 20,
+    },
+    emptyTitle: {
+        marginTop: 16,
+        marginBottom: 8,
+        color: Colors.TEXT_PRIMARY,
+    },
+    emptySubtitle: {
+        textAlign: 'center',
+        color: Colors.TEXT_SECONDARY,
+    },
+
     dayCard: {
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
@@ -272,6 +320,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT, 
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
     },
     dayHeader: {
         flexDirection: 'row',
@@ -283,11 +336,6 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontSize: 16,
         fontWeight: 'bold', 
-    },
-    deleteDayText: {
-        color: Colors.ERROR,
-        fontSize: 12,
-        fontWeight: 'bold',
     },
     
     activityBlock: {
@@ -307,13 +355,19 @@ const styles = StyleSheet.create({
     },
     timeInputBox: {
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
         borderRadius: 12,
-        backgroundColor: Colors.WHITE,
         height: 54, 
         width: 54, 
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    inputUnfocused: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    inputFocused: {
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
     },
     rawTimeInput: {
         fontSize: 16,
@@ -332,14 +386,38 @@ const styles = StyleSheet.create({
     },
 
     dropdownWrapper: {
-        width: 100, 
+        flex: 1, 
     },
-    dropdownContainerOverride: {
-        marginBottom: -16, 
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 12,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        height: 54,
+        alignItems: 'center',
+    },
+    toggleOption: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+        height: '100%',
+    },
+    toggleSelected: {
+        backgroundColor: Colors.PRIMARY,
+    },
+    toggleText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    toggleTextSelected: {
+        color: Colors.WHITE,
     },
 
     deleteActWrapper: {
-        flex: 1,
         alignItems: 'flex-end', 
     },
     deleteActBtn: {
@@ -355,9 +433,15 @@ const styles = StyleSheet.create({
     addActBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
+        justifyContent: 'center',
+        paddingVertical: 12,
+        backgroundColor: Colors.BACKGROUND,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        borderStyle: 'dashed',
         gap: 6,
-        marginTop: -4, 
+        marginTop: 4, 
     },
     addActText: {
         color: Colors.PRIMARY,
@@ -365,19 +449,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     
-    addDayBtn: {
-        backgroundColor: Colors.WHITE,
-        paddingVertical: 16,
-        borderRadius: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        borderStyle: 'dashed',
-    },
-    addDayText: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-    },
     footer: {
         padding: 16,
         backgroundColor: Colors.WHITE,

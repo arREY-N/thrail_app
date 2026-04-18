@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Modal,
     ScrollView,
@@ -53,6 +53,16 @@ const OfferWriteScreen = ({
     const [nights, setNights] = useState('');
     const [focusedDuration, setFocusedDuration] = useState(null);
 
+    const prevStartDate = useRef(offer?.date);
+    const prevEndDate = useRef(offer?.endDate);
+
+    useEffect(() => {
+        if (!isEditing) {
+            onUpdateOffer({ section: 'root', id: 'date', value: null });
+            onUpdateOffer({ section: 'root', id: 'endDate', value: null });
+        }
+    }, []);
+
     useEffect(() => {
         if (offer?.duration) {
             const dMatch = offer.duration.match(/(\d+)\s*Day/i);
@@ -66,6 +76,59 @@ const OfferWriteScreen = ({
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
     };
+
+    // AUTO-CALCULATION LOGIC
+    useEffect(() => {
+        // Skip if dates haven't actually changed
+        if (offer?.date === prevStartDate.current && offer?.endDate === prevEndDate.current) {
+            return;
+        }
+
+        if (offer?.date && offer?.endDate) {
+            const start = new Date(offer.date);
+            start.setHours(0, 0, 0, 0);
+            
+            const end = new Date(offer.endDate);
+            end.setHours(0, 0, 0, 0);
+
+            // 1. Strict Auto-Correction: End Date cannot be before Start Date
+            if (end.getTime() < start.getTime()) {
+                handleUpdate({ section: 'root', id: 'endDate', value: offer.date });
+                return; // Exit and let the effect re-trigger with the corrected date
+            }
+
+            // 2. Calculate Duration Math
+            const diffTime = Math.abs(end.getTime() - start.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const calcDays = diffDays + 1;
+            const calcNights = diffDays;
+
+            setDays(String(calcDays));
+            setNights(String(calcNights));
+
+            // Generate duration string
+            let durString = '';
+            if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
+            if (calcDays > 0 && calcNights > 0) durString += ', ';
+            if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
+
+            // Update the global offer state if it doesn't match
+            if (offer.duration !== durString) {
+                handleUpdate({ section: 'root', id: 'duration', value: durString });
+            }
+        } else {
+            // Fallback: If dates are null (e.g. New Offer), clear local duration state
+            setDays('');
+            setNights('');
+        }
+        
+        // Update refs for next change
+        prevStartDate.current = offer?.date;
+        prevEndDate.current = offer?.endDate;
+
+    }, [offer?.date, offer?.endDate]);
+
 
     const handleAddToArray = (field, currentArray, value) => {
         if (!value.trim()) return;
@@ -205,7 +268,7 @@ const OfferWriteScreen = ({
                         inputStyle={styles.textArea}
                     />
 
-                    <View style={styles.row}>
+                    <View style={styles.inlineRowContainer}>
                         <View style={styles.flexHalf}>
                             <CustomTextInput 
                                 type="calendar"
@@ -216,8 +279,11 @@ const OfferWriteScreen = ({
                                 allowFutureDates={true}
                                 showTodayButton={true}
                                 defaultMode="date"
-                                style={styles.inputSpacing}
+                                style={styles.noMarginBottom}
                             />
+                        </View>
+                        <View style={styles.dateDividerContainer}>
+                            <CustomText style={styles.dividerText}>-</CustomText>
                         </View>
                         <View style={styles.flexHalf}>
                             <CustomTextInput 
@@ -229,12 +295,12 @@ const OfferWriteScreen = ({
                                 allowFutureDates={true}
                                 showTodayButton={true}
                                 defaultMode="date"
-                                style={styles.inputSpacing}
+                                style={styles.noMarginBottom}
                             />
                         </View>
                     </View>
 
-                    <CustomText variant="label" style={styles.multiSelectLabel}>
+                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 16 }]}>
                         Duration *
                     </CustomText>
                     <View style={styles.inlineRowContainer}>
@@ -264,7 +330,9 @@ const OfferWriteScreen = ({
                             </View>
                         </View>
                         
-                        <View style={styles.durationSpacer} />
+                        <View style={styles.dividerContainer}>
+                            <CustomText style={styles.dividerText}>-</CustomText>
+                        </View>
                         
                         <View style={[
                             styles.durationWrapper, 
@@ -293,36 +361,69 @@ const OfferWriteScreen = ({
 
                     </View>
 
-                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 16 }]}>
+                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 24 }]}>
                         Pax Capacity *
                     </CustomText>
+                    
                     <View style={styles.inlineRowContainer}>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                placeholder="Min Pax"
-                                value={offer.minPax ? String(offer.minPax) : ''}
-                                keyboardType="numeric"
-                                onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
-                                style={styles.noMarginBottom}
-                            />
+                        
+                        <View style={[
+                            styles.durationWrapper, 
+                            focusedDuration === 'minPax' && styles.activeBorder
+                        ]}>
+                            <View style={styles.durationInputHalf}>
+                                <TextInput 
+                                    placeholder="0"
+                                    value={offer.minPax ? String(offer.minPax) : ''}
+                                    keyboardType="numeric"
+                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
+                                    style={styles.durationInput}
+                                    placeholderTextColor={Colors.TEXT_SECONDARY}
+                                    onFocus={() => setFocusedDuration('minPax')}
+                                    onBlur={() => setFocusedDuration(null)}
+                                />
+                            </View>
+                            
+                            <View style={styles.verticalDivider} />
+                            
+                            <View style={styles.durationLabelHalf}>
+                                <CustomText style={styles.durationLabelText}>Min</CustomText>
+                            </View>
                         </View>
+                        
                         <View style={styles.dividerContainer}>
                             <CustomText style={styles.dividerText}>-</CustomText>
                         </View>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                placeholder="Max Pax"
-                                value={offer.maxPax ? String(offer.maxPax) : ''}
-                                keyboardType="numeric"
-                                onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
-                                style={styles.noMarginBottom}
-                            />
+                        
+                        <View style={[
+                            styles.durationWrapper, 
+                            focusedDuration === 'maxPax' && styles.activeBorder
+                        ]}>
+                            <View style={styles.durationInputHalf}>
+                                <TextInput 
+                                    placeholder="0"
+                                    value={offer.maxPax ? String(offer.maxPax) : ''}
+                                    keyboardType="numeric"
+                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
+                                    style={styles.durationInput}
+                                    placeholderTextColor={Colors.TEXT_SECONDARY}
+                                    onFocus={() => setFocusedDuration('maxPax')}
+                                    onBlur={() => setFocusedDuration(null)}
+                                />
+                            </View>
+                            
+                            <View style={styles.verticalDivider} />
+                            
+                            <View style={styles.durationLabelHalf}>
+                                <CustomText style={styles.durationLabelText}>Max</CustomText>
+                            </View>
                         </View>
+
                     </View>
 
                     <View style={styles.scheduleSection}>
                         <CustomText variant="label" style={styles.multiSelectLabel}>
-                            Itinerary & Schedule
+                            Itinerary & Schedule *
                         </CustomText>
                         <TouchableOpacity 
                             style={styles.scheduleCard}
@@ -343,7 +444,7 @@ const OfferWriteScreen = ({
 
                     <View style={{ marginTop: 24 }}>
                         <DynamicListBuilder 
-                            label="Required Documents" 
+                            label="Required Documents *" 
                             placeholder="e.g. Valid ID" 
                             items={Array.isArray(offer.documents) ? offer.documents : []} 
                             inputValue={docInput} 
@@ -463,6 +564,7 @@ const OfferWriteScreen = ({
                 visible={showScheduleModal}
                 onClose={() => setShowScheduleModal(false)}
                 initialSchedule={offer.schedule}
+                offerDays={Number(days) || 0}
                 onSave={(newSchedule) => {
                     handleUpdate({ section: 'root', id: 'schedule', value: newSchedule });
                     setShowScheduleModal(false);
@@ -553,56 +655,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 
-    durationWrapper: {
-        flex: 1, 
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        borderRadius: 12,
-        backgroundColor: Colors.BACKGROUND,
-        height: 54, 
-        overflow: 'hidden', 
-        paddingHorizontal: 0,
-    },
-    durationInputHalf: {
-        flex: 1, 
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center', 
-    },
-    durationInput: {
-        width: '100%', 
-        fontSize: 16,
-        color: Colors.TEXT_PRIMARY,
-        textAlign: 'center', 
-        outlineStyle: 'none', 
-    },
-    verticalDivider: {
-        width: 1,
-        height: 32, 
-        backgroundColor: Colors.GRAY_LIGHT,
-    },
-    durationLabelHalf: {
-        flex: 1, 
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center', 
-        backgroundColor: Colors.WHITE,
-    },
-    durationLabelText: {
-        fontSize: 15, 
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500',
-    },
-    durationSpacer: {
-        width: 12, 
-    },
-    activeBorder: {
-        borderColor: Colors.PRIMARY, 
-        backgroundColor: Colors.WHITE,
-    },
-
     scheduleSection: {
         marginTop: 24,
     },
@@ -681,13 +733,69 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    dateDividerContainer: {
+        paddingHorizontal: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+    },
     dividerText: {
         fontSize: 24,
         color: Colors.GRAY_MEDIUM,
         fontWeight: '300',
     },
+    flexHalf: { 
+        flex: 1 
+    },
     noMarginBottom: {
         marginBottom: 0,
+    },
+
+    durationWrapper: {
+        flex: 1, 
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        borderRadius: 12,
+        backgroundColor: Colors.BACKGROUND,
+        height: 54, 
+        overflow: 'hidden', 
+        paddingHorizontal: 0,
+    },
+    durationInputHalf: {
+        flex: 1, 
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center', 
+    },
+    durationInput: {
+        width: '100%', 
+        fontSize: 16,
+        color: Colors.TEXT_PRIMARY,
+        textAlign: 'center', 
+        outlineStyle: 'none', 
+    },
+    verticalDivider: {
+        width: 1,
+        height: 32, 
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    durationLabelHalf: {
+        flex: 1, 
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center', 
+        backgroundColor: Colors.WHITE,
+    },
+    durationLabelText: {
+        fontSize: 15, 
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+    },
+    activeBorder: {
+        borderColor: Colors.PRIMARY, 
+        backgroundColor: Colors.WHITE,
     },
 
     inputSpacing: { 
@@ -703,9 +811,6 @@ const styles = StyleSheet.create({
     row: { 
         flexDirection: 'row', 
         gap: 16 
-    },
-    flexHalf: { 
-        flex: 1 
     },
     multiSelectLabel: { 
         marginBottom: 8, 
