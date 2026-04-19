@@ -1,44 +1,44 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 const CustomLoading = ({ 
     visible = true, 
-    message = "Loading trails...", 
+    message = "Loading...", 
     children
 }) => {
-    const pulseAnim = useRef(new Animated.Value(0)).current;
+    const orbitAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (visible) {
+            orbitAnim.setValue(0);
             Animated.loop(
-                Animated.timing(pulseAnim, {
+                Animated.timing(orbitAnim, {
                     toValue: 1,
-                    duration: 1800,
+                    duration: 4000, 
                     easing: Easing.linear,
-                    useNativeDriver: false,
+                    useNativeDriver: false, 
                 })
             ).start();
         } else {
-            pulseAnim.setValue(0);
+            orbitAnim.stopAnimation();
         }
-    }, [visible, pulseAnim]);
+    }, [visible, orbitAnim]);
 
-    const PATH_LENGTH_BUFFER = 500; 
-
-    const strokeDashoffset = pulseAnim.interpolate({
+    const celestialRotation = orbitAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [PATH_LENGTH_BUFFER, -PATH_LENGTH_BUFFER]
+        outputRange: [0, 360] 
     });
 
     if (!visible) return null;
 
-    const mountainPath = "M 0 90 L 20 90 L 40 60 L 60 90 L 85 50 L 110 90 L 140 20 L 170 90 L 200 90";
+    const backMountain = "M -10 120 L 40 45 Q 60 20 80 45 L 140 120 Z";
+    const frontMountain = "M 40 120 L 110 65 Q 130 45 150 65 L 220 120 Z";
 
     return (
         <View style={styles.overlay}>
@@ -49,31 +49,43 @@ const CustomLoading = ({
                 ) : (
                     <>
                         <View style={styles.animationWrapper}>
-                            <Svg width="200" height="100" viewBox="0 0 200 100">
+                            <Svg width="200" height="120" viewBox="0 0 200 120">
                                 
-                                <Path
-                                    d={mountainPath}
-                                    fill="none"
-                                    stroke={Colors.GRAY_ULTRALIGHT}
-                                    strokeWidth="8"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
+                                <Circle 
+                                    cx="100" 
+                                    cy="100" 
+                                    r="70"   
+                                    fill="none" 
+                                    stroke={Colors.GRAY_ULTRALIGHT} 
+                                    strokeWidth="2" 
+                                    strokeDasharray="4, 6" 
                                 />
+
+                                <AnimatedG originX="100" originY="100" rotation={celestialRotation}>
+                                    
+                                    <Circle 
+                                        cx="100" 
+                                        cy="15"  
+                                        r="14"   
+                                        fill={Colors.YELLOW} 
+                                    />
+                                    
+                                    <Circle 
+                                        cx="100" 
+                                        cy="185"  
+                                        r="12"
+                                        fill={Colors.GRAY_LIGHT} 
+                                    />
+                                    
+                                </AnimatedG>
+
+                                <Path d={backMountain} fill={Colors.SECONDARY} />
+                                <Path d={frontMountain} fill={Colors.PRIMARY} />
                                 
-                                <AnimatedPath
-                                    d={mountainPath}
-                                    fill="none"
-                                    stroke={Colors.PRIMARY}
-                                    strokeWidth="8"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeDasharray="60, 1000" 
-                                    strokeDashoffset={strokeDashoffset}
-                                />
                             </Svg>
                         </View>
                         
-                        <CustomText variant="body" style={styles.text}>
+                        <CustomText variant="h3" style={styles.text}>
                             {message}
                         </CustomText>
                     </>
@@ -86,7 +98,7 @@ const CustomLoading = ({
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        backgroundColor: 'rgba(0, 0, 0, 0.65)', 
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 9999,
@@ -100,12 +112,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 16,
-
-        minWidth: 200, 
-        maxWidth: 280,
-        width: '75%',
         
-        shadowColor: Colors.SHADOW || '#000',
+        minWidth: 200, 
+        maxWidth: 280, 
+        width: '75%',  
+        
+        shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.15,
         shadowRadius: 20,
@@ -113,15 +125,15 @@ const styles = StyleSheet.create({
     },
     animationWrapper: {
         width: 200,
-        height: 100,
+        height: 120, 
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden', 
+        borderRadius: 8, 
     },
     text: {
-        fontWeight: 'bold',
-        fontSize: 16,
-        color: Colors.TEXT_PRIMARY,
         textAlign: 'center',
+        marginBottom: 0
     }
 });
 
