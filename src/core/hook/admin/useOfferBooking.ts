@@ -14,7 +14,6 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
 
     const { role } = useAuthHook();
 
-    const fetchOfferBookings = useBookingsStore(s => s.fetchOfferBookings);
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
@@ -35,7 +34,6 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
 
 
     useEffect(() => {
-        let unsubscribe: ((offerId: string) => void) | undefined;
         let isCancelled = false;
 
         const startListening = async () => {
@@ -45,7 +43,9 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
                     if(unsubscribe && offerId) 
                         unsubscribe(offerId);
                 } else {
-
+                    if(unsubscribe && offerId) {
+                        unsubscribe(offerId);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to start listener", err);
