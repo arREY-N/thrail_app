@@ -1,19 +1,24 @@
 import { FileRepository } from "@/src/core/repositories/fileRepository";
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-
 export interface FileState {
     uploadDocument(): Promise<string>;
+    capturePhoto(): Promise<string>;
+
+    error: string | null;
 }
 
 export const useFilesStore = create<FileState>()(immer((set, get) => ({
+    error: null,
+
     uploadDocument: async (): Promise<string> => { 
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*', // Allow all file types
-                copyToCacheDirectory: true, // Ensure the file is copied to a cache directory
+                type: '*/*', 
+                copyToCacheDirectory: true,
             });
 
             if (!result.canceled) {
@@ -35,6 +40,31 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
         } catch (err) {
             console.error('Error uploading document:', err);
             throw err instanceof Error ? err : new Error('Failed to upload document');
+        }
+    },
+
+    capturePhoto: async (): Promise<string> => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                throw new Error('Permission to access media library is required!');
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: false,
+                quality: 0.4,
+                base64: false,
+            });
+
+            if(result.canceled) {
+                throw new Error('Photo capture canceled');
+            }
+
+            const { uri } = result.assets[0];
+            return uri;
+        } catch (error) {
+            throw error instanceof Error ? error : new Error('An unexpected error occurred while requesting permissions.');
         }
     }
 })))

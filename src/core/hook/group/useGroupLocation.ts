@@ -35,6 +35,7 @@ export default function useGroupLocation(groupId: string) {
     const elapsedTime = useHikesStore(s => s.elapsedTime);
 
     const uploadDocument = useFilesStore(s => s.uploadDocument);
+    const capturePhoto = useFilesStore(s => s.capturePhoto);    
 
     const create = useHikesStore(s => s.create);
     
@@ -91,18 +92,24 @@ export default function useGroupLocation(groupId: string) {
 
     const onSendPicture = async () => {
         try {
-            const documentUrl = await uploadDocument();
+            let documentUrl: string | null = null;
+
+            if(Platform.OS === 'web') {
+                documentUrl = await uploadDocument();
+            } else if (Platform.OS === 'android' || Platform.OS === 'ios') {
+                documentUrl = await capturePhoto();
+            }
 
             if(!documentUrl)
-                throw new Error(`Failed to upload picture`);
-
+                throw new Error(`Failed to capture or upload photo`);
+            
             const newMessage = new Message({
-                content: `Mamatay na ata me whahah ${documentUrl}`,
+                content: `${documentUrl}`,
                 senderId: profile!.id,
                 senderName: profile!.firstname,
                 timesent: new Date(),
             })
-
+            
             MessageRepository.sendMessage(groupId, newMessage);
         } catch (error) {
             console.log(error);
@@ -193,7 +200,7 @@ export default function useGroupLocation(groupId: string) {
         updateHikeStore({
             active: false,
             elapsedTime: 0,
-            timerStartTime: null,
+            timerStartTime: undefined,
         })
 
         updateCurrentHike({ 
