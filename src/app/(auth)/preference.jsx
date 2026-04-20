@@ -11,13 +11,13 @@ export default function preference(){
     const user = useAuthStore((state) => state.user);
     const [error, setError] = useState();
 
-    const { questions, setAnswer, savePreference } = usePreference();
+    const { questions, setAnswer, setMedicalDetails, setMedicalClearance, savePreference } = usePreference();
     
     const onFinishedPreference = async () => {
         try {
-            const finalPreferences = savePreference();
-            console.log('Trying to save preference');
-            await finishOnboarding(user.uid, finalPreferences);
+            const finalData = savePreference(); 
+            console.log('Trying to save preference and medical profile');
+            await finishOnboarding(user.uid, finalData);
             router.replace('/(tabs)')
         } catch (err) {
             setError(err.message);
@@ -28,6 +28,8 @@ export default function preference(){
         <PreferenceScreen
             questions={questions}
             setAnswer={setAnswer}
+            setMedicalDetails={setMedicalDetails}
+            setMedicalClearance={setMedicalClearance}
             onFinish={onFinishedPreference}
             error={error}
         />

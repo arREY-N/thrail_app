@@ -7,15 +7,19 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
+import { Colors } from '@/src/constants/colors';
 import { PrivacyContent } from '@/src/features/Auth/screens/PrivacyScreen';
 import { TermsContent } from '@/src/features/Auth/screens/TermsScreen';
 
-import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const TACScreen = ({ 
     onAcceptPress, 
     onDeclinePress,
 }) => {
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isLargeScreen = isDesktop || isTablet;
+
     const [activeTab, setActiveTab] = useState('terms');
     const [isChecked, setIsChecked] = useState(false);
     const [showDeclineModal, setShowDeclineModal] = useState(false);
@@ -46,7 +50,7 @@ const TACScreen = ({
     return (
         <ScreenWrapper backgroundColor="transparent">
             
-            <View style={styles.modalOverlay}>
+            <View style={[styles.modalOverlay, isLargeScreen && styles.modalOverlayLarge]}>
                 
                 <ConfirmationModal
                     visible={showDeclineModal}
@@ -58,7 +62,11 @@ const TACScreen = ({
                     onClose={() => setShowDeclineModal(false)}
                 />
 
-                <View style={styles.modalCard}>
+                {/* 4. Card swaps constraints based on screen size */}
+                <View style={[
+                    styles.modalCard, 
+                    isLargeScreen ? styles.modalCardLarge : styles.modalCardMobile
+                ]}>
                     
                     <View style={styles.tabContainer}>
                         <TouchableOpacity 
@@ -138,21 +146,21 @@ const TACScreen = ({
 
                     <View style={styles.agreementContainer}>
                         
-                        {!canAccept ? (
-                            <View style={styles.instructionBox}>
-                                <View style={styles.iconCircle}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name="book-open" 
-                                        size={16} 
-                                        color={Colors.PRIMARY} 
-                                    />
-                                </View>
-                                <CustomText style={styles.instructionText}>
-                                    To continue, please read through to the bottom of both Terms and Privacy tabs before accepting.
-                                </CustomText>
+                        <View style={[styles.instructionBox, canAccept && styles.instructionBoxSuccess]}>
+                            <View style={[styles.iconCircle, canAccept && styles.iconCircleSuccess]}>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name={canAccept ? "checkmark-circle" : "book"} 
+                                    size={18} 
+                                    color={canAccept ? Colors.SUCCESS : Colors.PRIMARY} 
+                                />
                             </View>
-                        ) : null}
+                            <CustomText style={[styles.instructionText, canAccept && styles.instructionTextSuccess]}>
+                                {canAccept 
+                                    ? "Thank you for reviewing the terms." 
+                                    : "To continue, please read through to the bottom of both Terms and Privacy tabs."}
+                            </CustomText>
+                        </View>
 
                         <TouchableOpacity 
                             style={[
@@ -210,23 +218,36 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 64,
+        padding: 16,
         width: '100%',
+    },
+    modalOverlayLarge: {
+        paddingVertical: 48,
+        paddingHorizontal: 32,
     },
     modalCard: {
         width: '100%',
-        height: '100%', 
+        flex: 1,
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
-        paddingHorizontal: 24,
-        paddingVertical: 32,
         alignItems: 'center',
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.25,
         shadowRadius: 10,
         elevation: 10,
+    },
+    modalCardLarge: {
+        maxWidth: 900,
+        maxHeight: 800,
+        paddingHorizontal: 32,
+        paddingVertical: 32,
+    },
+    modalCardMobile: {
+        maxWidth: 450,
+        maxHeight: '95%',
+        paddingHorizontal: 20,
+        paddingVertical: 24,
     },
     tabContainer: {
         flexDirection: 'row',
@@ -286,42 +307,56 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: 'hidden', 
     },
+    agreementContainer: {
+        width: '100%',
+        marginBottom: 16,
+        justifyContent: 'center',
+    },
     instructionBox: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.WHITE,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: 10,     
+        paddingHorizontal: 12,   
         borderRadius: 12,
-        marginBottom: 16,
-        gap: 12,
+        marginBottom: 12,        
+        gap: 10,                 
+    },
+    instructionBoxSuccess: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderColor: Colors.SUCCESS,
     },
     iconCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,               
+        height: 28,              
+        borderRadius: 14,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         alignItems: 'center',
         justifyContent: 'center',
+        paddingTop: 1,
+    },
+    iconCircleSuccess: {
+        backgroundColor: Colors.WHITE, 
+        paddingTop: -1,
     },
     instructionText: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 13,            
         color: Colors.TEXT_PRIMARY,
         fontWeight: '500',
         lineHeight: 18,
     },
-    agreementContainer: {
-        width: '100%',
-        marginBottom: 16,
-        justifyContent: 'center',
+    instructionTextSuccess: {
+        color: Colors.SUCCESS,
+        fontWeight: 'bold',
     },
     checkboxRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+        width: '100%',
         gap: 16,
         paddingVertical: 4,
     },
@@ -352,7 +387,6 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         width: '100%',
-        paddingHorizontal: 8,
         flexDirection: 'row',
         gap: 16,
         marginTop: 8,
