@@ -5,7 +5,6 @@ import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { PaymentLogic } from "@/src/core/models/Payment/logic/Payment.logic";
 import { Payment } from "@/src/core/models/Payment/Payment";
-import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
@@ -27,6 +26,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const { profile } = useAuthHook();
 
     const bookings = useBookingsStore(s => s.userBookings);
+
     const fetchOffer = useOffersStore(s => s.fetchOfferById);
     const load = useBookingsStore(s => s.load); 
 
@@ -36,95 +36,40 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const createBooking = useBookingsStore(s => s.create);
     const joinGroup = useGroupStore(s => s.joinGroup);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
+    const subscribeToUserBookings = useBookingsStore(s => s.subscribeToUserBookings);
+
 
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const [booking, setBooking] = useState<Booking | null>(null);
-    
-        // const [booking, setBooking] = useState<Booking>(() => {
-    //     const existing = bookings.find(booking => booking.id === bookingId);
-
-    //     if(existing) return new Booking({ ...existing });
-
-    //     if(!profile) {
-    //         setLocalError('User must be logged in'); 
-    //         return new Booking();
-    //     }
-        
-    //     if(!trailId) {
-    //         setLocalError('No trail ID provided');
-    //         return new Booking();
-    //     }
-
-    //     const trail = trails.find(trail => trail.id === trailId);
-
-    //     if(!trail) {
-    //         setLocalError(`No trail found with id ${trailId}`);
-    //         return new Booking();
-    //     }
-
-    //     const trailSummary = TrailLogic.toSummary(trail);
-    //     const user = UserLogic.toSummary(profile)
-    //     const emergencyContact = profile.emergencyContact;
-
-    //     return new Booking({ 
-    //         user, 
-    //         emergencyContact, 
-    //         trail: trailSummary 
-    //     });
-    // });
+    const [booking, setBooking] = useState<Booking>(new Booking());
 
     useEffect(() => {
-        const fetch = async () => {
+        let unsubscribe: (() => void) | undefined;
+        let isCancelled = false;
 
+        const startListening = async () => {
             try {
-                console.log('in here')
-                let booking = null;
-    
-                console.log('Bookings available in store:', bookings);
+                const sub = await subscribeToUserBookings();
                 
-                if(bookings.length === 0 && profile) {
-                    load(profile.id);
+                if (isCancelled) {
+                    if(sub) sub(); 
+                } else {
+                    if(sub) unsubscribe = sub;
                 }
-    
-                if(offerId) {
-                    console.log('Looking for booking with offerId:', offerId);
-                    booking = bookings.find(booking => booking.offer.id === offerId);
-                    
-                    if(!booking)
-                        throw new Error ('Failed to fetch offer for booking');
-                } else if (bookingId) {
-                    console.log('Looking for booking with bookingId:', bookingId);
-                    booking = bookings.find(booking => booking.id === bookingId);   
-                    if(!booking)
-                        throw new Error ('Failed to fetch booking by ID');
-                } else if (trailId) {
-                    console.log('Looking for booking with trailId:', trailId);
-                    const trail = trails.find(trail => trail.id === trailId);
-    
-                    if(!trail)
-                        throw new Error(`No trail found with id ${trailId}`);
-                    
-                    if(!profile) {
-                        throw new Error('User must be logged in'); 
-                    }
-    
-                    booking = new Booking({ 
-                        user: UserLogic.toSummary(profile), 
-                        emergencyContact: profile.emergencyContact, 
-                        trail: TrailLogic.toSummary(trail) 
-                    });
-                }
-                
-                console.log('Setting booking in useBookOffer hook:', booking);
-                setBooking(new Booking({ ...booking }));
-            } catch (error) {
-                setLocalError((error as Error).message || 'Failed to fetch offer for booking');
+            } catch (err) {
+                console.error("Failed to start listener", err);
+                setLocalError(`Failed to load bookings. Please try again later. ${(err as Error).message}`);
             }
-        }
+        };
 
-        fetch();
-    }, [offerId, bookingId, trailId])
+        startListening();
+
+        return () => {
+            isCancelled = true;
+            if (unsubscribe) 
+                unsubscribe();
+        };
+    }, [subscribeToUserBookings]);
 
     const getBookOffer = async (offerId: string): Promise<Offer | null> => {
         try {

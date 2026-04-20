@@ -1,7 +1,7 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function useAdminOffer() {
     const { businessId } = useAuthHook();
@@ -10,15 +10,6 @@ export default function useAdminOffer() {
     const businessOffers = useOffersStore(s => s.businessOffers); 
 
     const [localError, setLocalError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if(!businessId){
-            setLocalError('No business ID found');
-            return;
-        }
-        console.log('Loading offers for business: ', businessId);
-        loadBusinessOffers(businessId);
-    }, [businessId])
 
     const onViewOfferBookings = (offerId: string) => {
         router.push({
