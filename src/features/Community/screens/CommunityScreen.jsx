@@ -171,9 +171,10 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingTop: 16,
-        paddingBottom: 32,
+        paddingBottom: 40,
         paddingHorizontal: 16,
         width: '100%',
+        gap: 16
     },
     scrollContentLarge: {
         maxWidth: 680,
