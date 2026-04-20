@@ -1,12 +1,12 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useAuthStore } from "@/src/core/stores/authStore";
 import {
-  AntDesign,
-  Feather,
-  FontAwesome5,
-  FontAwesome6,
-  Ionicons,
-  MaterialCommunityIcons,
+	AntDesign,
+	Feather,
+	FontAwesome5,
+	FontAwesome6,
+	Ionicons,
+	MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -21,43 +21,41 @@ import { useEffect } from "react";
 import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+	handleNotification: async () => ({
+		shouldShowAlert: true,
+		shouldPlaySound: true,
+		shouldSetBadge: false,
+	}),
 });
 
 export default function RootLayout() {
-  const { isLoading } = useAuthHook();
- 
-  const initialize = useAuthStore.getState().initialize;
+	const { isLoading } = useAuthHook();
+	
+	const initialize = useAuthStore.getState().initialize;
 
-  SplashScreen.preventAutoHideAsync();
+	SplashScreen.preventAutoHideAsync();
 
-  const [fontsLoaded, fontError] = useFonts({
-    ...AntDesign.font,
-    ...Feather.font,
-    ...FontAwesome5.font,
-    ...FontAwesome6.font,
-    ...Ionicons.font,
-    ...MaterialCommunityIcons.font,
-  });
-  useEffect(() => {
-    const unsub = initialize();
-    return () => unsub?.();
-  }, []);
+	const [fontsLoaded, fontError] = useFonts({
+		...AntDesign.font,
+		...Feather.font,
+		...FontAwesome5.font,
+		...FontAwesome6.font,
+		...Ionicons.font,
+		...MaterialCommunityIcons.font,
+	});
 
-  useEffect(() => {
-    console.log("fontsLoaded", fontsLoaded, "fontError", fontError);
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+	useEffect(() => {
+		const unsub = initialize();
+		return () => unsub?.();
+	}, []);
 
-  console.log("root", isLoading);
+	useEffect(() => {
+		if (fontsLoaded || fontError) {
+			SplashScreen.hideAsync();
+		}
+	}, [fontsLoaded, fontError]);
 
-  if(isLoading) return <LoadingScreen/>
+	if(isLoading) return <LoadingScreen/>
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+	return <Stack screenOptions={{ headerShown: false }} />;
 }

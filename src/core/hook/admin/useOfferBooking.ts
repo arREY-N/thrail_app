@@ -1,5 +1,4 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
@@ -15,9 +14,10 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
 
     const { role } = useAuthHook();
 
-    const fetchOfferBookings = useBookingsStore(s => s.fetchOfferBookings);
+    const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
+    const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
-    const offerBookings = useBookingsStore(s => s.offerBookings);
+    const offerBookings = useBookingsStore(s => s.bookingByOffer[offerId]);
     const offers = useOffersStore(s => s.businessOffers);
     const isLoading = useBookingsStore(s => s.isLoading);
     
@@ -31,36 +31,36 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
         console.log('Found offer:', found); 
         return found || null;
     });
-    const [booking, setBooking] = useState<Booking | null>(() => {
-        let found = null;
 
-        found = offerBookings.find(b => b.id === offerId);
-
-        if(!found) {
-            console.log('No booking found in offerBookings, checking userBookings');
-            return null;
-        }
-
-        console.log('Found booking:', found);
-        return found;
-    });
 
     useEffect(() => {
-        if(!offerId) {
-            console.log('error no offer id');
-            setLocalError('No offer ID provided');
-            return;
-        };  
+        let isCancelled = false;
 
-        if(!role) {
-            console.log('error no role found');
-            setLocalError('No user role found');
-            return;
-        };
+        const startListening = async () => {
+            try {
+                subscribeToBusinessBookings(offerId);
+                if (isCancelled) {
+                    if(unsubscribe && offerId) 
+                        unsubscribe(offerId);
+                } else {
+                    if(unsubscribe && offerId) {
+                        unsubscribe(offerId);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to start listener", err);
+                setLocalError(`Failed to load bookings. Please try again later. ${(err as Error).message}`);
+            }
+        }
 
-        console.log('Fetching bookings for offer ID:', offerId, 'with role:', role);
-        fetchOfferBookings(offerId, role);
-    },[offerId]);
+        startListening();
+
+        return () => {
+            isCancelled = true;
+            if(unsubscribe) 
+                unsubscribe(offerId);
+        }
+    },[offerId, subscribeToBusinessBookings]);
 
     const onViewBooking = (bookingId: string, offerId: string) => {
         router.push({
@@ -72,7 +72,6 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
     return {
         offerBookings,
         offer,
-        booking,
         error: error || localError,
         isLoading,
         onViewBooking

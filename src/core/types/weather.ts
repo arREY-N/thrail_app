@@ -5,12 +5,25 @@
 export type HikingSafetyStatus = "SAFE" | "CAUTION" | "DANGER";
 
 export interface WeatherApiResponse {
-    current_weather: {
-        temperature: number;
-        windspeed: number;
-        winddirection: number;
-        weathercode: number;
+    current: {
         time: string;
+        interval: number;
+        temperature_2m: number;
+        relative_humidity_2m: number;
+        apparent_temperature: number;
+        is_day: number;
+        precipitation: number;
+        rain: number;
+        showers: number;
+        snowfall: number;
+        weather_code: number;
+        cloud_cover: number;
+        pressure_msl: number;
+        surface_pressure: number;
+        wind_speed_10m: number;
+        wind_direction_10m: number;
+        wind_gusts_10m: number;
+        uv_index: number;
     };
     hourly: {
         time: string[];
@@ -23,6 +36,7 @@ export interface WeatherApiResponse {
         apparent_temperature: number[];
         visibility: number[];
         windgusts_10m: number[];
+        uv_index: number[];
     };
     daily: {
         time: string[];
@@ -46,6 +60,9 @@ export interface DailyForecast {
     temperatureMax: number;
     temperatureMin: number;
     weatherCode: number;
+    uvIndexMax: number;
+    precipitationProbabilityMax: number;
+    windSpeedMax: number;
 }
 
 export interface ProcessedWeatherData {
@@ -56,8 +73,11 @@ export interface ProcessedWeatherData {
     windGusts: number;
     humidity: number;
     uvIndex: number;
+    uvIndexMax: number;
     precipitationProbability: number;
     precipitationSum: number;
+    apparentTemperature: number;
+    visibility: number;
     sunrise: string;
     sunset: string;
     isStale: boolean;

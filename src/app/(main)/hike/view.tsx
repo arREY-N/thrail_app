@@ -106,7 +106,6 @@ export const TestView = (params: HikeViewParams) => {
         onAddReview,
     } = params;
 
-
     if(!hike) {
         return <Text>Loading hike...</Text>;
     }

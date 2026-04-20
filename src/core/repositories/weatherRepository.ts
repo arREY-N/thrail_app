@@ -31,7 +31,9 @@ export const fetchWeatherFromApi = async (
    *    - Replace: `return applyDevOverrides({ ...data, isStale: true });` -> `return { ...data, isStale: true };`
    * ============================================================================
    */
-  const applyDevOverrides = (data: ProcessedWeatherData) => {
+  const applyDevOverrides = (data: ProcessedWeatherData): ProcessedWeatherData => {
+    if (typeof __DEV__ === 'undefined' || !__DEV__) return data;
+
     // Batulao: Sunny & Safe
     if (roundLat === "14.0399" && roundLon === "120.8024") {
       data.temperature = 34;
@@ -64,7 +66,7 @@ export const fetchWeatherFromApi = async (
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current_weather=true&hourly=temperature_2m,precipitation_probability,windspeed_10m,winddirection_10m,relativehumidity_2m,weathercode,apparent_temperature,visibility,windgusts_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,uv_index_max,sunrise,sunset,weathercode,precipitation_probability_max,windgusts_10m_max&timezone=Asia/Manila&forecast_days=7&models=best_match`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,windspeed_10m,winddirection_10m,relativehumidity_2m,weathercode,apparent_temperature,visibility,windgusts_10m,uv_index&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,uv_index_max,sunrise,sunset,weathercode,precipitation_probability_max,windgusts_10m_max&timezone=Asia/Manila&forecast_days=7&models=best_match`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -73,33 +75,43 @@ export const fetchWeatherFromApi = async (
 
     const rawData: WeatherApiResponse = await response.json();
 
+    if (__DEV__) {
+      console.log(`[WeatherAPI] Lat: ${roundLat}, Lon: ${roundLon}`);
+      console.log(`[WeatherAPI] Current UV: ${rawData.current.uv_index}, Peak UV: ${rawData.daily.uv_index_max[0]}`);
+    }
+
     // Transform the raw data
     const currentHourIndex = rawData.hourly.time.findIndex((t) =>
-      t.startsWith(rawData.current_weather.time.slice(0, 13)),
+      t.startsWith(rawData.current.time.slice(0, 13)),
     );
     const hIdx = currentHourIndex !== -1 ? currentHourIndex : 0;
 
     const transformed: ProcessedWeatherData = {
-      temperature: Math.round(rawData.current_weather.temperature),
-      weatherCode: rawData.current_weather.weathercode,
-      windSpeed: Math.round(rawData.current_weather.windspeed),
-      windDirection: rawData.current_weather.winddirection,
-      windGusts: rawData.hourly.windgusts_10m[hIdx] ?? 0,
-      humidity: rawData.hourly.relativehumidity_2m[hIdx] ?? 0,
-      uvIndex: rawData.daily.uv_index_max[0] ?? 0,
+      temperature: Math.round(rawData.current.temperature_2m),
+      weatherCode: rawData.current.weather_code,
+      windSpeed: Math.round(rawData.current.wind_speed_10m),
+      windDirection: rawData.current.wind_direction_10m,
+      windGusts: rawData.current.wind_gusts_10m ?? 0,
+      humidity: rawData.current.relative_humidity_2m ?? 0,
+      uvIndex: rawData.current.uv_index ?? 0,
+      uvIndexMax: rawData.daily.uv_index_max[0] ?? 0,
       precipitationProbability:
         rawData.hourly.precipitation_probability[hIdx] ?? 0,
       precipitationSum: rawData.daily.precipitation_sum[0] ?? 0,
+      apparentTemperature: rawData.current.apparent_temperature ?? 0,
+      visibility: rawData.hourly.visibility[hIdx] ?? 0,
       sunrise: rawData.daily.sunrise[0] ?? "",
       sunset: rawData.daily.sunset[0] ?? "",
       isStale: false,
       lastUpdated: new Date().toISOString(),
       forecast: rawData.daily.time.map((dateStr, i) => ({
-      // forecast: rawData.daily.time.slice(0, 4).map((dateStr, i) => ({
         date: dateStr,
         temperatureMax: Math.round(rawData.daily.temperature_2m_max[i]),
         temperatureMin: Math.round(rawData.daily.temperature_2m_min[i]),
         weatherCode: rawData.daily.weathercode[i],
+        uvIndexMax: rawData.daily.uv_index_max[i] ?? 0,
+        precipitationProbabilityMax: rawData.daily.precipitation_probability_max[i] ?? 0,
+        windSpeedMax: rawData.daily.windspeed_10m_max[i] ?? 0,
       })),
     };
 

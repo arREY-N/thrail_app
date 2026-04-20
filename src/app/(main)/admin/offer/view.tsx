@@ -23,6 +23,15 @@ export default function viewOffer() {
         error,
     } = useOfferBooking({ offerId });
 
+    if(!offerBookings) {
+        return (
+            <>
+                <Stack.Screen options={{ headerShown: false }} />
+                <Text>Loading...</Text>
+            </>
+        )
+    }
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { MaterialIcons } from "@expo/vector-icons";
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
@@ -29,42 +30,106 @@ const Tag = ({ label }) => (
     </View>
 );
 
-const TrailDetailsTab = ({ stats, trail, location }) => {
+const StatItem = ({ icon, label, value, color, size = "large" }) => (
+    <View style={[styles.statItem, size === "small" && styles.statItemSmall]}>
+        <View style={[
+            styles.iconCircle, 
+            { backgroundColor: color + "18" },
+            size === "small" && styles.iconCircleSmall
+        ]}>
+            <MaterialIcons name={icon} size={size === "small" ? 16 : 20} color={color} />
+        </View>
+        <CustomText variant="body" style={[styles.statValue, size === "small" && styles.statValueSmall]}>
+            {value}
+        </CustomText>
+        <CustomText variant="caption" style={styles.statLabel}>{label}</CustomText>
+    </View>
+);
+
+const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) => {
     const qualityList = getArray(trail?.difficulty?.quality, trail?.quality);
     const diffPoints = getArray(trail?.difficulty?.difficulty_points, trail?.difficulty_points);
     const viewpoints = getArray(trail?.tourism?.viewpoint, trail?.viewpoint);
     const circularity = trail?.difficulty?.circularity || trail?.circularity || '';
 
+    // 1. HARD STATS (Computed from GeoJSON)
+    const computedDistance = trailStats 
+        ? `${(trailStats.distance / 1000).toFixed(1)} km` 
+        : stats.distance;
+    
+    const computedGain = trailStats 
+        ? `+${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` 
+        : stats.elevation;
+
+    const computedDescent = trailStats 
+        ? `-${Math.round(Math.min(trailStats.elevationGain, trailStats.elevationLoss))} m` 
+        : "--";
+
+    // 2. CURATED STATS (From Developer/Database)
+    // We use the Developer's estimated time because human knowledge accounts for trail conditions
+    const curatedTime = stats.time || "--";
+    const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
+    const curatedDiff = trail?.difficulty?.level || "--";
+
     return (
         <View style={styles.tabContent}>
-            <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                    <CustomText variant="body" style={styles.statValue}>
-                        {stats.distance}
-                    </CustomText>
-                    <CustomText variant="caption" style={styles.statLabel}>
-                        Distance
-                    </CustomText>
+            {statsLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                    <CustomText variant="caption" style={styles.loadingText}>Synchronizing trail data...</CustomText>
                 </View>
+            ) : (
+                <View style={styles.hybridStatsContainer}>
+                    {/* Primary Row: The "Big Three" */}
+                    <View style={styles.statsRow}>
+                        <StatItem
+                            icon="straighten"
+                            label="Distance"
+                            value={computedDistance}
+                            color="#2196F3"
+                        />
+                        <StatItem
+                            icon="schedule"
+                            label="Est. Time"
+                            value={curatedTime}
+                            color="#9C27B0"
+                        />
+                        <StatItem
+                            icon="trending-up"
+                            label="Elev. Gain"
+                            value={computedGain}
+                            color="#4CAF50"
+                        />
+                    </View>
 
-                <View style={styles.statItem}>
-                    <CustomText variant="body" style={styles.statValue}>
-                        {stats.time}
-                    </CustomText>
-                    <CustomText variant="caption" style={styles.statLabel}>
-                        Est. Time
-                    </CustomText>
-                </View>
+                    <View style={styles.divider} />
 
-                <View style={styles.statItem}>
-                    <CustomText variant="body" style={styles.statValue}>
-                        {stats.elevation}
-                    </CustomText>
-                    <CustomText variant="caption" style={styles.statLabel}>
-                        Elevation
-                    </CustomText>
+                    {/* Secondary Row: The Contextual Details */}
+                    <View style={styles.statsRow}>
+                        <StatItem
+                            icon="terrain"
+                            label="Peak"
+                            value={curatedMASL}
+                            color="#795548"
+                            size="small"
+                        />
+                        <StatItem
+                            icon="trending-down"
+                            label="Descent"
+                            value={computedDescent}
+                            color="#FF7043"
+                            size="small"
+                        />
+                        <StatItem
+                            icon="speed"
+                            label="Difficulty"
+                            value={curatedDiff}
+                            color="#607D8B"
+                            size="small"
+                        />
+                    </View>
                 </View>
-            </View>
+            )}
 
             <View style={styles.section}>
                 <CustomText variant="h3" style={styles.sectionTitle}>
@@ -109,22 +174,66 @@ const TrailDetailsTab = ({ stats, trail, location }) => {
 const styles = StyleSheet.create({
     tabContent: {
         gap: 20,
+        paddingBottom: 20,
+    },
+    hybridStatsContainer: {
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(0, 0, 0, 0.05)",
+        gap: 12,
     },
     statsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 10,
     },
     statItem: {
         alignItems: 'center',
         flex: 1,
     },
+    statItemSmall: {
+        // Optional specific styles for small item container
+    },
     statValue: {
         fontWeight: 'bold',
-        marginBottom: 4,
-        fontSize: 18,
+        marginBottom: 2,
+        fontSize: 15,
+    },
+    statValueSmall: {
+        fontSize: 13,
     },
     statLabel: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 10,
+    },
+    iconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+    },
+    iconCircleSmall: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        marginBottom: 6,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.05)",
+        marginHorizontal: 10,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: 20,
+    },
+    loadingText: {
         color: Colors.TEXT_SECONDARY,
     },
     section: {

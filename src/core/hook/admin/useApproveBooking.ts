@@ -23,7 +23,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
     const [localError, setLocalError] = useState<string | null>(null);
 
     const offers = useOffersStore(s => s.businessOffers);
-    const bookings = useBookingsStore(s => s.offerBookings);
+    const bookings = useBookingsStore(s => s.bookingByOffer[offerId] || []);
     const loadOffer = useOffersStore(s => s.loadOffer);
     const loadBooking = useBookingsStore(s => s.loadById);
     const create = useBookingsStore(s => s.create);

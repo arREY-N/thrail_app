@@ -3,9 +3,10 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-},
-"javascript.preferences.importModuleSpecifier": "non-relative",
-"javascript.preferences.importModuleSpecifierEnding": "minimal",
-"typescript.preferences.importModuleSpecifier": "non-relative",
-"typescript.preferences.importModuleSpecifierEnding": "minimal"
+  },
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "java.compile.nullAnalysis.mode": "disabled"
 }

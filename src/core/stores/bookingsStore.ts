@@ -1,5 +1,7 @@
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
+import { useAuthStore } from "@/src/core/stores/authStore";
+import { Unsubscribe } from "firebase/auth";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -12,12 +14,20 @@ interface BookState{
     loadById: (bookingId: string) => Promise<void>; 
     loadAll: (role: string) => Promise<void>;
     load: (userId: string) => Promise<void>;
-    
+    subscribeToBusinessBookings: (offerId: string) => Promise<void>;
+    unsubscribeFromBusinessBookings: (offerId: string) => void;
+    subscribeToUserBookings: () => Promise<Unsubscribe | null>;
+
+
     data: Booking[];
     error: string | null;
     isLoading: boolean;
     userBookings: Booking[];
     offerBookings: Booking[];
+    businessBookings: Booking[];
+
+    bookingByOffer: Record<string, Booking[]>;
+    activeListeners: Record<string, Unsubscribe>;
 }
 
 const init = {
@@ -27,12 +37,84 @@ const init = {
     offerBookings: [],
     error: null,
     isLoading: false,
+    bookingByOffer: {},
+    activeListeners: {},
 }
 
 export const useBookingsStore = create<BookState>()(immer((set, get) => ({
     ...init,
 
     reset: () => set(init),
+
+    subscribeToUserBookings: async () => {
+        try {
+            const { profile } = useAuthStore.getState();
+            
+
+            if(!profile)
+                throw new Error('User not found');
+
+            const unsubscribe = BookingRepository.listenToUserBookings(
+                profile.id,
+                (bookings) => set({
+                    userBookings: bookings
+                })
+            )
+
+            return unsubscribe;
+        } catch (error) {
+            console.error('Error subscribing to user bookings: ', error);
+            throw error;
+        }
+    },
+
+    subscribeToBusinessBookings: async (offerId: string) => {
+        try {
+            if(get().activeListeners[offerId]) return;
+            
+            const { businessId } = useAuthStore.getState();
+            
+            if(!businessId) 
+                throw new Error('Business ID is required for subscribing to business bookings');
+
+            const unsubscribe = await BookingRepository.listenToBusinessBookings(
+                offerId,
+                businessId,
+                (bookings) => set((state) => ({
+                    bookingByOffer: {
+                        ...state.bookingByOffer,
+                        [offerId]: bookings
+                    }
+                }))
+            )
+            
+            set((state) => ({
+                activeListeners: {
+                    ...state.activeListeners,
+                    [offerId]: unsubscribe
+                }
+            }))
+        } catch (error) {
+            console.error('Error subscribing to business bookings: ', error);
+            throw error;
+        }
+    },
+
+    unsubscribeFromBusinessBookings: (offerId: string) => {
+        const unsubscribe = get().activeListeners[offerId]; 
+
+        if(unsubscribe){
+            unsubscribe();
+            set((state) => {
+                const newListeners = { ...state.activeListeners };
+                delete newListeners[offerId];
+                return {
+                    ...state,
+                    activeListeners: newListeners
+                }
+            }
+        )}
+    },
 
     loadAll: async (role: string) => {
         set({isLoading: true, error: null});
@@ -47,6 +129,8 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
             throw error
         }
     },
+
+
 
     fetchOfferBookings: async (offerId: string, role: string) => {
         set({isLoading: true, error: null});

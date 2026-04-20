@@ -27,7 +27,8 @@ const getMetricAlertLevel = (type, value) => {
     if (value === undefined || value === null) return 'normal';
     if (type === 'wind') return value >= 60 ? 'danger' : value >= 40 ? 'warning' : 'normal';
     if (type === 'precip') return value >= 70 ? 'danger' : value >= 50 ? 'warning' : 'normal';
-    if (type === 'uv') return value >= 8 ? 'danger' : value >= 6 ? 'warning' : 'normal';
+    // UV standards: 11+ is Extreme (Danger), 8-10 is Very High (Caution)
+    if (type === 'uv') return value >= 11 ? 'danger' : value >= 8 ? 'warning' : 'normal';
     return 'normal';
 };
 
@@ -54,6 +55,16 @@ const WeatherScreen = ({
 
     // Weather hook
     const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
+
+    const lastUpdatedLabel = React.useMemo(() => {
+        if (!weatherData?.lastUpdated) return null;
+        const diffMs = Date.now() - new Date(weatherData.lastUpdated).getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return 'Just now';
+        if (diffMin < 60) return `${diffMin} min ago`;
+        const diffHr = Math.floor(diffMin / 60);
+        return `${diffHr}h ${diffMin % 60}m ago`;
+    }, [weatherData?.lastUpdated]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -111,6 +122,11 @@ const WeatherScreen = ({
                                 <CustomText style={styles.mainTemp}>{temperature}°</CustomText>
                                 <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
                             </View>
+                            {weatherData?.apparentTemperature != null && (
+                                <CustomText variant="caption" style={styles.feelsLikeHero}>
+                                    Feels like {Math.round(weatherData.apparentTemperature)}°C
+                                </CustomText>
+                            )}
                             <View style={styles.locationWrapper}>
                                 <View style={styles.locationRow}>
                                     <CustomIcon 
@@ -140,8 +156,13 @@ const WeatherScreen = ({
                     
                     <View style={styles.heroBottom}>
                         <CustomText variant="label" style={styles.heroSubText}>
-                            {hasData ? condition : "Loading"}{updateText ? `  •  ${updateText}` : ''}
+                            {hasData ? condition : "Loading"}
                         </CustomText>
+                        {lastUpdatedLabel && (
+                            <CustomText variant="caption" style={styles.lastUpdatedLabel}>
+                                Updated {lastUpdatedLabel}
+                            </CustomText>
+                        )}
                         <CustomText variant="label" style={styles.heroSubText}>
                             Day: {dayTemp}° | Night: {nightTemp}°
                         </CustomText>
@@ -220,7 +241,7 @@ const WeatherScreen = ({
                                 title="UV Index" 
                                 value={uvVal} 
                                 unit="" 
-                                desc="Current level"
+                                desc={weatherData?.uvIndexMax ? `Real-time. Peak: ${Math.round(weatherData.uvIndexMax)}` : "Current level"}
                                 icon="thermometer-outline"  
                                 lib="Ionicons" 
                                 alertLevel={getMetricAlertLevel('uv', uvRaw)} 
@@ -429,6 +450,18 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
         ...dropShadow 
+    },
+    feelsLikeHero: {
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        marginTop: -4,
+        marginBottom: 8,
+        marginLeft: 4,
+    },
+    lastUpdatedLabel: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 10,
+        opacity: 0.8,
     },
     cardHeader: { 
         flexDirection: 'row', 
