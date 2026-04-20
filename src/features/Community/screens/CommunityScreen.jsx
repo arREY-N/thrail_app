@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
     RefreshControl,
@@ -74,6 +74,17 @@ const CommunityScreen = ({
         return filtered;
     }, [reviews, activeTab, searchQuery]);
 
+    const renderPostCard = useCallback(({ item }) => (
+        <PostCard 
+            review={item}
+            variant="community"
+            onLike={() => likeReview(item)}
+            isLiked={isLiked(item)}
+            onEdit={() => onWriteReviewPress(item)}
+            isOwned={isOwned(item)}
+        />
+    ), [likeReview, isLiked, onWriteReviewPress, isOwned]);
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
@@ -127,16 +138,7 @@ const CommunityScreen = ({
                         refreshControl={
                             <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={Colors.PRIMARY} />
                         }
-                        renderItem={({ item }) => (
-                            <PostCard 
-                                review={item}
-                                variant="community"
-                                onLike={() => likeReview(item)}
-                                isLiked={isLiked(item)}
-                                onEdit={() => onWriteReviewPress(item)}
-                                isOwned={isOwned(item)}
-                            />
-                        )}
+                        renderItem={renderPostCard}
                         ListEmptyComponent={
                             !isLoading ? (
                                 <View style={styles.emptyStateContainer}>

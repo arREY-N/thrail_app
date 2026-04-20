@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
     FlatList,
     StyleSheet,
@@ -14,6 +14,18 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
+const formatGroupName = (group) => {
+    if (group?.trail?.name && group?.business?.name) {
+        return `${group.trail.name} • ${group.business.name}`;
+    }
+    return group?.GroupName || "Unnamed Group";
+};
+
+const getInitials = (name) => {
+    if (!name) return '?';
+    return name.substring(0, 2).toUpperCase();
+};
+
 const GroupListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
     
     const sortedGroups = useMemo(() => {
@@ -25,19 +37,7 @@ const GroupListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
         });
     }, [groups]);
 
-    const formatGroupName = (group) => {
-        if (group?.trail?.name && group?.business?.name) {
-            return `${group.trail.name} • ${group.business.name}`;
-        }
-        return group?.GroupName || "Unnamed Group";
-    };
-
-    const getInitials = (name) => {
-        if (!name) return '?';
-        return name.substring(0, 2).toUpperCase();
-    };
-
-    const renderGroupCard = ({ item }) => {
+    const renderGroupCard = useCallback(({ item }) => {
         const lastMsg = item.lastMessage;
         const timeString = lastMsg?.timesent ? formatDate(lastMsg.timesent) : '';
         
@@ -93,7 +93,7 @@ const GroupListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
                 </View>
             </TouchableOpacity>
         );
-    };
+    }, [currentUser, onEnterRoom]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
