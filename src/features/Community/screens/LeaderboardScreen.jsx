@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     FlatList,
     StyleSheet,
@@ -12,13 +12,13 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
+const getInitials = (name) => name ? name.substring(0, 2).toUpperCase() : '?';
+
 const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress }) => {
     const [activeTab, setActiveTab] = useState('monthly');
 
     const topThree = leaderboardData.slice(0, 3);
     const restOfList = leaderboardData.slice(3);
-
-    const getInitials = (name) => name ? name.substring(0, 2).toUpperCase() : '?';
 
     const renderTrendIcon = (trend) => {
         if (trend === 'up') return <CustomIcon library="Feather" name="trending-up" size={14} color={Colors.SUCCESS} />;
@@ -56,7 +56,7 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
         );
     };
 
-    const renderListItem = ({ item }) => (
+    const renderListItem = useCallback(({ item }) => (
         <View style={styles.listRow}>
             <View style={styles.rankContainer}>
                 <CustomText variant="label" style={styles.rankText}>{item.rank}</CustomText>
@@ -79,7 +79,7 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
                 {item.score.toLocaleString()}
             </CustomText>
         </View>
-    );
+    ), []);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
