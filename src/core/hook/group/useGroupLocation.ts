@@ -2,12 +2,11 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
-import { Location } from "@/src/core/models/Location/Location";
 import { Message } from "@/src/core/models/Message/Message";
 import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Platform } from "react-native";
 
 export default function useGroupLocation(groupId: string) {
@@ -39,39 +38,6 @@ export default function useGroupLocation(groupId: string) {
 
     const create = useHikesStore(s => s.create);
     
-    if(Platform.OS === 'web') {
-        const tick = () => {
-            if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
-                return;
-            } 
-            useHikesStore.getState().addCoordinate(new Location({
-                latitude: new Date().getHours(),
-                longitude: new Date().getMinutes(),
-                altitude: new Date().getSeconds(),
-                timestamp: new Date(),
-            }));
-            
-            const now = Date.now();
-    
-            updateHikeStore({ elapsedTime: now - timerStartTime });
-        }
-    
-        useEffect(() => {
-            let interval: ReturnType<typeof setInterval> | undefined;
-    
-            if(currentHike?.status === 'started') {
-                interval = setInterval(() => {
-                    tick();
-                }, 1000);
-            }
-    
-            return () => {
-                if(interval) clearInterval(interval);
-            }
-        },[currentHike?.status])
-    
-    }
-
     const onStartSharingLocation = async () => {
         try {
             await shareLocation(groupId);
