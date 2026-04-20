@@ -4,19 +4,19 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
+import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
-import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
@@ -82,7 +82,6 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       if (geoAsset.localUri) setGeoJsonUrl(geoAsset.localUri);
     }
 
-    
     /**
      * Ensures the offline PMTiles file is cached in persistent storage.
      * Validates cache health and re-downloads if necessary.
@@ -118,7 +117,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
         let downloadSuccess = false;
         let retries = 3;
         let lastError;
-        
+
         while (!downloadSuccess && retries > 0) {
           try {
             console.log(`Downloading offline map... attempts left: ${retries}`);
@@ -133,9 +132,12 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
             }
           }
         }
-        
+
         if (!downloadSuccess) {
-          throw lastError || new Error("Failed to download offline map after retries.");
+          throw (
+            lastError ||
+            new Error("Failed to download offline map after retries.")
+          );
         }
       }
 
@@ -143,7 +145,11 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
 
-    Promise.all([resolveGeoJson(), resolveOfflineMap(), resolveOfflineFonts().then(setFontBaseDir)])
+    Promise.all([
+      resolveGeoJson(),
+      resolveOfflineMap(),
+      resolveOfflineFonts().then(setFontBaseDir),
+    ])
       .then(() => setLoadState("ready"))
       .catch((err) => {
         console.error("❌ Failed to load map assets:", err);
