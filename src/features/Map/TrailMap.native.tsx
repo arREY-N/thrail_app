@@ -82,6 +82,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       if (geoAsset.localUri) setGeoJsonUrl(geoAsset.localUri);
     }
 
+    
     /**
      * Ensures the offline PMTiles file is cached in persistent storage.
      * Validates cache health and re-downloads if necessary.
@@ -109,10 +110,35 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       const asset = Asset.fromModule(
         require("../../assets/tiles/thrail-offline-map.pmtiles"),
       );
-      await asset.downloadAsync();
 
-      if (!asset.localUri) throw new Error("Asset has no localUri");
-      await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
+      if (asset.localUri) {
+        await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
+      } else {
+        // Retry logic for unstable development connections (e.g. emulator downloading 35MB from Metro)
+        let downloadSuccess = false;
+        let retries = 3;
+        let lastError;
+        
+        while (!downloadSuccess && retries > 0) {
+          try {
+            console.log(`Downloading offline map... attempts left: ${retries}`);
+            await FileSystem.downloadAsync(asset.uri, fileUri);
+            downloadSuccess = true;
+          } catch (e) {
+            lastError = e;
+            retries -= 1;
+            console.warn(`⚠️ Download failed. Retries left: ${retries}`, e);
+            if (retries > 0) {
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+          }
+        }
+        
+        if (!downloadSuccess) {
+          throw lastError || new Error("Failed to download offline map after retries.");
+        }
+      }
+
       console.log("✅ Offline map cached.");
       setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
