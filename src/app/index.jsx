@@ -27,10 +27,10 @@ export default function index() {
 
 	return (
 		<LandingScreen
-		onLogInPress={onLogIn}
-		onSignUpPress={onSignUp}
-		onPrivacyPress={onPrivacy}
-		onTermsPress={onTerms}
+			onLogInPress={onLogIn}
+			onSignUpPress={onSignUp}
+			onPrivacyPress={onPrivacy}
+			onTermsPress={onTerms}
 		/>
 	);
 }
