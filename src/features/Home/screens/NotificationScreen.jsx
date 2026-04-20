@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
     FlatList,
     Pressable,
@@ -6,23 +6,23 @@ import {
     View
 } from 'react-native';
 
-import CustomHeader from '../../../components/CustomHeader';
-import CustomIcon from '../../../components/CustomIcon'; // Make sure to import this
-import CustomText from '../../../components/CustomText';
-import ScreenWrapper from '../../../components/ScreenWrapper'; // Use ScreenWrapper for consistency
-import { Colors } from '../../../constants/colors';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { Colors } from '@/src/constants/colors';
+
+const getIcon = (title) => {
+    const t = title.toLowerCase();
+    if (t.includes('update')) return { name: 'download-cloud', lib: 'Feather', color: Colors.PRIMARY };
+    if (t.includes('welcome')) return { name: 'star', lib: 'Feather', color: '#FFC107' };
+    if (t.includes('alert') || t.includes('warning')) return { name: 'alert-circle', lib: 'Feather', color: '#FF5252' };
+    return { name: 'bell', lib: 'Feather', color: Colors.PRIMARY };
+};
 
 const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
 
-    const getIcon = (title) => {
-        const t = title.toLowerCase();
-        if (t.includes('update')) return { name: 'download-cloud', lib: 'Feather', color: Colors.PRIMARY };
-        if (t.includes('welcome')) return { name: 'star', lib: 'Feather', color: '#FFC107' };
-        if (t.includes('alert') || t.includes('warning')) return { name: 'alert-circle', lib: 'Feather', color: '#FF5252' };
-        return { name: 'bell', lib: 'Feather', color: Colors.PRIMARY };
-    };
-
-    const renderItem = ({ item }) => {
+    const renderItem = useCallback(({ item }) => {
         const iconData = getIcon(item.title);
         
         return (
@@ -66,7 +66,7 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
                 </View>
             </Pressable>
         );
-    };
+    }, [onPressItem]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -82,7 +82,6 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
                 keyExtractor={item => item.id.toString()}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
-
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <CustomIcon library="Feather" name="bell-off" size={48} color={Colors.GRAY_MEDIUM} />

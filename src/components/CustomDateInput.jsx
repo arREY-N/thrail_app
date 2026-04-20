@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
     Modal,
@@ -169,6 +169,30 @@ const DropdownPicker = ({
 
     const textColor = value ? Colors.TEXT_PRIMARY : Colors.TEXT_PLACEHOLDER;
 
+    const renderListItem = useCallback(({ item }) => {
+        const isSelected = item.value === value;
+        return (
+            <TouchableOpacity 
+                style={[
+                    styles.optionItem,
+                    isSelected && styles.selectedOptionItem
+                ]} 
+                onPress={() => onSelect(item.value)}
+                activeOpacity={0.8}
+            >
+                <CustomText 
+                    variant="body"
+                    style={[
+                        styles.optionText, 
+                        isSelected && styles.selectedOptionText
+                    ]}
+                >
+                    {item.label}
+                </CustomText>
+            </TouchableOpacity>
+        );
+    }, [value, onSelect]);
+
     return (
         <>
             <TouchableOpacity 
@@ -221,29 +245,7 @@ const DropdownPicker = ({
                             showsVerticalScrollIndicator={false} 
                             initialNumToRender={15}
                             contentContainerStyle={styles.listContent}
-                            renderItem={({ item }) => {
-                                const isSelected = item.value === value;
-                                return (
-                                    <TouchableOpacity 
-                                        style={[
-                                            styles.optionItem,
-                                            isSelected && styles.selectedOptionItem
-                                        ]} 
-                                        onPress={() => onSelect(item.value)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <CustomText 
-                                            variant="body"
-                                            style={[
-                                                styles.optionText, 
-                                                isSelected && styles.selectedOptionText
-                                            ]}
-                                        >
-                                            {item.label}
-                                        </CustomText>
-                                    </TouchableOpacity>
-                                );
-                            }}
+                            renderItem={renderListItem}
                         />
                     </Pressable>
                 </Pressable>
