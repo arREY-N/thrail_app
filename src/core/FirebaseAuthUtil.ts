@@ -1,20 +1,21 @@
 import { db } from '@/src/core/config/Firebase';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { Preference } from './models/User/Preference';
+import { IMedicalProfile, IPreference } from './models/User/User.types';
 
 export const finishOnboarding = async (
     uid: string, 
-    preferences: Preference
+    data: { preferences: IPreference; medicalProfile: IMedicalProfile }
 ) => {
     const ref = doc(db, 'users', uid);
 
-    if(!uid || !preferences) throw new Error('Missing UID or preference object');
+    if(!uid || !data) throw new Error('Missing UID or data object');
     
     await setDoc(
         ref, 
         {
             onBoardingComplete: true,
-            preferences,
+            preferences: data.preferences,
+            medicalProfile: data.medicalProfile,
             updatedAt: serverTimestamp(),
         },
         {merge: true},

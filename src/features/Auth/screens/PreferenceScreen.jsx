@@ -10,16 +10,21 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 
+import MountainSelectChip from '@/src/features/Auth/components/MountainSelectChip';
 import SelectionOption from '@/src/features/Auth/components/SelectionOption';
 
 const PreferenceScreen = ({ 
     questions, 
     setAnswer, 
+    setMedicalDetails,
+    setMedicalClearance,
     onFinish, 
     error 
 }) => {
@@ -27,8 +32,8 @@ const PreferenceScreen = ({
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-    const FLOW_YES = ['q1', 'q2', 'q3', 'q4', 'q5'];
-    const FLOW_NO  = ['q1', 'q4', 'q5'];
+    const FLOW_YES = ['medical', 'q1', 'q2', 'q3', 'q4', 'q5'];
+    const FLOW_NO  = ['medical', 'q1', 'q4', 'q5'];
 
     const hikedBeforeAnswer = questions['q1']?.answer; 
     const currentFlow = hikedBeforeAnswer === false ? FLOW_NO : FLOW_YES;
@@ -36,9 +41,19 @@ const PreferenceScreen = ({
     const currentQuestionData = questions[currentStepKey];
 
     const currentAnswer = currentQuestionData?.answer;
-    const hasAnswer = Array.isArray(currentAnswer) 
-        ? currentAnswer.length > 0 
-        : currentAnswer !== null && currentAnswer !== undefined && currentAnswer !== '';
+
+    let hasAnswer = false;
+    if (currentStepKey === 'medical') {
+        if (currentAnswer === false) {
+            hasAnswer = true;
+        } else if (currentAnswer === true && currentQuestionData?.details?.trim().length > 0) {
+            hasAnswer = true; 
+        }
+    } else {
+        hasAnswer = Array.isArray(currentAnswer) 
+            ? currentAnswer.length > 0 
+            : currentAnswer !== null && currentAnswer !== undefined && currentAnswer !== '';
+    }
 
     const progressPercentage = stepIndex === 0 
         ? (1 / FLOW_YES.length) * 100 
@@ -72,7 +87,7 @@ const PreferenceScreen = ({
     const isSelected = (optionValue) => {
         if (currentAnswer === null || currentAnswer === undefined) return false;
 
-        if (currentQuestionData?.type === 'binary') {
+        if (currentQuestionData?.type === 'binary' || currentQuestionData?.type === 'medical') {
             const mappedBoolean = optionValue === 'Yes' ? true : false;
             return currentAnswer === mappedBoolean;
         }
@@ -103,6 +118,52 @@ const PreferenceScreen = ({
             );
         }
 
+        if (currentStepKey === 'q2') {
+            return (
+                <MountainSelectChip
+                    options={dynamicOptions}
+                    selectedValues={currentAnswer || []}
+                    onToggle={handleSelect}
+                />
+            );
+        }
+
+        if (currentStepKey === 'medical') {
+            return (
+                <View style={styles.optionsWrapper}>
+                    {dynamicOptions.map(opt => (
+                        <SelectionOption 
+                            key={opt}
+                            label={opt} 
+                            selected={isSelected(opt)} 
+                            onPress={() => handleSelect(opt)}
+                        />
+                    ))}
+
+                    {currentAnswer === true && (
+                        <View style={styles.medicalDetailsContainer}>
+                            <CustomTextInput
+                                label="Please specify your condition(s)"
+                                placeholder="e.g., Asthma, Hypertension, Allergies..."
+                                value={currentQuestionData.details}
+                                onChangeText={setMedicalDetails}
+                                multiline
+                                style={styles.medicalInputWrapper}
+                                inputStyle={styles.medicalInputBox} 
+                            />
+                            
+                            <DocumentUploadCard
+                                docName="Medical Clearance (Optional)"
+                                docKey="medicalCertificate"
+                                isUploaded={currentQuestionData?.clearanceUri}
+                                onUploadSuccess={setMedicalClearance}
+                            />
+                        </View>
+                    )}
+                </View>
+            );
+        }
+
         return (
             <View style={styles.optionsWrapper}>
                 {dynamicOptions.map(opt => (
@@ -117,7 +178,7 @@ const PreferenceScreen = ({
         );
     };
 
-    const isMultiSelect = ['q2', 'q4', 'q5'].includes(currentStepKey);
+    const isMultiSelect = ['q4', 'q5'].includes(currentStepKey);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -268,6 +329,23 @@ const styles = StyleSheet.create({
         width: '48%' 
     },
     
+    medicalDetailsContainer: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
+    },
+    medicalInputWrapper: {
+        marginBottom: 20,
+    },
+    medicalInputBox: {
+        minHeight: 120,
+        paddingTop: 16,
+        paddingBottom: 16,
+        borderWidth: 1.5,
+        alignItems: 'flex-start'
+    },
+
     footerContainer: {
         width: '100%',
         backgroundColor: Colors.BACKGROUND,

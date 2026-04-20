@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     },
     
     heroSection: { 
-        paddingVertical: 12, 
+        paddingBottom: 12, 
         paddingHorizontal: 8 
     },
     heroTop: { 
@@ -398,14 +398,15 @@ const styles = StyleSheet.create({
     },
     tempContainer: { 
         flexDirection: 'row', 
-        alignItems: 'flex-start' 
+        alignItems: 'flex-start',
+        marginBottom: 4, 
     },
     mainTemp: { 
         fontSize: 64, 
-        fontWeight: '900', 
+        lineHeight: 74, 
+        fontWeight: '800', 
         color: Colors.TEXT_PRIMARY, 
         letterSpacing: -2, 
-        includeFontPadding: false 
     },
     tempUnit: { 
         marginTop: 12, 
@@ -413,7 +414,6 @@ const styles = StyleSheet.create({
     },
     locationWrapper: { 
         alignItems: 'flex-start', 
-        marginTop: -4 
     },
     locationRow: { 
         flexDirection: 'row', 

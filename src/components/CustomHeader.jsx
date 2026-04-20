@@ -35,92 +35,96 @@ const CustomHeader = ({
     };
 
     return (
-        <View style={[
-            styles.masterContainer, 
-            hasSearch ? styles.withSearchShadowAndRadius : styles.flatHeader, 
-            style
-        ]}>
-            <View style={styles.titleRow}>
+        <View style={hasSearch ? { overflow: 'hidden', paddingBottom: 15 } : { zIndex: 100 }}>
+            <View style={[
+                styles.masterContainer, 
+                hasSearch ? styles.withSearchShadowAndRadius : styles.flatHeader, 
+                hasSearch && { marginTop: -10, paddingTop: 10 },
                 
-                {/* === LEFT SECTION === */}
-                <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard} pointerEvents="box-none">
-                    {onBackPress ? (
-                        <TouchableOpacity 
-                            onPress={onBackPress} 
-                            style={styles.backButton}
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-left"
-                                size={24}
-                                color={Colors.PRIMARY} 
-                                style={{scale: 1.2}}
-                            />
-                        </TouchableOpacity>
-                    ) : (
-                        !centerTitle && (
-                            children ? children : (
-                                <CustomText variant='title' style={styles.headline}>
+                style
+            ]}>
+                <View style={styles.titleRow}>
+                    
+                    {/* === LEFT SECTION === */}
+                    <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard} pointerEvents="box-none">
+                        {onBackPress ? (
+                            <TouchableOpacity 
+                                onPress={onBackPress} 
+                                style={styles.backButton}
+                                activeOpacity={0.7}
+                            >
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevron-left"
+                                    size={24}
+                                    color={Colors.PRIMARY} 
+                                    style={{scale: 1.2}}
+                                />
+                            </TouchableOpacity>
+                        ) : (
+                            !centerTitle && (
+                                children ? children : (
+                                    <CustomText variant='title' style={styles.headline}>
+                                        {title}
+                                    </CustomText>
+                                )
+                            )
+                        )}
+                    </View>
+
+                    {/* === CENTER SECTION === */}
+                    {centerTitle && (
+                        <View style={styles.centerBox} pointerEvents="none">
+                            {children ? children : (
+                                <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
                                     {title}
                                 </CustomText>
-                            )
-                        )
+                            )}
+                        </View>
                     )}
+
+                    {/* === RIGHT SECTION === */}
+                    <View style={centerTitle ? styles.rightBoxCentered : styles.rightBoxStandard} pointerEvents="box-none">
+                        <View style={styles.rightActionsInner}>
+                            {showDefaultIcons && (
+                                <>
+                                    <TouchableOpacity
+                                        style={styles.actionIcon}
+                                        onPress={onNotificationPress}
+                                    >
+                                        <CustomIcon 
+                                            library="Ionicons" 
+                                            name="notifications"
+                                            size={24}
+                                            color={Colors.PRIMARY} 
+                                        />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.actionIcon}
+                                        onPress={onBookingPress}
+                                    >
+                                        <CustomIcon 
+                                            library="Ionicons" 
+                                            name="calendar-clear"
+                                            size={24}
+                                            color={Colors.PRIMARY}
+                                        />
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                            {rightActions}
+                        </View>
+                    </View>
+
                 </View>
 
-                {/* === CENTER SECTION === */}
-                {centerTitle && (
-                    <View style={styles.centerBox} pointerEvents="none">
-                        {children ? children : (
-                            <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
-                                {title}
-                            </CustomText>
-                        )}
-                    </View>
+                {/* Embedded Search Bar */}
+                {hasSearch && (
+                    <CustomSearchBar {...enhancedSearchProps} />
                 )}
-
-                {/* === RIGHT SECTION === */}
-                <View style={centerTitle ? styles.rightBoxCentered : styles.rightBoxStandard} pointerEvents="box-none">
-                    <View style={styles.rightActionsInner}>
-                        {showDefaultIcons && (
-                            <>
-                                <TouchableOpacity
-                                    style={styles.actionIcon}
-                                    onPress={onNotificationPress}
-                                >
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="notifications"
-                                        size={24}
-                                        color={Colors.PRIMARY} 
-                                    />
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.actionIcon}
-                                    onPress={onBookingPress}
-                                >
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="calendar-clear"
-                                        size={24}
-                                        color={Colors.PRIMARY}
-                                    />
-                                </TouchableOpacity>
-                            </>
-                        )}
-                        {rightActions}
-                    </View>
-                </View>
-
+                
             </View>
-
-            {/* Embedded Search Bar */}
-            {hasSearch && (
-                <CustomSearchBar {...enhancedSearchProps} />
-            )}
-            
         </View>
     );
 };
@@ -129,7 +133,6 @@ const styles = StyleSheet.create({
     masterContainer: {
         width: '100%',
         backgroundColor: Colors.BACKGROUND,
-        zIndex: 100,
     },
     flatHeader: {
         elevation: 0,
@@ -151,9 +154,8 @@ const styles = StyleSheet.create({
         minHeight: 60,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16, 
-        paddingTop: 16,
-        paddingBottom: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
     },
     leftBoxCentered: {
         flex: 1,

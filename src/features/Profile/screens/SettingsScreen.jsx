@@ -98,6 +98,17 @@ const SettingsScreen = ({
                     <SectionHeader title="Account" />
                     <SettingsItem icon="user" title="Profile Information" onPress={onProfileInfoPress} />
                     <SettingsItem icon="lock" title="Change Password" onPress={() => {}} />
+                    
+                    {role === 'superadmin' && (
+                        <>
+                            <SettingsItem icon="briefcase" title="Apply for Business Account" onPress={onApplyPress} />
+                            <SettingsItem icon="database" title="Superadmin Dashboard" onPress={onSuperadminPress} />
+                        </>
+                    )}
+                    
+                    {role === 'admin' && (
+                        <SettingsItem icon="command" title="Admin Dashboard" onPress={onAdminPress} />
+                    )}
                 </View>
 
                 <View style={styles.section}>
@@ -116,21 +127,6 @@ const SettingsScreen = ({
                     <SettingsItem icon="info" title="About The App" onPress={() => {}} />
                     <SettingsItem icon="file-text" title="Terms & Conditions" onPress={() => {}} />
                 </View>
-
-                {(role === 'admin' || role === 'superadmin') && (
-                    <View style={styles.section}>
-                        <SectionHeader title="Administration" />
-                        {role === 'superadmin' && (
-                            <>
-                                <SettingsItem icon="briefcase" title="Apply for Business Account" onPress={onApplyPress} />
-                                <SettingsItem icon="database" title="Superadmin Dashboard" onPress={onSuperadminPress} />
-                            </>
-                        )}
-                        {role === 'admin' && (
-                            <SettingsItem icon="command" title="Admin Dashboard" onPress={onAdminPress} />
-                        )}
-                    </View>
-                )}
 
                 <View style={styles.logoutContainer}>
                     <CustomButton 

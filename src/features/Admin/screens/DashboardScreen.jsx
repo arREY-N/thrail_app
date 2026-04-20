@@ -177,6 +177,13 @@ const DashboardScreen = ({
                 
                 <View style={styles.actionContainer}>
                     <CustomButton 
+                        title="Manage Offers"
+                        onPress={onManageOffersPress}
+                        variant="primary"
+                        style={styles.actionBtn}
+                    />
+
+                    <CustomButton 
                         title="Manage Personnel"
                         onPress={onManageAdminsPress}
                         variant="secondary"
@@ -185,12 +192,6 @@ const DashboardScreen = ({
                             { borderWidth: 1.5, borderColor: Colors.PRIMARY }
                         ]}
                         textStyle={{ color: Colors.PRIMARY }}
-                    />
-                    <CustomButton 
-                        title="Manage Offers"
-                        onPress={onManageOffersPress}
-                        variant="primary"
-                        style={styles.actionBtn}
                     />
                 </View>
 
