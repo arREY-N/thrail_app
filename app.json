@@ -31,11 +31,17 @@
     "web": {
       "output": "static"
     },
+    "updates": {
+      "url": "https://u.expo.dev/b6dba09b-d80c-45d8-ad39-273c63ef2f4e"
+    },
     "plugins": [
       [
         "expo-asset",
         {
-          "assets": ["assets/fonts", "assets/tiles"]
+          "assets": [
+            "assets/fonts",
+            "assets/tiles"
+          ]
         }
       ],
       "expo-router",
@@ -61,6 +67,9 @@
       "eas": {
         "projectId": "b6dba09b-d80c-45d8-ad39-273c63ef2f4e"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
