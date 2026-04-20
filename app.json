@@ -36,13 +36,13 @@
     },
     "plugins": [
       [
-        "expo-asset",
-        {
-          "assets": [
-            "assets/fonts",
-            "assets/tiles"
-          ]
-        }
+        "expo-asset"
+        // {
+        //   "assets": [
+        //     "assets/fonts",
+        //     "assets/tiles"
+        //   ]
+        // }
       ],
       "expo-router",
       "expo-font",
