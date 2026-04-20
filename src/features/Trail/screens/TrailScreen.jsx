@@ -9,10 +9,12 @@ import {
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import HikeBriefing from '@/src/components/HikeBriefing';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
 
 import TrailDetailsTab from '../components/TrailDetailsTab';
 import TrailReviewsTab from '../components/TrailReviewsTab';
@@ -26,6 +28,11 @@ const TrailScreen = ({
     onBookPress 
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
+    const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
+        trail?.general?.name,
+        trail?.geography?.startLat,
+        trail?.geography?.startLong
+    );
 
     const heroImage = useMemo(() => {
         const images = [
@@ -139,6 +146,9 @@ const TrailScreen = ({
                         </View>
                     </View>
 
+                    {/* HikeBriefing removed from here — moved into the Details tab */}
+
+
                     <View style={styles.tabContainer}>
                         {['Details', 'Weather', 'Reviews'].map((tab) => (
                             <TouchableOpacity 
@@ -161,8 +171,10 @@ const TrailScreen = ({
                     {activeTab === 'Details' && (
                         <TrailDetailsTab 
                             stats={stats} 
+                            trailStats={trailStats}
+                            statsLoading={statsLoading}
                             trail={trail} 
-                            location={location} 
+                            location={address} 
                         />
                     )}
                     {activeTab === 'Weather' && (

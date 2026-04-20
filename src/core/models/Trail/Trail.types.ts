@@ -77,3 +77,8 @@ export interface ICoordinate {
     altitude: number;
 }
 
+export interface ITrailStats {
+    distance: number;        // in meters
+    elevationGain: number;   // in meters
+    elevationLoss: number;   // in meters
+}

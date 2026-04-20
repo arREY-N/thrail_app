@@ -1,5 +1,5 @@
-import React from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -24,7 +24,21 @@ interface WeatherWidgetProps {
 }
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) => {
-  const { weatherData: data, loading, error } = useWeather(latitude, longitude);
+  const { weatherData: data, loading, error, refetch } = useWeather(latitude, longitude);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!data?.lastUpdated) return null;
+    const diffMs = Date.now() - new Date(data.lastUpdated).getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin} min ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    return `${diffHr}h ${diffMin % 60}m ago`;
+  }, [data?.lastUpdated]);
+
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   if (loading) {
     return <WeatherWidgetSkeleton />;
@@ -90,6 +104,11 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
             <CustomText style={styles.degreeSymbol}>°C</CustomText>
         </View>
         <CustomText style={styles.currentCondition}>{currentCondition}</CustomText>
+        {weatherData.apparentTemperature != null && (
+          <CustomText variant="caption" style={styles.feelsLike}>
+            Feels like {Math.round(weatherData.apparentTemperature)}°C
+          </CustomText>
+        )}
       </View>
 
       <ScrollView 
@@ -148,6 +167,22 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
             <CustomText variant="caption" style={styles.gridSubtext}>{getHumidityLabel(weatherData.humidity)}</CustomText>
           </View>
         </View>
+        <View style={styles.gridRow}>
+          <View style={styles.gridItem}>
+            <CustomIcon library="Ionicons" name="eye-outline" size={22} color={Colors.PRIMARY} />
+            <CustomText variant="label" style={styles.gridLabel}>Visibility</CustomText>
+            <CustomText style={styles.gridValue}>
+              {weatherData.visibility != null ? `${(weatherData.visibility / 1000).toFixed(1)}` : '--'}
+            </CustomText>
+            <CustomText variant="caption" style={styles.gridSubtext}>km</CustomText>
+          </View>
+          <View style={styles.gridItem}>
+            <CustomIcon library="Feather" name="wind" size={20} color={Colors.PRIMARY} />
+            <CustomText variant="label" style={styles.gridLabel}>Gusts</CustomText>
+            <CustomText style={styles.gridValue}>{Math.round(weatherData.windGusts)} km/h</CustomText>
+            <CustomText variant="caption" style={styles.gridSubtext}>Peak gusts</CustomText>
+          </View>
+        </View>
       </View>
 
       <View style={styles.sunRow}>
@@ -167,6 +202,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
           </View>
         </View>
       </View>
+
+      {/* Last Updated + Refresh */}
+      <TouchableOpacity style={styles.refreshRow} onPress={handleRefresh} activeOpacity={0.6}>
+        <CustomIcon library="Feather" name="refresh-cw" size={14} color={Colors.TEXT_SECONDARY} />
+        <CustomText variant="caption" style={styles.refreshText}>
+          {lastUpdatedLabel ? `Updated ${lastUpdatedLabel}` : 'Tap to refresh'}
+        </CustomText>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -346,6 +389,23 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: Colors.GRAY_LIGHT,
+  },
+  feelsLike: {
+    color: Colors.TEXT_SECONDARY,
+    marginTop: 4,
+    fontSize: 13,
+  },
+  refreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+    paddingVertical: 10,
+  },
+  refreshText: {
+    color: Colors.TEXT_SECONDARY,
+    fontSize: 12,
   },
 });
 

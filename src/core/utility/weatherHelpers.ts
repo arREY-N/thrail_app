@@ -105,15 +105,19 @@ export const getHumidityLabel = (humidity: number): string => {
 };
 
 export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyStatus => {
-    const { windSpeed, precipitationProbability, weatherCode } = data;
+    const { windSpeed, precipitationProbability, weatherCode, uvIndex } = data;
     
     const isSevereWeather = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
 
-    if (windSpeed > 60 || precipitationProbability > 70 || isSevereWeather) {
+    if (windSpeed > 60 || precipitationProbability > 70 || isSevereWeather || uvIndex >= 13) {
         return "DANGER";
     }
 
-    if ((windSpeed >= 40 && windSpeed <= 60) || (precipitationProbability >= 50 && precipitationProbability <= 70)) {
+    if (
+        (windSpeed >= 40 && windSpeed <= 60) || 
+        (precipitationProbability >= 50 && precipitationProbability <= 70) ||
+        (uvIndex >= 11 && uvIndex < 13)
+    ) {
         return "CAUTION";
     }
 

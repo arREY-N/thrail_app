@@ -1,9 +1,23 @@
+/**
+ * Generates a MapLibre Style JSON object configured for offline use with local vector tiles and fonts.
+ * 
+ * @param offlineTileUrl - The local path or URL to the .pmtiles / vector tile source.
+ * @param fontBaseDir - The directory path in the local filesystem where glyphs are located.
+ * @returns A MapLibre compatible style object.
+ */
 export const buildOfflineStyle = (
   offlineTileUrl: string,
-  maptilerKey: string,
+  fontBaseDir: string, 
+  // maptilerKey no longer needed for fonts if you bundle them
 ) => ({
   version: 8 as const,
-  glyphs: `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${maptilerKey}`,
+
+  // ✅ Use local bundled fonts
+  glyphs: `${fontBaseDir}{fontstack}/{range}.pbf`,
+
+  // ✅ Use local sprites (optional but recommended)
+  // sprite: "asset://sprites/sprite",
+
   sources: {
     protomaps: {
       type: "vector",
@@ -12,211 +26,137 @@ export const buildOfflineStyle = (
       attribution: "© OpenStreetMap contributors",
     },
   },
+
   layers: [
-    // 1. BASE BACKGROUND & EARTH
-    {
-      id: "background",
-      type: "background",
-      paint: { "background-color": "#F8F4F0" },
-    },
-    {
-      id: "earth",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "earth",
-      paint: { "fill-color": "#F2EBE5" },
-    },
+    // BACKGROUND
+    { id: "background", type: "background", paint: { "background-color": "#EFE9E1" } },
+    { id: "earth", type: "fill", source: "protomaps", "source-layer": "earth",
+      paint: { "fill-color": "#E8E0D5" } },
 
-    // 2. DETAILED LANDUSE & NATURAL (Forests, Scrub, Sand, Parks)
-    {
-      id: "natural-wood",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "natural",
-      filter: ["in", "pmap:kind", "wood", "forest", "scrub"],
-      paint: { "fill-color": "#C3E6C4", "fill-opacity": 0.8 },
-    },
-    {
-      id: "landuse-park",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "landuse",
-      filter: ["in", "pmap:kind", "park", "nature_reserve", "pitch"],
-      paint: { "fill-color": "#D8F1B9" },
-    },
-    {
-      id: "natural-sand",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "natural",
-      filter: ["==", "pmap:kind", "beach"],
-      paint: { "fill-color": "#F6E9CD" },
-    },
+    // LANDUSE — added farmland, grass, cemetery
+    { id: "landuse-farmland", type: "fill", source: "protomaps", "source-layer": "landuse",
+      filter: ["in", "pmap:kind", "farmland", "farm", "orchard", "vineyard"],
+      paint: { "fill-color": "#EAE0C8", "fill-opacity": 0.7 } },
 
-    // 3. WATER FEATURES
-    {
-      id: "water",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "water",
-      filter: [
-        "all",
-        ["!in", "pmap:kind", "wetland", "basin", "ditch", "drain", "playa", "playa_lake", "puddle"],
-        ["!in", "natural", "wetland", "marsh", "mud", "bog", "swamp"],
-        ["!in", "water", "fish_pond", "salt_pond", "basin", "wetland", "marsh", "wastewater", "aquaculture"],
-        ["!in", "landuse", "aquaculture", "basin", "salt_pond"]
-      ],
-      paint: { "fill-color": "#A0C8F0" }, 
-    },
-    {
-      id: "waterway",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "waterway",
-      filter: ["!in", "pmap:kind", "ditch", "drain"],
-      paint: { "line-color": "#A0C8F0", "line-width": 1.5 },
-    },
+    { id: "landuse-grass", type: "fill", source: "protomaps", "source-layer": "landuse",
+      filter: ["in", "pmap:kind", "grass", "meadow", "village_green"],
+      paint: { "fill-color": "#D4EDAA", "fill-opacity": 0.8 } },
 
-    // 4. BOUNDARIES
-    {
-      id: "boundaries",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "boundaries",
-      paint: {
-        "line-color": "#A09E9B",
-        "line-width": 1,
-        "line-dasharray": [3, 3],
-      },
-    },
+    { id: "landuse-park", type: "fill", source: "protomaps", "source-layer": "landuse",
+      filter: ["in", "pmap:kind", "park", "nature_reserve", "national_park", "protected_area"],
+      paint: { "fill-color": "#C9E8A0", "fill-opacity": 0.85 } },
 
-    // 5. BUILDINGS
-    {
-      id: "buildings",
-      type: "fill",
-      source: "protomaps",
-      "source-layer": "buildings",
-      paint: { "fill-color": "#E5E1D8", "fill-opacity": 0.8 },
-    },
+    { id: "landuse-cemetery", type: "fill", source: "protomaps", "source-layer": "landuse",
+      filter: ["==", "pmap:kind", "cemetery"],
+      paint: { "fill-color": "#D6D9C5", "fill-opacity": 0.8 } },
 
-    // 6. DETAILED ROADS & TRAILS
-    {
-      id: "roads-casing",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "roads",
-      // We exclude hiking paths so they don't get a grey outline
-      filter: ["!in", "pmap:kind", "path", "track", "footway", "pedestrian"],
-      paint: { "line-color": "#C9C4B5", "line-width": 3.5 },
-    },
-    // Second: White inner line for standard minor roads and residential streets
-    {
-      id: "roads-minor-inner",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "roads",
-      filter: [
-        "!in",
-        "pmap:kind",
-        "path",
-        "track",
-        "footway",
-        "pedestrian",
-        "highway",
-        "major_road",
-        "medium_road",
-      ],
-      paint: { "line-color": "#FFFFFF", "line-width": 1.5 },
-    },
-    // Third: Pale yellow inner line for medium/major roads
-    {
-      id: "roads-major-inner",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "roads",
-      filter: ["in", "pmap:kind", "major_road", "medium_road"],
-      paint: { "line-color": "#FDE293", "line-width": 2 },
-    },
-    // Fourth: Thick bright orange inner line for highways
-    {
-      id: "roads-highway-inner",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "roads",
+    // NATURAL
+    { id: "natural-wood", type: "fill", source: "protomaps", "source-layer": "natural",
+      filter: ["in", "pmap:kind", "wood", "forest"],
+      paint: { "fill-color": "#A8D48A", "fill-opacity": 0.75 } },
+
+    { id: "natural-scrub", type: "fill", source: "protomaps", "source-layer": "natural",
+      filter: ["==", "pmap:kind", "scrub"],
+      paint: { "fill-color": "#BDD9A0", "fill-opacity": 0.6 } },
+
+    { id: "natural-sand", type: "fill", source: "protomaps", "source-layer": "natural",
+      filter: ["in", "pmap:kind", "beach", "sand"],
+      paint: { "fill-color": "#F5E6C0" } },
+
+    { id: "natural-rock", type: "fill", source: "protomaps", "source-layer": "natural",
+      filter: ["in", "pmap:kind", "bare_rock", "scree", "rock"],
+      paint: { "fill-color": "#D0C8BC", "fill-opacity": 0.8 } },
+
+    // WATER
+    { id: "water", type: "fill", source: "protomaps", "source-layer": "water",
+      filter: ["!in", "pmap:kind", "wetland", "basin", "ditch", "drain", "playa"],
+      paint: { "fill-color": "#8BBFDF" } },
+
+    { id: "waterway-major", type: "line", source: "protomaps", "source-layer": "waterway",
+      filter: ["in", "pmap:kind", "river", "canal"],
+      paint: { "line-color": "#8BBFDF", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 14, 4] } },
+
+    { id: "waterway-minor", type: "line", source: "protomaps", "source-layer": "waterway",
+      filter: ["in", "pmap:kind", "stream", "drain"],
+      paint: { "line-color": "#8BBFDF", "line-width": 1 } },
+
+    // BOUNDARIES
+    { id: "boundaries", type: "line", source: "protomaps", "source-layer": "boundaries",
+      paint: { "line-color": "#B0A090", "line-width": 1, "line-dasharray": [4, 3] } },
+
+    // BUILDINGS
+    { id: "buildings", type: "fill", source: "protomaps", "source-layer": "buildings",
+      paint: { "fill-color": "#DDD8CB", "fill-outline-color": "#C8C2B4", "fill-opacity": 0.9 } },
+
+    // ROADS — highway
+    { id: "roads-highway-casing", type: "line", source: "protomaps", "source-layer": "roads",
       filter: ["==", "pmap:kind", "highway"],
-      paint: { "line-color": "#F7A85C", "line-width": 2.5 },
-    },
-    // Fifth: The brown dashed lines for hiking trails and footpaths
-    {
-      id: "roads-tracks-paths",
-      type: "line",
-      source: "protomaps",
-      "source-layer": "roads",
-      filter: ["in", "pmap:kind", "path", "track", "footway", "pedestrian"],
-      paint: {
-        "line-color": "#8D5A30",
-        "line-width": 2.5,
-        "line-dasharray": [2, 1.5],
-      },
-    },
+      paint: { "line-color": "#D4872A", "line-width": 8 } },
+    { id: "roads-highway-inner", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["==", "pmap:kind", "highway"],
+      paint: { "line-color": "#F7BC5C", "line-width": 5 } },
 
-    // 7. ROAD LABELS
-    {
-      id: "roads-labels",
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "roads",
-      filter: ["in", "pmap:kind", "major_road", "highway", "minor_road"],
+    // ROADS — major
+    { id: "roads-major-casing", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["in", "pmap:kind", "major_road", "medium_road"],
+      paint: { "line-color": "#C8C0A8", "line-width": 5 } },
+    { id: "roads-major-inner", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["in", "pmap:kind", "major_road", "medium_road"],
+      paint: { "line-color": "#FAECC0", "line-width": 3 } },
+
+    // ROADS — minor
+    { id: "roads-minor-casing", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["!in", "pmap:kind", "path", "track", "footway", "pedestrian", "highway", "major_road", "medium_road"],
+      paint: { "line-color": "#C4BCAC", "line-width": 3 } },
+    { id: "roads-minor-inner", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["!in", "pmap:kind", "path", "track", "footway", "pedestrian", "highway", "major_road", "medium_road"],
+      paint: { "line-color": "#FFFFFF", "line-width": 1.5 } },
+
+    // TRAILS — two-pass for clean look ✅
+    { id: "trails-casing", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["in", "pmap:kind", "path", "track", "footway"],
+      paint: { "line-color": "#C4A882", "line-width": 4 } },
+    { id: "trails-inner", type: "line", source: "protomaps", "source-layer": "roads",
+      filter: ["in", "pmap:kind", "path", "track", "footway"],
+      paint: {
+        "line-color": "#8B5E3C",
+        "line-width": 2,
+        "line-dasharray": [3, 2],
+      } },
+
+    // ROAD LABELS
+    { id: "roads-labels", type: "symbol", source: "protomaps", "source-layer": "roads",
+      filter: ["in", "pmap:kind", "major_road", "highway", "medium_road"],
       layout: {
         "text-field": "{name}",
         "text-font": ["Noto Sans Regular"],
         "text-size": 11,
         "symbol-placement": "line",
+        "text-max-angle": 30,
       },
-      paint: {
-        "text-color": "#555555",
-        "text-halo-color": "#FFFFFF",
-        "text-halo-width": 2,
-      },
-    },
+      paint: { "text-color": "#5A4A3A", "text-halo-color": "rgba(255, 255, 255, 0.8)", "text-halo-width": 2 } },
 
-    // 8. POINTS OF INTEREST (Peaks, Campsites, Parks)
-    {
-      id: "pois-outdoor",
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "pois",
-      filter: ["in", "pmap:kind", "peak", "camp_site", "park"],
+    // POIS
+    { id: "pois-outdoor", type: "symbol", source: "protomaps", "source-layer": "pois",
+      filter: ["in", "pmap:kind", "peak", "camp_site", "park", "viewpoint"],
       layout: {
         "text-field": "{name}",
-        "text-font": ["Noto Sans Bold"],
-        "text-size": 11,
+        "text-font": ["Noto Sans Medium"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 14, 13],
         "text-anchor": "top",
-        "text-offset": [0, 0.5],
+        "text-offset": [0, 0.6],
+        "text-max-width": 8,
       },
-      paint: {
-        "text-color": "#2F4F2F", // Forest green text for outdoor POIs
-        "text-halo-color": "#FFFFFF",
-        "text-halo-width": 2,
-      },
-    },
+      paint: { "text-color": "#2A4A2A", "text-halo-color": "rgba(255, 255, 255, 0.86)", "text-halo-width": 2 } },
 
-    // 9. PLACE LABELS (Cities, Towns, Villages)
-    {
-      id: "places-labels",
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "places",
+    // PLACE LABELS
+    { id: "places-labels", type: "symbol", source: "protomaps", "source-layer": "places",
       layout: {
         "text-field": "{name}",
-        "text-font": ["Noto Sans Bold"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 12, 14, 18],
+        "text-font": ["Noto Sans Medium"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 10, 10, 13, 14, 18],
+        "text-max-width": 10,
       },
-      paint: {
-        "text-color": "#222222",
-        "text-halo-color": "#FFFFFF",
-        "text-halo-width": 2,
-      },
-    },
+      paint: { "text-color": "#1A1A1A", "text-halo-color": "rgba(255, 255, 255, 0.8)", "text-halo-width": 2 } },
   ],
 });

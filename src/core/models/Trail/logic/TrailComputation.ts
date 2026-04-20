@@ -1,4 +1,4 @@
-import { ICoordinate } from "@/src/core/models/Trail/Trail.types";
+import { ICoordinate, ITrailStats } from "@/src/core/models/Trail/Trail.types";
 
 const toRad = (deg: number) => deg * (Math.PI / 180);
 
@@ -25,7 +25,7 @@ const haversineDistance = (
     return R * c;
 };
 
-export default function computeTotalLength(trailCoordinates: ICoordinate[]) {
+export default function computeTotalLength(trailCoordinates: ICoordinate[]): ITrailStats {
     if (!trailCoordinates || trailCoordinates.length < 2) return {
         distance: 0,
         elevationGain: 0,
@@ -36,8 +36,11 @@ export default function computeTotalLength(trailCoordinates: ICoordinate[]) {
     let totalElevationGain = 0;
     let totalElevationLoss = 0;
 
-    const MIN_ELEVATION_CHANGE = 3;
-    const MAX_REASONABLE_GAIN = 100;
+    // Noise filter: ignore tiny fluctuations from GPS/DEM inaccuracy
+    const MIN_ELEVATION_CHANGE = 2;
+    // Safety cap: ignore extreme jumps that indicate data errors (not real terrain)
+    // 500m is generous — even the steepest trail segments rarely jump >300m between points
+    const MAX_REASONABLE_GAIN = 300;
 
     for (let i = 1; i < trailCoordinates.length; i++) {
         const start = trailCoordinates[i - 1];
@@ -74,5 +77,16 @@ export default function computeTotalLength(trailCoordinates: ICoordinate[]) {
         distance,
         elevationGain: totalElevationGain,
         elevationLoss: totalElevationLoss
+    };
+}
+
+/**
+ * Converts a raw GeoJSON coordinate array [lon, lat, alt?] to ICoordinate.
+ */
+export function geoJSONToCoordinate(coord: number[]): ICoordinate {
+    return {
+        longitude: coord[0],
+        latitude: coord[1],
+        altitude: coord[2] ?? 0,
     };
 }
