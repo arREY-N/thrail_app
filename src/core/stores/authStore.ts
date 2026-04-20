@@ -7,10 +7,10 @@ import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
-  User as FirebaseUser,
-  onIdTokenChanged,
-  signOut,
-  Unsubscribe
+	User as FirebaseUser,
+	onIdTokenChanged,
+	signOut,
+	Unsubscribe
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { Platform } from "react-native";
@@ -18,286 +18,301 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 type CustomClaims = {
-  role: Role | null;
-  businessId?: string;
-  owner?: string;
+	role: Role | null;
+	businessId?: string;
+	  owner?: string;
 };
 
 export interface AuthState {
-  user: FirebaseUser | null;
-  profile: User | null;
-  isLoading: boolean;
-  role: Role | null;
-  error: string | null;
-  _unsubscribe: Unsubscribe | null;
-  businessId: string | null;
-  account: SignUp;
-  remember: boolean;
-  isChecking: boolean;
+	user: FirebaseUser | null;
+	profile: User | null;
+	isLoading: boolean;
+	role: Role | null;
+	error: string | null;
+	_unsubscribe: Unsubscribe | null;
+	businessId: string | null;
+	account: SignUp;
+	remember: boolean;
+	isChecking: boolean;
 
-  signOut: () => Promise<void>;
-  reset: () => void;
-  logIn: (email: string, password: string) => Promise<void>;
-  rememberMe: () => boolean;
-  forgotPassword: () => void;
-  validateSignUp: () => Promise<boolean>;
-  editAccount: (data: SignUp) => void;
-  gmailSignUp: () => void;
-  gmailLogIn: () => void;
-  signUp: () => Promise<void>;
-  validateInfo: () => boolean;
-  resetSignUp: () => void;
+	signOut: () => Promise<void>;
+	reset: () => void;
+	logIn: (email: string, password: string) => Promise<void>;
+	rememberMe: () => boolean;
+	forgotPassword: () => void;
+	validateSignUp: () => Promise<boolean>;
+	editAccount: (data: SignUp) => void;
+	gmailSignUp: () => void;
+	gmailLogIn: () => void;
+	signUp: () => Promise<void>;
+	validateInfo: () => boolean;
+	resetSignUp: () => void;
 }
 
 const init = {
-  user: null,
-  profile: null,
-  isLoading: true,
-  error: null,
-  _unsubscribe: null,
-  businessId: null,
-  account: new SignUp(),
-  remember: true,
-  isChecking: false,
-  role: null,
+	user: null,
+	profile: null,
+	isLoading: true,
+	error: null,
+	_unsubscribe: null,
+	businessId: null,
+	account: new SignUp(),
+	remember: true,
+	isChecking: false,
+	role: null,
 };
 
 export const useAuthStore = create<AuthState>()(
-  immer((set, get) => ({
-    ...init,
+	immer((set, get) => ({
+		...init,
 
-    resetSignUp: () => set({ account: new SignUp() }),
+		resetSignUp: () => set({ account: new SignUp() }),
 
-    reset: () =>
-      set({
-        ...init,
-        isLoading: false,
-      }),
+		reset: () => set({
+			...init,
+			isLoading: false,
+		}),
 
-    initialize: () => {
-      const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
-        set({ isLoading: true, error: null });
-        console.log("init");
-        const currentUnsub = get()._unsubscribe;
+		
+		initialize: () => {
+			try {
+				const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
+					set({ isLoading: true, error: null });
+					console.log("init");
+					const currentUnsub = get()._unsubscribe;
+	
+					if (currentUnsub) {
+						currentUnsub();
+						set({ _unsubscribe: null });
+					}
+	
+					if (firebaseUser) {
+						console.log("with user");
+	
+						const idTokenResult = await firebaseUser.getIdTokenResult(true);
+						const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
+	
+						if (!userRole) {
+							console.log("Failed fetching user role");
+							setTimeout(() => firebaseUser.getIdToken(true), 2000);
+							return;
+						}
+	
+						const businessId =
+							(idTokenResult.claims as CustomClaims).businessId ||
+							(idTokenResult.claims as CustomClaims).owner ||
+							null;
+	
+						set({
+							user: firebaseUser,
+							role: userRole,
+							businessId,
+						});
+	
+						const ref = doc(db, "users", firebaseUser.uid).withConverter(
+							userConverter,
+						);
+						
+						const unsubProfile = onSnapshot(
+							ref,
+							(snap) => {
+								if (snap.exists()) {
+									set({
+									profile: snap.data(),
+									isLoading: false,
+									});
+								} else {
+									console.log("User document does not exists");
+								}
+							},
+							(error) => {
+								if (!get().user) return;
+								console.log("Firestore listener error: ", error);
+							},
+						);
+	
+	
+					} else {
+						const currentUnsub = get()._unsubscribe;
+	
+						if (currentUnsub) {
+							currentUnsub();
+							set({ _unsubscribe: null });
+						}
+	
+						set({
+							...init,
+							isLoading: false,
+						});
+					}
+				});
+	
+				return unsubscribeAuth;
+			} catch (error) {
+				console.error("Error initializing auth:", error);
+				set({
+					error: (error as Error).message || "Error initializing authentication",
+					isLoading: false,
+				});
+			}
+		},
 
-        if (currentUnsub) {
-          currentUnsub();
-          set({ _unsubscribe: null });
-        }
+		logIn: async (email: string, password: string) => {
+			try {
+				set({ isChecking: true, error: null, isLoading: true });
+		
+				await AuthRepository.logIn({ email, password });
+		
+				set({ isChecking: false, error: null });
+			} catch (err) {
+				console.log(err);
+				set({
+					error: (err as Error).message ?? "Error logging in",
+					isLoading: false,
+				});
+			}
+		},
 
-        if (firebaseUser) {
-          console.log("with user");
-          const idTokenResult = await firebaseUser.getIdTokenResult(true);
-          const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
+		signOut: async () => {
+			try {
+				set({ isLoading: true, error: null });
+				const currentUnsub = get()._unsubscribe;
 
-          if (!userRole) {
-            console.log("Failed fetching user role");
-            set({
-              user: firebaseUser,
-            });
-            setTimeout(() => firebaseUser.getIdToken(true), 2000);
-            return;
-          }
+				if (currentUnsub) {
+					currentUnsub();
+					set({ _unsubscribe: null });
+				}
 
-          const businessId =
-            (idTokenResult.claims as CustomClaims).businessId ||
-            (idTokenResult.claims as CustomClaims).owner ||
-            null;
+				await signOut(auth);
 
-          set({
-            user: firebaseUser,
-            role: userRole,
-            businessId,
-          });
+				set({
+					isLoading: false,	
+				});
+			} catch (err) {
+				set({
+					error: (err as Error).message ?? "Failed signing out",
+					isLoading: false,
+				});
+			}
+		},
 
-          const ref = doc(db, "users", firebaseUser.uid).withConverter(
-            userConverter,
-          );
-          const unsubProfile = onSnapshot(
-            ref,
-            (snap) => {
-              if (snap.exists()) {
-                set({
-                  profile: snap.data(),
-                  isLoading: false,
-                });
-              } else {
-                console.log("User document does not exists");
-              }
-            },
-            (error) => {
-              if (!get().user) return;
-              console.log("Firestore listener error: ", error);
-            },
-          );
-        } else {
-          const currentUnsub = get()._unsubscribe;
+		signUp: async () => {
+			try {
+				set({ isLoading: true, error: null });
+				
+				await AuthRepository.signUp(get().account);
+			} catch (err) {
+				set({
+					error: (err as Error).message || "Failed signing up",
+					isLoading: false,
+				});
+			}
+		},
 
-          if (currentUnsub) {
-            currentUnsub();
-            set({ _unsubscribe: null });
-          }
+		validateSignUp: async () => {
+			set({ isChecking: true, error: null });
+			try {
+				validateSignUp(get().account);
 
-          set({
-            ...init,
-            isLoading: false,
-          });
-        }
-      });
+				console.log(get().account);
+				await AuthRepository.checkUserCredentials(get().account);
 
-      return unsubscribeAuth;
-    },
+				set({ isChecking: false, error: null });
 
-    logIn: async (email: string, password: string) => {
-      set({ isChecking: true, error: null });
-      try {
-        await AuthRepository.logIn({ email, password });
-        set({ isChecking: false, error: null });
-      } catch (err) {
-        console.log(err);
-        set({
-          error: (err as Error).message ?? "Error logging in",
-          isLoading: false,
-        });
-      }
-    },
+				return true;
+			} catch (err) {
+				set({
+					error: (err as Error).message || "Failed checking user credentials",
+					isChecking: false,
+				});
+				return false;
+			}
+		},
 
-    signOut: async () => {
-      set({ isLoading: true, error: null });
+		validateInfo: () => {
+			try {
+				set({ isLoading: true, error: null });
+				
+				validateInfo(get().account);
+				
+				set({ isLoading: false });
+				
+				return true;
+			} catch (err) {
+				set({
+					error: (err as Error).message || "Failed checking user information",
+					isLoading: false,
+				});
+				return false;
+			}
+		},
 
-      try {
-        const currentUnsub = get()._unsubscribe;
+		edit: (property: Property) => {
+			set((state) => {
+				if (!state.profile) {
+					return state;
+				}
 
-        if (currentUnsub) {
-          currentUnsub();
-          set({ _unsubscribe: null });
-        }
+				return {
+					profile: editProperty(state.profile, property),
+				};
+			});
+		},
 
-        await signOut(auth);
+		editAccount: (data: SignUp) => {
+			console.log({ ...data });
+			console.log({ ...get().account });
 
-        set({
-          isLoading: false,
-        });
-      } catch (err) {
-        set({
-          error: (err as Error).message ?? "Failed signing out",
-          isLoading: false,
-        });
-      }
-    },
+			const current = get().account || new SignUp();
+			const updated = current.update(data);
 
-    signUp: async () => {
-      set({ isLoading: true, error: null });
-      try {
-        const user = await AuthRepository.signUp(get().account);
+			console.log("merged: ", updated);
 
-        set({ isLoading: false });
-      } catch (err) {
-        set({
-          error: (err as Error).message || "Failed signing up",
-          isLoading: false,
-        });
-      }
-    },
+			set({ account: updated });
+		},
 
-    validateSignUp: async () => {
-      set({ isChecking: true, error: null });
-      try {
-        validateSignUp(get().account);
+		rememberMe: () => {
+			set((state) => {
+				return {
+				error: "Function to be added soon",
+				remember: !state.remember,
+				};
+			});
 
-        console.log(get().account);
-        await AuthRepository.checkUserCredentials(get().account);
+			return get().remember;
+		},
 
-        set({ isChecking: false, error: null });
+		gmailSignUp: async () => {
+			try {
+				if(Platform.OS === 'web') {
+					await AuthRepository.webSignUpWithGoogle();
+				} else {
+					await AuthRepository.signUpWithGoogle();
+				}
+			} catch (error) {
+				console.error("Google sign-in error:", error);
+			}
+		},
 
-        return true;
-      } catch (err) {
-        set({
-          error: (err as Error).message || "Failed checking user credentials",
-          isChecking: false,
-        });
-        return false;
-      }
-    },
+		gmailLogIn: async () => {
+			try {
+				if(Platform.OS === 'web') {
+					await AuthRepository.webSignUpWithGoogle();
+				} else {
+					await AuthRepository.signUpWithGoogle();
+				}
+			} catch (error) {
+				console.error("Google sign-in error:", error);
+				set({
+					error: (error as Error).message || "Failed signing in with Google",	
+				})
+			}
+		},
 
-    validateInfo: () => {
-      set({ isLoading: true, error: null });
-      try {
-        validateInfo(get().account);
-        set({ isLoading: false });
-        return true;
-      } catch (err) {
-        set({
-          error: (err as Error).message || "Failed checking user information",
-          isLoading: false,
-        });
-        return false;
-      }
-    },
-
-    edit: (property: Property) => {
-      set((state) => {
-        if (!state.profile) {
-          return state;
-        }
-
-        return {
-          profile: editProperty(state.profile, property),
-        };
-      });
-    },
-
-    editAccount: (data: SignUp) => {
-      console.log({ ...data });
-      console.log({ ...get().account });
-
-      const current = get().account || new SignUp();
-      const updated = current.update(data);
-
-      console.log("merged: ", updated);
-
-      set({ account: updated });
-    },
-
-    rememberMe: () => {
-      set((state) => {
-        return {
-          error: "Function to be added soon",
-          remember: !state.remember,
-        };
-      });
-
-      return get().remember;
-    },
-
-    gmailSignUp: async () => {
-      try {
-        if(Platform.OS === 'web') {
-          await AuthRepository.webSignUpWithGoogle();
-        } else {
-          await AuthRepository.signUpWithGoogle();
-        }
-      } catch (error) {
-        console.error("Google sign-in error:", error);
-      }
-    },
-
-    gmailLogIn: async () => {
-      try {
-        if(Platform.OS === 'web') {
-          await AuthRepository.webSignUpWithGoogle();
-        } else {
-          await AuthRepository.signUpWithGoogle();
-        }
-      } catch (error) {
-        console.error("Google sign-in error:", error);
-      }
-    },
-
-    forgotPassword: () => {
-      set({
-        error: "Function to be added soon",
-      });
-    },
-  })),
+		forgotPassword: () => {
+			set({
+				error: "Function to be added soon",
+			});
+		},
+	})),
 );
