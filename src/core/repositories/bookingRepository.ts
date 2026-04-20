@@ -1,5 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
-import { collection, collectionGroup, doc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 import { Booking, bookingConverter } from '../models/Booking/Booking';
 
 const createBookingCollection = (id: string) => {
@@ -89,6 +89,63 @@ class BookingRepostoryImpl {
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (error) {
             if(error instanceof Error) throw error
+            throw new Error('An error occurred');   
+        }
+    }
+
+    /**
+     * FOR BUSINESS USE
+     * Subscribes to a listener for real-time updates on bookings for a specific offer.
+     * @param offerId
+     * @param callback
+     * @return Unsubscribe function
+     */
+
+    async listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+        try {
+            if(!businessId) throw new Error('Business ID missing');
+            if(!offerId) throw new Error('Offer ID missing');
+            const q = query(
+                collectionGroup(db, 'bookings').withConverter(bookingConverter), 
+                where('business.id', '==', businessId),
+                where('offer.id', '==', offerId)
+            );
+
+            return onSnapshot(q, (snapshot) => {
+                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+            });
+
+        } catch (error) {
+            if(error instanceof Error) {
+                console.error('Error setting up listener for business bookings: ', error);
+                throw error
+            }
+            throw new Error('An error occurred');   
+        }
+    }
+
+    /**
+     * FOR USER USE
+     * Subscribes to a listener for real-time updates on bookings for a specific user.
+     * @param offerId
+     * @param callback
+     * @return Unsubscribe function
+     */
+    async listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+        try {
+            if(!userId) throw new Error('User ID missing');
+            
+            const q = collection(db, 'users', userId, 'bookings').withConverter(bookingConverter);
+
+            return onSnapshot(q, (snapshot) => {
+                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+            });
+
+        } catch (error) {
+            if(error instanceof Error) {
+                console.error('Error setting up listener for business bookings: ', error);
+                throw error
+            }
             throw new Error('An error occurred');   
         }
     }

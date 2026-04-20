@@ -27,45 +27,25 @@ export default function listBook(){
         isLoading
     } = useBook({userId: profile?.id});
 
-  if (isLoading) {
-    return (
-      <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-        <CustomLoading visible={true} message="Loading your bookings..." />
-      </ScreenWrapper>
-    );
-  }
+	if (isLoading) {
+		return (
+			<ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+				<CustomLoading visible={true} message="Loading your bookings..." />
+			</ScreenWrapper>
+		);
+	}
 
-    //Todo: remove this when the dummy data is not gonna use
     const displayBookings = [...DummyBookings, ...(bookings || [])]
     
-    return (
-        <>
-            {/* {
-                bookings.length > 0 && bookings.map(u => {
-                    return (
-                        <>
-                            <Pressable onPress={() => onCancelBookingPress(u, reason)} key={u.id}>
-                                <Text>{u.trail.name}</Text>
-                                <Text>Cancel</Text>
-                            </Pressable>
-                        </>
-                    )
-                })
-            } */}
-            {/* <CustomTextInput
-                label="Reason for cancellation"
-                value={reason}
-                onChangeText={setReason}
-            /> */}
-            <MyBookingsScreen 
-                userBookings={displayBookings}
-                isLoading={isLoading}
-                error={error}
-                onBackPress={onBackPress}
-                onCancelBookingPress={onCancelBookingPress}
-                getBookOffer={getBookOffer}
-            />
-        </>
+    return(
+		<MyBookingsScreen 
+			userBookings={displayBookings}
+			isLoading={isLoading}
+			error={error}
+			onBackPress={onBackPress}
+			onCancelBookingPress={onCancelBookingPress}
+			getBookOffer={getBookOffer}
+		/>
     );
 }
 
