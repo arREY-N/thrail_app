@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    Linking,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import {
     Bubble,
     Composer,
@@ -9,6 +15,7 @@ import {
     MessageText,
     Time
 } from 'react-native-gifted-chat';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -51,8 +58,12 @@ const GroupRoomScreen = ({
     onViewableItemsChanged,
     headerTitle,
     onBackPress,
-    onAttachPress 
+    onAttachPress,
+    onLocationPress
 }) => {
+    const insets = useSafeAreaInsets();
+
+    const chatBottomPadding = insets.bottom + 8;
     
     const giftedChatMessages = useMemo(() => {
         if (!messages) return [];
@@ -140,7 +151,6 @@ const GroupRoomScreen = ({
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
 
-        // Don't show the current user's name in their own "Seen by"
         const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
         const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
         const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
@@ -244,7 +254,11 @@ const GroupRoomScreen = ({
     );
 
     const renderInputToolbar = (props) => (
-        <InputToolbar {...props} containerStyle={styles.inputToolbar} primaryStyle={styles.inputToolbarPrimary} />
+        <InputToolbar 
+            {...props} 
+            containerStyle={[styles.inputToolbar, { paddingBottom: chatBottomPadding }]} 
+            primaryStyle={styles.inputToolbarPrimary} 
+        />
     );
 
     const renderActions = () => (
@@ -277,13 +291,27 @@ const GroupRoomScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title={headerTitle} centerTitle={true} onBackPress={onBackPress} />
+            <CustomHeader 
+                title={headerTitle}
+                centerTitle={true}
+                onBackPress={onBackPress} 
+                rightActions={
+                    <TouchableOpacity
+                        style={styles.headerActionIcon}
+                        onPress={onLocationPress}
+                        activeOpacity={0.7}
+                    >
+                        <CustomIcon
+                            library="FontAwesome6"
+                            name="map-location-dot"
+                            size={24}
+                            color={Colors.PRIMARY}
+                        />
+                    </TouchableOpacity>
+                }
+            />
             
-            <KeyboardAvoidingView 
-                style={styles.container}
-                behavior="padding" 
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 40}
-            >
+            <View style={styles.container}>
                 <GiftedChat
                     messages={giftedChatMessages}
                     onSend={messages => onSend(messages)}
@@ -304,13 +332,13 @@ const GroupRoomScreen = ({
                     renderUsernameOnMessage={false} 
                     showAvatarForEveryMessage={false}
                     
-                    bottomOffset={0} 
+                    bottomOffset={chatBottomPadding} 
                     placeholder="Type a message..."
                     alwaysShowSend={true}
                     
                     listViewProps={listViewProps}
                 />
-            </KeyboardAvoidingView>
+            </View>
         </ScreenWrapper>
     );
 };
@@ -319,6 +347,10 @@ const styles = StyleSheet.create({
     container: { 
         flex: 1, 
         backgroundColor: Colors.BACKGROUND 
+    },
+
+    headerActionIcon: {
+        padding: 4,
     },
     
     bubbleWrapper: { 
@@ -497,7 +529,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND, 
         borderTopWidth: 0, 
         paddingHorizontal: 12, 
-        paddingVertical: 8 
+        paddingVertical: 8,
     },
     inputToolbarPrimary: { 
         alignItems: 'flex-end' 

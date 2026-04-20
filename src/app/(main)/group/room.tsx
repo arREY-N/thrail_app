@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupRoom from "@/src/core/hook/group/useGroupRoom";
@@ -54,9 +54,9 @@ export default function groupRoom() {
     return(
         <>
             <Stack.Screen options={{  headerShown: false }} />
-            <Pressable onPress={() => onViewGroupLocation(currentGroup.id)}>
+            {/* <Pressable onPress={() => onViewGroupLocation(currentGroup.id)}>
                 <Text>View Location for group: {headerTitle} </Text>
-            </Pressable>
+            </Pressable> */}
             <GroupRoomScreen
                 roomId={roomId}
                 messages={messages}
@@ -67,6 +67,7 @@ export default function groupRoom() {
                 headerTitle={headerTitle}   
                 onBackPress={onBackPress}         
                 onAttachPress={handleAttachPress}
+                onLocationPress={() => onViewGroupLocation(currentGroup.id)}
             />
         </>
     )
