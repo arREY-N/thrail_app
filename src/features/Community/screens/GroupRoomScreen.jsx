@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
     Bubble,
     Composer,
@@ -18,7 +18,6 @@ import { Colors } from '@/src/constants/colors';
 
 const CustomComposer = (props) => {
     const [isFocused, setIsFocused] = useState(false);
-
     const currentHeight = !props.text ? 44 : props.composerHeight;
 
     return (
@@ -76,28 +75,55 @@ const GroupRoomScreen = ({
     }, [sendMessage]);
 
     const messagesRef = useRef(messages);
-    
     useEffect(() => {
         messagesRef.current = messages;
     }, [messages]);
 
-    const viewabilityConfig = useRef({
-        itemVisiblePercentThreshold: 50,
-        minimumViewTime: 100 
-    }).current;
+    const onViewableItemsChangedRef = useRef(onViewableItemsChanged);
+    onViewableItemsChangedRef.current = onViewableItemsChanged;
 
-    const handleViewableItemsChanged = useCallback((info) => {
-        if (!onViewableItemsChanged) return;
+    const handleViewableItemsChanged = useRef((info) => {
+        if (!onViewableItemsChangedRef.current) return;
 
         const mappedChanged = info.changed.map(token => {
             const originalMsg = messagesRef.current.find(m => m.id === token.item._id);
             return { ...token, item: originalMsg };
-        }).filter(token => token.item);
+        }).filter(token => token.item !== undefined); 
 
         if (mappedChanged.length > 0) {
-            onViewableItemsChanged({ viewableItems: [], changed: mappedChanged });
+            onViewableItemsChangedRef.current({ viewableItems: [], changed: mappedChanged });
         }
-    }, [onViewableItemsChanged]);
+    }).current;
+
+    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50, minimumViewTime: 100 }).current;
+    const listViewProps = useMemo(() => ({
+        showsVerticalScrollIndicator: false,
+        onViewableItemsChanged: handleViewableItemsChanged,
+        viewabilityConfig: viewabilityConfig
+    }), [handleViewableItemsChanged, viewabilityConfig]);
+
+    useEffect(() => {
+        if (Platform.OS === 'web' && messages && currentUser && onViewableItemsChanged) {
+            const unreadMessages = messages.filter(m => 
+                m.senderId !== currentUser.id && 
+                !(m.readBy || []).some(u => u.id === currentUser.id)
+            );
+
+            if (unreadMessages.length > 0) {
+                const simulatedChanged = unreadMessages.map(msg => ({
+                    isViewable: true,
+                    item: msg,
+                    key: msg.id,
+                    index: 0
+                }));
+                
+                onViewableItemsChanged({
+                    viewableItems: simulatedChanged,
+                    changed: simulatedChanged
+                });
+            }
+        }
+    }, [messages, currentUser, onViewableItemsChanged]);
 
     const renderBubble = (props) => {
         const isLeft = props.position === 'left';
@@ -114,6 +140,7 @@ const GroupRoomScreen = ({
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
 
+        // Don't show the current user's name in their own "Seen by"
         const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
         const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
         const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
@@ -251,7 +278,12 @@ const GroupRoomScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader title={headerTitle} centerTitle={true} onBackPress={onBackPress} />
-            <View style={styles.container}>
+            
+            <KeyboardAvoidingView 
+                style={styles.container}
+                behavior="padding" 
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 40}
+            >
                 <GiftedChat
                     messages={giftedChatMessages}
                     onSend={messages => onSend(messages)}
@@ -276,13 +308,9 @@ const GroupRoomScreen = ({
                     placeholder="Type a message..."
                     alwaysShowSend={true}
                     
-                    listViewProps={{
-                        showsVerticalScrollIndicator: false,
-                        onViewableItemsChanged: handleViewableItemsChanged,
-                        viewabilityConfig: viewabilityConfig
-                    }}
+                    listViewProps={listViewProps}
                 />
-            </View>
+            </KeyboardAvoidingView>
         </ScreenWrapper>
     );
 };

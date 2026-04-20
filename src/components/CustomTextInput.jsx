@@ -80,6 +80,7 @@ const CustomTextInput = ({
     allowFutureDates,
     defaultMode,
     multiline,
+    maximumDate,
     ...props
 }) => {
 
@@ -151,6 +152,7 @@ const CustomTextInput = ({
                     showTodayButton={showTodayButton}
                     allowFutureDates={allowFutureDates}
                     defaultMode={defaultMode}
+                    maximumDate={maximumDate}
                 />
             ) : (
                 <>

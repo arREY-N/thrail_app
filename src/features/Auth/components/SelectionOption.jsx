@@ -32,7 +32,7 @@ const SelectionOption = ({
                 {children ? (
                     children
                 ) : (
-                    <CustomText variant="body" style={styles.label}>
+                    <CustomText variant="body" style={[styles.label, selected && styles.selectedLabel]}>
                         {label}
                     </CustomText>
                 )}
@@ -46,7 +46,7 @@ const SelectionOption = ({
                     <CustomIcon
                         library="Feather"
                         name="check"
-                        size={18}
+                        size={16}
                         color={Colors.WHITE}
                     />
                 )}
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: Colors.WHITE, 
+        backgroundColor: Colors.BACKGROUND,
         paddingVertical: 16,
         paddingHorizontal: 16,
         borderRadius: 16,
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
 
     selectedContainer: {
         borderColor: Colors.PRIMARY, 
-        backgroundColor: Colors.BACKGROUND,
+        backgroundColor: Colors.WHITE,
     },
 
     contentContainer: {
@@ -84,6 +84,10 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 10,
     },
+    selectedLabel: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
     iconContainer: {
         width: 24,
         height: 24,
@@ -93,6 +97,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: Colors.WHITE,
+        paddingTop: 1,
     },
     selectedIcon: {
         backgroundColor: Colors.PRIMARY, 

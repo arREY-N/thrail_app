@@ -133,7 +133,7 @@ const OfferListScreen = ({
                                 </CustomText>
 
                                 <CustomButton 
-                                    title="View Bookings"
+                                    title="Manage Bookings"
                                     onPress={() => onViewOfferBookings(offer.id)}
                                     variant="primary"
                                     style={styles.viewBookingsButton}

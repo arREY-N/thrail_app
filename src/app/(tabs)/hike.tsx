@@ -3,8 +3,12 @@ import { Hike } from '@/src/core/models/Hike/Hike';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useIsFocused } from '@react-navigation/native';
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
+import { useIsFocused } from '@react-navigation/native';
+
+import CustomHeader from '@/src/components/CustomHeader';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { Colors } from '@/src/constants/colors';
 
 export default function hike(){
     const isFocused = useIsFocused();
@@ -16,15 +20,29 @@ export default function hike(){
     } = useHike({});
 
     return (
-        <View style={{ flex: 1 }}>
-            { isFocused && <NavigationScreen/> }
-            <TestListHike 
-                hikes={hikes} 
-                viewHike={viewHike}
-                isLoading={isLoading}
-                error={error}
-            />  
-        </View>
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={{}}>
+            
+            <CustomHeader 
+                title="Hike"
+                showDefaultIcons={true} 
+                onBackPress={undefined}
+                rightActions={null}
+                style={{}}
+            >
+                {null} 
+            </CustomHeader>
+
+            <View style={{ flex: 1 }}>
+                { isFocused && <NavigationScreen/> }
+                <TestListHike 
+                    hikes={hikes} 
+                    viewHike={viewHike}
+                    isLoading={isLoading}
+                    error={error}
+                />  
+            </View>
+
+        </ScreenWrapper>
     )
 }
 

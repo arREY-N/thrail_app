@@ -179,7 +179,7 @@ const StatItem = ({ label, value, icon, lib, iconColor = Colors.BLACK }) => (
 const styles = StyleSheet.create({
     card: {
         backgroundColor: Colors.WHITE,
-        marginBottom: 20, 
+        marginBottom: 0, 
         borderRadius: 24, 
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
