@@ -1,14 +1,12 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Hike } from "@/src/core/models/Hike/Hike";
-import { Location } from "@/src/core/models/Location/Location";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
 
 export interface IUseWriteHike {
     hike: Hike | null;
@@ -188,7 +186,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         updateHikeStore({
             active: false,
             elapsedTime: 0,
-            timerStartTime: null,
+            timerStartTime: undefined,
         })
 
         updateCurrentHike({ 
@@ -219,42 +217,42 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
         updateHikeStore({
             elapsedTime: 0,
-            timerStartTime: null,
+            timerStartTime: undefined,
             active: false,
         })
     }
 
-    if(Platform.OS === 'web') {
-        const tick = () => {
-            if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
-                return;
-            } 
-            useHikesStore.getState().addCoordinate(new Location({
-                latitude: Math.random() * 180 - 90,
-                longitude: Math.random() * 360 - 180,
-                altitude: Math.random() * 2000,
-                timestamp: new Date(),
-            }));
+    // if(Platform.OS === 'android') {
+    //     const tick = () => {
+    //         if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
+    //             return;
+    //         } 
+    //         useHikesStore.getState().addCoordinate(new Location({
+    //             latitude: Math.random() * 180 - 90,
+    //             longitude: Math.random() * 360 - 180,
+    //             altitude: Math.random() * 2000,
+    //             timestamp: new Date(),
+    //         }));
             
-            const now = Date.now();
+    //         const now = Date.now();
     
-            updateHikeStore({ elapsedTime: now - timerStartTime });
-        }
+    //         updateHikeStore({ elapsedTime: now - timerStartTime });
+    //     }
     
-        useEffect(() => {
-            let interval: ReturnType<typeof setInterval> | undefined;
+    //     useEffect(() => {
+    //         let interval: ReturnType<typeof setInterval> | undefined;
     
-            if(currentHike?.status === 'started') {
-                interval = setInterval(() => {
-                    tick();
-                }, 1000);
-            }
+    //         if(currentHike?.status === 'started') {
+    //             interval = setInterval(() => {
+    //                 tick();
+    //             }, 1000);
+    //         }
     
-            return () => {
-                if(interval) clearInterval(interval);
-            }
-        },[currentHike?.status])
-    }
+    //         return () => {
+    //             if(interval) clearInterval(interval);
+    //         }
+    //     },[currentHike?.status])
+    // }
 
 
     const onEmergencyPress = () => {
