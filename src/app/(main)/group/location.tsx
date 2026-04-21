@@ -1,5 +1,6 @@
 import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupLocation from "@/src/core/hook/group/useGroupLocation";
+import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
@@ -20,6 +21,10 @@ export default function GroupLocationScreen() {
     } = useGroup(groupId);
 
     const {
+        permissionGranted
+    } = useHikerGPS();
+
+    const {
         onStartSharingLocation,
         onStopSharingLocation,
         onStartHike,
@@ -33,6 +38,7 @@ export default function GroupLocationScreen() {
         currentHike,
         location,
     } = useGroupLocation(groupId);
+    
 
     return (
         <>

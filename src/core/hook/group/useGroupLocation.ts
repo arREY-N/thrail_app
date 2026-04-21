@@ -2,12 +2,11 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
-import { Location } from "@/src/core/models/Location/Location";
 import { Message } from "@/src/core/models/Message/Message";
 import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Platform } from "react-native";
 
 export default function useGroupLocation(groupId: string) {
@@ -35,42 +34,10 @@ export default function useGroupLocation(groupId: string) {
     const elapsedTime = useHikesStore(s => s.elapsedTime);
 
     const uploadDocument = useFilesStore(s => s.uploadDocument);
+    const capturePhoto = useFilesStore(s => s.capturePhoto);    
 
     const create = useHikesStore(s => s.create);
     
-    if(Platform.OS === 'web') {
-        const tick = () => {
-            if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
-                return;
-            } 
-            useHikesStore.getState().addCoordinate(new Location({
-                latitude: new Date().getHours(),
-                longitude: new Date().getMinutes(),
-                altitude: new Date().getSeconds(),
-                timestamp: new Date(),
-            }));
-            
-            const now = Date.now();
-    
-            updateHikeStore({ elapsedTime: now - timerStartTime });
-        }
-    
-        useEffect(() => {
-            let interval: ReturnType<typeof setInterval> | undefined;
-    
-            if(currentHike?.status === 'started') {
-                interval = setInterval(() => {
-                    tick();
-                }, 1000);
-            }
-    
-            return () => {
-                if(interval) clearInterval(interval);
-            }
-        },[currentHike?.status])
-    
-    }
-
     const onStartSharingLocation = async () => {
         try {
             await shareLocation(groupId);
@@ -91,18 +58,24 @@ export default function useGroupLocation(groupId: string) {
 
     const onSendPicture = async () => {
         try {
-            const documentUrl = await uploadDocument();
+            let documentUrl: string | null = null;
+
+            if(Platform.OS === 'web') {
+                documentUrl = await uploadDocument();
+            } else if (Platform.OS === 'android' || Platform.OS === 'ios') {
+                documentUrl = await capturePhoto();
+            }
 
             if(!documentUrl)
-                throw new Error(`Failed to upload picture`);
-
+                throw new Error(`Failed to capture or upload photo`);
+            
             const newMessage = new Message({
-                content: `Mamatay na ata me whahah ${documentUrl}`,
+                content: `${documentUrl}`,
                 senderId: profile!.id,
                 senderName: profile!.firstname,
                 timesent: new Date(),
             })
-
+            
             MessageRepository.sendMessage(groupId, newMessage);
         } catch (error) {
             console.log(error);
@@ -193,7 +166,7 @@ export default function useGroupLocation(groupId: string) {
         updateHikeStore({
             active: false,
             elapsedTime: 0,
-            timerStartTime: null,
+            timerStartTime: undefined,
         })
 
         updateCurrentHike({ 

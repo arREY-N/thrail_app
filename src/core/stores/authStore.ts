@@ -118,8 +118,8 @@ export const useAuthStore = create<AuthState>()(
 							(snap) => {
 								if (snap.exists()) {
 									set({
-									profile: snap.data(),
-									isLoading: false,
+										profile: snap.data(),
+										isLoading: false,
 									});
 								} else {
 									console.log("User document does not exists");
@@ -130,14 +130,19 @@ export const useAuthStore = create<AuthState>()(
 								console.log("Firestore listener error: ", error);
 							},
 						);
-	
-	
+						set({ _unsubscribe: unsubProfile });
 					} else {
 						const currentUnsub = get()._unsubscribe;
 	
 						if (currentUnsub) {
 							currentUnsub();
-							set({ _unsubscribe: null });
+							set({ 
+								_unsubscribe: null,
+								profile: null,
+								role: null,
+								businessId: null,
+								user: null,
+							});
 						}
 	
 						set({
@@ -176,18 +181,8 @@ export const useAuthStore = create<AuthState>()(
 		signOut: async () => {
 			try {
 				set({ isLoading: true, error: null });
-				const currentUnsub = get()._unsubscribe;
-
-				if (currentUnsub) {
-					currentUnsub();
-					set({ _unsubscribe: null });
-				}
 
 				await signOut(auth);
-
-				set({
-					isLoading: false,	
-				});
 			} catch (err) {
 				set({
 					error: (err as Error).message ?? "Failed signing out",
