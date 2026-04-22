@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Image,
+    Keyboard,
     Linking,
     Platform,
     StyleSheet,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from 'react-native';
 import {
@@ -12,7 +15,6 @@ import {
     Day,
     GiftedChat,
     InputToolbar,
-    MessageText,
     Time
 } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
@@ -49,7 +52,12 @@ const CustomComposer = (props) => {
     );
 };
 
-const GroupRoomScreen = ({ 
+const isImageUrl = (url) => {
+    if (!url) return false;
+    return url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media');
+};
+
+const RoomScreen = ({ 
     roomId,
     messages, 
     currentGroup,
@@ -62,21 +70,53 @@ const GroupRoomScreen = ({
     onLocationPress
 }) => {
     const insets = useSafeAreaInsets();
+    const { width: screenWidth } = useWindowDimensions();
+    const [previewImage, setPreviewImage] = useState(null);
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
-    const chatBottomPadding = insets.bottom + 8;
-    
+    useEffect(() => {
+        const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
+
     const giftedChatMessages = useMemo(() => {
         if (!messages) return [];
-        return messages.map(m => ({
-            _id: m.id,
-            text: m.content,
-            createdAt: m.timesent,
-            user: {
-                _id: m.senderId,
-                name: m.senderName,
-            },
-            readBy: m.readBy || [] 
-        })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return messages.map(m => {
+            let text = m.content;
+            let image = undefined;
+            let isDocument = false;
+            let fileUrl = undefined;
+
+            if (text && text.startsWith('[Attachment]:')) {
+                const url = text.replace('[Attachment]:', '').trim();
+                if (isImageUrl(url)) {
+                    image = url;
+                    text = '';
+                } else {
+                    isDocument = true;
+                    fileUrl = url;
+                    text = '';
+                }
+            }
+
+            return {
+                _id: m.id,
+                text: text,
+                createdAt: m.timesent,
+                user: {
+                    _id: m.senderId,
+                    name: m.senderName,
+                },
+                readBy: m.readBy || [],
+                image: image,
+                isDocument: isDocument,
+                fileUrl: fileUrl
+            };
+        }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [messages]);
 
     const onSend = useCallback((newMessages = []) => {
@@ -106,7 +146,11 @@ const GroupRoomScreen = ({
         }
     }).current;
 
-    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50, minimumViewTime: 100 }).current;
+    const viewabilityConfig = useRef({ 
+        itemVisiblePercentThreshold: 10, 
+        minimumViewTime: 10 
+    }).current;
+    
     const listViewProps = useMemo(() => ({
         showsVerticalScrollIndicator: false,
         onViewableItemsChanged: handleViewableItemsChanged,
@@ -114,7 +158,7 @@ const GroupRoomScreen = ({
     }), [handleViewableItemsChanged, viewabilityConfig]);
 
     useEffect(() => {
-        if (Platform.OS === 'web' && messages && currentUser && onViewableItemsChanged) {
+        if (messages && currentUser && onViewableItemsChanged) {
             const unreadMessages = messages.filter(m => 
                 m.senderId !== currentUser.id && 
                 !(m.readBy || []).some(u => u.id === currentUser.id)
@@ -165,11 +209,15 @@ const GroupRoomScreen = ({
                         
                         {isAdmin ? (
                             <View style={styles.adminBadge}>
-                                <CustomText variant="caption" style={styles.adminBadgeText}>Admin</CustomText>
+                                <CustomText variant="caption" style={styles.adminBadgeText}>
+                                    Admin
+                                </CustomText>
                             </View>
                         ) : (
                             <View style={styles.hikerBadge}>
-                                <CustomText variant="caption" style={styles.hikerBadgeText}>Hiker</CustomText>
+                                <CustomText variant="caption" style={styles.hikerBadgeText}>
+                                    Hiker
+                                </CustomText>
                             </View>
                         )}
                     </View>
@@ -203,26 +251,52 @@ const GroupRoomScreen = ({
         );
     };
 
-    const renderMessageText = (props) => {
+    const renderMessageImage = (props) => {
+        const dynamicImageWidth = Math.min(screenWidth * 0.65, 260);
+        const dynamicImageHeight = dynamicImageWidth * 0.75;
+
+        return (
+            <View style={styles.imageWrapperContainer}>
+                <TouchableOpacity 
+                    activeOpacity={0.8} 
+                    onPress={() => setPreviewImage(props.currentMessage.image)}
+                    style={styles.imageTouchable}
+                >
+                    <Image 
+                        source={{ uri: props.currentMessage.image }} 
+                        style={{
+                            width: dynamicImageWidth,
+                            height: dynamicImageHeight,
+                            borderRadius: 13,
+                        }} 
+                        resizeMode="cover" 
+                    />
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    const renderCustomView = (props) => {
         const { currentMessage, position } = props;
         
-        if (currentMessage.text && currentMessage.text.startsWith('[Attachment]:')) {
-            const url = currentMessage.text.replace('[Attachment]:', '').trim();
+        if (currentMessage.isDocument && currentMessage.fileUrl) {
             const isRight = position === 'right';
-            
             return (
                 <TouchableOpacity 
                     style={styles.attachmentContainer}
                     onPress={() => {
                         if (Platform.OS === 'web') {
-                            window.open(url, '_blank');
+                            window.open(currentMessage.fileUrl, '_blank');
                         } else {
-                            Linking.openURL(url);
+                            Linking.openURL(currentMessage.fileUrl);
                         }
                     }}
                     activeOpacity={0.8}
                 >
-                    <View style={[styles.attachmentIconBox, isRight ? styles.attachmentIconBoxRight : styles.attachmentIconBoxLeft]}>
+                    <View style={[
+                        styles.attachmentIconBox, 
+                        isRight ? styles.attachmentIconBoxRight : styles.attachmentIconBoxLeft
+                    ]}>
                         <CustomIcon 
                             library="Feather" 
                             name="paperclip" 
@@ -231,39 +305,66 @@ const GroupRoomScreen = ({
                         />
                     </View>
                     <View style={styles.attachmentTextGroup}>
-                        <CustomText style={[styles.attachmentTitle, isRight ? styles.attachmentTitleRight : styles.attachmentTitleLeft]}>
+                        <CustomText style={[
+                            styles.attachmentTitle, 
+                            isRight ? styles.attachmentTitleRight : styles.attachmentTitleLeft
+                        ]}>
                             File Attachment
                         </CustomText>
-                        <CustomText style={[styles.attachmentSubtitle, isRight ? styles.attachmentSubtitleRight : styles.attachmentSubtitleLeft]} numberOfLines={1}>
+                        <CustomText 
+                            style={[
+                                styles.attachmentSubtitle, 
+                                isRight ? styles.attachmentSubtitleRight : styles.attachmentSubtitleLeft
+                            ]} 
+                            numberOfLines={1}
+                        >
                             Click to view document
                         </CustomText>
                     </View>
                 </TouchableOpacity>
             );
         }
-
-        return <MessageText {...props} />;
+        return null;
     };
 
     const renderDay = (props) => (
-        <Day {...props} wrapperStyle={styles.dayWrapper} textStyle={styles.dayText} />
-    );
-
-    const renderTime = (props) => (
-        <Time {...props} timeTextStyle={{ right: styles.timeTextRight, left: styles.timeTextLeft }} />
-    );
-
-    const renderInputToolbar = (props) => (
-        <InputToolbar 
+        <Day 
             {...props} 
-            containerStyle={[styles.inputToolbar, { paddingBottom: chatBottomPadding }]} 
-            primaryStyle={styles.inputToolbarPrimary} 
+            wrapperStyle={styles.dayWrapper} 
+            textStyle={styles.dayText} 
         />
     );
 
+    const renderTime = (props) => (
+        <Time 
+            {...props} 
+            timeTextStyle={{ 
+                right: styles.timeTextRight, 
+                left: styles.timeTextLeft 
+            }} 
+        />
+    );
+
+    const renderInputToolbar = (props) => {
+        const androidPadding = isKeyboardVisible ? 8 : (insets.bottom + 8);
+        const paddingBottom = Platform.OS === 'android' ? androidPadding : 8;
+
+        return (
+            <InputToolbar 
+                {...props} 
+                containerStyle={[styles.inputToolbar, { paddingBottom }]} 
+                primaryStyle={styles.inputToolbarPrimary} 
+            />
+        );
+    };
+
     const renderActions = () => (
         <View style={styles.actionButtonContainer}>
-            <TouchableOpacity onPress={onAttachPress} style={styles.actionButton} activeOpacity={0.7}>
+            <TouchableOpacity 
+                onPress={onAttachPress} 
+                style={styles.actionButton} 
+                activeOpacity={0.7}
+            >
                 <CustomIcon library="Feather" name="plus" size={24} color={Colors.PRIMARY} />
             </TouchableOpacity>
         </View>
@@ -282,8 +383,17 @@ const GroupRoomScreen = ({
                 }}
                 activeOpacity={0.7}
             >
-                <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
-                    <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
+                <View style={[
+                    styles.sendButton, 
+                    hasText ? styles.sendButtonActive : styles.sendButtonInactive
+                ]}>
+                    <CustomIcon 
+                        library="Ionicons" 
+                        name="send" 
+                        size={16} 
+                        color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} 
+                        style={styles.sendIcon} 
+                    />
                 </View>
             </TouchableOpacity>
         );
@@ -320,7 +430,8 @@ const GroupRoomScreen = ({
                         name: currentUser?.username || 'User',
                     }}
                     renderBubble={renderBubble}
-                    renderMessageText={renderMessageText} 
+                    renderMessageImage={renderMessageImage}
+                    renderCustomView={renderCustomView} 
                     renderInputToolbar={renderInputToolbar}
                     renderActions={renderActions}
                     renderComposer={renderComposer}
@@ -332,13 +443,23 @@ const GroupRoomScreen = ({
                     renderUsernameOnMessage={false} 
                     showAvatarForEveryMessage={false}
                     
-                    bottomOffset={chatBottomPadding} 
+                    bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
                     placeholder="Type a message..."
                     alwaysShowSend={true}
-                    
                     listViewProps={listViewProps}
                 />
             </View>
+
+            {/* The Magic Spacer for Android */}
+            {Platform.OS === 'android' && !isKeyboardVisible && (
+                <View style={{ height: insets.bottom, backgroundColor: Colors.BACKGROUND }} />
+            )}
+
+            <ImagePreviewModal 
+                visible={previewImage !== null}
+                imageUrl={previewImage}
+                onClose={() => setPreviewImage(null)}
+            />
         </ScreenWrapper>
     );
 };
@@ -348,11 +469,10 @@ const styles = StyleSheet.create({
         flex: 1, 
         backgroundColor: Colors.BACKGROUND 
     },
-
-    headerActionIcon: {
-        padding: 4,
+    headerActionIcon: { 
+        padding: 4 
     },
-    
+
     bubbleWrapper: { 
         marginBottom: 4, 
         flexShrink: 1, 
@@ -370,7 +490,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontWeight: 'bold' 
     },
-    
+
     adminBadge: { 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         paddingHorizontal: 6, 
@@ -385,7 +505,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', 
         textTransform: 'uppercase' 
     },
-    
+
     hikerBadge: { 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         paddingHorizontal: 6, 
@@ -426,7 +546,17 @@ const styles = StyleSheet.create({
         elevation: 1, 
         flexShrink: 1 
     },
-    
+
+    imageWrapperContainer: {
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    imageTouchable: {
+        overflow: 'hidden',
+        borderRadius: 13,
+        margin: 3
+    },
     textRight: { 
         color: Colors.WHITE, 
         fontSize: 15, 
@@ -437,14 +567,15 @@ const styles = StyleSheet.create({
         fontSize: 15, 
         lineHeight: 22 
     },
-    
+
     attachmentContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         padding: 12, 
         gap: 12, 
         minWidth: 200, 
-        maxWidth: 250 
+        maxWidth: 250, 
+        overflow: 'hidden' 
     },
     attachmentIconBox: { 
         width: 40, 
@@ -529,12 +660,12 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND, 
         borderTopWidth: 0, 
         paddingHorizontal: 12, 
-        paddingVertical: 8,
+        paddingTop: 8, 
     },
     inputToolbarPrimary: { 
         alignItems: 'flex-end' 
     },
-    
+
     actionButtonContainer: { 
         height: 44, 
         justifyContent: 'center', 
@@ -599,4 +730,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default GroupRoomScreen;
+export default RoomScreen;

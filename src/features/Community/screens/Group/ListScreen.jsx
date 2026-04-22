@@ -26,7 +26,7 @@ const getInitials = (name) => {
     return name.substring(0, 2).toUpperCase();
 };
 
-const GroupListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
+const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
     
     const sortedGroups = useMemo(() => {
         if (!groups) return [];
@@ -225,4 +225,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default GroupListScreen;
+export default ListScreen;

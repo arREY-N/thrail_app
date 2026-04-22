@@ -41,7 +41,7 @@ const PostCard = ({
     };
 
     const reviewText = review.review || "No review text provided for this hike.";
-    const maxLength = 95; 
+    const maxLength = 90; 
     const isLong = reviewText.length > maxLength;
     const displayText = isExpanded ? reviewText : (isLong ? `${reviewText.substring(0, maxLength).trim()}` : reviewText);
 
@@ -166,13 +166,17 @@ const PostCard = ({
     );
 };
 
-const StatItem = ({ label, value, icon, lib, iconColor = Colors.BLACK }) => (
+const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY }) => (
     <View style={styles.statBox}>
         <View style={styles.statTopRow}>
-            <CustomIcon library={lib} name={icon} size={15} color={iconColor} />
-            <CustomText style={styles.statValue}>{value}</CustomText>
+            <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
+            <CustomText variant="caption" style={styles.statValue}>
+                {value}
+            </CustomText>
         </View>
-        <CustomText variant="caption" style={styles.statLabel}>{label}</CustomText>
+            <CustomText variant="caption" style={styles.statLabel}>
+                {label}
+            </CustomText>
     </View>
 );
 
@@ -228,7 +232,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     userName: {
-        marginBottom: 2,
+        marginBottom: -2,
         fontSize: 16,
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
@@ -291,17 +295,17 @@ const styles = StyleSheet.create({
     statBox: {
         alignItems: 'center',
         flex: 1,
-        gap: 4,
+        gap: 2,
     },
     statTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 4,
     },
     statValue: {
         fontWeight: '900',
-        fontSize: 15,
         color: Colors.TEXT_PRIMARY,
+        fontSize: 14,
     },
     statLabel: {
         fontSize: 10,
@@ -324,14 +328,15 @@ const styles = StyleSheet.create({
 
     textBody: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+        paddingBottom: 16,
     },
     reviewContent: {
-        fontSize: 14,
+        fontSize: 12,
         lineHeight: 22,
         color: Colors.TEXT_SECONDARY,
     },
     showMoreAction: {
+        fontSize: 12,
         fontWeight: 'bold',
         textDecorationLine: 'underline',
         color: Colors.PRIMARY, 
