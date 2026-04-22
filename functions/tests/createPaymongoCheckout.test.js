@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+const admin = require('firebase-admin');
 
 // 1. Mock all Firebase Admin and Functions modules to prevent backend errors in Jest
 jest.mock('firebase-admin', () => ({
@@ -10,9 +10,6 @@ jest.mock('firebase-admin', () => ({
   auth: jest.fn()
 }), { virtual: true });
 
-jest.mock('firebase-functions', () => ({
-    setGlobalOptions: jest.fn()
-}), { virtual: true });
 
 jest.mock('firebase-functions/v1', () => ({
     firestore: { document: jest.fn(() => ({ onCreate: jest.fn(), onUpdate: jest.fn() })) },
@@ -20,21 +17,35 @@ jest.mock('firebase-functions/v1', () => ({
     https: { onRequest: jest.fn() }
 }), { virtual: true });
 
+jest.mock('firebase-functions/v2', () => {
+    return {
+        setGlobalOptions: jest.fn(),
+        https: {
+            onCall: jest.fn((opts, handler) => {
+                return typeof opts === 'function' ? opts : handler;
+            }),
+            onRequest: jest.fn((handler) => handler)
+        }
+    };
+}, { virtual: true });
+
 jest.mock('firebase-functions/https', () => ({
-    onCall: jest.fn((opts, handler) => {
-        return typeof opts === 'function' ? opts : handler;
-    }),
     HttpsError: class HttpsError extends Error {
-        constructor(code: string, message: string) {
+        constructor(code, message) {
             super(message);
-            // @ts-ignore
             this.code = code;
         }
     }
 }), { virtual: true });
 
 jest.mock('firebase-functions/v2/https', () => ({
-    onRequest: jest.fn((handler) => handler)
+    onRequest: jest.fn((handler) => handler),
+    HttpsError: class HttpsError extends Error {
+        constructor(code, message) {
+            super(message);
+            this.code = code;
+        }
+    }
 }), { virtual: true });
 
 jest.mock('firebase-functions/params', () => ({
@@ -46,7 +57,7 @@ global.fetch = jest.fn();
 
 // 2. Import the backend file
 // We use require to ensure it loads synchronously after our mocks
-const backend = require('../../../../functions/index.js');
+const backend = require('../index.js');
 
 describe('createPaymongoCheckout Error Handlers', () => {
     const createPaymongoCheckout = backend.createPaymongoCheckout;
@@ -55,7 +66,8 @@ describe('createPaymongoCheckout Error Handlers', () => {
         data: {
             amount: 5000, // 50 PHP
             type: 'gcash',
-            returnUrl: 'thrailapp://payment-result'
+            returnUrl: 'thrailapp://payment-result',
+            bookingId: 'booking_456'
         },
         auth: { uid: 'user_123', token: {} }
     };
@@ -64,8 +76,8 @@ describe('createPaymongoCheckout Error Handlers', () => {
         jest.clearAllMocks();
     });
 
-    const mockFetchError = (status: number, jsonResponse?: any, textFallback?: string) => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+    const mockFetchError = (status, jsonResponse, textFallback) => {
+        global.fetch.mockResolvedValueOnce({
             ok: false,
             status: status,
             text: jest.fn().mockResolvedValueOnce(

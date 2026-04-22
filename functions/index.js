@@ -607,6 +607,73 @@ exports.checkEmail = https.onCall(async (request) => {
 })
 
 /**
+ * Maps raw PayMongo API errors to user-friendly HttpsErrors.
+ * 
+ * @param {Error} err - The error thrown by the provider.
+ * @throws {HttpsError}
+ */
+function handlePaymongoError(err) {
+    const rawMessage = err.message || String(err);
+    
+    // 1. Handle HTTP Auth/Security Failures (401, 403)
+    if (rawMessage.includes('Unauthorized') || rawMessage.includes('401') || rawMessage.includes('403')) {
+        throw new HttpsError('unavailable', 'Payment service is currently unavailable. Please notify the Thrail administrators.');
+    }
+
+    // 2. Parse JSON error details from PayMongo
+    const paymongoMarker = 'PayMongo Checkout Error:';
+    if (rawMessage.includes(paymongoMarker)) {
+        const jsonStr = rawMessage.substring(rawMessage.indexOf(paymongoMarker) + paymongoMarker.length).trim();
+        
+        let errorBody;
+        try {
+            errorBody = JSON.parse(jsonStr);
+        } catch (e) {
+            // Check for HTML/Network level errors (503, 500, 502)
+            if (jsonStr.includes('503') || jsonStr.includes('500') || jsonStr.includes('<html>')) {
+                throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
+            }
+            throw new HttpsError('internal', 'An unexpected error occurred with the payment gateway.');
+        }
+
+        const errors = errorBody.errors || [];
+        const mainError = errors[0] || {};
+        
+        const code = mainError.code;
+        const detail = mainError.detail;
+        const pointer = mainError.source?.pointer || '';
+
+        // Transaction Limits (100k PHP)
+        if (code === 'AMOUNT_EXCEED_LIMIT' || pointer.includes('amount') && detail?.toLowerCase().includes('maximum')) {
+            throw new HttpsError('invalid-argument', 'This booking exceeds the ₱100,000 maximum transaction limit for GCash/Maya. Please use a different payment method or pay in installments.');
+        }
+
+        // Minimum Amount (100 PHP)
+        if (pointer.includes('amount') && (detail?.includes('10000') || detail?.toLowerCase().includes('at least'))) {
+            throw new HttpsError('invalid-argument', 'The booking amount (or 50% downpayment) is too small. The minimum payment required by GCash/Maya is ₱100.');
+        }
+
+        // Invalid Return URL (Deep Link)
+        if (pointer.includes('return_url') || code === 'parameter_format_invalid' || code === 'parameter_invalid' && pointer.includes('url')) {
+            throw new HttpsError('invalid-argument', 'An internal routing error occurred while generating your booking checkout. Please try again.');
+        }
+
+        // PayMongo System Downtime
+        if (code === 'SYSTEM_ERROR' || code === 'service_unavailable') {
+            throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
+        }
+
+        // Fallback to specific detail if available
+        if (detail) {
+            throw new HttpsError('internal', detail);
+        }
+    }
+
+    // 3. Global Generic Fallback
+    throw new HttpsError('internal', 'An unexpected error occurred with the payment gateway.');
+}
+
+/**
  * Creates a PayMongo Checkout Session for a given booking.
  * Generates a hosted payment page URL for users to securely enter payment details.
  * 
@@ -660,7 +727,7 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
         return session;
     } catch (err) {
         console.error(`[createPaymongoCheckout] Failed to initialize checkout for booking ${bookingId}: `, err);
-        throw new HttpsError('internal', err.message || 'Failed to initialize checkout');
+        handlePaymongoError(err);
     }
 });
 
