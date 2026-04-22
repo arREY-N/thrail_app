@@ -21,7 +21,9 @@ export default function GroupLocationScreen() {
     } = useGroup(groupId);
 
     const {
-        permissionGranted
+        permissionGranted,
+        onStartGps,
+        onEndGps
     } = useHikerGPS();
 
     const {
@@ -39,6 +41,16 @@ export default function GroupLocationScreen() {
         location,
     } = useGroupLocation(groupId);
     
+    const handleStartHike = (group: Group, booking: Booking) => {
+        onStartGps();
+        onStartHike(group, booking);
+    };
+
+    const handleCompleteHike = () => {
+        onEndGps();
+        onCompleteHike();
+    };
+    
 
     return (
         <>
@@ -48,10 +60,10 @@ export default function GroupLocationScreen() {
                 booking={booking}
                 onStartSharingLocation={onStartSharingLocation}
                 onStopSharingLocation={onStopSharingLocation}
-                onStartHike={onStartHike}
+                onStartHike={handleStartHike}
                 onPauseHike={onPauseHike}
                 onResumeHike={onResumeHike}
-                onCompleteHike={onCompleteHike}
+                onCompleteHike={handleCompleteHike}
                 onEmergencyPress={onEmergencyPress}
                 onSendPicture={onSendPicture}
                 error={error}

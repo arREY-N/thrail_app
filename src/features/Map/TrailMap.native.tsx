@@ -43,6 +43,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     permissionGranted,
     isOnline,
     exportHikeData,
+    onStartGps,
   } = useHikerGPS();
 
   const lonStr = Array.isArray(initialLon) ? initialLon[0] : initialLon;
@@ -68,6 +69,10 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
   const lastZoomRef = useRef<number>(16);
   // Track the last region center to detect panning vs zooming
   const lastCenterRef = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    onStartGps();
+  }, []);
 
   /**
    * Resolves map assets on mount:
