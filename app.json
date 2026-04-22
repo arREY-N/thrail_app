@@ -8,6 +8,11 @@
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "assets/fonts/**",
+      "assets/tiles/**",
+      "assets/map_data/**"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -36,13 +41,13 @@
     },
     "plugins": [
       [
-        "expo-asset"
-        // {
-        //   "assets": [
-        //     "assets/fonts",
-        //     "assets/tiles"
-        //   ]
-        // }
+        "expo-asset",
+        {
+          "assets": [
+            "assets/fonts",
+            "assets/tiles"
+          ]
+        }
       ],
       "expo-router",
       "expo-font",
@@ -54,10 +59,8 @@
         }
       ],
       "@maplibre/maplibre-react-native",
-      "expo-asset",
-      "@react-native-google-signin/google-signin",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth"
+      "@react-native-google-signin/google-signin/app.plugin.js",
+      "@react-native-firebase/app/app.plugin.js"
     ],
     "experiments": {
       "typedRoutes": true
