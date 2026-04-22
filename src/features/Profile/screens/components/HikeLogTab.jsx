@@ -45,7 +45,7 @@ const HikeLogTab = ({ hikeLog, onLikeReview, isLiked, onEditReview }) => {
 
 const styles = StyleSheet.create({
     container: {
-        gap: 4,
+        gap: 16,
     },
     emptyState: {
         paddingVertical: 60,

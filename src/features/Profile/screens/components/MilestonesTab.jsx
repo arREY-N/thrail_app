@@ -1,10 +1,11 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const AchievementBadge = ({ title, icon, earned }) => (
     <View style={styles.badgeContainer}>
@@ -28,39 +29,40 @@ const AchievementBadge = ({ title, icon, earned }) => (
     </View>
 );
 
-const StatBentoBox = ({ title, value, subLabel, subValue, icon, lib = "Ionicons", index = 0 }) => (
-    <Animated.View 
-        entering={FadeInDown.delay(100 + (index * 50)).springify().damping(14)}
-        style={styles.bentoBox}
-    >
 
+const StatBentoBox = ({ title, value, subLabel, subValue, icon, lib = "Ionicons", boxWidth }) => (
+    <View style={[styles.bentoBox, { width: boxWidth }]}>
         <View style={styles.bentoHeader}>
             <CustomIcon library={lib} name={icon} size={20} color={Colors.PRIMARY} />
             <CustomText variant="label" style={styles.bentoTitle}>{title}</CustomText>
         </View>
         
         <View style={styles.bentoMiddle}>
-            <CustomText style={styles.bentoValue} numberOfLines={1} adjustsFontSizeToFit>
+            <CustomText style={styles.bentoValue}>
                 {value}
             </CustomText>
         </View>
 
         <View style={styles.bentoBottom}>
             <CustomText variant="caption" style={styles.bentoSubLabel}>{subLabel}</CustomText>
-            <CustomText variant="label" style={styles.bentoSubValue} numberOfLines={1}>
+            <CustomText variant="label" style={styles.bentoSubValue}>
                 {subValue}
             </CustomText>
         </View>
-    </Animated.View>
+    </View>
 );
 
 const MilestonesTab = ({ stats }) => {
+    const { isMobile } = useBreakpoints();
+    
+    const bentoBoxWidth = isMobile ? '47.5%' : '23.5%';
+
     if (!stats) return null;
 
     return (
         <View style={styles.container}>
             
-            <Animated.View entering={FadeInDown.springify().damping(14)} style={styles.fullWidthCard}>
+            <View style={styles.fullWidthCard}>
                 <View style={styles.cardHeader}>
                     <CustomIcon library="Ionicons" name="medal-outline" size={20} color={Colors.PRIMARY} />
                     <CustomText variant="label" style={styles.cardHeaderTitle}>Achievements</CustomText>
@@ -83,11 +85,11 @@ const MilestonesTab = ({ stats }) => {
                         earned={stats.achievements?.experienced} 
                     />
                 </View>
-            </Animated.View>
+            </View>
 
             <View style={styles.bentoGrid}>
                 <StatBentoBox 
-                    index={0}
+                    boxWidth={bentoBoxWidth}
                     title="Longest Distance" 
                     value={stats.longestDistance?.value} 
                     subLabel="Trail:" 
@@ -95,7 +97,7 @@ const MilestonesTab = ({ stats }) => {
                     icon="resize" 
                 />
                 <StatBentoBox 
-                    index={1}
+                    boxWidth={bentoBoxWidth}
                     title="Longest Time" 
                     value={stats.longestTime?.value} 
                     subLabel="Trail:" 
@@ -103,7 +105,7 @@ const MilestonesTab = ({ stats }) => {
                     icon="time-outline" 
                 />
                 <StatBentoBox 
-                    index={2}
+                    boxWidth={bentoBoxWidth}
                     title="Highest Point" 
                     value={stats.highestPoint?.value} 
                     subLabel="Trail:" 
@@ -111,7 +113,7 @@ const MilestonesTab = ({ stats }) => {
                     icon="flag-outline" 
                 />
                 <StatBentoBox 
-                    index={3}
+                    boxWidth={bentoBoxWidth}
                     title="Total Hikes" 
                     value={stats.totalHikes?.value} 
                     subLabel="Last hike:" 
@@ -143,7 +145,6 @@ const styles = StyleSheet.create({
     container: {
         gap: 16,
     },
-    
     fullWidthCard: {
         backgroundColor: Colors.WHITE, 
         borderRadius: 20,
@@ -168,7 +169,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'flex-start',
     },
-    
     badgeContainer: {
         alignItems: 'center',
         gap: 10,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         borderRadius: 20,
         padding: 16,
-        width: '47.5%',
+
         minHeight: 150,
         display: 'flex',
         flexDirection: 'column',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     },
     bentoHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start', 
         gap: 8,
     },
     bentoTitle: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     bentoValue: {
-        fontSize: 32,
+        fontSize: 30, 
         fontWeight: '900',
         color: Colors.TEXT_PRIMARY,
         includeFontPadding: false,
@@ -244,8 +244,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     bentoSubLabel: {
-        color: Colors.TEXT_SECONDARY,
-        marginBottom: 2,
+        fontSize: 12,
     },
     bentoSubValue: {
         color: Colors.TEXT_PRIMARY,

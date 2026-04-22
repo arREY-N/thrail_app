@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
     Platform,
-    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -10,13 +9,22 @@ import {
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 import HikeLogTab from '@/src/features/Profile/screens/components/HikeLogTab';
 import MilestonesTab from '@/src/features/Profile/screens/components/MilestonesTab';
+
+const getInitials = (firstName, lastName) => {
+    if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    if (firstName) return firstName.charAt(0).toUpperCase();
+    if (lastName) return lastName.charAt(0).toUpperCase();
+    return '?';
+};
 
 const ProfileScreen = ({
     profile,
@@ -30,6 +38,10 @@ const ProfileScreen = ({
 }) => {
 
     const [activeTab, setActiveTab] = useState('Milestones');
+    
+    const { isDesktop, isTablet } = useBreakpoints();
+    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
+    const responsiveAlignStyle = { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' };
 
     const userName = profile?.firstname 
         ? `${profile.firstname} ${profile.lastname}` 
@@ -43,6 +55,8 @@ const ProfileScreen = ({
         ? formatDate(profile.createdAt) 
         : 'Mar 2026';
 
+    const userInitials = getInitials(profile?.firstname, profile?.lastname);
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
@@ -52,20 +66,16 @@ const ProfileScreen = ({
                 style={styles.transparentHeader}
             />
 
-            <ScrollView 
-                style={styles.contentArea}
+            <ResponsiveScrollView 
                 contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+                stickyHeaderIndices={[1]} 
             >
-                <View style={styles.userBanner}>
+                <View style={[styles.userBanner, responsiveAlignStyle]}>
                     <View style={styles.userInfoLeft}>
                         <View style={styles.avatarPlaceholder}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="user" 
-                                size={28} 
-                                color={Colors.GRAY_MEDIUM} 
-                            />
+                            <CustomText style={styles.initialsText}>
+                                {userInitials}
+                            </CustomText>
                         </View>
                         
                         <View style={styles.identityTextGroup}>
@@ -95,8 +105,8 @@ const ProfileScreen = ({
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.tabsContainerWrapper}>
-                    <View style={styles.floatingTabsContainer}>
+                <View style={styles.stickyTabWrapper}>
+                    <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
                         
                         <TouchableOpacity 
                             style={[
@@ -137,7 +147,7 @@ const ProfileScreen = ({
                     </View>
                 </View>
                 
-                <View style={styles.tabContentContainer}>
+                <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                     {activeTab === 'Milestones' ? (
                         <MilestonesTab stats={stats} />
                     ) : (
@@ -150,7 +160,7 @@ const ProfileScreen = ({
                     )}
                 </View>
                 
-            </ScrollView>
+            </ResponsiveScrollView>
 
         </ScreenWrapper>
     );
@@ -177,24 +187,20 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0,
         elevation: 0,
     },
-    contentArea: {
-        flex: 1,
-    },
     scrollContent: {
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 32,
     },
     tabContentContainer: {
-        minHeight: 300,
+        flex: 1,
         marginBottom: 24,
     },
     userBanner: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 24,
+        marginBottom: 8,
     },
     userInfoLeft: {
         flexDirection: 'row',
@@ -205,11 +211,17 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        borderWidth: 2,
+        borderColor: Colors.WHITE,
+    },
+    initialsText: {
+        color: Colors.WHITE,
+        fontSize: 22,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
     identityTextGroup: {
         justifyContent: 'center',
@@ -240,23 +252,24 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
     },
-    tabsContainerWrapper: {
-        alignItems: 'center',
-        marginBottom: 24,
+    stickyTabWrapper: {
+        backgroundColor: Colors.BACKGROUND,
+        paddingVertical: 12,
+        zIndex: 10,
+        alignItems: 'center', 
     },
     floatingTabsContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        padding: 4,
-        borderRadius: 28,
-        width: '100%', 
+        padding: 3,
+        borderRadius: 20,
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 24, 
+        borderRadius: 16,
         backgroundColor: 'transparent',
     },
     tabButtonActive: {
@@ -264,7 +277,7 @@ const styles = StyleSheet.create({
         ...tabShadow, 
     },
     tabText: {
-        fontSize: 15,
+        fontSize: 14, 
         fontWeight: '600',
         color: Colors.TEXT_SECONDARY, 
     },
