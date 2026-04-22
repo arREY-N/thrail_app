@@ -7,7 +7,10 @@ const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const cors = require('cors')({origin: true});
 const { FieldPath } = admin.firestore;
+const { CloudTasksClient } = require('@google-cloud/tasks');
+const { DateTime } = require('luxon');
 
+const tasksClient = new CloudTasksClient();
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const { Buffer } = require('buffer');
@@ -102,125 +105,254 @@ exports.onNewMessage = functions.firestore
 exports.onAddBooking = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
     .onCreate(async (snapshot, context) => {
-        const data = snapshot.data();
-        const { userId } = context.params;
+        try {
+            const data = snapshot.data();
+            const { userId, bookingId } = context.params;
 
-        const businessId = data.business?.id;
-        if (!businessId) {
-            console.log('Missing businessId');
-            return;
-        }
-
-        const userDoc = await admin.firestore()
-            .collection('users')
-            .doc(userId)
-            .get();
-
-        const user = userDoc.data();
-        const userName = user?.firstname || 'A user';
-
-        const adminIds = await admin.firestore()
-            .collection('businesses')
-            .doc(businessId)
-            .collection('admins')
-            .get()
-            .then(query => query.docs.map(doc => doc.data().id));
-
-        console.log(adminIds);
-
-        if (!adminIds.length) return;
-
-        const chunkSize = 10;
-        const chunks = [];
-        for (let i = 0; i < adminIds.length; i += chunkSize) {
-            chunks.push(adminIds.slice(i, i + chunkSize));
-        }   
-
-        const userDocs = await Promise.all(
-            adminIds.map(id =>
-                admin.firestore().collection('users').doc(id).get()
-            )
-        );
-
-        let tokens = [];
-
-        userDocs.forEach(doc => {
-            if (!doc.exists) return;
-            const userTokens = doc.data().fcmTokens || [];
-            tokens.push(...userTokens);
-        });
-
-        if (!tokens.length) {
-            console.log('No admin tokens found');
-            return;
-        }
-
-        const uniqueTokens = [...new Set(tokens.map(t => t.token))];
-
-        const trailName = data.trail?.name || 'a trail';
-
-        const response = await admin.messaging().sendEachForMulticast({
-            tokens: uniqueTokens,
-            notification: {
-                title: `New Booking for ${trailName}`,
-                body: `${userName} just booked a hike for ${trailName}`
+            const businessId = data.business?.id;
+            if (!businessId) {
+                console.log('Missing businessId');
+                return;
             }
-        });
+
+            const userDoc = await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .get();
+
+            const user = userDoc.data();
+            const userName = user?.firstname || 'A user';
+
+            const adminIds = await admin.firestore()
+                .collection('businesses')
+                .doc(businessId)
+                .collection('admins')
+                .get()
+                .then(query => query.docs.map(doc => doc.data().id));
+
+            console.log(adminIds);
+
+            if (!adminIds.length) return;
+
+            const chunkSize = 10;
+            const chunks = [];
+            for (let i = 0; i < adminIds.length; i += chunkSize) {
+                chunks.push(adminIds.slice(i, i + chunkSize));
+            }   
+
+            const userDocs = await Promise.all(
+                adminIds.map(id =>
+                    admin.firestore().collection('users').doc(id).get()
+                )
+            );
+
+            let tokens = [];
+
+            userDocs.forEach(doc => {
+                if (!doc.exists) return;
+                const userTokens = doc.data().fcmTokens || [];
+                tokens.push(...userTokens);
+            });
+
+            if (!tokens.length) {
+                console.log('No admin tokens found');
+                return;
+            }
+
+            const uniqueTokens = [...new Set(tokens.map(t => t.token))];
+
+            const trailName = data.trail?.name || 'a trail';
+
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: uniqueTokens,
+                notification: {
+                    title: `New Booking for ${trailName}`,
+                    body: `${userName} just booked a hike for ${trailName}`
+                }
+            });
 
 
-        const validTokens = tokens.filter((t, i) => {
-            const res = response.responses[i];
-            if (res?.success) return true;
+            const validTokens = tokens.filter((t, i) => {
+                const res = response.responses[i];
+                if (res?.success) return true;
 
-            const error = res?.error?.code;
-            return ![
-                'messaging/registration-token-not-registered',
-                'messaging/invalid-registration-token'
-            ].includes(error);
-        });
+                const error = res?.error?.code;
+                return ![
+                    'messaging/registration-token-not-registered',
+                    'messaging/invalid-registration-token'
+                ].includes(error);
+            });
+        } catch (error) {
+            throw new HttpsError('internal', 'Error processing new booking: ' + error.message);
+        }
     }
 );
 
 exports.onBookingStatusChange = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
     .onUpdate(async (change, context) => {
-        const before = change.before.data();
-        const after = change.after.data();
+        try {
+            const before = change.before.data();
+            const after = change.after.data();
+            const { bookingId } = context.params;
+            
+            if (before.status === after.status) return;
 
-        console.log(before, after);
-        
-        if (before.status === after.status) return;
+            const { userId } = context.params;
 
-        const { userId } = context.params;
+            const userDoc = await admin.firestore()
+                .collection('users')
+                .doc(userId)
+                .get();
+
+            const tokens = userDoc.data()?.fcmTokens || [];
+
+            if (!tokens.length) {
+                throw new HttpsError('not-found', 'No tokens found for user: ' + userId);
+            };
+
+            const data = after;
+
+            const trailName = data.trail?.name || 'your trail';
+            const businessName = data.business?.name || 'the organizer';
+
+            const dateStr = data.date?.toDate
+                ? data.date.toDate().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    })
+                : '';
+
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: tokens.map(t => t.token),
+                notification: {
+                    title: "Booking Update",
+                    body: `Your booking for ${trailName} with ${businessName} on ${dateStr} has been ${data.status}.`
+                }
+            });
+
+            const validTokens = tokens.filter((t, i) => {
+                const res = response.responses[i];
+                console.log(`Token: ${t.token}, Success: ${res.success}, Error: ${res.error?.code}`);
+                if (res.success) return true;
+
+                const error = res.error?.code;
+
+                console.log(`Error for token ${t.token}: ${error}`);
+                return ![
+                    'messaging/registration-token-not-registered',
+                    'messaging/invalid-registration-token'
+                ].includes(error);
+            });
+
+            if (validTokens.length !== tokens.length) {
+                await admin.firestore()
+                    .collection('users')
+                    .doc(userId)
+                    .update({ fcmTokens: validTokens });
+            }
+
+            if(after.status === 'for-payment') {
+                if(!data.offer || !data.offer.date) {
+                    console.log('Booking missing offer date, skipping token cleanup');
+                    throw new HttpsError('invalid-argument', 'Booking missing offer date, skipping token cleanup');
+                }    
+
+                const jsDate = data.offer.date.toDate(); 
+                const bookingDate = DateTime.fromJSDate(jsDate);
+                const reminderDateWeek = bookingDate.minus({ days: 7 });
+                const reminderDateDay = bookingDate.minus({ days: 1 });
+                
+                const project = JSON.parse(process.env.FIREBASE_CONFIG).projectId;
+                const location = 'us-central1'; 
+                const queue = 'booking-reminders';
+                const queuePath = tasksClient.queuePath(project, location, queue);
+
+                const url = `https://${location}-${project}.cloudfunctions.net/sendUserReminder`;
+                
+                const reminderDate = bookingDate.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY);
+                
+                const payload = {
+                    userId,
+                    reminderDate,
+                    bookingId,
+                    trailName
+                }
+
+                if (reminderDateWeek > DateTime.now()) {
+                    const weekTask = {
+                        httpRequest: {
+                            httpMethod: 'POST',
+                            url,
+                            body: Buffer.from(JSON.stringify(payload)).toString('base64'),
+                            headers: { 'Content-Type': 'application/json' },
+                        },
+                        scheduleTime: {
+                            seconds: Math.floor(reminderDateWeek.toSeconds()),
+                        },
+                    };
+                    await tasksClient.createTask({ parent: queuePath, task: weekTask });
+                }
+
+                if (reminderDateDay > DateTime.now()) {
+                    const dayTask = {
+                        httpRequest: {
+                            httpMethod: 'POST',
+                            url,
+                            body: Buffer.from(JSON.stringify(payload)).toString('base64'),
+                            headers: { 'Content-Type': 'application/json' },
+                        },
+                        scheduleTime: {
+                            seconds: Math.floor(reminderDateDay.toSeconds()),
+                        },
+                    };
+                    await tasksClient.createTask({ parent: queuePath, task: dayTask });
+                }
+            }
+        } catch (error) {
+            throw new HttpsError('internal', 'Error processing booking update: ' + error.message);
+        }
+    }
+);
+
+exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
+    try {
+        const { userId, bookingId, reminderDate, trailName } = req.body;
 
         const userDoc = await admin.firestore()
             .collection('users')
             .doc(userId)
             .get();
 
+        await db
+            .collection('users')
+            .doc(userId)
+            .collection('notifications')
+            .add({
+                title: "Booking Reminder",
+                message: `Hello! You're booking for ${trailName} on ${reminderDate} is quickly approaching. Be sure to have your things prepared ahead of time. Double check the weather and coordinate with your hikemates through the group chat in case of unexpected scenarios.`,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type: 'booking_reminder',
+                    bookingId: bookingId,
+                }                
+            });
+
         const tokens = userDoc.data()?.fcmTokens || [];
 
-        console.log(tokens.length, 'tokens found for user:', userId);
-        if (!tokens.length) return;
-
-        const data = after;
-
-        const trailName = data.trail?.name || 'your trail';
-        const businessName = data.business?.name || 'the organizer';
-
-        const dateStr = data.date?.toDate
-            ? data.date.toDate().toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                })
-            : '';
+        if (!tokens.length) {
+            console.log('No tokens found for user:', userId);
+            res.status(200).send('No tokens to send reminder');
+            return;
+        }
 
         const response = await admin.messaging().sendEachForMulticast({
             tokens: tokens.map(t => t.token),
             notification: {
-                title: "Booking Update",
-                body: `Your booking for ${trailName} with ${businessName} on ${dateStr} has been ${data.status}.`
+                title: "Booking Reminder",
+                body: `This is a reminder of your booking for ${trailName} on ${reminderDate}. Prepare and plan ahead!`
             }
         });
 
@@ -244,9 +376,10 @@ exports.onBookingStatusChange = functions.firestore
                 .doc(userId)
                 .update({ fcmTokens: validTokens });
         }
-        console.log(`Booking status change notification sent to ${response.successCount} tokens, ${response.failureCount} failures for user: ${userId}`);
+    } catch (error) {
+        throw new HttpsError('internal', 'Error sending booking reminder: ' + error.message);
     }
-);
+});
 
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     const account = await admin.auth().getUser(user.uid);
