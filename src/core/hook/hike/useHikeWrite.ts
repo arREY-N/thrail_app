@@ -222,38 +222,6 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         })
     }
 
-    // if(Platform.OS === 'android') {
-    //     const tick = () => {
-    //         if(!currentHike || currentHike.status !== 'started' || !timerStartTime){
-    //             return;
-    //         } 
-    //         useHikesStore.getState().addCoordinate(new Location({
-    //             latitude: Math.random() * 180 - 90,
-    //             longitude: Math.random() * 360 - 180,
-    //             altitude: Math.random() * 2000,
-    //             timestamp: new Date(),
-    //         }));
-            
-    //         const now = Date.now();
-    
-    //         updateHikeStore({ elapsedTime: now - timerStartTime });
-    //     }
-    
-    //     useEffect(() => {
-    //         let interval: ReturnType<typeof setInterval> | undefined;
-    
-    //         if(currentHike?.status === 'started') {
-    //             interval = setInterval(() => {
-    //                 tick();
-    //             }, 1000);
-    //         }
-    
-    //         return () => {
-    //             if(interval) clearInterval(interval);
-    //         }
-    //     },[currentHike?.status])
-    // }
-
 
     const onEmergencyPress = () => {
         const coordinates = getLastKnownCoordinate();
