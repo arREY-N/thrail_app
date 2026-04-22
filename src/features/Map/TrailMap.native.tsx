@@ -4,19 +4,19 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
+import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
-import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
@@ -109,15 +109,53 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
       const asset = Asset.fromModule(
         require("../../assets/tiles/thrail-offline-map.pmtiles"),
       );
-      await asset.downloadAsync();
 
-      if (!asset.localUri) throw new Error("Asset has no localUri");
-      await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
+      try {
+        await asset.downloadAsync();
+      } catch (e) {
+        console.warn("⚠️ asset.downloadAsync() failed, falling back to manual retry loop...");
+      }
+
+      if (asset.localUri) {
+        await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
+      } else {
+        // Retry logic for unstable development connections (e.g. emulator downloading 35MB from Metro)
+        let downloadSuccess = false;
+        let retries = 3;
+        let lastError;
+
+        while (!downloadSuccess && retries > 0) {
+          try {
+            console.log(`Downloading offline map... attempts left: ${retries}`);
+            await FileSystem.downloadAsync(asset.uri, fileUri);
+            downloadSuccess = true;
+          } catch (e) {
+            lastError = e;
+            retries -= 1;
+            console.warn(`⚠️ Download failed. Retries left: ${retries}`, e);
+            if (retries > 0) {
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+          }
+        }
+
+        if (!downloadSuccess) {
+          throw (
+            lastError ||
+            new Error("Failed to download offline map after retries.")
+          );
+        }
+      }
+
       console.log("✅ Offline map cached.");
       setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
 
-    Promise.all([resolveGeoJson(), resolveOfflineMap(), resolveOfflineFonts().then(setFontBaseDir)])
+    Promise.all([
+      resolveGeoJson(),
+      resolveOfflineMap(),
+      resolveOfflineFonts().then(setFontBaseDir),
+    ])
       .then(() => setLoadState("ready"))
       .catch((err) => {
         console.error("❌ Failed to load map assets:", err);

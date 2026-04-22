@@ -35,7 +35,7 @@ export default function hikeView(){
         return (
             <View>
                 <Pressable onPress={() => onBackPress()}>
-                    Back
+                    <Text>Back</Text>
                 </Pressable>
                 <Text>Hike in progress: {hike?.trail.name} </Text>
             </View>
