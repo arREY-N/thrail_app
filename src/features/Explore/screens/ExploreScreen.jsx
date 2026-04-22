@@ -190,9 +190,9 @@ const styles = StyleSheet.create({
 		backgroundColor: Colors.BACKGROUND,
 	},
 	scrollContent: {
+		paddingTop: 0,
 		paddingBottom: 40,
 		paddingHorizontal: 16,
-		paddingTop: 16,
 	},
 	listContainer: {
 		paddingBottom: 0,
