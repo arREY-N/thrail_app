@@ -8,11 +8,7 @@
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "assetBundlePatterns": [
-      "assets/fonts/**",
-      "assets/tiles/**",
-      "assets/map_data/**"
-    ],
+    "assetBundlePatterns": ["assets/tiles/**", "assets/map_data/**"],
     "ios": {
       "supportsTablet": true
     },
@@ -43,11 +39,7 @@
       [
         "expo-asset",
         {
-          "assets": [
-            "assets/fonts/Noto Sans Medium",
-            "assets/fonts/Noto Sans Regular",
-            "assets/tiles"
-          ]
+          "assets": ["assets/tiles"]
         }
       ],
       "expo-router",
