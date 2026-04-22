@@ -9,9 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "assetBundlePatterns": [
-      "assets/tiles/**",
-      "assets/map_data/**",
-      "assets/fonts/**"
+      "src/assets/fonts/**",
+      "src/assets/tiles/**",
+      "src/assets/map_data/**"
     ],
     "ios": {
       "supportsTablet": true
@@ -43,7 +43,7 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/tiles"]
+          "assets": ["src/assets/tiles"]
         }
       ],
       "expo-router",
