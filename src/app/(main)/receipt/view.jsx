@@ -40,9 +40,9 @@ const TESTRECEIPT = ({
             { payment && 
                 <View>
                     <Text>PAYMENT RECEIPT</Text>
-                    <Text>Reference No: {payment.id}</Text>
+                    <Text>Reference No: {receipt.referenceCode || payment.id}</Text>
                     <Text>Amount: P{receipt.amount}.00</Text>
-                    <Text>Date: {receipt.paidOn.toString()}</Text>
+                    <Text>Date: {receipt.date?.toString()}</Text>
                     <Text>By: {user.name}</Text>
                     <Text>Provider: {business.name}</Text>
                     <Text>Trail: {offer.trail}</Text>

@@ -81,24 +81,29 @@ const PaymentScreen = ({
                     const response = await createPaymongoCheckout({
                         amount: amountToPay,
                         type: selectedMethod,
-                        returnUrl: secureReturnUrl
+                        returnUrl: secureReturnUrl,
+                        bookingId: bookingData?.id,
+                        userId: profile?.id || profile?.uid
                     });
                     
                     const checkoutUrl = response.data.checkout_url;
                     
-                    // Open browser and listen for the actual app deep link to close
-                    const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, appUrl, {
-                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                        toolbarColor: Colors.PRIMARY,
-                        windowName: 'PayMongoCheckout',
-                        windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
-                    });
-                    
-                    if (result.type !== 'success' || result.type === 'dismiss') {
-                        // User closed the browser manually or the action was dismissed
-                        setIsSubmitting(false);
-                        setPaymentError("Payment process was cancelled. You can try again when you are ready.");
-                        return;
+                    // Fallback to standard Linking for Android Emulator to avoid Custom Tab blank screen bugs
+                    if (Platform.OS === 'android') {
+                        await Linking.openURL(checkoutUrl);
+                    } else {
+                        const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, appUrl, {
+                            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+                            toolbarColor: Colors.PRIMARY,
+                            windowName: 'PayMongoCheckout',
+                            windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
+                        });
+
+                        if (result.type !== 'success' || result.type === 'dismiss') {
+                            setIsSubmitting(false);
+                            setPaymentError("Payment process was cancelled.");
+                            return;
+                        }
                     }
 
                     // Proceed to Status, passing PayMongo source ID as the "receipt" 
@@ -217,7 +222,8 @@ const PaymentScreen = ({
                     <StatusScreen 
                         selectedMethod={selectedMethod} 
                         amountToPay={amountToPay} 
-                        bookingId={bookingData?.id} 
+                        bookingId={bookingData?.id}
+                        receiptImage={receiptImage}
                     />
                 )}
             </View>

@@ -20,6 +20,7 @@ export default function listBook(){
         bookings,
         error,
         onCancelBookingPress,
+        onRefundBookingPress,
         getBookOffer,
     } = useBookOffer();
 
@@ -44,6 +45,7 @@ export default function listBook(){
 			error={error}
 			onBackPress={onBackPress}
 			onCancelBookingPress={onCancelBookingPress}
+			onRefundBookingPress={onRefundBookingPress}
 			getBookOffer={getBookOffer}
 		/>
     );

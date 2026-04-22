@@ -10,6 +10,8 @@ import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { functions } from "@/src/core/config/Firebase";
+import { httpsCallable } from "firebase/functions";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
@@ -183,6 +185,14 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
+    /**
+     * Cancels a booking securely via Firebase Cloud Functions.
+     * Only works before payment is captured.
+     * 
+     * @param {Booking} booking - The booking object to cancel.
+     * @param {string} reason - The user's reason for cancellation.
+     * @returns {Promise<void>}
+     */
     const onCancelBookingPress = async (booking: Booking, reason: string) => {
         try {
             if(!booking)
@@ -191,19 +201,41 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             if(!reason)
                 throw new Error('Cancellation reason is required'); 
         
-            booking.status = 'for-cancellation';
-            booking.cancellationReason = reason;
-            booking.cancelledBy = profile?.id || 'unknown';
-            
-            console.log(booking);
-            const created = await createBooking(booking);
-            
-            if(!created)
-                throw new Error('Failed to cancel booking');
+            const cancelBookingFn = httpsCallable(functions, 'cancelBooking');
+            await cancelBookingFn({
+                bookingId: booking.id,
+                userId: profile?.id || profile?.uid,
+                reason: reason
+            });
 
             router.back();
         } catch (error) {
             setLocalError((error as Error).message || 'Failed cancelling booking')  
+        }
+    }
+
+    /**
+     * Requests a refund securely via Firebase Cloud Functions.
+     * Invokes PayMongo refund API and updates the booking status.
+     * 
+     * @param {Booking} booking - The booking object to refund.
+     * @param {string} reason - The user's reason for requesting a refund.
+     * @returns {Promise<void>}
+     */
+    const onRefundBookingPress = async (booking: Booking, reason: string) => {
+        try {
+            if(!booking) throw new Error('No booking selected');
+            
+            const refundBookingFn = httpsCallable(functions, 'refundBooking');
+            await refundBookingFn({
+                bookingId: booking.id,
+                userId: profile?.id || profile?.uid,
+                reason: reason || 'User requested refund'
+            });
+
+            router.back();
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed processing refund')  
         }
     }
 
@@ -217,6 +249,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         onUpdatePress,
         onCompleteBook,
         onCancelBookingPress,
+        onRefundBookingPress,
         getBookOffer,
     }
 }

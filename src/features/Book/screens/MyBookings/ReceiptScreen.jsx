@@ -14,7 +14,7 @@ const ReceiptScreen = ({
     bookingData, 
     onFinish 
 }) => {
-    const transactionRef = `TRX-${bookingData?.id?.toUpperCase() || 'N/A'}`;
+    const transactionRef = bookingData?.paymentReferenceCode || `TRX-${bookingData?.id?.toUpperCase() || 'N/A'}`;
     const formattedDate = formatBookingDate(bookingData?.offer?.date);
     const totalPaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
 

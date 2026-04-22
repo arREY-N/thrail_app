@@ -41,6 +41,11 @@ export interface IBookingBase<T> {
     documents: Requirements[]
     cancellationReason?: string;
     cancelledBy?: string;
+    paymentGateway?: string;
+    paymentGatewayId?: string;
+    paymentReferenceCode?: string;
+    paymentStatus?: 'pending' | 'captured' | 'failed' | 'refunded';
+    refundableUntil?: T;
 }
 
 export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}

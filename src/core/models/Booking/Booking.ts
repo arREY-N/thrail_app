@@ -18,6 +18,11 @@ export class Booking implements IBooking {
     payment: IPaymentSummary<Date>[] = [];
     cancellationReason?: string = '';
     cancelledBy?: string = '';
+    paymentGateway?: string = '';
+    paymentGatewayId?: string = '';
+    paymentReferenceCode?: string = '';
+    paymentStatus?: 'pending' | 'captured' | 'failed' | 'refunded' = 'pending';
+    refundableUntil?: Date;
     offer: Pick<IOfferBase<Date>, "date" | "price" | "id"> = {
         date: new Date(),
         price: 0,
@@ -63,6 +68,7 @@ export class Booking implements IBooking {
                 date: toDate(p.date),
             })),
             documents: data.documents || {}, // New
+            refundableUntil: data.refundableUntil ? toDate(data.refundableUntil) : undefined,
         }
 
         return new Booking(mapped);
@@ -91,6 +97,11 @@ export class Booking implements IBooking {
             })),
             emergencyContact: this.emergencyContact,
             documents: this.documents, // New
+            paymentGateway: this.paymentGateway,
+            paymentGatewayId: this.paymentGatewayId,
+            paymentReferenceCode: this.paymentReferenceCode,
+            paymentStatus: this.paymentStatus,
+            refundableUntil: this.refundableUntil ? Timestamp.fromDate(this.refundableUntil) : undefined,
         }
 
         return mapped;

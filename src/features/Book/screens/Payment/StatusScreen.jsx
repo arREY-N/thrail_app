@@ -5,7 +5,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId }) => {
+const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage }) => {
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
@@ -43,7 +43,7 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId }) => {
                         Reference No.
                     </CustomText>
                     <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
-                        TRX-{bookingId?.toUpperCase() || '102938A'}
+                        {receiptImage?.id || `TRX-${bookingId?.toUpperCase() || '102938A'}`}
                     </CustomText>
                 </View>
 

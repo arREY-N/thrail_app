@@ -21,7 +21,8 @@ const MyBookingsScreen = ({
     userBookings,
     error,
     onBackPress,
-    onCancelBookingPress, 
+    onCancelBookingPress,
+    onRefundBookingPress, 
     getBookOffer
 }) => {
     const [currentView, setCurrentView] = useState('list'); 
@@ -130,6 +131,12 @@ const MyBookingsScreen = ({
                 onCancelConfirm={(booking, reason) => {
                     onCancelBookingPress(booking, reason);
                     setCurrentView('list');
+                }}
+                onRefundConfirm={(booking, reason) => {
+                    if (onRefundBookingPress) {
+                        onRefundBookingPress(booking, reason);
+                        setCurrentView('list');
+                    }
                 }}
                 onReschedule={() => {
                     console.log("Reschedule pressed for: ", selectedBooking.id);
