@@ -11,10 +11,12 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
+import { useLocation } from '@/src/hooks/useLocation';
 
-const WeatherSection = ({ weatherData, loading, error, onPress }) => {
+const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) => {
 
     const { icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
+    const { locationName: displayName, geocodedName } = useLocation({ propLocationName: locationName})
 
     const hasData = weatherData && !loading && !error;
     const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : '--';
@@ -42,12 +44,17 @@ const WeatherSection = ({ weatherData, loading, error, onPress }) => {
                         <CustomIcon 
                             library="FontAwesome6" 
                             name="location-dot" 
-                            size={14}
-                            color={Colors.TEXT_SECONDARY} 
+                            size={16}
+                            color={Colors.PRIMARY} 
                         />
-                        <CustomText variant="label" style={styles.locationText}>
-                            {loading ? 'Locating...' : (error ? 'Location Error' : 'Current Location')}
-                        </CustomText>
+                        {geocodedName && (
+                            <CustomText 
+                                variant="label" 
+                                style={styles.locationText}
+                                numberOfLines={1}>
+                                    {loading ? 'Locating...' : (error ? 'Location Error' : (geocodedName))}
+                            </CustomText>
+                        )}
                     </View>
                 </View>
 

@@ -8,6 +8,7 @@ import {
     View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -27,7 +28,6 @@ const getMetricAlertLevel = (type, value) => {
     if (value === undefined || value === null) return 'normal';
     if (type === 'wind') return value >= 60 ? 'danger' : value >= 40 ? 'warning' : 'normal';
     if (type === 'precip') return value >= 70 ? 'danger' : value >= 50 ? 'warning' : 'normal';
-    // UV standards: 11+ is Extreme (Danger), 8-10 is Very High (Caution)
     if (type === 'uv') return value >= 11 ? 'danger' : value >= 8 ? 'warning' : 'normal';
     return 'normal';
 };
@@ -39,6 +39,7 @@ const WeatherScreen = ({
     onBackPress, 
     onRefreshPress 
 }) => {
+    const insets = useSafeAreaInsets();
     
     const { 
         latitude: activeLat, 
@@ -53,7 +54,6 @@ const WeatherScreen = ({
 
     const [refreshing, setRefreshing] = useState(false);
 
-    // Weather hook
     const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
 
     const lastUpdatedLabel = React.useMemo(() => {
@@ -92,13 +92,9 @@ const WeatherScreen = ({
     const sunrise = weatherData?.sunrise ? formatSunTime(weatherData.sunrise) : "--:-- AM";
     const sunset = weatherData?.sunset ? formatSunTime(weatherData.sunset) : "--:-- PM";
 
-    let updateText = null;
-    if (weatherData?.isStale && weatherData?.lastUpdated) {
-        const minDiff = Math.max(1, Math.floor((new Date() - new Date(weatherData.lastUpdated)) / 60000));
-        updateText = `Last updated ${minDiff} min${minDiff > 1 ? 's' : ''} ago`;
+    if ((loading && !weatherData) || refreshing) {
+        return <WeatherSkeleton onBackPress={onBackPress} />;
     }
-
-    if (loading && !weatherData) return <WeatherSkeleton onBackPress={onBackPress} />;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -106,7 +102,7 @@ const WeatherScreen = ({
 
             <ResponsiveScrollView 
                 style={styles.container}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
                 refreshControl={
                     <RefreshControl 
                         refreshing={refreshing} 
@@ -118,24 +114,31 @@ const WeatherScreen = ({
                 <Animated.View entering={FadeIn.duration(800)} style={styles.heroSection}>
                     <View style={styles.heroTop}>
                         <View style={styles.heroTextWrapper}>
+                            
                             <View style={styles.tempContainer}>
                                 <CustomText style={styles.mainTemp}>{temperature}°</CustomText>
                                 <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
                             </View>
+                            
                             {weatherData?.apparentTemperature != null && (
                                 <CustomText variant="caption" style={styles.feelsLikeHero}>
                                     Feels like {Math.round(weatherData.apparentTemperature)}°C
                                 </CustomText>
                             )}
+                            
                             <View style={styles.locationWrapper}>
                                 <View style={styles.locationRow}>
                                     <CustomIcon 
-                                        library="Ionicons" 
-                                        name="location-sharp" 
+                                        library="FontAwesome6" 
+                                        name="location-dot"  
                                         size={16} 
                                         color={Colors.PRIMARY} 
                                     />
-                                    <CustomText variant="label" style={styles.locationLabel}>{displayName}</CustomText>
+                                    <CustomText 
+                                        variant="label" 
+                                        style={styles.locationLabel}>
+                                            {displayName}
+                                    </CustomText>
                                 </View>
                                 {geocodedName !== displayName && (
                                     <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
@@ -144,12 +147,15 @@ const WeatherScreen = ({
                                 )}
                             </View>
                         </View>
-                        <CustomIcon 
-                            library={mainLib} 
-                            name={hasData ? mainIcon : "cloud-outline"} 
-                            size={90} 
-                            color={Colors.PRIMARY} 
-                        />
+                        
+                        <View style={styles.heroIconWrapper}>
+                            <CustomIcon 
+                                library={mainLib} 
+                                name={hasData ? mainIcon : "cloud-outline"} 
+                                size={90} 
+                                color={Colors.PRIMARY} 
+                            />
+                        </View>
                     </View>
                     
                     <View style={styles.heroDivider} />
@@ -380,11 +386,10 @@ const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
         gap: 16, 
-        paddingBottom: 40 
     },
     
     heroSection: { 
-        paddingBottom: 12, 
+        paddingBottom: 0, 
         paddingHorizontal: 8 
     },
     heroTop: { 
@@ -399,18 +404,25 @@ const styles = StyleSheet.create({
     tempContainer: { 
         flexDirection: 'row', 
         alignItems: 'flex-start',
-        marginBottom: 4, 
+        marginBottom: 0, 
     },
     mainTemp: { 
-        fontSize: 64, 
-        lineHeight: 74, 
-        fontWeight: '800', 
+        fontSize: 72, 
+        lineHeight: 82, 
+        fontWeight: '900', 
         color: Colors.TEXT_PRIMARY, 
-        letterSpacing: -2, 
+        letterSpacing: -3, 
     },
     tempUnit: { 
         marginTop: 12, 
         marginLeft: 2 
+    },
+    feelsLikeHero: {
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        marginTop: -4,
+        marginBottom: 8,
+        marginLeft: 4,
     },
     locationWrapper: { 
         alignItems: 'flex-start', 
@@ -419,14 +431,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         gap: 6, 
-        marginLeft: 4 
+        marginLeft: 2 
     },
     locationLabel: { 
-        color: Colors.TEXT_SECONDARY 
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: '600'
     },
     geocodedLabel: { 
-        marginLeft: 24, 
-        marginTop: 2 
+        marginLeft: 22, 
+        marginTop: 2,
+        color: Colors.TEXT_SECONDARY
+    },
+    heroIconWrapper: {
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingRight: 10,
     },
     heroDivider: { 
         height: 1, 
@@ -451,17 +470,11 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_ULTRALIGHT, 
         ...dropShadow 
     },
-    feelsLikeHero: {
-        color: Colors.PRIMARY,
-        fontWeight: '600',
-        marginTop: -4,
-        marginBottom: 8,
-        marginLeft: 4,
-    },
     lastUpdatedLabel: {
         color: Colors.TEXT_SECONDARY,
+        padding: 2,
         fontSize: 10,
-        opacity: 0.8,
+        fontWeight: 400
     },
     cardHeader: { 
         flexDirection: 'row', 
