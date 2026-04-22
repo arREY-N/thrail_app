@@ -8,7 +8,11 @@
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "assetBundlePatterns": ["assets/tiles/**", "assets/map_data/**"],
+    "assetBundlePatterns": [
+      "assets/tiles/**",
+      "assets/map_data/**",
+      "assets/fonts/**"
+    ],
     "ios": {
       "supportsTablet": true
     },
