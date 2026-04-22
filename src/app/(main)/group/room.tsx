@@ -8,7 +8,7 @@ import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import GroupRoomScreen from "@/src/features/Community/screens/GroupRoomScreen";
+import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
 
 export default function groupRoom() {
     const { roomId: rawId } = useLocalSearchParams();
@@ -57,7 +57,7 @@ export default function groupRoom() {
             {/* <Pressable onPress={() => onViewGroupLocation(currentGroup.id)}>
                 <Text>View Location for group: {headerTitle} </Text>
             </Pressable> */}
-            <GroupRoomScreen
+            <RoomScreen
                 roomId={roomId}
                 messages={messages}
                 currentGroup={currentGroup}

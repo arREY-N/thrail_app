@@ -5,7 +5,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import GroupLocationScreen from "@/src/features/Community/screens/GroupLocationScreen";
+import LocationScreen from "@/src/features/Community/screens/Group/LocationScreen";
 
 export default function groupLocation() {
     const { groupId: rawId } = useLocalSearchParams();
@@ -45,7 +45,7 @@ export default function groupLocation() {
         <>
             <Stack.Screen options={{headerShown: false}}/>
 
-            <GroupLocationScreen
+            <LocationScreen
                 group={currentGroup}
                 booking={booking}
                 onStartSharingLocation={onStartSharingLocation}

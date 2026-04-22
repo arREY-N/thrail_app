@@ -16,7 +16,7 @@ const getInitials = (firstName, lastName) => {
     return '?';
 };
 
-const GroupLocationScreen = ({
+const LocationScreen = ({
     group,
     booking,
     onStartSharingLocation,
@@ -489,4 +489,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default GroupLocationScreen;
+export default LocationScreen;

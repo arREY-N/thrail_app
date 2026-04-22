@@ -57,7 +57,7 @@ const isImageUrl = (url) => {
     return url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media');
 };
 
-const GroupRoomScreen = ({ 
+const RoomScreen = ({ 
     roomId,
     messages, 
     currentGroup,
@@ -730,4 +730,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default GroupRoomScreen;
+export default RoomScreen;

@@ -4,7 +4,7 @@ import React from 'react';
 import { useGroupList } from "@/src/core/hook/group/useGroupList";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import GroupListScreen from "@/src/features/Community/screens/GroupListScreen";
+import ListScreen from "@/src/features/Community/screens/Group/ListScreen";
 
 
 export default function groupList() {
@@ -19,7 +19,7 @@ export default function groupList() {
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <GroupListScreen
+            <ListScreen
                 groups={groups}
                 currentUser={profile}
                 onEnterRoom={onEnterRoom}

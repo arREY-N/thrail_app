@@ -2,9 +2,9 @@ import { Stack } from "expo-router";
 import React from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import LeaderboardScreen from "@/src/features/Community/screens/LeaderboardScreen";
+import LeaderboardScreen from "@/src/features/Community/screens/Leaderboard/LeaderboardScreen";
 
-export default function leaderboardRoute() {
+export default function Leaderboard() {
     const {
         onBackPress
     } = useAppNavigation();
