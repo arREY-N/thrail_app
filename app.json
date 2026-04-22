@@ -44,7 +44,8 @@
         "expo-asset",
         {
           "assets": [
-            "assets/fonts",
+            "assets/fonts/Noto Sans Medium",
+            "assets/fonts/Noto Sans Regular",
             "assets/tiles"
           ]
         }
