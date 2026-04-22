@@ -100,14 +100,14 @@ export const Colors = {
     STATUS_CANCELLED_BORDER:Palette.Red100,
 
     // Weather
-    WEATHER_SAFE_BG:        Palette.Green700,
-    WEATHER_SAFE_TEXT:      Palette.White,
+    WEATHER_SAFE_MAIN:      Palette.Green700,
+    WEATHER_SAFE_BG:        Palette.Green50,
     
-    WEATHER_CAUTION_BG:     Palette.Yellow600, 
-    WEATHER_CAUTION_TEXT:   Palette.TrueBlack,
+    WEATHER_CAUTION_MAIN:   Palette.Yellow700, 
+    WEATHER_CAUTION_BG:     Palette.Yellow50,
     
-    WEATHER_DANGER_BG:      Palette.Red700,
-    WEATHER_DANGER_TEXT:    Palette.White,
+    WEATHER_DANGER_MAIN:    Palette.Red700,
+    WEATHER_DANGER_BG:      Palette.Red50,
 };
 
 // Color Samples
