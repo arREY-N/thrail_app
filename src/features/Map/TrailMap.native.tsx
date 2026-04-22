@@ -110,6 +110,12 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
         require("../../assets/tiles/thrail-offline-map.pmtiles"),
       );
 
+      try {
+        await asset.downloadAsync();
+      } catch (e) {
+        console.warn("⚠️ asset.downloadAsync() failed, falling back to manual retry loop...");
+      }
+
       if (asset.localUri) {
         await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
       } else {
