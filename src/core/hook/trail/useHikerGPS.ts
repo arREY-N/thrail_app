@@ -30,6 +30,25 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   await saveToCSV(lat, lon, alt, timestamp);
 });
 
+/**
+ * A comprehensive hook that manages real-time and background GPS tracking for hikers.
+ *
+ * This hook serves as the central location engine for the app, handling:
+ * 1. **Service Validation**: Checks if device GPS hardware is enabled.
+ * 2. **Permission Management**: Orchestrates Foreground and Background permission requests.
+ * 3. **Dual-Mode Tracking**: 
+ *    - Foreground: Uses `watchPositionAsync` for low-latency UI updates (map markers).
+ *    - Background: Uses `startLocationUpdatesAsync` via a TaskManager task to track progress while the screen is off.
+ * 4. **Signal Monitoring**: Detects GPS signal loss (heartbeat) and manages error states in the global store.
+ * 5. **Data Persistence**: Automatically logs coordinates to local CSV storage and updates the global Hike store.
+ *
+ * @returns {Object} An object containing GPS state and control functions.
+ * @property {boolean} permissionGranted - True if location permissions (foreground) have been authorized.
+ * @property {boolean} isOnline - Real-time network reachability status.
+ * @property {[number, number] | null} userLocation - Current `[longitude, latitude]` for immediate map centering.
+ * @property {[number, number][]} routeCoordinates - Breadcrumb path of the current session as `[lon, lat]` array.
+ * @property {Function} exportHikeData - Utility to trigger a file export of the recorded hike data.
+ */
 export const useHikerGPS = () => {
   const addCoordinate = useHikesStore((state: HikeState) => state.addCoordinate);
   const updateHikeStore = useHikesStore((state: HikeState) => state.updateHikeStore);

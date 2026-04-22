@@ -1,5 +1,6 @@
 import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupLocation from "@/src/core/hook/group/useGroupLocation";
+import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
@@ -17,6 +18,10 @@ export default function groupLocation() {
         currentGroup,
         booking,
     } = useGroup(groupId);
+
+    const {
+        permissionGranted
+    } = useHikerGPS();
 
     const {
         onStartSharingLocation,

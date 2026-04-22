@@ -65,7 +65,8 @@ export function useNotifyPermission() {
         };
 
         fetchToken();
-    }, [profile?.id, addUserNotificationToken]);
+    }, [profile?.id]);
+    
 
     return token;
 }
