@@ -16,7 +16,7 @@ import { useLocation } from '@/src/hooks/useLocation';
 const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) => {
 
     const { icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
-    const { locationName: displayName, geocodedName } = useLocation({ propLocationName: locationName})
+    const { geocodedName } = useLocation({ propLocationName: locationName });
 
     const hasData = weatherData && !loading && !error;
     const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : '--';
@@ -25,6 +25,12 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
     const today = weatherData?.forecast?.[0];
     const dayTemp = today?.temperatureMax !== undefined ? Math.round(today.temperatureMax) : '--';
     const nightTemp = today?.temperatureMin !== undefined ? Math.round(today.temperatureMin) : '--';
+
+    const displayLocationText = loading 
+        ? 'Detecting location...' 
+        : error 
+            ? 'Location unavailable' 
+            : (geocodedName || locationName || 'Unknown location');
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
@@ -47,14 +53,13 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
                             size={16}
                             color={Colors.PRIMARY} 
                         />
-                        {geocodedName && (
-                            <CustomText 
-                                variant="label" 
-                                style={styles.locationText}
-                                numberOfLines={1}>
-                                    {loading ? 'Locating...' : (error ? 'Location Error' : (geocodedName))}
-                            </CustomText>
-                        )}
+                        <CustomText 
+                            variant="label" 
+                            style={styles.locationText}
+                            numberOfLines={1}
+                        >
+                            {displayLocationText}
+                        </CustomText>
                     </View>
                 </View>
 
@@ -119,9 +124,11 @@ const styles = StyleSheet.create({
     },
     
     leftColumn: {
+        flex: 1,
         justifyContent: 'center',
         gap: 12,
-        paddingBottom: 8
+        paddingBottom: 8,
+        paddingRight: 16,
     },
     tempWrapper: {
         flexDirection: 'row',
@@ -149,12 +156,14 @@ const styles = StyleSheet.create({
     },
     locationText: {
         color: Colors.TEXT_SECONDARY,
+        flexShrink: 1,
     },
 
     rightColumn: {
         alignItems: 'flex-end',
         justifyContent: 'center',
         gap: 12,
+        flexShrink: 0,
     },
     hiLoBadge: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
