@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Image,
-    Keyboard,
+    KeyboardAvoidingView,
     Linking,
     Platform,
     StyleSheet,
     TouchableOpacity,
-    useWindowDimensions,
     View
 } from 'react-native';
 import {
@@ -15,6 +14,7 @@ import {
     Day,
     GiftedChat,
     InputToolbar,
+    MessageText,
     Time
 } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const CustomComposer = (props) => {
     const [isFocused, setIsFocused] = useState(false);
@@ -52,6 +53,9 @@ const CustomComposer = (props) => {
     );
 };
 
+const BUBBLE_H_PAD = 11;
+const BUBBLE_V_PAD = 7;
+
 const isImageUrl = (url) => {
     if (!url) return false;
     return url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media');
@@ -67,21 +71,17 @@ const RoomScreen = ({
     headerTitle,
     onBackPress,
     onAttachPress,
-    onLocationPress
+    onLocationPress,
+    isUploading
 }) => {
     const insets = useSafeAreaInsets();
-    const { width: screenWidth } = useWindowDimensions();
+    const { isDesktop, width: screenWidth } = useBreakpoints();
     const [previewImage, setPreviewImage] = useState(null);
-    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
-    useEffect(() => {
-        const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-        const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
-    }, []);
+    const MAX_WEB_WIDTH = 800;
+    const currentContainerWidth = isDesktop ? Math.min(screenWidth, MAX_WEB_WIDTH) : screenWidth;
+
+    const maxBubbleWidth = currentContainerWidth * 0.72;
 
     const giftedChatMessages = useMemo(() => {
         if (!messages) return [];
@@ -90,6 +90,8 @@ const RoomScreen = ({
             let image = undefined;
             let isDocument = false;
             let fileUrl = undefined;
+            
+            let isEmergency = text && text.includes('Send help!');
 
             if (text && text.startsWith('[Attachment]:')) {
                 const url = text.replace('[Attachment]:', '').trim();
@@ -103,6 +105,11 @@ const RoomScreen = ({
                 }
             }
 
+            else if (isImageUrl(text)) {
+                image = text.trim();
+                text = '';
+            }
+
             return {
                 _id: m.id,
                 text: text,
@@ -114,7 +121,8 @@ const RoomScreen = ({
                 readBy: m.readBy || [],
                 image: image,
                 isDocument: isDocument,
-                fileUrl: fileUrl
+                fileUrl: fileUrl,
+                isEmergency: isEmergency 
             };
         }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [messages]);
@@ -199,8 +207,16 @@ const RoomScreen = ({
         const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
         const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
 
+        const rightBubbleStyle = props.currentMessage.isEmergency 
+            ? [styles.bubbleRight, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] 
+            : [styles.bubbleRight, { maxWidth: maxBubbleWidth }];
+            
+        const leftBubbleStyle = props.currentMessage.isEmergency 
+            ? [styles.bubbleLeft, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] 
+            : [styles.bubbleLeft, { maxWidth: maxBubbleWidth }];
+
         return (
-            <View style={styles.bubbleWrapper}>
+            <View style={[styles.bubbleWrapper, isRight ? styles.bubbleWrapperRight : styles.bubbleWrapperLeft]}>
                 {showNameHeader && (
                     <View style={styles.nameHeaderContainer}>
                         <CustomText variant="caption" style={styles.senderNameText}>
@@ -209,15 +225,11 @@ const RoomScreen = ({
                         
                         {isAdmin ? (
                             <View style={styles.adminBadge}>
-                                <CustomText variant="caption" style={styles.adminBadgeText}>
-                                    Admin
-                                </CustomText>
+                                <CustomText variant="caption" style={styles.adminBadgeText}>Admin</CustomText>
                             </View>
                         ) : (
                             <View style={styles.hikerBadge}>
-                                <CustomText variant="caption" style={styles.hikerBadgeText}>
-                                    Hiker
-                                </CustomText>
+                                <CustomText variant="caption" style={styles.hikerBadgeText}>Hiker</CustomText>
                             </View>
                         )}
                     </View>
@@ -226,16 +238,12 @@ const RoomScreen = ({
                 <Bubble
                     {...props}
                     wrapperStyle={{
-                        right: styles.bubbleRight,
-                        left: styles.bubbleLeft,
+                        right: rightBubbleStyle,
+                        left: leftBubbleStyle,
                     }}
                     textStyle={{
-                        right: styles.textRight,
-                        left: styles.textLeft,
-                    }}
-                    bottomContainerStyle={{
-                        right: styles.timeContainerRight,
-                        left: styles.timeContainerLeft,
+                        right: props.currentMessage.isEmergency ? styles.emergencyText : styles.textRight,
+                        left: props.currentMessage.isEmergency ? styles.emergencyText : styles.textLeft,
                     }}
                 />
 
@@ -251,9 +259,40 @@ const RoomScreen = ({
         );
     };
 
+    const renderMessageText = (props) => {
+        const isEmergency = props.currentMessage.isEmergency;
+        return (
+            <MessageText
+                {...props}
+                containerStyle={{
+                    left: styles.messageTextContainer,
+                    right: styles.messageTextContainer,
+                }}
+                textStyle={{
+                    right: isEmergency ? styles.emergencyText : styles.textRight,
+                    left: isEmergency ? styles.emergencyText : styles.textLeft,
+                }}
+                customTextStyle={styles.messageTextCustom}
+                linkStyle={{
+                    right: isEmergency
+                        ? { color: '#B71C1C', textDecorationLine: 'underline' }
+                        : { color: 'rgba(255,255,255,0.9)', textDecorationLine: 'underline' },
+                    left: isEmergency
+                        ? { color: '#B71C1C', textDecorationLine: 'underline' }
+                        : { color: Colors.PRIMARY, textDecorationLine: 'underline' },
+                }}
+            />
+        );
+    };
+
     const renderMessageImage = (props) => {
-        const dynamicImageWidth = Math.min(screenWidth * 0.65, 260);
-        const dynamicImageHeight = dynamicImageWidth * 0.75;
+        const absoluteMaxImgWidth = isDesktop ? 350 : 260;
+        const dynamicImageWidth = Math.min(
+            currentContainerWidth * 0.65, 
+            absoluteMaxImgWidth,
+            maxBubbleWidth - (BUBBLE_H_PAD * 2)
+        );
+        const dynamicImageHeight = dynamicImageWidth * 0.75; 
 
         return (
             <View style={styles.imageWrapperContainer}>
@@ -267,7 +306,8 @@ const RoomScreen = ({
                         style={{
                             width: dynamicImageWidth,
                             height: dynamicImageHeight,
-                            borderRadius: 13,
+                            borderRadius: 12,
+                            backgroundColor: Colors.GRAY_LIGHT,
                         }} 
                         resizeMode="cover" 
                     />
@@ -335,26 +375,45 @@ const RoomScreen = ({
         />
     );
 
-    const renderTime = (props) => (
-        <Time 
-            {...props} 
-            timeTextStyle={{ 
-                right: styles.timeTextRight, 
-                left: styles.timeTextLeft 
-            }} 
-        />
-    );
+    const renderTime = (props) => {
+        const isEmergency = props.currentMessage.isEmergency;
+        const isLeft = props.position === 'left';
+
+        return (
+            <View style={isLeft ? styles.timeWrapperLeft : styles.timeWrapperRight}>
+                <Time 
+                    {...props} 
+                    containerStyle={{
+                        left: styles.timeContainerLeft,
+                        right: styles.timeContainerRight,
+                    }}
+                    timeTextStyle={{ 
+                        right: [styles.timeTextRight, isEmergency && { color: '#B71C1C' }], 
+                        left: [styles.timeTextLeft, isEmergency && { color: '#B71C1C' }],
+                    }} 
+                />
+            </View>
+        );
+    };
 
     const renderInputToolbar = (props) => {
-        const androidPadding = isKeyboardVisible ? 8 : (insets.bottom + 8);
-        const paddingBottom = Platform.OS === 'android' ? androidPadding : 8;
-
         return (
             <InputToolbar 
                 {...props} 
-                containerStyle={[styles.inputToolbar, { paddingBottom }]} 
+                containerStyle={[styles.inputToolbar, { width: '100%' }]} 
                 primaryStyle={styles.inputToolbarPrimary} 
             />
+        );
+    };
+
+    const renderFooter = () => {
+        if (!isUploading) return null;
+        return (
+            <View style={{ padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginRight: 16 }}>
+                <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginRight: 8, fontStyle: 'italic' }}>
+                    Uploading attachment...
+                </CustomText>
+            </View>
         );
     };
 
@@ -421,39 +480,47 @@ const RoomScreen = ({
                 }
             />
             
-            <View style={styles.container}>
-                <GiftedChat
-                    messages={giftedChatMessages}
-                    onSend={messages => onSend(messages)}
-                    user={{
-                        _id: currentUser?.id || '',
-                        name: currentUser?.username || 'User',
-                    }}
-                    renderBubble={renderBubble}
-                    renderMessageImage={renderMessageImage}
-                    renderCustomView={renderCustomView} 
-                    renderInputToolbar={renderInputToolbar}
-                    renderActions={renderActions}
-                    renderComposer={renderComposer}
-                    renderSend={renderSend}
-                    renderDay={renderDay}
-                    renderTime={renderTime}
-                    
-                    renderAvatarOnTop={true}
-                    renderUsernameOnMessage={false} 
-                    showAvatarForEveryMessage={false}
-                    
-                    bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
-                    placeholder="Type a message..."
-                    alwaysShowSend={true}
-                    listViewProps={listViewProps}
-                />
+            <View style={[styles.container, { 
+                paddingBottom: Platform.OS === 'android' ? insets.bottom : 0,
+                alignItems: 'center'
+            }]}>
+                <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
+                    <KeyboardAvoidingView
+                        style={styles.container}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    >
+                        <GiftedChat
+                            messages={giftedChatMessages}
+                            onSend={messages => onSend(messages)}
+                            user={{
+                                _id: currentUser?.id || '',
+                                name: currentUser?.username || 'User',
+                            }}
+                            renderBubble={renderBubble}
+                            renderMessageText={renderMessageText}
+                            renderMessageImage={renderMessageImage}
+                            renderCustomView={renderCustomView} 
+                            renderInputToolbar={renderInputToolbar}
+                            renderActions={renderActions}
+                            renderComposer={renderComposer}
+                            renderSend={renderSend}
+                            renderDay={renderDay}
+                            renderTime={renderTime}
+                            renderFooter={renderFooter}
+                            
+                            renderAvatarOnTop={true}
+                            renderUsernameOnMessage={false} 
+                            showAvatarForEveryMessage={false}
+                            
+                            bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
+                            placeholder="Type a message..."
+                            alwaysShowSend={true}
+                            listViewProps={listViewProps}
+                        />
+                    </KeyboardAvoidingView>
+                </View>
             </View>
-
-            {/* The Magic Spacer for Android */}
-            {Platform.OS === 'android' && !isKeyboardVisible && (
-                <View style={{ height: insets.bottom, backgroundColor: Colors.BACKGROUND }} />
-            )}
 
             <ImagePreviewModal 
                 visible={previewImage !== null}
@@ -472,11 +539,8 @@ const styles = StyleSheet.create({
     headerActionIcon: { 
         padding: 4 
     },
-
     bubbleWrapper: { 
         marginBottom: 4, 
-        flexShrink: 1, 
-        maxWidth: '100%' 
     },
     nameHeaderContainer: { 
         flexDirection: 'row', 
@@ -490,7 +554,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontWeight: 'bold' 
     },
-
     adminBadge: { 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         paddingHorizontal: 6, 
@@ -505,7 +568,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', 
         textTransform: 'uppercase' 
     },
-
     hikerBadge: { 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         paddingHorizontal: 6, 
@@ -527,8 +589,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 16, 
         borderBottomLeftRadius: 16, 
         borderBottomRightRadius: 4, 
-        padding: 2, 
-        flexShrink: 1 
+        alignSelf: 'flex-end',
+        overflow: 'hidden', 
     },
     bubbleLeft: { 
         backgroundColor: Colors.WHITE, 
@@ -536,7 +598,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 16, 
         borderBottomLeftRadius: 4, 
         borderBottomRightRadius: 16, 
-        padding: 2, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
         shadowColor: Colors.SHADOW, 
@@ -544,19 +605,54 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05, 
         shadowRadius: 2, 
         elevation: 1, 
-        flexShrink: 1 
+        alignSelf: 'flex-start',
+        overflow: 'hidden', 
+    },
+
+    emergencyBubble: {
+        backgroundColor: '#FFF5F5',
+        borderWidth: 2,
+        borderColor: '#D32F2F',
+    },
+    emergencyText: {
+        color: '#B71C1C',
+        fontSize: 15,
+        fontWeight: '600',
+        lineHeight: 22,
+    },
+
+    bubbleWrapperRight: {
+        alignItems: 'flex-end',
+    },
+    bubbleWrapperLeft: {
+        alignItems: 'flex-start',
     },
 
     imageWrapperContainer: {
-        width: '100%',
+        paddingHorizontal: BUBBLE_H_PAD,
+        paddingVertical: BUBBLE_V_PAD,
+        paddingBottom: 2, 
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     imageTouchable: {
         overflow: 'hidden',
-        borderRadius: 13,
-        margin: 3
+        borderRadius: 12,
     },
+
+    messageTextContainer: {
+        paddingHorizontal: BUBBLE_H_PAD,
+        paddingVertical: BUBBLE_V_PAD,
+        marginTop: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        marginRight: 0,
+    },
+    messageTextCustom: {
+        flexShrink: 1,
+        flexWrap: 'wrap',
+    },
+
     textRight: { 
         color: Colors.WHITE, 
         fontSize: 15, 
@@ -567,14 +663,14 @@ const styles = StyleSheet.create({
         fontSize: 15, 
         lineHeight: 22 
     },
-
     attachmentContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        padding: 12, 
+        paddingHorizontal: BUBBLE_H_PAD,
+        paddingVertical: BUBBLE_V_PAD,
         gap: 12, 
         minWidth: 200, 
-        maxWidth: 250, 
+        maxWidth: '100%', 
         overflow: 'hidden' 
     },
     attachmentIconBox: { 
@@ -584,41 +680,25 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center' 
     },
-    attachmentIconBoxRight: { 
-        backgroundColor: Colors.WHITE 
-    },
-    attachmentIconBoxLeft: { 
-        backgroundColor: Colors.PRIMARY 
-    },
-    attachmentTextGroup: { 
-        flexShrink: 1 
-    },
-    attachmentTitle: { 
-        fontWeight: 'bold', 
-        fontSize: 14 
-    },
-    attachmentTitleRight: { 
-        color: Colors.WHITE 
-    },
-    attachmentTitleLeft: { 
-        color: Colors.TEXT_PRIMARY 
-    },
-    attachmentSubtitle: { 
-        fontSize: 12, 
-        marginTop: 2 
-    },
-    attachmentSubtitleRight: { 
-        color: 'rgba(255,255,255,0.8)' 
-    },
-    attachmentSubtitleLeft: { 
-        color: Colors.TEXT_SECONDARY 
-    },
-
+    attachmentIconBoxRight: { backgroundColor: Colors.WHITE },
+    attachmentIconBoxLeft: { backgroundColor: Colors.PRIMARY },
+    attachmentTextGroup: { flexShrink: 1 },
+    attachmentTitle: { fontWeight: 'bold', fontSize: 14 },
+    attachmentTitleRight: { color: Colors.WHITE },
+    attachmentTitleLeft: { color: Colors.TEXT_PRIMARY },
+    attachmentSubtitle: { fontSize: 12, marginTop: 2 },
+    attachmentSubtitleRight: { color: 'rgba(255,255,255,0.8)' },
+    attachmentSubtitleLeft: { color: Colors.TEXT_SECONDARY },
+    
     timeContainerRight: { 
-        justifyContent: 'flex-end' 
+        alignSelf: 'flex-end', 
+        marginRight: 12,
+        marginBottom: 8,
     },
     timeContainerLeft: { 
-        justifyContent: 'flex-end' 
+        alignSelf: 'flex-start', 
+        marginLeft: 12,
+        marginBottom: 8,
     },
     timeTextRight: { 
         color: 'rgba(255, 255, 255, 0.7)', 
@@ -628,7 +708,15 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontSize: 10 
     },
-
+    timeWrapperLeft: {
+        alignSelf: 'flex-start',
+        width: '100%',
+    },
+    timeWrapperRight: {
+        alignSelf: 'flex-end',
+        width: '100%',
+    },
+    
     readReceiptContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -641,7 +729,6 @@ const styles = StyleSheet.create({
         fontSize: 10, 
         color: Colors.TEXT_SECONDARY 
     },
-
     dayWrapper: { 
         backgroundColor: Colors.GRAY_MEDIUM, 
         paddingHorizontal: 16, 
@@ -655,17 +742,17 @@ const styles = StyleSheet.create({
         fontSize: 12, 
         fontWeight: 'bold' 
     },
-
+    
     inputToolbar: { 
         backgroundColor: Colors.BACKGROUND, 
         borderTopWidth: 0, 
         paddingHorizontal: 12, 
         paddingTop: 8, 
+        paddingBottom: 8, 
     },
     inputToolbarPrimary: { 
         alignItems: 'flex-end' 
     },
-
     actionButtonContainer: { 
         height: 44, 
         justifyContent: 'center', 
@@ -680,7 +767,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center' 
     },
-
     composerTextInput: { 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         color: Colors.TEXT_PRIMARY, 
@@ -702,7 +788,6 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY, 
         backgroundColor: Colors.WHITE 
     },
-
     sendContainer: { 
         justifyContent: 'center', 
         alignItems: 'center', 

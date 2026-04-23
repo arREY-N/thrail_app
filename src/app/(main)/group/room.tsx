@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 
 import { useGroup } from "@/src/core/hook/group/useGroup";
@@ -16,7 +16,8 @@ export default function groupRoom() {
 
     const { profile } = useAuthHook();
     const { onBackPress } = useAppNavigation();
-    
+    const [isUploading, setIsUploading] = useState(false);
+
     const {  
         currentGroup,
         onViewGroupLocation,
@@ -32,12 +33,15 @@ export default function groupRoom() {
 
     const handleAttachPress = async () => {
         try {
+            setIsUploading(true);
             const url = await uploadDocument();
             if (url) {
                 sendMessage(`[Attachment]: ${url}`);
             }
         } catch (error) {
             console.log("Upload failed or canceled:", error);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -54,9 +58,6 @@ export default function groupRoom() {
     return(
         <>
             <Stack.Screen options={{  headerShown: false }} />
-            {/* <Pressable onPress={() => onViewGroupLocation(currentGroup.id)}>
-                <Text>View Location for group: {headerTitle} </Text>
-            </Pressable> */}
             <RoomScreen
                 roomId={roomId}
                 messages={messages}
@@ -68,6 +69,7 @@ export default function groupRoom() {
                 onBackPress={onBackPress}         
                 onAttachPress={handleAttachPress}
                 onLocationPress={() => onViewGroupLocation(currentGroup.id)}
+                isUploading={isUploading} 
             />
         </>
     )
