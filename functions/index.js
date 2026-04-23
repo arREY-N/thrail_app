@@ -336,7 +336,7 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
             .collection('notifications')
             .add({
                 title: "Booking Reminder",
-                message: `Hello! You're booking for ${trailName} on ${reminderDate} is quickly approaching. Be sure to have your things prepared ahead of time. Double check the weather and coordinate with your hikemates through the group chat in case of unexpected scenarios.`,
+                message: `Hello! Your booking for ${trailName} on ${reminderDate} is quickly approaching. Be sure to have your things prepared ahead of time. Double check the weather and coordinate with your hikemates through the group chat in case of unexpected scenarios.`,
                 createdAt: FieldValue.serverTimestamp(),
                 read: false,
                 metadata: {
@@ -345,8 +345,11 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 }                
             });
 
-        const tokens = userDoc.data()?.fcmTokens || [];
+        
+        const tokenList = userDoc.data()?.fcmTokens || [];
 
+        const tokens = tokenList.filter(t => t.platform === 'android' || t.platform === 'ios');
+        
         if (!tokens.length) {
             console.log('No tokens found for user:', userId);
             res.status(200).send('No tokens to send reminder');
@@ -381,8 +384,10 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 .doc(userId)
                 .update({ fcmTokens: validTokens });
         }
+
+        res.status(200).send('Success')
     } catch (error) {
-        throw new HttpsError('internal', 'Error sending booking reminder: ' + error.message);
+        res.status(500).send('Internal server error');
     }
 });
 
