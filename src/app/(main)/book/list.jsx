@@ -36,7 +36,7 @@ export default function listBook(){
 		);
 	}
 
-    const displayBookings = [...DummyBookings, ...(bookings || [])]
+    const displayBookings = [...(bookings || [])];
     
     return(
 		<MyBookingsScreen 
