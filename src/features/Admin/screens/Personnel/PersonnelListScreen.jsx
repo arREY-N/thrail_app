@@ -148,12 +148,16 @@ const styles = StyleSheet.create({
     },
     headerAddBtn: { 
         paddingHorizontal: 16, 
+        paddingVertical: 0,
         height: 32, 
+        width: 70,
         borderRadius: 16, 
-        minWidth: 60, 
+        justifyContent: 'center', 
+        alignItems: 'center',     
+        alignSelf: 'center',
     },
     headerAddBtnText: { 
-        fontSize: 13, 
+        fontSize: 12, 
         fontWeight: 'bold', 
     },
     list: { 
