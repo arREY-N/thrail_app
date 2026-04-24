@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/src/core/stores/authStore";
+import { router } from "expo-router";
 
 export function useAuthHook(){
     const role = useAuthStore(s => s.role);
@@ -11,7 +12,7 @@ export function useAuthHook(){
     const reset = useAuthStore(s => s.reset);
     const onLogIn = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
-    const onForgotPassword = useAuthStore(s => s.forgotPassword);
+    const password = useAuthStore(s => s.forgotPassword);
     const onGmailLogIn = useAuthStore(s => s.gmailLogIn)
     const signOut = useAuthStore(s => s.signOut);
 
@@ -20,6 +21,21 @@ export function useAuthHook(){
 
     const onSignOutPress = () => {
         signOut(); 
+    }
+
+    const onForgotPassword = () => {
+        router.push({
+            pathname: "/(auth)/forgotPassword"  
+        })
+    }
+
+    const forgotPassword = (email: string) => {
+        try {
+            password(email);
+            router.push('/(auth)/landing');
+        } catch (error) {
+            console.error("Forgot password error:", error);
+        }
     }
    
     return {
@@ -36,6 +52,7 @@ export function useAuthHook(){
         onLogIn,
         onRememberMePress,
         onForgotPassword,
+        forgotPassword,
         onSignOutPress,
         onGmailLogIn,
     }

@@ -9,6 +9,7 @@ import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
 	User as FirebaseUser,
 	onIdTokenChanged,
+	sendPasswordResetEmail,
 	signOut,
 	Unsubscribe
 } from "firebase/auth";
@@ -39,7 +40,7 @@ export interface AuthState {
 	reset: () => void;
 	logIn: (email: string, password: string) => Promise<void>;
 	rememberMe: () => boolean;
-	forgotPassword: () => void;
+	forgotPassword: (email: string) => Promise<void>;
 	validateSignUp: () => Promise<boolean>;
 	editAccount: (data: SignUp) => void;
 	gmailSignUp: () => void;
@@ -304,10 +305,29 @@ export const useAuthStore = create<AuthState>()(
 			}
 		},
 
-		forgotPassword: () => {
-			set({
-				error: "Function to be added soon",
-			});
+		forgotPassword: async (email: string) => {
+			try {
+				set({ isLoading: true, error: null });
+
+				const actionCodeSettings = {
+					url: 'https://thrail.firebaseapp.com/login', 
+					handleCodeInApp: true, 
+					iOS: {
+						bundleId: 'com.thesis.thrail',
+					},
+					android: {
+						packageName: 'com.thesis.thrail',
+						installApp: true,
+						minimumVersion: '12',
+					},
+				};
+
+				await sendPasswordResetEmail(auth, email, actionCodeSettings);
+
+			} catch (error) {
+				console.log("Forgot password error:", error);
+				set({ isLoading: false, error: (error as Error).message || "Failed to initiate password reset" });
+			} 
 		},
 	})),
 );
