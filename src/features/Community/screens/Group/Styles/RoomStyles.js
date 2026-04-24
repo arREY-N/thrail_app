@@ -1,7 +1,6 @@
 import { Colors } from '@/src/constants/colors';
 import { Platform, StyleSheet } from 'react-native';
 
-// Single source of truth for inner bubble padding — text, image, and document all use these
 export const BUBBLE_H_PAD = 11;
 export const BUBBLE_V_PAD = 7;
 

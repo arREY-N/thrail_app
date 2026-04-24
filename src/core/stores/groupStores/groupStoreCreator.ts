@@ -13,8 +13,11 @@ export interface GroupState {
 
     messagesByGroup: Record<string, Message[]>;
     activeListeners: Record<string, Unsubscribe>;
+    messageLimits: Record<string, number>; // Tracks pagination limit per group
+
     subscribeToGroup: (groupId: string) => void;
     unsubscribeFromGroup: (groupId: string) => void;
+    loadMoreMessages: (groupId: string) => void; // Triggers pagination
 
     setGroups: (groups: Group[]) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
@@ -32,12 +35,18 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     error: null,
     messagesByGroup: {},
     activeListeners: {},
+    messageLimits: {},
 
     subscribeToGroup: (groupId) => {
+        // If already listening, do not duplicate
         if(get().activeListeners[groupId]) return;
+
+        // Default to loading the 30 most recent messages
+        const limitCount = get().messageLimits[groupId] || 30;
 
         const unsubscribe = MessageRepository.listenToMessages(
             groupId,
+            limitCount, // Pass the limit to Firebase
             (messages) => set((state) => ({
                 messagesByGroup: {...state.messagesByGroup, [groupId]: messages}
             })
@@ -47,6 +56,43 @@ export const useGroupStore = create<GroupState>((set, get) => ({
             activeListeners: { 
                 ...state.activeListeners,
                 [groupId]: unsubscribe
+            },
+            messageLimits: {
+                ...state.messageLimits,
+                [groupId]: limitCount
+            }
+        }));
+    },
+
+    // Function to paginate older messages
+    loadMoreMessages: (groupId) => {
+        const currentLimit = get().messageLimits[groupId] || 30;
+        const newLimit = currentLimit + 30; // Increase by 30
+
+        // 1. Kill the old listener
+        const oldUnsubscribe = get().activeListeners[groupId];
+        if (oldUnsubscribe) {
+            oldUnsubscribe();
+        }
+
+        // 2. Start a new listener with the expanded limit
+        const newUnsubscribe = MessageRepository.listenToMessages(
+            groupId,
+            newLimit,
+            (messages) => set((state) => ({
+                messagesByGroup: {...state.messagesByGroup, [groupId]: messages}
+            })
+        ));
+
+        // 3. Update Zustand state
+        set((state) => ({
+            messageLimits: {
+                ...state.messageLimits,
+                [groupId]: newLimit
+            },
+            activeListeners: {
+                ...state.activeListeners,
+                [groupId]: newUnsubscribe
             }
         }));
     },

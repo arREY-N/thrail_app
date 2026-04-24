@@ -2,11 +2,11 @@ import { db } from "@/src/core/config/Firebase";
 import { Group, GroupConverter } from "@/src/core/models/Group/Group";
 import { Message, MessageConverter } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User.types";
-import { arrayUnion, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc, where } from "firebase/firestore";
 
 export interface ChatRepositoryInterface {
   listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe;
-  listenToMessages(groupId: string, onUpdate: (messages: Message[]) => void): Unsubscribe;
+  listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[]) => void): Unsubscribe; // add new props
   sendMessage(groupId: string, message: Message): Promise<void>;
   writeGroup(group: Group): Promise<void>;
   markMessageAsRead(groupId: string, messageId: string, userSummary: IUserSummary): Promise<void>;
@@ -42,10 +42,11 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
         });
     }
 
-    listenToMessages(groupId: string, onUpdate: (messages: Message[]) => void): Unsubscribe {
+    listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[]) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups', groupId, 'messages'),
-            orderBy('timesent', 'asc')
+            orderBy('timesent', 'desc'), // Flipped to desc to get the newest messages
+            limit(limitCount) // Capped to prevent Firebase read spikes
         ).withConverter(MessageConverter);
 
         return onSnapshot(q, (snapshot) => {
@@ -94,22 +95,28 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
     async markMessageAsRead(groupId: string, messageId: string, userSummary: IUserSummary): Promise<void> {
         try {
             const messageRef = doc(db, 'groups', groupId, 'messages', messageId);
+            const groupRef = doc(db, 'groups', groupId);
 
-            console.log('marking read in repo')
-            await updateDoc(
-                messageRef,
-                {
-                    readBy: arrayUnion({
-                        id: userSummary.id,
-                        username: userSummary.username,
-                        firstname: userSummary.firstname,
-                        lastname: userSummary.lastname,
-                        email: userSummary.email,
-                    })
-                }
-            )
-        } catch (error) {
+            const readUser = {
+                id: userSummary.id,
+                username: userSummary.username,
+                firstname: userSummary.firstname,
+                lastname: userSummary.lastname,
+                email: userSummary.email,
+            };
+
+            // Update the actual message
+            await updateDoc(messageRef, {
+                readBy: arrayUnion(readUser)
+            });
+
+            // Update the parent group so the Group List unread dot disappears
+            await updateDoc(groupRef, {
+                'lastMessage.readBy': arrayUnion(readUser)
+            });
             
+        } catch (error) {
+            console.error('Failed to mark as read:', error);
         }
     }
 }
