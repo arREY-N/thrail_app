@@ -7,7 +7,8 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 export type BookingStatus = 
     'for-reservation' | 
     'for-payment' | 
-    'paid'  |
+    'paid' |
+    'downpayment' |
     'completed' |
 
     'reservation-rejected' |
@@ -32,6 +33,8 @@ export interface IPayment<T> {
     referenceCode: string;
     status: 'pending' | 'captured' | 'failed' | 'refunded';
     refundableUntil: T;
+    amount: number;
+    createdAt: T;
 }
 
 export interface IBookingBase<T> {

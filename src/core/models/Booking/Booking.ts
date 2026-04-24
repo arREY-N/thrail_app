@@ -59,7 +59,8 @@ export class Booking implements IBooking {
             },
             payment: (data.payment || []).map(p => ({
                 ...p,
-                refundableUntil: toDate(p.refundableUntil)
+                refundableUntil: toDate(p.refundableUntil),
+                createdAt: toDate(p.createdAt),
             })),
             documents: data.documents || {}, // New
         }
@@ -87,6 +88,7 @@ export class Booking implements IBooking {
             payment: (this.payment || []).map(p => ({
                 ...p,
                 refundableUntil: this.refundableUntil ? Timestamp.fromDate(this.refundableUntil) : serverTimestamp(),
+                createdAt: this.createdAt ? Timestamp.fromDate(this.createdAt) : serverTimestamp(),
             })),
             emergencyContact: this.emergencyContact,
             documents: this.documents,
