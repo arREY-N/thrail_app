@@ -1,7 +1,42 @@
 import { getFirebaseMessaging } from '@/src/core/config/Firebase';
+import { useNotificationsStore } from "@/src/core/stores/notificationsStore";
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { getToken, onMessage } from 'firebase/messaging';
+import { useEffect } from "react";
 import { Platform } from 'react-native';
+
+
+export const useNotifications = () => {
+    const notifications = useNotificationsStore(s => s.notifications);
+    
+    const subscribeToNotifications = useNotificationsStore(s => s.subscribeToNotifications);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToNotifications();
+
+        return () => {
+            if(unsubscribe) 
+                unsubscribe();
+        }
+    },[subscribeToNotifications])
+
+    const onViewNotification = (notificationId: string) => {
+        if(notificationId){
+            router.push({
+                pathname: '/(main)/notification/view',
+                params: {
+                    notificationId
+                }
+            })
+        }
+    }
+
+    return {
+        notifications,
+        onViewNotification
+    }
+}
 
 export const requestNotificationPermission = async () => {
     console.log("Requesting notification permission...");
