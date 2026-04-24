@@ -1,18 +1,17 @@
+import { functions } from "@/src/core/config/Firebase";
+import { payBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { PaymentLogic } from "@/src/core/models/Payment/logic/Payment.logic";
-import { Payment } from "@/src/core/models/Payment/Payment";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailsStore";
-import { functions } from "@/src/core/config/Firebase";
-import { httpsCallable } from "firebase/functions";
 import { router } from "expo-router";
+import { httpsCallable } from "firebase/functions";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
 
@@ -103,20 +102,40 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    const onPayOffer = (amount: number) => {
+    /**
+     * RAVEN
+     * TODO: use this function to connect the UI to the payment gateway (payBooking)
+     * Revise the function parameters if needed to accommodate the payment gateway's requirements.
+     */
+    const onPayOffer = async () => {
         try {
-            // TODO connect to gateway and get the receipt
             if(!booking)
                 throw new Error('No booking found');
 
-            const payment = new Payment();
-            const summary = PaymentLogic.toSummary(payment);
-            setBooking(prev => 
-                produce(prev, (draft) => {
-                    if(!draft) return;
-                    BookingLogic.toPay(draft, summary);
-                })
-            )
+            if(!profile) 
+                throw new Error('No user found');
+            
+            /**
+             * RAVEN
+             * TODO: connect payment gateway here and send a receipt based on the IPayment<Date> structure
+             * Revise the function parameters if needed to accommodate the payment gateway's requirements.
+             */
+            const response = payBooking({
+                amount: booking.offer.price,
+                bookingId: booking.id,
+                userId: profile.id,
+            });
+
+            const paidBooking = new Booking({
+                ...booking,
+                payment: [...(booking.payment || []), response],
+            })
+
+            const data = await createBooking(paidBooking);
+
+            console.log('Booking data with payment: ', data);
+
+            setBooking(data);
         } catch (error) {
             setLocalError((error as Error).message || 'Failed setting payment')
         }
