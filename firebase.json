@@ -11,7 +11,9 @@
         "*.local"
       ],
       "source": "functions",
-      "predeploy": ["npm --prefix functions run lint"]
+      "predeploy": [
+        "npm --prefix functions run lint"
+      ]
     }
   ],
   "firestore": {
@@ -49,5 +51,19 @@
   },
   "database": {
     "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
