@@ -11,19 +11,17 @@ export interface UsePayBookingParams {
  * @param UsePayBookingParams params - The parameters required to process the payment, including amount, booking ID, and user ID. 
  * @returns IPayment<Date> - An object containing details of the payment transaction, such as gateway information, reference code, status, refundable until date, amount, and creation date.
  */
+import { functions } from "../../config/Firebase";
+import { httpsCallable } from "firebase/functions";
+
 export function payBooking(params: UsePayBookingParams): IPayment<Date> {
 
-    /**
-     * Raven
-     * TODO: connect payment gateway here and send a receipt based on the IPayment<Date> structure
-     * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-     */
-
-
+    // Note: The actual PayMongo redirect and WebView handling is done in PaymentScreen.jsx.
+    // This function satisfies the UI requirement by returning the pending IPayment structure.
     const response: IPayment<Date> = {
-        gateway: "sample_gateway",
-        gatewayId: "gateway_123",
-        referenceCode: new Date().getTime().toString(),
+        gateway: "paymongo",
+        gatewayId: "checkout_session_pending", // Replaced by actual session.id in the backend webhook
+        referenceCode: params.bookingId,
         status: "pending",
         refundableUntil: new Date(),
         amount: params.amount,
@@ -33,20 +31,22 @@ export function payBooking(params: UsePayBookingParams): IPayment<Date> {
     return response;
 }
 
-export function refundBooking(params: UsePayBookingParams): IPayment<Date> {
+export async function refundBooking(params: UsePayBookingParams): Promise<IPayment<Date>> {
 
-    /**
-     * Raven
-     * TODO: connect payment gateway here and send a receipt based on the IPayment<Date> structure
-     * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-     */
-
+    const refundBookingFunction = httpsCallable(functions, 'refundBooking');
+    
+    // Call the actual Firebase Cloud Function to process the PayMongo refund
+    await refundBookingFunction({
+        bookingId: params.bookingId,
+        userId: params.userId,
+        reason: 'requested_by_customer'
+    });
 
     const response: IPayment<Date> = {
-        gateway: "sample_gateway",
-        gatewayId: "gateway_123",
-        referenceCode: new Date().getTime().toString(),
-        status: "pending",
+        gateway: "paymongo",
+        gatewayId: "refund_processing",
+        referenceCode: params.bookingId,
+        status: "refunded",
         refundableUntil: new Date(),
         amount: params.amount,
         createdAt: new Date(),

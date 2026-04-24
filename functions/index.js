@@ -723,8 +723,14 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
             .collection('bookings')
             .doc(bookingId)
             .update({
-                paymentStatus: 'pending',
-                paymentGateway: 'paymongo',
+                payment: admin.firestore.FieldValue.arrayUnion({
+                    gateway: 'paymongo',
+                    gatewayId: session.id,
+                    referenceCode: bookingId,
+                    status: 'pending',
+                    amount: amount,
+                    createdAt: new Date().toISOString()
+                }),
                 updatedAt: FieldValue.serverTimestamp()
             });
 
@@ -841,12 +847,28 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                     const refundableUntil = new Date(bookingData.offer.date.toDate());
                     refundableUntil.setDate(refundableUntil.getDate() - 7);
 
-                    await bookingDoc.ref.update({
-                        paymentStatus: 'captured',
-                        paymentGatewayId: gatewayId,
-                        paymentReferenceCode: referenceCode,
-                        status: 'paid',
+                    const payments = bookingData.payment || [];
+                    const pendingIdx = payments.findIndex(p => p.status === 'pending');
+                    
+                    const capturedPayment = {
+                        gateway: 'paymongo',
+                        gatewayId: gatewayId,
+                        referenceCode: referenceCode,
+                        status: 'captured',
                         refundableUntil: Timestamp.fromDate(refundableUntil),
+                        amount: amount,
+                        createdAt: Timestamp.now()
+                    };
+
+                    if (pendingIdx >= 0) {
+                        payments[pendingIdx] = capturedPayment;
+                    } else {
+                        payments.push(capturedPayment);
+                    }
+
+                    await bookingDoc.ref.update({
+                        payment: payments,
+                        status: 'paid',
                         updatedAt: FieldValue.serverTimestamp()
                     });
 
@@ -916,13 +938,18 @@ exports.cancelBooking = https.onCall(async (request) => {
     if (data.status === 'cancelled') return { success: true, message: 'Already cancelled' };
     
     // Only allow pre-payment cancellation
-    if (data.paymentStatus === 'captured' || data.status === 'paid') {
+    const payments = data.payment || [];
+    const hasCaptured = payments.some(p => p.status === 'captured');
+    
+    if (hasCaptured || data.status === 'paid') {
         throw new HttpsError('failed-precondition', 'Payment already completed. Please request a refund instead.');
     }
 
+    const updatedPayments = payments.map(p => p.status === 'pending' ? { ...p, status: 'failed' } : p);
+
     await bookingRef.update({
         status: 'cancelled',
-        paymentStatus: 'failed',
+        payment: updatedPayments,
         cancellationReason: reason || 'User initiated cancellation',
         cancelledBy: caller.uid,
         updatedAt: FieldValue.serverTimestamp()
@@ -960,7 +987,10 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     if (!bookingDoc.exists) throw new HttpsError('not-found', 'Booking not found');
     const data = bookingDoc.data();
 
-    if (data.paymentStatus !== 'captured') {
+    const payments = data.payment || [];
+    const capturedPayment = payments.find(p => p.status === 'captured');
+
+    if (!capturedPayment) {
         throw new HttpsError('failed-precondition', 'Cannot refund a booking that is not captured.');
     }
 
@@ -989,14 +1019,16 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     PaymentManager.registerProvider('paymongo', provider);
 
     try {
-        const gatewayId = data.paymentGatewayId;
+        const gatewayId = capturedPayment.gatewayId;
         const refundAmount = data.offer.price; // Usually based on offer price
         
-        await PaymentManager.getProvider(data.paymentGateway || 'paymongo').issueRefund(gatewayId, refundAmount, reason || 'requested_by_customer');
+        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, reason || 'requested_by_customer');
+
+        capturedPayment.status = 'refunded';
 
         await bookingRef.update({
             status: 'refunded',
-            paymentStatus: 'refunded',
+            payment: payments,
             updatedAt: FieldValue.serverTimestamp()
         });
 

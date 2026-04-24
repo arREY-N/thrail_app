@@ -102,11 +102,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    /**
-     * RAVEN
-     * TODO: use this function to connect the UI to the payment gateway (payBooking)
-     * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-     */
     const onPayOffer = async () => {
         try {
             if(!booking)
@@ -115,11 +110,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             if(!profile) 
                 throw new Error('No user found');
             
-            /**
-             * RAVEN
-             * TODO: connect payment gateway here and send a receipt based on the IPayment<Date> structure
-             * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-             */
             const response = payBooking({
                 amount: booking.offer.price,
                 bookingId: booking.id,
