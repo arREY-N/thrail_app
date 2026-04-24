@@ -1,6 +1,5 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
-import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
@@ -27,6 +26,14 @@ export type Requirements = {
     valid: 'pending' | 'approved' | 'rejected';
 }
 
+export interface IPayment<T> {
+    gateway: string;
+    gatewayId: string;
+    referenceCode: string;
+    status: 'pending' | 'captured' | 'failed' | 'refunded';
+    refundableUntil: T;
+}
+
 export interface IBookingBase<T> {
     id: string;
     createdAt: T;
@@ -35,17 +42,12 @@ export interface IBookingBase<T> {
     user: IUserSummary,
     business: IBusinessSummary
     trail: ITrailSummary
-    payment: IPaymentSummary<T>[];
+    payment: IPayment<T>[];
     status: BookingStatus
     emergencyContact: IEmergencyContact;
     documents: Requirements[]
     cancellationReason?: string;
     cancelledBy?: string;
-    paymentGateway?: string;
-    paymentGatewayId?: string;
-    paymentReferenceCode?: string;
-    paymentStatus?: 'pending' | 'captured' | 'failed' | 'refunded';
-    refundableUntil?: T;
 }
 
 export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}

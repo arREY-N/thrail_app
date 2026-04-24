@@ -1,7 +1,6 @@
-import { BookingStatus, IBooking, IBookingDB, Requirements } from "@/src/core/models/Booking/Booking.types";
+import { BookingStatus, IBooking, IBookingDB, IPayment, Requirements } from "@/src/core/models/Booking/Booking.types";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
-import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
@@ -15,14 +14,9 @@ export class Booking implements IBooking {
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
     status: BookingStatus = 'for-reservation';
-    payment: IPaymentSummary<Date>[] = [];
+    payment: IPayment<Date>[] = [];
     cancellationReason?: string = '';
     cancelledBy?: string = '';
-    paymentGateway?: string = '';
-    paymentGatewayId?: string = '';
-    paymentReferenceCode?: string = '';
-    paymentStatus?: 'pending' | 'captured' | 'failed' | 'refunded' = 'pending';
-    refundableUntil?: Date;
     offer: Pick<IOfferBase<Date>, "date" | "price" | "id"> = {
         date: new Date(),
         price: 0,
@@ -65,10 +59,9 @@ export class Booking implements IBooking {
             },
             payment: (data.payment || []).map(p => ({
                 ...p,
-                date: toDate(p.date),
+                refundableUntil: toDate(p.refundableUntil)
             })),
             documents: data.documents || {}, // New
-            refundableUntil: data.refundableUntil ? toDate(data.refundableUntil) : undefined,
         }
 
         return new Booking(mapped);
@@ -93,15 +86,10 @@ export class Booking implements IBooking {
             trail: this.trail,
             payment: (this.payment || []).map(p => ({
                 ...p,
-                date: Timestamp.fromDate(p.date),
+                refundableUntil: this.refundableUntil ? Timestamp.fromDate(this.refundableUntil) : serverTimestamp(),
             })),
             emergencyContact: this.emergencyContact,
-            documents: this.documents, // New
-            paymentGateway: this.paymentGateway,
-            paymentGatewayId: this.paymentGatewayId,
-            paymentReferenceCode: this.paymentReferenceCode,
-            paymentStatus: this.paymentStatus,
-            refundableUntil: this.refundableUntil ? Timestamp.fromDate(this.refundableUntil) : undefined,
+            documents: this.documents,
         }
 
         return mapped;
