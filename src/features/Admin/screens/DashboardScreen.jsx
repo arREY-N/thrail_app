@@ -72,9 +72,6 @@ const DashboardScreen = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                <CustomText variant="h2" style={styles.pageTitle}>
-                    Dashboard
-                </CustomText>
                 
                 {error && (
                     <View style={styles.errorBox}>
@@ -180,18 +177,12 @@ const DashboardScreen = ({
                         title="Manage Offers"
                         onPress={onManageOffersPress}
                         variant="primary"
-                        style={styles.actionBtn}
                     />
 
                     <CustomButton 
                         title="Manage Personnel"
                         onPress={onManageAdminsPress}
-                        variant="secondary"
-                        style={[
-                            styles.actionBtn, 
-                            { borderWidth: 1.5, borderColor: Colors.PRIMARY }
-                        ]}
-                        textStyle={{ color: Colors.PRIMARY }}
+                        variant="outline" 
                     />
                 </View>
 
@@ -217,13 +208,10 @@ const dropShadow = Platform.select({
 
 const styles = StyleSheet.create({
     scrollContent: { 
-        padding: 16, 
+        paddingTop: 8,
+        paddingHorizontal: 16, 
         paddingBottom: 40, 
         gap: 16 
-    },
-    pageTitle: { 
-        marginBottom: 8, 
-        color: Colors.TEXT_PRIMARY 
     },
     
     errorBox: { 
@@ -312,9 +300,6 @@ const styles = StyleSheet.create({
     },
     actionContainer: { 
         gap: 12 
-    },
-    actionBtn: { 
-        height: 54 
     },
 });
 
