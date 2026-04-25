@@ -86,23 +86,13 @@ const PaymentScreen = ({
                     
                     const checkoutUrl = response.checkout_url;
                     
-                    // Fallback to standard Linking for Android Emulator to avoid Custom Tab blank screen bugs
-                    if (Platform.OS === 'android') {
-                        await Linking.openURL(checkoutUrl);
-                    } else {
-                        const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, appUrl, {
-                            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                            toolbarColor: Colors.PRIMARY,
-                            windowName: 'PayMongoCheckout',
-                            windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
-                        });
-
-                        if (result.type !== 'success' || result.type === 'dismiss') {
-                            setIsSubmitting(false);
-                            setPaymentError("Payment process was cancelled.");
-                            return;
-                        }
-                    }
+                    // Use the in-app browser for a seamless experience
+                    await WebBrowser.openBrowserAsync(checkoutUrl, {
+                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+                        toolbarColor: Colors.PRIMARY,
+                        enableBarCollapsing: true,
+                        showTitle: true,
+                    });
 
                     // Proceed to Status, passing PayMongo source ID as the "receipt" 
                     // before going to the status tab
