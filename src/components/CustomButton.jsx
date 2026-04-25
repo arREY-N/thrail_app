@@ -5,10 +5,8 @@ import {
     StyleSheet
 } from 'react-native';
 
-import { Colors } from '@/src/constants/colors';
-
 import CustomText from '@/src/components/CustomText';
-
+import { Colors } from '@/src/constants/colors';
 
 const CustomButton = ({ 
     title, 
@@ -22,6 +20,7 @@ const CustomButton = ({
     
     let buttonStyle = styles.primary;
     let labelStyle = styles.textPrimary;
+    let useShadow = true;
 
     if (variant === 'secondary') {
         buttonStyle = styles.secondary;
@@ -29,6 +28,7 @@ const CustomButton = ({
     } else if (variant === 'outline') {
         buttonStyle = styles.outline;
         labelStyle = styles.textOutline;
+        useShadow = false;
     }
 
     return (
@@ -38,9 +38,10 @@ const CustomButton = ({
             style={({ pressed }) => [
                 styles.baseButton, 
                 buttonStyle, 
+                useShadow && !disabled && styles.shadows,
                 style,
                 pressed && !disabled && styles.pressed,
-                disabled && { opacity: 0.5 }
+                disabled && styles.disabledState
             ]}
         >
             {children ? (
@@ -61,65 +62,61 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-
-        ...Platform.select({
-            ios: {
-                shadowColor: Colors.SHADOW,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 3,
-            },
-            web: {
-                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)', 
-            }
-        })
     },
+    shadows: Platform.select({
+        ios: {
+            shadowColor: Colors.SHADOW,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+        },
+        android: {
+            elevation: 4,
+        },
+        web: {
+            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)', 
+        }
+    }),
     baseText: {
         fontWeight: 'bold',
+        fontSize: 16,
     },
     pressed: {
         opacity: 0.75, 
         transform: [{ scale: 0.98 }] 
     },
+    disabledState: {
+        opacity: 0.5,
+        ...Platform.select({
+            web: { cursor: 'not-allowed' }
+        })
+    },
 
     primary: {
         backgroundColor: Colors.PRIMARY,
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: Colors.PRIMARY,
     },
     textPrimary: {
-        color: Colors.TEXT_INVERSE,
+        color: Colors.WHITE,
     },
 
     secondary: {
         backgroundColor: Colors.WHITE, 
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
     },
     textSecondary: {
         color: Colors.TEXT_PRIMARY, 
     },
 
     outline: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT, 
-
-        ...Platform.select({
-            ios: {
-                shadowOpacity: 0,
-            },
-            android: {
-                elevation: 0,
-            },
-            web: {
-                boxShadow: 'none',
-            }
-        })
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderColor: Colors.PRIMARY, 
     },
     textOutline: {
-        color: Colors.TEXT_SECONDARY,
+        color: Colors.PRIMARY,
     },
 });
 
