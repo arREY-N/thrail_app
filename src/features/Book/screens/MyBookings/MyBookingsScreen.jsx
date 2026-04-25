@@ -23,6 +23,7 @@ const MyBookingsScreen = ({
     onBackPress,
     onCancelBookingPress,
     onRefundBookingPress, 
+    onPayOffer,
     getBookOffer
 }) => {
     const [currentView, setCurrentView] = useState('list'); 
@@ -154,6 +155,7 @@ const MyBookingsScreen = ({
                 bookingData={selectedBooking}
                 onContinue={onPaymentSubmitPress}
                 onBackPress={onHeaderBackPress}
+                onPayOffer={onPayOffer}
             />
         );
     }

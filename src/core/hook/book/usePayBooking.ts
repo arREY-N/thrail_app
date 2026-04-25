@@ -4,6 +4,8 @@ export interface UsePayBookingParams {
     amount: number;
     bookingId: string;
     userId: string;
+    type: string;
+    returnUrl: string;
 }
 
 /**
@@ -14,21 +16,18 @@ export interface UsePayBookingParams {
 import { functions } from "../../config/Firebase";
 import { httpsCallable } from "firebase/functions";
 
-export function payBooking(params: UsePayBookingParams): IPayment<Date> {
-
-    // Note: The actual PayMongo redirect and WebView handling is done in PaymentScreen.jsx.
-    // This function satisfies the UI requirement by returning the pending IPayment structure.
-    const response: IPayment<Date> = {
-        gateway: "paymongo",
-        gatewayId: "checkout_session_pending", // Replaced by actual session.id in the backend webhook
-        referenceCode: params.bookingId,
-        status: "pending",
-        refundableUntil: new Date(),
-        amount: params.amount,
-        createdAt: new Date(),
-    }
+export async function payBooking(params: UsePayBookingParams): Promise<any> {
+    const createPaymongoCheckout = httpsCallable(functions, 'createPaymongoCheckout');
     
-    return response;
+    const response = await createPaymongoCheckout({
+        amount: params.amount,
+        type: params.type,
+        returnUrl: params.returnUrl,
+        bookingId: params.bookingId,
+        userId: params.userId
+    });
+    
+    return response.data;
 }
 
 export async function refundBooking(params: UsePayBookingParams): Promise<IPayment<Date>> {
