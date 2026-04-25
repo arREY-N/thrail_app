@@ -42,21 +42,23 @@ const PersonnelListScreen = ({
                 </View>
                 
                 <View style={styles.adminInfo}>
-                    <CustomText variant="subtitle" style={styles.name}>
-                        {fullName}
-                    </CustomText>
+                    <View style={styles.nameRow}>
+                        <CustomText variant="subtitle" style={styles.name} numberOfLines={1}>
+                            {fullName}
+                        </CustomText>
+                        <View style={styles.roleBadge}>
+                            <CustomText style={styles.roleText}>
+                                ADMIN
+                            </CustomText>
+                        </View>
+                    </View>
+
                     <CustomText variant="caption" style={styles.subtext}>
                         @{admin.username || '--'}
                     </CustomText>
                     <CustomText variant="caption" style={styles.subtext}>
                         {admin.email || '--'}
                     </CustomText>
-                    
-                    <View style={styles.roleBadge}>
-                        <CustomText style={styles.roleText}>
-                            ADMIN
-                        </CustomText>
-                    </View>
                 </View>
             </View>
         );
@@ -150,11 +152,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, 
         paddingVertical: 0,
         height: 32, 
-        width: 70,
+        width: 70, 
         borderRadius: 16, 
         justifyContent: 'center', 
         alignItems: 'center',     
-        alignSelf: 'center',
+        alignSelf: 'center', 
     },
     headerAddBtnText: { 
         fontSize: 12, 
@@ -189,22 +191,29 @@ const styles = StyleSheet.create({
         flex: 1, 
         gap: 2, 
     },
+
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 2,
+    },
     name: { 
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY, 
         fontSize: 16, 
+        flexShrink: 1,
     },
     subtext: { 
         color: Colors.TEXT_SECONDARY, 
         fontSize: 12, 
     },
     roleBadge: { 
-        alignSelf: 'flex-start', 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         paddingHorizontal: 8, 
-        paddingVertical: 4, 
+        paddingVertical: 2, 
         borderRadius: 6, 
-        marginTop: 4, 
+        marginTop: -12
     },
     roleText: { 
         color: Colors.STATUS_APPROVED_TEXT, 
