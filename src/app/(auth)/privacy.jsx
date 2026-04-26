@@ -1,6 +1,6 @@
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import PrivacyScreen from "@/src/features/Auth/screens/PrivacyScreen";
+import PrivacyScreen from "@/src/features/Legal/screens/PrivacyScreen";
 
 export default function Privacy() {
     const { onBackPress } = useAppNavigation();

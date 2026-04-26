@@ -8,8 +8,8 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { PrivacyContent } from '@/src/features/Auth/screens/PrivacyScreen';
-import { TermsContent } from '@/src/features/Auth/screens/TermsScreen';
+import { PrivacyContent } from '@/src/features/Legal/screens/PrivacyScreen';
+import { TermsContent } from '@/src/features/Legal/screens/TermsScreen';
 
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
