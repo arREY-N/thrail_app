@@ -134,6 +134,7 @@ const ProfileInfoScreen = ({
                     <CustomButton 
                         title="Delete Account"
                         onPress={onDeletePress}
+                        variant="outline"
                         style={styles.deleteButton}
                         textStyle={styles.deleteButtonText}
                     />
@@ -256,14 +257,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     deleteButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
         borderColor: Colors.ERROR,
-        borderRadius: 16,
     },
     deleteButtonText: {
         color: Colors.ERROR,
-        fontWeight: 'bold',
     }
 });
 
