@@ -32,7 +32,7 @@ const MountainCard = ({
         heroImage
     } = getMountainData(item);
 
-	const filledWeatherIcon = weatherBadge?.icon ? weatherBadge.icon.replace('-outline', '') : 'partly-sunny';
+    const filledWeatherIcon = weatherBadge?.icon ? weatherBadge.icon.replace('-outline', '') : 'partly-sunny';
 
     return (
         <TouchableOpacity
@@ -43,20 +43,8 @@ const MountainCard = ({
             <View style={styles.imageContainer}>
                 <Image source={heroImage} style={styles.cardImage} resizeMode="cover" />
 
-                <View style={[styles.glassPill, styles.ratePosition]}>
-                    <CustomIcon
-                        library="AntDesign"
-                        name="star"
-                        size={12}
-                        color={Colors.YELLOW}
-                    />
-                    <CustomText variant="caption" style={styles.badgeText}>
-                        {score}
-                    </CustomText>
-                </View>
-
                 {weatherBadge && (
-                    <View style={[styles.glassPill, styles.weatherPosition]}>
+                    <View style={[styles.glassPill, styles.topLeftPosition]}>
                         <CustomIcon
                             library="Ionicons"
                             name={filledWeatherIcon} 
@@ -68,6 +56,22 @@ const MountainCard = ({
                         </CustomText>
                     </View>
                 )}
+
+                <TouchableOpacity
+                    style={[styles.glassIconBtn, styles.topRightPosition]}
+                    onPress={() => {
+                        if(onDownload) onDownload();
+                        if(onLikePress) onLikePress();
+                    }}
+                    activeOpacity={0.7}
+                >
+                    <CustomIcon
+                        library="Ionicons"
+                        name="heart-outline"
+                        size={18}
+                        color={Colors.WHITE}
+                    />
+                </TouchableOpacity>
 
                 <LinearGradient
                     colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.9)"]}
@@ -100,43 +104,38 @@ const MountainCard = ({
             </View>
 
             <View style={styles.statsContainer}>
-                <View style={styles.statsRow}>
-                    <View style={styles.statsGroup}>
-                        <StatItem 
-                            label="Distance" 
-                            value={displayLength} 
-                            icon="map-outline" 
-                            lib="Ionicons"
-                        />
-                        <View style={styles.verticalDivider} />
-                        <StatItem 
-                            label="Elev" 
-                            value={displayElev} 
-                            icon="trending-up" 
-                            lib="Feather"
-                        />
-                        <View style={styles.verticalDivider} />
-                        <StatItem 
-                            label="Time" 
-                            value={displayTime} 
-                            icon="time-outline" 
-                            lib="Ionicons"
-                        />
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.downloadButtonCircle}
-                        onPress={onDownload & onLikePress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon
-                            library="Ionicons"
-                            name="heart-outline"
-                            size={18}
-                            color={Colors.TEXT_INVERSE}
-                        />
-                    </TouchableOpacity>
-                </View>
+                <StatItem 
+                    label="Rate" 
+                    value={score} 
+                    icon="star" 
+                    lib="Ionicons"
+                    iconColor={Colors.YELLOW} 
+                    style={styles.rateStat} 
+                />
+                <View style={styles.verticalDivider} />
+                <StatItem 
+                    label="Distance" 
+                    value={displayLength} 
+                    icon="map-outline" 
+                    lib="Ionicons"
+                    style={styles.otherStat}
+                />
+                <View style={styles.verticalDivider} />
+                <StatItem 
+                    label="Elev" 
+                    value={displayElev} 
+                    icon="trending-up" 
+                    lib="Feather"
+                    style={styles.otherStat}
+                />
+                <View style={styles.verticalDivider} />
+                <StatItem 
+                    label="Time" 
+                    value={displayTime} 
+                    icon="time-outline" 
+                    lib="Ionicons"
+                    style={styles.otherStat}
+                />
             </View>
         </TouchableOpacity>
     );
@@ -196,17 +195,17 @@ const getMountainData = (item) => {
     };
 };
 
-const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY }) => (
-    <View style={styles.statBox}>
+const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }) => (
+    <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
-            <CustomText variant="caption" style={styles.statValue}>
+            <CustomText variant="caption" style={styles.statValue} numberOfLines={1}>
                 {value}
             </CustomText>
         </View>
-            <CustomText variant="caption" style={styles.statLabel}>
-                {label}
-            </CustomText>
+        <CustomText variant="caption" style={styles.statLabel}>
+            {label}
+        </CustomText>
     </View>
 );
 
@@ -216,7 +215,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
         marginBottom: 0,
-        overflow: "hidden",
+        overflow: "hidden", 
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
 
@@ -237,7 +236,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         height: 180,
-        width: "100%",
+        width: "100%", 
         position: "relative",
         backgroundColor: Colors.GRAY_LIGHT,
     },
@@ -258,17 +257,27 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.2)",
     },
+    glassIconBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.2)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
     badgeText: {
         color: Colors.WHITE,
         fontWeight: "bold",
     },
-    ratePosition: {
+    topLeftPosition: {
         position: "absolute",
         top: 12,
         left: 12,
         zIndex: 2,
     },
-    weatherPosition: {
+    topRightPosition: {
         position: "absolute",
         top: 12,
         right: 12,
@@ -322,33 +331,23 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_INVERSE,
         fontWeight: "500",
     },
+    
     statsContainer: {
-        paddingVertical: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
+        paddingVertical: 16,
         backgroundColor: Colors.WHITE,
     },
-    statsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 8,
-    },
-    statsGroup: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginRight: 16,
-    },
     statBox: {
-        flex: 1,
         alignItems: 'center',
-        // maxWidth: 60,
-        // alignItems: "flex-start",
+        justifyContent: 'center',
+        paddingHorizontal: 4,
     },
     statTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 4,
     },
     statValue: {
@@ -361,19 +360,21 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textTransform: "uppercase",
         fontWeight: "600",
+        marginTop: 2,
     },
     verticalDivider: {
         width: 1,
         height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
+        flex: 0,
+        marginHorizontal: 4,
     },
-    downloadButtonCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: "center",
-        alignItems: "center",
+    
+    rateStat: {
+        flex: 0.8, 
+    },
+    otherStat: {
+        flex: 1.1, 
     },
 });
 
