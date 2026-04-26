@@ -9,6 +9,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { formatDate } from "@/src/core/utility/date";
+import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const InfoRow = ({ icon, label, value }) => (
     <View style={styles.infoRow}>
@@ -54,6 +55,9 @@ const ProfileInfoScreen = ({
     onEditPress, 
     onDeletePress 
 }) => {
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
@@ -65,7 +69,10 @@ const ProfileInfoScreen = ({
 
             <ScrollView 
                 style={styles.contentArea}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    isWideScreen && styles.scrollContentWide
+                ]}
                 showsVerticalScrollIndicator={false}
             >
 
@@ -162,6 +169,11 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 40,
         gap: 20,
+    },
+    scrollContentWide: {
+        maxWidth: 680,
+        width: '100%',
+        alignSelf: 'center',
     },
     
     card: {
