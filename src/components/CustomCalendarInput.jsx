@@ -13,7 +13,6 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-// FIX: Import your new centralized utility formatters!
 import { formatToMMDDYY, formatToMMDDYYYY, safeParseDateString } from '@/src/utils/dateFormatter';
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -32,13 +31,12 @@ const CustomCalendarInput = ({
     allowFutureDates = false,
     defaultMode = 'date',
     maximumDate,
-    dateFormat = 'MM/DD/YYYY' // Defaults to standard, but can be overridden
+    dateFormat = 'MM/DD/YYYY'
 }) => {
 
     const [showPicker, setShowPicker] = useState(false);
     const [mode, setMode] = useState(defaultMode); 
     
-    // Utilize your ultra-safe parser
     const [viewDate, setViewDate] = useState(value ? safeParseDateString(value) : new Date());
 
     useEffect(() => {
@@ -49,7 +47,6 @@ const CustomCalendarInput = ({
 
     const effectiveMaxDate = maximumDate || (allowFutureDates ? null : new Date());
 
-    // Switch dynamically based on the requested format!
     const getDisplayDate = () => {
         if (!value) return '';
         if (dateFormat === 'MM/DD/YY') {
