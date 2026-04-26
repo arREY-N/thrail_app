@@ -35,7 +35,7 @@ const CommunityScreen = ({
     const [searchQuery, setSearchQuery] = useState('');
     
     const { isDesktop, isTablet } = useBreakpoints();
-    const isLargeScreen = isDesktop || isTablet;
+    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
     const sortedAndFilteredReviews = useMemo(() => {
         if (!reviews) return [];
@@ -132,7 +132,7 @@ const CommunityScreen = ({
                         keyExtractor={(item) => item.id}
                         contentContainerStyle={[
                             styles.scrollContent,
-                            isLargeScreen && styles.scrollContentLarge
+                            { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
                         ]}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
@@ -169,18 +169,12 @@ const styles = StyleSheet.create({
     },
     feedWrapper: {
         flex: 1,
-        alignItems: 'center',
     },
     scrollContent: {
         paddingTop: 0,
         paddingBottom: 40,
         paddingHorizontal: 16,
-        width: '100%',
         gap: 16
-    },
-    scrollContentLarge: {
-        maxWidth: 680,
-        alignSelf: 'center',
     },
     emptyStateContainer: {
         paddingTop: 60,
