@@ -170,14 +170,23 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         paddingHorizontal: 8, 
         paddingTop: 8,
-        elevation: 8,
-
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
+
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.SHADOW, 
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+            },
+            android: {
+                elevation: 12,
+            },
+            web: {
+                boxShadow: "0px -4px 10px rgba(0, 0, 0, 0.05)",
+            },
+        }),
     },
 
     tabItem: {
