@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { Text } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import BookingReviewScreen from "@/src/features/Admin/screens/Booking/BookingReviewScreen";
+import ReviewScreen from "@/src/features/Admin/screens/Booking/ReviewScreen";
 
 export default function adminViewBooking() {
     const { bookingId: rawId, offerId: rawOfferId } = useLocalSearchParams();
@@ -36,7 +36,7 @@ export default function adminViewBooking() {
         <>
             <Stack.Screen options={{ headerShown: false }} />
             
-            <BookingReviewScreen
+            <ReviewScreen
                 booking={booking}
                 offers={offers}
                 onBackPress={onBackPress}
