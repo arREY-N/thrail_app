@@ -2,8 +2,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
-    Platform
+    View
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -13,8 +12,9 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { useWeather } from '@/src/hooks/useWeather';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useLocation } from '@/src/hooks/useLocation';
+import { useWeather } from '@/src/hooks/useWeather';
 
 import MountainCard from '@/src/components/MountainCard';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
@@ -33,6 +33,9 @@ const HomeScreen = ({
     
     const { latitude, longitude } = useLocation();
     const { weatherData, loading, error } = useWeather(latitude, longitude);
+    const { isDesktop, isTablet } = useBreakpoints();
+    
+    const isWideScreen = isDesktop || isTablet;
 
     const recList = recommendedTrails || [];
     const discList = discoverTrails || [];
@@ -100,7 +103,10 @@ const HomeScreen = ({
 
             <ResponsiveScrollView 
                 style={styles.container} 
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    isWideScreen && styles.scrollContentWide
+                ]}
                 showsVerticalScrollIndicator={false}
                 alwaysBounceVertical={false} 
                 overScrollMode={hasAnyTrails ? 'auto' : 'never'} 
@@ -139,6 +145,11 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 32,
         gap: 16,
+    },
+    scrollContentWide: {
+        maxWidth: 860,
+        width: '100%',
+        alignSelf: 'center',
     },
 
     sectionContainer: {
