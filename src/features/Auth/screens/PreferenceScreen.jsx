@@ -7,10 +7,10 @@ import {
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -142,14 +142,19 @@ const PreferenceScreen = ({
 
                     {currentAnswer === true && (
                         <View style={styles.medicalDetailsContainer}>
-                            <CustomTextInput
+                            <CustomFeedbackInput
                                 label="Please specify your condition(s)"
                                 placeholder="e.g., Asthma, Hypertension, Allergies..."
                                 value={currentQuestionData.details}
                                 onChangeText={setMedicalDetails}
-                                multiline
+                                suggestions={[
+                                    "Asthma",
+                                    "Allergies",
+                                    "Hypertension",
+                                    "Heart Condition",
+                                    "Diabetes"
+                                ]}
                                 style={styles.medicalInputWrapper}
-                                inputStyle={styles.medicalInputBox} 
                             />
                             
                             <DocumentUploadCard
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
     gridItem: { 
         width: '48%' 
     },
-    
+
     medicalDetailsContainer: {
         marginTop: 16,
         paddingTop: 16,
@@ -337,13 +342,6 @@ const styles = StyleSheet.create({
     },
     medicalInputWrapper: {
         marginBottom: 20,
-    },
-    medicalInputBox: {
-        minHeight: 120,
-        paddingTop: 16,
-        paddingBottom: 16,
-        borderWidth: 1.5,
-        alignItems: 'flex-start'
     },
 
     footerContainer: {
