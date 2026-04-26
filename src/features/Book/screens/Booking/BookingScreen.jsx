@@ -16,7 +16,9 @@ const BookingScreen = ({
     onBackPress,
     onSetOffer,
     onCompleteOffer,
-    onUpdatePress
+    onUpdatePress,
+    onTermsPress,
+    onPrivacyPress
 }) => {
 
     const [currentView, setCurrentView] = useState(1);
@@ -216,6 +218,8 @@ const BookingScreen = ({
                         savedDocs={bookingData.uploadedDocs}
                         isSubmitting={isSubmitting}
                         onContinue={handleReserve}
+                        onTermsPress={onTermsPress}
+                        onPrivacyPress={onPrivacyPress}
                     />
                 )}
 
