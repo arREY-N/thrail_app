@@ -13,6 +13,7 @@ import { Colors } from '@/src/constants/colors';
 
 const CustomFeedbackInput = ({ 
     label, 
+    helperText, 
     placeholder, 
     value = '', 
     onChangeText, 
@@ -30,10 +31,10 @@ const CustomFeedbackInput = ({
         const currentText = value || '';
         const lines = currentText.split('\n');
 
-        const isCurrentlyActive = lines.some(line => line.includes(suggestion));
+        const isCurrentlyActive = lines.some(line => line.trim() === suggestion);
 
         if (isCurrentlyActive) {
-            const newLines = lines.filter(line => !line.includes(suggestion));
+            const newLines = lines.filter(line => line.trim() !== suggestion);
             onChangeText(newLines.join('\n'));
         } else {
             let newLines = [...lines];
@@ -42,8 +43,7 @@ const CustomFeedbackInput = ({
                 newLines.pop();
             }
 
-            newLines.push(`• ${suggestion}`);
-            
+            newLines.push(suggestion);
             onChangeText(newLines.join('\n') + '\n');
         }
     };
@@ -110,77 +110,101 @@ const CustomFeedbackInput = ({
             <CustomTextInput 
                 placeholder={placeholder}
                 value={value}
-                onChangeText={onChangeText}
+                onChangeText={onChangeText} 
                 multiline={true}
                 numberOfLines={4}
                 inputStyle={styles.textArea}
                 style={styles.noMarginBottom}
             />
+
+            {helperText && (
+                <View style={styles.helperRow}>
+                    <CustomIcon library="Feather" name="info" size={12} color={Colors.TEXT_SECONDARY} />
+                    <CustomText style={styles.helperText}>
+                        {helperText}
+                    </CustomText>
+                </View>
+            )}
+
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        width: '100%',
+    container: { 
+        width: '100%' 
     },
-    label: {
-        marginBottom: 8,
-        marginLeft: 2,
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: 'bold',
+    label: { 
+        marginBottom: 10, 
+        marginLeft: 2, 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: 'bold' 
     },
-    scrollWrapper: {
-        position: 'relative',
+    scrollWrapper: { 
+        position: 'relative', 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginBottom: 12 
+    },
+    chipScrollContent: { 
+        gap: 8, 
+        paddingRight: 32 
+    },
+    arrowOverlay: { 
+        position: 'absolute', 
+        right: 0, 
+        height: '100%', 
+        width: 40, 
+        justifyContent: 'center', 
+        alignItems: 'flex-end', 
+        paddingRight: 4, 
+        backgroundColor: 'rgba(255, 255, 255, 0.8)' 
+    },
+    chip: { 
+        backgroundColor: Colors.WHITE, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_MEDIUM, 
+        paddingVertical: 6, 
+        paddingHorizontal: 12, 
+        borderRadius: 20 
+    },
+    chipActive: { 
+        backgroundColor: Colors.PRIMARY, 
+        borderColor: Colors.PRIMARY 
+    },
+    chipText: { 
+        fontSize: 12, 
+        color: Colors.TEXT_SECONDARY, 
+        fontWeight: '600' 
+    },
+    chipTextActive: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold' 
+    },
+    textArea: { 
+        minHeight: 120, 
+        height: 'auto', 
+        textAlignVertical: 'top', 
+        paddingTop: 16, 
+        paddingBottom: 16 
+    },
+    noMarginBottom: { 
+        marginBottom: 0 
+    },
+    helperRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
+        alignItems: 'flex-start',
+        gap: 6,
+        marginLeft: 4,
+        marginTop: 8,
+        paddingRight: 16,
     },
-    chipScrollContent: {
-        gap: 8,
-        paddingRight: 32,
-    },
-    arrowOverlay: {
-        position: 'absolute',
-        right: 0,
-        height: '100%',
-        width: 40,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        paddingRight: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    },
-    chip: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_MEDIUM,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-    },
-    chipActive: {
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-    },
-    chipText: {
+    helperText: {
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        fontWeight: '600',
+        fontStyle: 'italic',
+        lineHeight: 16,
     },
-    chipTextActive: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
-    },
-    textArea: {
-        minHeight: 120,
-        height: 'auto',
-        textAlignVertical: 'top',
-        paddingTop: 16,
-        paddingBottom: 16,
-    },
-    noMarginBottom: {
-        marginBottom: 0,
-    }
 });
 
 export default CustomFeedbackInput;
