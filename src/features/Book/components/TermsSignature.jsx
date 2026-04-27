@@ -6,7 +6,14 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
-const TermsSignature = ({ expectedName, onValidChange }) => {
+const TermsSignature = ({ 
+    expectedName, 
+    isMinor = false, 
+    minorName = '',
+    onValidChange,
+    onTermsPress,
+    onPrivacyPress
+}) => {
     const [signature, setSignature] = useState('');
 
     useEffect(() => {
@@ -24,30 +31,52 @@ const TermsSignature = ({ expectedName, onValidChange }) => {
             </CustomText>
             
             <CustomText variant="body" style={styles.description}>
-                By typing your full name below, you are providing a digital signature. This confirms that you agree to the Thrail Terms of Service, Waiver of Liability, and Cancellation Policy.
+                {isMinor ? (
+                    <CustomText style={styles.description}>
+                        By typing your full name below, you declare under penalty of perjury that you are the legal parent or guardian of <CustomText style={styles.boldText}>{minorName || 'this minor'}</CustomText>, and you accept full legal liability for their participation. This confirms you agree to the Thrail{' '}
+                    </CustomText>
+                ) : (
+                    <CustomText style={styles.description}>
+                        By typing your full name below, you are providing a digital signature. This confirms that you agree to the Thrail{' '}
+                    </CustomText>
+                )}
+                
+                <CustomText style={styles.linkText} onPress={onTermsPress}>
+                    Terms of Service
+                </CustomText>
+                <CustomText style={styles.description}>
+                    , Waiver of Liability, Cancellation Policy, and our{' '}
+                </CustomText>
+                <CustomText style={styles.linkText} onPress={onPrivacyPress}>
+                    Privacy Policy
+                </CustomText>
+                <CustomText style={styles.description}>.</CustomText>
             </CustomText>
             
             <View style={styles.instructionBox}>
                 <View style={styles.iconContainer}>
                     <CustomIcon 
                         library="Feather" 
-                        name="info" 
+                        name={isMinor ? "shield" : "info"}
                         size={16} 
                         color={Colors.PRIMARY} 
                     />
                 </View>
                 <View style={styles.instructionTextWrapper}>
                     <CustomText variant="caption" style={styles.instructionLabel}>
-                        Type your name exactly as registered:
+                        {isMinor 
+                            ? "Parent/Guardian Signature (Type your name exactly):" 
+                            : "Type your name exactly as registered:"
+                        }
                     </CustomText>
                     <CustomText style={styles.boldName}>
-                        {expectedName}
+                        {expectedName || (isMinor ? '[Enter Guardian Name Above]' : '')}
                     </CustomText>
                 </View>
             </View>
 
             <CustomTextInput
-                placeholder="Digital Signature (Full Name)"
+                placeholder={isMinor ? "Parent/Guardian Full Name" : "Digital Signature (Full Name)"}
                 value={signature}
                 onChangeText={setSignature}
                 autoCapitalize="words"
@@ -70,6 +99,15 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         marginBottom: 20,
         lineHeight: 22,
+    },
+    boldText: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    linkText: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
     },
     
     instructionBox: {

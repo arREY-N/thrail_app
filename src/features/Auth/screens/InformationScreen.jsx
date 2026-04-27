@@ -24,8 +24,8 @@ const InformationScreen = ({
     const [birthday, setBirthday] = useState('');
     const [address, setAddress] = useState('');
 
-    const maxAllowedBirthday = new Date();
-    maxAllowedBirthday.setFullYear(maxAllowedBirthday.getFullYear() - 18);
+    // const maxAllowedBirthday = new Date();
+    // maxAllowedBirthday.setFullYear(maxAllowedBirthday.getFullYear() - 18);
 
     const handleContinue = () => {
         const finalNumber = cleanPhoneNumber(phoneNumber);
@@ -86,7 +86,7 @@ const InformationScreen = ({
                             showTodayButton={false}
                             allowFutureDates={false}
                             defaultMode="year"
-                            maximumDate={maxAllowedBirthday}
+                            // maximumDate={maxAllowedBirthday}
                         />
 
                         <CustomTextInput

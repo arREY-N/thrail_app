@@ -9,12 +9,13 @@ export function useAuthHook(){
     const error = useAuthStore(s => s.error);
     const businessId = useAuthStore(s => s.businessId);
     const remember = useAuthStore(s => s.remember);
+    const initialize = useAuthStore(s => s.initialize);
     const reset = useAuthStore(s => s.reset);
     const onLogIn = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
     const password = useAuthStore(s => s.forgotPassword);
-    const onGmailLogIn = useAuthStore(s => s.gmailLogIn)
     const signOut = useAuthStore(s => s.signOut);
+    const gmailSignUp = useAuthStore(s => s.gmailSignUp);
 
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
@@ -29,10 +30,9 @@ export function useAuthHook(){
         })
     }
 
-    const forgotPassword = (email: string) => {
+    const forgotPassword = async (email: string) => {
         try {
-            password(email);
-            router.push('/(auth)/landing');
+            await password(email);
         } catch (error) {
             console.error("Forgot password error:", error);
         }
@@ -48,12 +48,13 @@ export function useAuthHook(){
         error,
         businessId,
         remember,
+        initialize,
         reset,
         onLogIn,
         onRememberMePress,
         onForgotPassword,
         forgotPassword,
         onSignOutPress,
-        onGmailLogIn,
+        onGmailLogIn: gmailSignUp,
     }
 }

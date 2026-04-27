@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     Keyboard,
+    KeyboardAvoidingView,
     Linking,
     Platform,
-    StyleSheet,
     TouchableOpacity,
-    useWindowDimensions,
     View
 } from 'react-native';
 import {
@@ -15,6 +15,8 @@ import {
     Day,
     GiftedChat,
     InputToolbar,
+    LoadEarlier,
+    MessageText,
     Time
 } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,11 +27,54 @@ import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
+import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
+
+const ImageWithSpinner = ({ currentMessage, dynamicWidth, dynamicHeight, onPress }) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false); 
+
+    return (
+        <View style={styles.imageWrapperContainer}>
+            <TouchableOpacity 
+                activeOpacity={0.8} 
+                onPress={hasError ? null : onPress} 
+                style={styles.imageTouchable}
+            >
+                {isLoading && !hasError && (
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                    </View>
+                )}
+                
+                {hasError ? (
+                    <View style={{ width: dynamicWidth, height: dynamicHeight, borderRadius: 12, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.GRAY_LIGHT }}>
+                        <CustomIcon library="Feather" name="image" size={32} color={Colors.GRAY_MEDIUM} />
+                        <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginTop: 8 }}>
+                            Failed to load image
+                        </CustomText>
+                    </View>
+                ) : (
+                    <Image 
+                        source={{ uri: currentMessage.image }} 
+                        style={{ width: dynamicWidth, height: dynamicHeight, borderRadius: 12, backgroundColor: Colors.GRAY_LIGHT }} 
+                        resizeMode="cover"
+                        onLoadEnd={() => setIsLoading(false)}
+                        onError={() => { 
+                            setIsLoading(false); 
+                            setHasError(true); 
+                        }}
+                    />
+                )}
+            </TouchableOpacity>
+        </View>
+    );
+};
 
 const CustomComposer = (props) => {
     const [isFocused, setIsFocused] = useState(false);
     const currentHeight = !props.text ? 44 : props.composerHeight;
-
     return (
         <Composer
             {...props}
@@ -42,255 +87,288 @@ const CustomComposer = (props) => {
                     styles.composerTextInput,
                     isFocused && styles.composerTextInputFocused,
                     Platform.OS === 'web' && { outlineStyle: 'none' },
-                    { 
-                        height: currentHeight,
-                        textAlignVertical: 'top' 
-                    }
+                    { height: currentHeight, textAlignVertical: 'top' }
                 ]
             }}
         />
     );
 };
 
-const isImageUrl = (url) => {
-    if (!url) return false;
-    return url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media');
-};
+const isImageUrl = (url) => url && (url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media'));
 
 const RoomScreen = ({ 
-    roomId,
     messages, 
     currentGroup,
     currentUser, 
     sendMessage,
-    onViewableItemsChanged,
+    markAsRead, 
+    loadMoreMessages, 
     headerTitle,
     onBackPress,
     onAttachPress,
-    onLocationPress
+    onLocationPress,
+    isUploading
 }) => {
     const insets = useSafeAreaInsets();
-    const { width: screenWidth } = useWindowDimensions();
+    const { isDesktop, width: screenWidth } = useBreakpoints();
     const [previewImage, setPreviewImage] = useState(null);
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
+    const MAX_WEB_WIDTH = 800;
+    const currentContainerWidth = isDesktop ? Math.min(screenWidth, MAX_WEB_WIDTH) : screenWidth;
+    const maxBubbleWidth = currentContainerWidth * 0.72;
+
+    const [pendingMessages, setPendingMessages] = useState([]);
+
+    const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
+    const [hasReachedEnd, setHasReachedEnd] = useState(false);
+    const previousMessageCount = useRef(0);
+
     useEffect(() => {
-        const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-        const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+        const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+        return () => { showSub.remove(); hideSub.remove(); };
     }, []);
 
-    const giftedChatMessages = useMemo(() => {
+    useEffect(() => {
+        if (!messages || !currentUser) return;
+        const unreadMessages = messages.filter(m => 
+            m.senderId !== currentUser.id && !(m.readBy || []).some(u => u.id === currentUser.id)
+        );
+        if (unreadMessages.length > 0) unreadMessages.forEach(rawMsg => markAsRead(rawMsg));
+    }, [messages, currentUser, markAsRead]);
+
+    const formattedFirebaseMessages = useMemo(() => {
         if (!messages) return [];
         return messages.map(m => {
             let text = m.content;
             let image = undefined;
             let isDocument = false;
             let fileUrl = undefined;
+            let isEmergency = text && text.includes('Send help!');
 
             if (text && text.startsWith('[Attachment]:')) {
                 const url = text.replace('[Attachment]:', '').trim();
-                if (isImageUrl(url)) {
-                    image = url;
-                    text = '';
-                } else {
-                    isDocument = true;
-                    fileUrl = url;
-                    text = '';
-                }
-            }
+                if (isImageUrl(url)) { image = url; text = ''; } 
+                else { isDocument = true; fileUrl = url; text = ''; }
+            } else if (isImageUrl(text)) { image = text.trim(); text = ''; }
 
             return {
                 _id: m.id,
                 text: text,
                 createdAt: m.timesent,
-                user: {
-                    _id: m.senderId,
-                    name: m.senderName,
-                },
+                user: { _id: m.senderId, name: m.senderName },
                 readBy: m.readBy || [],
                 image: image,
                 isDocument: isDocument,
-                fileUrl: fileUrl
+                fileUrl: fileUrl,
+                isEmergency: isEmergency 
             };
         }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [messages]);
 
-    const onSend = useCallback((newMessages = []) => {
-        if (newMessages.length > 0) {
-            sendMessage(newMessages[0].text);
-        }
-    }, [sendMessage]);
-
-    const messagesRef = useRef(messages);
     useEffect(() => {
-        messagesRef.current = messages;
-    }, [messages]);
-
-    const onViewableItemsChangedRef = useRef(onViewableItemsChanged);
-    onViewableItemsChangedRef.current = onViewableItemsChanged;
-
-    const handleViewableItemsChanged = useRef((info) => {
-        if (!onViewableItemsChangedRef.current) return;
-
-        const mappedChanged = info.changed.map(token => {
-            const originalMsg = messagesRef.current.find(m => m.id === token.item._id);
-            return { ...token, item: originalMsg };
-        }).filter(token => token.item !== undefined); 
-
-        if (mappedChanged.length > 0) {
-            onViewableItemsChangedRef.current({ viewableItems: [], changed: mappedChanged });
+        if (!formattedFirebaseMessages) return;
+        setIsLoadingEarlier(false); 
+        
+        if (formattedFirebaseMessages.length > 0 && formattedFirebaseMessages.length === previousMessageCount.current) {
+            setHasReachedEnd(true);
         }
-    }).current;
-
-    const viewabilityConfig = useRef({ 
-        itemVisiblePercentThreshold: 10, 
-        minimumViewTime: 10 
-    }).current;
-    
-    const listViewProps = useMemo(() => ({
-        showsVerticalScrollIndicator: false,
-        onViewableItemsChanged: handleViewableItemsChanged,
-        viewabilityConfig: viewabilityConfig
-    }), [handleViewableItemsChanged, viewabilityConfig]);
+        previousMessageCount.current = formattedFirebaseMessages.length;
+    }, [formattedFirebaseMessages]);
 
     useEffect(() => {
-        if (messages && currentUser && onViewableItemsChanged) {
-            const unreadMessages = messages.filter(m => 
-                m.senderId !== currentUser.id && 
-                !(m.readBy || []).some(u => u.id === currentUser.id)
-            );
+        if (formattedFirebaseMessages.length > 0 && pendingMessages.length > 0) {
+            setPendingMessages(prev => prev.filter(pendingMsg => {
+                const isNowInFirebase = formattedFirebaseMessages.some(fbMsg => 
+                    fbMsg.text === pendingMsg.text && fbMsg.user._id === pendingMsg.user._id
+                );
+                return !isNowInFirebase;
+            }));
+        }
+    }, [formattedFirebaseMessages]);
 
-            if (unreadMessages.length > 0) {
-                const simulatedChanged = unreadMessages.map(msg => ({
-                    isViewable: true,
-                    item: msg,
-                    key: msg.id,
-                    index: 0
-                }));
-                
-                onViewableItemsChanged({
-                    viewableItems: simulatedChanged,
-                    changed: simulatedChanged
+    const displayMessages = useMemo(() => {
+        const combined = [...pendingMessages, ...formattedFirebaseMessages].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        if (hasReachedEnd && combined.length > 0) {
+            if (!combined.some(m => m._id === 'system-beginning-of-chat')) {
+                const oldestMessageDate = combined[combined.length - 1].createdAt;
+
+                combined.push({
+                    _id: 'system-beginning-of-chat',
+                    text: '— Beginning of conversation —',
+                    createdAt: new Date(new Date(oldestMessageDate).getTime() - 1), 
+                    system: true,
                 });
             }
         }
-    }, [messages, currentUser, onViewableItemsChanged]);
+        return combined;
+    }, [pendingMessages, formattedFirebaseMessages, hasReachedEnd]);
 
-    const renderBubble = (props) => {
+    const handleLoadEarlier = useCallback(() => {
+        if (hasReachedEnd || isLoadingEarlier) return;
+        setIsLoadingEarlier(true);
+        if (loadMoreMessages) loadMoreMessages();
+    }, [hasReachedEnd, isLoadingEarlier, loadMoreMessages]);
+
+    const onSend = useCallback(async (newMessages = []) => {
+        if (newMessages.length > 0) {
+            const msgToSend = newMessages[0];
+            const pendingId = `pending-${Date.now()}`;
+            
+            const pendingMsg = {
+                ...msgToSend,
+                _id: pendingId,
+                pending: true,
+                isError: false, 
+            };
+            setPendingMessages(prev => [pendingMsg, ...prev]);
+
+            try {
+                await sendMessage(msgToSend.text);
+            } catch (error) {
+                setPendingMessages(prev => prev.map(m => m._id === pendingId ? { ...m, isError: true } : m));
+            }
+        }
+    }, [sendMessage]);
+
+    const retrySend = useCallback(async (failedMsg) => {
+        setPendingMessages(prev => prev.map(m => m._id === failedMsg._id ? { ...m, isError: false } : m));
+        try {
+            await sendMessage(failedMsg.text);
+        } catch (error) {
+            setPendingMessages(prev => prev.map(m => m._id === failedMsg._id ? { ...m, isError: true } : m));
+        }
+    }, [sendMessage]);
+
+    const renderLoadEarlier = useCallback((props) => {
+        return (
+            <LoadEarlier 
+                {...props} 
+                label="Load older messages" 
+                textStyle={{ color: Colors.PRIMARY, fontWeight: 'bold' }} 
+            />
+        );
+    }, []);
+
+    const listViewProps = useMemo(() => ({
+        showsVerticalScrollIndicator: false,
+        initialNumToRender: 15,
+        maxToRenderPerBatch: 10,
+        windowSize: 10,
+        removeClippedSubviews: Platform.OS === 'android',
+    }), []);
+
+    const renderBubble = useCallback((props) => {
         const isLeft = props.position === 'left';
         const isRight = props.position === 'right';
         const senderId = props.currentMessage.user._id;
         const senderName = props.currentMessage.user.name;
         
-        const isSameAsPrevious = 
-            props.previousMessage && 
-            props.previousMessage.user && 
-            props.previousMessage.user._id === senderId;
-
+        const isPending = props.currentMessage.pending;
+        const isError = props.currentMessage.isError;
+        
+        const isSameAsPrevious = props.previousMessage && props.previousMessage.user && props.previousMessage.user._id === senderId;
         const isLastInCluster = !props.nextMessage || !props.nextMessage.user || props.nextMessage.user._id !== senderId;
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
 
         const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
-        const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0;
+        const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0 && !isPending && !isError;
         const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
 
+        const rightBubbleStyle = props.currentMessage.isEmergency ? [styles.bubbleRight, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleRight, { maxWidth: maxBubbleWidth }];
+        const leftBubbleStyle = props.currentMessage.isEmergency ? [styles.bubbleLeft, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleLeft, { maxWidth: maxBubbleWidth }];
+
+        if (isPending && !isError) rightBubbleStyle.push({ opacity: 0.7 });
+        if (isError) rightBubbleStyle.push({ borderWidth: 1, borderColor: Colors.ERROR }); 
+
         return (
-            <View style={styles.bubbleWrapper}>
+            <View style={[styles.bubbleWrapper, isRight ? styles.bubbleWrapperRight : styles.bubbleWrapperLeft]}>
                 {showNameHeader && (
                     <View style={styles.nameHeaderContainer}>
-                        <CustomText variant="caption" style={styles.senderNameText}>
-                            {senderName}
-                        </CustomText>
-                        
-                        {isAdmin ? (
-                            <View style={styles.adminBadge}>
-                                <CustomText variant="caption" style={styles.adminBadgeText}>
-                                    Admin
-                                </CustomText>
-                            </View>
-                        ) : (
-                            <View style={styles.hikerBadge}>
-                                <CustomText variant="caption" style={styles.hikerBadgeText}>
-                                    Hiker
-                                </CustomText>
-                            </View>
-                        )}
+                        <CustomText variant="caption" style={styles.senderNameText}>{senderName}</CustomText>
+                        {isAdmin ? <View style={styles.adminBadge}><CustomText variant="caption" style={styles.adminBadgeText}>Admin</CustomText></View>
+                                 : <View style={styles.hikerBadge}><CustomText variant="caption" style={styles.hikerBadgeText}>Hiker</CustomText></View>}
                     </View>
                 )}
                 
                 <Bubble
                     {...props}
-                    wrapperStyle={{
-                        right: styles.bubbleRight,
-                        left: styles.bubbleLeft,
-                    }}
+                    wrapperStyle={{ right: rightBubbleStyle, left: leftBubbleStyle }}
                     textStyle={{
-                        right: styles.textRight,
-                        left: styles.textLeft,
-                    }}
-                    bottomContainerStyle={{
-                        right: styles.timeContainerRight,
-                        left: styles.timeContainerLeft,
+                        right: props.currentMessage.isEmergency ? styles.emergencyText : styles.textRight,
+                        left: props.currentMessage.isEmergency ? styles.emergencyText : styles.textLeft,
                     }}
                 />
 
-                {hasReadReceipts && (
+                {isError && isRight ? (
+                    <TouchableOpacity onPress={() => retrySend(props.currentMessage)} style={styles.readReceiptContainer}>
+                        <CustomIcon library="Feather" name="alert-circle" size={14} color={Colors.ERROR} />
+                        <CustomText variant="caption" style={[styles.readReceiptText, { color: Colors.ERROR, fontWeight: 'bold' }]}>
+                            Failed to send. Tap to retry.
+                        </CustomText>
+                    </TouchableOpacity>
+                ) : isPending && isRight ? (
+                    <View style={styles.readReceiptContainer}>
+                        <ActivityIndicator size="small" color={Colors.GRAY_MEDIUM} style={{ transform: [{ scale: 0.6 }] }} />
+                        <CustomText variant="caption" style={[styles.readReceiptText, { fontStyle: 'italic' }]}>
+                            Sending...
+                        </CustomText>
+                    </View>
+                ) : hasReadReceipts ? (
                     <View style={styles.readReceiptContainer}>
                         <CustomIcon library="Ionicons" name="checkmark-done" size={14} color={Colors.PRIMARY} />
                         <CustomText variant="caption" style={styles.readReceiptText}>
                             Seen by {readByNames}
                         </CustomText>
                     </View>
-                )}
+                ) : null}
             </View>
         );
-    };
+    }, [currentGroup, currentUser, maxBubbleWidth, retrySend]);
 
-    const renderMessageImage = (props) => {
-        const dynamicImageWidth = Math.min(screenWidth * 0.65, 260);
-        const dynamicImageHeight = dynamicImageWidth * 0.75;
-
+    const renderMessageText = useCallback((props) => {
+        const isEmergency = props.currentMessage.isEmergency;
         return (
-            <View style={styles.imageWrapperContainer}>
-                <TouchableOpacity 
-                    activeOpacity={0.8} 
-                    onPress={() => setPreviewImage(props.currentMessage.image)}
-                    style={styles.imageTouchable}
-                >
-                    <Image 
-                        source={{ uri: props.currentMessage.image }} 
-                        style={{
-                            width: dynamicImageWidth,
-                            height: dynamicImageHeight,
-                            borderRadius: 13,
-                        }} 
-                        resizeMode="cover" 
-                    />
-                </TouchableOpacity>
-            </View>
+            <MessageText
+                {...props}
+                containerStyle={{ left: styles.messageTextContainer, right: styles.messageTextContainer }}
+                textStyle={{ right: isEmergency ? styles.emergencyText : styles.textRight, left: isEmergency ? styles.emergencyText : styles.textLeft }}
+                customTextStyle={styles.messageTextCustom}
+                linkStyle={{
+                    right: isEmergency ? { color: '#B71C1C', textDecorationLine: 'underline' } : { color: 'rgba(255,255,255,0.9)', textDecorationLine: 'underline' },
+                    left: isEmergency ? { color: '#B71C1C', textDecorationLine: 'underline' } : { color: Colors.PRIMARY, textDecorationLine: 'underline' },
+                }}
+            />
         );
-    };
+    }, []);
 
-    const renderCustomView = (props) => {
+    const renderMessageImage = useCallback((props) => {
+        const absoluteMaxImgWidth = isDesktop ? 350 : 260;
+        const dynamicImageWidth = Math.min(currentContainerWidth * 0.65, absoluteMaxImgWidth, maxBubbleWidth - (BUBBLE_H_PAD * 2));
+        const dynamicImageHeight = dynamicImageWidth * 0.75; 
+        return (
+            <ImageWithSpinner 
+                currentMessage={props.currentMessage}
+                dynamicWidth={dynamicImageWidth}
+                dynamicHeight={dynamicImageHeight}
+                onPress={() => setPreviewImage(props.currentMessage.image)}
+            />
+        );
+    }, [currentContainerWidth, isDesktop, maxBubbleWidth]);
+
+    const renderCustomView = useCallback((props) => {
         const { currentMessage, position } = props;
-        
         if (currentMessage.isDocument && currentMessage.fileUrl) {
             const isRight = position === 'right';
             return (
                 <TouchableOpacity 
                     style={styles.attachmentContainer}
-                    onPress={() => {
-                        if (Platform.OS === 'web') {
-                            window.open(currentMessage.fileUrl, '_blank');
-                        } else {
-                            Linking.openURL(currentMessage.fileUrl);
-                        }
-                    }}
+                    onPress={() => Platform.OS === 'web' ? window.open(currentMessage.fileUrl, '_blank') : Linking.openURL(currentMessage.fileUrl)}
                     activeOpacity={0.8}
                 >
                     <View style={[
@@ -325,135 +403,113 @@ const RoomScreen = ({
             );
         }
         return null;
-    };
+    }, []);
 
-    const renderDay = (props) => (
+    const renderDay = useCallback((props) => 
         <Day 
             {...props} 
             wrapperStyle={styles.dayWrapper} 
             textStyle={styles.dayText} 
-        />
-    );
+        />, []);
 
-    const renderTime = (props) => (
-        <Time 
-            {...props} 
-            timeTextStyle={{ 
-                right: styles.timeTextRight, 
-                left: styles.timeTextLeft 
-            }} 
-        />
-    );
-
-    const renderInputToolbar = (props) => {
-        const androidPadding = isKeyboardVisible ? 8 : (insets.bottom + 8);
-        const paddingBottom = Platform.OS === 'android' ? androidPadding : 8;
-
+    const renderTime = useCallback((props) => {
+        const isEmergency = props.currentMessage.isEmergency;
         return (
-            <InputToolbar 
+            <Time 
                 {...props} 
-                containerStyle={[styles.inputToolbar, { paddingBottom }]} 
-                primaryStyle={styles.inputToolbarPrimary} 
+                containerStyle={{ left: styles.timeContainerLeft, right: styles.timeContainerRight }}
+                timeTextStyle={{ right: [styles.timeTextRight, isEmergency && { color: '#B71C1C' }], left: [styles.timeTextLeft, isEmergency && { color: '#B71C1C' }] }} 
             />
         );
-    };
+    }, []);
 
-    const renderActions = () => (
+    const renderInputToolbar = useCallback((props) => 
+        <InputToolbar 
+            {...props} 
+            containerStyle={[styles.inputToolbar, { width: '100%' }]} 
+            primaryStyle={styles.inputToolbarPrimary} 
+        />, []);
+
+    const renderFooter = useCallback(() => {
+        if (!isUploading) return null;
+        return (
+            <View style={{ padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginRight: 16 }}>
+                <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginRight: 8, fontStyle: 'italic' }}>Uploading attachment...</CustomText>
+            </View>
+        );
+    }, [isUploading]);
+
+    const renderActions = useCallback(() => (
         <View style={styles.actionButtonContainer}>
-            <TouchableOpacity 
-                onPress={onAttachPress} 
-                style={styles.actionButton} 
-                activeOpacity={0.7}
-            >
+            <TouchableOpacity onPress={onAttachPress} style={styles.actionButton} activeOpacity={0.7}>
                 <CustomIcon library="Feather" name="plus" size={24} color={Colors.PRIMARY} />
             </TouchableOpacity>
         </View>
-    );
+    ), [onAttachPress]);
 
-    const renderComposer = (props) => <CustomComposer {...props} />;
+    const renderComposer = useCallback((props) => <CustomComposer {...props} />, []);
 
-    const renderSend = (props) => {
+    const renderSend = useCallback((props) => {
         const hasText = props.text && props.text.trim().length > 0;
         return (
             <TouchableOpacity 
-                style={styles.sendContainer}
-                disabled={!hasText}
-                onPress={() => {
-                    if (hasText && props.onSend) props.onSend({ text: props.text.trim() }, true);
-                }}
-                activeOpacity={0.7}
+                style={styles.sendContainer} disabled={!hasText} activeOpacity={0.7}
+                onPress={() => hasText && props.onSend && props.onSend({ text: props.text.trim() }, true)}
             >
-                <View style={[
-                    styles.sendButton, 
-                    hasText ? styles.sendButtonActive : styles.sendButtonInactive
-                ]}>
-                    <CustomIcon 
-                        library="Ionicons" 
-                        name="send" 
-                        size={16} 
-                        color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} 
-                        style={styles.sendIcon} 
-                    />
+                <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
+                    <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
                 </View>
             </TouchableOpacity>
         );
-    };
+    }, []);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
-                title={headerTitle}
-                centerTitle={true}
-                onBackPress={onBackPress} 
+                title={headerTitle} centerTitle={true} onBackPress={onBackPress} 
                 rightActions={
-                    <TouchableOpacity
-                        style={styles.headerActionIcon}
-                        onPress={onLocationPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon
-                            library="FontAwesome6"
-                            name="map-location-dot"
-                            size={24}
-                            color={Colors.PRIMARY}
-                        />
+                    <TouchableOpacity style={styles.headerActionIcon} onPress={onLocationPress} activeOpacity={0.7}>
+                        <CustomIcon library="FontAwesome6" name="map-location-dot" size={24} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 }
             />
             
-            <View style={styles.container}>
-                <GiftedChat
-                    messages={giftedChatMessages}
-                    onSend={messages => onSend(messages)}
-                    user={{
-                        _id: currentUser?.id || '',
-                        name: currentUser?.username || 'User',
-                    }}
-                    renderBubble={renderBubble}
-                    renderMessageImage={renderMessageImage}
-                    renderCustomView={renderCustomView} 
-                    renderInputToolbar={renderInputToolbar}
-                    renderActions={renderActions}
-                    renderComposer={renderComposer}
-                    renderSend={renderSend}
-                    renderDay={renderDay}
-                    renderTime={renderTime}
-                    
-                    renderAvatarOnTop={true}
-                    renderUsernameOnMessage={false} 
-                    showAvatarForEveryMessage={false}
-                    
-                    bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
-                    placeholder="Type a message..."
-                    alwaysShowSend={true}
-                    listViewProps={listViewProps}
-                />
-            </View>
+            <View style={[styles.container, { paddingBottom: Platform.OS === 'android' && !isKeyboardVisible ? insets.bottom : 0, alignItems: 'center' }]}>
+                <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
+                    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+                        <GiftedChat
+                            messages={displayMessages} 
+                            onSend={messages => onSend(messages)}
+                            user={{ _id: currentUser?.id || '', name: currentUser?.username || 'User' }}
+                            renderBubble={renderBubble}
+                            renderMessageText={renderMessageText}
+                            renderMessageImage={renderMessageImage}
+                            renderCustomView={renderCustomView} 
+                            renderInputToolbar={renderInputToolbar}
+                            renderActions={renderActions}
+                            renderComposer={renderComposer}
+                            renderSend={renderSend}
+                            renderDay={renderDay}
+                            renderTime={renderTime}
+                            renderFooter={renderFooter}
+                            renderAvatarOnTop={true}
+                            renderUsernameOnMessage={false} 
+                            showAvatarForEveryMessage={false}
 
-            {/* The Magic Spacer for Android */}
-            {Platform.OS === 'android' && !isKeyboardVisible && (
-                <View style={{ height: insets.bottom, backgroundColor: Colors.BACKGROUND }} />
-            )}
+                            loadEarlier={!hasReachedEnd}
+                            onLoadEarlier={handleLoadEarlier}
+                            isLoadingEarlier={isLoadingEarlier}
+                            renderLoadEarlier={renderLoadEarlier}
+                            infiniteScroll={true}
+                            
+                            bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
+                            placeholder="Type a message..."
+                            alwaysShowSend={true}
+                            listViewProps={listViewProps}
+                        />
+                    </KeyboardAvoidingView>
+                </View>
+            </View>
 
             <ImagePreviewModal 
                 visible={previewImage !== null}
@@ -463,271 +519,5 @@ const RoomScreen = ({
         </ScreenWrapper>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: Colors.BACKGROUND 
-    },
-    headerActionIcon: { 
-        padding: 4 
-    },
-
-    bubbleWrapper: { 
-        marginBottom: 4, 
-        flexShrink: 1, 
-        maxWidth: '100%' 
-    },
-    nameHeaderContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        marginLeft: 4, 
-        marginBottom: 2, 
-        gap: 6 
-    },
-    senderNameText: { 
-        fontSize: 12, 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold' 
-    },
-
-    adminBadge: { 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        paddingHorizontal: 6, 
-        paddingVertical: 2, 
-        borderRadius: 8, 
-        borderWidth: 1, 
-        borderColor: Colors.STATUS_APPROVED_BORDER 
-    },
-    adminBadgeText: { 
-        fontSize: 9, 
-        color: Colors.STATUS_APPROVED_TEXT, 
-        fontWeight: 'bold', 
-        textTransform: 'uppercase' 
-    },
-
-    hikerBadge: { 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        paddingHorizontal: 6, 
-        paddingVertical: 2, 
-        borderRadius: 8, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT 
-    },
-    hikerBadgeText: { 
-        fontSize: 9, 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold', 
-        textTransform: 'uppercase' 
-    },
-
-    bubbleRight: { 
-        backgroundColor: Colors.PRIMARY, 
-        borderTopLeftRadius: 16, 
-        borderTopRightRadius: 16, 
-        borderBottomLeftRadius: 16, 
-        borderBottomRightRadius: 4, 
-        padding: 2, 
-        flexShrink: 1 
-    },
-    bubbleLeft: { 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 16, 
-        borderTopRightRadius: 16, 
-        borderBottomLeftRadius: 4, 
-        borderBottomRightRadius: 16, 
-        padding: 2, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 1 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 2, 
-        elevation: 1, 
-        flexShrink: 1 
-    },
-
-    imageWrapperContainer: {
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    imageTouchable: {
-        overflow: 'hidden',
-        borderRadius: 13,
-        margin: 3
-    },
-    textRight: { 
-        color: Colors.WHITE, 
-        fontSize: 15, 
-        lineHeight: 22 
-    },
-    textLeft: { 
-        color: Colors.TEXT_PRIMARY, 
-        fontSize: 15, 
-        lineHeight: 22 
-    },
-
-    attachmentContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        padding: 12, 
-        gap: 12, 
-        minWidth: 200, 
-        maxWidth: 250, 
-        overflow: 'hidden' 
-    },
-    attachmentIconBox: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 8, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-    attachmentIconBoxRight: { 
-        backgroundColor: Colors.WHITE 
-    },
-    attachmentIconBoxLeft: { 
-        backgroundColor: Colors.PRIMARY 
-    },
-    attachmentTextGroup: { 
-        flexShrink: 1 
-    },
-    attachmentTitle: { 
-        fontWeight: 'bold', 
-        fontSize: 14 
-    },
-    attachmentTitleRight: { 
-        color: Colors.WHITE 
-    },
-    attachmentTitleLeft: { 
-        color: Colors.TEXT_PRIMARY 
-    },
-    attachmentSubtitle: { 
-        fontSize: 12, 
-        marginTop: 2 
-    },
-    attachmentSubtitleRight: { 
-        color: 'rgba(255,255,255,0.8)' 
-    },
-    attachmentSubtitleLeft: { 
-        color: Colors.TEXT_SECONDARY 
-    },
-
-    timeContainerRight: { 
-        justifyContent: 'flex-end' 
-    },
-    timeContainerLeft: { 
-        justifyContent: 'flex-end' 
-    },
-    timeTextRight: { 
-        color: 'rgba(255, 255, 255, 0.7)', 
-        fontSize: 10 
-    },
-    timeTextLeft: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontSize: 10 
-    },
-
-    readReceiptContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'flex-end', 
-        marginTop: 2, 
-        marginRight: 4, 
-        gap: 4 
-    },
-    readReceiptText: { 
-        fontSize: 10, 
-        color: Colors.TEXT_SECONDARY 
-    },
-
-    dayWrapper: { 
-        backgroundColor: Colors.GRAY_MEDIUM, 
-        paddingHorizontal: 16, 
-        paddingVertical: 6, 
-        borderRadius: 16, 
-        marginTop: 16, 
-        marginBottom: 8 
-    },
-    dayText: { 
-        color: Colors.WHITE, 
-        fontSize: 12, 
-        fontWeight: 'bold' 
-    },
-
-    inputToolbar: { 
-        backgroundColor: Colors.BACKGROUND, 
-        borderTopWidth: 0, 
-        paddingHorizontal: 12, 
-        paddingTop: 8, 
-    },
-    inputToolbarPrimary: { 
-        alignItems: 'flex-end' 
-    },
-
-    actionButtonContainer: { 
-        height: 44, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginRight: 8 
-    },
-    actionButton: { 
-        width: 36, 
-        height: 36, 
-        borderRadius: 18, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-
-    composerTextInput: { 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        color: Colors.TEXT_PRIMARY, 
-        fontSize: 15, 
-        lineHeight: 20, 
-        paddingHorizontal: 16, 
-        paddingTop: Platform.OS === 'web' ? 10 : 12, 
-        paddingBottom: Platform.OS === 'web' ? 10 : 12, 
-        borderRadius: 24, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        minHeight: 44, 
-        maxHeight: 120, 
-        marginTop: 0, 
-        marginBottom: 0, 
-        marginRight: 8 
-    },
-    composerTextInputFocused: { 
-        borderColor: Colors.PRIMARY, 
-        backgroundColor: Colors.WHITE 
-    },
-
-    sendContainer: { 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginBottom: 4, 
-        marginRight: 4 
-    },
-    sendButton: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        borderWidth: 1 
-    },
-    sendButtonActive: { 
-        backgroundColor: Colors.PRIMARY, 
-        borderColor: Colors.PRIMARY 
-    },
-    sendButtonInactive: { 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        borderColor: Colors.GRAY_LIGHT 
-    },
-    sendIcon: { 
-        marginLeft: 2 
-    }
-});
 
 export default RoomScreen;

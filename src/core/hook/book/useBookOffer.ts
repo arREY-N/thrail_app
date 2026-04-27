@@ -141,7 +141,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             const finalBooking = new Booking({
                 ...booking,
                 trail: offer.trail,
-                user: UserLogic.toSummary(profile),
+                user: UserLogic.toBookingSummary(profile),
             })
             
             const group = await checkGroupExists(offer.id);

@@ -3,62 +3,43 @@ import { Message } from "@/src/core/models/Message/Message";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
-import { useCallback, useRef } from "react";
-import { ViewToken } from "react-native";
-
+import { useCallback } from "react";
 
 export default function useGroupRoom(groupId: string) {
     const { profile } = useAuthHook();
     
-    const markAsRead = useGroupStore(s => s.markAsRead);
+    const markAsReadAction = useGroupStore(s => s.markAsRead);
+    const loadMoreMessages = useGroupStore(s => s.loadMoreMessages);
 
-    const rawMessages = useGroupStore(
-        (s) => s.messagesByGroup[groupId]
-    );
+    const rawMessages = useGroupStore((s) => s.messagesByGroup[groupId]);
     const messages = rawMessages ?? [];
 
-    const sendMessage = (content: string) => {
-        if(!profile || !groupId) return;
+    const sendMessage = async (content: string) => {
+        if(!profile || !groupId) throw new Error("Missing profile or groupId");
 
         const newMessage = new Message({
             content,
             senderId: profile.id,
             senderName: profile.username,
             timesent: new Date(), 
-        })
+        });
 
-        MessageRepository.sendMessage(groupId, newMessage);
+        await MessageRepository.sendMessage(groupId, newMessage);
     }
     
-    const processedMessages = useRef(new Set<string>());
-
-    const onViewableItemsChanged = useCallback(({ changed }: { 
-        viewableItems: ViewToken<Message>[]; 
-        changed: ViewToken<Message>[] 
-    }) => {
-        changed.forEach((token) => {
-            const message = token.item;
-            if (!token.isViewable || !message || !profile) return;
-
-            if (processedMessages.current.has(message.id)) {
-                console.log('Already processed this session:', message.id);
-                return;
-            }
-
-            const alreadyRead = message.readBy.some(user => user.id === profile.id);
-            
-            if (!alreadyRead) {
-                processedMessages.current.add(message.id);
-                
-                markAsRead(groupId, message, UserLogic.toSummary(profile));
-                console.log(`Marking message ${message.id} as read.`);
-            }
-        });
-    }, [groupId, profile]);
+    const markAsRead = useCallback((message: Message) => {
+        if (!profile || !groupId) return;
+        
+        const alreadyRead = message.readBy.some(user => user.id === profile.id);
+        if (!alreadyRead) {
+            markAsReadAction(groupId, message, UserLogic.toSummary(profile));
+        }
+    }, [groupId, profile, markAsReadAction]);
 
     return {
         messages,
         sendMessage,
-        onViewableItemsChanged
+        markAsRead,
+        loadMoreMessages
     }
 }

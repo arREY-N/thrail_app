@@ -81,6 +81,7 @@ const CustomTextInput = ({
     defaultMode,
     multiline,
     maximumDate,
+    dateFormat = 'MM/DD/YYYY',
     ...props
 }) => {
 
@@ -153,6 +154,7 @@ const CustomTextInput = ({
                     allowFutureDates={allowFutureDates}
                     defaultMode={defaultMode}
                     maximumDate={maximumDate}
+                    dateFormat={dateFormat}
                 />
             ) : (
                 <>

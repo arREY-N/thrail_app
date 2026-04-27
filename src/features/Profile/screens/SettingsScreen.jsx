@@ -130,10 +130,10 @@ const SettingsScreen = ({
 
                 <View style={styles.logoutContainer}>
                     <CustomButton 
-                        title="Log Out" 
+                        title="Log Out"
                         onPress={() => setShowSignOutModal(true)}
+                        variant="outline" 
                         style={styles.logoutButton}
-                        textStyle={styles.logoutButtonText}
                     />
                 </View>
 
@@ -196,21 +196,15 @@ const styles = StyleSheet.create({
     },
 
     logoutContainer: {
-        marginTop: 16,
+        // marginTop: 16,
         alignItems: 'center',
     },
     logoutButton: {
-        backgroundColor: 'transparent',
         borderWidth: 1.5,
         borderColor: Colors.PRIMARY,
         width: '60%',
         borderRadius: 24,
-        paddingVertical: 12,
     },
-    logoutButtonText: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-    }
 });
 
 export default SettingsScreen;

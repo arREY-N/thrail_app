@@ -60,8 +60,8 @@ const PostCard = ({
                         <CustomText variant="h3" style={styles.userName}>
                             {review.userName || "Hiker Name"}
                         </CustomText>
-                        <CustomText variant="caption" style={styles.locationDateText}>
-                            {review.location} | {review.date}
+                        <CustomText variant="caption" style={styles.dateText}>
+                            {review.date}
                         </CustomText>
                     </View>
                 </View>
@@ -110,6 +110,22 @@ const PostCard = ({
                     <CustomText variant="h2" style={styles.mountainTitleOverlay}>
                         {review.mountainName || review.trailName || "Mountain Name"}
                     </CustomText>
+                    
+                    <View style={styles.locationRow}>
+                        <CustomIcon
+                            library="FontAwesome6"
+                            name="location-dot"
+                            size={10}
+                            color={Colors.TEXT_INVERSE}
+                        />
+                        <CustomText
+                            variant="caption"
+                            style={styles.locationTextOverlay}
+                            numberOfLines={1}
+                        >
+                            {review.location || "Unknown Location"}
+                        </CustomText>
+                    </View>
                 </LinearGradient>
             </View>
 
@@ -120,6 +136,7 @@ const PostCard = ({
                     icon="star" 
                     lib="Ionicons"
                     iconColor={Colors.YELLOW} 
+                    style={styles.rateStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -127,6 +144,7 @@ const PostCard = ({
                     value={formatStat(review.distance, 'km')} 
                     icon="map-outline" 
                     lib="Ionicons"
+                    style={styles.otherStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -134,6 +152,7 @@ const PostCard = ({
                     value={formatStat(review.elevation, 'm')} 
                     icon="trending-up" 
                     lib="Feather"
+                    style={styles.otherStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -141,6 +160,7 @@ const PostCard = ({
                     value={formatStat(review.duration, 'hr')} 
                     icon="time-outline" 
                     lib="Ionicons"
+                    style={styles.otherStat}
                 />
             </View>
 
@@ -166,17 +186,17 @@ const PostCard = ({
     );
 };
 
-const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY }) => (
-    <View style={styles.statBox}>
+const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }) => (
+    <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
-            <CustomText variant="caption" style={styles.statValue}>
+            <CustomText variant="caption" style={styles.statValue} numberOfLines={1}>
                 {value}
             </CustomText>
         </View>
-            <CustomText variant="caption" style={styles.statLabel}>
-                {label}
-            </CustomText>
+        <CustomText variant="caption" style={styles.statLabel}>
+            {label}
+        </CustomText>
     </View>
 );
 
@@ -187,14 +207,13 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 3,
+        overflow: 'hidden',
     },
-    
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -237,7 +256,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
     },
-    locationDateText: {
+    dateText: {
         color: Colors.TEXT_SECONDARY,
     },
     likeButton: {
@@ -257,11 +276,12 @@ const styles = StyleSheet.create({
     imageWrapper: {
         position: 'relative',
         height: 200,
+        width: 'auto',
         marginHorizontal: 16,
         borderRadius: 16,
         marginBottom: 16,
-        overflow: 'hidden', 
         backgroundColor: Colors.GRAY_ULTRALIGHT,
+        overflow: 'hidden',
     },
     postImage: {
         width: '100%',
@@ -279,27 +299,41 @@ const styles = StyleSheet.create({
     mountainTitleOverlay: {
         color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
-        marginBottom: 0,
+        marginBottom: 2,
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,
     },
-
+    locationRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 2,
+        gap: 6,
+    },
+    locationTextOverlay: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: "500",
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+    },
+    
     statsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        // justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingBottom: 16,
     },
     statBox: {
         alignItems: 'center',
-        flex: 1,
-        gap: 2,
+        justifyContent: 'center', 
+        paddingHorizontal: 4,
     },
     statTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 4,
     },
     statValue: {
@@ -312,11 +346,22 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textTransform: 'uppercase',
         fontWeight: '600',
+        marginTop: 2,
     },
+    
     verticalDivider: {
         width: 1,
         height: 24,
-        backgroundColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.WARNING,
+        flex: 0,
+        marginHorizontal: 4, 
+    },
+
+    rateStat: {
+        flex: 0.8,
+    },
+    otherStat: {
+        flex: 1.1,
     },
     
     horizontalDivider: {
@@ -325,7 +370,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 16,
         marginBottom: 16,
     },
-
     textBody: {
         paddingHorizontal: 16,
         paddingBottom: 16,

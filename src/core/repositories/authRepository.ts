@@ -3,7 +3,7 @@ import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 import { SignUp } from '../models/User/SignUp';
 import { CredentialResponse, UserCredential } from '../models/User/SignUp.types';
@@ -11,7 +11,8 @@ import { User, userConverter } from '../models/User/User';
 import { LogIn } from '../models/User/User.types';
 
 GoogleSignin.configure({
-  webClientId: '1:672035725620:web:ffa5e8f734a2b492e78561', 
+  webClientId: '672035725620-l5sdrcnscegfqmh43o6sj7rpcsggj7vi.apps.googleusercontent.com', 
+  offlineAccess: true,
 });
 
 
@@ -20,10 +21,6 @@ const userCollection = collection(db, 'users').withConverter(userConverter);
 class AuthRepositoryImpl {
     async checkUserCredentials(userCredentials: UserCredential): Promise<void> {
         const checkCredentials = httpsCallable(functions, 'checkEmail');
-        
-        console.log("functions instance: ", functions);
-        console.log('callable: ', checkCredentials);
-
         try {
             const response = await checkCredentials(userCredentials);
             
@@ -59,8 +56,6 @@ class AuthRepositoryImpl {
                 {merge: true}
             );
         
-            console.log('New user: ', user);       
-        
             return user;
         } catch (err){
             console.error(err);
@@ -70,36 +65,42 @@ class AuthRepositoryImpl {
     
     async signUpWithGoogle(): Promise<void>{
         try {
-            console.log('Starting Google sign-up process');
             await GoogleSignin.hasPlayServices();
 
             const response = await GoogleSignin.signIn();
 
-            if(response.type === 'success') {
-                const { idToken } = response.data;
+            console.log('Google Sign-In response:', response);
+            if(response.type === 'cancelled') 
+                throw new Error('Google sign-in was cancelled by the user');
 
-                const googleCredential = GoogleAuthProvider.credential(idToken);
+            const { idToken } = response.data;
 
-                const { user } = await signInWithCredential(getAuth(), googleCredential);
-                console.log('User created: ', user);    
+            const googleCredential = GoogleAuthProvider.credential(idToken);
 
-                const newUser = new User({
-                    id: user.uid,
-                    email: user.email ?? '',
-                    firstname: user.displayName?.split(' ')[0] ?? '',
-                    lastname: user.displayName?.split(' ')[1] ?? '',
-                    phoneNumber: user.phoneNumber ?? '',
-                    username: `${user.displayName?.split(' ')[0] ?? ''}_${user.uid.slice(0, 4)}`
-                });
+            const { user } = await signInWithCredential(getAuth(), googleCredential);    
 
-                await setDoc(
-                    doc(userCollection, newUser.id), 
-                    newUser,
-                    {merge: true}
-                );
-            } else {
-                console.log('Sign in ')
+            const userDoc = doc(userCollection, user.uid);
+            const snap = await getDoc(userDoc);
+
+            if(snap.exists()) {
+                console.log('User already exists in Firestore');
+                return;
             }
+
+            const newUser = new User({
+                id: user.uid,
+                email: user.email ?? '',
+                firstname: user.displayName?.split(' ')[0] ?? '',
+                lastname: user.displayName?.split(' ')[1] ?? '',
+                phoneNumber: user.phoneNumber ?? '',
+                username: `${user.displayName?.split(' ')[0] ?? ''}_${user.uid.slice(0, 4)}`
+            });
+
+            await setDoc(
+                doc(userCollection, newUser.id), 
+                newUser,
+                {merge: true}
+            );
         } catch (err) {
             console.error(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
@@ -119,6 +120,14 @@ class AuthRepositoryImpl {
 
             const user = result.user;
 
+            const userDoc = doc(userCollection, user.uid);
+            const snap = await getDoc(userDoc);
+
+            if(snap.exists()) {
+                console.log('User already exists in Firestore');
+                return;
+            }
+
             const newUser = new User({
                 id: user.uid,
                 email: user.email ?? '',
@@ -134,8 +143,9 @@ class AuthRepositoryImpl {
                 {merge: true}
             );
         
-        } catch (error) {
-            console.error("Google sign-in error:", error);
+        } catch (err) {
+            console.error(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
     

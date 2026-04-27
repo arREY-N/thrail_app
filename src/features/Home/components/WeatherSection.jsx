@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    ActivityIndicator,
     Platform,
     StyleSheet,
     TouchableOpacity,
@@ -16,15 +17,38 @@ import { useLocation } from '@/src/hooks/useLocation';
 const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) => {
 
     const { icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
-    const { locationName: displayName, geocodedName } = useLocation({ propLocationName: locationName})
+    const { geocodedName } = useLocation({ propLocationName: locationName });
 
-    const hasData = weatherData && !loading && !error;
+    if (loading) {
+        return (
+            <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.container, styles.centerAll]}>
+                <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                <CustomText variant="caption" style={styles.stateText}>
+                    Fetching local weather...
+                </CustomText>
+            </TouchableOpacity>
+        );
+    }
+
+    if (error) {
+        return (
+            <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.container, styles.centerAll]}>
+                <CustomIcon library="Ionicons" name="cloud-offline-outline" size={36} color={Colors.ERROR} />
+                <CustomText variant="caption" style={[styles.stateText, { color: Colors.ERROR }]}>
+                    Unable to load weather. Tap to retry.
+                </CustomText>
+            </TouchableOpacity>
+        );
+    }
+
+    const hasData = weatherData && !error;
     const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : '--';
     
-    // For Day/Night. Let's get today's forecast from weatherData.forecast[0]
     const today = weatherData?.forecast?.[0];
     const dayTemp = today?.temperatureMax !== undefined ? Math.round(today.temperatureMax) : '--';
     const nightTemp = today?.temperatureMin !== undefined ? Math.round(today.temperatureMin) : '--';
+
+    const displayLocationText = geocodedName || locationName || 'Unknown location';
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
@@ -47,33 +71,23 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
                             size={16}
                             color={Colors.PRIMARY} 
                         />
-                        {geocodedName && (
-                            <CustomText 
-                                variant="label" 
-                                style={styles.locationText}
-                                numberOfLines={1}>
-                                    {loading ? 'Locating...' : (error ? 'Location Error' : (geocodedName))}
-                            </CustomText>
-                        )}
+                        <CustomText 
+                            variant="label" 
+                            style={styles.locationText}
+                            numberOfLines={1}
+                        >
+                            {displayLocationText}
+                        </CustomText>
                     </View>
                 </View>
 
                 <View style={styles.rightColumn}>
-                    {hasData ? (
-                        <CustomIcon 
-                            library={library} 
-                            name={icon}
-                            size={52} 
-                            color={Colors.PRIMARY} 
-                        />
-                    ) : (
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="partly-sunny-outline"
-                            size={52} 
-                            color={Colors.GRAY_MEDIUM} 
-                        />
-                    )}
+                    <CustomIcon 
+                        library={library} 
+                        name={hasData ? icon : "partly-sunny-outline"}
+                        size={52} 
+                        color={hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                    />
                     
                     <View style={styles.hiLoBadge}>
                         <CustomText variant="caption" style={styles.dayNightText}>
@@ -112,16 +126,27 @@ const styles = StyleSheet.create({
             }
         })
     },
+    centerAll: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: 130,
+        gap: 12,
+    },
+    stateText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+    },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    
     leftColumn: {
+        flex: 1,
         justifyContent: 'center',
         gap: 12,
-        paddingBottom: 8
+        paddingBottom: 8,
+        paddingRight: 16,
     },
     tempWrapper: {
         flexDirection: 'row',
@@ -149,12 +174,13 @@ const styles = StyleSheet.create({
     },
     locationText: {
         color: Colors.TEXT_SECONDARY,
+        flexShrink: 1,
     },
-
     rightColumn: {
         alignItems: 'flex-end',
         justifyContent: 'center',
         gap: 12,
+        flexShrink: 0,
     },
     hiLoBadge: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,

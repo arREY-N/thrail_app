@@ -38,11 +38,11 @@ export default function useUser(params: UserDomainParams = { role: 'user' }): IU
         if(role === 'superadmin'){
             loadAllUsers();
         }
-    }, [role, loadAllUsers]);
+    }, [role]);
 
     useEffect(() => {
         loadUser(id);
-    }, [id]);
+    }, [id, loadUser]);
 
     return {
         users,

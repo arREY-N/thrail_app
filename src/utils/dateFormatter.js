@@ -41,7 +41,7 @@ export const safeParseDateString = (dateInput) => {
     return new Date(); 
 };
 
-// --- 2. FORMATTERS ---
+// --- 2. DISPLAY FORMATTERS ---
 
 export const formatDateToStandard = (dateObj) => {
     if (!dateObj) return '';
@@ -89,4 +89,23 @@ export const formatTime = (dateInput) => {
         minute: '2-digit',
         hour12: true,
     });
+};
+
+// --- 3. INPUT FORMATTERS (MM/DD/YYYY & MM/DD/YY) ---
+export const formatToMMDDYYYY = (dateInput) => {
+    if (!dateInput) return '';
+    const d = safeParseDateString(dateInput);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${mm}/${dd}/${yyyy}`;
+};
+
+export const formatToMMDDYY = (dateInput) => {
+    if (!dateInput) return '';
+    const d = safeParseDateString(dateInput);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
 };

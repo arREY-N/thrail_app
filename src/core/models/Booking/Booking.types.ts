@@ -42,12 +42,17 @@ export interface IPayment<T> {
     createdAt: T;
 }
 
+export interface IUserBooking<T> extends IUserSummary {
+    birthday: T;
+    phoneNumber: string;
+}
+
 export interface IBookingBase<T> {
     id: string;
     createdAt: T;
     updatedAt: T;
     offer: Pick<IOfferBase<T>, 'date' | 'price' | 'id'>;
-    user: IUserSummary,
+    user: IUserBooking<T>,
     business: IBusinessSummary
     trail: ITrailSummary
     payment: IPayment<T>[];

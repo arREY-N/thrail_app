@@ -5,37 +5,55 @@ import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const WeatherSkeleton = ({ onBackPress }) => {
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader title="Weather" centerTitle={true} onBackPress={onBackPress} />
             
-            <View style={styles.scrollContent}>
+            <View style={[styles.scrollContent, isWideScreen && styles.scrollContentWide]}>
                 
+                {/* --- ALIGNED HERO SECTION --- */}
                 <View style={styles.heroSection}>
+                    
+                    {/* 1. Header: Location & Time (Hi/Lo Pill) */}
                     <View style={styles.heroTop}>
-                        <View style={styles.heroTextCol}>
-                            <SkeletonEffect style={styles.heroTempSkeleton} />
-                            <SkeletonEffect style={styles.heroFeelsLikeSkeleton} />
-                            <View style={styles.heroLocRow}>
-                                <SkeletonEffect style={styles.heroLocIconSkeleton} />
-                                <View style={styles.heroLocTextStack}>
-                                    <SkeletonEffect style={styles.heroLocTextSkeleton} />
-                                    <SkeletonEffect style={styles.heroLocSubtextSkeleton} />
-                                </View>
-                            </View>
-                        </View>
-                        <SkeletonEffect style={styles.heroIconSkeleton} />
+                        <SkeletonEffect style={styles.hiLoSkeleton} />
                     </View>
-                    <SkeletonEffect style={styles.heroDividerSkeleton} />
-                    <View style={styles.heroBottom}>
-                        <SkeletonEffect style={styles.heroSubTextLeft} />
-                        <SkeletonEffect style={styles.heroSubTextCenter} />
-                        <SkeletonEffect style={styles.heroSubTextRight} />
+
+                    {/* 2. Core: Temp & Icon */}
+                    <View style={styles.mainWeatherRow}>
+                        <View style={styles.tempBlock}>
+                            <SkeletonEffect style={styles.mainTempSkeleton} />
+                            <SkeletonEffect style={styles.feelsLikeHeroSkeleton} />
+                        </View>
+
+                        <View style={styles.iconBlock}>
+                            <SkeletonEffect style={styles.heroMainIconSkeleton} />
+                            <SkeletonEffect style={styles.conditionTextSkeleton} />
+                        </View>
+                    </View>
+                    
+                    {/* Divider */}
+                    <View style={styles.heroDividerContainer}>
+                        <SkeletonEffect style={styles.heroDividerSkeleton} />
+                    </View>
+                    
+                    {/* 3. Footer: Context (Location & Last Updated) */}
+                    <View style={styles.metadataRow}>
+                        <View style={styles.locationWrapper}>
+                            <SkeletonEffect style={styles.locationLabelSkeleton} />
+                            <SkeletonEffect style={styles.geocodedLabelSkeleton} />
+                        </View>
+                        <SkeletonEffect style={styles.lastUpdatedLabelSkeleton} />
                     </View>
                 </View>
                 
+                {/* --- 7-DAY FORECAST --- */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
                         <SkeletonEffect style={styles.headerIconSkeleton} />
@@ -48,9 +66,10 @@ const WeatherSkeleton = ({ onBackPress }) => {
                     </View>
                 </View>
 
+                {/* --- BENTO GRID --- */}
                 <View style={styles.bentoGrid}>
                     {[1, 2, 3, 4].map((i) => (
-                        <View key={i} style={styles.bentoBox}>
+                        <View key={i} style={[styles.bentoBox, isDesktop && styles.bentoBoxDesktop]}>
                             <View style={styles.bentoHeaderRow}>
                                 <SkeletonEffect style={styles.bentoIconSkeleton} />
                                 <SkeletonEffect style={styles.bentoTitleSkeleton} />
@@ -65,6 +84,7 @@ const WeatherSkeleton = ({ onBackPress }) => {
                     ))}
                 </View>
 
+                {/* --- SUN TIMES --- */}
                 <View style={styles.fullWidthCard}>
                     <View style={styles.cardHeader}>
                         <SkeletonEffect style={styles.headerIconSkeleton} />
@@ -180,92 +200,102 @@ const styles = StyleSheet.create({
         gap: 16, 
         paddingBottom: 32 
     },
+    // Desktop layout constraint
+    scrollContentWide: {
+        maxWidth: 860,
+        width: '100%',
+        alignSelf: 'center',
+    },
     widgetContainer: { 
         paddingVertical: 8 
     },
 
+    // --- ALIGNED HERO SECTION ---
     heroSection: { 
-        paddingVertical: 12, 
-        paddingHorizontal: 8 
+        paddingBottom: 0, 
+        paddingHorizontal: 8,
     },
-    heroTop: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
+    heroTop: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingBottom: 8,
     },
-    heroTextCol: { 
-        gap: 8,
+    hiLoSkeleton: {
+        width: 140,
+        height: 36,
+        borderRadius: 20,
+    },
+    mainWeatherRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    tempBlock: {
+        alignItems: 'flex-start',
         flex: 1,
     },
-    heroTempSkeleton: { 
-        width: 140, 
-        height: 72, 
-        borderRadius: 16 
+    mainTempSkeleton: {
+        width: 120,
+        height: 84,
+        borderRadius: 16,
     },
-    heroFeelsLikeSkeleton: {
-        width: 90,
-        height: 16,
-        borderRadius: 4,
-        marginBottom: 8,
-        marginLeft: 4,
-    },
-    heroLocRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-    },
-    heroLocIconSkeleton: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        marginTop: 2,
-    },
-    heroLocTextStack: {
-        gap: 6,
-    },
-    heroLocTextSkeleton: { 
-        width: 120, 
-        height: 18,
-        borderRadius: 4,
-    },
-    heroLocSubtextSkeleton: {
-        width: 150,
-        height: 14,
-        borderRadius: 4,
-    },
-    heroIconSkeleton: { 
-        width: 90, 
-        height: 90, 
-        borderRadius: 45,
-        marginRight: 8,
-    },
-    heroDividerSkeleton: { 
-        width: '100%', 
-        height: 1, 
-        marginVertical: 20 
-    },
-    heroBottom: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        paddingHorizontal: 4 
-    },
-    heroSubTextLeft: { 
-        width: 80, 
-        height: 16,
-        borderRadius: 4,
-    },
-    heroSubTextCenter: {
+    feelsLikeHeroSkeleton: {
         width: 100,
         height: 16,
         borderRadius: 4,
-        alignSelf: 'flex-end',
+        marginTop: 8,
     },
-    heroSubTextRight: { 
-        width: 120, 
+    iconBlock: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 100,
+    },
+    heroMainIconSkeleton: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+    },
+    conditionTextSkeleton: {
+        width: 70,
         height: 16,
+        borderRadius: 4,
+        marginTop: 12,
+    },
+    heroDividerContainer: {
+        marginVertical: 16,
+    },
+    heroDividerSkeleton: {
+        width: '100%',
+        height: 1,
+    },
+    metadataRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    locationWrapper: {
+        flex: 1,
+        paddingRight: 16,
+        gap: 6,
+    },
+    locationLabelSkeleton: {
+        width: 140,
+        height: 18,
+        borderRadius: 4,
+    },
+    geocodedLabelSkeleton: {
+        width: 180,
+        height: 14,
+        borderRadius: 4,
+    },
+    lastUpdatedLabelSkeleton: {
+        width: 80,
+        height: 14,
         borderRadius: 4,
     },
 
+    // --- CARDS & WIDGETS ---
     fullWidthCard: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 20, 
@@ -278,7 +308,8 @@ const styles = StyleSheet.create({
     cardHeader: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        gap: 8 
+        gap: 8,
+        marginBottom: 4,
     },
     headerIconSkeleton: { 
         width: 20, 
@@ -293,14 +324,15 @@ const styles = StyleSheet.create({
 
     forecastRow: { 
         flexDirection: 'row', 
-        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 12,
+        paddingRight: 16,
         overflow: 'hidden',
     },
     forecastPillSkeleton: { 
         width: 70, 
         height: 100, 
         borderRadius: 16,
-        marginRight: 12,
     },
 
     bentoGrid: { 
@@ -315,9 +347,15 @@ const styles = StyleSheet.create({
         padding: 16, 
         width: '47.5%', 
         minHeight: 140, 
+        display: 'flex',
+        flexDirection: 'column',
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
         ...dropShadow 
+    },
+    // Desktop Bento Box Constraint
+    bentoBoxDesktop: {
+        width: '23.5%',
     },
     bentoHeaderRow: { 
         flexDirection: 'row', 
@@ -335,17 +373,20 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     bentoMiddle: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'flex-start',
         marginTop: 16,
-        height: 36,
-        justifyContent: 'flex-end',
     },
     bentoValueSkeleton: { 
-        width: 80, 
+        width: 70, 
         height: 32, 
         borderRadius: 4
     },
     bentoBottom: {
-        marginTop: 12,
+        marginTop: 16,
+        justifyContent: 'flex-end',
     },
     bentoDescSkeleton: { 
         width: 100, 

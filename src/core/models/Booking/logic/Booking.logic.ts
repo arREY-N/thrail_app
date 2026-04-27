@@ -24,7 +24,9 @@ export const BookingLogic = {
             username: user.username,
             firstname: user.firstname,
             lastname: user.lastname,
-            email: user.email
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            birthday: user.birthday,
         }
     },
 

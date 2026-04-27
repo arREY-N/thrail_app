@@ -9,6 +9,7 @@ import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
 import { useAuthStore } from '@/src/core/stores/authStore';
+import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
@@ -35,6 +36,7 @@ const getStrictDocKey = (docName) => {
     if (lower.includes('bir')) return 'bir';
     if (lower.includes('dti')) return 'dti';
     if (lower.includes('denr')) return 'denr';
+    if (lower.includes('parent') || lower.includes('guardian')) return 'guardianId'; // <-- ADDED for minor logic
     return 'validId';
 };
 
@@ -43,7 +45,9 @@ const DetailsScreen = ({
     savedDetails, 
     savedDocs, 
     onContinue, 
-    isSubmitting
+    isSubmitting,
+    onTermsPress,
+    onPrivacyPress
 }) => {
 
     const { profile } = useAuthStore();
@@ -75,8 +79,27 @@ const DetailsScreen = ({
     
     const [isEditingPhone, setIsEditingPhone] = useState(!hasProfileData); 
     const [showEditModal, setShowEditModal] = useState(false);
-
     const [isSignatureValid, setIsSignatureValid] = useState(false);
+
+    const [isMinor, setIsMinor] = useState(false);
+
+    useEffect(() => {
+        if (profile?.birthday) {
+            const bday = safeParseDateString(profile.birthday);
+            const today = new Date();
+            let age = today.getFullYear() - bday.getFullYear();
+            const m = today.getMonth() - bday.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
+                age--;
+            }
+            setIsMinor(age < 18);
+        }
+    }, [profile?.birthday]);
+
+    const activeDocuments = [...requiredDocuments];
+    if (isMinor && !activeDocuments.includes('Parent/Guardian Valid ID')) {
+        activeDocuments.push('Parent/Guardian Valid ID');
+    }
 
     useEffect(() => {
         setFormData(getInitialData());
@@ -99,7 +122,7 @@ const DetailsScreen = ({
 
     const isFormValid = () => {
         const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
-        const areAllDocsUploaded = requiredDocuments.every(doc => !!uploadedDocs[doc]);
+        const areAllDocsUploaded = activeDocuments.every(doc => !!uploadedDocs[doc]);
 
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
@@ -121,12 +144,7 @@ const DetailsScreen = ({
                                 style={styles.headerActionBtn} 
                                 onPress={() => setShowEditModal(true)}
                             >
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="edit-3" 
-                                    size={14} 
-                                    color={Colors.PRIMARY} 
-                                />
+                                <CustomIcon library="Feather" name="edit-3" size={14} color={Colors.PRIMARY} />
                                 <CustomText variant="caption" style={styles.headerActionBtnText}>
                                     Edit Phone
                                 </CustomText>
@@ -138,12 +156,7 @@ const DetailsScreen = ({
                                 style={styles.headerResetBtn} 
                                 onPress={handleResetPhone}
                             >
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="refresh-ccw" 
-                                    size={14} 
-                                    color={Colors.TEXT_SECONDARY} 
-                                />
+                                <CustomIcon library="Feather" name="refresh-ccw" size={14} color={Colors.TEXT_SECONDARY} />
                                 <CustomText variant="caption" style={styles.headerResetBtnText}>
                                     Reset
                                 </CustomText>
@@ -177,11 +190,11 @@ const DetailsScreen = ({
 
                 <View style={styles.section}>
                     <CustomText variant="h2" style={styles.sectionTitle}>
-                        Emergency Contact
+                        {isMinor ? "Parent/Guardian Contact" : "Emergency Contact"}
                     </CustomText>
                     
                     <CustomTextInput 
-                        label="Contact Name" 
+                        label={isMinor ? "Guardian Name" : "Contact Name"} 
                         placeholder="Maria Dela Cruz"
                         value={formData.emergencyName || ''} 
                         onChangeText={(text) => handleInputChange('emergencyName', text)}
@@ -189,7 +202,7 @@ const DetailsScreen = ({
                     />
 
                     <CustomTextInput 
-                        label="Contact Phone Number" 
+                        label={isMinor ? "Guardian Phone Number" : "Contact Phone Number"} 
                         placeholder="9XX XXX XXXX" 
                         prefix="+63" 
                         type="phone"
@@ -200,7 +213,7 @@ const DetailsScreen = ({
                     />
                 </View>
 
-                {requiredDocuments.length > 0 && (
+                {activeDocuments.length > 0 && (
                     <View style={styles.section}>
                         <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>
                             Required Documents
@@ -209,7 +222,7 @@ const DetailsScreen = ({
                             Please upload the requirements specific to this offer.
                         </CustomText>
 
-                        {requiredDocuments.map((doc, index) => (
+                        {activeDocuments.map((doc, index) => (
                             <DocumentUploadCard 
                                 key={index}
                                 docName={doc}
@@ -224,8 +237,12 @@ const DetailsScreen = ({
                 )}
 
                 <TermsSignature 
-                    expectedName={profileFullName}
+                    isMinor={isMinor}
+                    minorName={profileFullName}
+                    expectedName={isMinor ? formData.emergencyName : profileFullName}
                     onValidChange={(isValid) => setIsSignatureValid(isValid)}
+                    onTermsPress={onTermsPress}
+                    onPrivacyPress={onPrivacyPress}
                 />
                 
             </ScrollView>

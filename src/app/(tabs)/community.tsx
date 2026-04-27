@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
@@ -109,7 +108,7 @@ export default function community(){
     };
 
     const onLeaderboardPress = () => {
-        router.push('/(main)/leaderboard');
+        // router.push('/(main)/leaderboard');
     };
 
     return (

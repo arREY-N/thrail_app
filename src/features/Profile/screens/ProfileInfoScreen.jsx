@@ -9,6 +9,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { formatDate } from "@/src/core/utility/date";
+import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const InfoRow = ({ icon, label, value }) => (
     <View style={styles.infoRow}>
@@ -54,6 +55,9 @@ const ProfileInfoScreen = ({
     onEditPress, 
     onDeletePress 
 }) => {
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
@@ -65,7 +69,10 @@ const ProfileInfoScreen = ({
 
             <ScrollView 
                 style={styles.contentArea}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    isWideScreen && styles.scrollContentWide
+                ]}
                 showsVerticalScrollIndicator={false}
             >
 
@@ -134,6 +141,7 @@ const ProfileInfoScreen = ({
                     <CustomButton 
                         title="Delete Account"
                         onPress={onDeletePress}
+                        variant="outline"
                         style={styles.deleteButton}
                         textStyle={styles.deleteButtonText}
                     />
@@ -161,6 +169,11 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 40,
         gap: 20,
+    },
+    scrollContentWide: {
+        maxWidth: 680,
+        width: '100%',
+        alignSelf: 'center',
     },
     
     card: {
@@ -256,14 +269,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     deleteButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
         borderColor: Colors.ERROR,
-        borderRadius: 16,
     },
     deleteButtonText: {
         color: Colors.ERROR,
-        fontWeight: 'bold',
     }
 });
 

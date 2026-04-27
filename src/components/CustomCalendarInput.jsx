@@ -13,6 +13,8 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+import { formatToMMDDYY, formatToMMDDYYYY, safeParseDateString } from '@/src/utils/dateFormatter';
+
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -28,31 +30,29 @@ const CustomCalendarInput = ({
     showTodayButton = false, 
     allowFutureDates = false,
     defaultMode = 'date',
-    maximumDate
+    maximumDate,
+    dateFormat = 'MM/DD/YYYY'
 }) => {
 
     const [showPicker, setShowPicker] = useState(false);
     const [mode, setMode] = useState(defaultMode); 
-    const [viewDate, setViewDate] = useState(
-        value instanceof Date && !isNaN(value) ? value : new Date()
-    );
+    
+    const [viewDate, setViewDate] = useState(value ? safeParseDateString(value) : new Date());
 
     useEffect(() => {
-        if (value instanceof Date && !isNaN(value)) {
-            setViewDate(value);
+        if (value) {
+            setViewDate(safeParseDateString(value));
         }
     }, [value]);
 
     const effectiveMaxDate = maximumDate || (allowFutureDates ? null : new Date());
 
     const getDisplayDate = () => {
-        if (!value || !(value instanceof Date) || isNaN(value)) return '';
-        
-        const mm = (value.getMonth() + 1).toString().padStart(2, '0');
-        const dd = value.getDate().toString().padStart(2, '0');
-        const yyyy = value.getFullYear().toString();
-        
-        return `${mm}/${dd}/${yyyy}`;
+        if (!value) return '';
+        if (dateFormat === 'MM/DD/YY') {
+            return formatToMMDDYY(value);
+        }
+        return formatToMMDDYYYY(value);
     };
 
     const isToday = (day) => {
@@ -63,10 +63,11 @@ const CustomCalendarInput = ({
     };
 
     const isSelected = (day) => {
-        if (!value || !(value instanceof Date) || isNaN(value)) return false;
-        return day === value.getDate() && 
-            viewDate.getMonth() === value.getMonth() && 
-            viewDate.getFullYear() === value.getFullYear();
+        if (!value) return false;
+        const d = safeParseDateString(value);
+        return day === d.getDate() && 
+            viewDate.getMonth() === d.getMonth() && 
+            viewDate.getFullYear() === d.getFullYear();
     };
 
     const isPastDate = (day) => {

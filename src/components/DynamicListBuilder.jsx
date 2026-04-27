@@ -1,5 +1,10 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -17,11 +22,18 @@ const DynamicListBuilder = ({
     presets = [],
     onTogglePreset
 }) => {
+    const [contentWidth, setContentWidth] = useState(0);
+    const [layoutWidth, setLayoutWidth] = useState(0);
+    const [scrollX, setScrollX] = useState(0);
+
     const customItems = items.filter(item => !presets.includes(item));
     const allChips = [...presets, ...customItems];
 
+    const showRightArrow = contentWidth > layoutWidth && scrollX < (contentWidth - layoutWidth - 10);
+
     return (
         <View style={styles.listBuilderContainer}>
+            
             <CustomText 
                 variant="label" 
                 style={styles.inputLabel}
@@ -30,33 +42,54 @@ const DynamicListBuilder = ({
             </CustomText>
             
             {allChips.length > 0 && (
-                <View style={styles.presetContainer}>
-                    {allChips.map(chip => {
-                        const isSelected = items.includes(chip);
-                        const isCustom = !presets.includes(chip);
+                <View style={styles.scrollWrapper}>
+                    <ScrollView 
+                        horizontal={true}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.presetScrollContent}
+                        scrollEventThrottle={16}
+                        onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
+                        onContentSizeChange={(width) => setContentWidth(width)}
+                        onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
+                    >
+                        {allChips.map(chip => {
+                            const isSelected = items.includes(chip);
+                            const isCustom = !presets.includes(chip);
 
-                        return (
-                            <TouchableOpacity 
-                                key={chip}
-                                style={[
-                                    styles.presetChip, 
-                                    isSelected && styles.presetChipSelected
-                                ]}
-                                onPress={() => isCustom ? onRemoveItem(chip) : onTogglePreset(chip)}
-                                activeOpacity={0.7}
-                            >
-                                <CustomText 
-                                    variant="caption" 
+                            return (
+                                <TouchableOpacity 
+                                    key={chip}
                                     style={[
-                                        styles.presetChipText, 
-                                        isSelected && styles.presetChipTextSelected
+                                        styles.presetChip, 
+                                        isSelected && styles.presetChipSelected
                                     ]}
+                                    onPress={() => isCustom ? onRemoveItem(chip) : onTogglePreset(chip)}
+                                    activeOpacity={0.7}
                                 >
-                                    {isSelected ? (isCustom ? '✕ ' : '✓ ') : '+ '}{chip}
-                                </CustomText>
-                            </TouchableOpacity>
-                        );
-                    })}
+                                    <CustomText 
+                                        variant="caption" 
+                                        style={[
+                                            styles.presetChipText, 
+                                            isSelected && styles.presetChipTextSelected
+                                        ]}
+                                    >
+                                        {isSelected ? (isCustom ? '✕ ' : '✓ ') : '+ '}{chip}
+                                    </CustomText>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+
+                    {showRightArrow && (
+                        <View style={styles.arrowOverlay} pointerEvents="none">
+                            <CustomIcon 
+                                library="Feather" 
+                                name="chevron-right" 
+                                size={20} 
+                                color={Colors.TEXT_SECONDARY} 
+                            />
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -85,6 +118,7 @@ const DynamicListBuilder = ({
                     />
                 </TouchableOpacity>
             </View>
+
         </View>
     );
 };
@@ -99,30 +133,25 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         fontWeight: 'bold' 
     },
-    listInputRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 8 
-    },
-    noMarginBottom: {
-        marginBottom: 0
-    },
-    flexOne: { 
-        flex: 1 
-    },
-    addButton: {
-        backgroundColor: Colors.PRIMARY,
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        justifyContent: 'center',
+    scrollWrapper: {
+        position: 'relative',
+        flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 12,
     },
-    presetContainer: { 
-        flexDirection: 'row', 
-        flexWrap: 'wrap', 
-        gap: 8, 
-        marginBottom: 12 
+    presetScrollContent: {
+        gap: 8,
+        paddingRight: 32,
+    },
+    arrowOverlay: {
+        position: 'absolute',
+        right: 0,
+        height: '100%',
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingRight: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
     },
     presetChip: {
         backgroundColor: Colors.WHITE,
@@ -137,12 +166,32 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
     },
     presetChipText: { 
-        color: Colors.TEXT_SECONDARY 
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
     },
     presetChipTextSelected: { 
         color: Colors.WHITE, 
         fontWeight: 'bold' 
     },
+    listInputRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8 
+    },
+    flexOne: { 
+        flex: 1 
+    },
+    noMarginBottom: {
+        marginBottom: 0
+    },
+    addButton: {
+        backgroundColor: Colors.PRIMARY,
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
 });
 
 export default DynamicListBuilder;
