@@ -98,7 +98,7 @@ export const useAuthStore = create<AuthState>()(
 						if (!userRole) {
 							console.log("Failed fetching user role");
 							setTimeout(() => firebaseUser.getIdToken(true), 2000);
-							console.log('returning');
+							set({ isLoading: false, error: "Failed fetching user role. Retrying..." });
 							return;
 						}
 	
@@ -129,6 +129,7 @@ export const useAuthStore = create<AuthState>()(
 									});
 								} else {
 									console.log("User document does not exists");
+									set({ isLoading: false, error: "User document does not exist" });
 								}
 							},
 							(error) => {
