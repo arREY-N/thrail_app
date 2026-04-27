@@ -102,42 +102,25 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    /**
-     * RAVEN
-     * TODO: use this function to connect the UI to the payment gateway (payBooking)
-     * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-     */
-    const onPayOffer = async () => {
+    const onPayOffer = async (amount: number, bookingId: string, type: string, returnUrl: string) => {
         try {
-            if(!booking)
-                throw new Error('No booking found');
-
             if(!profile) 
                 throw new Error('No user found');
             
-            /**
-             * RAVEN
-             * TODO: connect payment gateway here and send a receipt based on the IPayment<Date> structure
-             * Revise the function parameters if needed to accommodate the payment gateway's requirements.
-             */
-            const response = payBooking({
-                amount: booking.offer.price,
-                bookingId: booking.id,
+            const response = await payBooking({
+                amount,
+                bookingId,
                 userId: profile.id,
+                type,
+                returnUrl,
             });
 
-            const paidBooking = new Booking({
-                ...booking,
-                payment: [...(booking.payment || []), response],
-            })
-
-            const data = await createBooking(paidBooking);
-
-            console.log('Booking data with payment: ', data);
-
-            setBooking(data);
+            // The backend handles appending the pending IPayment structure to the Firestore array.
+            // We just return the response to the UI so it can redirect to the checkout URL.
+            return response;
         } catch (error) {
-            setLocalError((error as Error).message || 'Failed setting payment')
+            setLocalError((error as Error).message || 'Failed setting payment');
+            throw error;
         }
     }
 

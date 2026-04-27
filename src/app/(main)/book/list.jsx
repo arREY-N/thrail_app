@@ -21,6 +21,7 @@ export default function listBook(){
         error,
         onCancelBookingPress,
         onRefundBookingPress,
+        onPayOffer,
         getBookOffer,
     } = useBookOffer();
 
@@ -36,7 +37,7 @@ export default function listBook(){
 		);
 	}
 
-    const displayBookings = [...DummyBookings, ...(bookings || [])]
+    const displayBookings = [...(bookings || [])];
     
     return(
 		<MyBookingsScreen 
@@ -46,6 +47,7 @@ export default function listBook(){
 			onBackPress={onBackPress}
 			onCancelBookingPress={onCancelBookingPress}
 			onRefundBookingPress={onRefundBookingPress}
+			onPayOffer={onPayOffer}
 			getBookOffer={getBookOffer}
 		/>
     );

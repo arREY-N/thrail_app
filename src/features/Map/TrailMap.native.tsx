@@ -92,7 +92,7 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
      * Validates cache health and re-downloads if necessary.
      */
     async function resolveOfflineMap() {
-      const fileUri = `${FileSystem.documentDirectory}thrail-offline-map.pmtiles`;
+      const fileUri = `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
 
       if (
@@ -159,7 +159,9 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     Promise.all([
       resolveGeoJson(),
       resolveOfflineMap(),
-      resolveOfflineFonts().then(setFontBaseDir),
+      resolveOfflineFonts().then((dir) => {
+        setFontBaseDir(dir);
+      }),
     ])
       .then(() => setLoadState("ready"))
       .catch((err) => {
@@ -242,8 +244,8 @@ const TrailMap = ({ initialLon, initialLat }: any) => {
     return <LoadingScreen />;
   }
 
-  const activeStyle = actuallyOffline
-    ? buildOfflineStyle(offlineTileUrl, fontBaseDir) // ✅ No maptilerKey needed offline
+  const activeStyle: any = (actuallyOffline && offlineTileUrl && fontBaseDir)
+    ? buildOfflineStyle(offlineTileUrl, fontBaseDir)
     : onlineStyle;
 
   return (

@@ -18,7 +18,7 @@ export async function resolveOfflineFonts(): Promise<string> {
 
   for (const key of ctx.keys()) {
     // key is typically like "./Noto Sans Regular/0-255.pbf"
-    const dest = key.replace('./', '');
+    const dest = key.replace('./', '').replace(/ /g, '');
     const module = ctx(key);
     
     const destPath = `${fontBaseDir}${dest}`;

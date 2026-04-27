@@ -14,15 +14,15 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 
-import { app, functions } from '@/src/core/config/Firebase';
+import { app } from '@/src/core/config/Firebase';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { httpsCallable } from 'firebase/functions';
 
 const PaymentScreen = ({
     bookingData,
     onBackPress,
     onContinue,
+    onPayOffer,
 }) => {
     const { profile } = useAuthStore();
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
@@ -63,7 +63,6 @@ const PaymentScreen = ({
             if (['gcash', 'maya'].includes(selectedMethod)) {
                 setIsSubmitting(true);
                 try {
-                    const createPaymongoCheckout = httpsCallable(functions, 'createPaymongoCheckout');
                     
                     // Create return URL automatically based on the environment
                     const rawUrl = Linking.createURL('payment-result');
@@ -78,37 +77,26 @@ const PaymentScreen = ({
                     // Wrap the deep link in our custom Firebase HTTP function to bypass PayMongo's strict URL validator
                     const secureReturnUrl = `${redirectFunctionUrl}?url=${encodeURIComponent(appUrl)}`;
                     
-                    const response = await createPaymongoCheckout({
-                        amount: amountToPay,
-                        type: selectedMethod,
-                        returnUrl: secureReturnUrl,
-                        bookingId: bookingData?.id,
-                        userId: profile?.id || profile?.uid
+                    const response = await onPayOffer(
+                        amountToPay,
+                        bookingData?.id,
+                        selectedMethod,
+                        secureReturnUrl
+                    );
+                    
+                    const checkoutUrl = response.checkout_url;
+                    
+                    // Use the in-app browser for a seamless experience
+                    await WebBrowser.openBrowserAsync(checkoutUrl, {
+                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+                        toolbarColor: Colors.PRIMARY,
+                        enableBarCollapsing: true,
+                        showTitle: true,
                     });
-                    
-                    const checkoutUrl = response.data.checkout_url;
-                    
-                    // Fallback to standard Linking for Android Emulator to avoid Custom Tab blank screen bugs
-                    if (Platform.OS === 'android') {
-                        await Linking.openURL(checkoutUrl);
-                    } else {
-                        const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, appUrl, {
-                            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                            toolbarColor: Colors.PRIMARY,
-                            windowName: 'PayMongoCheckout',
-                            windowFeatures: 'width=400,height=750,menubar=no,toolbar=no,location=no,status=no'
-                        });
-
-                        if (result.type !== 'success' || result.type === 'dismiss') {
-                            setIsSubmitting(false);
-                            setPaymentError("Payment process was cancelled.");
-                            return;
-                        }
-                    }
 
                     // Proceed to Status, passing PayMongo source ID as the "receipt" 
                     // before going to the status tab
-                    setReceiptImage({ uri: 'paymongo_source', id: response.data.id });
+                    setReceiptImage({ uri: 'paymongo_source', id: response.id });
                     setCurrentStep(3);
 
                 } catch (error) {
