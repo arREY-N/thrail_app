@@ -1,8 +1,8 @@
-import { BookingStatus, IBooking, IBookingDB, IPayment, Requirements } from "@/src/core/models/Booking/Booking.types";
+import { BookingStatus, IBooking, IBookingDB, IPayment, IUserBooking, Requirements } from "@/src/core/models/Booking/Booking.types";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
-import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
+import { IEmergencyContact } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -22,12 +22,14 @@ export class Booking implements IBooking {
         price: 0,
         id: ""
     };
-    user: IUserSummary = {
+    user: IUserBooking<Date> = {
         id: "",
         username: "",
         firstname: "",
         lastname: "",
-        email: ""
+        email: "",
+        phoneNumber: "",
+        birthday: new Date(),
     };
     business: IBusinessSummary = {
         id: "",
@@ -57,6 +59,10 @@ export class Booking implements IBooking {
                 ...data.offer,
                 date: toDate(data.offer.date),
             },
+            user: {
+                ...data.user,
+                birthday: toDate(data.user.birthday),
+            },
             payment: (data.payment || []).map(p => ({
                 ...p,
                 refundableUntil: toDate(p.refundableUntil),
@@ -82,7 +88,15 @@ export class Booking implements IBooking {
                 ...this.offer,
                 date: Timestamp.fromDate(this.offer.date),
             },
-            user: this.user,
+            user: {
+                birthday: Timestamp.fromDate(this.user.birthday),
+                phoneNumber: this.user.phoneNumber,
+                id: this.user.id,
+                username: this.user.username,
+                firstname: this.user.firstname,
+                lastname: this.user.lastname,
+                email: this.user.email,
+            },
             business: this.business,
             trail: this.trail,
             payment: (this.payment || []).map(p => ({
