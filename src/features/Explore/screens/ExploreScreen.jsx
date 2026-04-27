@@ -14,6 +14,7 @@ import { fetchWeatherFromApi } from "@/src/core/repositories/weatherRepository";
 import { getWeatherInfoUI } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
+const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
 const MOUNTAIN_COORDS = {
     tagapo: { lat: 14.3392772, lon: 121.2325293 },
     marami: { lat: 14.1986108, lon: 120.6858334 },
@@ -32,17 +33,23 @@ const resolveCoordsForTrail = (trail) => {
 
 const ExploreScreen = ({ trails, onViewMountain }) => {
     const [weatherMap, setWeatherMap] = useState({});
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+    const [activeFilters, setActiveFilters] = useState({
+        provinces: [],
+        elevation: null,
+    });
+
     const { width, isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
-    // Increased max width to 1400px to give 4-columns room to breathe
     const MAX_WIDTH = 1400; 
     const effectiveWidth = Math.min(width, MAX_WIDTH);
     const containerPadding = 16;
     const gap = 16;
     const availableWidth = effectiveWidth - containerPadding * 2;
 
-    // Adjusted breakpoints so cards never drop below ~310px width, preventing squished stats
     let numColumns = 1;
     if (availableWidth >= 1300) numColumns = 4;
     else if (availableWidth >= 950) numColumns = 3;
@@ -76,31 +83,51 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                     };
                 }
             });
-
             setWeatherMap(nextMap);
         };
 
         fetchAll();
     }, [trails]);
 
-    const categories = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
-    const [selectedCategory, setSelectedCategory] = useState("All");
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-
     const filteredTrails = useMemo(() => {
-        let categoryFiltered = filterTrailsByCategory(trails, selectedCategory);
+        let result = filterTrailsByCategory(trails, selectedCategory);
 
         if (searchQuery.trim().length > 0) {
             const query = searchQuery.toLowerCase();
-            categoryFiltered = categoryFiltered.filter(
-                (t) =>
+            result = result.filter((t) =>
                 t.general?.name?.toLowerCase().includes(query) ||
-                t.general?.province?.some((p) => p.toLowerCase().includes(query)),
+                t.general?.province?.some((p) => p.toLowerCase().includes(query))
             );
         }
-        return categoryFiltered;
-    }, [selectedCategory, trails, searchQuery]);
+
+        if (activeFilters.provinces.length > 0) {
+            result = result.filter((t) => {
+                const targetProvinces = Array.isArray(t.general?.province) 
+                    ? t.general.province 
+                    : [t.general?.province || t.address || ""];
+                
+                return activeFilters.provinces.some(filterProv => 
+                    targetProvinces.some(p => p.toLowerCase().includes(filterProv.toLowerCase()))
+                );
+            });
+        }
+
+        if (activeFilters.elevation) {
+            result = result.filter((t) => {
+                const elevRaw = t.masl || t.general?.elevation || "0";
+                const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
+                
+                if (activeFilters.elevation === '< 500 masl') return elev < 500;
+                if (activeFilters.elevation === '500 - 1000 masl') return elev >= 500 && elev <= 1000;
+                if (activeFilters.elevation === '> 1000 masl') return elev > 1000;
+                return true;
+            });
+        }
+
+        return result;
+    }, [selectedCategory, trails, searchQuery, activeFilters]);
+
+    const shouldCenterGrid = filteredTrails.length > 0 && filteredTrails.length < numColumns;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -116,7 +143,7 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                         rightIconLibrary: "Ionicons",
                         rightIconName: "filter",
                         onRightButtonPress: () => setIsFilterModalVisible(true),
-                        tabs: categories,
+                        tabs: CATEGORIES,
                         activeTab: selectedCategory,
                         onTabSelect: setSelectedCategory,
                     }}
@@ -129,7 +156,13 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                     ]}
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={[styles.listContainer, { gap }]}>
+                    <View style={[
+                        styles.listContainer, 
+                        { 
+                            gap,
+                            justifyContent: shouldCenterGrid ? 'center' : 'flex-start'
+                        }
+                    ]}>
                         {filteredTrails.length > 0 ? (
                             filteredTrails.map((t) => (
                                 <MountainCard
@@ -144,7 +177,9 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                         ) : (
                             <View style={styles.emptyState}>
                                 <CustomText style={{ color: Colors.TEXT_SECONDARY }}>
-                                    {`No trails found for "${selectedCategory}".`}
+                                    {searchQuery || activeFilters.provinces.length > 0
+                                        ? "No trails match your current filters and search." 
+                                        : `No trails found for "${selectedCategory}".`}
                                 </CustomText>
                             </View>
                         )}
@@ -154,9 +189,8 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                 <FilterModal
                     visible={isFilterModalVisible}
                     onClose={() => setIsFilterModalVisible(false)}
-                    onApply={(filters) => {
-                        console.log("Applied Filters:", filters);
-                    }}
+                    initialFilters={activeFilters}
+                    onApply={(filters) => setActiveFilters(filters)}
                 />
             </View>
         </ScreenWrapper>
@@ -172,17 +206,18 @@ const filterTrailsByCategory = (trails, category) => {
         case "Nearby":
             return trails.filter((t) => {
                 const address = t.address || "";
-                const provinceData = t.province;
+                const provinceData = t.general?.province || t.province;
                 const isRizal = Array.isArray(provinceData)
-                ? provinceData.includes("Rizal")
-                : (provinceData || "").includes("Rizal");
+                    ? provinceData.some(p => p.includes("Rizal"))
+                    : (provinceData || "").includes("Rizal");
                 return address.includes("Rizal") || isRizal;
             });
         case "Discover":
             return trails.slice(0, 3);
         case "Challenge":
             return trails.filter((t) => {
-                const elev = Number(t.masl || 0);
+                const elevRaw = t.masl || t.general?.elevation || "0";
+                const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
                 const len = Number(t.length || 0);
                 return elev > 600 || len > 10;
             });
@@ -203,7 +238,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     scrollContentWide: {
-        maxWidth: 1400,
+        maxWidth: 1400, 
         width: '100%',
         alignSelf: 'center',
     },
