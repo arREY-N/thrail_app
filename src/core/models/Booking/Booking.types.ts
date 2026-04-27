@@ -28,9 +28,14 @@ export type Requirements = {
 }
 
 export interface IPayment<T> {
+    /** Name of the payment method used (GCash, Maya, etc.) */
     gateway: string;
-    gatewayId: string;
-    referenceCode: string;
+    /** Records a reference to the checkout session */
+    sessionId: string;
+    
+    /** Records the receipt ID once available, will be null initially */
+    referenceCode?: string | null;
+    
     status: 'pending' | 'captured' | 'failed' | 'refunded';
     refundableUntil: T;
     amount: number;

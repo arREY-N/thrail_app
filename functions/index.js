@@ -725,17 +725,28 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
             .update({
                 payment: admin.firestore.FieldValue.arrayUnion({
                     gateway: 'paymongo',
-                    gatewayId: session.id,
-                    referenceCode: bookingId,
+                    sessionId: session.id,
+                    referenceCode: null,
                     status: 'pending',
                     amount: amount,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date(session.createdAt * 1000).toISOString()
                 }),
                 updatedAt: FieldValue.serverTimestamp()
             });
 
+        const response = {
+            gateway: 'paymongo',
+            sessionId: session.id,
+            referenceCode: null,
+            status: 'pending',
+            amount: amount,
+            createdAt: new Date(session.createdAt * 1000).toISOString(),
+            // Included so the frontend can still redirect the user
+            checkout_url: session.checkout_url
+        };
+
         console.log(`[createPaymongoCheckout] Successfully created session ${session.id} for booking ${bookingId}`);
-        return session;
+        return response;
     } catch (err) {
         console.error(`[createPaymongoCheckout] Failed to initialize checkout for booking ${bookingId}: `, err);
         handlePaymongoError(err);
@@ -850,9 +861,11 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                     const payments = bookingData.payment || [];
                     const pendingIdx = payments.findIndex(p => p.status === 'pending');
                     
+                    const existingSessionId = pendingIdx >= 0 ? payments[pendingIdx].sessionId : null;
+                    
                     const capturedPayment = {
                         gateway: 'paymongo',
-                        gatewayId: gatewayId,
+                        sessionId: existingSessionId,
                         referenceCode: referenceCode,
                         status: 'captured',
                         refundableUntil: Timestamp.fromDate(refundableUntil),

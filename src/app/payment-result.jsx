@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 export default function PaymentResult() {
@@ -12,6 +13,10 @@ export default function PaymentResult() {
 
         // Automatically close this invisible screen right after the deep link lands here.
         // This reveals the PaymentScreen (Status tab) that is already loaded underneath!
+        if (Platform.OS === 'web') {
+            window.close();
+        }
+
         if (router.canGoBack()) {
             router.back();
         } else {

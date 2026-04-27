@@ -43,8 +43,8 @@ export async function refundBooking(params: UsePayBookingParams): Promise<IPayme
 
     const response: IPayment<Date> = {
         gateway: "paymongo",
-        gatewayId: "refund_processing",
-        referenceCode: params.bookingId,
+        sessionId: "refund_processing",
+        referenceCode: null,
         status: "refunded",
         refundableUntil: new Date(),
         amount: params.amount,

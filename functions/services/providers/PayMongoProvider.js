@@ -72,6 +72,7 @@ class PayMongoProvider {
         return {
             id: data.data.id,
             checkout_url: data.data.attributes.checkout_url,
+            createdAt: data.data.attributes.created_at, // PayMongo Unix timestamp
             status: 'pending'
         };
     }
