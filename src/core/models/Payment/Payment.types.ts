@@ -1,31 +1,33 @@
-import { FieldValue, Timestamp } from "firebase/firestore";
-import { IBusinessSummary } from "../Business/Business.types";
-import { IOfferSummary } from "../Offer/Offer.types";
-import { IUserSummary } from "../User/User.types";
+// COMMENTED FOR NOW IN CASE THERE ARE DEPENDENCIES, WILL DELETE LATER IF NOT NEEDED ANYMORE
 
-export interface IReceipt<T>{
-    id: string;
-    date: T;
-    amount: number;
-    gateway: string;
-    referenceCode?: string;
-}
+// import { FieldValue, Timestamp } from "firebase/firestore";
+// import { IBusinessSummary } from "../Business/Business.types";
+// import { IOfferSummary } from "../Offer/Offer.types";
+// import { IUserSummary } from "../User/User.types";
 
-export interface IPaymentBase<T> {
-    id: string;
-    createdAt: T;
-    updatedAt: T;
-    receipt: IReceipt<T>;
-    offer: IOfferSummary<T>,
-    business: IBusinessSummary,
-    user: IUserSummary
-}
+// export interface IReceipt<T>{
+//     id: string;
+//     date: T;
+//     amount: number;
+//     gateway: string;
+//     referenceCode?: string;
+// }
 
-export interface IPaymentDB extends IPaymentBase<Timestamp | FieldValue>{}
-export interface IPayment extends IPaymentBase<Date>{}
+// export interface IPaymentBase<T> {
+//     id: string;
+//     createdAt: T;
+//     updatedAt: T;
+//     receipt: IReceipt<T>;
+//     offer: IOfferSummary<T>,
+//     business: IBusinessSummary,
+//     user: IUserSummary
+// }
 
-export interface IPaymentSummary<T> {
-    id: string;
-    date: T;
-    amount: number;
-}
+// export interface IPaymentDB extends IPaymentBase<Timestamp | FieldValue>{}
+// export interface IPayment extends IPaymentBase<Date>{}
+
+// export interface IPaymentSummary<T> {
+//     id: string;
+//     date: T;
+//     amount: number;
+// }
