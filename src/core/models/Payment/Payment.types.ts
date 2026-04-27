@@ -8,6 +8,7 @@ export interface IReceipt<T>{
     date: T;
     amount: number;
     gateway: string;
+    referenceCode?: string;
 }
 
 export interface IPaymentBase<T> {

@@ -51,6 +51,8 @@ firebase-export-*/
 *-debug.log
 firebase-debug.*.log
 
+.firebase/
+
 eas.json
 desktop.ini
 

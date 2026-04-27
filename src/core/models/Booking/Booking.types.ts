@@ -1,6 +1,5 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
-import { IPaymentSummary } from "@/src/core/models/Payment/Payment.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
@@ -8,7 +7,8 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 export type BookingStatus = 
     'for-reservation' | 
     'for-payment' | 
-    'paid'  |
+    'paid' |
+    'downpayment' |
     'completed' |
 
     'reservation-rejected' |
@@ -27,15 +27,30 @@ export type Requirements = {
     valid: 'pending' | 'approved' | 'rejected';
 }
 
+export interface IPayment<T> {
+    gateway: string;
+    gatewayId: string;
+    referenceCode: string;
+    status: 'pending' | 'captured' | 'failed' | 'refunded';
+    refundableUntil: T;
+    amount: number;
+    createdAt: T;
+}
+
+export interface IUserBooking<T> extends IUserSummary {
+    birthday: T;
+    phoneNumber: string;
+}
+
 export interface IBookingBase<T> {
     id: string;
     createdAt: T;
     updatedAt: T;
     offer: Pick<IOfferBase<T>, 'date' | 'price' | 'id'>;
-    user: IUserSummary,
+    user: IUserBooking<T>,
     business: IBusinessSummary
     trail: ITrailSummary
-    payment: IPaymentSummary<T>[];
+    payment: IPayment<T>[];
     status: BookingStatus
     emergencyContact: IEmergencyContact;
     documents: Requirements[]

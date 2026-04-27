@@ -9,6 +9,7 @@ import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
 	User as FirebaseUser,
 	onIdTokenChanged,
+	sendPasswordResetEmail,
 	signOut,
 	Unsubscribe
 } from "firebase/auth";
@@ -35,15 +36,15 @@ export interface AuthState {
 	remember: boolean;
 	isChecking: boolean;
 
+	initialize: () => Unsubscribe | undefined;
 	signOut: () => Promise<void>;
 	reset: () => void;
 	logIn: (email: string, password: string) => Promise<void>;
 	rememberMe: () => boolean;
-	forgotPassword: () => void;
+	forgotPassword: (email: string) => Promise<void>;
 	validateSignUp: () => Promise<boolean>;
 	editAccount: (data: SignUp) => void;
 	gmailSignUp: () => void;
-	gmailLogIn: () => void;
 	signUp: () => Promise<void>;
 	validateInfo: () => boolean;
 	resetSignUp: () => void;
@@ -85,6 +86,8 @@ export const useAuthStore = create<AuthState>()(
 						currentUnsub();
 						set({ _unsubscribe: null });
 					}
+
+					console.log('line 90')
 	
 					if (firebaseUser) {
 						console.log("with user");
@@ -95,6 +98,7 @@ export const useAuthStore = create<AuthState>()(
 						if (!userRole) {
 							console.log("Failed fetching user role");
 							setTimeout(() => firebaseUser.getIdToken(true), 2000);
+							console.log('returning');
 							return;
 						}
 	
@@ -108,15 +112,17 @@ export const useAuthStore = create<AuthState>()(
 							role: userRole,
 							businessId,
 						});
-	
+							
+						
 						const ref = doc(db, "users", firebaseUser.uid).withConverter(
 							userConverter,
 						);
-						
+
 						const unsubProfile = onSnapshot(
 							ref,
 							(snap) => {
 								if (snap.exists()) {
+									console.log('snap exists')
 									set({
 										profile: snap.data(),
 										isLoading: false,
@@ -126,12 +132,16 @@ export const useAuthStore = create<AuthState>()(
 								}
 							},
 							(error) => {
-								if (!get().user) return;
+								if (!get().user) {
+									console.log("User signed out before profile listener could initialize. Ignoring listener error.");
+									return
+								};
 								console.log("Firestore listener error: ", error);
 							},
 						);
 						set({ _unsubscribe: unsubProfile });
 					} else {
+						console.log("no user");
 						const currentUnsub = get()._unsubscribe;
 	
 						if (currentUnsub) {
@@ -279,18 +289,11 @@ export const useAuthStore = create<AuthState>()(
 
 		gmailSignUp: async () => {
 			try {
-				if(Platform.OS === 'web') {
-					await AuthRepository.webSignUpWithGoogle();
-				} else {
-					await AuthRepository.signUpWithGoogle();
-				}
-			} catch (error) {
-				console.error("Google sign-in error:", error);
-			}
-		},
-
-		gmailLogIn: async () => {
-			try {
+				set({
+					isLoading: true,
+					error: null,
+				});
+				
 				if(Platform.OS === 'web') {
 					await AuthRepository.webSignUpWithGoogle();
 				} else {
@@ -299,15 +302,35 @@ export const useAuthStore = create<AuthState>()(
 			} catch (error) {
 				console.error("Google sign-in error:", error);
 				set({
-					error: (error as Error).message || "Failed signing in with Google",	
+					isLoading: false,
+					error: (error as Error).message || "Failed signing up with Google",	
 				})
 			}
 		},
 
-		forgotPassword: () => {
-			set({
-				error: "Function to be added soon",
-			});
+		forgotPassword: async (email: string) => {
+			try {
+				set({ isLoading: true, error: null });
+
+				const actionCodeSettings = {
+					url: 'https://thrail.firebaseapp.com/login', 
+					handleCodeInApp: true, 
+					iOS: {
+						bundleId: 'com.thesis.thrail',
+					},
+					android: {
+						packageName: 'com.thesis.thrail',
+						installApp: true,
+						minimumVersion: '12',
+					},
+				};
+
+				await sendPasswordResetEmail(auth, email, actionCodeSettings);
+				set({ isLoading: false, error: null });
+			} catch (error) {
+				console.log("Forgot password error:", error);
+				set({ isLoading: false, error: (error as Error).message || "Failed to initiate password reset" });
+			} 
 		},
 	})),
 );

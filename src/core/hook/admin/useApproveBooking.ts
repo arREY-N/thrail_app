@@ -1,3 +1,4 @@
+import { refundBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Requirements } from "@/src/core/models/Booking/Booking.types";
@@ -195,8 +196,11 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             if(role !== 'admin')
                 throw new Error('Only admins can refund bookings');
 
-
-            alert(`To refund: ${totalAmountPaid}`);
+            const response = refundBooking({
+                amount: totalAmountPaid,
+                bookingId: booking.id,
+                userId: booking.user.id,
+            });
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to refund booking');  
         }

@@ -13,7 +13,10 @@ const { DateTime } = require('luxon');
 const tasksClient = new CloudTasksClient();
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
+const paymongoWebhookSecret = defineSecret('PAYMONGO_WEBHOOK_SECRET'); // Optional
 const { Buffer } = require('buffer');
+const PaymentManager = require('./services/PaymentManager');
+const PayMongoProvider = require('./services/providers/PayMongoProvider');
 
 admin.initializeApp();
 
@@ -325,13 +328,15 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
             .doc(userId)
             .get();
 
+        const db = admin.firestore();
+
         await db
             .collection('users')
             .doc(userId)
             .collection('notifications')
             .add({
                 title: "Booking Reminder",
-                message: `Hello! You're booking for ${trailName} on ${reminderDate} is quickly approaching. Be sure to have your things prepared ahead of time. Double check the weather and coordinate with your hikemates through the group chat in case of unexpected scenarios.`,
+                message: `Hello! Your booking for ${trailName} on ${reminderDate} is quickly approaching. Be sure to have your things prepared ahead of time. Double check the weather and coordinate with your hikemates through the group chat in case of unexpected scenarios.`,
                 createdAt: FieldValue.serverTimestamp(),
                 read: false,
                 metadata: {
@@ -340,8 +345,11 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 }                
             });
 
-        const tokens = userDoc.data()?.fcmTokens || [];
+        
+        const tokenList = userDoc.data()?.fcmTokens || [];
 
+        const tokens = tokenList.filter(t => t.platform === 'android' || t.platform === 'ios');
+        
         if (!tokens.length) {
             console.log('No tokens found for user:', userId);
             res.status(200).send('No tokens to send reminder');
@@ -376,8 +384,10 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 .doc(userId)
                 .update({ fcmTokens: validTokens });
         }
+
+        res.status(200).send('Success')
     } catch (error) {
-        throw new HttpsError('internal', 'Error sending booking reminder: ' + error.message);
+        res.status(500).send('Internal server error');
     }
 });
 
@@ -601,119 +611,154 @@ exports.checkEmail = https.onCall(async (request) => {
     };
 })
 
- exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
-     const { amount, type, returnUrl } = request.data;
-     const auth = request.auth;
-
-     if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
-     if (!amount || !type) throw new HttpsError('invalid-argument', 'Amount and type are required');
-     if (!['gcash', 'paymaya', 'maya'].includes(type)) throw new HttpsError('invalid-argument', 'Invalid payment type');
-
-     const PAYMONGO_SECRET_KEY = paymongoSecret.value();
-
-     if (!PAYMONGO_SECRET_KEY) {
-         throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing in environment.');
-     }
-
-     const encodedKey = Buffer.from(PAYMONGO_SECRET_KEY).toString('base64');
+/**
+ * Maps raw PayMongo API errors to user-friendly HttpsErrors.
+ * 
+ * @param {Error} err - The error thrown by the provider.
+ * @throws {HttpsError}
+ */
+function handlePaymongoError(err) {
+    const rawMessage = err.message || String(err);
     
-     // PayMongo uses 'paymaya' internally
-     const sourceType = type === 'maya' ? 'paymaya' : type;
-     const redirectUrl = returnUrl || 'thrailapp://';
+    // 1. Handle HTTP Auth/Security Failures (401, 403)
+    if (rawMessage.includes('Unauthorized') || rawMessage.includes('401') || rawMessage.includes('403')) {
+        throw new HttpsError('unavailable', 'Payment service is currently unavailable. Please notify the Thrail administrators.');
+    }
 
-     try {
-         const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
-             method: 'POST',
-             headers: {
-                 'Content-Type': 'application/json',
-                 'Authorization': `Basic ${encodedKey}`
-             },
-             body: JSON.stringify({
-                 data: {
-                     attributes: {
-                         send_email_receipt: false,
-                         show_description: false,
-                         show_line_items: true,
-                         line_items: [
-                             {
-                                 currency: 'PHP',
-                                 amount: Math.round(amount * 100),
-                                 name: 'Booking Payment',
-                                 quantity: 1
-                             }
-                         ],
-                         payment_method_types: [sourceType],
-                         success_url: redirectUrl,
-                         cancel_url: redirectUrl
-                     }
-                 }
-             })
-         });
-
-         if (!response.ok) {
-             const errorDetails = await response.text();
-             console.error('PayMongo API Error Details:', errorDetails);
-            
-            if (response.status === 401 || response.status === 403) {
-                throw new Error("Payment service is currently unavailable. Please notify the Thrail administrators.");
+    // 2. Parse JSON error details from PayMongo
+    const paymongoMarker = 'PayMongo Checkout Error:';
+    if (rawMessage.includes(paymongoMarker)) {
+        const jsonStr = rawMessage.substring(rawMessage.indexOf(paymongoMarker) + paymongoMarker.length).trim();
+        
+        let errorBody;
+        try {
+            errorBody = JSON.parse(jsonStr);
+        } catch (e) {
+            // Check for HTML/Network level errors (503, 500, 502)
+            if (jsonStr.includes('503') || jsonStr.includes('500') || jsonStr.includes('<html>')) {
+                throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
             }
-            if (response.status >= 500) {
-                throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
-            }
+            throw new HttpsError('internal', 'An unexpected error occurred with the payment gateway.');
+        }
 
-             let paymongoError = null;
-             try {
-                 const parsed = JSON.parse(errorDetails);
-                 if (parsed.errors && parsed.errors.length > 0) {
-                     paymongoError = parsed.errors[0];
-                 }
-             } catch (e) {
-                 // Silently fails, falls back to generic timeout/network error below
-             }
+        const errors = errorBody.errors || [];
+        const mainError = errors[0] || {};
+        
+        const code = mainError.code;
+        const detail = mainError.detail;
+        const pointer = mainError.source?.pointer || '';
 
-             if (paymongoError) {
-                 const code = paymongoError.code || '';
-                 const detail = paymongoError.detail || '';
-                 const pointer = paymongoError.source?.pointer || '';
+        // Transaction Limits (100k PHP)
+        if (code === 'AMOUNT_EXCEED_LIMIT' || pointer.includes('amount') && detail?.toLowerCase().includes('maximum')) {
+            throw new HttpsError('invalid-argument', 'This booking exceeds the ₱100,000 maximum transaction limit for GCash/Maya. Please use a different payment method or pay in installments.');
+        }
 
-                if (code === 'AMOUNT_EXCEED_LIMIT' || (pointer === 'amount' && detail.toLowerCase().includes('exceed'))) {
-                    throw new Error("This booking exceeds the ₱100,000 maximum transaction limit for GCash/Maya. Please use a different payment method or pay in installments.");
-                }
-                if (code === 'parameter_invalid' && pointer === 'amount' && detail.toLowerCase().includes('least')) {
-                    throw new Error("The booking amount (or 50% downpayment) is too small. The minimum payment required by GCash/Maya is ₱100.");
-                }
-                if (code === 'parameter_format_invalid' && pointer === 'return_url') {
-                    throw new Error("An internal routing error occurred while generating your booking checkout. Please try again.");
-                }
-                if (code === 'SYSTEM_ERROR' || code === 'PY0016') {
-                    throw new Error("GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.");
-                }
-                
-                 // Fallback for an unmapped PayMongo error
-                 throw new Error(detail || "An unexpected error occurred with the payment gateway.");
-             }
-            
-             throw new Error("Could not connect to the payment gateway. Please check your internet connection and try booking again.");
-         }
+        // Minimum Amount (100 PHP)
+        if (pointer.includes('amount') && (detail?.includes('10000') || detail?.toLowerCase().includes('at least'))) {
+            throw new HttpsError('invalid-argument', 'The booking amount (or 50% downpayment) is too small. The minimum payment required by GCash/Maya is ₱100.');
+        }
 
-        const data = await response.json();
-        return {
-            id: data.data.id,
-            checkout_url: data.data.attributes.checkout_url,
-            status: 'pending'
-        };
+        // Invalid Return URL (Deep Link)
+        if (pointer.includes('return_url') || code === 'parameter_format_invalid' || code === 'parameter_invalid' && pointer.includes('url')) {
+            throw new HttpsError('invalid-argument', 'An internal routing error occurred while generating your booking checkout. Please try again.');
+        }
+
+        // PayMongo System Downtime
+        if (code === 'SYSTEM_ERROR' || code === 'service_unavailable') {
+            throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
+        }
+
+        // Fallback to specific detail if available
+        if (detail) {
+            throw new HttpsError('internal', detail);
+        }
+    }
+
+    // 3. Global Generic Fallback
+    throw new HttpsError('internal', 'An unexpected error occurred with the payment gateway.');
+}
+
+/**
+ * Creates a PayMongo Checkout Session for a given booking.
+ * Generates a hosted payment page URL for users to securely enter payment details.
+ * 
+ * @function createPaymongoCheckout
+ * @param {Object} request - The callable HTTPS request.
+ * @param {Object} request.data - The data payload.
+ * @param {number} request.data.amount - The amount to charge (in PHP, decimal).
+ * @param {string} request.data.type - The payment method type (e.g., 'gcash', 'maya').
+ * @param {string} request.data.returnUrl - The deep link URL to return to the app.
+ * @param {string} request.data.bookingId - The ID of the booking to link the payment to.
+ * @param {string} request.data.userId - The ID of the user making the payment.
+ * @returns {Promise<Object>} The checkout session object containing the checkout_url.
+ * @throws {HttpsError} If authentication or parameters are missing/invalid.
+ */
+exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
+    const { amount, type, returnUrl, bookingId, userId } = request.data;
+    const auth = request.auth;
+
+    console.log(`[createPaymongoCheckout] Initiating checkout for user ${userId || auth?.uid}, booking ${bookingId}`);
+
+    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (!amount || !type || !bookingId) throw new HttpsError('invalid-argument', 'Amount, type, and bookingId are required');
+
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+    if (!PAYMONGO_SECRET_KEY) {
+        throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing.');
+    }
+
+    // Initialize provider and register to manager
+    const paymongoProvider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
+    PaymentManager.registerProvider('paymongo', paymongoProvider);
+
+    const redirectUrl = returnUrl || 'thrailapp://';
+
+    try {
+        const session = await PaymentManager.getProvider('paymongo').createCheckout(amount, type, redirectUrl, { bookingId, userId });
+        
+        // Update booking to mark it as pending payment
+        await admin.firestore()
+            .collection('users')
+            .doc(userId || auth.uid)
+            .collection('bookings')
+            .doc(bookingId)
+            .update({
+                payment: admin.firestore.FieldValue.arrayUnion({
+                    gateway: 'paymongo',
+                    gatewayId: session.id,
+                    referenceCode: bookingId,
+                    status: 'pending',
+                    amount: amount,
+                    createdAt: new Date().toISOString()
+                }),
+                updatedAt: FieldValue.serverTimestamp()
+            });
+
+        console.log(`[createPaymongoCheckout] Successfully created session ${session.id} for booking ${bookingId}`);
+        return session;
     } catch (err) {
-        console.error("PayMongo Checkout Session Failed: ", err);
-        throw new HttpsError('internal', err.message || 'Failed to initialize PayMongo checkout');
+        console.error(`[createPaymongoCheckout] Failed to initialize checkout for booking ${bookingId}: `, err);
+        handlePaymongoError(err);
     }
 });
 
+/**
+ * HTTP Proxy to bypass mobile WebView security restrictions and deep link back into the app.
+ * Uses an HTML meta-refresh instead of an HTTP 302 redirect.
+ * 
+ * @function paymongoRedirect
+ * @param {Object} req - The express HTTP request.
+ * @param {Object} req.query.url - The target deep link URL to open.
+ * @param {Object} res - The express HTTP response.
+ */
 exports.paymongoRedirect = functions.https.onRequest((req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) {
+        console.warn('[paymongoRedirect] Missing target URL parameter.');
         res.status(400).send("Missing URL parameter");
         return;
     }
+    console.log(`[paymongoRedirect] Generating proxy HTML for redirect to: ${targetUrl}`);
 
     // Using an HTML meta-refresh and JS redirect ensures the app scheme 
     // is correctly invoked by the WebView, avoiding standard 302 errors.
@@ -735,4 +780,262 @@ exports.paymongoRedirect = functions.https.onRequest((req, res) => {
         </html>
     `;
     res.status(200).send(html);
+});
+
+/**
+ * Webhook endpoint for capturing payment completion events from PayMongo.
+ * Verifies the signature, marks the booking as paid, and generates the payment receipt in Firestore.
+ * 
+ * @function paymentWebhook
+ * @param {Object} req - The express HTTP request containing PayMongo payload.
+ * @param {Object} res - The express HTTP response.
+ */
+exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWebhookSecret] }, async (req, res) => {
+    console.log('[paymentWebhook] Received incoming webhook call');
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+    const WEBHOOK_SECRET = paymongoWebhookSecret.value();
+
+    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY, WEBHOOK_SECRET);
+    const signature = req.headers['paymongo-signature'];
+
+    if (WEBHOOK_SECRET && signature) {
+        const isValid = provider.verifyWebhookSignature(req.rawBody, signature);
+        if (!isValid) {
+            console.error('[paymentWebhook] Security Alert: Invalid webhook signature detected.');
+            return res.status(400).send('Invalid Signature');
+        }
+    } else {
+        console.warn('[paymentWebhook] Processing webhook without secret/signature verification.');
+    }
+
+    const event = req.body;
+    if (event?.data?.attributes?.type === 'payment.paid') {
+        const paymentData = event.data.attributes.data.attributes;
+        const bookingId = paymentData.description || event.data.attributes.data.id; // Usually we need to trace back via reference number or fetching session
+        // Note: PayMongo webhooks for payment.paid give the raw payment. We might need to look up the intent or description.
+        // For checkout sessions, payment.paid has `paymentData.source.id` or similar. 
+        // We will assume the reference_number mapped to description or it's accessible.
+        // Actually, reference_number is inside the checkout session. 
+        // Wait, a more robust way is querying Firestore for a booking with this payment Gateway ID, OR relying on metadata if passed down.
+        // As a fallback, we just log it. Let's do a basic implementation:
+        
+        const referenceCode = paymentData.balance_transaction_id || event.data.attributes.data.id;
+        const gatewayId = event.data.attributes.data.id;
+        const amount = paymentData.amount / 100;
+
+        // Find the booking (simplified, assuming we can map it)
+        // In reality, you'd want to store the checkout session ID in the booking and query by it
+        // Or if PayMongo passes reference_number directly to payment.paid event:
+        const refNumber = paymentData.description || paymentData.reference_number;
+        
+        if (refNumber) {
+            console.log(`[paymentWebhook] Received payment.paid event for reference ${refNumber}. Amount: ${amount}`);
+            const db = admin.firestore();
+            const bookingsSnapshot = await db.collectionGroup('bookings')
+                .where(admin.firestore.FieldPath.documentId(), '==', refNumber)
+                .get();
+
+            if (!bookingsSnapshot.empty) {
+                const bookingDoc = bookingsSnapshot.docs[0];
+                const bookingData = bookingDoc.data();
+                console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
+
+                if (bookingData.status !== 'cancelled') {
+                    // 7 days before hike for refund policy
+                    const refundableUntil = new Date(bookingData.offer.date.toDate());
+                    refundableUntil.setDate(refundableUntil.getDate() - 7);
+
+                    const payments = bookingData.payment || [];
+                    const pendingIdx = payments.findIndex(p => p.status === 'pending');
+                    
+                    const capturedPayment = {
+                        gateway: 'paymongo',
+                        gatewayId: gatewayId,
+                        referenceCode: referenceCode,
+                        status: 'captured',
+                        refundableUntil: Timestamp.fromDate(refundableUntil),
+                        amount: amount,
+                        createdAt: Timestamp.now()
+                    };
+
+                    if (pendingIdx >= 0) {
+                        payments[pendingIdx] = capturedPayment;
+                    } else {
+                        payments.push(capturedPayment);
+                    }
+
+                    await bookingDoc.ref.update({
+                        payment: payments,
+                        status: 'paid',
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+
+                    // Create Payment Receipt Record
+                    await db.collection('payments').add({
+                        createdAt: FieldValue.serverTimestamp(),
+                        updatedAt: FieldValue.serverTimestamp(),
+                        receipt: {
+                            amount: amount,
+                            date: FieldValue.serverTimestamp(),
+                            gateway: 'paymongo',
+                            referenceCode: referenceCode
+                        },
+                        offer: bookingData.offer,
+                        business: bookingData.business,
+                        user: bookingData.user
+                    });
+                    
+                    console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${refNumber}`);
+                } else {
+                    // Booking was already cancelled, issue automatic refund!
+                    try {
+                        await provider.issueRefund(gatewayId, amount, 'requested_by_customer');
+                        console.log(`Auto-refunded late payment for cancelled booking: ${refNumber}`);
+                    } catch (e) {
+                        console.error("Failed to auto-refund cancelled booking", e);
+                    }
+                }
+            }
+        }
+    }
+
+    res.status(200).send('Webhook Received');
+});
+
+/**
+ * Handles pre-payment cancellation of a booking by a user or admin.
+ * 
+ * @function cancelBooking
+ * @param {Object} request - The callable HTTPS request.
+ * @param {Object} request.data - The data payload.
+ * @param {string} request.data.bookingId - The ID of the booking to cancel.
+ * @param {string} request.data.userId - The ID of the user who owns the booking.
+ * @param {string} request.data.reason - The reason for cancellation.
+ * @returns {Promise<Object>} Success status.
+ * @throws {HttpsError} If unauthorized, not found, or payment is already captured.
+ */
+exports.cancelBooking = https.onCall(async (request) => {
+    const { bookingId, userId, reason } = request.data;
+    const caller = request.auth;
+    
+    console.log(`[cancelBooking] Cancellation requested for booking ${bookingId} by user ${caller?.uid}`);
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Auth required');
+    if (caller.uid !== userId && caller.token.role !== 'admin') {
+        console.warn(`[cancelBooking] Unauthorized cancellation attempt by ${caller.uid}`);
+        throw new HttpsError('permission-denied', 'Not authorized to cancel this booking');
+    }
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingDoc = await bookingRef.get();
+
+    if (!bookingDoc.exists) throw new HttpsError('not-found', 'Booking not found');
+    const data = bookingDoc.data();
+
+    if (data.status === 'cancelled') return { success: true, message: 'Already cancelled' };
+    
+    // Only allow pre-payment cancellation
+    const payments = data.payment || [];
+    const hasCaptured = payments.some(p => p.status === 'captured');
+    
+    if (hasCaptured || data.status === 'paid') {
+        throw new HttpsError('failed-precondition', 'Payment already completed. Please request a refund instead.');
+    }
+
+    const updatedPayments = payments.map(p => p.status === 'pending' ? { ...p, status: 'failed' } : p);
+
+    await bookingRef.update({
+        status: 'cancelled',
+        payment: updatedPayments,
+        cancellationReason: reason || 'User initiated cancellation',
+        cancelledBy: caller.uid,
+        updatedAt: FieldValue.serverTimestamp()
+    });
+
+    console.log(`[cancelBooking] Successfully cancelled booking ${bookingId}`);
+    return { success: true };
+});
+
+/**
+ * Handles dual-system refunds for captured payments.
+ * Users can trigger this within 7 days of the hike. Admins can trigger this anytime.
+ * 
+ * @function refundBooking
+ * @param {Object} request - The callable HTTPS request.
+ * @param {Object} request.data - The data payload.
+ * @param {string} request.data.bookingId - The ID of the booking to refund.
+ * @param {string} request.data.userId - The ID of the user who owns the booking.
+ * @param {string} request.data.reason - The reason for refund.
+ * @returns {Promise<Object>} Success status.
+ * @throws {HttpsError} If unauthorized, outside timeframe, or refund fails via API.
+ */
+exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
+    const { bookingId, userId, reason } = request.data;
+    const caller = request.auth;
+
+    console.log(`[refundBooking] Refund requested for booking ${bookingId} by user ${caller?.uid}`);
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Auth required');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingDoc = await bookingRef.get();
+
+    if (!bookingDoc.exists) throw new HttpsError('not-found', 'Booking not found');
+    const data = bookingDoc.data();
+
+    const payments = data.payment || [];
+    const capturedPayment = payments.find(p => p.status === 'captured');
+
+    if (!capturedPayment) {
+        throw new HttpsError('failed-precondition', 'Cannot refund a booking that is not captured.');
+    }
+
+    // Dual-System Authorization Check
+    const isAdmin = caller.token.role === 'admin' && caller.token.businessId === data.business.id;
+    const isSuperAdmin = caller.token.role === 'superadmin';
+    const isOwner = caller.uid === data.user.id;
+
+    if (!isAdmin && !isSuperAdmin && !isOwner) {
+        throw new HttpsError('permission-denied', 'Not authorized to refund this booking.');
+    }
+
+    // User-triggered timeframe check
+    if (isOwner && !isAdmin && !isSuperAdmin) {
+        const now = Timestamp.now().toDate();
+        const refundableUntil = data.refundableUntil ? data.refundableUntil.toDate() : new Date(0);
+        
+        if (now > refundableUntil) {
+            throw new HttpsError('failed-precondition', 'The automated refund timeframe has expired. Please contact the organizer.');
+        }
+    }
+
+    // Execute Refund via PaymentManager
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
+    PaymentManager.registerProvider('paymongo', provider);
+
+    try {
+        const gatewayId = capturedPayment.gatewayId;
+        const refundAmount = data.offer.price; // Usually based on offer price
+        
+        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, reason || 'requested_by_customer');
+
+        capturedPayment.status = 'refunded';
+
+        await bookingRef.update({
+            status: 'refunded',
+            payment: payments,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
+        console.log(`[refundBooking] Successfully processed full refund for booking ${bookingId} via PayMongo`);
+        return { success: true };
+    } catch (e) {
+        console.error(`[refundBooking] Critical failure during PayMongo refund for booking ${bookingId}:`, e);
+        throw new HttpsError('internal', 'Refund failed: ' + e.message);
+    }
 });

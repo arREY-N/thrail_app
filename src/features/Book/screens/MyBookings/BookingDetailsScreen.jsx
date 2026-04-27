@@ -42,9 +42,11 @@ const BookingDetailsScreen = ({
     onReschedule, 
     onViewReceipt,
     onCancelConfirm,
+    onRefundConfirm,
     onUpdatePress 
 }) => {
     const [isCanceling, setIsCanceling] = useState(false);
+    const [isRefunding, setIsRefunding] = useState(false);
     const [fullOffer, setFullOffer] = useState(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState(true);
     
@@ -136,6 +138,27 @@ const BookingDetailsScreen = ({
             };
         }
 
+        if (isRefunding) {
+            return {
+                secondaryButton: {
+                    title: "Confirm Refund",
+                    variant: "outline",
+                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
+                    textStyle: { color: Colors.ERROR },
+                    onPress: () => {
+                        setIsRefunding(false);
+                        onRefundConfirm(booking, "User requested refund");
+                    }
+                },
+                primaryButton: {
+                    title: "Keep Booking",
+                    variant: "primary",
+                    style: { borderRadius: 12 },
+                    onPress: () => setIsRefunding(false)
+                }
+            };
+        }
+
         const cancelBtnStyle = {
             title: "Cancel",
             variant: "outline",
@@ -171,10 +194,11 @@ const BookingDetailsScreen = ({
         if (isConfirmed) {
             return {
                 secondaryButton: { 
-                    title: "Reschedule", 
+                    title: "Request Refund", 
                     variant: "outline", 
-                    style: { borderRadius: 12 },
-                    onPress: () => onReschedule(booking) 
+                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
+                    textStyle: { color: Colors.ERROR },
+                    onPress: () => setIsRefunding(true) 
                 },
                 primaryButton: { 
                     title: "View Receipt", 
@@ -276,9 +300,9 @@ const BookingDetailsScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
-                title={isCanceling ? "Cancel Booking" : "Booking Details"} 
+                title={isCanceling ? "Cancel Booking" : isRefunding ? "Request Refund" : "Booking Details"} 
                 centerTitle={true} 
-                onBackPress={isCanceling ? () => setIsCanceling(false) : onBackPress} 
+                onBackPress={isCanceling ? () => setIsCanceling(false) : isRefunding ? () => setIsRefunding(false) : onBackPress} 
             />
 
             <ScrollView 
@@ -415,6 +439,19 @@ const BookingDetailsScreen = ({
                 {isCanceling && (
                     <View style={styles.paddingHorizontal}>
                         <CancelWarningBox />
+                    </View>
+                )}
+
+                {isRefunding && (
+                    <View style={styles.paddingHorizontal}>
+                        <View style={{ backgroundColor: Colors.ERROR_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR, marginTop: 16 }}>
+                            <CustomText variant="h3" style={{ color: Colors.ERROR, marginBottom: 8 }}>
+                                Refund Policy Warning
+                            </CustomText>
+                            <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY }}>
+                                Please note that refunds are only fully granted if requested at least 7 days before the hike. Processing may take up to 3-5 business days. Are you sure you want to refund this booking?
+                            </CustomText>
+                        </View>
                     </View>
                 )}
                 

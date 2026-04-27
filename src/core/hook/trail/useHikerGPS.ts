@@ -1,7 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Alert,
   AppState,
@@ -48,6 +48,8 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
  * @property {[number, number] | null} userLocation - Current `[longitude, latitude]` for immediate map centering.
  * @property {[number, number][]} routeCoordinates - Breadcrumb path of the current session as `[lon, lat]` array.
  * @property {Function} exportHikeData - Utility to trigger a file export of the recorded hike data.
+ * @property {() => Promise<void>} onStartGps - Starts the GPS tracking session (foreground and background).
+ * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
  */
 export const useHikerGPS = () => {
   const addCoordinate = useHikesStore((state: HikeState) => state.addCoordinate);
@@ -64,6 +66,13 @@ export const useHikerGPS = () => {
   const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
 
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const gpsTimeoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appStateSubscription = useRef<any>(null);
+  const unsubscribeNetwork = useRef<any>(null);
+  const isGpsLost = useRef(false);
+  const GPS_TIMEOUT_MS = 180000;
+
   /* 
    * --- DEPRECATED CSV PARSING LOGIC ---
    * We commented out `loadWalkedPath` and the `parseCSV` logic because it was confusing and is no longer needed.
@@ -76,18 +85,29 @@ export const useHikerGPS = () => {
   //   setWalkedPath(coords);
   // };
 
-  useEffect(() => {
-    let locationSubscription: Location.LocationSubscription | null = null;
+  /**
+   * Initializes and starts GPS tracking.
+   * 
+   * This includes:
+   * - Checking device GPS hardware status.
+   * - Requesting foreground and background permissions.
+   * - Starting background location updates via Expo TaskManager.
+   * - Subscribing to real-time foreground updates for UI display.
+   * - Monitoring network status and app state.
+   * 
+   * @async
+   * @returns {Promise<void>}
+   */
 
-    const GPS_TIMEOUT_MS = 180000; // 3 minutes
-    let gpsTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
-    let isGpsLost = false;
+  const onStartGps = async () => {
+    // Prevent multiple subscriptions
+    if (locationSubscription.current) return;
 
-    const unsubscribeNetwork = NetInfo.addEventListener((state) => {
+    unsubscribeNetwork.current = NetInfo.addEventListener((state) => {
       setIsOnline(!!state.isInternetReachable);
     });
 
-    const appStateSubscription = AppState.addEventListener(
+    appStateSubscription.current = AppState.addEventListener(
       "change",
       (nextState) => {
         if (nextState === "background" || nextState === "inactive") {
@@ -97,31 +117,25 @@ export const useHikerGPS = () => {
         if (nextState === "active") {
           const timestamp = new Date().toISOString();
           saveToCSV("APP_RESUMED", "", "", timestamp);
-          // loadWalkedPath(); // <-- Commented out: We no longer parse the CSV when the app opens.
         }
       },
     );
 
-    // Initial tracking start
-    // Initial load of the path
-    // loadWalkedPath(); // <-- Commented out: The trail line now strictly starts empty (`[]`) for each fresh session.
+    try {
+      // ✅ Check if GPS services are actually enabled on device
+      const isGpsEnabled = await Location.hasServicesEnabledAsync();
+      if (!isGpsEnabled) {
+        setGpsError("Device GPS is turned off. Please enable it in your phone settings.");
+        Alert.alert(
+          "GPS Disabled",
+          "Your device's GPS services are turned off. Please enable them to track your hike.",
+          [{ text: "OK", style: "default" }]
+        );
+        return;
+      }
 
-    (async () => {
-      try {
-        // ✅ Check if GPS services are actually enabled on device
-        const isGpsEnabled = await Location.hasServicesEnabledAsync();
-        if (!isGpsEnabled) {
-          setGpsError("Device GPS is turned off. Please enable it in your phone settings.");
-          Alert.alert(
-            "GPS Disabled",
-            "Your device's GPS services are turned off. Please enable them to track your hike.",
-            [{ text: "OK", style: "default" }]
-          );
-          return;
-        }
-
-        // ✅ Foreground permission
-        const { status } = await Location.requestForegroundPermissionsAsync();
+      // ✅ Foreground permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Location Required", "Please enable GPS in settings.", [
           { text: "Cancel", style: "cancel" },
@@ -159,7 +173,7 @@ export const useHikerGPS = () => {
       }
 
       // ✅ Foreground location tracking
-      locationSubscription = await Location.watchPositionAsync(
+      locationSubscription.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
           distanceInterval: 0,
@@ -175,15 +189,15 @@ export const useHikerGPS = () => {
             `📍 Location Updated: ${lat}, ${lon}, ${alt}m at ${timestamp}`,
           );
 
-          if (isGpsLost) {
-            isGpsLost = false;
+          if (isGpsLost.current) {
+            isGpsLost.current = false;
             setGpsError(null);
             saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
           }
 
-          if (gpsTimeoutTimer) clearTimeout(gpsTimeoutTimer);
-          gpsTimeoutTimer = setTimeout(() => {
-            isGpsLost = true;
+          if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
+          gpsTimeoutTimer.current = setTimeout(() => {
+            isGpsLost.current = true;
             setGpsError("GPS signal lost. Searching for satellites...");
             const lostTimestamp = new Date().toISOString();
             saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
@@ -207,20 +221,55 @@ export const useHikerGPS = () => {
           }));
         },
       );
-      } catch (err: any) {
-        console.error("Failed to start location tracking:", err);
-        setGpsError("Failed to initialize GPS: " + err.message);
-      }
-    })();
+    } catch (err: any) {
+      console.error("Failed to start location tracking:", err);
+      setGpsError("Failed to initialize GPS: " + err.message);
+    }
+  };
 
+  /**
+   * Stops all active GPS tracking and cleans up listeners.
+   * 
+   * This handles:
+   * - Removing app state and network listeners.
+   * - Stopping foreground location watching.
+   * - Stopping the background location task.
+   * - Clearing any active GPS signal timeout timers.
+   * 
+   * @async
+   * @returns {Promise<void>}
+   */
+
+  const onEndGps = async () => {
+    if (appStateSubscription.current) {
+      appStateSubscription.current.remove();
+      appStateSubscription.current = null;
+    }
+    if (locationSubscription.current) {
+      locationSubscription.current.remove();
+      locationSubscription.current = null;
+    }
+    if (gpsTimeoutTimer.current) {
+      clearTimeout(gpsTimeoutTimer.current);
+      gpsTimeoutTimer.current = null;
+    }
+    if (unsubscribeNetwork.current) {
+      unsubscribeNetwork.current();
+      unsubscribeNetwork.current = null;
+    }
+
+    try {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+      console.log("✅ Background task stopped");
+    } catch (err) {
+      console.log("Background task wasn't running or already stopped.");
+    }
+  };
+
+  // Clean up on unmount just in case
+  useEffect(() => {
     return () => {
-      appStateSubscription.remove();
-      if (locationSubscription) locationSubscription.remove();
-      if (gpsTimeoutTimer) clearTimeout(gpsTimeoutTimer);
-      Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => {
-        console.log("Background task wasn't running or already stopped.");
-      }); // ✅ stop background task on unmount
-      unsubscribeNetwork();
+      onEndGps();
     };
   }, []);
 
@@ -230,5 +279,7 @@ export const useHikerGPS = () => {
     userLocation,
     routeCoordinates,
     exportHikeData,
+    onStartGps,
+    onEndGps,
   };
 };

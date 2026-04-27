@@ -21,11 +21,16 @@ const MyBookingsScreen = ({
     userBookings,
     error,
     onBackPress,
-    onCancelBookingPress, 
+    onCancelBookingPress,
+    onRefundBookingPress, 
+    onPayOffer,
     getBookOffer
 }) => {
     const [currentView, setCurrentView] = useState('list'); 
-    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [selectedBookingId, setSelectedBookingId] = useState(null);
+
+    // Always get the freshest booking data from the store so realtime updates (like webhooks) reflect immediately
+    const selectedBooking = userBookings?.find(b => b.id === selectedBookingId) || null;
 
     const { 
         tabs, 
@@ -37,7 +42,7 @@ const MyBookingsScreen = ({
     const onHeaderBackPress = () => {
         if (currentView === 'overview') {
             setCurrentView('list');
-            setSelectedBooking(null);
+            setSelectedBookingId(null);
         } else if (currentView === 'payment') {
             setCurrentView('overview');
         } else {
@@ -46,7 +51,7 @@ const MyBookingsScreen = ({
     };
 
     const onBookingSelectPress = (booking) => {
-        setSelectedBooking(booking);
+        setSelectedBookingId(booking.id);
 
         if (booking.status === 'paid') {
             setCurrentView('payment-status');
@@ -131,6 +136,12 @@ const MyBookingsScreen = ({
                     onCancelBookingPress(booking, reason);
                     setCurrentView('list');
                 }}
+                onRefundConfirm={(booking, reason) => {
+                    if (onRefundBookingPress) {
+                        onRefundBookingPress(booking, reason);
+                        setCurrentView('list');
+                    }
+                }}
                 onReschedule={() => {
                     console.log("Reschedule pressed for: ", selectedBooking.id);
                 }}
@@ -144,6 +155,7 @@ const MyBookingsScreen = ({
                 bookingData={selectedBooking}
                 onContinue={onPaymentSubmitPress}
                 onBackPress={onHeaderBackPress}
+                onPayOffer={onPayOffer}
             />
         );
     }

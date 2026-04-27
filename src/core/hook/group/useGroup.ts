@@ -27,7 +27,7 @@ export const useGroup = (groupId: string) => {
         
         return () => unsubscribe(groupId);
         
-    }, [groupId, subscribe, unsubscribe]);
+    }, [groupId]);
     
     useEffect(() => {
         const fetch = async () => {

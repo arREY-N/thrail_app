@@ -1,6 +1,8 @@
 import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupLocation from "@/src/core/hook/group/useGroupLocation";
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
+import { Booking } from "@/src/core/models/Booking/Booking";
+import { Group } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
@@ -20,7 +22,9 @@ export default function groupLocation() {
     } = useGroup(groupId);
 
     const {
-        permissionGranted
+        permissionGranted,
+        onStartGps,
+        onEndGps
     } = useHikerGPS();
 
     const {
@@ -37,14 +41,16 @@ export default function groupLocation() {
         currentHike,
         location,
     } = useGroupLocation(groupId);
+    
+    const handleStartHike = (group: Group, booking: Booking) => {
+        onStartGps();
+        onStartHike(group, booking);
+    };
 
-    if (!currentGroup || !booking) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>  
-                <Text>Loading group data...</Text>
-            </View>
-        );
-    }
+    const handleCompleteHike = () => {
+        onEndGps();
+        onCompleteHike();
+    };
 
     return (
         <>
@@ -55,10 +61,10 @@ export default function groupLocation() {
                 booking={booking}
                 onStartSharingLocation={onStartSharingLocation}
                 onStopSharingLocation={onStopSharingLocation}
-                onStartHike={onStartHike}
+                onStartHike={handleStartHike}
                 onPauseHike={onPauseHike}
                 onResumeHike={onResumeHike}
-                onCompleteHike={onCompleteHike}
+                onCompleteHike={handleCompleteHike}
                 onEmergencyPress={onEmergencyPress}
                 onSendPicture={onSendPicture}
                 error={error}

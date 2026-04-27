@@ -1,17 +1,22 @@
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
-import { useAuthStore } from "@/src/core/stores/authStore";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
 
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import usePreference from "@/src/core/hook/user/usePreference";
 import PreferenceScreen from "@/src/features/Auth/screens/PreferenceScreen";
 
 export default function preference(){
-    const router = useRouter();
-    const user = useAuthStore((state) => state.user);
+    const { user } = useAuthHook();
     const [error, setError] = useState();
 
-    const { questions, setAnswer, setMedicalDetails, setMedicalClearance, savePreference } = usePreference();
+    const { 
+        questions, 
+        setAnswer, 
+        setMedicalDetails, 
+        setMedicalClearance, 
+        savePreference 
+    } = usePreference();
     
     const onFinishedPreference = async () => {
         try {

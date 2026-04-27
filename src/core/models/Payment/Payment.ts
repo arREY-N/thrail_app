@@ -21,6 +21,7 @@ export class Payment implements IPayment {
         amount: 0,
         date: new Date(),
         gateway: "",
+        referenceCode: "",
     };
     offer: IOfferSummary<Date> = {
         date: new Date(0),
@@ -47,6 +48,7 @@ export class Payment implements IPayment {
             receipt: {
                 ...data.receipt,
                 date: toDate(data.receipt.date),
+                referenceCode: data.receipt.referenceCode || "",
             },
             offer: {
                 ...data.offer,
@@ -67,6 +69,7 @@ export class Payment implements IPayment {
             receipt: {
                 ...this.receipt,
                 date: Timestamp.fromDate(this.receipt.date),
+                referenceCode: this.receipt.referenceCode,
             },
             offer: {
                 ...this.offer,
