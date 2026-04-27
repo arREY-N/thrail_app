@@ -94,9 +94,9 @@ const PaymentScreen = ({
                         showTitle: true,
                     });
 
-                    // Proceed to Status, passing PayMongo source ID as the "receipt" 
+                    // Proceed to Status, passing PayMongo sessionId as the "receipt" 
                     // before going to the status tab
-                    setReceiptImage({ uri: 'paymongo_source', id: response.id });
+                    setReceiptImage({ uri: 'paymongo_source', id: response.sessionId });
                     setCurrentStep(3);
 
                 } catch (error) {
