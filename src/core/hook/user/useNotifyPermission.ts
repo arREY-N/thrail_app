@@ -18,6 +18,7 @@ export function useNotifyPermission() {
             if (hasRun.current === true) {
                 return;
             }
+            
             const result = await requestNotificationPermission();
             console.log("Notification Permission Token:", result);
             setToken(result);
@@ -65,7 +66,7 @@ export function useNotifyPermission() {
         };
 
         fetchToken();
-    }, [profile?.id]);
+    }, []);
     
 
     return token;

@@ -1,5 +1,3 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useAuthStore } from "@/src/core/stores/authStore";
 import {
 	AntDesign,
 	Feather,
@@ -14,24 +12,17 @@ import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 import LoadingScreen from "@/src/app/loading";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { useEffect } from "react";
 
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-	handleNotification: async () => ({
-		shouldShowAlert: true,
-		shouldPlaySound: true,
-		shouldSetBadge: false,
-	}),
-});
-
 export default function RootLayout() {
-	const { isLoading } = useAuthHook();
-	
-	const initialize = useAuthStore.getState().initialize;
+
+	const {
+		initialize,
+		isLoading
+	} = useAuthHook();
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -46,7 +37,10 @@ export default function RootLayout() {
 
 	useEffect(() => {
 		const unsub = initialize();
-		return () => unsub?.();
+		
+		return () => {
+			if(unsub) unsub()
+		};
 	}, []);
 
 	useEffect(() => {
