@@ -89,74 +89,103 @@ export const useAuthStore = create<AuthState>()(
 
 					console.log('line 90')
 	
-					if (firebaseUser) {
-						console.log("with user");
+					try {
+						if (firebaseUser) {
+							console.log("with user");
 	
-						const idTokenResult = await firebaseUser.getIdTokenResult(true);
-						const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
+							const idTokenResult = await firebaseUser.getIdTokenResult(true);
+							const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
 	
-						if (!userRole) {
-							console.log("Failed fetching user role");
-							setTimeout(() => firebaseUser.getIdToken(true), 2000);
-							console.log('returning');
-							return;
-						}
+							if (!userRole) {
+								console.log("Failed fetching user role");
+								setTimeout(() => {
+									firebaseUser.getIdToken(true).catch((err) => {
+										console.log("Token refresh failed:", err);
+									});
+								}, 2000);
+								set({
+									user: firebaseUser,
+									profile: null,
+									role: null,
+									businessId: null,
+									error: "Unable to resolve user role. Please try again.",
+									isLoading: false,
+								});
+								console.log('returning');
+								return;
+							}
 	
-						const businessId =
-							(idTokenResult.claims as CustomClaims).businessId ||
-							(idTokenResult.claims as CustomClaims).owner ||
-							null;
+							const businessId =
+								(idTokenResult.claims as CustomClaims).businessId ||
+								(idTokenResult.claims as CustomClaims).owner ||
+								null;
 	
-						set({
-							user: firebaseUser,
-							role: userRole,
-							businessId,
-						});
-							
-						
-						const ref = doc(db, "users", firebaseUser.uid).withConverter(
-							userConverter,
-						);
+							set({
+								user: firebaseUser,
+								role: userRole,
+								businessId,
+							});
+								
+							const ref = doc(db, "users", firebaseUser.uid).withConverter(
+								userConverter,
+							);
 
-						const unsubProfile = onSnapshot(
-							ref,
-							(snap) => {
-								if (snap.exists()) {
-									console.log('snap exists')
+							const unsubProfile = onSnapshot(
+								ref,
+								(snap) => {
+									if (snap.exists()) {
+										console.log('snap exists')
+										set({
+											profile: snap.data(),
+											error: null,
+											isLoading: false,
+										});
+									} else {
+										console.log("User document does not exists");
+										set({
+											profile: null,
+											error: "User profile not found.",
+											isLoading: false,
+										});
+									}
+								},
+								(error) => {
+									if (!get().user) {
+										console.log("User signed out before profile listener could initialize. Ignoring listener error.");
+										return
+									};
+									console.log("Firestore listener error: ", error);
 									set({
-										profile: snap.data(),
+										error: (error as Error).message || "Failed loading user profile.",
 										isLoading: false,
 									});
-								} else {
-									console.log("User document does not exists");
-								}
-							},
-							(error) => {
-								if (!get().user) {
-									console.log("User signed out before profile listener could initialize. Ignoring listener error.");
-									return
-								};
-								console.log("Firestore listener error: ", error);
-							},
-						);
-						set({ _unsubscribe: unsubProfile });
-					} else {
-						console.log("no user");
-						const currentUnsub = get()._unsubscribe;
+								},
+							);
+							set({ _unsubscribe: unsubProfile });
+						} else {
+							console.log("no user");
+							const currentUnsub = get()._unsubscribe;
 	
-						if (currentUnsub) {
-							currentUnsub();
-							set({ 
-								_unsubscribe: null,
-								profile: null,
-								role: null,
-								businessId: null,
-								user: null,
+							if (currentUnsub) {
+								currentUnsub();
+								set({ 
+									_unsubscribe: null,
+									profile: null,
+									role: null,
+									businessId: null,
+									user: null,
+								});
+							}
+	
+							set({
+								...init,
+								isLoading: false,
 							});
 						}
-	
+					} catch (error) {
+						console.error("Error resolving auth session:", error);
 						set({
-							...init,
+							error: (error as Error).message || "Error initializing authentication",
 							isLoading: false,
 						});
 					}

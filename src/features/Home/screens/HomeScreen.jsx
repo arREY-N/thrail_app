@@ -61,8 +61,8 @@ const HomeScreen = ({
     const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
     const cardWidth = isWideScreen ? 320 : effectiveWidth * 0.8;
 
-    const recList = recommendedTrails || [];
-    const discList = discoverTrails || [];
+    const recList = Array.isArray(recommendedTrails) ? recommendedTrails.filter(Boolean) : [];
+    const discList = Array.isArray(discoverTrails) ? discoverTrails.filter(Boolean) : [];
     const hasAnyTrails = recList.length > 0 || discList.length > 0;
 
     useEffect(() => {
@@ -101,58 +101,7 @@ const HomeScreen = ({
         fetchAllMountainsWeather();
     }, [recList, discList]);
 
-    const ListSection = ({ title, data, onViewAll }) => {
-        const hasData = data && data.length > 0;
-
-        return (
-            <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-
-                    <CustomText variant="subtitle" style={styles.sectionTitle}>
-                        {title}
-                    </CustomText>
-
-                    <TouchableOpacity onPress={onViewAll}>
-                        <CustomText variant="caption" style={styles.viewAllText}>
-                            View All
-                        </CustomText>
-                    </TouchableOpacity>
-                </View>
-
-                {hasData ? (
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalList} 
-                    >
-                        {data.map((item) => (
-                            <MountainCard 
-                                key={`${title}-${item.id}`}
-                                item={item}
-                                onPress={() => onMountainPress(item.id)}
-                                onDownload={() => onDownloadPress(item.id)}
-                                style={{ width: cardWidth }}
-                                weatherBadge={mountainWeatherMap[item.id] ?? null}
-                            />
-                        ))}
-                    </ScrollView>
-                ) : (
-                    <View style={styles.emptyStateContainer}>
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="trail-sign-outline" 
-                            size={32} 
-                            color={Colors.GRAY_MEDIUM} 
-                        />
-                        
-                        <CustomText variant="caption" style={styles.emptyStateText}>
-                            No trails available yet.
-                        </CustomText>
-                    </View>
-                )}
-            </View>
-        );
-    };
+    
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -184,12 +133,20 @@ const HomeScreen = ({
                     title="Recommendations" 
                     data={recList} 
                     onViewAll={onViewAllRecommendationPress} 
+                    onMountainPress={onMountainPress}
+                    onDownloadPress={onDownloadPress}
+                    cardWidth={cardWidth}
+                    mountainWeatherMap={mountainWeatherMap}
                 />
 
                 <ListSection 
                     title="Discover" 
                     data={discList}
                     onViewAll={onViewAllTrendingPress} 
+                    onMountainPress={onMountainPress}
+                    onDownloadPress={onDownloadPress}
+                    cardWidth={cardWidth}
+                    mountainWeatherMap={mountainWeatherMap}
                 />
 
             </ResponsiveScrollView>
@@ -247,6 +204,60 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
     }
+});
+
+const ListSection = React.memo(({ title, data, onViewAll, onMountainPress, onDownloadPress, cardWidth, mountainWeatherMap }) => {
+    const items = Array.isArray(data) ? data.filter(Boolean) : [];
+    const hasData = items.length > 0;
+
+    return (
+        <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+
+                <CustomText variant="subtitle" style={styles.sectionTitle}>
+                    {title}
+                </CustomText>
+
+                <TouchableOpacity onPress={onViewAll}>
+                    <CustomText variant="caption" style={styles.viewAllText}>
+                        View All
+                    </CustomText>
+                </TouchableOpacity>
+            </View>
+
+            {hasData ? (
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalList} 
+                >
+                    {items.map((item) => (
+                        <MountainCard 
+                            key={`${title}-${item?.id ?? 'trail'}`}
+                            item={item}
+                            onPress={() => onMountainPress(item.id)}
+                            onDownload={() => onDownloadPress(item.id)}
+                            style={{ width: cardWidth }}
+                            weatherBadge={mountainWeatherMap[item.id] ?? null}
+                        />
+                    ))}
+                </ScrollView>
+            ) : (
+                <View style={styles.emptyStateContainer}>
+                    <CustomIcon 
+                        library="Ionicons" 
+                        name="trail-sign-outline" 
+                        size={32} 
+                        color={Colors.GRAY_MEDIUM} 
+                    />
+                    
+                    <CustomText variant="caption" style={styles.emptyStateText}>
+                        No trails available yet.
+                    </CustomText>
+                </View>
+            )}
+        </View>
+    );
 });
 
 export default HomeScreen;

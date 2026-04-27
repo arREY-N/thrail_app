@@ -96,6 +96,49 @@ const CustomComposer = (props) => {
 
 const isImageUrl = (url) => url && (url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media'));
 
+const toTimestamp = (value) => {
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const normalizeFirebaseMessage = (message) => {
+    let text = message.content;
+    let image = undefined;
+    let isDocument = false;
+    let fileUrl = undefined;
+    const isEmergency = Boolean(text && text.includes('Send help!'));
+
+    if (text && text.startsWith('[Attachment]:')) {
+        const url = text.replace('[Attachment]:', '').trim();
+        if (isImageUrl(url)) {
+            image = url;
+            text = '';
+        } else {
+            isDocument = true;
+            fileUrl = url;
+            text = '';
+        }
+    } else if (isImageUrl(text)) {
+        image = text.trim();
+        text = '';
+    }
+
+    const createdAtMs = toTimestamp(message.timesent);
+
+    return {
+        _id: message.id,
+        text,
+        createdAt: message.timesent,
+        createdAtMs,
+        user: { _id: message.senderId, name: message.senderName },
+        readBy: message.readBy || [],
+        image,
+        isDocument,
+        fileUrl,
+        isEmergency,
+    };
+};
+
 const RoomScreen = ({ 
     messages, 
     currentGroup,
@@ -132,41 +175,23 @@ const RoomScreen = ({
         return () => { showSub.remove(); hideSub.remove(); };
     }, []);
 
-    useEffect(() => {
-        if (!messages || !currentUser) return;
-        const unreadMessages = messages.filter(m => 
-            m.senderId !== currentUser.id && !(m.readBy || []).some(u => u.id === currentUser.id)
+    const unreadMessages = useMemo(() => {
+        if (!messages || !currentUser) return [];
+        return messages.filter((message) =>
+            message.senderId !== currentUser.id && !(message.readBy || []).some((user) => user.id === currentUser.id)
         );
-        if (unreadMessages.length > 0) unreadMessages.forEach(rawMsg => markAsRead(rawMsg));
-    }, [messages, currentUser, markAsRead]);
+    }, [messages, currentUser]);
+
+    useEffect(() => {
+        if (unreadMessages.length === 0) return;
+        unreadMessages.forEach((rawMsg) => markAsRead(rawMsg));
+    }, [markAsRead, unreadMessages]);
 
     const formattedFirebaseMessages = useMemo(() => {
         if (!messages) return [];
-        return messages.map(m => {
-            let text = m.content;
-            let image = undefined;
-            let isDocument = false;
-            let fileUrl = undefined;
-            let isEmergency = text && text.includes('Send help!');
-
-            if (text && text.startsWith('[Attachment]:')) {
-                const url = text.replace('[Attachment]:', '').trim();
-                if (isImageUrl(url)) { image = url; text = ''; } 
-                else { isDocument = true; fileUrl = url; text = ''; }
-            } else if (isImageUrl(text)) { image = text.trim(); text = ''; }
-
-            return {
-                _id: m.id,
-                text: text,
-                createdAt: m.timesent,
-                user: { _id: m.senderId, name: m.senderName },
-                readBy: m.readBy || [],
-                image: image,
-                isDocument: isDocument,
-                fileUrl: fileUrl,
-                isEmergency: isEmergency 
-            };
-        }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return messages
+            .map(normalizeFirebaseMessage)
+            .sort((a, b) => b.createdAtMs - a.createdAtMs);
     }, [messages]);
 
     useEffect(() => {
@@ -181,26 +206,34 @@ const RoomScreen = ({
 
     useEffect(() => {
         if (formattedFirebaseMessages.length > 0 && pendingMessages.length > 0) {
+            const firebaseSignatures = new Set(
+                formattedFirebaseMessages.map((message) => `${message.user._id}|${message.text}`)
+            );
+
             setPendingMessages(prev => prev.filter(pendingMsg => {
-                const isNowInFirebase = formattedFirebaseMessages.some(fbMsg => 
-                    fbMsg.text === pendingMsg.text && fbMsg.user._id === pendingMsg.user._id
-                );
+                const isNowInFirebase = firebaseSignatures.has(`${pendingMsg.user._id}|${pendingMsg.text}`);
                 return !isNowInFirebase;
             }));
         }
-    }, [formattedFirebaseMessages]);
+    }, [formattedFirebaseMessages, pendingMessages]);
 
     const displayMessages = useMemo(() => {
-        const combined = [...pendingMessages, ...formattedFirebaseMessages].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const combined = [...pendingMessages, ...formattedFirebaseMessages].sort((a, b) => {
+            const timeA = a.createdAtMs ?? toTimestamp(a.createdAt);
+            const timeB = b.createdAtMs ?? toTimestamp(b.createdAt);
+            return timeB - timeA;
+        });
         
         if (hasReachedEnd && combined.length > 0) {
             if (!combined.some(m => m._id === 'system-beginning-of-chat')) {
-                const oldestMessageDate = combined[combined.length - 1].createdAt;
+                const oldestMessage = combined[combined.length - 1];
+                const oldestMessageDate = oldestMessage.createdAtMs ?? toTimestamp(oldestMessage.createdAt);
 
                 combined.push({
                     _id: 'system-beginning-of-chat',
                     text: '— Beginning of conversation —',
-                    createdAt: new Date(new Date(oldestMessageDate).getTime() - 1), 
+                    createdAt: new Date(oldestMessageDate - 1), 
+                    createdAtMs: oldestMessageDate - 1,
                     system: true,
                 });
             }
@@ -222,6 +255,7 @@ const RoomScreen = ({
             const pendingMsg = {
                 ...msgToSend,
                 _id: pendingId,
+                createdAtMs: Date.now(),
                 pending: true,
                 isError: false, 
             };

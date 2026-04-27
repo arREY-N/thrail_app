@@ -17,6 +17,8 @@ import PostCard from '@/src/components/PostCard';
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+const SORT_OPTIONS = ['Latest', 'Popular'];
+
 const CommunityScreen = ({ 
     reviews, 
     isLoading, 
@@ -36,6 +38,55 @@ const CommunityScreen = ({
     
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
+
+    const headerSearchProps = useMemo(() => ({
+        searchPlaceholder: "Search posts or hikers...",
+        searchValue: searchQuery,
+        onSearchChange: setSearchQuery,
+        onChangeText: setSearchQuery,
+        rightIconLibrary: "MaterialCommunityIcons",
+        rightIconName: "podium",
+        onRightButtonPress: onLeaderboardPress,
+        tabs: SORT_OPTIONS,
+        activeTab,
+        onTabSelect: setActiveTab,
+    }), [activeTab, onLeaderboardPress, searchQuery]);
+
+    const headerRightActions = useMemo(() => (
+        <>
+            <TouchableOpacity 
+                style={styles.headerActionIcon} 
+                onPress={onNotificationPress}
+                activeOpacity={0.7}
+            >
+                <CustomIcon library="Ionicons" name="notifications" size={24} color={Colors.PRIMARY} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+                style={styles.headerActionIcon} 
+                onPress={onBookingPress}
+                activeOpacity={0.7}
+            >
+                <CustomIcon library="Ionicons" name="calendar-clear" size={24} color={Colors.PRIMARY} />
+            </TouchableOpacity>
+        </>
+    ), [onBookingPress, onNotificationPress]);
+
+    const contentContainerStyle = useMemo(() => ([
+        styles.scrollContent,
+        { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
+    ]), [contentMaxWidth]);
+
+    const emptyState = useMemo(() => (
+        !isLoading ? (
+            <View style={styles.emptyStateContainer}>
+                <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                <CustomText variant="caption" style={styles.emptyStateText}>
+                    {searchQuery ? "No posts found matching search." : "No community posts found."}
+                </CustomText>
+            </View>
+        ) : null
+    ), [isLoading, searchQuery]);
 
     const sortedAndFilteredReviews = useMemo(() => {
         if (!reviews) return [];
@@ -93,62 +144,21 @@ const CommunityScreen = ({
                     title="Community"
                     showDefaultIcons={false}
                     hasSearch={true}
-                    searchProps={{
-                        searchPlaceholder: "Search posts or hikers...",
-                        searchValue: searchQuery,
-                        onSearchChange: setSearchQuery,
-                        onChangeText: setSearchQuery,
-                        rightIconLibrary: "MaterialCommunityIcons",
-                        rightIconName: "podium",
-                        onRightButtonPress: onLeaderboardPress,
-                        tabs: ['Latest', 'Popular'],
-                        activeTab: activeTab,
-                        onTabSelect: setActiveTab
-                    }}
-                    rightActions={
-                        <>
-                            <TouchableOpacity 
-                                style={styles.headerActionIcon} 
-                                onPress={onNotificationPress}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon library="Ionicons" name="notifications" size={24} color={Colors.PRIMARY} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={styles.headerActionIcon} 
-                                onPress={onBookingPress}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon library="Ionicons" name="calendar-clear" size={24} color={Colors.PRIMARY} />
-                            </TouchableOpacity>
-                        </>
-                    }
+                    searchProps={headerSearchProps}
+                    rightActions={headerRightActions}
                 />
 
                 <View style={styles.feedWrapper}>
                     <FlatList
                         data={sortedAndFilteredReviews}
                         keyExtractor={(item) => item.id}
-                        contentContainerStyle={[
-                            styles.scrollContent,
-                            { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
-                        ]}
+                        contentContainerStyle={contentContainerStyle}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={Colors.PRIMARY} />
                         }
                         renderItem={renderPostCard}
-                        ListEmptyComponent={
-                            !isLoading ? (
-                                <View style={styles.emptyStateContainer}>
-                                    <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                                    <CustomText variant="caption" style={styles.emptyStateText}>
-                                        {searchQuery ? "No posts found matching search." : "No community posts found."}
-                                    </CustomText>
-                                </View>
-                            ) : null
-                        }
+                        ListEmptyComponent={emptyState}
                     />
                 </View>
 

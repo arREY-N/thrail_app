@@ -12,7 +12,7 @@ const SkeletonEffect = ({ style }) => {
     const opacity = useRef(new Animated.Value(0.3)).current;
 
     useEffect(() => {
-        Animated.loop(
+        const anim = Animated.loop(
             Animated.sequence([
                 Animated.timing(opacity, {
                     toValue: 1,
@@ -27,8 +27,18 @@ const SkeletonEffect = ({ style }) => {
                     useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
-        ).start();
-    }, [opacity]);
+        );
+
+        anim.start();
+
+        return () => {
+            try {
+                anim.stop && anim.stop();
+            } catch (e) {
+                // ignore stop errors
+            }
+        };
+    }, []);
 
     return (
         <Animated.View 

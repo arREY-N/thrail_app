@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     Modal,
     Pressable,
@@ -45,6 +45,24 @@ const CustomCalendarInput = ({
         }
     }, [value]);
 
+    // Memoize today/selected date facts to avoid repeated Date allocations during grid render
+    const memoizedDates = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = value ? safeParseDateString(value) : null;
+
+        return {
+            today,
+            todayDay: today.getDate(),
+            todayMonth: today.getMonth(),
+            todayYear: today.getFullYear(),
+            selectedDate,
+            selectedDay: selectedDate ? selectedDate.getDate() : null,
+            selectedMonth: selectedDate ? selectedDate.getMonth() : null,
+            selectedYear: selectedDate ? selectedDate.getFullYear() : null,
+        };
+    }, [value, viewDate]);
+
     const effectiveMaxDate = maximumDate || (allowFutureDates ? null : new Date());
 
     const getDisplayDate = () => {
@@ -56,32 +74,30 @@ const CustomCalendarInput = ({
     };
 
     const isToday = (day) => {
-        const today = new Date();
-        return day === today.getDate() && 
-            viewDate.getMonth() === today.getMonth() && 
-            viewDate.getFullYear() === today.getFullYear();
+        return (
+            day === memoizedDates.todayDay &&
+            viewDate.getMonth() === memoizedDates.todayMonth &&
+            viewDate.getFullYear() === memoizedDates.todayYear
+        );
     };
 
     const isSelected = (day) => {
-        if (!value) return false;
-        const d = safeParseDateString(value);
-        return day === d.getDate() && 
-            viewDate.getMonth() === d.getMonth() && 
-            viewDate.getFullYear() === d.getFullYear();
+        if (!memoizedDates.selectedDate) return false;
+        return (
+            day === memoizedDates.selectedDay &&
+            viewDate.getMonth() === memoizedDates.selectedMonth &&
+            viewDate.getFullYear() === memoizedDates.selectedYear
+        );
     };
 
     const isPastDate = (day) => {
         const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return checkDate < today; 
+        return checkDate < memoizedDates.today;
     };
 
     const isFutureDate = (day) => {
         const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return checkDate > today; 
+        return checkDate > memoizedDates.today;
     };
 
     const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -92,10 +108,12 @@ const CustomCalendarInput = ({
 
     const currentYear = new Date().getFullYear();
     const topYear = effectiveMaxDate ? effectiveMaxDate.getFullYear() : currentYear;
-    
-    const years = allowFutureDates && !maximumDate
-        ? Array.from({ length: 12 }, (_, i) => currentYear + i) 
-        : Array.from({ length: 100 }, (_, i) => topYear - i);
+
+    const years = useMemo(() => (
+        allowFutureDates && !maximumDate
+            ? Array.from({ length: 12 }, (_, i) => currentYear + i)
+            : Array.from({ length: 100 }, (_, i) => topYear - i)
+    ), [allowFutureDates, maximumDate, currentYear, topYear]);
 
     const handleOpen = () => {
         setMode(defaultMode);
