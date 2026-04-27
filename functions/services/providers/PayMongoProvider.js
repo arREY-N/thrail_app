@@ -73,8 +73,36 @@ class PayMongoProvider {
             id: data.data.id,
             checkout_url: data.data.attributes.checkout_url,
             createdAt: data.data.attributes.created_at, // PayMongo Unix timestamp
+            paymentIntentId: data.data.attributes.payment_intent?.id || null,
             status: 'pending'
         };
+    }
+
+    /**
+     * Fetches an existing Checkout Session by its ID.
+     * Used by the webhook to retrieve the reference_number (bookingId) linked to a payment.
+     * 
+     * @param {string} sessionId - The PayMongo Checkout Session ID (cs_...).
+     * @returns {Promise<Object>} The raw session data object.
+     * @throws {Error} If the API request fails.
+     */
+    async getCheckoutSession(sessionId) {
+        console.log(`[PayMongoProvider] Fetching checkout session: ${sessionId}`);
+        const response = await fetch(`${this.baseUrl}/checkout_sessions/${sessionId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${this.encodedKey}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.text();
+            console.error(`[PayMongoProvider] GetCheckoutSession Error: ${errorDetails}`);
+            throw new Error(`PayMongo GetCheckoutSession Error: ${errorDetails}`);
+        }
+
+        const data = await response.json();
+        return data.data;
     }
 
     /**

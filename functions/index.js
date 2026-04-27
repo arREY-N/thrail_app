@@ -729,8 +729,10 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
                     referenceCode: null,
                     status: 'pending',
                     amount: amount,
-                    createdAt: new Date(session.createdAt * 1000).toISOString()
+                    createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000))
                 }),
+                // Root-level field so the webhook can query by payment_intent_id
+                paymentIntentId: session.paymentIntentId,
                 updatedAt: FieldValue.serverTimestamp()
             });
 
@@ -740,7 +742,7 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
             referenceCode: null,
             status: 'pending',
             amount: amount,
-            createdAt: new Date(session.createdAt * 1000).toISOString(),
+            createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000)),
             // Included so the frontend can still redirect the user
             checkout_url: session.checkout_url
         };
@@ -836,16 +838,15 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
         const gatewayId = event.data.attributes.data.id;
         const amount = paymentData.amount / 100;
 
-        // Find the booking (simplified, assuming we can map it)
-        // In reality, you'd want to store the checkout session ID in the booking and query by it
-        // Or if PayMongo passes reference_number directly to payment.paid event:
-        const refNumber = paymentData.description || paymentData.reference_number;
-        
-        if (refNumber) {
-            console.log(`[paymentWebhook] Received payment.paid event for reference ${refNumber}. Amount: ${amount}`);
+        // Use payment_intent_id to find the booking.
+        // We store paymentIntentId on the booking document when creating the checkout session.
+        const paymentIntentId = paymentData.payment_intent_id;
+        console.log(`[paymentWebhook] Looking up booking with paymentIntentId: ${paymentIntentId}, amount: ${amount}`);
+
+        if (paymentIntentId) {
             const db = admin.firestore();
             const bookingsSnapshot = await db.collectionGroup('bookings')
-                .where(admin.firestore.FieldPath.documentId(), '==', refNumber)
+                .where('paymentIntentId', '==', paymentIntentId)
                 .get();
 
             if (!bookingsSnapshot.empty) {
@@ -859,7 +860,7 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                     refundableUntil.setDate(refundableUntil.getDate() - 7);
 
                     const payments = bookingData.payment || [];
-                    const pendingIdx = payments.findIndex(p => p.status === 'pending');
+                    const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
                     
                     const existingSessionId = pendingIdx >= 0 ? payments[pendingIdx].sessionId : null;
                     
@@ -879,9 +880,19 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                         payments.push(capturedPayment);
                     }
 
+                    // Determine the new booking status based on total paid vs offer price
+                    const totalPaid = payments.reduce((sum, p) => {
+                        if (p.status === 'captured' || (p === capturedPayment)) {
+                            return sum + (p.amount || 0);
+                        }
+                        return sum;
+                    }, 0);
+                    const offerPrice = bookingData.offer?.price || 0;
+                    const newBookingStatus = totalPaid >= offerPrice ? 'paid' : 'downpayment';
+
                     await bookingDoc.ref.update({
                         payment: payments,
-                        status: 'paid',
+                        status: newBookingStatus,
                         updatedAt: FieldValue.serverTimestamp()
                     });
 
@@ -900,12 +911,12 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                         user: bookingData.user
                     });
                     
-                    console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${refNumber}`);
+                    console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${bookingDoc.id}`);
                 } else {
                     // Booking was already cancelled, issue automatic refund!
                     try {
                         await provider.issueRefund(gatewayId, amount, 'requested_by_customer');
-                        console.log(`Auto-refunded late payment for cancelled booking: ${refNumber}`);
+                        console.log(`Auto-refunded late payment for cancelled booking: ${bookingDoc.id}`);
                     } catch (e) {
                         console.error("Failed to auto-refund cancelled booking", e);
                     }
