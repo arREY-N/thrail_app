@@ -9,17 +9,31 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const FilterModal = ({ visible, onClose, onApply }) => {
-    const [selectedDifficulty, setSelectedDifficulty] = useState('Any');
-    const [selectedDistance, setSelectedDistance] = useState('Any');
+const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
+const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
+
+const DEFAULT_FILTERS = {
+    provinces: [],
+    elevation: null
+};
+
+const FilterModal = ({ visible, onClose, onApply, initialFilters = DEFAULT_FILTERS }) => {
+    const insets = useSafeAreaInsets();
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
+    const [selectedProvinces, setSelectedProvinces] = useState(initialFilters.provinces || []);
+    const [selectedElevation, setSelectedElevation] = useState(initialFilters.elevation || null);
 
     const [renderModal, setRenderModal] = useState(visible);
     const animValue = useRef(new Animated.Value(0)).current;
@@ -27,6 +41,9 @@ const FilterModal = ({ visible, onClose, onApply }) => {
     useEffect(() => {
         if (visible) {
             setRenderModal(true);
+            setSelectedProvinces(initialFilters.provinces || []);
+            setSelectedElevation(initialFilters.elevation || null);
+            
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
@@ -39,41 +56,44 @@ const FilterModal = ({ visible, onClose, onApply }) => {
                 useNativeDriver: Platform.OS !== 'web',
             }).start(() => setRenderModal(false));
         }
-    }, [visible]);
+    }, [visible, initialFilters, animValue]);
+
+    const handleReset = () => {
+        setSelectedProvinces([]);
+        setSelectedElevation(null);
+    };
 
     const handleApply = () => {
-        if (onApply) onApply({ selectedDifficulty, selectedDistance });
+        onApply({
+            provinces: selectedProvinces,
+            elevation: selectedElevation,
+        });
         onClose();
     };
 
-    const handleClear = () => {
-        setSelectedDifficulty('Any');
-        setSelectedDistance('Any');
+    const toggleProvince = (prov) => {
+        setSelectedProvinces(prev => 
+            prev.includes(prov) ? prev.filter(p => p !== prov) : [...prev, prov]
+        );
     };
 
-    const FilterSection = ({ title, options, selected, onSelect }) => (
-        <View style={styles.section}>
-            <CustomText variant="h3" style={styles.sectionTitle}>
-                {title}
-            </CustomText>
-            <View style={styles.chipContainer}>
-                {options.map((opt) => {
-                    const isActive = selected === opt;
+    const FilterSection = ({ title, options, selected, onSelect, multiSelect = false }) => (
+        <View style={styles.sectionContainer}>
+            <CustomText variant="h3" style={styles.sectionTitle}>{title}</CustomText>
+            <View style={styles.pillGrid}>
+                {options.map((option) => {
+                    const isSelected = multiSelect ? selected.includes(option) : selected === option;
                     return (
-                        <TouchableOpacity 
-                            key={opt}
-                            onPress={() => onSelect(opt)}
-                            style={[
-                                styles.chip,
-                                isActive && styles.activeChip
-                            ]}
+                        <TouchableOpacity
+                            key={option}
+                            style={[styles.pill, isSelected && styles.pillActive]}
+                            onPress={() => onSelect(option)}
                             activeOpacity={0.7}
                         >
-                            <CustomText style={[
-                                styles.chipText,
-                                isActive && styles.activeChipText
-                            ]}>
-                                {opt}
+                            <CustomText 
+                                style={[styles.pillText, isSelected && styles.pillTextActive]}
+                            >
+                                {option}
                             </CustomText>
                         </TouchableOpacity>
                     );
@@ -100,58 +120,60 @@ const FilterModal = ({ visible, onClose, onApply }) => {
                 <Animated.View
                     style={[
                         styles.modalContent,
+                        isWideScreen ? styles.modalContentDesktop : styles.modalContentMobile,
+                        { paddingBottom: isWideScreen ? 24 : Math.max(insets.bottom + 24, 24) },
                         {
                             transform: [
                                 {
                                     translateY: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: [SCREEN_HEIGHT, 0],
+                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
                                     }),
                                 },
                             ],
-                        },
+                            opacity: isWideScreen ? animValue : 1,
+                        }
                     ]}
                 >
                     <View style={styles.header}>
-                        <CustomText variant="h2">Filters</CustomText>
-                        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="x" 
-                                size={24} 
-                                color={Colors.TEXT_PRIMARY} 
-                            />
+                        <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
+                            <CustomText style={styles.resetText}>Reset</CustomText>
+                        </TouchableOpacity>
+                        
+                        <CustomText variant="h2" style={styles.headerTitle}>Filters</CustomText>
+                        
+                        <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={styles.closeBtn}>
+                            <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.divider} />
+
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollBody}
+                    >
                         <FilterSection 
-                            title="Difficulty" 
-                            options={['Any', 'Beginner', 'Intermediate', 'Expert']}
-                            selected={selectedDifficulty}
-                            onSelect={setSelectedDifficulty}
+                            title="Province" 
+                            options={PROVINCES} 
+                            selected={selectedProvinces} 
+                            onSelect={toggleProvince} 
+                            multiSelect={true}
                         />
 
                         <FilterSection 
-                            title="Distance" 
-                            options={['Any', '< 5 km', '5 - 10 km', '> 10 km']}
-                            selected={selectedDistance}
-                            onSelect={setSelectedDistance}
+                            title="Elevation Range" 
+                            options={ELEVATIONS} 
+                            selected={selectedElevation} 
+                            onSelect={(val) => setSelectedElevation(prev => prev === val ? null : val)} 
                         />
                     </ScrollView>
 
                     <View style={styles.footer}>
                         <CustomButton 
-                            title="Clear All" 
-                            variant="outline" 
-                            onPress={handleClear} 
-                            style={styles.footerBtn}
-                        />
-                        <CustomButton 
                             title="Apply Filters" 
-                            variant="primary" 
                             onPress={handleApply} 
-                            style={styles.footerBtn}
+                            style={styles.applyBtn} 
                         />
                     </View>
 
@@ -161,83 +183,121 @@ const FilterModal = ({ visible, onClose, onApply }) => {
     );
 };
 
+const dropShadow = Platform.select({
+    ios: {
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+    },
+    android: {
+        elevation: 10,
+    },
+    web: {
+        boxShadow: '0px -4px 20px rgba(0, 0, 0, 0.08)',
+    }
+});
+
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-end', 
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     backdropTouch: {
         flex: 1,
     },
     modalContent: {
         backgroundColor: Colors.WHITE,
+        width: '100%',
+        maxHeight: '85%',
+        ...dropShadow,
+    },
+    modalContentMobile: {
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: '80%',
-        paddingTop: 24,
+    },
+    modalContentDesktop: {
+        alignSelf: 'center',
+        marginBottom: 'auto',
+        marginTop: 'auto',
+        width: 500,
+        borderRadius: 24,
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        marginBottom: 16,
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 16,
+    },
+    resetText: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    headerTitle: {
+        fontSize: 18,
+        marginBottom: 0,
     },
     closeBtn: {
         padding: 4,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 16,
     },
-    scrollContent: {
-        paddingHorizontal: 24,
-        paddingBottom: 24,
-        gap: 24,
-    },
-    section: {
+    divider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         width: '100%',
     },
-    sectionTitle: {
-        marginBottom: 12,
+    scrollBody: {
+        padding: 24,
+        gap: 32,
     },
-    chipContainer: {
+    sectionContainer: {
+        gap: 12,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        marginBottom: 4,
+        color: Colors.TEXT_PRIMARY,
+    },
+    pillGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 10,
     },
-    chip: {
-        paddingVertical: 8,
+    pill: {
+        backgroundColor: Colors.BACKGROUND,
+        paddingVertical: 10,
         paddingHorizontal: 16,
         borderRadius: 20,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: Colors.GRAY_LIGHT,
     },
-    activeChip: {
+    pillActive: {
         backgroundColor: Colors.PRIMARY,
         borderColor: Colors.PRIMARY,
     },
-    chipText: {
-        fontSize: 14,
-        fontWeight: '500',
+    pillText: {
         color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+        fontSize: 14,
     },
-    activeChipText: {
+    pillTextActive: {
         color: Colors.WHITE,
-        fontWeight: 'bold',
     },
     footer: {
-        flexDirection: 'row',
-        padding: 24,
-        paddingBottom: 36, 
-        backgroundColor: Colors.WHITE,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_ULTRALIGHT,
-        gap: 16,
+        paddingHorizontal: 24,
+        paddingTop: 16,
     },
-    footerBtn: {
-        flex: 1,
+    applyBtn: {
+        width: '100%',
+        borderRadius: 16,
     }
 });
 
