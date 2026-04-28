@@ -63,18 +63,18 @@ export class Review implements IReview {
             updatedAt: serverTimestamp(),
             likes: this.likes,
             user: this.user,
-            trailMaintenance: this.trailMaintenance ? toNumerical(this.hike.trailMaintenance) : 0,
-            hikeDate: Timestamp.fromDate(this.hike.date),
+            trailMaintenance: this.trailMaintenance ? toNumerical(this.trailMaintenance) : 0,
+            hikeDate: Timestamp.fromDate(this.hikeDate),
             trail: this.trail,
             overallRating: this.overallRating,
             difficultyFactors: this.difficultyFactors,
             favoredFactors: this.favoredFactors,
-            review: this.review,
+            review: this.review,    
             image: this.image,
             predictedDifficulty: (this.predictedDifficulty !== 'undefined') ? toNumerical(this.predictedDifficulty) : 0,
             perceivedDifficulty: (this.perceivedDifficulty !== 'undefined') ? toNumerical(this.perceivedDifficulty) : 0
         }
-
+        
         return mapped;
     }
 }

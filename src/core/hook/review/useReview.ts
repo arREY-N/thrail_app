@@ -26,7 +26,7 @@ export default function useReview(): IReviewDomain {
     const { profile } = useAuthHook();
 
     const reviews = useReviewStore(s => s.reviews);
-    const loadReviews = useReviewStore(s => s.fetchAll);
+    const subscribe = useReviewStore(s => s.subscribeToReviews);
     const like = useReviewStore(s => s.likeReview);
     const isLoading = useReviewStore(s => s.isLoading);
     const error = useReviewStore(s => s.error);
@@ -34,7 +34,13 @@ export default function useReview(): IReviewDomain {
     const [localError, setLocalError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadReviews();
+        const unsubscribe = subscribe();
+
+        return () => {
+            if(unsubscribe){
+                unsubscribe
+            }
+        }
     }, []);
 
     const onWriteReviewPress = (id?: string) => {

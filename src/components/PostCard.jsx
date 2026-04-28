@@ -12,6 +12,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { formatDate } from '@/src/core/utility/date';
 
 const PostCard = ({ 
     review, 
@@ -22,7 +23,7 @@ const PostCard = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const placeholderImage = require('@/src/assets/images/Mt.Tagapo.jpg'); 
+    const placeholderImage = review.image?.[0] ?? require('@/src/assets/images/Mt.Tagapo.jpg'); 
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -53,15 +54,15 @@ const PostCard = ({
                 <View style={styles.headerLeft}>
                     <View style={styles.avatarPlaceholder}>
                         <CustomText variant="label" style={styles.avatarText}>
-                            {getInitials(review.userName)}
+                            {getInitials(review.user.username)}
                         </CustomText>
                     </View>
                     <View style={styles.userInfo}>
                         <CustomText variant="h3" style={styles.userName}>
-                            {review.userName || "Hiker Name"}
+                            {review.user.username || "Hiker Name"}
                         </CustomText>
                         <CustomText variant="caption" style={styles.dateText}>
-                            {review.date}
+                            {formatDate(review.createdAt)}
                         </CustomText>
                     </View>
                 </View>
@@ -108,7 +109,7 @@ const PostCard = ({
                     style={styles.gradientOverlay}
                 >
                     <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                        {review.mountainName || review.trailName || "Mountain Name"}
+                        {review.trail.name || review.trailName || "Mountain Name"}
                     </CustomText>
                     
                     <View style={styles.locationRow}>
@@ -132,7 +133,7 @@ const PostCard = ({
             <View style={styles.statsContainer}>
                 <StatItem 
                     label="Rate" 
-                    value={review.rating || review.rate?.toFixed(1) || '--'} 
+                    value={review.overallRating || review.rate?.toFixed(1) || '--'} 
                     icon="star" 
                     lib="Ionicons"
                     iconColor={Colors.YELLOW} 

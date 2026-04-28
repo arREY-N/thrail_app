@@ -1,7 +1,8 @@
 import { db } from "@/src/core/config/Firebase";
 import { Repository } from "@/src/core/interface/repositoryInterface";
 import { Review, reviewConverter } from "@/src/core/models/Review/Review";
-import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, where } from "firebase/firestore";
+import { Unsubscribe } from "firebase/auth";
+import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, onSnapshot, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, where } from "firebase/firestore";
 
 const createReviewsCollection = () => {
     return collection(db, 'reviews').withConverter(reviewConverter);
@@ -30,6 +31,24 @@ class ReviewRepositoryImpl implements Repository<Review> {
             lastDoc = lastVisible;
 
             return snapshot.docs.map((docsnap) => docsnap.data());
+        } catch (error: unknown) {
+            console.error('Error fetching reviews: ', error);
+            throw new Error('Failed to fetch reviews');
+        }
+    }
+
+    listenToReviews(onUpdate: (reviews: Review[]) => void): Unsubscribe {
+        try {
+            const reviewCollection = createReviewsCollection();
+            const q =  query(
+                reviewCollection,
+                orderBy('createdAt', 'desc'),
+                limit(PAGE_SIZE)
+            );
+            
+            return onSnapshot(q, (snapshot) => {
+                onUpdate(snapshot.docs.map(doc => doc.data()))
+            })
         } catch (error: unknown) {
             console.error('Error fetching reviews: ', error);
             throw new Error('Failed to fetch reviews');

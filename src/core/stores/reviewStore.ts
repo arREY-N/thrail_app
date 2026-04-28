@@ -1,5 +1,6 @@
 import { Review } from "@/src/core/models/Review/Review";
 import { ReviewRepository } from "@/src/core/repositories/reviewRepository";
+import { Unsubscribe } from "firebase/auth";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -7,6 +8,8 @@ export interface ReviewState {
     reviews: Review[];
     isLoading: boolean;
     error: string | null;
+    
+    subscribeToReviews: () => Promise<Unsubscribe | null>;
 
     fetchAll: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -21,6 +24,22 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
     reviews: [],
     isLoading: false,
     error: null,
+    unsubscribe: null,
+
+    subscribeToReviews: async () => {
+        try {
+            const unsubscribe = ReviewRepository.listenToReviews(
+                (reviews) => set({
+                    reviews: reviews
+                })
+            )
+
+            return unsubscribe;
+        } catch (error) {
+            console.error('Error subscribing to reviews: ', error)
+            throw error;
+        }
+    },
 
     fetchAll: async () => {
         set({isLoading: true, error: null});

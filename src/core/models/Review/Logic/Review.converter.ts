@@ -1,6 +1,6 @@
 import { DifficultyRating } from "@/src/core/models/Review/Review.types";
 
-export function toNumerical(rating: DifficultyRating): number {
+export function toNumerical(rating: DifficultyRating | string): number {
     switch (rating) {
         case "Easy":
             return 1;
@@ -13,7 +13,7 @@ export function toNumerical(rating: DifficultyRating): number {
         case "Extreme":
             return 5;
         default:
-            throw new Error(`Unhandled difficulty rating: ${rating}`);
+            return 0
     }
 }
 
@@ -31,6 +31,6 @@ export function toTextual(rating: number): DifficultyRating {
         case 5: 
             return "Extreme";
         default:
-            throw new Error(`Unhandled difficulty rating: ${rating}`);
+            return "undefined";
     }
 }
