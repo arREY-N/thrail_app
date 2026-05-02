@@ -58,6 +58,12 @@ export function useAppNavigation() {
         })
     }
 
+    const onLeaderBoardPress = () => {
+        router.push({
+            pathname: '/(main)/leaderboard/leaderboard',
+        })
+    }
+
     return {
         onTrailPress,
         onBackPress,
@@ -70,5 +76,6 @@ export function useAppNavigation() {
         onViewAllRecommendationPress,
         onViewAllTrendingPress,
         onGroupPress,
+        onLeaderBoardPress
     }
 }
