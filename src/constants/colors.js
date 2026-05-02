@@ -26,6 +26,7 @@ export const Palette = {
     Blue600:    '#1976D2',
     Blue100:    '#BBDEFB',
     Blue50:     '#E3F2FD',
+    Indigo400:  '#5C6BC0',
 
     // Yellows & Ambers
     Yellow700:  '#F57F17',
@@ -61,6 +62,7 @@ export const Colors = {
 
     // UI Elements
     YELLOW:           Palette.Yellow600,
+    BLUE:             Palette.Blue600,
     SHADOW:           Palette.TrueBlack,
     MODAL_OVERLAY:    Palette.BlackAlpha50,
     SEARCH_BAR_BG:    Palette.GrayAlpha25,
@@ -108,6 +110,9 @@ export const Colors = {
     
     WEATHER_DANGER_MAIN:    Palette.Red700,
     WEATHER_DANGER_BG:      Palette.Red50,
+
+    WEATHER_SUN:            Palette.Amber500, 
+    WEATHER_MOON:           Palette.Indigo400 ,
 };
 
 // Color Samples
