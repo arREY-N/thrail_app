@@ -27,7 +27,7 @@ const MountainCard = ({
         location, 
         displayLength, 
         displayElev, 
-        displayTime, 
+        displayRoute, 
         score,
         heroImage
     } = getMountainData(item);
@@ -43,34 +43,36 @@ const MountainCard = ({
             <View style={styles.imageContainer}>
                 <Image source={heroImage} style={styles.cardImage} resizeMode="cover" />
 
-                {weatherBadge && (
-                    <View style={[styles.glassPill, styles.topLeftPosition]}>
-                        <CustomIcon
-                            library="Ionicons"
-                            name={filledWeatherIcon} 
-                            size={14}
-                            color={Colors.WHITE}
-                        />
+                <View style={[styles.glassPill, styles.topLeftPosition]}>
+                    <View style={styles.badgeSection}>
+                        <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
                         <CustomText variant="caption" style={styles.badgeText}>
-                            {`${weatherBadge.temperature}°C`}
+                            {score}
                         </CustomText>
                     </View>
-                )}
+
+                    {weatherBadge && <View style={styles.badgeDivider} />}
+
+                    {weatherBadge && (
+                        <View style={styles.badgeSection}>
+                            <CustomIcon library="Ionicons" name={filledWeatherIcon} size={14} color={Colors.WHITE} />
+                            <CustomText variant="caption" style={styles.badgeText}>
+                                {`${weatherBadge.temperature}°C`}
+                            </CustomText>
+                        </View>
+                    )}
+                </View>
 
                 <TouchableOpacity
                     style={[styles.glassIconBtn, styles.topRightPosition]}
-                    onPress={() => {
+                    onPress={(e) => {
+                        e.stopPropagation();
                         if(onDownload) onDownload();
                         if(onLikePress) onLikePress();
                     }}
                     activeOpacity={0.7}
                 >
-                    <CustomIcon
-                        library="Ionicons"
-                        name="heart-outline"
-                        size={18}
-                        color={Colors.WHITE}
-                    />
+                    <CustomIcon library="Ionicons" name="heart-outline" size={18} color={Colors.WHITE} />
                 </TouchableOpacity>
 
                 <LinearGradient
@@ -84,17 +86,8 @@ const MountainCard = ({
                             </CustomText>
 
                             <View style={styles.locationRow}>
-                                <CustomIcon
-                                    library="FontAwesome6"
-                                    name="location-dot"
-                                    size={10}
-                                    color={Colors.TEXT_INVERSE}
-                                />
-                                <CustomText
-                                    variant="caption"
-                                    style={styles.location}
-                                    numberOfLines={1}
-                                >
+                                <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
+                                <CustomText variant="caption" style={styles.location} numberOfLines={1}>
                                     {location}
                                 </CustomText>
                             </View>
@@ -105,20 +98,10 @@ const MountainCard = ({
 
             <View style={styles.statsContainer}>
                 <StatItem 
-                    label="Rate" 
-                    value={score} 
-                    icon="star" 
-                    lib="Ionicons"
-                    iconColor={Colors.YELLOW} 
-                    style={styles.rateStat} 
-                />
-                <View style={styles.verticalDivider} />
-                <StatItem 
                     label="Distance" 
                     value={displayLength} 
                     icon="map-outline" 
                     lib="Ionicons"
-                    style={styles.otherStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -126,15 +109,13 @@ const MountainCard = ({
                     value={displayElev} 
                     icon="trending-up" 
                     lib="Feather"
-                    style={styles.otherStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
-                    label="Time" 
-                    value={displayTime} 
-                    icon="time-outline" 
+                    label="Route" 
+                    value={displayRoute} 
+                    icon="repeat-outline" 
                     lib="Ionicons"
-                    style={styles.otherStat}
                 />
             </View>
         </TouchableOpacity>
@@ -151,16 +132,14 @@ const getMountainData = (item) => {
         location = item.general.address;
     }
 
-    const displayLength = item?.difficulty?.length
-        ? `${item.difficulty.length} km`
-        : "--";
-    const displayElev = item?.difficulty?.elevation
-        ? `${item.difficulty.elevation} masl`
-        : "--";
-    const displayTime = item?.difficulty?.hours
-        ? `${item.difficulty.hours} h`
-        : "--";
-    const score = item?.general?.rating || "N/A";
+    const displayLength = item?.difficulty?.length ? `${item.difficulty.length} km` : "--";
+    const displayElev = item?.difficulty?.elevation ? `${item.difficulty.elevation} masl` : "--";
+        
+    let displayRoute = item?.difficulty?.circularity || "--";
+    if (displayRoute === "Out and Back" || "Out-and-Back") displayRoute = "Out & Back"; 
+    if (displayRoute === "Point-to-Point") displayRoute = "Pt to Pt"; 
+    
+    const score = item?.general?.rating ? Number(item.general.rating).toFixed(1) : "N/A";
 
     const images = [
         require("@/src/assets/images/MT1.jpg"),
@@ -172,7 +151,6 @@ const getMountainData = (item) => {
     ];
 
     const uniqueString = item?.id ? String(item.id) : name;
-
     let hash = 0;
     for (let i = 0; i < uniqueString.length; i++) {
         const char = uniqueString.charCodeAt(i);
@@ -185,25 +163,31 @@ const getMountainData = (item) => {
     const heroImage = images[imageIndex];
 
     return {
-        name,
-        location,
-        displayLength,
-        displayElev,
-        displayTime,
-        score,
-        heroImage,
+        name, location, displayLength, displayElev, displayRoute, score, heroImage,
     };
 };
 
-const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }) => (
-    <View style={[styles.statBox, style]}>
+const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY }) => (
+    <View style={styles.statBox}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
-            <CustomText variant="caption" style={styles.statValue} numberOfLines={1}>
+            <CustomText 
+                variant="caption" 
+                style={styles.statValue} 
+                numberOfLines={1} 
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.75}
+            >
                 {value}
             </CustomText>
         </View>
-        <CustomText variant="caption" style={styles.statLabel}>
+        <CustomText 
+            variant="caption" 
+            style={styles.statLabel}
+            numberOfLines={1} 
+            adjustsFontSizeToFit={true} 
+            minimumFontScale={0.75}
+        >
             {label}
         </CustomText>
     </View>
@@ -220,18 +204,9 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
 
         ...Platform.select({
-            ios: {
-                shadowColor: Colors.SHADOW,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-            },
-            android: {
-                elevation: 4,
-            },
-            web: {
-                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-            },
+            ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6 },
+            android: { elevation: 4 },
+            web: { boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)" },
         }),
     },
     imageContainer: {
@@ -249,14 +224,29 @@ const styles = StyleSheet.create({
     glassPill: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        paddingHorizontal: 10,
+        gap: 8,
+        backgroundColor: "rgba(0,0,0,0.6)",
+        paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.2)",
     },
+    badgeSection: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    badgeDivider: {
+        width: 1,
+        height: 14,
+        backgroundColor: "rgba(255,255,255,0.4)",
+    },
+    badgeText: {
+        color: Colors.WHITE,
+        fontWeight: "bold",
+    },
+    
     glassIconBtn: {
         width: 36,
         height: 36,
@@ -267,22 +257,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    badgeText: {
-        color: Colors.WHITE,
-        fontWeight: "bold",
-    },
-    topLeftPosition: {
-        position: "absolute",
-        top: 12,
-        left: 12,
-        zIndex: 2,
-    },
-    topRightPosition: {
-        position: "absolute",
-        top: 12,
-        right: 12,
-        zIndex: 2,
-    },
+    topLeftPosition: { position: "absolute", top: 12, left: 12, zIndex: 2 },
+    topRightPosition: { position: "absolute", top: 12, right: 12, zIndex: 2 },
     gradientOverlay: {
         position: "absolute",
         left: 0,
@@ -297,28 +273,16 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "flex-end",
     },
-    textContainer: {
-        flex: 1,
-    },
+    textContainer: { flex: 1 },
     title: {
         fontWeight: "bold",
         color: Colors.TEXT_INVERSE,
         marginBottom: -4,
 
         ...Platform.select({
-            ios: {
-                textShadowColor: Colors.SHADOW,
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 4,
-            },
-            android: {
-                textShadowColor: Colors.SHADOW,
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 4,
-            },
-            web: {
-                textShadow: "0px 1px 4px rgba(0,0,0,0.5)",
-            },
+            ios: { textShadowColor: Colors.SHADOW, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+            android: { textShadowColor: Colors.SHADOW, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+            web: { textShadow: "0px 1px 4px rgba(0,0,0,0.5)" },
         }),
     },
     locationRow: {
@@ -335,14 +299,15 @@ const styles = StyleSheet.create({
     statsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
+        justifyContent: 'center',
+        paddingHorizontal: 12,
         paddingVertical: 16,
         backgroundColor: Colors.WHITE,
     },
     statBox: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 4,
     },
     statTopRow: {
         flexDirection: 'row',
@@ -354,6 +319,7 @@ const styles = StyleSheet.create({
         fontWeight: "900",
         color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
+        textAlign: 'center',
     },
     statLabel: {
         fontSize: 10,
@@ -361,20 +327,12 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         fontWeight: "600",
         marginTop: 2,
+        textAlign: 'center',
     },
     verticalDivider: {
         width: 1,
         height: 24,
         backgroundColor: Colors.GRAY_LIGHT,
-        flex: 0,
-        marginHorizontal: 4,
-    },
-    
-    rateStat: {
-        flex: 0.8, 
-    },
-    otherStat: {
-        flex: 1.1, 
     },
 });
 
