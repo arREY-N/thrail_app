@@ -6,6 +6,7 @@ import {
     View,
 } from 'react-native';
 
+import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -34,7 +35,8 @@ const ProfileScreen = ({
     onSettingsPress,
     onLikeReview,
     isLiked,
-    onEditReview
+    onEditReview,
+    onGroupPress
 }) => {
 
     const [activeTab, setActiveTab] = useState('Milestones');
@@ -161,6 +163,8 @@ const ProfileScreen = ({
                 </View>
                 
             </ResponsiveScrollView>
+
+            <CustomFAB onPress={onGroupPress} />
 
         </ScreenWrapper>
     );
