@@ -8,7 +8,10 @@ import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
     const { profile } = useAuthHook();
-    const { trails } = useTrailDomain();
+    const { 
+        trails, 
+        onViewTrail
+    } = useTrailDomain();
     
     const { 
         onMountainPress, 
@@ -31,7 +34,7 @@ export default function home(){
             onViewAllTrendingPress={onViewAllTrendingPress}
             recommendedTrails={[]}
             discoverTrails={discoverList}
-            onMountainPress={onMountainPress}
+            onMountainPress={onViewTrail}
             onDownloadPress={onDownloadPress}
         />
     );
