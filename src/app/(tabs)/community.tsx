@@ -19,7 +19,8 @@ export default function community(){
     const {
         onGroupPress,
         onNotificationPress,
-        onBookingPress
+        onBookingPress,
+        onLeaderBoardPress
     } = useAppNavigation();
 
     return (
@@ -31,7 +32,7 @@ export default function community(){
             likeReview={likeReview}
             isLiked={isLiked}
             onRefresh={refreshFeed}
-            onLeaderboardPress={() => {}} 
+            onLeaderboardPress={onLeaderBoardPress} 
             onGroupPress={onGroupPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}
