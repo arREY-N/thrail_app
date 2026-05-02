@@ -26,9 +26,9 @@ const DIFFICULTY_LEVELS = [
 ];
 
 const MAINTENANCE_OPTIONS = [
-    'New/well-maintained',
-    'Damaged but usable',
-    'Critical and unusable'
+    { label: 'New/well-maintained', value: 'Easy' },
+    { label: 'Damaged but usable', value: 'Moderate' },
+    { label: 'Critical and unusable', value: 'Extreme' }
 ];
 
 const DIFFICULTY_FACTORS = [
@@ -181,10 +181,10 @@ const WriteReviewScreen = ({
                         <View style={styles.optionsWrapper}>
                             {MAINTENANCE_OPTIONS.map(opt => (
                                 <SelectionPill 
-                                    key={opt}
-                                    label={opt}
-                                    selected={review.trailMaintenance === opt}
-                                    onPress={() => updateReview('trailMaintenance', opt)}
+                                    key={opt.value}
+                                    label={opt.label}
+                                    selected={review.trailMaintenance === opt.value}
+                                    onPress={() => updateReview('trailMaintenance', opt.value)}
                                 />
                             ))}
                         </View>
