@@ -10,6 +10,7 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
@@ -22,8 +23,18 @@ const PostCard = ({
     variant = 'community' // 'community' | 'profile'
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
     const placeholderImage = review.image?.[0] ?? require('@/src/assets/images/Mt.Tagapo.jpg'); 
+
+    let previewUrl = null;
+    if (typeof placeholderImage === 'string') {
+        previewUrl = placeholderImage;
+    } else if (placeholderImage?.uri) {
+        previewUrl = placeholderImage.uri;
+    } else {
+        previewUrl = Image.resolveAssetSource(placeholderImage)?.uri;
+    }
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -54,15 +65,15 @@ const PostCard = ({
                 <View style={styles.headerLeft}>
                     <View style={styles.avatarPlaceholder}>
                         <CustomText variant="label" style={styles.avatarText}>
-                            {getInitials(review.user.username)}
+                            {getInitials(review?.user?.username || review?.user?.firstname)}
                         </CustomText>
                     </View>
                     <View style={styles.userInfo}>
                         <CustomText variant="h3" style={styles.userName}>
-                            {review.user.username || "Hiker Name"}
+                            {review?.user?.username || review?.user?.firstname || "Hiker Name"}
                         </CustomText>
                         <CustomText variant="caption" style={styles.dateText}>
-                            {formatDate(review.createdAt)}
+                            {formatDate(review?.createdAt || review?.hikeDate || new Date())}
                         </CustomText>
                     </View>
                 </View>
@@ -98,7 +109,11 @@ const PostCard = ({
                 </View>
             </View>
 
-            <View style={styles.imageWrapper}>
+            <TouchableOpacity 
+                style={styles.imageWrapper}
+                activeOpacity={0.9}
+                onPress={() => setIsPreviewVisible(true)}
+            >
                 <Image 
                     source={placeholderImage} 
                     style={styles.postImage} 
@@ -109,7 +124,7 @@ const PostCard = ({
                     style={styles.gradientOverlay}
                 >
                     <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                        {review.trail.name || review.trailName || "Mountain Name"}
+                        {review.trail?.name || review.trailName || "Mountain Name"}
                     </CustomText>
                     
                     <View style={styles.locationRow}>
@@ -124,11 +139,11 @@ const PostCard = ({
                             style={styles.locationTextOverlay}
                             numberOfLines={1}
                         >
-                            {review.location || "Unknown Location"}
+                            {review.location || "Philippines"}
                         </CustomText>
                     </View>
                 </LinearGradient>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.statsContainer}>
                 <StatItem 
@@ -182,7 +197,12 @@ const PostCard = ({
                     )}
                 </CustomText>
             </View>
-
+            
+            <ImagePreviewModal 
+                visible={isPreviewVisible} 
+                imageUrl={previewUrl} 
+                onClose={() => setIsPreviewVisible(false)} 
+            />
         </View>
     );
 };
@@ -190,7 +210,7 @@ const PostCard = ({
 const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }) => (
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
-            <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
+            <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
             <CustomText variant="caption" style={styles.statValue} numberOfLines={1}>
                 {value}
             </CustomText>
@@ -340,7 +360,6 @@ const styles = StyleSheet.create({
     statValue: {
         fontWeight: '900',
         color: Colors.TEXT_PRIMARY,
-        fontSize: 14,
     },
     statLabel: {
         fontSize: 10,
