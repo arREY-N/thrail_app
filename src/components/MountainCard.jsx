@@ -33,6 +33,7 @@ const MountainCard = ({
     } = getMountainData(item);
 
     const filledWeatherIcon = weatherBadge?.icon ? weatherBadge.icon.replace('-outline', '') : 'partly-sunny';
+    const displayWeather = weatherBadge ? `${weatherBadge.temperature}°C` : 'N/A';
 
     return (
         <TouchableOpacity
@@ -51,16 +52,14 @@ const MountainCard = ({
                         </CustomText>
                     </View>
 
-                    {weatherBadge && <View style={styles.badgeDivider} />}
+                    <View style={styles.badgeDivider} />
 
-                    {weatherBadge && (
-                        <View style={styles.badgeSection}>
-                            <CustomIcon library="Ionicons" name={filledWeatherIcon} size={14} color={Colors.WHITE} />
-                            <CustomText variant="caption" style={styles.badgeText}>
-                                {`${weatherBadge.temperature}°C`}
-                            </CustomText>
-                        </View>
-                    )}
+                    <View style={styles.badgeSection}>
+                        <CustomIcon library="Ionicons" name={filledWeatherIcon} size={14} color={Colors.WHITE} />
+                        <CustomText variant="caption" style={styles.badgeText}>
+                            {displayWeather}
+                        </CustomText>
+                    </View>
                 </View>
 
                 <TouchableOpacity
@@ -105,7 +104,7 @@ const MountainCard = ({
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
-                    label="Elev" 
+                    label="Elevation"
                     value={displayElev} 
                     icon="trending-up" 
                     lib="Feather"
@@ -136,7 +135,7 @@ const getMountainData = (item) => {
     const displayElev = item?.difficulty?.elevation ? `${item.difficulty.elevation} masl` : "--";
         
     let displayRoute = item?.difficulty?.circularity || "--";
-    if (displayRoute === "Out and Back" || "Out-and-Back") displayRoute = "Out & Back"; 
+    if (displayRoute === "Out and Back" || displayRoute === "Out-and-Back") displayRoute = "Out & Back"; 
     if (displayRoute === "Point-to-Point") displayRoute = "Pt to Pt"; 
     
     const score = item?.general?.rating ? Number(item.general.rating).toFixed(1) : "N/A";
@@ -170,7 +169,7 @@ const getMountainData = (item) => {
 const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY }) => (
     <View style={styles.statBox}>
         <View style={styles.statTopRow}>
-            <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
+            <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
             <CustomText 
                 variant="caption" 
                 style={styles.statValue} 
