@@ -3,6 +3,7 @@ import React from 'react';
 
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
@@ -30,25 +31,35 @@ export default function profile(){
         onWriteReviewPress,
     } = useReview();
 
+    const {
+        onGroupPress
+    } = useAppNavigation();
+
     const myDummyReviews = profile ? [
         {
             id: 'dummy-my-1',
-            user: profile,
+            user: { id: profile.id, username: profile.username, firstname: profile.firstname, lastname: profile.lastname }, // Updated structure
+            createdAt: new Date('2026-03-05T08:00:00Z'),
             hikeDate: new Date('2026-03-05T08:00:00Z'),
             overallRating: 5.0,
             review: "Amazing clearing at the summit! The trail was well established and the view was breathtaking. Definitely coming back.",
             likes: [{ id: 'user1' }, { id: 'user2' }, { id: 'user3' }],
-            trail: { name: 'Mt. Parawagan', location: 'Rodriguez, Rizal', length: 9.5, masl: 472, hours: 4 },
+            trail: { id: 't1', name: 'Mt. Parawagan' },
+            distance: 9.5, elevation: 472, duration: 4,
+            image: [],
             isDummy: true
         },
         {
             id: 'dummy-my-2',
-            user: profile,
+            user: { id: profile.id, username: profile.username, firstname: profile.firstname, lastname: profile.lastname }, // Updated structure
+            createdAt: new Date('2026-02-20T06:30:00Z'),
             hikeDate: new Date('2026-02-20T06:30:00Z'),
             overallRating: 4.5,
             review: "Classic Batulao! The 'New Trail' is much steeper now. Make sure to bring enough water as there isn't much shade along the ridges.",
             likes: [{ id: 'user1' }, { id: 'user2' }],
-            trail: { name: 'Mt. Batulao', location: 'Nasugbu, Batangas', length: 9, masl: 811, hours: 5 },
+            trail: { id: 't2', name: 'Mt. Batulao' },
+            distance: 9, elevation: 811, duration: 5,
+            image: [],
             isDummy: true
         }
     ] : [];
@@ -134,6 +145,7 @@ export default function profile(){
             onLikeReview={safeLikeReview}
             isLiked={(raw) => raw.isDummy ? false : isLiked(raw)}
             onEditReview={safeOnEditReview}
+            onGroupPress={onGroupPress}
         />
     );
 }
