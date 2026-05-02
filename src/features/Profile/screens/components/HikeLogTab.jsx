@@ -31,7 +31,7 @@ const HikeLogTab = ({ hikeLog, onLikeReview, isLiked, onEditReview }) => {
             {hikeLog.map((log) => (
                 <PostCard 
                     key={log.id} 
-                    review={log} 
+                    review={log.rawReview} 
                     variant="profile" 
                     isOwned={true}
                     isLiked={isLiked(log.rawReview)}
