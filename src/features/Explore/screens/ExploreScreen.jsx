@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import CustomFAB from "@/src/components/CustomFAB";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
@@ -31,7 +32,7 @@ const resolveCoordsForTrail = (trail) => {
     return null;
 };
 
-const ExploreScreen = ({ trails, onViewMountain }) => {
+const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
     const [weatherMap, setWeatherMap] = useState({});
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -192,6 +193,9 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                     initialFilters={activeFilters}
                     onApply={(filters) => setActiveFilters(filters)}
                 />
+
+                <CustomFAB onPress={onGroupPress} />
+
             </View>
         </ScreenWrapper>
     );
