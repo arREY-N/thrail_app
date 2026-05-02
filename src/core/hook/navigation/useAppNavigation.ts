@@ -60,7 +60,7 @@ export function useAppNavigation() {
 
     const onLeaderBoardPress = () => {
         router.push({
-            pathname: '/(main)/leaderboard/leaderboard',
+            pathname: '/(main)/leaderboard/view',
         })
     }
 
