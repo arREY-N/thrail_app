@@ -18,7 +18,8 @@ export default function home(){
         onDownloadPress, 
         onWeatherPress, 
         onViewAllRecommendationPress, 
-        onViewAllTrendingPress 
+        onViewAllTrendingPress,
+        onGroupPress
     } = useAppNavigation();
 
     const discoverList = useMemo(() => {
@@ -36,6 +37,7 @@ export default function home(){
             discoverTrails={discoverList}
             onMountainPress={onViewTrail}
             onDownloadPress={onDownloadPress}
+            onGroupPress={onGroupPress}
         />
     );
 }

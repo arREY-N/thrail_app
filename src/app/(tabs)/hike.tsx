@@ -6,9 +6,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 import { useIsFocused } from '@react-navigation/native';
 
+import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 export default function hike(){
     const isFocused = useIsFocused();
@@ -18,6 +20,10 @@ export default function hike(){
         isLoading,
         error
     } = useHike({});
+
+    const {
+        onGroupPress
+    } = useAppNavigation();
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={{}}>
@@ -41,6 +47,11 @@ export default function hike(){
                     error={error}
                 />  
             </View>
+
+            <CustomFAB 
+                onPress={onGroupPress} 
+                style={undefined} 
+            />
 
         </ScreenWrapper>
     )
