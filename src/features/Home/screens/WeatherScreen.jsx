@@ -120,12 +120,12 @@ const WeatherScreen = ({
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
                         <View style={styles.hiLoContainer}>
-                            <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.TEXT_PRIMARY} />
+                            <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.WEATHER_SUN} />
                             <CustomText variant="label" style={styles.hiLoText}>Day {dayTemp}°</CustomText>
                             
                             <View style={styles.dotSeparator} />
                             
-                            <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.TEXT_PRIMARY} />
+                            <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.WEATHER_MOON} />
                             <CustomText variant="label" style={styles.hiLoText}>Night {nightTemp}°</CustomText>
                         </View>
                     </View>
