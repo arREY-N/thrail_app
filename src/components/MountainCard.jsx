@@ -32,8 +32,8 @@ const MountainCard = ({
         heroImage
     } = getMountainData(item);
 
-    const filledWeatherIcon = weatherBadge?.icon ? weatherBadge.icon.replace('-outline', '') : 'partly-sunny';
-    const displayWeather = weatherBadge ? `${weatherBadge.temperature}°C` : 'N/A';
+    // const filledWeatherIcon = weatherBadge?.icon ? weatherBadge.icon.replace('-outline', '') : 'partly-sunny';
+    // const displayWeather = weatherBadge ? `${weatherBadge.temperature}°C` : 'N/A';
 
     return (
         <TouchableOpacity
@@ -52,14 +52,14 @@ const MountainCard = ({
                         </CustomText>
                     </View>
 
-                    <View style={styles.badgeDivider} />
+                    {/* <View style={styles.badgeDivider} /> */}
 
-                    <View style={styles.badgeSection}>
+                    {/* <View style={styles.badgeSection}>
                         <CustomIcon library="Ionicons" name={filledWeatherIcon} size={14} color={Colors.WHITE} />
                         <CustomText variant="caption" style={styles.badgeText}>
                             {displayWeather}
                         </CustomText>
-                    </View>
+                    </View> */}
                 </View>
 
                 <TouchableOpacity
@@ -236,11 +236,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 4,
     },
-    badgeDivider: {
-        width: 1,
-        height: 14,
-        backgroundColor: "rgba(255,255,255,0.4)",
-    },
+    // badgeDivider: {
+    //     width: 1,
+    //     height: 14,
+    //     backgroundColor: "rgba(255,255,255,0.4)",
+    // },
     badgeText: {
         color: Colors.WHITE,
         fontWeight: "bold",
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(0,0,0,0.6)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.2)",
         justifyContent: "center",
