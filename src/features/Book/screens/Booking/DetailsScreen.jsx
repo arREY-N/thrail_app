@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
+import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
@@ -13,21 +13,6 @@ import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
-
-const formatLocalPhoneNumber = (text) => {
-    if (!text) return '';
-    let cleaned = text.replace(/\D/g, '');
-    if (cleaned.length > 10) cleaned = cleaned.substring(0, 10);
-
-    let formatted = cleaned;
-    if (cleaned.length > 3) {
-        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
-    }
-    if (cleaned.length > 6) {
-        formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
-    }
-    return formatted;
-};
 
 const getStrictDocKey = (docName) => {
     if (!docName) return 'validId';
@@ -55,15 +40,7 @@ const DetailsScreen = ({
     const requiredDocuments = selectedOffer?.documents || [];
 
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
-    
-    let profilePhone = profile?.phoneNumber || '';
-    if (profilePhone.startsWith('+63')) {
-        profilePhone = profilePhone.substring(3);
-    } else if (profilePhone.startsWith('0')) {
-        profilePhone = profilePhone.substring(1);
-    }
-    
-    profilePhone = formatLocalPhoneNumber(profilePhone);
+    const profilePhone = formatLocalPhoneNumber(cleanPhoneNumber(profile?.phoneNumber || ''));
 
     const getInitialData = () => {
         if (savedDetails) return savedDetails;
@@ -93,6 +70,8 @@ const DetailsScreen = ({
                 age--;
             }
             setIsMinor(age < 18);
+        } else {
+            setIsMinor(false);
         }
     }, [profile?.birthday]);
 

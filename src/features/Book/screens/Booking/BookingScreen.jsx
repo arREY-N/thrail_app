@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
+import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 
@@ -35,6 +36,17 @@ const BookingScreen = ({
 
     const safeOffers = Array.isArray(offers) ? offers : [];
     const lineFillPercentage = ((currentView - 1) / 2) * 100;
+    
+    const completeOfferRef = useRef(onCompleteOffer);
+    useEffect(() => {
+        completeOfferRef.current = onCompleteOffer;
+    }, [onCompleteOffer]);
+
+    const bookingDataRef = useRef(bookingData);
+    useEffect(() => {
+        bookingDataRef.current = bookingData;
+    }, [bookingData]);
+
 
     const resetStateAndGoBack = () => {
         setCurrentView(1);
@@ -66,13 +78,19 @@ const BookingScreen = ({
     const handleReserve = (detailsData) => {
         setIsSubmitting(true);
 
+        const normalizedHikerDetails = {
+            ...detailsData.hikerDetails,
+            phone: cleanPhoneNumber(detailsData.hikerDetails?.phone || ''),
+            emergencyPhone: cleanPhoneNumber(detailsData.hikerDetails?.emergencyPhone || ''),
+        };
+
         if (onUpdatePress) {
             onUpdatePress({
                 section: 'root',
                 id: 'emergencyContact',
                 value: {
-                    name: detailsData.hikerDetails.emergencyName || '',
-                    contactNumber: detailsData.hikerDetails.emergencyPhone || '',
+                    name: normalizedHikerDetails.emergencyName || '',
+                    contactNumber: normalizedHikerDetails.emergencyPhone || '',
                 },
             });
 
@@ -89,17 +107,25 @@ const BookingScreen = ({
             });
         }
 
-        setBookingData((prev) => ({ ...prev, ...detailsData }));
+        setBookingData((prev) => ({
+            ...prev,
+            ...detailsData,
+            hikerDetails: normalizedHikerDetails,
+        }));
+        
         setSubmitPhase('ready_to_submit');
     };
 
     useEffect(() => {
         if (submitPhase === 'ready_to_submit') {
-            const processBooking = async () => {
+            
+            const timer = setTimeout(async () => {
                 let successFlag = false; 
                 
                 try {
-                    successFlag = await onCompleteOffer();
+                    successFlag = await completeOfferRef.current({
+                        hikerDetails: bookingDataRef.current.hikerDetails,
+                    });
                 } catch (backendError) {
                     console.error("Booking Error:", backendError);
                     successFlag = false;
@@ -109,17 +135,12 @@ const BookingScreen = ({
                 setCurrentView(3);
                 setIsSubmitting(false);
                 setSubmitPhase('idle');
-            };
-
-            const timer = setTimeout(() => {
-                processBooking();
             }, 250);
 
             return () => clearTimeout(timer);
         }
-
-    }, [submitPhase]);
-
+    }, [submitPhase]); 
+    
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomLoading

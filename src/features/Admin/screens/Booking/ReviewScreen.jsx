@@ -62,6 +62,11 @@ const ReviewScreen = ({
     useEffect(() => {
         if (booking?.user?.birthday) {
             const bday = new Date(booking.user.birthday);
+            if (Number.isNaN(bday.getTime())) {
+                setIsMinor(false);
+                return;
+            }
+
             const today = new Date();
             let age = today.getFullYear() - bday.getFullYear();
             const m = today.getMonth() - bday.getMonth();
@@ -69,6 +74,8 @@ const ReviewScreen = ({
                 age--;
             }
             setIsMinor(age < 18);
+        } else {
+            setIsMinor(false);
         }
     }, [booking?.user?.birthday]);
 

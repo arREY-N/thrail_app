@@ -124,7 +124,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         }
     }
 
-    const onCompleteBook = async (): Promise<boolean> => {
+    const onCompleteBook = async (payload?: { hikerDetails?: { phone?: string } | null }): Promise<boolean> => {
         try {
             
             if(!profile)
@@ -137,11 +137,17 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     
             if(!offer) 
                 throw new Error('Offer not found for booking');
+
+            const editedPhone = payload?.hikerDetails?.phone;
+            const bookingPhone = editedPhone || profile.phoneNumber;
     
             const finalBooking = new Booking({
                 ...booking,
                 trail: offer.trail,
-                user: UserLogic.toBookingSummary(profile),
+                user: {
+                    ...UserLogic.toBookingSummary(profile),
+                    phoneNumber: bookingPhone,
+                },
             })
             
             const group = await checkGroupExists(offer.id);
