@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
 
+import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -49,6 +51,7 @@ const HomeScreen = ({
     discoverTrails,
     onMountainPress,
     onDownloadPress,
+    onGroupPress
 }) => {
     
     const { latitude, longitude } = useLocation();
@@ -59,7 +62,8 @@ const HomeScreen = ({
 
     const MAX_CONTAINER_WIDTH = 860;
     const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
-    const cardWidth = isWideScreen ? 320 : effectiveWidth * 0.8;
+    // const cardWidth = isWideScreen ? 320 : effectiveWidth * 0.8;
+    const cardWidth = Math.min(width * 0.85, 360);
 
     const recList = recommendedTrails || [];
     const discList = discoverTrails || [];
@@ -107,7 +111,6 @@ const HomeScreen = ({
         return (
             <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-
                     <CustomText variant="subtitle" style={styles.sectionTitle}>
                         {title}
                     </CustomText>
@@ -122,26 +125,34 @@ const HomeScreen = ({
                 {hasData ? (
                     <ScrollView 
                         horizontal 
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.horizontalList} 
+                        showsHorizontalScrollIndicator={Platform.OS === 'web' } 
+                        contentContainerStyle={styles.horizontalList}
+                        style={styles.scrollViewStyle} 
                     >
-                        {data.map((item) => (
-                            <MountainCard 
-                                key={`${title}-${item.id}`}
-                                item={item}
-                                onPress={() => onMountainPress(item.id)}
-                                onDownload={() => onDownloadPress(item.id)}
-                                style={{ width: cardWidth }}
-                                weatherBadge={mountainWeatherMap[item.id] ?? null}
-                            />
-                        ))}
+                        {data.map((item, index) => {
+                            const isLast = index === data.length - 1;
+
+                            return (
+                                <MountainCard 
+                                    key={`${title}-${item.id}`}
+                                    item={item}
+                                    onPress={() => onMountainPress(item.id)}
+                                    onDownload={() => onDownloadPress(item.id)}
+                                    style={{ 
+                                        width: cardWidth,
+                                        marginRight: isLast ? 0 : 16 
+                                    }}
+                                    weatherBadge={mountainWeatherMap[item.id] ?? null}
+                                />
+                            );
+                        })}
                     </ScrollView>
                 ) : (
                     <View style={styles.emptyStateContainer}>
                         <CustomIcon 
                             library="Ionicons" 
                             name="trail-sign-outline" 
-                            size={32} 
+                            size={48} 
                             color={Colors.GRAY_MEDIUM} 
                         />
                         
@@ -193,6 +204,9 @@ const HomeScreen = ({
                 />
 
             </ResponsiveScrollView>
+
+            <CustomFAB onPress={onGroupPress} />
+
         </ScreenWrapper>
     );
 };
@@ -221,7 +235,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 8,
     },
     sectionTitle: {
         fontSize: 20,
@@ -230,9 +244,22 @@ const styles = StyleSheet.create({
         textDecorationLine: 'underline',
     },
     horizontalList: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 16, 
+        // paddingHorizontal: 16,
+        paddingBottom: 12,
+        ...Platform.select({
+            ios: { paddingHorizontal: 16 },
+            android: { paddingHorizontal: 16 },
+            web: { paddingHorizontal: 0 },
+        })
+    },
+    scrollViewStyle: {
+        ...Platform.select({
+            web: {
+                marginHorizontal: 16, 
+                paddingBottom: 4, 
+                marginBottom: -4,
+            }
+        })
     },
     emptyStateContainer: {
         width: '100%',
