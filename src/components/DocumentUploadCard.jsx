@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import useFileUpload from '@/src/core/hook/file/useFileUpload';
 
@@ -12,42 +13,45 @@ const DocumentUploadCard = ({
     isUploaded,
     isRejected = false, 
     rejectionReason = '',
-    onUploadSuccess 
+    onUploadSuccess,
+    allowMultiple = false,
+    onDelete
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
     const [isError, setIsError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isPreviewVisible, setIsPreviewVisible] = useState(false);
     
     const { pickDocument } = useFileUpload();
 
-    const isUrl = typeof isUploaded === 'string' && isUploaded.startsWith('http');
-    const isComplete = !!isUploaded && !isRejected;
+    const imagesList = Array.isArray(isUploaded) ? isUploaded : (isUploaded ? [isUploaded] : []);
+    const isComplete = imagesList.length > 0 && !isRejected;
 
     const handleUploadPress = async () => {
         setIsUploading(true);
         setIsError(false);
+        setErrorMessage('');
         try {
             const url = await pickDocument(docKey || 'validId');
             if (url && onUploadSuccess) {
                 onUploadSuccess(url); 
             } else {
                 setIsError(true);
+                setErrorMessage('Upload failed or was canceled.');
             }
         } catch (error) {
             console.error(`Upload failed for ${docKey}:`, error);
             setIsError(true);
+            setErrorMessage(error.message || 'An error occurred during upload.');
         } finally {
             setIsUploading(false);
         }
     };
 
     const handleViewPress = () => {
-        if (isUrl) {
-            if (Platform.OS === 'web') {
-                window.open(isUploaded, '_blank');
-            } else {
-                Linking.openURL(isUploaded);
-            }
+        if (imagesList.length > 0) {
+            setIsPreviewVisible(true);
         }
     };
 
@@ -63,7 +67,7 @@ const DocumentUploadCard = ({
         iconColor = Colors.SUCCESS;
         wrapperStyle = styles.iconWrapperSuccess;
         btnStyle = styles.uploadedBtn;
-        btnText = "Change";
+        btnText = allowMultiple ? "Add More" : "Change";
         btnTextStyle = styles.uploadedBtnText;
     } else if (isRejected) {
         iconName = "x-circle";
@@ -81,6 +85,10 @@ const DocumentUploadCard = ({
         btnTextStyle = styles.errorBtnText;
     }
 
+    const displayDocName = allowMultiple && imagesList.length > 0 
+        ? `${imagesList.length} ${imagesList.length === 1 ? 'image' : 'images'} added`
+        : docName;
+
     return (
         <View style={styles.container}>
             <View style={[styles.uploadCard, (isError || isRejected) && styles.uploadCardError]}>
@@ -89,12 +97,12 @@ const DocumentUploadCard = ({
                         <CustomIcon library="Feather" name={iconName} size={20} color={iconColor} />
                     </View>
                     <CustomText variant="label" style={styles.docName} numberOfLines={2}>
-                        {docName}
+                        {displayDocName}
                     </CustomText>
                 </View>
                 
                 <View style={styles.actionContainer}>
-                    {(isComplete || isRejected) && isUrl && (
+                    {isComplete && (
                         <TouchableOpacity style={styles.viewBtn} onPress={handleViewPress} activeOpacity={0.7}>
                             <CustomText variant="caption" style={styles.viewBtnText}>
                                 View
@@ -109,7 +117,7 @@ const DocumentUploadCard = ({
                         disabled={isUploading}
                     >
                         {isUploading ? (
-                            <ActivityIndicator size="small" color={Colors.WHITE} />
+                            <ActivityIndicator size="small" color={Colors.TEXT_SECONDARY} />
                         ) : (
                             <CustomText variant="caption" style={btnTextStyle}>
                                 {btnText}
@@ -119,13 +127,20 @@ const DocumentUploadCard = ({
                 </View>
             </View>
 
-            {isRejected && Boolean(rejectionReason) && (
+            {((isRejected && Boolean(rejectionReason)) || (isError && Boolean(errorMessage))) ? (
                 <View style={styles.rejectionReasonBox}>
                     <CustomText variant="caption" style={styles.rejectionReasonText}>
-                        Admin Note: {rejectionReason}
+                        {isRejected ? `Admin Note: ${rejectionReason}` : errorMessage}
                     </CustomText>
                 </View>
-            )}
+            ) : null}
+
+            <ImagePreviewModal 
+                visible={isPreviewVisible} 
+                images={imagesList} 
+                onClose={() => setIsPreviewVisible(false)} 
+                onDelete={onDelete ? (idx) => onDelete(idx) : undefined} 
+            />
         </View>
     );
 };
