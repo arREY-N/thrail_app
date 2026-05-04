@@ -61,6 +61,7 @@ const DocumentUploadCard = ({
     let btnStyle = styles.uploadBtn;
     let btnText = "Upload";
     let btnTextStyle = styles.uploadBtnText;
+    let spinnerColor = Colors.WHITE;
 
     if (isComplete) {
         iconName = "check";
@@ -69,6 +70,7 @@ const DocumentUploadCard = ({
         btnStyle = styles.uploadedBtn;
         btnText = allowMultiple ? "Add More" : "Change";
         btnTextStyle = styles.uploadedBtnText;
+        spinnerColor = Colors.TEXT_SECONDARY;
     } else if (isRejected) {
         iconName = "x-circle";
         iconColor = Colors.ERROR;
@@ -76,6 +78,7 @@ const DocumentUploadCard = ({
         btnStyle = styles.errorBtn;
         btnText = "Re-upload";
         btnTextStyle = styles.errorBtnText;
+        spinnerColor = Colors.WHITE;
     } else if (isError) {
         iconName = "alert-circle";
         iconColor = Colors.ERROR;     
@@ -83,6 +86,7 @@ const DocumentUploadCard = ({
         btnStyle = styles.errorBtn;
         btnText = "Retry";            
         btnTextStyle = styles.errorBtnText;
+        spinnerColor = Colors.WHITE;
     }
 
     const displayDocName = allowMultiple && imagesList.length > 0 
@@ -117,7 +121,7 @@ const DocumentUploadCard = ({
                         disabled={isUploading}
                     >
                         {isUploading ? (
-                            <ActivityIndicator size="small" color={Colors.TEXT_SECONDARY} />
+                            <ActivityIndicator size="small" color={spinnerColor} />
                         ) : (
                             <CustomText variant="caption" style={btnTextStyle}>
                                 {btnText}
