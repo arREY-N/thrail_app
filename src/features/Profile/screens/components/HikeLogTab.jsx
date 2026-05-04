@@ -18,7 +18,6 @@ const HikeLogTab = ({ hikeLog, onLikeReview, isLiked, onEditReview }) => {
                     size={48} 
                     color={Colors.GRAY_LIGHT} 
                 />
-                
                 <CustomText style={styles.emptyText}>
                     No hikes logged yet.
                 </CustomText>
@@ -31,11 +30,11 @@ const HikeLogTab = ({ hikeLog, onLikeReview, isLiked, onEditReview }) => {
             {hikeLog.map((log) => (
                 <PostCard 
                     key={log.id} 
-                    review={log.rawReview} 
+                    review={log}
                     variant="profile" 
                     isOwned={true}
-                    isLiked={isLiked(log.rawReview)}
-                    onLike={() => onLikeReview(log.rawReview)}
+                    isLiked={isLiked(log)}
+                    onLike={() => onLikeReview(log)}
                     onEdit={() => onEditReview(log.id)}
                 />
             ))}
