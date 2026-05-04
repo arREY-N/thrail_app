@@ -64,6 +64,12 @@ export function useAppNavigation() {
         })
     }
 
+    const onSettingsPress = () => {
+            router.push({
+                pathname: '/(main)/settings',
+            })
+        }
+
     return {
         onTrailPress,
         onBackPress,
@@ -76,6 +82,7 @@ export function useAppNavigation() {
         onViewAllRecommendationPress,
         onViewAllTrendingPress,
         onGroupPress,
-        onLeaderBoardPress
+        onLeaderBoardPress,
+        onSettingsPress
     }
 }
