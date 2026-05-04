@@ -25,16 +25,15 @@ const PostCard = ({
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
-    const placeholderImage = review.image?.[0] ?? require('@/src/assets/images/Mt.Tagapo.jpg'); 
+    if (!review) return null;
 
-    let previewUrl = null;
-    if (typeof placeholderImage === 'string') {
-        previewUrl = placeholderImage;
-    } else if (placeholderImage?.uri) {
-        previewUrl = placeholderImage.uri;
-    } else {
-        previewUrl = Image.resolveAssetSource(placeholderImage)?.uri;
-    }
+    const fallbackImage = require('@/src/assets/images/Mt.Tagapo.jpg');
+    const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
+    const displayImage = imagesList[0];
+
+    const getImgSource = (img) => {
+        return typeof img === 'string' ? { uri: img } : img;
+    };
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -52,7 +51,7 @@ const PostCard = ({
         return `${strVal} ${unit}`;
     };
 
-    const reviewText = review.review || "No review text provided for this hike.";
+    const reviewText = review?.review || "No review text provided for this hike.";
     const maxLength = 90; 
     const isLong = reviewText.length > maxLength;
     const displayText = isExpanded ? reviewText : (isLong ? `${reviewText.substring(0, maxLength).trim()}` : reviewText);
@@ -115,33 +114,44 @@ const PostCard = ({
                 onPress={() => setIsPreviewVisible(true)}
             >
                 <Image 
-                    source={placeholderImage} 
+                    source={getImgSource(displayImage)} 
                     style={styles.postImage} 
                     resizeMode="cover" 
                 />
+                
                 <LinearGradient
                     colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']}
                     style={styles.gradientOverlay}
                 >
-                    <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                        {review.trail?.name || review.trailName || "Mountain Name"}
-                    </CustomText>
-                    
-                    <View style={styles.locationRow}>
-                        <CustomIcon
-                            library="FontAwesome6"
-                            name="location-dot"
-                            size={10}
-                            color={Colors.TEXT_INVERSE}
-                        />
-                        <CustomText
-                            variant="caption"
-                            style={styles.locationTextOverlay}
-                            numberOfLines={1}
-                        >
-                            {review.location || "Philippines"}
+                    <View style={styles.headerTextColumn}>
+                        <CustomText variant="h2" style={styles.mountainTitleOverlay}>
+                            {review.trail?.name || review.trailName || "Mountain Name"}
                         </CustomText>
+                        
+                        <View style={styles.locationRow}>
+                            <CustomIcon
+                                library="FontAwesome6"
+                                name="location-dot"
+                                size={10}
+                                color={Colors.TEXT_INVERSE}
+                            />
+                            <CustomText
+                                variant="caption"
+                                style={styles.locationTextOverlay}
+                                numberOfLines={1}
+                            >
+                                {review.location || "Philippines"}
+                            </CustomText>
+                        </View>
                     </View>
+
+                    {imagesList.length > 1 && (
+                        <View style={styles.imageCountBadge}>
+                            <CustomText variant='label' style={styles.imageCountText}>
+                                {`+${imagesList.length}`}
+                            </CustomText>
+                        </View>
+                    )}
                 </LinearGradient>
             </TouchableOpacity>
 
@@ -197,10 +207,10 @@ const PostCard = ({
                     )}
                 </CustomText>
             </View>
-            
+
             <ImagePreviewModal 
                 visible={isPreviewVisible} 
-                imageUrl={previewUrl} 
+                images={imagesList} 
                 onClose={() => setIsPreviewVisible(false)} 
             />
         </View>
@@ -314,8 +324,14 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         height: '50%',
-        justifyContent: 'flex-end',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         padding: 16,
+    },
+    headerTextColumn: {
+        flex: 1,
+        paddingRight: 16,
     },
     mountainTitleOverlay: {
         color: Colors.TEXT_INVERSE,
@@ -338,10 +354,22 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,
     },
+
+    imageCountBadge: {
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        paddingHorizontal: 10, 
+        paddingVertical: 8,
+        borderRadius: 12, 
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageCountText: {
+        color: Colors.TEXT_INVERSE,
+        marginTop: -2
+    },
     
     statsContainer: {
         flexDirection: 'row',
-        // justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingBottom: 16,
