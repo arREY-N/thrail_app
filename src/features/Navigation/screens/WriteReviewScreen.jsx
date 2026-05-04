@@ -252,8 +252,17 @@ const WriteReviewScreen = ({
                             <DocumentUploadCard 
                                 docName="Trail Photo"
                                 docKey="reviewImage"
-                                isUploaded={review.image && review.image.length > 0 ? review.image[0] : null}
-                                onUploadSuccess={(url) => updateReview('image', [url])}
+                                isUploaded={review.image || []}
+                                allowMultiple={true}
+                                onUploadSuccess={(url) => {
+                                    const currentImages = review.image || [];
+                                    updateReview('image', [...currentImages, url]);
+                                }}
+                                onDelete={(indexToRemove) => {
+                                    const currentImages = review.image || [];
+                                    const updatedImages = currentImages.filter((_, idx) => idx !== indexToRemove);
+                                    updateReview('image', updatedImages);
+                                }}
                             />
                         </View>
                     </View>
