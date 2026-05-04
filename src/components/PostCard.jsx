@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
     Image,
     Pressable,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -51,6 +52,35 @@ const PostCard = ({
         return `${strVal} ${unit}`;
     };
 
+    const getDifficultyStyle = (diff) => {
+        switch(diff) {
+            case 'Easy': 
+            case 'Just Right': 
+                return { bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'emoticon-happy-outline' };
+            case 'Moderate': 
+                return { bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'emoticon-neutral-outline' };
+            case 'Hard': 
+            case 'Extreme': 
+                return { bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'emoticon-sad-outline' };
+            default: 
+                return { bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'image-filter-hdr' };
+        }
+    };
+
+    const getMaintenanceStyle = (maint) => {
+        switch(maint) {
+            case 'Easy': 
+                return { label: 'Well-maintained', bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'check-circle' };
+            case 'Moderate': 
+                return { label: 'Damaged but usable', bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'alert-triangle' };
+            case 'Extreme': 
+                return { label: 'Critical / Unusable', bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'x-circle' };
+            default: 
+                return { label: maint, bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'info' };
+        }
+    };
+
+    const hasTags = review.perceivedDifficulty || review.trailMaintenance || review.difficultyFactors?.length || review.favoredFactors?.length;
     const reviewText = review?.review || "No review text provided for this hike.";
     const maxLength = 90; 
     const isLong = reviewText.length > maxLength;
@@ -191,6 +221,56 @@ const PostCard = ({
             </View>
 
             <View style={styles.horizontalDivider} />
+
+            {hasTags && (
+                <View style={styles.tagsWrapper}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.tagsContainer}
+                    >
+                        {review.perceivedDifficulty && (
+                            <View style={[styles.statusPill, { backgroundColor: getDifficultyStyle(review.perceivedDifficulty).bg, borderColor: getDifficultyStyle(review.perceivedDifficulty).border }]}>
+                                <CustomIcon 
+                                    library="MaterialCommunityIcons" 
+                                    name={getDifficultyStyle(review.perceivedDifficulty).icon} 
+                                    size={14} 
+                                    color={getDifficultyStyle(review.perceivedDifficulty).text} 
+                                />
+                                <CustomText style={[styles.statusPillText, { color: getDifficultyStyle(review.perceivedDifficulty).text }]}>
+                                    {review.perceivedDifficulty}
+                                </CustomText>
+                            </View>
+                        )}
+
+                        {review.trailMaintenance && (
+                            <View style={[styles.statusPill, { backgroundColor: getMaintenanceStyle(review.trailMaintenance).bg, borderColor: getMaintenanceStyle(review.trailMaintenance).border }]}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name={getMaintenanceStyle(review.trailMaintenance).icon} 
+                                    size={12} 
+                                    color={getMaintenanceStyle(review.trailMaintenance).text} 
+                                />
+                                <CustomText style={[styles.statusPillText, { color: getMaintenanceStyle(review.trailMaintenance).text }]}>
+                                    {getMaintenanceStyle(review.trailMaintenance).label}
+                                </CustomText>
+                            </View>
+                        )}
+
+                        {review.difficultyFactors?.map(factor => (
+                            <View key={`diff-${factor}`} style={styles.factorChip}>
+                                <CustomText style={styles.factorChipText}>{factor}</CustomText>
+                            </View>
+                        ))}
+
+                        {review.favoredFactors?.map(factor => (
+                            <View key={`fav-${factor}`} style={styles.factorChip}>
+                                <CustomText style={styles.factorChipText}>{factor}</CustomText>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
 
             <View style={styles.textBody}>
                 <CustomText variant="body" style={styles.reviewContent}>
@@ -416,8 +496,45 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         marginHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 12,
     },
+
+    tagsWrapper: {
+        marginBottom: 12,
+    },
+    tagsContainer: {
+        paddingHorizontal: 16,
+        gap: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 6,
+    },
+    statusPillText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+    factorChip: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    factorChipText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+    },
+
     textBody: {
         paddingHorizontal: 16,
         paddingBottom: 16,
