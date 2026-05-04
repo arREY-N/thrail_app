@@ -61,6 +61,8 @@ const SettingsScreen = ({
     onSuperadminPress,
     onApplyPress,
     onProfileInfoPress,
+    onTerms,
+    onPrivacy
 }) => {
 
     const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -97,7 +99,7 @@ const SettingsScreen = ({
                 <View style={styles.section}>
                     <SectionHeader title="Account" />
                     <SettingsItem icon="user" title="Profile Information" onPress={onProfileInfoPress} />
-                    <SettingsItem icon="lock" title="Change Password" onPress={() => {}} />
+                    {/* <SettingsItem icon="lock" title="Change Password" onPress={() => {}} /> */}
                     
                     {role === 'superadmin' && (
                         <>
@@ -113,7 +115,7 @@ const SettingsScreen = ({
 
                 <View style={styles.section}>
                     <SectionHeader title="Hiking Setup" />
-                    <SettingsItem icon="map" title="Downloaded Maps" onPress={() => {}} />
+                    {/* <SettingsItem icon="map" title="Downloaded Maps" onPress={() => {}} /> */}
                     <SettingsItem icon="sliders" title="Hiking Preferences" onPress={() => {}} />
                 </View>
 
@@ -125,7 +127,8 @@ const SettingsScreen = ({
                 <View style={styles.section}>
                     <SectionHeader title="App Information" />
                     <SettingsItem icon="info" title="About The App" onPress={() => {}} />
-                    <SettingsItem icon="file-text" title="Terms & Conditions" onPress={() => {}} />
+                    <SettingsItem icon="file-text" title="Terms & Conditions" onPress={onTerms} />
+                    <SettingsItem icon="file-text" title="Privacy Policy" onPress={onPrivacy} />
                 </View>
 
                 <View style={styles.logoutContainer}>
