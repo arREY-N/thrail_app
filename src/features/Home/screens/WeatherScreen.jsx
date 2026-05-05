@@ -290,7 +290,7 @@ const WeatherScreen = ({
                                         library="Feather" 
                                         name="sunrise" 
                                         size={32} 
-                                        color={Colors.PRIMARY} 
+                                        color={Colors.WEATHER_SUN} 
                                     />
                                     <View>
                                         <CustomText style={styles.sunTimeText}>{sunrise}</CustomText>
@@ -305,7 +305,7 @@ const WeatherScreen = ({
                                         library="Feather" 
                                         name="sunset" 
                                         size={32} 
-                                        color={Colors.PRIMARY} 
+                                        color={Colors.WEATHER_MOON} 
                                     />
                                     <View style={{ alignItems: 'flex-end' }}>
                                         <CustomText style={styles.sunTimeText}>{sunset}</CustomText>
@@ -534,7 +534,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         gap: 12, 
-        paddingRight: 16 
+        flexGrow: 1,
+        justifyContent: 'center',
     },
     fItem: { 
         alignItems: 'center', 
