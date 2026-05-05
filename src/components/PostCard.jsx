@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     Image,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -227,6 +228,7 @@ const PostCard = ({
                     <ScrollView 
                         horizontal 
                         showsHorizontalScrollIndicator={false}
+                        style={styles.tagsScroll}
                         contentContainerStyle={styles.tagsContainer}
                     >
                         {review.perceivedDifficulty && (
@@ -502,6 +504,14 @@ const styles = StyleSheet.create({
     tagsWrapper: {
         marginBottom: 12,
     },
+    tagsScroll: Platform.select({
+        web: {
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+        },
+        default: {}
+    }),
     tagsContainer: {
         paddingHorizontal: 16,
         gap: 8,
