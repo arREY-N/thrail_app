@@ -126,6 +126,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
                 horizontal 
                 showsHorizontalScrollIndicator={false} 
                 style={styles.forecastScroll}
+                contentContainerStyle={styles.forecastContent}
             >
                 {weatherData.forecast?.map((day, index) => {
                     const { icon, library } = getWeatherInfoUI(day.weatherCode);
@@ -199,7 +200,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
 
             <View style={styles.sunRow}>
                 <View style={styles.sunItem}>
-                    <CustomIcon library="Feather" name="sunrise" size={28} color={Colors.PRIMARY} />
+                    <CustomIcon library="Feather" name="sunrise" size={28} color={Colors.WEATHER_SUN} />
                     <View>
                         <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
                         <CustomText style={styles.sunTime}>{formatSunTime(weatherData.sunrise)}</CustomText>
@@ -207,7 +208,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
                 </View>
                 <View style={styles.sunSeparator} />
                 <View style={[styles.sunItem, { alignItems: 'flex-end'}]}>
-                    <CustomIcon library="Feather" name="sunset" size={28} color={Colors.PRIMARY} />
+                    <CustomIcon library="Feather" name="sunset" size={28} color={Colors.WEATHER_MOON} />
                     <View style={{ alignItems: 'flex-end' }}>
                         <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
                         <CustomText style={styles.sunTime}>{formatSunTime(weatherData.sunset)}</CustomText>
@@ -307,10 +308,14 @@ const styles = StyleSheet.create({
         flexGrow: 0,
         marginBottom: 32,
     },
+    forecastContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        gap: 12,
+    },
     forecastItem: {
         alignItems: 'center',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginRight: 12,
         paddingVertical: 16,
         paddingHorizontal: 12,
         borderRadius: 16,
