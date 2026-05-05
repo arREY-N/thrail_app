@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -14,6 +15,8 @@ import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
+const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Paid', 'Rejected'];
+
 const OfferViewScreen = ({ 
     offerId,
     offer, 
@@ -22,7 +25,24 @@ const OfferViewScreen = ({
     onBackPress, 
     error 
 }) => {
-    
+    const [activeFilter, setActiveFilter] = useState('All');
+
+    const filteredBookings = useMemo(() => {
+        if (!bookings) return [];
+        if (activeFilter === 'All') return bookings;
+
+        return bookings.filter(b => {
+            const isPending = b.status === 'pending-docs' || b.status === 'for-reservation';
+            
+            if (activeFilter === 'Needs Review') return isPending;
+            if (activeFilter === 'Rejected') return b.status === 'reservation-rejected';
+            if (activeFilter === 'For Payment') return b.status === 'for-payment';
+            if (activeFilter === 'Paid') return b.status === 'paid';
+            
+            return true;
+        });
+    }, [bookings, activeFilter]);
+
     if (!offer) return null;
 
     const trailName = offer.trail?.name || 'Unnamed Trail';
@@ -114,8 +134,33 @@ const OfferViewScreen = ({
                     </View>
 
                     <CustomText variant="h3" style={styles.sectionTitle}>
-                        Recent Bookings ({bookings?.length || 0})
+                        Recent Bookings ({filteredBookings.length})
                     </CustomText>
+
+                    {bookings && bookings.length > 0 && (
+                        <ScrollView 
+                            horizontal
+                            showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                            style={styles.filterScroll}
+                            contentContainerStyle={styles.filterContainer}
+                        >
+                            {FILTER_OPTIONS.map(filter => {
+                                const isActive = activeFilter === filter;
+                                return (
+                                    <TouchableOpacity 
+                                        key={filter}
+                                        style={[styles.filterChip, isActive && styles.filterChipActive]}
+                                        onPress={() => setActiveFilter(filter)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomText style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                                            {filter}
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                )
+                            })}
+                        </ScrollView>
+                    )}
 
                     {error && (
                         <CustomText style={styles.errorText}>
@@ -123,8 +168,8 @@ const OfferViewScreen = ({
                         </CustomText>
                     )}
 
-                    {bookings && bookings.length > 0 ? (
-                        bookings.map(b => {
+                    {filteredBookings && filteredBookings.length > 0 ? (
+                        filteredBookings.map(b => {
                             const isPending = b.status === 'pending-docs' || b.status === 'for-reservation';
                             const isRejected = b.status === 'reservation-rejected';
                             
@@ -185,12 +230,12 @@ const OfferViewScreen = ({
                         <View style={styles.emptyState}>
                             <CustomIcon 
                                 library="Feather" 
-                                name="inbox" 
+                                name={bookings?.length > 0 ? "filter" : "inbox"} 
                                 size={40} 
                                 color={Colors.GRAY_MEDIUM} 
                             />
                             <CustomText variant="caption" style={styles.emptyText}>
-                                No bookings found.
+                                {bookings?.length > 0 ? `No bookings matched "${activeFilter}"` : "No bookings found."}
                             </CustomText>
                         </View>
                     )}
@@ -277,10 +322,41 @@ const styles = StyleSheet.create({
         lineHeight: 20 
     },
     sectionTitle: { 
-        marginBottom: 16, 
+        marginBottom: 12, 
         fontWeight: 'bold', 
         marginLeft: 4 
     },
+
+    filterScroll: {
+        marginBottom: 16,
+        paddingBottom: Platform.OS === 'web' ? 8 : 0, 
+    },
+    filterContainer: {
+        gap: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    filterChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.BACKGROUND,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    filterChipActive: {
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
+    },
+    filterChipText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    filterChipTextActive: {
+        color: Colors.WHITE,
+    },
+
     errorText: { 
         color: Colors.ERROR, 
         marginBottom: 16, 
