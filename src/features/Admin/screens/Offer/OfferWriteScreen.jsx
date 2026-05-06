@@ -20,6 +20,7 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import ScheduleBuilderModal from '@/src/features/Admin/components/ScheduleBuilderModal';
 
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
@@ -215,266 +216,268 @@ const OfferWriteScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.formCard}>
-                    
-                    <CustomText variant="label" style={styles.multiSelectLabel}>
-                        Select Trail *
-                    </CustomText>
-                    <TouchableOpacity 
-                        style={styles.dropdownButton} 
-                        onPress={() => setShowTrailModal(true)} 
-                        activeOpacity={0.7}
-                    >
-                        <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
-                            {offer?.trail?.name || "Select a trail..."}
-                        </CustomText>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-down" 
-                            size={20} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                    </TouchableOpacity>
-
-                    <CustomTextInput 
-                        label="Price per Pax *" 
-                        placeholder="0" 
-                        prefix="₱" 
-                        value={offer.price ? String(offer.price) : ''}
-                        keyboardType="numeric"
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
-                        style={styles.inputSpacing}
-                    />
-
-                    <CustomTextInput 
-                        label="Description *" 
-                        placeholder="Type the full description here..."
-                        value={offer.description}
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
-                        multiline={true} 
-                        numberOfLines={5}
-                        style={styles.inputSpacing} 
-                        inputStyle={styles.textArea}
-                    />
-
-                    <View style={styles.inlineRowContainer}>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                type="calendar" 
-                                label="Start Date *" 
-                                placeholder="Select Date"
-                                value={offer.date || null}
-                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'date', value: val })}
-                                allowFutureDates={true} 
-                                showTodayButton={true} 
-                                defaultMode="date" 
-                                style={styles.noMarginBottom}
-                                dateFormat="MM/DD/YY"
-                            />
-                        </View>
-                        <View style={styles.dateDividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                type="calendar" 
-                                label="End Date *" 
-                                placeholder="Select Date"
-                                value={offer.endDate || null}
-                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'endDate', value: val })}
-                                allowFutureDates={true} 
-                                showTodayButton={true} 
-                                defaultMode="date" 
-                                style={styles.noMarginBottom}
-                                dateFormat="MM/DD/YY"
-                            />
-                        </View>
-                    </View>
-
-                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 16 }]}>
-                        Duration *
-                    </CustomText>
-                    <View style={styles.inlineRowContainer}>
+                <View style={styles.constrainer}>
+                    <View style={styles.formCard}>
                         
-                        <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="00" 
-                                    value={days}
-                                    editable={false} 
-                                    style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                                <CustomText style={styles.durationLabelText}>Days</CustomText>
-                            </View>
-                        </View>
-                        
-                        <View style={styles.dividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        
-                        <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="00" 
-                                    value={nights}
-                                    editable={false} 
-                                    style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                                <CustomText style={styles.durationLabelText}>Nights</CustomText>
-                            </View>
-                        </View>
-
-                    </View>
-
-                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 24 }]}>
-                        Pax Capacity *
-                    </CustomText>
-                    <View style={styles.inlineRowContainer}>
-                        <View style={[styles.durationWrapper]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="0" 
-                                    value={offer.minPax ? String(offer.minPax) : ''}
-                                    keyboardType="numeric"
-                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
-                                    style={styles.durationInput} 
-                                    placeholderTextColor={Colors.TEXT_SECONDARY}
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={styles.durationLabelHalf}>
-                                <CustomText style={styles.durationLabelText}>Min</CustomText>
-                            </View>
-                        </View>
-                        
-                        <View style={styles.dividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        
-                        <View style={[styles.durationWrapper]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="0" 
-                                    value={offer.maxPax ? String(offer.maxPax) : ''}
-                                    keyboardType="numeric"
-                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
-                                    style={styles.durationInput} 
-                                    placeholderTextColor={Colors.TEXT_SECONDARY}
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={styles.durationLabelHalf}>
-                                <CustomText style={styles.durationLabelText}>Max</CustomText>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.scheduleSection}>
                         <CustomText variant="label" style={styles.multiSelectLabel}>
-                            Itinerary & Schedule *
+                            Select Trail *
                         </CustomText>
                         <TouchableOpacity 
-                            style={styles.scheduleCard} 
-                            onPress={() => setShowScheduleModal(true)} 
+                            style={styles.dropdownButton} 
+                            onPress={() => setShowTrailModal(true)} 
                             activeOpacity={0.7}
                         >
-                            <View>
-                                <CustomText style={styles.scheduleTitle}>
-                                    {totalDays > 0 ? `${totalDays} Days Set` : "No Schedule Set"}
-                                </CustomText>
-                                <CustomText variant="caption" style={styles.scheduleSubtitle}>
-                                    {totalActivities} total activities planned
-                                </CustomText>
-                            </View>
+                            <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
+                                {offer?.trail?.name || "Select a trail..."}
+                            </CustomText>
                             <CustomIcon 
                                 library="Feather" 
-                                name="edit-3" 
+                                name="chevron-down" 
                                 size={20} 
-                                color={Colors.PRIMARY} 
+                                color={Colors.TEXT_SECONDARY} 
                             />
                         </TouchableOpacity>
-                    </View>
 
-                    <View style={{ marginTop: 24 }}>
-                        <DynamicListBuilder 
-                            label="Required Documents *" 
-                            placeholder="e.g. Valid ID" 
-                            items={Array.isArray(offer.documents) ? offer.documents : []} 
-                            inputValue={docInput} 
-                            setInputValue={setDocInput} 
-                            onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('documents', offer.documents, val)} 
-                            presets={PRESET_DOCS}
-                            onTogglePreset={(val) => handleTogglePreset('documents', offer.documents, val)}
+                        <CustomTextInput 
+                            label="Price per Pax *" 
+                            placeholder="0" 
+                            prefix="₱" 
+                            value={offer.price ? String(offer.price) : ''}
+                            keyboardType="numeric"
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
+                            style={styles.inputSpacing}
                         />
 
-                        <DynamicListBuilder 
-                            label="Inclusions" 
-                            placeholder="e.g. Guide Fee" 
-                            items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
-                            inputValue={incInput} 
-                            setInputValue={setIncInput} 
-                            onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('inclusions', offer.inclusions, val)}
-                            presets={PRESET_INC}
-                            onTogglePreset={(val) => handleTogglePreset('inclusions', offer.inclusions, val)}
+                        <CustomTextInput 
+                            label="Description *" 
+                            placeholder="Type the full description here..."
+                            value={offer.description}
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
+                            multiline={true} 
+                            numberOfLines={5}
+                            style={styles.inputSpacing} 
+                            inputStyle={styles.textArea}
                         />
 
-                        <DynamicListBuilder 
-                            label="Things to Bring" 
-                            placeholder="e.g. 2L Water" 
-                            items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
-                            inputValue={bringInput} 
-                            setInputValue={setBringInput} 
-                            onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('thingsToBring', offer.thingsToBring, val)}
-                            presets={PRESET_BRING}
-                            onTogglePreset={(val) => handleTogglePreset('thingsToBring', offer.thingsToBring, val)}
-                        />
-                    </View>
+                        <View style={styles.inlineRowContainer}>
+                            <View style={styles.flexHalf}>
+                                <CustomTextInput 
+                                    type="calendar" 
+                                    label="Start Date *" 
+                                    placeholder="Select Date"
+                                    value={offer.date || null}
+                                    onChangeText={(val) => handleUpdate({ section: 'root', id: 'date', value: val })}
+                                    allowFutureDates={true} 
+                                    showTodayButton={true} 
+                                    defaultMode="date" 
+                                    style={styles.noMarginBottom}
+                                    dateFormat="MM/DD/YY"
+                                />
+                            </View>
+                            <View style={styles.dateDividerContainer}>
+                                <CustomText style={styles.dividerText}>-</CustomText>
+                            </View>
+                            <View style={styles.flexHalf}>
+                                <CustomTextInput 
+                                    type="calendar" 
+                                    label="End Date *" 
+                                    placeholder="Select Date"
+                                    value={offer.endDate || null}
+                                    onChangeText={(val) => handleUpdate({ section: 'root', id: 'endDate', value: val })}
+                                    allowFutureDates={true} 
+                                    showTodayButton={true} 
+                                    defaultMode="date" 
+                                    style={styles.noMarginBottom}
+                                    dateFormat="MM/DD/YY"
+                                />
+                            </View>
+                        </View>
 
-                    <CustomFeedbackInput 
-                        label="Reminders" 
-                        helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
-                        placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
-                        value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
-                        suggestions={[
-                            "Strictly Non-refundable",
-                            "Arrive 30 mins before call time",
-                            "Subject to weather conditions",
-                            "Bring physical Valid ID"
-                        ]}
-                        style={styles.inputSpacing}
-                    />
+                        <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 16 }]}>
+                            Duration *
+                        </CustomText>
+                        <View style={styles.inlineRowContainer}>
+                            
+                            <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                <View style={styles.durationInputHalf}>
+                                    <TextInput 
+                                        placeholder="00" 
+                                        value={days}
+                                        editable={false} 
+                                        style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
+                                    />
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                    <CustomText style={styles.durationLabelText}>Days</CustomText>
+                                </View>
+                            </View>
+                            
+                            <View style={styles.dividerContainer}>
+                                <CustomText style={styles.dividerText}>-</CustomText>
+                            </View>
+                            
+                            <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                <View style={styles.durationInputHalf}>
+                                    <TextInput 
+                                        placeholder="00" 
+                                        value={nights}
+                                        editable={false} 
+                                        style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
+                                    />
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                    <CustomText style={styles.durationLabelText}>Nights</CustomText>
+                                </View>
+                            </View>
 
-                    {error && <ErrorMessage error={error} />}
+                        </View>
 
-                    <View style={styles.buttonContainer}>
-                        <CustomButton 
-                            title={isLoading ? "Saving..." : "Save Offer"}
-                            onPress={handleSaveClick}
-                            variant="primary"
-                            style={!isReadyToSubmit ? styles.disabledButton : undefined}
-                        />
-                        
-                        {isEditing && (
-                            <CustomButton 
-                                title="Delete Offer"
-                                onPress={() => setIsDeleteModalVisible(true)}
-                                variant="outline"
-                                style={[styles.deleteBtn, isLoading && styles.disabledButton]}
-                                textStyle={{ color: Colors.ERROR }}
+                        <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 24 }]}>
+                            Pax Capacity *
+                        </CustomText>
+                        <View style={styles.inlineRowContainer}>
+                            <View style={[styles.durationWrapper]}>
+                                <View style={styles.durationInputHalf}>
+                                    <TextInput 
+                                        placeholder="0" 
+                                        value={offer.minPax ? String(offer.minPax) : ''}
+                                        keyboardType="numeric"
+                                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
+                                        style={styles.durationInput} 
+                                        placeholderTextColor={Colors.TEXT_SECONDARY}
+                                    />
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={styles.durationLabelHalf}>
+                                    <CustomText style={styles.durationLabelText}>Min</CustomText>
+                                </View>
+                            </View>
+                            
+                            <View style={styles.dividerContainer}>
+                                <CustomText style={styles.dividerText}>-</CustomText>
+                            </View>
+                            
+                            <View style={[styles.durationWrapper]}>
+                                <View style={styles.durationInputHalf}>
+                                    <TextInput 
+                                        placeholder="0" 
+                                        value={offer.maxPax ? String(offer.maxPax) : ''}
+                                        keyboardType="numeric"
+                                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
+                                        style={styles.durationInput} 
+                                        placeholderTextColor={Colors.TEXT_SECONDARY}
+                                    />
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={styles.durationLabelHalf}>
+                                    <CustomText style={styles.durationLabelText}>Max</CustomText>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.scheduleSection}>
+                            <CustomText variant="label" style={styles.multiSelectLabel}>
+                                Itinerary & Schedule *
+                            </CustomText>
+                            <TouchableOpacity 
+                                style={styles.scheduleCard} 
+                                onPress={() => setShowScheduleModal(true)} 
+                                activeOpacity={0.7}
+                            >
+                                <View>
+                                    <CustomText style={styles.scheduleTitle}>
+                                        {totalDays > 0 ? `${totalDays} Days Set` : "No Schedule Set"}
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.scheduleSubtitle}>
+                                        {totalActivities} total activities planned
+                                    </CustomText>
+                                </View>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="edit-3" 
+                                    size={20} 
+                                    color={Colors.PRIMARY} 
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ marginTop: 24 }}>
+                            <DynamicListBuilder 
+                                label="Required Documents *" 
+                                placeholder="e.g. Valid ID" 
+                                items={Array.isArray(offer.documents) ? offer.documents : []} 
+                                inputValue={docInput} 
+                                setInputValue={setDocInput} 
+                                onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
+                                onRemoveItem={(val) => handleRemoveFromArray('documents', offer.documents, val)} 
+                                presets={PRESET_DOCS}
+                                onTogglePreset={(val) => handleTogglePreset('documents', offer.documents, val)}
                             />
-                        )}
-                    </View>
 
+                            <DynamicListBuilder 
+                                label="Inclusions" 
+                                placeholder="e.g. Guide Fee" 
+                                items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
+                                inputValue={incInput} 
+                                setInputValue={setIncInput} 
+                                onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
+                                onRemoveItem={(val) => handleRemoveFromArray('inclusions', offer.inclusions, val)}
+                                presets={PRESET_INC}
+                                onTogglePreset={(val) => handleTogglePreset('inclusions', offer.inclusions, val)}
+                            />
+
+                            <DynamicListBuilder 
+                                label="Things to Bring" 
+                                placeholder="e.g. 2L Water" 
+                                items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
+                                inputValue={bringInput} 
+                                setInputValue={setBringInput} 
+                                onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
+                                onRemoveItem={(val) => handleRemoveFromArray('thingsToBring', offer.thingsToBring, val)}
+                                presets={PRESET_BRING}
+                                onTogglePreset={(val) => handleTogglePreset('thingsToBring', offer.thingsToBring, val)}
+                            />
+                        </View>
+
+                        <CustomFeedbackInput 
+                            label="Reminders" 
+                            helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
+                            placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
+                            value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
+                            suggestions={[
+                                "Strictly Non-refundable",
+                                "Arrive 30 mins before call time",
+                                "Subject to weather conditions",
+                                "Bring physical Valid ID"
+                            ]}
+                            style={styles.inputSpacing}
+                        />
+
+                        {error && <ErrorMessage error={error} />}
+
+                        <View style={styles.buttonContainer}>
+                            <CustomButton 
+                                title={isLoading ? "Saving..." : "Save Offer"}
+                                onPress={handleSaveClick}
+                                variant="primary"
+                                style={!isReadyToSubmit ? styles.disabledButton : undefined}
+                            />
+                            
+                            {isEditing && (
+                                <CustomButton 
+                                    title="Delete Offer"
+                                    onPress={() => setIsDeleteModalVisible(true)}
+                                    variant="outline"
+                                    style={[styles.deleteBtn, isLoading && styles.disabledButton]}
+                                    textStyle={{ color: Colors.ERROR }}
+                                />
+                            )}
+                        </View>
+
+                    </View>
                 </View>
             </ScrollView>
 
@@ -596,6 +599,14 @@ const styles = StyleSheet.create({
         paddingVertical: 24, 
         paddingHorizontal: 16 
     },
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+        flex: 1,
+    },
+    
     formCard: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 24, 
