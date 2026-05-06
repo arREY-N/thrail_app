@@ -54,7 +54,7 @@ export const formatDateToStandard = (dateObj) => {
 
 export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = false) => {
     if (!startDateObj) return 'TBA';
-    
+
     const start = safeParseDateString(startDateObj);
     const end = endDateObj ? safeParseDateString(endDateObj) : null;
 
@@ -89,6 +89,29 @@ export const formatTime = (dateInput) => {
         minute: '2-digit',
         hour12: true,
     });
+};
+
+// --- TIME PARSER ---
+export const parseTimeToDate = (timeString) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0); 
+    
+    try {
+        const [timePart, period] = timeString.split(' ');
+        let [hours, minutes] = timePart ? timePart.split(':') : ['', ''];
+        
+        hours = parseInt(hours, 10);
+        minutes = parseInt(minutes, 10) || 0;
+
+        if (isNaN(hours)) hours = 0; 
+
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        d.setHours(hours, minutes, 0, 0);
+    } catch(e) {}
+    
+    return d; 
 };
 
 // --- 3. INPUT FORMATTERS (MM/DD/YYYY & MM/DD/YY) ---
