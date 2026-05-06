@@ -15,7 +15,7 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomSelectModal from '@/src/components/CustomSelectModal';
+import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
@@ -410,7 +410,7 @@ const ReviewScreen = ({
                 message={hasRejections ? "Reject this booking and request corrections?" : "Documents are valid. Approve to proceed to payment?"} 
             />
             
-            <CustomSelectModal 
+            <CustomSelectionModal 
                 visible={showRescheduleModal} 
                 onClose={() => setShowRescheduleModal(false)} 
                 title="Select New Offer" 
