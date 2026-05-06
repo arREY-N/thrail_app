@@ -125,7 +125,7 @@ const DynamicListBuilder = ({
 
 const styles = StyleSheet.create({
     listBuilderContainer: { 
-        marginBottom: 20 
+        marginBottom: 0 
     },
     inputLabel: { 
         marginBottom: 8, 
