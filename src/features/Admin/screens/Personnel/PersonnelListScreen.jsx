@@ -9,6 +9,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
 const PersonnelListScreen = ({ 
     businessId, 
@@ -92,41 +93,42 @@ const PersonnelListScreen = ({
                     />
                 }
             >
-                {businessAdmins.length === 0 ? (
-                    <View style={styles.emptyState}>
+                <View style={styles.constrainer}>
+                    {businessAdmins.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="users" 
+                                size={40} 
+                                color={Colors.GRAY_MEDIUM} 
+                            />
+                            <CustomText style={styles.emptyText}>
+                                No admins found.
+                            </CustomText>
+                        </View>
+                    ) : (
+                        <View style={styles.list}>
+                            {businessAdmins.map((admin) => (
+                                <AdminCard key={admin.id} admin={admin} />
+                            ))}
+                        </View>
+                    )}
+
+                    <TouchableOpacity 
+                        style={styles.reloadContainer} 
+                        onPress={() => onReloadPress(businessId)}
+                    >
                         <CustomIcon 
                             library="Feather" 
-                            name="users" 
-                            size={40} 
-                            color={Colors.GRAY_MEDIUM} 
+                            name="refresh-cw" 
+                            size={14} 
+                            color={Colors.TEXT_SECONDARY} 
                         />
-                        <CustomText style={styles.emptyText}>
-                            No admins found.
+                        <CustomText style={styles.reloadText}>
+                            RELOAD ADMINS
                         </CustomText>
-                    </View>
-                ) : (
-                    <View style={styles.list}>
-                        {businessAdmins.map((admin) => (
-                            <AdminCard key={admin.id} admin={admin} />
-                        ))}
-                    </View>
-                )}
-
-                <TouchableOpacity 
-                    style={styles.reloadContainer} 
-                    onPress={() => onReloadPress(businessId)}
-                >
-                    <CustomIcon 
-                        library="Feather" 
-                        name="refresh-cw" 
-                        size={14} 
-                        color={Colors.TEXT_SECONDARY} 
-                    />
-                    <CustomText style={styles.reloadText}>
-                        RELOAD ADMINS
-                    </CustomText>
-                </TouchableOpacity>
-
+                    </TouchableOpacity>
+                </View>
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
@@ -147,6 +149,13 @@ const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
         paddingBottom: 40, 
+    },
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+        flex: 1,
     },
     headerAddBtn: { 
         paddingHorizontal: 16, 
