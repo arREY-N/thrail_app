@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
@@ -10,6 +10,7 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
 const FILTER_OPTIONS = ['All', 'Active', 'Expired', 'Rescheduled', 'Cancelled'];
@@ -32,7 +33,7 @@ const OfferListScreen = ({
     const filteredAndSortedOffers = useMemo(() => {
         if (!offers) return [];
         
-        let filtered = offers;
+        let filtered = [...offers];
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -150,115 +151,119 @@ const OfferListScreen = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                <ErrorMessage error={error} />
+                <View style={styles.constrainer}>
+                    <ErrorMessage error={error} />
 
-                {isLoading && (
-                    <CustomText style={styles.loadingText}>Loading your offers...</CustomText>
-                )}
+                    {isLoading && (
+                        <View style={styles.centerContent}>
+                            <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                        </View>
+                    )}
 
-                {!isLoading && offers?.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_MEDIUM} />
-                        <CustomText variant="h3" style={styles.emptyTitle}>No Offers Yet</CustomText>
-                        <CustomText variant="body" style={styles.emptySubtitle}>
-                            Create your first hiking package to start receiving bookings.
-                        </CustomText>
-                    </View>
-                )}
+                    {!isLoading && offers?.length === 0 && (
+                        <View style={styles.emptyState}>
+                            <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_MEDIUM} />
+                            <CustomText variant="h3" style={styles.emptyTitle}>No Offers Yet</CustomText>
+                            <CustomText variant="body" style={styles.emptySubtitle}>
+                                Create your first hiking package to start receiving bookings.
+                            </CustomText>
+                        </View>
+                    )}
 
-                {!isLoading && offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <CustomIcon library="Feather" name="search" size={48} color={Colors.GRAY_MEDIUM} />
-                        <CustomText variant="h3" style={styles.emptyTitle}>No Results</CustomText>
-                        <CustomText variant="body" style={styles.emptySubtitle}>
-                            No offers matched your search or filters.
-                        </CustomText>
-                    </View>
-                )}
+                    {!isLoading && offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
+                        <View style={styles.emptyState}>
+                            <CustomIcon library="Feather" name="search" size={48} color={Colors.GRAY_MEDIUM} />
+                            <CustomText variant="h3" style={styles.emptyTitle}>No Results</CustomText>
+                            <CustomText variant="body" style={styles.emptySubtitle}>
+                                No offers matched your search or filters.
+                            </CustomText>
+                        </View>
+                    )}
 
-                {!isLoading && filteredAndSortedOffers.length > 0 && (
-                    <View style={styles.listContainer}>
-                        {filteredAndSortedOffers.map(offer => {
-                            const statusDetails = getOfferStatusDetails(offer);
-                            
-                            return (
-                                <View key={offer.id} style={styles.offerCard}>
-                                    
-                                    <View style={styles.cardHeader}>
-                                        <View style={styles.trailInfo}>
-                                            <View style={styles.labelRow}>
-                                                <CustomText variant="label" style={styles.trailLabel}>TRAIL</CustomText>
-                                                
-                                                {statusDetails.label !== 'Active' && (
-                                                    <View style={[styles.statusBadge, { backgroundColor: statusDetails.bg }]}>
-                                                        <CustomText style={[styles.statusBadgeText, { color: statusDetails.color }]}>
-                                                            {statusDetails.label}
-                                                        </CustomText>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            <CustomText variant="h3" style={styles.trailName} numberOfLines={1}>
-                                                {offer.trail?.name || "Unknown Trail"}
-                                            </CustomText>
-                                        </View>
-                                        <View style={styles.priceInfo}>
-                                            <CustomText variant="title" style={styles.priceText}>
-                                                ₱{offer.price}
-                                            </CustomText>
-                                            <CustomText variant="caption" style={styles.perPax}>/ person</CustomText>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.divider} />
-
-                                    <View style={styles.detailsGrid}>
-                                        <View style={styles.detailRow}>
-                                            <CustomIcon library="Feather" name="calendar" size={14} color={Colors.TEXT_SECONDARY} />
-                                            <CustomText variant="caption" style={[
-                                                styles.detailText, 
-                                                statusDetails.label === 'Expired' && { textDecorationLine: 'line-through', color: Colors.ERROR }
-                                            ]}>
-                                                {formatDateToStandard(offer.date || offer.hikeDate)}
-                                            </CustomText>
-                                        </View>
+                    {!isLoading && filteredAndSortedOffers.length > 0 && (
+                        <View style={styles.listContainer}>
+                            {filteredAndSortedOffers.map(offer => {
+                                const statusDetails = getOfferStatusDetails(offer);
+                                
+                                return (
+                                    <View key={offer.id} style={styles.offerCard}>
                                         
-                                        <View style={styles.detailRow}>
-                                            <CustomIcon library="Feather" name="clock" size={14} color={Colors.TEXT_SECONDARY} />
-                                            <CustomText variant="caption" style={styles.detailText}>
-                                                {offer.duration || offer.hikeDuration || "1 Day"}
-                                            </CustomText>
+                                        <View style={styles.cardHeader}>
+                                            <View style={styles.trailInfo}>
+                                                <View style={styles.labelRow}>
+                                                    <CustomText variant="label" style={styles.trailLabel}>TRAIL</CustomText>
+                                                    
+                                                    {statusDetails.label !== 'Active' && (
+                                                        <View style={[styles.statusBadge, { backgroundColor: statusDetails.bg }]}>
+                                                            <CustomText style={[styles.statusBadgeText, { color: statusDetails.color }]}>
+                                                                {statusDetails.label}
+                                                            </CustomText>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                <CustomText variant="h3" style={styles.trailName} numberOfLines={1}>
+                                                    {offer.trail?.name || "Unknown Trail"}
+                                                </CustomText>
+                                            </View>
+                                            <View style={styles.priceInfo}>
+                                                <CustomText variant="title" style={styles.priceText}>
+                                                    ₱{offer.price}
+                                                </CustomText>
+                                                <CustomText variant="caption" style={styles.perPax}>/ person</CustomText>
+                                            </View>
                                         </View>
 
-                                        <View style={styles.detailRow}>
-                                            <CustomIcon library="Feather" name="users" size={14} color={Colors.TEXT_SECONDARY} />
-                                            <CustomText variant="caption" style={styles.detailText}>
-                                                {offer.minPax} - {offer.maxPax} Pax
-                                            </CustomText>
+                                        <View style={styles.divider} />
+
+                                        <View style={styles.detailsGrid}>
+                                            <View style={styles.detailRow}>
+                                                <CustomIcon library="Feather" name="calendar" size={14} color={Colors.TEXT_SECONDARY} />
+                                                <CustomText variant="caption" style={[
+                                                    styles.detailText, 
+                                                    statusDetails.label === 'Expired' && { textDecorationLine: 'line-through', color: Colors.ERROR }
+                                                ]}>
+                                                    {formatDateToStandard(offer.date || offer.hikeDate)}
+                                                </CustomText>
+                                            </View>
+                                            
+                                            <View style={styles.detailRow}>
+                                                <CustomIcon library="Feather" name="clock" size={14} color={Colors.TEXT_SECONDARY} />
+                                                <CustomText variant="caption" style={styles.detailText}>
+                                                    {offer.duration || offer.hikeDuration || "1 Day"}
+                                                </CustomText>
+                                            </View>
+
+                                            <View style={styles.detailRow}>
+                                                <CustomIcon library="Feather" name="users" size={14} color={Colors.TEXT_SECONDARY} />
+                                                <CustomText variant="caption" style={styles.detailText}>
+                                                    {offer.minPax} - {offer.maxPax} Pax
+                                                </CustomText>
+                                            </View>
                                         </View>
+
+                                        <CustomText variant="caption" style={styles.description} numberOfLines={2}>
+                                            {offer.description}
+                                        </CustomText>
+
+                                        <CustomButton 
+                                            title="Manage Bookings"
+                                            onPress={() => onViewOfferBookings(offer.id)}
+                                            variant="primary"
+                                            style={styles.viewBookingsButton}
+                                        />
+
+                                        <CustomButton 
+                                            title="Edit Offer"
+                                            onPress={() => handleEditPress(offer.id)}
+                                            variant="outline"
+                                            style={styles.editButton}
+                                        />
                                     </View>
-
-                                    <CustomText variant="caption" style={styles.description} numberOfLines={2}>
-                                        {offer.description}
-                                    </CustomText>
-
-                                    <CustomButton 
-                                        title="Manage Bookings"
-                                        onPress={() => onViewOfferBookings(offer.id)}
-                                        variant="primary"
-                                        style={styles.viewBookingsButton}
-                                    />
-
-                                    <CustomButton 
-                                        title="Edit Offer"
-                                        onPress={() => handleEditPress(offer.id)}
-                                        variant="outline"
-                                        style={styles.editButton}
-                                    />
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
+                                );
+                            })}
+                        </View>
+                    )}
+                </View>
             </ScrollView>
 
             <ConfirmationModal 
@@ -280,12 +285,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 40,
     },
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+    },
+    centerContent: { 
+        paddingVertical: 60,
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+
     headerAddButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: Colors.PRIMARY,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: 16,
+        height: 32,
+        alignSelf: 'center',
         borderRadius: 16,
         gap: 4,
     },
@@ -294,11 +313,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 12,
     },
-    loadingText: {
-        textAlign: 'center',
-        marginTop: 40,
-        color: Colors.TEXT_SECONDARY,
-    },
+
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
