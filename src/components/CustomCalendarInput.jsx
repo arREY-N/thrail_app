@@ -23,7 +23,8 @@ const MONTHS = [
 const SHORT_MONTHS = MONTHS.map(m => m.substring(0, 3));
 
 const CustomCalendarInput = ({ 
-    value, 
+    value,
+    style,
     onChangeText, 
     label,
     placeholder = "MM/DD/YYYY", 
@@ -239,7 +240,7 @@ const CustomCalendarInput = ({
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             
             {label && (
                 <CustomText variant="label" style={styles.label}> 
