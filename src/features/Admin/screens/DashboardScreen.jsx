@@ -13,6 +13,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
 
 const DashboardScreen = ({ 
@@ -72,120 +73,121 @@ const DashboardScreen = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                
-                {error && (
-                    <View style={styles.errorBox}>
-                        <CustomText style={styles.errorText}>
-                            {error}
-                        </CustomText>
-                    </View>
-                )}
-
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="briefcase" 
-                            size={18} 
-                            color={Colors.TEXT_PRIMARY} 
-                        />
-                        <CustomText variant="body" style={styles.cardTitle}>
-                            Business Profile
-                        </CustomText>
-                        <View style={[
-                            styles.statusBadge, 
-                            businessAccount?.active ? styles.statusActive : styles.statusArchived
-                        ]}>
-                            <CustomText style={styles.statusText}>
-                                {businessAccount?.active ? 'Active' : 'Archived'}
+                <View style={styles.constrainer}>
+                    
+                    {error && (
+                        <View style={styles.errorBox}>
+                            <CustomText style={styles.errorText}>
+                                {error}
                             </CustomText>
                         </View>
+                    )}
+
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="briefcase" 
+                                size={18} 
+                                color={Colors.TEXT_PRIMARY} 
+                            />
+                            <CustomText variant="body" style={styles.cardTitle}>
+                                Business Profile
+                            </CustomText>
+                            <View style={[
+                                styles.statusBadge, 
+                                businessAccount?.active ? styles.statusActive : styles.statusArchived
+                            ]}>
+                                <CustomText style={styles.statusText}>
+                                    {businessAccount?.active ? 'Active' : 'Archived'}
+                                </CustomText>
+                            </View>
+                        </View>
+                        
+                        <View style={styles.cardBody}>
+                            <InfoRow 
+                                icon="hash" 
+                                label="Business Name" 
+                                value={businessAccount?.name} 
+                            />
+                            <InfoRow 
+                                icon="map-pin" 
+                                label="Address" 
+                                value={businessAccount?.address} 
+                            />
+                            <InfoRow 
+                                icon="map" 
+                                label="Serviced Location" 
+                                value={formatLocation(businessAccount?.servicedLocation)}
+                            />
+                            <InfoRow 
+                                icon="calendar" 
+                                label="Established" 
+                                value={businessAccount?.establishedOn ? formatDate(businessAccount.establishedOn) : 'N/A'} 
+                            />
+                            <InfoRow 
+                                icon="check-circle" 
+                                label="Approved" 
+                                value={businessAccount?.createdAt ? formatDate(businessAccount.createdAt) : 'N/A'} 
+                            />
+                        </View>
                     </View>
+
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="user" 
+                                size={18} 
+                                color={Colors.TEXT_PRIMARY} 
+                            />
+                            <CustomText variant="body" style={styles.cardTitle}>
+                                My Admin Info
+                            </CustomText>
+                        </View>
+                        
+                        <View style={styles.cardBody}>
+                            <InfoRow 
+                                icon="user" 
+                                label="Name" 
+                                value={formatAdminName()} 
+                            />
+                            <InfoRow 
+                                icon="at-sign" 
+                                label="Username" 
+                                value={adminProfile?.username} 
+                            />
+                            <InfoRow 
+                                icon="mail" 
+                                label="Email" 
+                                value={adminProfile?.email} 
+                            />
+                            <InfoRow 
+                                icon="home" 
+                                label="Address" 
+                                value={adminProfile?.address} 
+                            />
+                        </View>
+                    </View>
+
+                    <CustomText variant="body" style={styles.actionTitle}>
+                        Quick Actions
+                    </CustomText>
                     
-                    <View style={styles.cardBody}>
-                        <InfoRow 
-                            icon="hash" 
-                            label="Business Name" 
-                            value={businessAccount?.name} 
+                    <View style={styles.actionContainer}>
+                        <CustomButton 
+                            title="Manage Offers"
+                            onPress={onManageOffersPress}
+                            variant="primary"
                         />
-                        <InfoRow 
-                            icon="map-pin" 
-                            label="Address" 
-                            value={businessAccount?.address} 
-                        />
-                        <InfoRow 
-                            icon="map" 
-                            label="Serviced Location" 
-                            value={formatLocation(businessAccount?.servicedLocation)}
-                        />
-                        <InfoRow 
-                            icon="calendar" 
-                            label="Established" 
-                            value={businessAccount?.establishedOn ? formatDate(businessAccount.establishedOn) : 'N/A'} 
-                        />
-                        <InfoRow 
-                            icon="check-circle" 
-                            label="Approved" 
-                            value={businessAccount?.createdAt ? formatDate(businessAccount.createdAt) : 'N/A'} 
+
+                        <CustomButton 
+                            title="Manage Personnel"
+                            onPress={onManageAdminsPress}
+                            variant="outline" 
                         />
                     </View>
                 </View>
-
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="user" 
-                            size={18} 
-                            color={Colors.TEXT_PRIMARY} 
-                        />
-                        <CustomText variant="body" style={styles.cardTitle}>
-                            My Admin Info
-                        </CustomText>
-                    </View>
-                    
-                    <View style={styles.cardBody}>
-                        <InfoRow 
-                            icon="user" 
-                            label="Name" 
-                            value={formatAdminName()} 
-                        />
-                        <InfoRow 
-                            icon="at-sign" 
-                            label="Username" 
-                            value={adminProfile?.username} 
-                        />
-                        <InfoRow 
-                            icon="mail" 
-                            label="Email" 
-                            value={adminProfile?.email} 
-                        />
-                        <InfoRow 
-                            icon="home" 
-                            label="Address" 
-                            value={adminProfile?.address} 
-                        />
-                    </View>
-                </View>
-
-                <CustomText variant="body" style={styles.actionTitle}>
-                    Quick Actions
-                </CustomText>
-                
-                <View style={styles.actionContainer}>
-                    <CustomButton 
-                        title="Manage Offers"
-                        onPress={onManageOffersPress}
-                        variant="primary"
-                    />
-
-                    <CustomButton 
-                        title="Manage Personnel"
-                        onPress={onManageAdminsPress}
-                        variant="outline" 
-                    />
-                </View>
-
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
@@ -213,7 +215,14 @@ const styles = StyleSheet.create({
         paddingBottom: 40, 
         gap: 16 
     },
-    
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+        flex: 1,
+    },
+
     errorBox: { 
         backgroundColor: '#FFEBEE', 
         padding: 12, 
@@ -224,13 +233,14 @@ const styles = StyleSheet.create({
         color: Colors.ERROR, 
         fontWeight: '500' 
     },
-    
+
     card: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 16, 
         padding: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
+        marginBottom: 16,
         ...dropShadow 
     },
     cardHeader: { 
@@ -245,7 +255,7 @@ const styles = StyleSheet.create({
     cardBody: { 
         gap: 20 
     },
-    
+
     infoRow: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -273,7 +283,7 @@ const styles = StyleSheet.create({
         fontSize: 14, 
         fontWeight: '500' 
     },
-    
+
     statusBadge: { 
         marginLeft: 'auto', 
         paddingHorizontal: 12, 
@@ -294,7 +304,7 @@ const styles = StyleSheet.create({
 
     actionTitle: { 
         marginTop: 8, 
-        marginBottom: -4, 
+        marginBottom: 8,
         color: Colors.TEXT_PRIMARY,
         fontSize: 14,
     },
