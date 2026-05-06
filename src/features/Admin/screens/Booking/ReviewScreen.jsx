@@ -21,7 +21,9 @@ import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
 
 import DocumentReviewCard from '@/src/features/Admin/components/DocumentReviewCard';
@@ -499,7 +501,7 @@ const styles = StyleSheet.create({
     },
     constrainer: {
         width: '100%',
-        maxWidth: 768, 
+        maxWidth: Layout.MAX_WIDTH, 
         alignSelf: 'center',
     },
     scrollContent: { 
