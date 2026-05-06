@@ -11,7 +11,9 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
@@ -29,18 +31,45 @@ const OfferViewScreen = ({
 
     const filteredBookings = useMemo(() => {
         if (!bookings) return [];
-        if (activeFilter === 'All') return bookings;
 
-        return bookings.filter(b => {
-            const isPending = b.status === 'pending-docs' || b.status === 'for-reservation';
-            
-            if (activeFilter === 'Needs Review') return isPending;
-            if (activeFilter === 'Rejected') return b.status === 'reservation-rejected';
-            if (activeFilter === 'For Payment') return b.status === 'for-payment';
-            if (activeFilter === 'Paid') return b.status === 'paid';
-            
-            return true;
+        let result = [...bookings];
+
+        if (activeFilter !== 'All') {
+            result = result.filter(b => {
+                const status = b.status || '';
+                const isPending = status === 'pending-docs' || status === 'for-reservation';
+                
+                if (activeFilter === 'Needs Review') return isPending;
+                if (activeFilter === 'Rejected') return status === 'reservation-rejected' || status === 'cancelled';
+                if (activeFilter === 'For Payment') return status === 'for-payment';
+                if (activeFilter === 'Paid') return status === 'paid';
+                
+                return true;
+            });
+        }
+
+        const getPriorityScore = (status) => {
+            const s = status || '';
+            if (s === 'pending-docs' || s === 'for-reservation') return 1;
+            if (s === 'for-payment') return 2;
+            if (s === 'paid') return 3;
+            if (s === 'reservation-rejected' || s === 'cancelled') return 4;
+            return 5;
+        };
+
+        return result.sort((a, b) => {
+            const priorityA = getPriorityScore(a.status);
+            const priorityB = getPriorityScore(b.status);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA;
         });
+
     }, [bookings, activeFilter]);
 
     if (!offer) return null;
@@ -140,7 +169,7 @@ const OfferViewScreen = ({
                     {bookings && bookings.length > 0 && (
                         <ScrollView 
                             horizontal
-                            showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                            showsHorizontalScrollIndicator={false}
                             style={styles.filterScroll}
                             contentContainerStyle={styles.filterContainer}
                         >
@@ -252,7 +281,7 @@ const styles = StyleSheet.create({
     },
     constrainer: {
         width: '100%',
-        maxWidth: 768, 
+        maxWidth: Layout.MAX_WIDTH, 
         alignSelf: 'center',
     },
     offerSummaryCard: { 
@@ -327,18 +356,25 @@ const styles = StyleSheet.create({
         marginLeft: 4 
     },
 
-    filterScroll: {
-        marginBottom: 16,
-        paddingBottom: Platform.OS === 'web' ? 8 : 0, 
-    },
+    filterScroll: Platform.select({
+        web: {
+            marginBottom: 16,
+            overflowX: 'auto',
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none', 
+        },
+        default: {
+            marginBottom: 16,
+        }
+    }),
     filterContainer: {
-        gap: 8,
+        gap: 10,
         flexDirection: 'row',
         alignItems: 'center',
     },
     filterChip: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8, 
         borderRadius: 20,
         backgroundColor: Colors.BACKGROUND,
         borderWidth: 1,
