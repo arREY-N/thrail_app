@@ -101,6 +101,20 @@ export const Colors = {
     STATUS_CANCELLED_TEXT:  Palette.Red700,
     STATUS_CANCELLED_BORDER:Palette.Red100,
 
+    STATUS_NEEDS_REVIEW_BG:    Palette.Blue50,
+    STATUS_NEEDS_REVIEW_TEXT:  Palette.Blue600,
+
+    STATUS_WAITING_USER_BG:    Palette.Neutral100,
+    STATUS_WAITING_USER_TEXT:  Palette.Neutral500,
+
+    STATUS_DOWNPAYMENT_BG:     Palette.Yellow50,
+    STATUS_DOWNPAYMENT_TEXT:   Palette.Yellow700,
+    STATUS_DOWNPAYMENT_BORDER: Palette.Yellow100,
+
+    STATUS_FULLY_PAID_BG:      Palette.Green50,
+    STATUS_FULLY_PAID_TEXT:    Palette.Green700,
+    STATUS_FULLY_PAID_BORDER:  Palette.Green100,
+
     // Weather
     WEATHER_SAFE_MAIN:      Palette.Green700,
     WEATHER_SAFE_BG:        Palette.Green50,
