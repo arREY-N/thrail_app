@@ -21,17 +21,15 @@ export default function adminViewBooking() {
         error,
         isLoading,
         onApproveBooking,
+        onConfirmPayment,
         onRejectBooking, 
         onRescheduleBooking,
-        // onValidateDocument,
         onRefund,
     } = useApproveBooking({ bookingId, offerId });
 
     if(!booking) return <Text>Booking not found</Text>;
     if(!offer) return <Text>Offer not found</Text>;
     
-    console.log('Loaded booking: ', booking);
-
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
@@ -41,6 +39,7 @@ export default function adminViewBooking() {
                 offers={offers}
                 onBackPress={onBackPress}
                 onApprove={onApproveBooking}
+                onConfirmPayment={onConfirmPayment}
                 onReject={onRejectBooking}
                 onReschedule={onRescheduleBooking}
                 onRefund={onRefund}
