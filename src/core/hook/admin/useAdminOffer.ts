@@ -1,15 +1,49 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function useAdminOffer() {
     const { businessId } = useAuthHook();
 
     const loadBusinessOffers = useOffersStore(s => s.fetchOfferByBusiness);
     const businessOffers = useOffersStore(s => s.businessOffers); 
+    const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
+    const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
     const [localError, setLocalError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!businessOffers || businessOffers.length === 0) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Filter ONLY the Active Offers (Ignore past, cancelled, or rescheduled)
+        const activeOfferIds = businessOffers.filter(offer => {
+            const status = (offer.status || '').toLowerCase();
+            const offerDate = new Date(offer.date || offer.hikeDate || 0);
+            offerDate.setHours(0, 0, 0, 0);
+            
+            const isUpcomingOrToday = offerDate >= today;
+            return isUpcomingOrToday && status !== 'cancelled' && status !== 'rescheduled';
+        }).map(o => o.id);
+
+        // 2. Attach real-time listeners ONLY to those active offers
+        activeOfferIds.forEach(offerId => {
+            subscribeToBusinessBookings(offerId).catch(err => {
+                console.error(`Failed to subscribe to offer ${offerId}:`, err);
+            });
+        });
+
+        // 3. CLEANUP: When the Admin leaves the list screen, kill the listeners to save memory/data!
+        return () => {
+            activeOfferIds.forEach(offerId => {
+                unsubscribe(offerId);
+            });
+        };
+    }, [businessOffers, subscribeToBusinessBookings, unsubscribe]);
 
     const onViewOfferBookings = (offerId: string) => {
         router.push({
@@ -18,7 +52,6 @@ export default function useAdminOffer() {
         });
     }
 
-    console.log(businessOffers)
     return {
         isLoading: useOffersStore(s => s.isLoading),
         error: useOffersStore(s => s.error) || localError,
