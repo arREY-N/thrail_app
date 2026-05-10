@@ -12,7 +12,6 @@ import ProgressStep from '@/src/features/Book/components/ProgressStep';
 
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
-import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 
 import { app } from '@/src/core/config/Firebase';
 import * as Linking from 'expo-linking';
@@ -34,24 +33,20 @@ const PaymentScreen = ({
     const [paymentType, setPaymentType] = useState('full');
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
-    
-    const [receiptImage, setReceiptImage] = useState(null); 
 
     const totalPrice = bookingData?.offer?.price || 0;
     const amountToPay = paymentType === 'full' ? totalPrice : totalPrice / 2;
 
     const handleHeaderBackPress = () => {
-        if (currentStep === 3) {
+        if (currentStep === 2) {
             handleNextStep(); 
-        } else if (currentStep === 2) {
-            setCurrentStep(1);
         } else {
             onBackPress();
         }
     };
 
     const handleStepNavigation = (step) => {
-        if (currentStep === 3) return; 
+        if (currentStep === 2) return; 
         if (step > currentStep || isSubmitting) return; 
         setCurrentStep(step);
     };
@@ -94,10 +89,7 @@ const PaymentScreen = ({
                         showTitle: true,
                     });
 
-                    // Proceed to Status, passing PayMongo sessionId as the "receipt" 
-                    // before going to the status tab
-                    setReceiptImage({ uri: 'paymongo_source', id: response.sessionId });
-                    setCurrentStep(3);
+                    setCurrentStep(2);
 
                 } catch (error) {
                     console.error("Payment Error:", error);
@@ -105,47 +97,37 @@ const PaymentScreen = ({
                 } finally {
                     setIsSubmitting(false);
                 }
-            } else {
-                setCurrentStep(2);
-            }
+            } 
         } else if (currentStep === 2) {
-            setIsSubmitting(true);
-            setTimeout(() => {
-                setIsSubmitting(false);
-                setCurrentStep(3); 
-            }, 1200);
-        } else if (currentStep === 3) {
             onContinue({
                 paymentType,
                 paymentMethod: selectedMethod,
                 amountPaid: amountToPay,
-                proofUploaded: receiptImage 
             });
         }
     };
 
     const getFooterConfig = () => {
-        if (currentStep === 1) return { title: "Continue", disabled: !(selectedMethod && isSignatureValid) };
-        if (currentStep === 2) return { title: "Submit Payment", disabled: !receiptImage };
-        if (currentStep === 3) return { title: "View Status", disabled: false }; 
+        if (currentStep === 1) return { title: "Continue to Payment", disabled: !(selectedMethod && isSignatureValid) };
+        if (currentStep === 2) return { title: "Return to Bookings", disabled: false }; 
         return { title: "Continue", disabled: false };
     };
 
     const footerConfig = getFooterConfig();
-    const lineFillPercentage = ((currentStep - 1) / 2) * 100; 
+    const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomLoading 
                 visible={isSubmitting} 
-                message="Loading..." 
+                message="Opening Secure Gateway..." 
             />
 
             <CustomHeader 
-                title={currentStep === 3 ? "Payment Status" : "Setup Payment"} 
+                title={currentStep === 2 ? "Payment Status" : "Setup Payment"} 
                 centerTitle={true} 
-                onBackPress={currentStep === 3 ? null : handleHeaderBackPress} 
+                onBackPress={currentStep === 2 ? null : handleHeaderBackPress} 
             />
 
             <View style={styles.progressWrapper}>
@@ -166,14 +148,6 @@ const PaymentScreen = ({
                         />
                         <ProgressStep
                             stepNum={2}
-                            title="Upload"
-                            libraryName="Feather"
-                            iconName="upload"
-                            currentView={currentStep}
-                            onStepPress={handleStepNavigation}
-                        />
-                        <ProgressStep
-                            stepNum={3}
                             title="Status"
                             libraryName="Feather"
                             iconName="check-circle"
@@ -198,20 +172,10 @@ const PaymentScreen = ({
                     />
                 )}
                 {currentStep === 2 && (
-                    <UploadScreen 
-                        amountToPay={amountToPay}
-                        selectedMethod={selectedMethod}
-                        businessName={bookingData?.business?.name || 'Tour Provider'}
-                        receiptImage={receiptImage}
-                        setReceiptImage={setReceiptImage}
-                    />
-                )}
-                {currentStep === 3 && (
                     <StatusScreen 
                         selectedMethod={selectedMethod} 
                         amountToPay={amountToPay} 
                         bookingId={bookingData?.id}
-                        receiptImage={receiptImage}
                     />
                 )}
             </View>
