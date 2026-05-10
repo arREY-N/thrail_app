@@ -45,8 +45,6 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }, [offerId, bookingId]);
 
-    // UI/UX FIX (April 14): Normalization logic added to prevent app crashes when 
-    // encountering legacy bookings where `documents` was stored as an object instead of an array.
     useEffect(() => {
         try {
             if(offerId){
@@ -75,27 +73,21 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }, [offers, bookings, offerId, bookingId]);
 
-    // BACKEND SYNC FIX (April 14): Function signature updated. 
-    // It now accepts `validatedDocuments` directly from the UI state rather than relying 
-    // on internal hook state, ensuring 100% synchronization when the Admin clicks "Submit Review".
     const onApproveBooking = async (validatedDocuments: Requirements[]) => {
         try {
             if(!booking) throw new Error('Booking not found');
 
-            // Instantiates a new Booking object with the strictly validated array from the UI
             const approvedBook = new Booking({
                 ...booking,
                 documents: validatedDocuments, 
                 status: 'for-payment',
             });
             
-            // Runs a final logic check to ensure the Admin hasn't accidentally passed a 'pending' document
             if(!BookingLogic.checkDocuments(approvedBook)){
                 setLocalError('Cannot approve booking with pending documents. Please validate all documents first.');
                 return;
             }
             
-            // Commits to database
             const success = await create(approvedBook, true);
             console.log('Status updated to for-payment: ', approvedBook);
             
@@ -112,9 +104,32 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }
 
-    // BACKEND SYNC FIX (April 14): Function signature updated. 
-    // Accepts `validatedDocuments` array from the UI to properly save the individual 'rejected' status
-    // alongside the global rejection reason.
+    const onConfirmPayment = async () => {
+        try {
+            if(!booking) throw new Error('Booking not found');
+            
+            if(booking.status !== 'paid' && booking.status !== 'downpayment') {
+                throw new Error('Booking is not ready to be confirmed');
+            }
+
+            const completedBook = new Booking({
+                ...booking,
+                status: 'completed'
+            });
+
+            const success = await create(completedBook, true);
+            if(!success) {
+                setLocalError('Failed to finalize booking to completed status.');
+                return;
+            }
+
+            router.back();
+        } catch (error) {
+            console.error('Error confirming payment: ', error);
+            setLocalError((error as Error).message || 'Failed to confirm payment');
+        }
+    }
+
     const onRejectBooking = async (reason: string, validatedDocuments: Requirements[]) => {  
         try {
             if(!reason) throw new Error('Rejection reason is required');
@@ -124,7 +139,6 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 return;
             }
 
-            // Instantiates a new Booking object with the rejected status and audit trail
             const rejectedBook = new Booking({  
                 ...booking,
                 documents: validatedDocuments, 
@@ -133,15 +147,11 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 cancelledBy: `${profile?.firstname} ${profile?.lastname}`
             });
 
-            // Runs a final logic check to ensure the Admin has addressed all pending documents
             if(!BookingLogic.checkDocuments(rejectedBook)){
                 setLocalError('Cannot reject booking with pending documents. Please validate all documents first.');
                 return;
             }
 
-            console.log('Rejecting booking: ', rejectedBook);
-
-            // Commits to database
             const success = await create(rejectedBook, true);
             if(!success){
                 setLocalError('Failed to reject booking');
@@ -157,11 +167,8 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
     const onRescheduleBooking = (newOffer: Offer) => {
         try {
-            if(!booking)
-                throw new Error('Booking not found');
-
-            if(!newOffer)
-                throw new Error('A new offer must be provided to reschedule');
+            if(!booking) throw new Error('Booking not found');
+            if(!newOffer) throw new Error('A new offer must be provided to reschedule');
 
             if(newOffer.price !== booking.offer.price){
                 alert(`The new offer costs ${newOffer.price} while the old one is ${booking.offer.price}`)
@@ -174,10 +181,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                     price: newOffer.price,
                     id: newOffer.id,
                 }
-            })
-
-            console.log('Original: ', booking)
-            console.log('Reschedule: ', rescheduledBook)
+            });
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to reschedule booking');
         }
@@ -185,21 +189,20 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
     const onRefund = () => {
         try {
-            if(!booking) 
-                throw new Error('Booking not found');
+            if(!booking) throw new Error('Booking not found');
 
-            const totalAmountPaid = booking.payment.reduce((total, payment) => total + payment.amount, 0);
+            const totalAmountPaid = booking.payment?.reduce((total, payment) => total + payment.amount, 0) || 0;
 
-            if(totalAmountPaid === 0)
-                throw new Error('No payment found for this booking');
+            if(totalAmountPaid === 0) throw new Error('No payment found for this booking');
             
-            if(role !== 'admin')
-                throw new Error('Only admins can refund bookings');
+            if(role !== 'admin') throw new Error('Only admins can refund bookings');
 
             const response = refundBooking({
                 amount: totalAmountPaid,
                 bookingId: booking.id,
                 userId: booking.user.id,
+                type: 'full',
+                returnUrl: ''
             });
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to refund booking');  
@@ -214,6 +217,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         booking,
         onRefund,
         onApproveBooking,
+        onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
     }
