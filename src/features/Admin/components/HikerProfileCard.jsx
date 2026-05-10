@@ -18,8 +18,8 @@ const HikerProfileCard = ({
     onTogglePersonalVerify, 
     onToggleEmergencyVerify,
     statusText,
-    isApprovedStatus,
-    isRejectedStatus,
+    statusBgColor,
+    statusTextColor,
     isMinor
 }) => {
 
@@ -69,13 +69,11 @@ const HikerProfileCard = ({
                         {statusText && (
                             <View style={[
                                 styles.statusBadge, 
-                                isRejectedStatus && { backgroundColor: Colors.ERROR_BG },
-                                isApprovedStatus && { backgroundColor: Colors.STATUS_APPROVED_BG }
+                                statusBgColor && { backgroundColor: statusBgColor }
                             ]}>
                                 <CustomText style={[
                                     styles.statusBadgeText,
-                                    isRejectedStatus && { color: Colors.ERROR },
-                                    isApprovedStatus && { color: Colors.SUCCESS }
+                                    statusTextColor && { color: statusTextColor }
                                 ]}>
                                     {statusText}
                                 </CustomText>
