@@ -5,7 +5,11 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-const AdminBookingCard = ({ booking, offerId, onViewBooking }) => {
+const AdminBookingCard = ({ 
+    booking, 
+    offerId, 
+    onViewBooking 
+}) => {
     const isNeedsReview = booking.status === 'pending-docs' || booking.status === 'for-reservation';
     const isDownpayment = booking.status === 'downpayment';
     const isFullyPaid = booking.status === 'paid';
@@ -13,7 +17,6 @@ const AdminBookingCard = ({ booking, offerId, onViewBooking }) => {
     const isForPayment = booking.status === 'for-payment';
     const isRejected = booking.status === 'reservation-rejected' || booking.status === 'cancelled';
     
-    // Highlight if action needed!
     const requiresAdminAction = isNeedsReview || isDownpayment || isFullyPaid;
     
     let statusColor = Colors.TEXT_SECONDARY;
@@ -84,15 +87,58 @@ const AdminBookingCard = ({ booking, offerId, onViewBooking }) => {
 };
 
 const styles = StyleSheet.create({
-    bookingCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, marginBottom: 12 },
-    highlightBorder: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
-    hikerInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.PRIMARY, justifyContent: 'center', alignItems: 'center' },
-    avatarInitials: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 14 },
-    hikerTextGroup: { flex: 1 },
-    hikerName: { fontSize: 15, fontWeight: '600', flexShrink: 1 },
-    statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginLeft: 8 },
-    badgeText: { fontSize: 10, fontWeight: 'bold' },
+    bookingCard: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        backgroundColor: Colors.WHITE, 
+        padding: 16, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        marginBottom: 12 
+    },
+    highlightBorder: { 
+        borderColor: Colors.PRIMARY, 
+        borderWidth: 1.5 
+    },
+    hikerInfo: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 12, 
+        flex: 1 
+    },
+    avatar: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
+        backgroundColor: Colors.PRIMARY, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    avatarInitials: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold', 
+        fontSize: 14 
+    },
+    hikerTextGroup: { 
+        flex: 1 
+    },
+    hikerName: { 
+        fontSize: 15, 
+        fontWeight: '600', 
+        flexShrink: 1 
+    },
+    statusBadge: { 
+        paddingHorizontal: 10, 
+        paddingVertical: 6, 
+        borderRadius: 20, 
+        marginLeft: 8 
+    },
+    badgeText: { 
+        fontSize: 10, 
+        fontWeight: 'bold' 
+    }
 });
 
 export default AdminBookingCard;
