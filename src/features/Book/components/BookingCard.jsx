@@ -16,6 +16,13 @@ const getStatusConfig = (status) => {
                 textColor: Colors.PRIMARY, 
                 icon: 'check-circle' 
             };
+        case 'downpayment':
+            return { 
+                label: 'Partially Paid', 
+                bgColor: Colors.STATUS_APPROVED_BG, 
+                textColor: Colors.PRIMARY, 
+                icon: 'check-circle' 
+            };
         case 'paid':
             return { 
                 label: 'Verifying', 
