@@ -16,7 +16,10 @@ const PaymentStatusScreen = ({
     submittedAmount
 }) => {
     const businessName = bookingData?.business?.name || "Tour Provider";
-    const databasePaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const databasePaid = bookingData?.payment?.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0) || 0;
     const displayAmount = databasePaid > 0 ? databasePaid : (submittedAmount || bookingData?.offer?.price || 0);
 
     const steps = [

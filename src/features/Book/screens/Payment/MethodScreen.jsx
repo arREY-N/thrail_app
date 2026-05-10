@@ -19,7 +19,8 @@ const MethodScreen = ({
     setSelectedMethod,
     profileFullName,
     setIsSignatureValid,
-    paymentError
+    paymentError,
+    isPayingBalance
 }) => {
     return (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -30,34 +31,38 @@ const MethodScreen = ({
                     <CustomText variant="h1" style={styles.amountDisplayText}>₱{amountToPay.toFixed(2)}</CustomText>
                 </View>
 
-                <CustomText variant="h2" style={styles.sectionTitle}>Payment Options</CustomText>
-                
-                <View style={styles.toggleContainer}>
-                    <TouchableOpacity 
-                        style={[styles.toggleBtn, paymentType === 'full' && styles.toggleBtnActive]}
-                        onPress={() => setPaymentType('full')} activeOpacity={0.8}
-                    >
-                        <CustomText style={[styles.toggleText, paymentType === 'full' && styles.toggleTextActive]}>
-                            Pay in Full
-                        </CustomText>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.toggleBtn, paymentType === 'downpayment' && styles.toggleBtnActive]}
-                        onPress={() => setPaymentType('downpayment')} activeOpacity={0.8}
-                    >
-                        <CustomText style={[styles.toggleText, paymentType === 'downpayment' && styles.toggleTextActive]}>
-                            50% Downpayment
-                        </CustomText>
-                    </TouchableOpacity>
-                </View>
+                {!isPayingBalance && (
+                    <>
+                        <CustomText variant="h2" style={styles.sectionTitle}>Payment Options</CustomText>
+                        
+                        <View style={styles.toggleContainer}>
+                            <TouchableOpacity 
+                                style={[styles.toggleBtn, paymentType === 'full' && styles.toggleBtnActive]}
+                                onPress={() => setPaymentType('full')} activeOpacity={0.8}
+                            >
+                                <CustomText style={[styles.toggleText, paymentType === 'full' && styles.toggleTextActive]}>
+                                    Pay in Full
+                                </CustomText>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.toggleBtn, paymentType === 'downpayment' && styles.toggleBtnActive]}
+                                onPress={() => setPaymentType('downpayment')} activeOpacity={0.8}
+                            >
+                                <CustomText style={[styles.toggleText, paymentType === 'downpayment' && styles.toggleTextActive]}>
+                                    50% Downpayment
+                                </CustomText>
+                            </TouchableOpacity>
+                        </View>
 
-                {paymentType === 'downpayment' && (
-                    <View style={styles.infoWarningContainer}>
-                        <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.WARNING} />
-                        <CustomText variant="caption" style={styles.infoWarningText}>
-                            The remaining balance must be paid directly to the guide on or before the hike date.
-                        </CustomText>
-                    </View>
+                        {paymentType === 'downpayment' && (
+                            <View style={styles.infoWarningContainer}>
+                                <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.WARNING} />
+                                <CustomText variant="caption" style={styles.infoWarningText}>
+                                    The remaining balance must be paid directly to the guide on or before the hike date.
+                                </CustomText>
+                            </View>
+                        )}
+                    </>
                 )}
 
                 {paymentError && (

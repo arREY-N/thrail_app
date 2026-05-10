@@ -22,6 +22,12 @@ const getHeroBadgeStyle = (status) => {
                 bgColor: Colors.STATUS_APPROVED_BG, 
                 textColor: Colors.STATUS_APPROVED_TEXT 
             };
+        case 'downpayment':
+            return { 
+                label: 'PARTIALLY PAID', 
+                bgColor: Colors.STATUS_APPROVED_BG, 
+                textColor: Colors.PRIMARY 
+            };
         case 'paid':
             return { 
                 label: 'VERIFYING PAYMENT', 

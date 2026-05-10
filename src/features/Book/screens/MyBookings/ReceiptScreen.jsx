@@ -17,7 +17,10 @@ const ReceiptScreen = ({
     const capturedPayment = bookingData?.payment?.find(p => p.status === 'captured') || bookingData?.payment?.[0];
     const transactionRef = capturedPayment?.referenceCode || `TRX-${bookingData?.id?.toUpperCase() || 'N/A'}`;
     const formattedDate = formatBookingDate(bookingData?.offer?.date);
-    const totalPaid = bookingData?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const totalPaid = bookingData?.payment?.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0) || 0;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
