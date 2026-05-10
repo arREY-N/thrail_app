@@ -101,8 +101,9 @@ export class Booking implements IBooking {
             trail: this.trail,
             payment: (this.payment || []).map(p => ({
                 ...p,
-                refundableUntil: this.refundableUntil ? Timestamp.fromDate(this.refundableUntil) : serverTimestamp(),
-                createdAt: this.createdAt ? Timestamp.fromDate(this.createdAt) : serverTimestamp(),
+                // Fix 1 & 2: Reference 'p' instead of 'this', and use Timestamp.now() instead of serverTimestamp()
+                refundableUntil: p.refundableUntil ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
+                createdAt: p.createdAt ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
             })),
             emergencyContact: this.emergencyContact,
             documents: this.documents,
