@@ -855,9 +855,9 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                 console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
 
                 if (bookingData.status !== 'cancelled') {
-                    // 7 days before hike for refund policy
+                    // 10 days before hike for refund policy
                     const refundableUntil = new Date(bookingData.offer.date.toDate());
-                    refundableUntil.setDate(refundableUntil.getDate() - 7);
+                    refundableUntil.setDate(refundableUntil.getDate() - 10);
 
                     const payments = bookingData.payment || [];
                     const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
@@ -866,6 +866,7 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                     
                     const capturedPayment = {
                         gateway: 'paymongo',
+                        gatewayId: gatewayId,
                         sessionId: existingSessionId,
                         referenceCode: referenceCode,
                         status: 'captured',
@@ -1030,7 +1031,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     // User-triggered timeframe check
     if (isOwner && !isAdmin && !isSuperAdmin) {
         const now = Timestamp.now().toDate();
-        const refundableUntil = data.refundableUntil ? data.refundableUntil.toDate() : new Date(0);
+        const refundableUntil = capturedPayment.refundableUntil ? capturedPayment.refundableUntil.toDate() : new Date(0);
         
         if (now > refundableUntil) {
             throw new HttpsError('failed-precondition', 'The automated refund timeframe has expired. Please contact the organizer.');
@@ -1043,23 +1044,33 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     PaymentManager.registerProvider('paymongo', provider);
 
     try {
-        const gatewayId = capturedPayment.gatewayId;
-        const refundAmount = data.offer.price; // Usually based on offer price
+        const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
+        const refundAmount = capturedPayment.amount * 0.10; // Refund only 10% of the paid amount
         
-        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, reason || 'requested_by_customer');
+        // Ensure reason is one of the accepted PayMongo values
+        const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
+        const sanitizedReason = validReasons.includes(reason) ? reason : 'requested_by_customer';
+        
+        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason);
 
         capturedPayment.status = 'refunded';
 
         await bookingRef.update({
-            status: 'refunded',
+            status: 'cancelled',
             payment: payments,
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        console.log(`[refundBooking] Successfully processed full refund for booking ${bookingId} via PayMongo`);
-        return { success: true };
-    } catch (e) {
-        console.error(`[refundBooking] Critical failure during PayMongo refund for booking ${bookingId}:`, e);
-        throw new HttpsError('internal', 'Refund failed: ' + e.message);
+        return { success: true, gatewayId, message: `Refunded 10% successfully` };
+    } catch (error) {
+        console.error("[refundBooking] PayMongo Refund Error:", error);
+        
+        // Handle specific PayMongo API Errors gracefully
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('same_day_partial_refund_not_allowed')) {
+            throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please try again tomorrow.');
+        }
+        
+        throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);
     }
 });
