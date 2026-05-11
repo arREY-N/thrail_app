@@ -31,6 +31,7 @@ export default function useBookingFilters(userBookings) {
                 
                 const isUpcoming = [
                     'paid', 
+                    'downpayment',
                     'completed'
                 ].includes(status);
                 

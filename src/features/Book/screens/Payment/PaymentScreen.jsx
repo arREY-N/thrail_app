@@ -35,7 +35,17 @@ const PaymentScreen = ({
     const [isSignatureValid, setIsSignatureValid] = useState(false);
 
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountToPay = paymentType === 'full' ? totalPrice : totalPrice / 2;
+    const amountPaidAlready = bookingData?.payment?.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0) || 0;
+    const remainingBalance = totalPrice - amountPaidAlready;
+    
+    const isPayingBalance = amountPaidAlready > 0;
+    const effectivePaymentType = isPayingBalance ? 'full' : paymentType;
+    const amountToPay = isPayingBalance 
+        ? remainingBalance 
+        : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
 
     const handleHeaderBackPress = () => {
         if (currentStep === 2) {
@@ -56,6 +66,13 @@ const PaymentScreen = ({
             setPaymentError(null);
 
             if (['gcash', 'maya'].includes(selectedMethod)) {
+                
+                // Synchronously open a blank popup on web to avoid popup blockers
+                let popup = null;
+                if (Platform.OS === 'web') {
+                    popup = window.open('', '_blank');
+                }
+
                 setIsSubmitting(true);
                 try {
                     
@@ -64,12 +81,10 @@ const PaymentScreen = ({
                     const appUrl = Platform.OS === 'web' ? rawUrl : Linking.createURL('payment-result', { scheme: 'thrailapp' });
                     
                     // Always use the production HTTPS cloud function even in DEV. 
-                    // This is because PayMongo and mobile browsers forcefully upgrade URLs to HTTPS, 
-                    // which causes SSL errors when trying to hit the local unencrypted 10.0.2.2 emulator.
                     const projectId = app.options.projectId || 'thrail';
                     const redirectFunctionUrl = `https://us-central1-${projectId}.cloudfunctions.net/paymongoRedirect`;
 
-                    // Wrap the deep link in our custom Firebase HTTP function to bypass PayMongo's strict URL validator
+                    // Wrap the deep link in our custom Firebase HTTP function
                     const secureReturnUrl = `${redirectFunctionUrl}?url=${encodeURIComponent(appUrl)}`;
                     
                     const response = await onPayOffer(
@@ -81,17 +96,28 @@ const PaymentScreen = ({
                     
                     const checkoutUrl = response.checkout_url;
                     
-                    // Use the in-app browser for a seamless experience
-                    await WebBrowser.openBrowserAsync(checkoutUrl, {
-                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                        toolbarColor: Colors.PRIMARY,
-                        enableBarCollapsing: true,
-                        showTitle: true,
-                    });
+                    if (Platform.OS === 'web') {
+                        if (popup) {
+                            popup.location.href = checkoutUrl;
+                        } else {
+                            // If popup was blocked entirely, redirect the current window
+                            window.location.href = checkoutUrl;
+                            return; 
+                        }
+                    } else {
+                        // Use the in-app browser for a seamless experience on mobile
+                        await WebBrowser.openBrowserAsync(checkoutUrl, {
+                            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+                            toolbarColor: Colors.PRIMARY,
+                            enableBarCollapsing: true,
+                            showTitle: true,
+                        });
+                    }
 
                     setCurrentStep(2);
 
                 } catch (error) {
+                    if (popup) popup.close();
                     console.error("Payment Error:", error);
                     setPaymentError(error.message || "Failed to initialize payment gateway. Please try again or use another method.");
                 } finally {
@@ -162,13 +188,14 @@ const PaymentScreen = ({
                 {currentStep === 1 && (
                     <MethodScreen 
                         amountToPay={amountToPay}
-                        paymentType={paymentType}
+                        paymentType={effectivePaymentType}
                         setPaymentType={setPaymentType}
                         selectedMethod={selectedMethod}
                         setSelectedMethod={setSelectedMethod}
                         profileFullName={profileFullName}
                         setIsSignatureValid={setIsSignatureValid}
                         paymentError={paymentError}
+                        isPayingBalance={isPayingBalance}
                     />
                 )}
                 {currentStep === 2 && (

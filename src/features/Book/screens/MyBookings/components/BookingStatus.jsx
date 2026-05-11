@@ -15,6 +15,7 @@ const getStepIndex = (status) => {
         case 'for-payment':
         case 'approved-docs':
             return 1; // Approved
+        case 'downpayment':
         case 'paid':
             return 2; // Paid
         case 'completed':

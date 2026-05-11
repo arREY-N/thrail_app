@@ -87,7 +87,10 @@ const BookingDetailsScreen = ({
     }, [booking?.offer?.id]);
 
     const totalAmount = booking?.offer?.price || 0;
-    const amountPaid = booking?.payment?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    const amountPaid = booking?.payment?.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0) || 0;
     const remainingBalance = totalAmount - amountPaid;
     
     const user = booking?.user;
@@ -95,7 +98,7 @@ const BookingDetailsScreen = ({
     const cancellationReason = booking?.cancellationReason;
     
     const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'cancelled'].includes(localStatus);
-    const isConfirmed = ['paid', 'completed'].includes(localStatus);
+    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(localStatus);
 
     const inclusions = fullOffer?.inclusions || [];
     const thingsToBring = fullOffer?.thingsToBring || [];
@@ -184,6 +187,24 @@ const BookingDetailsScreen = ({
                 secondaryButton: cancelBtnStyle,
                 primaryButton: { 
                     title: "Complete Payment", 
+                    variant: "primary", 
+                    style: { borderRadius: 12, backgroundColor: '#006B2B' }, 
+                    onPress: () => onProceedToPayment(booking) 
+                }
+            };
+        }
+
+        if (localStatus === 'downpayment') {
+            return {
+                secondaryButton: { 
+                    title: "View Receipt", 
+                    variant: "outline", 
+                    style: { borderColor: Colors.PRIMARY, borderRadius: 12 },
+                    textStyle: { color: Colors.PRIMARY },
+                    onPress: () => onViewReceipt(booking) 
+                },
+                primaryButton: { 
+                    title: "Pay Balance", 
                     variant: "primary", 
                     style: { borderRadius: 12, backgroundColor: '#006B2B' }, 
                     onPress: () => onProceedToPayment(booking) 
