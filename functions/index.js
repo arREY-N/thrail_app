@@ -612,10 +612,13 @@ exports.checkEmail = https.onCall(async (request) => {
 })
 
 /**
- * Maps raw PayMongo API errors to user-friendly HttpsErrors.
+ * Maps raw PayMongo API errors to user-friendly HttpsErrors with localized messaging.
+ * Handles specific gateway issues like transaction limits, system downtime, and invalid parameters.
  * 
- * @param {Error} err - The error thrown by the provider.
- * @throws {HttpsError}
+ * @private
+ * @param {Error|Object} err - The error object thrown by the PayMongo provider or axios.
+ * @returns {void}
+ * @throws {HttpsError} A formatted Firebase HttpsError for the client to consume.
  */
 function handlePaymongoError(err) {
     const rawMessage = err.message || String(err);
@@ -679,27 +682,29 @@ function handlePaymongoError(err) {
 }
 
 /**
- * Creates a PayMongo Checkout Session for a given booking.
- * Generates a hosted payment page URL for users to securely enter payment details.
+ * Creates a PayMongo Checkout Session for a new or existing booking.
+ * Generates a secure PayMongo-hosted payment page URL for GCash or Maya transactions.
+ * Automatically handles installment/downpayment logic by charging the requested 'amount'.
  * 
+ * @async
  * @function createPaymongoCheckout
- * @param {Object} request - The callable HTTPS request.
- * @param {Object} request.data - The data payload.
- * @param {number} request.data.amount - The amount to charge (in PHP, decimal).
- * @param {string} request.data.type - The payment method type (e.g., 'gcash', 'maya').
- * @param {string} request.data.returnUrl - The deep link URL to return to the app.
- * @param {string} request.data.bookingId - The ID of the booking to link the payment to.
- * @param {string} request.data.userId - The ID of the user making the payment.
- * @returns {Promise<Object>} The checkout session object containing the checkout_url.
- * @throws {HttpsError} If authentication or parameters are missing/invalid.
+ * @param {Object} request - The callable request object.
+ * @param {Object} request.data - Input parameters from the client.
+ * @param {number} request.data.amount - The exact amount to charge in PHP (e.g., 1499.50).
+ * @param {string} request.data.type - Payment method (e.g., 'gcash', 'maya').
+ * @param {string} request.data.returnUrl - App deep link to return to after payment success/fail.
+ * @param {string} request.data.bookingId - The target Firestore booking ID.
+ * @param {string} request.data.userId - The ID of the customer owning the booking.
+ * @param {Object} request.auth - Firebase Authentication context.
+ * @returns {Promise<Object>} Success receipt containing sessionId and checkout_url.
+ * @throws {HttpsError} 401 if unauthenticated, 400 if arguments missing, or gateway error mapping.
  */
 exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
     const { amount, type, returnUrl, bookingId, userId } = request.data;
-    const auth = request.auth;
 
-    console.log(`[createPaymongoCheckout] Initiating checkout for user ${userId || auth?.uid}, booking ${bookingId}`);
+    console.log(`[createPaymongoCheckout] Initiating checkout for user ${userId || request.auth?.uid}, booking ${bookingId}`);
 
-    if (!auth) throw new HttpsError('unauthenticated', 'Authentication Required');
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Authentication Required');
     if (!amount || !type || !bookingId) throw new HttpsError('invalid-argument', 'Amount, type, and bookingId are required');
 
     const PAYMONGO_SECRET_KEY = paymongoSecret.value();
@@ -719,7 +724,7 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
         // Update booking to mark it as pending payment
         await admin.firestore()
             .collection('users')
-            .doc(userId || auth.uid)
+            .doc(userId || request.auth.uid)
             .collection('bookings')
             .doc(bookingId)
             .update({
@@ -756,13 +761,15 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
 });
 
 /**
- * HTTP Proxy to bypass mobile WebView security restrictions and deep link back into the app.
- * Uses an HTML meta-refresh instead of an HTTP 302 redirect.
+ * HTML Proxy to bypass mobile WebView security restrictions (CORS/Deep-linking).
+ * Helps transition users from a browser-based PayMongo success page back into the Thrail app.
+ * Uses an HTML meta-refresh and JS location change to ensure the app scheme is invoked.
  * 
  * @function paymongoRedirect
- * @param {Object} req - The express HTTP request.
- * @param {Object} req.query.url - The target deep link URL to open.
- * @param {Object} res - The express HTTP response.
+ * @param {Object} req - HTTP Request.
+ * @param {string} req.query.url - The destination app deep link (e.g., thrailapp://payment-result).
+ * @param {Object} res - HTTP Response.
+ * @returns {void}
  */
 exports.paymongoRedirect = functions.https.onRequest((req, res) => {
     const targetUrl = req.query.url;
@@ -796,12 +803,16 @@ exports.paymongoRedirect = functions.https.onRequest((req, res) => {
 });
 
 /**
- * Webhook endpoint for capturing payment completion events from PayMongo.
- * Verifies the signature, marks the booking as paid, and generates the payment receipt in Firestore.
+ * Public Webhook endpoint to receive real-time payment status updates from PayMongo.
+ * 1. Verifies the request signature using the Webhook Secret for security.
+ * 2. Matches the payment to a booking via paymentIntentId.
+ * 3. Updates payment status to 'captured' and determines if booking is 'paid' or 'downpayment'.
+ * 4. Generates a permanent transaction receipt and handles auto-refunds for cancelled bookings.
  * 
  * @function paymentWebhook
- * @param {Object} req - The express HTTP request containing PayMongo payload.
- * @param {Object} res - The express HTTP response.
+ * @param {Object} req - HTTP Request with PayMongo JSON payload.
+ * @param {Object} res - HTTP Response.
+ * @returns {Promise<void>}
  */
 exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWebhookSecret] }, async (req, res) => {
     console.log('[paymentWebhook] Received incoming webhook call');
@@ -826,13 +837,6 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
     const event = req.body;
     if (event?.data?.attributes?.type === 'payment.paid') {
         const paymentData = event.data.attributes.data.attributes;
-        const bookingId = paymentData.description || event.data.attributes.data.id; // Usually we need to trace back via reference number or fetching session
-        // Note: PayMongo webhooks for payment.paid give the raw payment. We might need to look up the intent or description.
-        // For checkout sessions, payment.paid has `paymentData.source.id` or similar. 
-        // We will assume the reference_number mapped to description or it's accessible.
-        // Actually, reference_number is inside the checkout session. 
-        // Wait, a more robust way is querying Firestore for a booking with this payment Gateway ID, OR relying on metadata if passed down.
-        // As a fallback, we just log it. Let's do a basic implementation:
         
         const referenceCode = paymentData.balance_transaction_id || event.data.attributes.data.id;
         const gatewayId = event.data.attributes.data.id;
@@ -930,16 +934,19 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
 });
 
 /**
- * Handles pre-payment cancellation of a booking by a user or admin.
+ * Handles the cancellation of a booking BEFORE any payment is captured.
+ * Fails 'pending' payment sessions and updates the booking status to 'cancelled'.
+ * If the booking already has a 'captured' payment, it forces the user to use refundBooking instead.
  * 
+ * @async
  * @function cancelBooking
- * @param {Object} request - The callable HTTPS request.
- * @param {Object} request.data - The data payload.
- * @param {string} request.data.bookingId - The ID of the booking to cancel.
- * @param {string} request.data.userId - The ID of the user who owns the booking.
- * @param {string} request.data.reason - The reason for cancellation.
- * @returns {Promise<Object>} Success status.
- * @throws {HttpsError} If unauthorized, not found, or payment is already captured.
+ * @param {Object} request - The callable request object.
+ * @param {Object} request.data - Input parameters.
+ * @param {string} request.data.bookingId - ID of booking to cancel.
+ * @param {string} request.data.userId - ID of the booking owner.
+ * @param {string} [request.data.reason] - Optional explanation for the cancellation.
+ * @returns {Promise<Object>} Object with { success: true }.
+ * @throws {HttpsError} 403 if unauthorized, 400 if payment is already captured.
  */
 exports.cancelBooking = https.onCall(async (request) => {
     const { bookingId, userId, reason } = request.data;
@@ -985,20 +992,25 @@ exports.cancelBooking = https.onCall(async (request) => {
 });
 
 /**
- * Handles dual-system refunds for captured payments.
- * Users can trigger this within 7 days of the hike. Admins can trigger this anytime.
+ * Processes PayMongo refunds for captured payments (10% partial or 100% full).
+ * Logic:
+ * - Customers: Restricted to 10% partial refund and a 10-day pre-hike timeframe.
+ * - Admins: Can trigger 10% or 100% refunds at any time (bypasses timeframe check).
+ * Automatically updates booking status to 'cancelled' and payment status to 'refunded'.
  * 
+ * @async
  * @function refundBooking
- * @param {Object} request - The callable HTTPS request.
- * @param {Object} request.data - The data payload.
- * @param {string} request.data.bookingId - The ID of the booking to refund.
- * @param {string} request.data.userId - The ID of the user who owns the booking.
- * @param {string} request.data.reason - The reason for refund.
- * @returns {Promise<Object>} Success status.
- * @throws {HttpsError} If unauthorized, outside timeframe, or refund fails via API.
+ * @param {Object} request - The callable request object.
+ * @param {Object} request.data - Input parameters.
+ * @param {string} request.data.bookingId - ID of booking to refund.
+ * @param {string} request.data.userId - ID of the customer owning the booking.
+ * @param {string} [request.data.reason] - Valid PayMongo reason ('requested_by_customer', etc).
+ * @param {string|number} [request.data.refundPercentage] - Admin only: 'full' (100%) or 'partial' (10%).
+ * @returns {Promise<Object>} Success message and gateway transaction ID.
+ * @throws {HttpsError} 403 if unauthorized, 400 if timeframe expired or gateway error.
  */
 exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
-    const { bookingId, userId, reason } = request.data;
+    const { bookingId, userId, reason, refundPercentage } = request.data;
     const caller = request.auth;
 
     console.log(`[refundBooking] Refund requested for booking ${bookingId} by user ${caller?.uid}`);
@@ -1045,7 +1057,19 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
 
     try {
         const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
-        const refundAmount = capturedPayment.amount * 0.10; // Refund only 10% of the paid amount
+        
+        // Calculate Refund Amount
+        let multiplier = 0.10; // Normal users are strictly limited to 10%
+        if (isAdmin || isSuperAdmin) {
+            if (refundPercentage === 'full' || refundPercentage === 1 || refundPercentage === 100) {
+                multiplier = 1.0;
+            } else if (refundPercentage === 'partial' || refundPercentage === 0.1 || refundPercentage === 10) {
+                multiplier = 0.10;
+            }
+        }
+        
+        const refundAmount = capturedPayment.amount * multiplier;
+        const refundLabel = multiplier === 1.0 ? '100%' : '10%';
         
         // Ensure reason is one of the accepted PayMongo values
         const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
@@ -1061,7 +1085,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        return { success: true, gatewayId, message: `Refunded 10% successfully` };
+        return { success: true, gatewayId, message: `Refunded ${refundLabel} successfully` };
     } catch (error) {
         console.error("[refundBooking] PayMongo Refund Error:", error);
         
