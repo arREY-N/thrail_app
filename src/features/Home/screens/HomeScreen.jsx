@@ -22,24 +22,8 @@ import { useWeather } from '@/src/hooks/useWeather';
 import MountainCard from '@/src/components/MountainCard';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
-import { fetchWeatherFromApi } from "@/src/core/repositories/weatherRepository";
-import { getWeatherInfoUI } from "@/src/core/utility/weatherHelpers";
+import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
 
-const MOUNTAIN_COORDS = {
-    tagapo: { lat: 14.3392772, lon: 121.2325293 },
-    marami: { lat: 14.1986108, lon: 120.6858334 },
-    batulao: { lat: 14.0399434, lon: 120.8023782 },
-    makiling: { lat: 14.1352241, lon: 121.1944517 },
-    maculot: { lat: 13.9208682, lon: 121.0516961 },
-};
-
-const resolveCoordsForTrail = (trail) => {
-    const name = (trail?.general?.name ?? "").toLowerCase();
-    for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
-        if (name.includes(keyword)) return coords;
-    }
-    return null;
-};
 
 const HomeScreen = ({
     locationTemp, // unused now but left for signature consistency
@@ -75,34 +59,7 @@ const HomeScreen = ({
         const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
             .map(id => allVisibleTrails.find(t => t.id === id));
 
-        const fetchAllMountainsWeather = async () => {
-            const targets = uniqueTrails.reduce((acc, trail) => {
-                const coords = resolveCoordsForTrail(trail);
-                if (coords) acc.push({ id: trail.id, ...coords });
-                return acc;
-            }, []);
-
-            if (targets.length === 0) return;
-
-            const results = await Promise.allSettled(
-                targets.map(({ lat, lon }) => fetchWeatherFromApi(lat, lon)),
-            );
-
-            const nextMap = {};
-            results.forEach((result, index) => {
-                if (result.status === "fulfilled" && result.value) {
-                    const { icon } = getWeatherInfoUI(result.value.weatherCode);
-                    nextMap[targets[index].id] = {
-                        icon,
-                        temperature: result.value.temperature,
-                    };
-                }
-            });
-
-            setMountainWeatherMap(nextMap);
-        };
-
-        fetchAllMountainsWeather();
+        fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
     }, [recList, discList]);
 
     const ListSection = ({ title, data, onViewAll }) => {

@@ -9,6 +9,7 @@ import { Colors } from '@/src/constants/colors';
 import { ProcessedWeatherData } from '../core/types/weather';
 import {
     formatForecastDay,
+    formatLastUpdatedLabel,
     formatSunTime,
     getHikingSafetyStatus,
     getHumidityLabel,
@@ -32,15 +33,10 @@ interface SafetyTheme {
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) => {
     const { weatherData: data, loading, error, refetch } = useWeather(latitude, longitude);
 
-    const lastUpdatedLabel = useMemo(() => {
-        if (!data?.lastUpdated) return null;
-        const diffMs = Date.now() - new Date(data.lastUpdated).getTime();
-        const diffMin = Math.floor(diffMs / 60000);
-        if (diffMin < 1) return 'Just now';
-        if (diffMin < 60) return `${diffMin} min ago`;
-        const diffHr = Math.floor(diffMin / 60);
-        return `${diffHr}h ${diffMin % 60}m ago`;
-    }, [data?.lastUpdated]);
+    const lastUpdatedLabel = useMemo(
+        () => formatLastUpdatedLabel(data?.lastUpdated),
+        [data?.lastUpdated]
+    );
 
     const handleRefresh = useCallback(() => {
         refetch();

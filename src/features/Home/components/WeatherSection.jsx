@@ -11,12 +11,12 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
-import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
+import { formatWeatherDisplay } from '@/src/core/utility/weatherHelpers';
 import { useLocation } from '@/src/hooks/useLocation';
 
 const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) => {
 
-    const { icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
+    const display = formatWeatherDisplay(weatherData);
     const { geocodedName } = useLocation({ propLocationName: locationName });
 
     if (loading) {
@@ -41,13 +41,6 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
         );
     }
 
-    const hasData = weatherData && !error;
-    const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : '--';
-    
-    const today = weatherData?.forecast?.[0];
-    const dayTemp = today?.temperatureMax !== undefined ? Math.round(today.temperatureMax) : '--';
-    const nightTemp = today?.temperatureMin !== undefined ? Math.round(today.temperatureMin) : '--';
-
     const displayLocationText = geocodedName || locationName || 'Unknown location';
 
     return (
@@ -57,7 +50,7 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
                 <View style={styles.leftColumn}>
                     <View style={styles.tempWrapper}>
                         <CustomText style={styles.tempText}>
-                            {hasData ? temperature : '--'}
+                            {display.hasData ? display.temperature : '--'}
                         </CustomText>
                         <CustomText style={styles.degreeSymbol}>
                             °C
@@ -83,15 +76,15 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
 
                 <View style={styles.rightColumn}>
                     <CustomIcon 
-                        library={library} 
-                        name={hasData ? icon : "partly-sunny-outline"}
+                        library={display.library} 
+                        name={display.hasData ? display.icon : "partly-sunny-outline"}
                         size={52} 
-                        color={hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                        color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
                     />
                     
                     <View style={styles.hiLoBadge}>
                         <CustomText variant="caption" style={styles.dayNightText}>
-                            Day <CustomText style={styles.hiLoValue}>{dayTemp}°</CustomText> / Night <CustomText style={styles.hiLoValue}>{nightTemp}°</CustomText>
+                            Day <CustomText style={styles.hiLoValue}>{display.dayTemp}°</CustomText> / Night <CustomText style={styles.hiLoValue}>{display.nightTemp}°</CustomText>
                         </CustomText>
                     </View>
                 </View>
