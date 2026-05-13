@@ -42,27 +42,16 @@ const ReviewScreen = ({
 }) => {
     
     const {
-        activeTab, 
-        setActiveTab,
-        docStates, 
-        setDocStates,
-        viewedDocs, 
-        setViewedDocs,
-        rejectionReason, 
-        setRejectionReason,
-        personalVerified, 
-        setPersonalVerified,
-        emergencyVerified, 
-        setEmergencyVerified,
-        isMinor, 
-        currentStatus, 
-        isApprovedStatus, 
-        isRejectedStatus, 
-        isReviewComplete,
-        getStatusText, 
-        getStatusColors, 
-        hasRejections, 
-        isDecisionIncomplete, 
+        activeTab, setActiveTab,
+        docStates, setDocStates,
+        viewedDocs, setViewedDocs,
+        rejectionReason, setRejectionReason,
+        personalVerified, setPersonalVerified,
+        emergencyVerified, setEmergencyVerified,
+        isMinor,
+        currentStatus, isApprovedStatus, isRejectedStatus, isReviewComplete,
+        adminStatusConfig,
+        hasRejections, isDecisionIncomplete,
         availableOffers
     } = useReviewLogic(booking, offers);
 
@@ -98,8 +87,6 @@ const ReviewScreen = ({
         }
         setIsConfirmVisible(false);
     };
-
-    const { bg: profileBgColor, text: profileTextColor } = getStatusColors();
 
     if (isLoading || !booking || !booking.user) {
         return (
@@ -177,9 +164,9 @@ const ReviewScreen = ({
                         emergencyVerified={emergencyVerified}
                         onTogglePersonalVerify={() => setPersonalVerified(!personalVerified)}
                         onToggleEmergencyVerify={() => setEmergencyVerified(!emergencyVerified)}
-                        statusText={getStatusText()}
-                        statusBgColor={profileBgColor}
-                        statusTextColor={profileTextColor}
+                        statusText={adminStatusConfig.label}
+                        statusBgColor={adminStatusConfig.bgColor}
+                        statusTextColor={adminStatusConfig.textColor}
                         isMinor={isMinor}
                     />
 
@@ -459,7 +446,6 @@ const styles = StyleSheet.create({
         width: '100%' 
     },
     
-    // Action Sheet Modals
     modalOverlay: { 
         flex: 1, 
         backgroundColor: 'rgba(0,0,0,0.5)', 
