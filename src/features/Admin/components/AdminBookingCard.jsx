@@ -1,8 +1,11 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+
 import { Colors } from '@/src/constants/colors';
+import { getStatusConfig } from '@/src/constants/statusConfig';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 const AdminBookingCard = ({ 
@@ -10,42 +13,9 @@ const AdminBookingCard = ({
     offerId, 
     onViewBooking 
 }) => {
-    const isNeedsReview = booking.status === 'pending-docs' || booking.status === 'for-reservation';
-    const isDownpayment = booking.status === 'downpayment';
-    const isFullyPaid = booking.status === 'paid';
-    const isCompleted = booking.status === 'completed';
-    const isForPayment = booking.status === 'for-payment';
-    const isRejected = booking.status === 'reservation-rejected' || booking.status === 'cancelled';
+    const statusConfig = getStatusConfig(booking.status, 'admin');
     
-    const requiresAdminAction = isNeedsReview || isDownpayment || isFullyPaid;
-    
-    let statusColor = Colors.TEXT_SECONDARY;
-    let bgColor = Colors.GRAY_ULTRALIGHT;
-    let statusText = (booking.status || 'unknown').toUpperCase().replace('-', ' ');
-
-    if (isNeedsReview) {
-        statusColor = Colors.STATUS_NEEDS_REVIEW_TEXT;
-        bgColor = Colors.STATUS_NEEDS_REVIEW_BG;
-        statusText = "NEEDS REVIEW";
-    } else if (isForPayment) {
-        statusColor = Colors.STATUS_WAITING_USER_TEXT;
-        bgColor = Colors.STATUS_WAITING_USER_BG;
-        statusText = "FOR PAYMENT";
-    } else if (isDownpayment) {
-        statusColor = Colors.STATUS_DOWNPAYMENT_TEXT;
-        bgColor = Colors.STATUS_DOWNPAYMENT_BG;
-        statusText = "DOWNPAYMENT (50%)";
-    } else if (isFullyPaid) {
-        statusColor = Colors.STATUS_FULLY_PAID_TEXT;
-        bgColor = Colors.STATUS_FULLY_PAID_BG;
-        statusText = "FULLY PAID";
-    } else if (isCompleted) {
-        statusColor = Colors.SUCCESS;
-        bgColor = Colors.STATUS_APPROVED_BG;
-    } else if (isRejected) {
-        statusColor = Colors.ERROR;
-        bgColor = Colors.ERROR_BG;
-    } 
+    const requiresAdminAction = ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(booking.status);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';
@@ -77,9 +47,15 @@ const AdminBookingCard = ({
                 </View>
             </View>
             
-            <View style={[styles.statusBadge, { backgroundColor: bgColor }]}>
-                <CustomText variant="caption" style={[styles.badgeText, { color: statusColor }]}>
-                    {statusText}
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                <CustomIcon 
+                    library="Feather" 
+                    name={statusConfig.icon} 
+                    size={10} 
+                    color={statusConfig.textColor} 
+                />
+                <CustomText variant="caption" style={[styles.badgeText, { color: statusConfig.textColor }]}>
+                    {statusConfig.label}
                 </CustomText>
             </View>
         </TouchableOpacity>
@@ -130,15 +106,18 @@ const styles = StyleSheet.create({
         flexShrink: 1 
     },
     statusBadge: { 
-        paddingHorizontal: 10, 
-        paddingVertical: 6, 
-        borderRadius: 20, 
-        marginLeft: 8 
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginLeft: 8,
+        gap: 4
     },
-    badgeText: { 
-        fontSize: 10, 
-        fontWeight: 'bold' 
-    }
+    badgeText: {
+        fontSize: 10,
+        fontWeight: 'bold'
+    },
 });
 
 export default AdminBookingCard;
