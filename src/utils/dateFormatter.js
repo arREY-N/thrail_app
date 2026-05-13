@@ -132,3 +132,41 @@ export const formatToMMDDYY = (dateInput) => {
     const yy = String(d.getFullYear()).slice(-2);
     return `${mm}/${dd}/${yy}`;
 };
+
+// --- Check if Minor ---
+export const checkIfMinor = (dateInput) => {
+    if (!dateInput) return false;
+    
+    const bday = safeParseDateString(dateInput);
+    if (isNaN(bday.getTime())) return false;
+
+    const today = new Date();
+    let age = today.getFullYear() - bday.getFullYear();
+    const m = today.getMonth() - bday.getMonth();
+    
+    if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
+        age--;
+    }
+    
+    return age < 18;
+};
+
+// --- Notification Update ---
+export const getRecentUpdateText = (updatedAt, createdAt) => {
+    const timestamp = updatedAt || createdAt;
+    if (!timestamp) return null;
+
+    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffMins = diffMs / (1000 * 60);
+
+    // Only show badge if updated within the last 24 hours
+    if (diffHours < 24 && diffHours >= 0) {
+        if (diffMins < 1) return 'Updated just now';
+        if (diffMins < 60) return `Updated ${Math.floor(diffMins)}m ago`;
+        return `Updated ${Math.floor(diffHours)}h ago`;
+    }
+    return null;
+};
