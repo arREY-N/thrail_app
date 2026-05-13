@@ -1,5 +1,5 @@
-import { Colors } from '@/src/constants/colors';
-import { formatDate } from '@/src/core/utility/date';
+import { getStatusConfig } from '@/src/constants/statusConfig';
+import { checkIfMinor, formatDateToStandard } from '@/src/utils/dateFormatter';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function useReviewLogic(booking, offers) {
@@ -17,24 +17,10 @@ export default function useReviewLogic(booking, offers) {
     const isRejectedStatus = currentStatus === 'reservation-rejected';
     const isReviewComplete = isApprovedStatus || isRejectedStatus;
 
-    useEffect(() => {
-        if (booking?.user?.birthday) {
-            const bday = new Date(booking.user.birthday);
-            if (Number.isNaN(bday.getTime())) {
-                setIsMinor(false);
-                return;
-            }
+    const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
 
-            const today = new Date();
-            let age = today.getFullYear() - bday.getFullYear();
-            const m = today.getMonth() - bday.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
-                age--;
-            }
-            setIsMinor(age < 18);
-        } else {
-            setIsMinor(false);
-        }
+    useEffect(() => {
+        setIsMinor(checkIfMinor(booking?.user?.birthday));
     }, [booking?.user?.birthday]);
 
     useEffect(() => {
@@ -67,24 +53,6 @@ export default function useReviewLogic(booking, offers) {
 
     }, [booking, booking?.documents, isApprovedStatus, isRejectedStatus]);
 
-    const getStatusText = () => {
-        if (isRejectedStatus) return "REJECTED";
-        if (currentStatus === 'for-payment') return "FOR PAYMENT";
-        if (currentStatus === 'downpayment') return "DOWNPAYMENT (50%)";
-        if (currentStatus === 'paid') return "FULLY PAID";
-        if (currentStatus === 'completed') return "COMPLETED";
-        return "NEEDS REVIEW";
-    };
-
-    const getStatusColors = () => {
-        if (isRejectedStatus) return { bg: Colors.ERROR_BG, text: Colors.ERROR };
-        if (currentStatus === 'for-payment') return { bg: Colors.STATUS_WAITING_USER_BG, text: Colors.STATUS_WAITING_USER_TEXT };
-        if (currentStatus === 'downpayment') return { bg: Colors.STATUS_DOWNPAYMENT_BG, text: Colors.STATUS_DOWNPAYMENT_TEXT };
-        if (currentStatus === 'paid') return { bg: Colors.STATUS_FULLY_PAID_BG, text: Colors.STATUS_FULLY_PAID_TEXT };
-        if (currentStatus === 'completed') return { bg: Colors.STATUS_APPROVED_BG, text: Colors.SUCCESS };
-        return { bg: Colors.STATUS_NEEDS_REVIEW_BG, text: Colors.STATUS_NEEDS_REVIEW_TEXT };
-    };
-
     const hasRejections = docStates.some(d => d.valid === 'rejected');
     const isDecisionIncomplete = docStates.length > 0 && docStates.some(d => d.valid === 'pending');
     
@@ -92,7 +60,7 @@ export default function useReviewLogic(booking, offers) {
         return offers 
             ? offers.filter(o => o.id !== booking?.offer?.id).map(o => ({ 
                 id: o.id, 
-                label: formatDate(o.date), 
+                label: formatDateToStandard(o.date),
                 subLabel: `₱${o.price}`, 
                 originalData: o 
             })) 
@@ -108,7 +76,7 @@ export default function useReviewLogic(booking, offers) {
         emergencyVerified, setEmergencyVerified,
         isMinor,
         currentStatus, isApprovedStatus, isRejectedStatus, isReviewComplete,
-        getStatusText, getStatusColors,
+        adminStatusConfig,
         hasRejections, isDecisionIncomplete,
         availableOffers
     };
