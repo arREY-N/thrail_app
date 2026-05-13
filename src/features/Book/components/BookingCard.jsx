@@ -5,84 +5,64 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
-import { formatBookingDate } from '@/src/utils/dateFormatter';
+import { getStatusConfig } from '@/src/constants/statusConfig';
+import { formatBookingDate, getRecentUpdateText } from '@/src/utils/dateFormatter';
 
-const getStatusConfig = (status) => {
-    switch (status) {
-        case 'completed':
-            return { 
-                label: 'Confirmed', 
-                bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.PRIMARY, 
-                icon: 'check-circle' 
-            };
-        case 'downpayment':
-            return { 
-                label: 'Partially Paid', 
-                bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.PRIMARY, 
-                icon: 'check-circle' 
-            };
-        case 'paid':
-            return { 
-                label: 'Verifying', 
-                bgColor: Colors.STATUS_PENDING_BG, 
-                textColor: Colors.STATUS_PENDING_TEXT, 
-                icon: 'clock' 
-            };
-        case 'approved-docs': 
-        case 'for-payment':
-            return { 
-                label: 'Approved', 
-                bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.STATUS_APPROVED_TEXT, 
-                icon: 'check-circle' 
-            };
-        case 'reservation-rejected':
-            return { 
-                label: 'Action Required', 
-                bgColor: Colors.ERROR_BG,
-                textColor: Colors.ERROR, 
-                icon: 'alert-circle' 
-            };
-        case 'for-reservation':
-        case 'pending-docs':
-        case 'for-reschedule':
-        case 'reschedule-rejected':
-        case 'rescheduled':
-            return { 
-                label: 'Pending', 
-                bgColor: Colors.STATUS_PENDING_BG,  
-                textColor: Colors.STATUS_PENDING_TEXT, 
-                icon: 'clock' 
-            };
-        case 'for-cancellation':
-        case 'refund':
-        case 'cancellation-rejected':
-        case 'cancelled':
-            return { 
-                label: 'Cancelled', 
-                bgColor: Colors.STATUS_CANCELLED_BG, 
-                textColor: Colors.STATUS_CANCELLED_TEXT, 
-                icon: 'x-circle' 
-            };
-        default:
-            return { 
-                label: status ? status.toUpperCase() : 'UNKNOWN', 
-                bgColor: Colors.GRAY_ULTRALIGHT, 
-                textColor: Colors.TEXT_SECONDARY, 
-                icon: 'help-circle' 
-            };
-    }
-};
+const BookingCard = ({ 
+    booking, 
+    onSelectBooking, 
+    role = 'user' 
+}) => {
+    if (!booking) return null;
 
-const BookingCard = ({ booking, onSelectBooking }) => {
-    const statusConfig = getStatusConfig(booking.status);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    const trailName = booking.trail?.name || 'Hiking Package';
-    const businessName = booking.business?.name || 'Independent Guide';
-    const formattedDate = formatBookingDate(booking.offer?.date, booking.offer?.endDate, true);
-    const price = booking.offer?.price || 0;
+    const dateVal = booking?.offer?.date;
+    const hikeDate = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal || 0);
+    const isPast = hikeDate.getTime() < today.getTime();
+
+    let displayStatus = booking?.status;
+    const isDead = [
+        'cancelled', 
+        'refund', 
+        'refunded', 
+        'cancellation-rejected', 
+        'reschedule-rejected'
+    ].includes(displayStatus);
+
+    if (isPast && !isDead) {
+        if (['completed', 'paid', 'rescheduled'].includes(displayStatus)) {
+            displayStatus = 'finished'; 
+        } else {
+            displayStatus = 'expired'; 
+        }
+    }
+
+    const statusConfig = getStatusConfig(displayStatus, role);
+
+    let actionLabel = "View Details";
+    let actionColor = Colors.PRIMARY;
+    let actionIcon = "chevron-right";
+
+    if (!isPast && !isDead) {
+        if (['for-payment', 'approved-docs'].includes(booking?.status)) {
+            actionLabel = "Pay Now";
+            actionColor = Colors.SUCCESS; 
+        } else if (booking?.status === 'reservation-rejected') {
+            actionLabel = "Update Docs";
+            actionColor = Colors.ERROR;
+        } else if (booking?.status === 'downpayment') {
+            actionLabel = "Pay Balance";
+            actionColor = Colors.WARNING;
+        }
+    }
+
+    const recentUpdateText = getRecentUpdateText(booking?.updatedAt, booking?.createdAt);
+    const trailName = booking?.trail?.name || 'Hiking Package';
+    const businessName = booking?.business?.name || 'Independent Guide';
+    const formattedDate = formatBookingDate(booking?.offer?.date, booking?.offer?.endDate, true);
+    const price = booking?.offer?.price || 0;
 
     return (
         <TouchableOpacity 
@@ -91,18 +71,32 @@ const BookingCard = ({ booking, onSelectBooking }) => {
             activeOpacity={0.7}
         >
             <View style={styles.topRow}>
-                <CustomText variant="body" style={styles.trailName} numberOfLines={1}>
+                <CustomText 
+                    variant="body" 
+                    style={styles.trailName} 
+                    numberOfLines={1}
+                >
                     {trailName}
                 </CustomText>
                 
-                <View style={[styles.statusPill, { backgroundColor: statusConfig.bgColor }]}>
+                <View 
+                    style={[
+                        styles.statusPill, 
+                        { backgroundColor: statusConfig.bgColor }
+                    ]}
+                >
                     <CustomIcon 
                         library="Feather" 
                         name={statusConfig.icon} 
                         size={12} 
                         color={statusConfig.textColor} 
                     />
-                    <CustomText style={[styles.statusPillText, { color: statusConfig.textColor }]}>
+                    <CustomText 
+                        style={[
+                            styles.statusPillText, 
+                            { color: statusConfig.textColor }
+                        ]}
+                    >
                         {statusConfig.label}
                     </CustomText>
                 </View>
@@ -110,14 +104,28 @@ const BookingCard = ({ booking, onSelectBooking }) => {
 
             <View style={styles.middleRow}>
                 <View style={styles.infoWrapper}>
-                    <CustomIcon library="Feather" name="user" size={14} color={Colors.TEXT_PLACEHOLDER} />
-                    <CustomText variant="caption" style={styles.infoText} numberOfLines={1}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name="user" 
+                        size={14} 
+                        color={Colors.TEXT_PLACEHOLDER} 
+                    />
+                    <CustomText 
+                        variant="caption" 
+                        style={styles.infoText} 
+                        numberOfLines={1}
+                    >
                         {businessName}
                     </CustomText>
                 </View>
                 
                 <View style={styles.infoWrapper}>
-                    <CustomIcon library="Feather" name="calendar" size={14} color={Colors.TEXT_PLACEHOLDER} />
+                    <CustomIcon 
+                        library="Feather" 
+                        name="calendar" 
+                        size={14} 
+                        color={Colors.TEXT_PLACEHOLDER} 
+                    />
                     <CustomText variant="caption" style={styles.infoText}>
                         {formattedDate}
                     </CustomText>
@@ -127,117 +135,181 @@ const BookingCard = ({ booking, onSelectBooking }) => {
             <View style={styles.dottedDivider} />
 
             <View style={styles.bottomRow}>
-                <View>
-                    <CustomText variant="caption" style={styles.priceLabel}>
-                        Total Amount
+                {booking?.status === 'downpayment' ? (
+                    <View style={styles.priceColumnContainer}>
+                        <View style={styles.flexCol}>
+                            <CustomText variant="caption" style={styles.dataLabel}>
+                                Paid (50%)
+                            </CustomText>
+                            <CustomText 
+                                variant="h2" 
+                                style={[
+                                    styles.dataValue, 
+                                    { color: Colors.SUCCESS }
+                                ]}
+                            >
+                                ₱{(price / 2).toFixed(2)}
+                            </CustomText>
+                        </View>
+                        <View style={styles.flexCol}>
+                            <CustomText variant="caption" style={styles.dataLabel}>
+                                Balance
+                            </CustomText>
+                            <CustomText 
+                                variant="h2" 
+                                style={[
+                                    styles.dataValue, 
+                                    { color: Colors.WARNING }
+                                ]}
+                            >
+                                ₱{(price / 2).toFixed(2)}
+                            </CustomText>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.flexCol}>
+                        <CustomText variant="caption" style={styles.dataLabel}>
+                            Total Amount
+                        </CustomText>
+                        <CustomText variant="h2" style={styles.dataValue}>
+                            ₱{price.toFixed(2)}
+                        </CustomText>
+                    </View>
+                )}
+
+                <View style={styles.actionCol}>
+                    <CustomText variant="caption" style={styles.updateLabel}>
+                        {recentUpdateText || ' '} 
                     </CustomText>
-                    <CustomText variant="h2" style={styles.priceText}>
-                        ₱{price.toFixed(2)}
-                    </CustomText>
+                    
+                    <View style={styles.viewDetailsContainer}>
+                        <CustomText 
+                            style={[
+                                styles.viewDetailsText, 
+                                { color: actionColor }
+                            ]}
+                        >
+                            {actionLabel}
+                        </CustomText>
+                        <CustomIcon 
+                            library="Feather" 
+                            name={actionIcon} 
+                            size={16} 
+                            color={actionColor} 
+                        />
+                    </View>
                 </View>
-                
-                <View style={styles.viewDetailsContainer}>
-                    <CustomText style={styles.viewDetailsText}>
-                        View Details
-                    </CustomText>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="chevron-right" 
-                        size={16} 
-                        color={Colors.PRIMARY} 
-                    />
-                </View>
+
             </View>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
-    cardContainer: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+    cardContainer: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 16, 
+        padding: 16, 
+        marginBottom: 16, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 8, 
+        elevation: 3 
     },
-    topRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
+    topRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        marginBottom: 12 
     },
-    trailName: {
-        flex: 1,
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 18,
-        fontWeight: 'bold',
-        paddingRight: 12,
+    trailName: { 
+        flex: 1, 
+        color: Colors.TEXT_PRIMARY, 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        paddingRight: 12 
     },
-    statusPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 4,
+    statusPill: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 10, 
+        paddingVertical: 6, 
+        borderRadius: 20, 
+        gap: 4 
     },
-    statusPillText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
+    statusPillText: { 
+        fontSize: 10, 
+        fontWeight: 'bold', 
+        letterSpacing: 0.5 
     },
-    middleRow: {
-        gap: 8,
-        marginBottom: 4,
+    middleRow: { 
+        gap: 8, 
+        marginBottom: 4 
     },
-    infoWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    infoWrapper: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8 
     },
-    infoText: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 13,
+    infoText: { 
+        color: Colors.TEXT_SECONDARY, 
+        fontSize: 13 
     },
-    dottedDivider: {
-        height: 1,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        borderStyle: 'dashed',
-        marginVertical: 16,
+    dottedDivider: { 
+        height: 1, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        borderStyle: 'dashed', 
+        marginVertical: 16 
     },
-    bottomRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
+    bottomRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'stretch' 
     },
-    priceLabel: {
-        color: Colors.TEXT_PLACEHOLDER,
-        fontSize: 11,
-        marginBottom: 2,
+    priceColumnContainer: { 
+        flexDirection: 'row', 
+        gap: 16 
     },
-    priceText: {
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: 'bold',
-        marginBottom: 0, 
+    flexCol: { 
+        justifyContent: 'space-between' 
     },
-    viewDetailsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-        paddingBottom: 4, 
+    actionCol: { 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-end'
     },
-    viewDetailsText: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-        fontSize: 14,
+    dataLabel: { 
+        color: Colors.TEXT_PLACEHOLDER, 
+        fontSize: 11, 
+        marginBottom: 4 
     },
+    updateLabel: { 
+        color: Colors.TEXT_PLACEHOLDER, 
+        fontSize: 11, 
+        fontStyle: 'italic', 
+        marginBottom: 4 
+    },
+    dataValue: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: 'bold', 
+        marginBottom: 0 
+    },
+    viewDetailsContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 2, 
+        marginBottom: 0
+    },
+    viewDetailsText: { 
+        fontWeight: 'bold', 
+        fontSize: 14 
+    }
 });
 
 export default BookingCard;
