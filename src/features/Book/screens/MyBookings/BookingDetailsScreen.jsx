@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
@@ -47,6 +47,7 @@ const BookingDetailsScreen = ({
 }) => {
     const [isCanceling, setIsCanceling] = useState(false);
     const [isRefunding, setIsRefunding] = useState(false);
+    const [showActionMenu, setShowActionMenu] = useState(false);
     const [fullOffer, setFullOffer] = useState(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState(true);
     
@@ -97,8 +98,12 @@ const BookingDetailsScreen = ({
     const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
     
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'cancelled'].includes(localStatus);
+    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(localStatus);
     const isConfirmed = ['paid', 'completed', 'downpayment'].includes(localStatus);
+    
+    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(localStatus);
+    const canRefund = isConfirmed;
+    const showMenuIcon = !isCanceling && !isRefunding && !isCancelled && (canCancel || canRefund);
 
     const inclusions = fullOffer?.inclusions || [];
     const thingsToBring = fullOffer?.thingsToBring || [];
@@ -108,16 +113,17 @@ const BookingDetailsScreen = ({
     const trails = useTrailsStore(s => s.data);
     const fullTrail = trails.find(t => t.id === booking?.trail?.id);
 
+    // ✅ FIXED: Deep optional chaining to prevent reading 'offer' of null
     const enhancedBooking = {
         ...booking,
         status: localStatus, 
         offer: {
-            ...booking.offer,
+            ...booking?.offer,
             duration: fullOffer?.duration || 'N/A',
-            endDate: fullOffer?.endDate || booking.offer.date
+            endDate: fullOffer?.endDate || booking?.offer?.date
         },
         trail: {
-            ...booking.trail,
+            ...booking?.trail,
             location: fullTrail?.general?.address || fullTrail?.general?.province?.join(', ') || 'N/A'
         }
     };
@@ -162,17 +168,8 @@ const BookingDetailsScreen = ({
             };
         }
 
-        const cancelBtnStyle = {
-            title: "Cancel",
-            variant: "outline",
-            style: { borderColor: Colors.GRAY_MEDIUM, borderRadius: 12 },
-            textStyle: { color: Colors.TEXT_SECONDARY },
-            onPress: () => setIsCanceling(true)
-        };
-
         if (localStatus === 'for-reservation' || localStatus === 'pending-docs' || localStatus === 'for-reschedule') {
             return {
-                secondaryButton: cancelBtnStyle,
                 primaryButton: { 
                     title: "Reschedule", 
                     variant: "primary", 
@@ -184,11 +181,10 @@ const BookingDetailsScreen = ({
 
         if (localStatus === 'for-payment' || localStatus === 'approved-docs') {
             return {
-                secondaryButton: cancelBtnStyle,
                 primaryButton: { 
                     title: "Complete Payment", 
                     variant: "primary", 
-                    style: { borderRadius: 12, backgroundColor: '#006B2B' }, 
+                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
                     onPress: () => onProceedToPayment(booking) 
                 }
             };
@@ -206,7 +202,7 @@ const BookingDetailsScreen = ({
                 primaryButton: { 
                     title: "Pay Balance", 
                     variant: "primary", 
-                    style: { borderRadius: 12, backgroundColor: '#006B2B' }, 
+                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
                     onPress: () => onProceedToPayment(booking) 
                 }
             };
@@ -214,13 +210,6 @@ const BookingDetailsScreen = ({
 
         if (isConfirmed) {
             return {
-                secondaryButton: { 
-                    title: "Request Refund", 
-                    variant: "outline", 
-                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
-                    textStyle: { color: Colors.ERROR },
-                    onPress: () => setIsRefunding(true) 
-                },
                 primaryButton: { 
                     title: "View Receipt", 
                     variant: "primary", 
@@ -324,6 +313,13 @@ const BookingDetailsScreen = ({
                 title={isCanceling ? "Cancel Booking" : isRefunding ? "Request Refund" : "Booking Details"} 
                 centerTitle={true} 
                 onBackPress={isCanceling ? () => setIsCanceling(false) : isRefunding ? () => setIsRefunding(false) : onBackPress} 
+                rightActions={
+                    showMenuIcon ? (
+                        <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
+                            <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.TEXT_PRIMARY} />
+                        </TouchableOpacity>
+                    ) : null
+                }
             />
 
             <ScrollView 
@@ -465,11 +461,11 @@ const BookingDetailsScreen = ({
 
                 {isRefunding && (
                     <View style={styles.paddingHorizontal}>
-                        <View style={{ backgroundColor: Colors.ERROR_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR, marginTop: 16 }}>
-                            <CustomText variant="h3" style={{ color: Colors.ERROR, marginBottom: 8 }}>
+                        <View style={styles.refundWarningBox}>
+                            <CustomText variant="h3" style={styles.refundWarningTitle}>
                                 Refund Policy Warning
                             </CustomText>
-                            <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY }}>
+                            <CustomText variant="caption" style={styles.refundWarningText}>
                                 Please note that refunds are only fully granted if requested at least 7 days before the hike. Processing may take up to 3-5 business days. Are you sure you want to refund this booking?
                             </CustomText>
                         </View>
@@ -486,6 +482,64 @@ const BookingDetailsScreen = ({
                     />
                 </View>
             )}
+
+            <Modal 
+                transparent={true} 
+                visible={showActionMenu} 
+                animationType="fade" 
+                onRequestClose={() => setShowActionMenu(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowActionMenu(false)}
+                >
+                    <View style={styles.actionSheetWrapper}>
+                        <View style={styles.actionSheet}>
+                            <View style={styles.actionSheetHandle} />
+                            
+                            <CustomText variant="h3" style={styles.actionSheetTitle}>
+                                Booking Options
+                            </CustomText>
+                            
+                            {canCancel && (
+                                <TouchableOpacity 
+                                    style={styles.actionItem} 
+                                    onPress={() => { 
+                                        setShowActionMenu(false); 
+                                        setTimeout(() => setIsCanceling(true), 300); 
+                                    }}
+                                >
+                                    <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                        <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
+                                    </View>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                        Cancel Booking
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
+
+                            {canRefund && (
+                                <TouchableOpacity 
+                                    style={styles.actionItem} 
+                                    onPress={() => { 
+                                        setShowActionMenu(false); 
+                                        setTimeout(() => setIsRefunding(true), 300); 
+                                    }}
+                                >
+                                    <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                        <CustomIcon library="Feather" name="refresh-ccw" size={18} color={Colors.ERROR} />
+                                    </View>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                        Request Refund
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
         </ScreenWrapper>
     );
 };
@@ -495,6 +549,7 @@ const styles = StyleSheet.create({
     spacing: { height: 16 },
     spacingBottom: { marginBottom: 16 },
     paddingHorizontal: { paddingHorizontal: 20 },
+    headerOptionsBtn: { paddingHorizontal: 8 },
     infoBanner: { flexDirection: 'row', backgroundColor: Colors.GRAY_ULTRALIGHT, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, gap: 12 },
     infoBannerText: { flex: 1, color: Colors.TEXT_SECONDARY, lineHeight: 20 },
     bulletRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 12 },
@@ -520,7 +575,19 @@ const styles = StyleSheet.create({
     timelineContent: { flex: 1 },
     timelineTime: { fontWeight: 'bold', fontSize: 13, color: Colors.TEXT_PRIMARY },
     timelineSubEvent: { lineHeight: 20, marginTop: 2 },
-    floatingFooterContainer: { paddingBottom: 20, paddingHorizontal: 10, backgroundColor: 'transparent' }
+    refundWarningBox: { backgroundColor: Colors.ERROR_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR, marginTop: 16 },
+    refundWarningTitle: { color: Colors.ERROR, marginBottom: 8 },
+    refundWarningText: { color: Colors.TEXT_SECONDARY },
+    floatingFooterContainer: { paddingBottom: 20, paddingHorizontal: 10, backgroundColor: 'transparent' },
+
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' },
+    actionSheetWrapper: { width: '100%', maxWidth: 768 },
+    actionSheet: { backgroundColor: Colors.WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    actionSheetHandle: { width: 40, height: 4, backgroundColor: Colors.GRAY_LIGHT, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+    actionSheetTitle: { marginBottom: 20 },
+    actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 16 },
+    actionIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ERROR_BG, justifyContent: 'center', alignItems: 'center' },
+    actionItemText: { fontSize: 16, fontWeight: '600' }
 });
 
 export default BookingDetailsScreen;
