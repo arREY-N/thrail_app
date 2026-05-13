@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -9,6 +9,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
+import { checkIfMinor } from '@/src/utils/dateFormatter';
 
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
@@ -24,21 +25,29 @@ const PaymentScreen = ({
     onPayOffer,
 }) => {
     const { profile } = useAuthStore();
-    const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
+    
+    // ✅ Safely construct the hiker's full name
+    const hikerFirstName = bookingData?.user?.firstname || profile?.firstname || '';
+    const hikerLastName = bookingData?.user?.lastname || profile?.lastname || '';
+    const hikerFullName = `${hikerFirstName} ${hikerLastName}`.trim();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
     
     const [paymentType, setPaymentType] = useState('full');
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
 
+    const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
+    const latestPayment = payments[payments.length - 1];
+
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountPaidAlready = bookingData?.payment?.reduce((sum, p) => {
+    const amountPaidAlready = payments.reduce((sum, p) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
-    }, 0) || 0;
+    }, 0);
     const remainingBalance = totalPrice - amountPaidAlready;
     
     const isPayingBalance = amountPaidAlready > 0;
@@ -47,7 +56,45 @@ const PaymentScreen = ({
         ? remainingBalance 
         : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
 
+    // ✅ FIXED: Pass the raw date directly to your utility function
+    const rawBirthday = bookingData?.user?.birthday || profile?.birthday;
+    const isUserMinor = checkIfMinor(rawBirthday);
+    
+    const expectedSignatureName = isUserMinor && bookingData?.emergencyContact?.name 
+        ? bookingData.emergencyContact.name.trim() 
+        : hikerFullName;
+
+    useEffect(() => {
+        if (!isWaitingForVerification || !latestPayment) return;
+
+        if (latestPayment?.status === 'failed') {
+            setIsWaitingForVerification(false);
+            setPaymentError("Your payment failed or was declined by the provider. Please check your balance and try again.");
+            return;
+        }
+
+        if (latestPayment?.status === 'expired') {
+            setIsWaitingForVerification(false);
+            setPaymentError("Your payment session expired because it took too long. Please initiate a new payment.");
+            return;
+        }
+
+        const isNowPaid = 
+            bookingData.status === 'paid' || 
+            bookingData.status === 'completed' || 
+            (bookingData.status === 'downpayment' && effectivePaymentType === 'downpayment');
+
+        if (isNowPaid || latestPayment?.status === 'captured') {
+            setIsWaitingForVerification(false);
+            setCurrentStep(2); 
+        }
+    }, [bookingData, isWaitingForVerification, effectivePaymentType, latestPayment]);
+
     const handleHeaderBackPress = () => {
+        if (isWaitingForVerification) {
+            setIsWaitingForVerification(false); 
+            return;
+        }
         if (currentStep === 2) {
             handleNextStep(); 
         } else {
@@ -57,7 +104,7 @@ const PaymentScreen = ({
 
     const handleStepNavigation = (step) => {
         if (currentStep === 2) return; 
-        if (step > currentStep || isSubmitting) return; 
+        if (step > currentStep || isSubmitting || isWaitingForVerification) return; 
         setCurrentStep(step);
     };
 
@@ -66,25 +113,34 @@ const PaymentScreen = ({
             setPaymentError(null);
 
             if (['gcash', 'maya'].includes(selectedMethod)) {
-                
-                // Synchronously open a blank popup on web to avoid popup blockers
                 let popup = null;
                 if (Platform.OS === 'web') {
-                    popup = window.open('', '_blank');
+                    const width = 450;
+                    const height = 750;
+                    const left = (window.screen.width / 2) - (width / 2);
+                    const top = (window.screen.height / 2) - (height / 2);
+                    popup = window.open(
+                        '', 
+                        'PayMongoCheckout', 
+                        `toolbar=no, location=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=${width}, height=${height}, top=${top}, left=${left}`
+                    );
                 }
 
                 setIsSubmitting(true);
                 try {
+                    const urlParams = { 
+                        queryParams: { 
+                            bookingId: bookingData?.id, 
+                            view: 'overview' 
+                        } 
+                    };
+                    const rawUrl = Linking.createURL('book/list', urlParams);
+                    const appUrl = Platform.OS === 'web' 
+                        ? rawUrl 
+                        : Linking.createURL('book/list', { scheme: 'thrailapp', ...urlParams });
                     
-                    // Create return URL automatically based on the environment
-                    const rawUrl = Linking.createURL('payment-result');
-                    const appUrl = Platform.OS === 'web' ? rawUrl : Linking.createURL('payment-result', { scheme: 'thrailapp' });
-                    
-                    // Always use the production HTTPS cloud function even in DEV. 
                     const projectId = app.options.projectId || 'thrail';
                     const redirectFunctionUrl = `https://us-central1-${projectId}.cloudfunctions.net/paymongoRedirect`;
-
-                    // Wrap the deep link in our custom Firebase HTTP function
                     const secureReturnUrl = `${redirectFunctionUrl}?url=${encodeURIComponent(appUrl)}`;
                     
                     const response = await onPayOffer(
@@ -99,44 +155,86 @@ const PaymentScreen = ({
                     if (Platform.OS === 'web') {
                         if (popup) {
                             popup.location.href = checkoutUrl;
+                            setIsWaitingForVerification(true);
+                            
+                            const pollTimer = setInterval(() => {
+                                if (popup.closed) {
+                                    clearInterval(pollTimer);
+                                    setTimeout(() => {
+                                        setIsWaitingForVerification(prev => {
+                                            if (prev) {
+                                                setPaymentError("You closed the payment window. If you didn't complete the payment, please try again. If you already paid, your booking will automatically update shortly.");
+                                                return false;
+                                            }
+                                            return prev;
+                                        });
+                                    }, 2000); 
+                                }
+                            }, 1000);
+
                         } else {
-                            // If popup was blocked entirely, redirect the current window
                             window.location.href = checkoutUrl;
-                            return; 
+                            setIsWaitingForVerification(true);
                         }
                     } else {
-                        // Use the in-app browser for a seamless experience on mobile
-                        await WebBrowser.openBrowserAsync(checkoutUrl, {
-                            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                            toolbarColor: Colors.PRIMARY,
-                            enableBarCollapsing: true,
-                            showTitle: true,
-                        });
+                        const browserResult = await WebBrowser.openAuthSessionAsync(
+                            checkoutUrl, 
+                            appUrl
+                        );
+                        
+                        if (browserResult.type === 'cancel') {
+                            setIsWaitingForVerification(true); 
+                            setTimeout(() => {
+                                setIsWaitingForVerification(prev => {
+                                    if (prev) {
+                                        setPaymentError("The payment browser was closed. If you didn't complete the payment, please try again. If you already paid, your booking will automatically update shortly.");
+                                        return false;
+                                    }
+                                    return prev;
+                                });
+                            }, 3000);
+                        } else {
+                            setIsWaitingForVerification(true);
+                        }
                     }
-
-                    setCurrentStep(2);
 
                 } catch (error) {
                     if (popup) popup.close();
                     console.error("Payment Error:", error);
-                    setPaymentError(error.message || "Failed to initialize payment gateway. Please try again or use another method.");
+                    setPaymentError(
+                        error.message || "Failed to initialize payment gateway. Please try again."
+                    );
                 } finally {
                     setIsSubmitting(false);
                 }
             } 
         } else if (currentStep === 2) {
             onContinue({
-                paymentType,
+                paymentType: effectivePaymentType,
                 paymentMethod: selectedMethod,
-                amountPaid: amountToPay,
+                amountPaid: latestPayment?.amount || amountToPay,
             });
         }
     };
 
     const getFooterConfig = () => {
-        if (currentStep === 1) return { title: "Continue to Payment", disabled: !(selectedMethod && isSignatureValid) };
-        if (currentStep === 2) return { title: "Return to Bookings", disabled: false }; 
-        return { title: "Continue", disabled: false };
+        if (isWaitingForVerification) return { 
+            title: "Cancel Verification", 
+            onPress: () => setIsWaitingForVerification(false), 
+            variant: "outline" 
+        };
+        if (currentStep === 1) return { 
+            title: "Continue to Payment", 
+            disabled: !(selectedMethod && isSignatureValid) 
+        };
+        if (currentStep === 2) return { 
+            title: "Return to Bookings", 
+            disabled: false 
+        }; 
+        return { 
+            title: "Continue", 
+            disabled: false 
+        };
     };
 
     const footerConfig = getFooterConfig();
@@ -146,8 +244,12 @@ const PaymentScreen = ({
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomLoading 
-                visible={isSubmitting} 
-                message="Opening Secure Gateway..." 
+                visible={isSubmitting || isWaitingForVerification} 
+                message={
+                    isWaitingForVerification 
+                        ? "Verifying Payment with Gateway..." 
+                        : "Opening Secure Gateway..."
+                } 
             />
 
             <CustomHeader 
@@ -160,7 +262,12 @@ const PaymentScreen = ({
                 <View style={styles.progressContainer}>
                     <View style={styles.lineWrapper}>
                         <View style={styles.progressLineBackground} />
-                        <View style={[styles.progressLineActive, { width: `${lineFillPercentage}%` }]} />
+                        <View 
+                            style={[
+                                styles.progressLineActive, 
+                                { width: `${lineFillPercentage}%` }
+                            ]} 
+                        />
                     </View>
 
                     <View style={styles.progressRow}>
@@ -192,17 +299,21 @@ const PaymentScreen = ({
                         setPaymentType={setPaymentType}
                         selectedMethod={selectedMethod}
                         setSelectedMethod={setSelectedMethod}
-                        profileFullName={profileFullName}
+                        profileFullName={expectedSignatureName}
                         setIsSignatureValid={setIsSignatureValid}
                         paymentError={paymentError}
                         isPayingBalance={isPayingBalance}
+                        // ✅ Pass the Minor props down
+                        isMinor={isUserMinor}
+                        minorName={hikerFullName}
                     />
                 )}
                 {currentStep === 2 && (
                     <StatusScreen 
-                        selectedMethod={selectedMethod} 
-                        amountToPay={amountToPay} 
+                        selectedMethod={latestPayment?.gateway || selectedMethod} 
+                        amountToPay={latestPayment?.amount || amountToPay} 
                         bookingId={bookingData?.id}
+                        referenceCode={latestPayment?.referenceCode || latestPayment?.sessionId}
                     />
                 )}
             </View>
@@ -210,8 +321,9 @@ const PaymentScreen = ({
             <CustomStickyFooter
                 primaryButton={{
                     title: footerConfig.title,
-                    onPress: handleNextStep,
-                    disabled: footerConfig.disabled
+                    onPress: footerConfig.onPress || handleNextStep,
+                    disabled: footerConfig.disabled,
+                    variant: footerConfig.variant || "primary"
                 }}
             />
         </ScreenWrapper>
@@ -227,7 +339,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, 
         backgroundColor: Colors.BACKGROUND,
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.05, 
         shadowRadius: 4, 
         borderBottomWidth: 1,
