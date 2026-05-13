@@ -106,7 +106,7 @@ const DocumentUploadCard = ({
                 </View>
                 
                 <View style={styles.actionContainer}>
-                    {isComplete && (
+                    {imagesList.length > 0 && (
                         <TouchableOpacity style={styles.viewBtn} onPress={handleViewPress} activeOpacity={0.7}>
                             <CustomText variant="caption" style={styles.viewBtnText}>
                                 View
