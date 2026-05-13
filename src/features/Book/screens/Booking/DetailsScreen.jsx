@@ -9,7 +9,7 @@ import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
 import { useAuthStore } from '@/src/core/stores/authStore';
-import { safeParseDateString } from '@/src/utils/dateFormatter';
+import { checkIfMinor } from '@/src/utils/dateFormatter';
 
 import StickyFooter from '@/src/features/Book/components/StickyFooter';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
@@ -61,18 +61,7 @@ const DetailsScreen = ({
     const [isMinor, setIsMinor] = useState(false);
 
     useEffect(() => {
-        if (profile?.birthday) {
-            const bday = safeParseDateString(profile.birthday);
-            const today = new Date();
-            let age = today.getFullYear() - bday.getFullYear();
-            const m = today.getMonth() - bday.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
-                age--;
-            }
-            setIsMinor(age < 18);
-        } else {
-            setIsMinor(false);
-        }
+        setIsMinor(checkIfMinor(profile?.birthday));
     }, [profile?.birthday]);
 
     const activeDocuments = [...requiredDocuments];
