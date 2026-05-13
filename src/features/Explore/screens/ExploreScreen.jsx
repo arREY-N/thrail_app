@@ -2,13 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import CustomFAB from "@/src/components/CustomFAB";
+import CustomFilterModal from "@/src/components/CustomFilterModal";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
 import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
-
-import FilterModal from "@/src/features/Explore/components/FilterModal";
 
 import { Colors } from "@/src/constants/colors";
 import { fetchWeatherFromApi } from "@/src/core/repositories/weatherRepository";
@@ -23,6 +22,9 @@ const MOUNTAIN_COORDS = {
     makiling: { lat: 14.1352241, lon: 121.1944517 },
     maculot: { lat: 13.9208682, lon: 121.0516961 },
 };
+
+const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
+const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
 const resolveCoordsForTrail = (trail) => {
     const name = (trail?.general?.name ?? "").toLowerCase();
@@ -130,6 +132,23 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
 
     const shouldCenterGrid = filteredTrails.length > 0 && filteredTrails.length < numColumns;
 
+    const filterSections = [
+        {
+            id: 'provinces',
+            title: 'Province',
+            type: 'pill',
+            multiSelect: true,
+            options: PROVINCES.map(p => ({ label: p, value: p }))
+        },
+        {
+            id: 'elevation',
+            title: 'Elevation Range',
+            type: 'pill',
+            multiSelect: false,
+            options: ELEVATIONS.map(e => ({ label: e, value: e }))
+        }
+    ];
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
@@ -187,11 +206,14 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
                     </View>
                 </ResponsiveScrollView>
 
-                <FilterModal
+                <CustomFilterModal
                     visible={isFilterModalVisible}
                     onClose={() => setIsFilterModalVisible(false)}
-                    initialFilters={activeFilters}
-                    onApply={(filters) => setActiveFilters(filters)}
+                    title="Filters"
+                    sections={filterSections}
+                    initialValues={activeFilters}
+                    defaultValues={{ provinces: [], elevation: null }}
+                    onApply={(values) => setActiveFilters(values)}
                 />
 
                 <CustomFAB onPress={onGroupPress} />
