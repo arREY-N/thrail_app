@@ -10,8 +10,7 @@ import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
-import { fetchWeatherFromApi } from "@/src/core/repositories/weatherRepository";
-import { getWeatherInfoUI } from "@/src/core/utility/weatherHelpers";
+import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
@@ -62,34 +61,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
 
     useEffect(() => {
         if (!trails || trails.length === 0) return;
-
-        const fetchAll = async () => {
-            const targets = trails.reduce((acc, trail) => {
-                const coords = resolveCoordsForTrail(trail);
-                if (coords) acc.push({ id: trail.id, ...coords });
-                return acc;
-            }, []);
-
-            if (targets.length === 0) return;
-
-            const results = await Promise.allSettled(
-                targets.map(({ lat, lon }) => fetchWeatherFromApi(lat, lon)),
-            );
-
-            const nextMap = {};
-            results.forEach((result, index) => {
-                if (result.status === "fulfilled" && result.value) {
-                    const { icon } = getWeatherInfoUI(result.value.weatherCode);
-                    nextMap[targets[index].id] = {
-                        icon,
-                        temperature: result.value.temperature,
-                    };
-                }
-            });
-            setWeatherMap(nextMap);
-        };
-
-        fetchAll();
+        fetchTrailWeatherBadges(trails).then(setWeatherMap);
     }, [trails]);
 
     const filteredTrails = useMemo(() => {

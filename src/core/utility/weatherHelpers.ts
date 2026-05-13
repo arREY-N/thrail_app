@@ -2,7 +2,8 @@
 // ACTION: CREATE
 // REASON: Keep weather-specific presentation logic isolated and grouped together rather than crowding general formatting utilities.
 
-import { HikingSafetyStatus, ProcessedWeatherData } from "../types/weather";
+import { fetchWeatherFromApi } from "../repositories/weatherRepository";
+import { DailyForecast, HikingSafetyStatus, ProcessedWeatherData } from "../types/weather";
 
 export const formatForecastDay = (isoDateString: string, index: number): string => {
     if (index === 0) return "Today";
@@ -122,4 +123,194 @@ export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyS
     }
 
     return "SAFE";
+};
+
+// ─── CONSOLIDATED WEATHER DISPLAY HELPERS ─────────────────────────────────────
+// These functions replace manually copy-pasted weather formatting logic
+// that was scattered across WeatherScreen, WeatherSection, WeatherWidget, etc.
+// Call these instead of duplicating extraction + null-checking + Math.round patterns.
+
+/**
+ * Formatted weather values ready for display.
+ * Every field is pre-formatted as a display-safe string (never undefined/NaN).
+ */
+export interface WeatherDisplayValues {
+    /** Rounded current temperature or '--' */
+    temperature: string;
+    /** Rounded day high temp or '--' */
+    dayTemp: string;
+    /** Rounded night low temp or '--' */
+    nightTemp: string;
+    /** Human-readable condition, e.g. "Partly Cloudy" */
+    condition: string;
+    /** Icon name for the current weather code */
+    icon: string;
+    /** Icon library for the current weather code */
+    library: string;
+    /** Wind speed display value or '--' */
+    windSpeed: string;
+    /** Precipitation probability or '--' */
+    precipChance: string;
+    /** Rounded UV index or '--' */
+    uvIndex: string;
+    /** Rounded humidity or '--' */
+    humidity: string;
+    /** Formatted sunrise time or '--:-- AM' */
+    sunrise: string;
+    /** Formatted sunset time or '--:-- PM' */
+    sunset: string;
+    /** Formatted feels-like temperature or null */
+    feelsLike: string | null;
+    /** Whether the data is present (non-null, no error) */
+    hasData: boolean;
+}
+
+/**
+ * Extracts and formats all commonly displayed weather values from raw ProcessedWeatherData.
+ * Replaces the manual copy-paste pattern of extracting, null-checking, and Math.round-ing
+ * weather fields in every screen/component.
+ *
+ * @param weatherData - The processed weather data (may be null/undefined)
+ * @returns A flat object of display-ready strings
+ *
+ * @example
+ * const display = formatWeatherDisplay(weatherData);
+ * <Text>{display.temperature}°C</Text>
+ * <Text>Day {display.dayTemp}° / Night {display.nightTemp}°</Text>
+ */
+export const formatWeatherDisplay = (
+    weatherData: ProcessedWeatherData | null | undefined
+): WeatherDisplayValues => {
+    const hasData = weatherData != null;
+    const { condition, icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
+
+    const today: DailyForecast | undefined = weatherData?.forecast?.[0];
+
+    return {
+        temperature: hasData && weatherData.temperature !== undefined && !isNaN(weatherData.temperature)
+            ? String(Math.round(weatherData.temperature))
+            : '--',
+        dayTemp: today?.temperatureMax !== undefined
+            ? String(Math.round(today.temperatureMax))
+            : '--',
+        nightTemp: today?.temperatureMin !== undefined
+            ? String(Math.round(today.temperatureMin))
+            : '--',
+        condition,
+        icon,
+        library,
+        windSpeed: hasData && weatherData.windSpeed !== undefined
+            ? String(weatherData.windSpeed)
+            : '--',
+        precipChance: hasData && weatherData.precipitationProbability !== undefined
+            ? String(weatherData.precipitationProbability)
+            : '--',
+        uvIndex: hasData && weatherData.uvIndex !== undefined
+            ? String(Math.round(weatherData.uvIndex))
+            : '--',
+        humidity: hasData && weatherData.humidity !== undefined
+            ? String(Math.round(weatherData.humidity))
+            : '--',
+        sunrise: weatherData?.sunrise ? formatSunTime(weatherData.sunrise) : '--:-- AM',
+        sunset: weatherData?.sunset ? formatSunTime(weatherData.sunset) : '--:-- PM',
+        feelsLike: hasData && weatherData.apparentTemperature != null
+            ? String(Math.round(weatherData.apparentTemperature))
+            : null,
+        hasData,
+    };
+};
+
+/**
+ * Formats a "last updated" timestamp into a human-readable relative label.
+ * Replaces the duplicated useMemo logic found in WeatherWidget and WeatherScreen.
+ *
+ * @param lastUpdated - ISO date string or undefined
+ * @returns A label like "Just now", "5 min ago", "2h 15m ago", or null
+ */
+export const formatLastUpdatedLabel = (lastUpdated: string | undefined | null): string | null => {
+    if (!lastUpdated) return null;
+    const diffMs = Date.now() - new Date(lastUpdated).getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin} min ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    return `${diffHr}h ${diffMin % 60}m ago`;
+};
+
+// ─── TRAIL WEATHER BADGE HELPERS ──────────────────────────────────────────────
+// Replaces the identical MOUNTAIN_COORDS, resolveCoordsForTrail, and
+// Promise.allSettled fetch-and-map logic duplicated in HomeScreen and ExploreScreen.
+
+/** Known mountain coordinates for trail weather lookups. */
+export const MOUNTAIN_COORDS: Record<string, { lat: number; lon: number }> = {
+    tagapo: { lat: 14.3392772, lon: 121.2325293 },
+    marami: { lat: 14.1986108, lon: 120.6858334 },
+    batulao: { lat: 14.0399434, lon: 120.8023782 },
+    makiling: { lat: 14.1352241, lon: 121.1944517 },
+    maculot: { lat: 13.9208682, lon: 121.0516961 },
+};
+
+/** Weather badge data for a single trail, ready to pass to MountainCard. */
+export interface TrailWeatherBadge {
+    icon: string;
+    temperature: number;
+}
+
+/**
+ * Resolves known mountain coordinates from a trail object's name.
+ *
+ * @param trail - A trail object with `general.name`
+ * @returns Coordinates or null if no known mountain matches
+ */
+export const resolveCoordsForTrail = (
+    trail: { general?: { name?: string } }
+): { lat: number; lon: number } | null => {
+    const name = (trail?.general?.name ?? "").toLowerCase();
+    for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
+        if (name.includes(keyword)) return coords;
+    }
+    return null;
+};
+
+/**
+ * Fetches weather badges for a list of trails in parallel.
+ * Returns a map of `{ [trailId]: { icon, temperature } }` for every trail
+ * that has known coordinates and a successful weather fetch.
+ *
+ * @param trails - Array of trail objects with `id` and `general.name`
+ * @returns A map from trail ID to weather badge data
+ *
+ * @example
+ * const badgeMap = await fetchTrailWeatherBadges(trails);
+ * <MountainCard weatherBadge={badgeMap[trail.id] ?? null} />
+ */
+export const fetchTrailWeatherBadges = async (
+    trails: Array<{ id: string; general?: { name?: string } }>
+): Promise<Record<string, TrailWeatherBadge>> => {
+    if (!trails || trails.length === 0) return {};
+
+    const targets = trails.reduce<Array<{ id: string; lat: number; lon: number }>>((acc, trail) => {
+        const coords = resolveCoordsForTrail(trail);
+        if (coords) acc.push({ id: trail.id, ...coords });
+        return acc;
+    }, []);
+
+    if (targets.length === 0) return {};
+
+    const results = await Promise.allSettled(
+        targets.map(({ lat, lon }) => fetchWeatherFromApi(lat, lon)),
+    );
+
+    const badgeMap: Record<string, TrailWeatherBadge> = {};
+    results.forEach((result, index) => {
+        if (result.status === "fulfilled" && result.value) {
+            const { icon } = getWeatherInfoUI(result.value.weatherCode);
+            badgeMap[targets[index].id] = {
+                icon,
+                temperature: result.value.temperature,
+            };
+        }
+    });
+
+    return badgeMap;
 };
