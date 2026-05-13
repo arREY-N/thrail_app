@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import CustomFilterModal from '@/src/components/CustomFilterModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomLoading from "@/src/components/CustomLoading";
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -13,9 +15,8 @@ import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
 import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
-import PaymentStatusScreen from '@/src/features/Book/screens/MyBookings/PaymentStatusScreen';
-import ReceiptScreen from '@/src/features/Book/screens/MyBookings/ReceiptScreen';
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
+import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
 const MyBookingsScreen = ({
     userBookings,
@@ -24,26 +25,39 @@ const MyBookingsScreen = ({
     onCancelBookingPress,
     onRefundBookingPress, 
     onPayOffer,
-    getBookOffer
+    getBookOffer,
+    initialBookingId,
+    initialView
 }) => {
-    const [currentView, setCurrentView] = useState('list'); 
-    const [selectedBookingId, setSelectedBookingId] = useState(null);
+    const [currentView, setCurrentView] = useState(initialView || 'list'); 
+    const [selectedBookingId, setSelectedBookingId] = useState(initialBookingId || null);
+    const [showFilterModal, setShowFilterModal] = useState(false);
 
-    // Always get the freshest booking data from the store so realtime updates (like webhooks) reflect immediately
+    React.useEffect(() => {
+        if (initialView && initialBookingId) {
+            setSelectedBookingId(initialBookingId);
+            setCurrentView(initialView);
+        }
+    }, [initialView, initialBookingId]);
+
     const selectedBooking = userBookings?.find(b => b.id === selectedBookingId) || null;
 
     const { 
         tabs, 
         activeTab, 
         setActiveTab, 
-        filteredBookings 
+        filteredBookings,
+        sortBy,
+        setSortBy,
+        filterBy,
+        setFilterBy
     } = useBookingFilters(userBookings);
 
     const onHeaderBackPress = () => {
         if (currentView === 'overview') {
             setCurrentView('list');
             setSelectedBookingId(null);
-        } else if (currentView === 'payment') {
+        } else if (currentView === 'payment' || currentView === 'receipt') {
             setCurrentView('overview');
         } else {
             onBackPress();
@@ -52,22 +66,37 @@ const MyBookingsScreen = ({
 
     const onBookingSelectPress = (booking) => {
         setSelectedBookingId(booking.id);
-
-        if (booking.status === 'paid') {
-            setCurrentView('payment-status');
-        } else {
-            setCurrentView('overview'); 
-        }
+        setCurrentView('overview'); 
     };
 
     const onProceedToPaymentPress = () => {
         setCurrentView('payment');
     };
 
-    const onPaymentSubmitPress = (paymentData) => {
-        console.log("Submitting Payment: ", paymentData);
-        setCurrentView('payment-status');
-    };
+    const filterSections = [
+        {
+            id: 'sortBy',
+            title: 'Sort By',
+            type: 'radio',
+            options: [
+                { label: 'Hike Date', value: 'hike-date' },
+                { label: 'Date Booked', value: 'booked-date' },
+                { label: 'Recently Updated', value: 'last-updated' } 
+            ]
+        },
+        {
+            id: 'filterBy',
+            title: 'Filter By',
+            type: 'pill',
+            multiSelect: false,
+            options: [
+                { label: 'Show All', value: 'all' },
+                { label: 'Action Needed', value: 'action-needed' },
+                { label: 'Waiting on Provider', value: 'waiting' },
+                { label: 'Partially Paid', value: 'partial' }
+            ]
+        }
+    ];
 
     const displayError = error === 'No trail ID provided' ? null : error;
 
@@ -78,6 +107,11 @@ const MyBookingsScreen = ({
                     title="My Bookings" 
                     centerTitle={true} 
                     onBackPress={onHeaderBackPress} 
+                    rightActions={
+                        <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowFilterModal(true)} activeOpacity={0.7}>
+                            <CustomIcon library="Feather" name="sliders" size={22} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    }
                 />
 
                 <BookTabs 
@@ -103,28 +137,46 @@ const MyBookingsScreen = ({
                             <BookingCard 
                                 key={booking.id} 
                                 booking={booking} 
-                                onSelectBooking={onBookingSelectPress} 
+                                onSelectBooking={(b) => { setSelectedBookingId(b.id); setCurrentView('overview'); }} 
                             />
                         ))
                     ) : (
                         <View style={styles.emptyState}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="inbox" 
-                                size={48} 
-                                color={Colors.GRAY_LIGHT} 
-                            />
+                            <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_LIGHT} />
                             <CustomText variant="body" style={styles.emptyText}>
-                                No bookings found in this category.
+                                No bookings found with current filters.
                             </CustomText>
                         </View>
                     )}
                 </ScrollView>
+
+                <CustomFilterModal
+                    visible={showFilterModal}
+                    onClose={() => setShowFilterModal(false)}
+                    title="Sort & Filter"
+                    sections={filterSections}
+                    initialValues={{ sortBy, filterBy }}
+                    defaultValues={{ sortBy: 'hike-date', filterBy: 'all' }}
+                    onApply={(values) => {
+                        setSortBy(values.sortBy);
+                        setFilterBy(values.filterBy);
+                    }}
+                />
+
             </ScreenWrapper>
         );
     }
 
     if (currentView === 'overview') {
+        // Bulletproof Guard
+        if (!selectedBooking) {
+            return (
+                <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                    <CustomLoading visible={true} message="Loading booking details..." />
+                </ScreenWrapper>
+            );
+        }
+
         return (
             <BookingDetailsScreen
                 booking={selectedBooking}
@@ -143,34 +195,26 @@ const MyBookingsScreen = ({
                     }
                 }}
                 onReschedule={() => {
-                    console.log("Reschedule pressed for: ", selectedBooking.id);
+                    console.log("Reschedule pressed");
                 }}
             />
         );
     }
 
     if (currentView === 'payment') {
+        if (!selectedBooking) return null; 
         return (
             <PaymentScreen 
                 bookingData={selectedBooking}
-                onContinue={onPaymentSubmitPress}
+                onContinue={() => setCurrentView('overview')}
                 onBackPress={onHeaderBackPress}
                 onPayOffer={onPayOffer}
             />
         );
     }
 
-    if (currentView === 'payment-status') {
-        return (
-            <PaymentStatusScreen 
-                bookingData={selectedBooking}
-                onBackPress={() => setCurrentView('list')}
-                onViewDetails={() => setCurrentView('overview')}
-            />
-        );
-    }
-
     if (currentView === 'receipt') {
+        if (!selectedBooking) return null; 
         return (
             <ReceiptScreen 
                 bookingData={selectedBooking}
@@ -186,6 +230,9 @@ const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
         paddingBottom: 40,
+    },
+    headerOptionsBtn: {
+        paddingHorizontal: 8
     },
     errorBox: { 
         backgroundColor: Colors.ERROR_BG, 
