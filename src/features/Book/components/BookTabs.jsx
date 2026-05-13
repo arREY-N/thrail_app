@@ -24,16 +24,19 @@ const BookTabs = ({
                 contentContainerStyle={styles.tabScrollContent}
             >
                 {tabs.map((tab) => {
-                    const isActive = activeTab === tab;
+                    const tabId = typeof tab === 'string' ? tab : tab.id;
+                    const tabLabel = typeof tab === 'string' ? tab : tab.label;
+                    
+                    const isActive = activeTab === tabId;
                     
                     return (
                         <TouchableOpacity
-                            key={tab}
+                            key={tabId}
                             style={[
                                 styles.tabPill, 
                                 isActive ? styles.activePill : styles.inactivePill
                             ]}
-                            onPress={() => onTabChange(tab)}
+                            onPress={() => onTabChange(tabId)}
                             activeOpacity={0.7}
                         >
                             <CustomText 
@@ -43,7 +46,7 @@ const BookTabs = ({
                                     isActive ? styles.activeText : styles.inactiveText
                                 ]}
                             >
-                                {tab}
+                                {tabLabel}
                             </CustomText>
                         </TouchableOpacity>
                     );
