@@ -5,7 +5,9 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage }) => {
+const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCode }) => {
+    const displayRef = referenceCode || `TRX-${bookingId?.substring(0, 8).toUpperCase() || '102938A'}`;
+
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
@@ -38,12 +40,12 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage
                 
                 <View style={styles.divider} />
 
-                <View style={styles.detailRow}>
+                <View style={styles.dataColumn}>
                     <CustomText variant="caption" style={styles.detailLabel}>
                         Reference No.
                     </CustomText>
-                    <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
-                        {receiptImage?.id || `TRX-${bookingId?.toUpperCase() || '102938A'}`}
+                    <CustomText variant="body" style={styles.longValue} selectable={true}>
+                        {displayRef}
                     </CustomText>
                 </View>
 
@@ -65,7 +67,7 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage
                         Amount Sent
                     </CustomText>
                     <CustomText variant="h3" style={styles.totalValue}>
-                        ₱{amountToPay.toFixed(2)}
+                        ₱{Number(amountToPay).toFixed(2)}
                     </CustomText>
                 </View>
             </View>
@@ -137,8 +139,14 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         marginBottom: 16,
     },
+    dataColumn: {
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
     detailLabel: { 
         color: Colors.TEXT_SECONDARY,
+        marginBottom: 4,
     },
     detailValue: { 
         color: Colors.TEXT_PRIMARY, 
@@ -146,6 +154,11 @@ const styles = StyleSheet.create({
         flex: 1, 
         textAlign: 'right', 
         marginLeft: 20,
+    },
+    longValue: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: '600', 
+        textAlign: 'left', 
     },
     totalValue: { 
         color: Colors.PRIMARY,
