@@ -14,30 +14,15 @@ import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
-const MOUNTAIN_COORDS = {
-    tagapo: { lat: 14.3392772, lon: 121.2325293 },
-    marami: { lat: 14.1986108, lon: 120.6858334 },
-    batulao: { lat: 14.0399434, lon: 120.8023782 },
-    makiling: { lat: 14.1352241, lon: 121.1944517 },
-    maculot: { lat: 13.9208682, lon: 121.0516961 },
-};
-
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
-
-const resolveCoordsForTrail = (trail) => {
-    const name = (trail?.general?.name ?? "").toLowerCase();
-    for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
-        if (name.includes(keyword)) return coords;
-    }
-    return null;
-};
 
 const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
     const [weatherMap, setWeatherMap] = useState({});
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+    
     const [activeFilters, setActiveFilters] = useState({
         provinces: [],
         elevation: null,
@@ -169,7 +154,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
                         ) : (
                             <View style={styles.emptyState}>
                                 <CustomText style={{ color: Colors.TEXT_SECONDARY }}>
-                                    {searchQuery || activeFilters.provinces.length > 0
+                                    {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
                                         ? "No trails match your current filters and search." 
                                         : `No trails found for "${selectedCategory}".`}
                                 </CustomText>
