@@ -26,7 +26,6 @@ const PaymentScreen = ({
 }) => {
     const { profile } = useAuthStore();
     
-    // ✅ Safely construct the hiker's full name
     const hikerFirstName = bookingData?.user?.firstname || profile?.firstname || '';
     const hikerLastName = bookingData?.user?.lastname || profile?.lastname || '';
     const hikerFullName = `${hikerFirstName} ${hikerLastName}`.trim();
@@ -56,7 +55,6 @@ const PaymentScreen = ({
         ? remainingBalance 
         : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
 
-    // ✅ FIXED: Pass the raw date directly to your utility function
     const rawBirthday = bookingData?.user?.birthday || profile?.birthday;
     const isUserMinor = checkIfMinor(rawBirthday);
     
@@ -303,7 +301,6 @@ const PaymentScreen = ({
                         setIsSignatureValid={setIsSignatureValid}
                         paymentError={paymentError}
                         isPayingBalance={isPayingBalance}
-                        // ✅ Pass the Minor props down
                         isMinor={isUserMinor}
                         minorName={hikerFullName}
                     />
