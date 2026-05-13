@@ -48,10 +48,11 @@ export default function useBookingFilters(bookings) {
                 return priorityA - priorityB;
             }
 
-            const dateA = new Date(a.createdAt || 0);
-            const dateB = new Date(b.createdAt || 0);
+            const getMs = (val) => val?.toDate ? val.toDate().getTime() : new Date(val || 0).getTime();
+            const timeA = getMs(a.updatedAt || a.createdAt);
+            const timeB = getMs(b.updatedAt || b.createdAt);
             
-            return dateB - dateA;
+            return timeB - timeA;
         });
 
     }, [bookings, activeFilter]);
