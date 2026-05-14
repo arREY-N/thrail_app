@@ -11,12 +11,13 @@ const AdminPaymentTab = ({
     currentStatus, 
     isApprovedStatus, 
     isRejectedStatus,
+    isCancelledStatus,
     onConfirmPaymentClick 
 }) => {
     return (
         <View style={styles.tabContent}>
             
-            {currentStatus === 'for-payment' && (
+            {currentStatus === 'for-payment' && !isCancelledStatus && (
                 <View style={styles.emptyPaymentBox}>
                     <CustomIcon 
                         library="Feather" 
@@ -31,7 +32,7 @@ const AdminPaymentTab = ({
                 </View>
             )}
 
-            {(currentStatus === 'paid' || currentStatus === 'downpayment' || currentStatus === 'completed') && (
+            {(currentStatus === 'paid' || currentStatus === 'downpayment' || currentStatus === 'completed' || isCancelledStatus) && booking?.payment?.length > 0 && (
                 <View style={styles.paymentCard}>
                     
                     {currentStatus === 'completed' && (
@@ -67,7 +68,7 @@ const AdminPaymentTab = ({
                                     { color: Colors.STATUS_DOWNPAYMENT_TEXT }
                                 ]}
                             >
-                                DOWNPAYMENT RECEIVED (50%)
+                                PENDING REMAINING BALANCE (50%)
                             </CustomText>
                         </View>
                     )}
@@ -130,9 +131,25 @@ const AdminPaymentTab = ({
                             
                             <View style={styles.detailRow}>
                                 <CustomText variant="caption" style={styles.detailLabel}>
+                                    Status
+                                </CustomText>
+                                <CustomText 
+                                    variant="caption" 
+                                    style={[
+                                        styles.detailValue,
+                                        paymentRecord.status === 'refunded' ? { color: Colors.ERROR } : {}
+                                    ]} 
+                                    textTransform="uppercase"
+                                >
+                                    {paymentRecord.status}
+                                </CustomText>
+                            </View>
+
+                            <View style={[styles.detailRow, { marginBottom: 0 }]}>
+                                <CustomText variant="caption" style={styles.detailLabel}>
                                     Amount
                                 </CustomText>
-                                <CustomText variant="h3" style={styles.totalValue}>
+                                <CustomText variant="h3" style={[styles.totalValue, paymentRecord.status === 'refunded' ? { color: Colors.ERROR } : {}]}>
                                     ₱{paymentRecord.amount.toFixed(2)}
                                 </CustomText>
                             </View>
@@ -145,7 +162,7 @@ const AdminPaymentTab = ({
                         </CustomText>
                     )}
 
-                    {currentStatus !== 'completed' && (
+                    {currentStatus !== 'completed' && !isCancelledStatus && (
                         <CustomButton 
                             title="Complete Booking" 
                             variant="primary" 
@@ -156,7 +173,22 @@ const AdminPaymentTab = ({
                 </View>
             )}
 
-            {!isApprovedStatus && !isRejectedStatus && (
+            {isCancelledStatus && (
+                <View style={[styles.emptyPaymentBox, { borderColor: Colors.ERROR_BORDER, backgroundColor: Colors.ERROR_BG, marginTop: booking?.payment?.length > 0 ? 16 : 0 }]}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name="lock" 
+                        size={32} 
+                        color={Colors.ERROR} 
+                        style={{ marginBottom: 12 }} 
+                    />
+                    <CustomText style={[styles.emptyPaymentText, { color: Colors.ERROR }]}>
+                        Payment actions are locked because this booking has been Cancelled or Refunded.
+                    </CustomText>
+                </View>
+            )}
+
+            {!isApprovedStatus && !isRejectedStatus && !isCancelledStatus && (
                 <View style={styles.emptyPaymentBox}>
                     <CustomIcon 
                         library="Feather" 
