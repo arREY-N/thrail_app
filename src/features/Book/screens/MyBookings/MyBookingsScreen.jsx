@@ -23,9 +23,11 @@ const MyBookingsScreen = ({
     error,
     onBackPress,
     onCancelBookingPress,
-    onRefundBookingPress, 
+    onRefundBookingPress,
+    onRescheduleBooking,
     onPayOffer,
     getBookOffer,
+    availableFutureOffers,
     initialBookingId,
     initialView
 }) => {
@@ -168,7 +170,6 @@ const MyBookingsScreen = ({
     }
 
     if (currentView === 'overview') {
-        // Bulletproof Guard
         if (!selectedBooking) {
             return (
                 <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -181,6 +182,7 @@ const MyBookingsScreen = ({
             <BookingDetailsScreen
                 booking={selectedBooking}
                 getBookOffer={getBookOffer}
+                availableFutureOffers={availableFutureOffers}
                 onBackPress={onHeaderBackPress}
                 onProceedToPayment={onProceedToPaymentPress}
                 onViewReceipt={() => setCurrentView('receipt')}
@@ -194,8 +196,11 @@ const MyBookingsScreen = ({
                         setCurrentView('list');
                     }
                 }}
-                onReschedule={() => {
-                    console.log("Reschedule pressed");
+                onReschedule={(booking, newOffer) => {
+                    if (onRescheduleBooking) {
+                        onRescheduleBooking(booking, newOffer);
+                        setCurrentView('list');
+                    }
                 }}
             />
         );
