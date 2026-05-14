@@ -48,7 +48,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     elapsedTime: 0,
     timerStartTime: 0,
     active: false,
-    coordinates: [new Location()],
+    coordinates: [],
     live: false,
     locationByGroup: {},
     activeListeners: {},
@@ -62,21 +62,32 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const activeGroupId = get().activeGroupId;
             const active = get().active;
 
-            if(!active) return;
+            console.log('Adding coordinate: ', coordinate);
+            if(!active || (currentHike && currentHike.status === 'paused')) {
+                console.log('not active');
+                set({
+                    coordinates: [coordinate]
+                })
+                return
+            };
 
             if(!profile) throw new Error("Cannot save coordinates without user");
             if(!currentHike) throw new Error("Cannot save coordinates without active hike");
 
-            if(coordinates.length % 5 === 0 && coordinates.length !== 0 && get().currentHike) {
-                console.log('Adding coordinate to hike after 5 new coordinates collected');
+            if(coordinates.length % 10 === 0 && coordinates.length !== 0 && get().currentHike) {
+                
+                // TODO @Reyn
+                // implement an algorithm to check the total distance covered by the recorded coordinates
+                // if distance is less than a certain threshold, determine the mid point of the saved coordinates
+                // and then reset the coordinate array with just that midpoint.
+                // otherwise, if the distance is greater than the threshold, save all the coordinates and reset the array.
                 
                 await HikeRepository.writeCoordinates(
                     profile.id,
                     currentHike.id,
-                    coordinates.slice(1)
+                    coordinates
                 );
-
-                set({ coordinates: [coordinates[3]] });
+                set({ coordinates: [coordinates[coordinates.length - 1]] });
             }  
 
             if(get().live){
@@ -177,12 +188,12 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     getLastKnownCoordinate: (): Location | null  => {
         const coordinates = get().coordinates
-        console.log('coordinates: ', coordinates)
         if(!coordinates || coordinates.length === 0){
             
             return null;
         }
         
+        // console.log(coordinates[coordinates.length - 1]);
         return coordinates[coordinates.length - 1];
     },
     
@@ -208,12 +219,11 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             })
 
             const updated = await HikeRepository.write(active, userId);
+            console.log('start hike')
             
-            console.log('updated: ', updated);
-
             set({
                 currentHike: updated,
-                coordinates: [new Location()],
+                coordinates: [],
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
