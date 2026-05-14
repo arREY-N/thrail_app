@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -18,11 +19,12 @@ import { formatTime } from '@/src/utils/dateFormatter';
 
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem.jsx';
 import BookingStatus from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
-import CancellationReasonCard from '@/src/features/Book/screens/MyBookings/components/CancellationReasonCard';
-import CancelWarningBox from '@/src/features/Book/screens/MyBookings/components/CancelWarningBox';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
+
+import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
+import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 
 const getStrictDocKey = (docName) => {
     if (!docName) return 'validId';
@@ -43,11 +45,13 @@ const BookingDetailsScreen = ({
     onViewReceipt,
     onCancelConfirm,
     onRefundConfirm,
-    onUpdatePress 
+    onUpdatePress,
+    availableFutureOffers = [] 
 }) => {
-    const [isCanceling, setIsCanceling] = useState(false);
-    const [isRefunding, setIsRefunding] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
+    const [activeReasonModal, setActiveReasonModal] = useState(null); 
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+    
     const [fullOffer, setFullOffer] = useState(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState(true);
     
@@ -87,6 +91,15 @@ const BookingDetailsScreen = ({
         fetchOfferDetails();
     }, [booking?.offer?.id]);
 
+    let displayStatus = localStatus;
+    if (localStatus === 'cancelled' || localStatus === 'for-cancellation') {
+        const payments = booking?.payment || [];
+        const hasRefund = payments.some(p => p.status === 'refunded' || p.status === 'refund');
+        if (hasRefund) {
+            displayStatus = 'refunded';
+        }
+    }
+
     const totalAmount = booking?.offer?.price || 0;
     const amountPaid = booking?.payment?.reduce((sum, p) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
@@ -97,13 +110,16 @@ const BookingDetailsScreen = ({
     const user = booking?.user;
     const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
+
+    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(displayStatus);
+    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus);
     
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(localStatus);
-    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(localStatus);
-    
-    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(localStatus);
+    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus);
     const canRefund = isConfirmed;
-    const showMenuIcon = !isCanceling && !isRefunding && !isCancelled && (canCancel || canRefund);
+    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus);
+    
+    const showMenuIcon = !isCancelled && (canCancel || canRefund || canReschedule);
+    const hasHistoricalPayments = booking?.payment?.length > 0;
 
     const inclusions = fullOffer?.inclusions || [];
     const thingsToBring = fullOffer?.thingsToBring || [];
@@ -113,10 +129,9 @@ const BookingDetailsScreen = ({
     const trails = useTrailsStore(s => s.data);
     const fullTrail = trails.find(t => t.id === booking?.trail?.id);
 
-    // ✅ FIXED: Deep optional chaining to prevent reading 'offer' of null
     const enhancedBooking = {
         ...booking,
-        status: localStatus, 
+        status: displayStatus,
         offer: {
             ...booking?.offer,
             duration: fullOffer?.duration || 'N/A',
@@ -129,57 +144,18 @@ const BookingDetailsScreen = ({
     };
 
     const getFooterConfig = () => {
-        if (isCanceling) {
-            return {
-                secondaryButton: {
-                    title: "Confirm Cancel",
-                    variant: "outline",
-                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
-                    textStyle: { color: Colors.ERROR },
-                    onPress: () => onCancelConfirm(booking, "User requested cancellation")
-                },
-                primaryButton: {
-                    title: "Keep Booking",
-                    variant: "primary",
-                    style: { borderRadius: 12 },
-                    onPress: () => setIsCanceling(false)
-                }
-            };
-        }
-
-        if (isRefunding) {
-            return {
-                secondaryButton: {
-                    title: "Confirm Refund",
-                    variant: "outline",
-                    style: { borderColor: Colors.ERROR, borderRadius: 12 },
-                    textStyle: { color: Colors.ERROR },
-                    onPress: () => {
-                        setIsRefunding(false);
-                        onRefundConfirm(booking, "User requested refund");
-                    }
-                },
-                primaryButton: {
-                    title: "Keep Booking",
-                    variant: "primary",
-                    style: { borderRadius: 12 },
-                    onPress: () => setIsRefunding(false)
-                }
-            };
-        }
-
-        if (localStatus === 'for-reservation' || localStatus === 'pending-docs' || localStatus === 'for-reschedule') {
+        if (canReschedule) {
             return {
                 primaryButton: { 
                     title: "Reschedule", 
                     variant: "primary", 
                     style: { borderRadius: 12 },
-                    onPress: () => onReschedule(booking) 
+                    onPress: () => setShowRescheduleModal(true) 
                 }
             };
         }
 
-        if (localStatus === 'for-payment' || localStatus === 'approved-docs') {
+        if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
             return {
                 primaryButton: { 
                     title: "Complete Payment", 
@@ -190,7 +166,7 @@ const BookingDetailsScreen = ({
             };
         }
 
-        if (localStatus === 'downpayment') {
+        if (displayStatus === 'downpayment') {
             return {
                 secondaryButton: { 
                     title: "View Receipt", 
@@ -218,6 +194,18 @@ const BookingDetailsScreen = ({
                 }
             };
         }
+
+        if (isCancelled && hasHistoricalPayments) {
+            return {
+                primaryButton: { 
+                    title: "View Receipt", 
+                    variant: "primary", 
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewReceipt(booking) 
+                }
+            };
+        }
+
         return null; 
     };
 
@@ -232,9 +220,7 @@ const BookingDetailsScreen = ({
         const isApproved = validState === 'approved';
         const isRejected = validState === 'rejected';
 
-        if (isRejected) {
-            const reasonToDisplay = docObj.reason || cancellationReason;
-
+        if (isRejected && !isCancelled) {
             return (
                 <View key={idx} style={styles.uploadCardWrapper}>
                     <DocumentUploadCard 
@@ -242,7 +228,6 @@ const BookingDetailsScreen = ({
                         docKey={getStrictDocKey(docName)}
                         isUploaded={docObj.file}
                         isRejected={true}
-                        rejectionReason={reasonToDisplay}
                         onUploadSuccess={async (url) => {
                             const updatedDocs = [...localDocs];
                             updatedDocs[idx] = {
@@ -260,7 +245,6 @@ const BookingDetailsScreen = ({
                                     documents: updatedDocs
                                 });
                                 await updateBookingInStore(updatedBookingData, false);
-                                console.log("Successfully re-uploaded and saved to DB!");
                             } catch (e) {
                                 console.error("Failed to save re-uploaded doc to DB", e);
                             }
@@ -270,9 +254,9 @@ const BookingDetailsScreen = ({
             );
         }
 
-        let iconName = isApproved ? "check-circle" : "clock";
-        let iconColor = isApproved ? Colors.SUCCESS : Colors.WARNING;
-        let statusText = isApproved ? "Approved" : "Pending Review";
+        let iconName = isApproved ? "check-circle" : (isRejected ? "x-circle" : "clock");
+        let iconColor = isApproved ? Colors.SUCCESS : (isRejected ? Colors.ERROR : Colors.WARNING);
+        let statusText = isApproved ? "Approved" : (isRejected ? "Rejected" : "Pending Review");
 
         return (
             <View key={idx} style={styles.documentRowContainer}>
@@ -310,9 +294,9 @@ const BookingDetailsScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
-                title={isCanceling ? "Cancel Booking" : isRefunding ? "Request Refund" : "Booking Details"} 
+                title="Booking Details" 
                 centerTitle={true} 
-                onBackPress={isCanceling ? () => setIsCanceling(false) : isRefunding ? () => setIsRefunding(false) : onBackPress} 
+                onBackPress={onBackPress} 
                 rightActions={
                     showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
@@ -331,13 +315,9 @@ const BookingDetailsScreen = ({
 
                 <QuickInfoCard booking={enhancedBooking} />
 
-                {isCancelled && cancellationReason && (
-                    <CancellationReasonCard reason={cancellationReason} />
-                )}
+                <BookingStatus status={displayStatus} reason={cancellationReason} />
 
-                <BookingStatus status={localStatus} />
-
-                {(localStatus === 'for-reservation' || localStatus === 'pending-docs') && (
+                {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
                     <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
                         <View style={styles.infoBanner}>
                             <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -352,7 +332,7 @@ const BookingDetailsScreen = ({
                     <AccordionItem 
                         title="Required Documents" 
                         icon="file-text"
-                        defaultOpen={localStatus === 'for-reservation' || localStatus === 'pending-docs' || localStatus === 'reservation-rejected'}
+                        defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
                     >
                         {Array.isArray(localDocs) 
                             ? localDocs.map((doc, idx) => renderDocumentRow(doc, idx))
@@ -452,26 +432,6 @@ const BookingDetailsScreen = ({
                     amountPaid={amountPaid} 
                     remainingBalance={remainingBalance} 
                 />
-
-                {isCanceling && (
-                    <View style={styles.paddingHorizontal}>
-                        <CancelWarningBox />
-                    </View>
-                )}
-
-                {isRefunding && (
-                    <View style={styles.paddingHorizontal}>
-                        <View style={styles.refundWarningBox}>
-                            <CustomText variant="h3" style={styles.refundWarningTitle}>
-                                Refund Policy Warning
-                            </CustomText>
-                            <CustomText variant="caption" style={styles.refundWarningText}>
-                                Please note that refunds are only fully granted if requested at least 7 days before the hike. Processing may take up to 3-5 business days. Are you sure you want to refund this booking?
-                            </CustomText>
-                        </View>
-                    </View>
-                )}
-                
             </ScrollView>
 
             {footerConfig && (
@@ -483,39 +443,69 @@ const BookingDetailsScreen = ({
                 </View>
             )}
 
-            <Modal 
-                transparent={true} 
-                visible={showActionMenu} 
-                animationType="fade" 
-                onRequestClose={() => setShowActionMenu(false)}
-            >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setShowActionMenu(false)}
-                >
+            <ReasonModal 
+                visible={!!activeReasonModal}
+                actionType={activeReasonModal}
+                onClose={() => setActiveReasonModal(null)}
+                onConfirm={(reason) => {
+                    if (activeReasonModal === 'cancel') {
+                        onCancelConfirm(booking, reason);
+                    } else if (activeReasonModal === 'refund') {
+                        onRefundConfirm(booking, reason);
+                    }
+                }}
+            />
+
+            <RescheduleModal 
+                visible={showRescheduleModal} 
+                onClose={() => setShowRescheduleModal(false)} 
+                availableFutureOffers={availableFutureOffers} 
+                onConfirm={(selectedOffer) => {
+                    setShowRescheduleModal(false);
+                    setTimeout(() => {
+                        if (selectedOffer === 'explore') {
+                            router.replace('/explore');
+                        } else if (onReschedule) {
+                            onReschedule(booking, selectedOffer.originalData);
+                        }
+                    }, 300);
+                }} 
+            />
+
+            <Modal transparent={true} visible={showActionMenu} animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowActionMenu(false)}>
                     <View style={styles.actionSheetWrapper}>
                         <View style={styles.actionSheet}>
                             <View style={styles.actionSheetHandle} />
-                            
-                            <CustomText variant="h3" style={styles.actionSheetTitle}>
-                                Booking Options
-                            </CustomText>
+                            <CustomText variant="h3" style={styles.actionSheetTitle}>Booking Options</CustomText>
+
+                            {canReschedule && (
+                                <TouchableOpacity 
+                                    style={styles.actionItem} 
+                                    onPress={() => { 
+                                        setShowActionMenu(false); 
+                                        setTimeout(() => setShowRescheduleModal(true), 300); 
+                                    }}
+                                >
+                                    <View style={styles.actionIconBgPrimary}>
+                                        <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
+                                    </View>
+                                    <CustomText style={styles.actionItemText}>Reschedule Booking</CustomText>
+                                </TouchableOpacity>
+                            )}
                             
                             {canCancel && (
                                 <TouchableOpacity 
                                     style={styles.actionItem} 
                                     onPress={() => { 
                                         setShowActionMenu(false); 
-                                        setTimeout(() => setIsCanceling(true), 300); 
+                                        setTimeout(() => setActiveReasonModal('cancel'), 300); 
                                     }}
                                 >
-                                    <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                    <View style={styles.actionIconBgError}>
                                         <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
                                     </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
-                                        Cancel Booking
-                                    </CustomText>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel Booking</CustomText>
                                 </TouchableOpacity>
                             )}
 
@@ -524,22 +514,19 @@ const BookingDetailsScreen = ({
                                     style={styles.actionItem} 
                                     onPress={() => { 
                                         setShowActionMenu(false); 
-                                        setTimeout(() => setIsRefunding(true), 300); 
+                                        setTimeout(() => setActiveReasonModal('refund'), 300); 
                                     }}
                                 >
-                                    <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                    <View style={styles.actionIconBgError}>
                                         <CustomIcon library="Feather" name="refresh-ccw" size={18} color={Colors.ERROR} />
                                     </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
-                                        Request Refund
-                                    </CustomText>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Request Refund</CustomText>
                                 </TouchableOpacity>
                             )}
                         </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
-
         </ScreenWrapper>
     );
 };
@@ -575,9 +562,6 @@ const styles = StyleSheet.create({
     timelineContent: { flex: 1 },
     timelineTime: { fontWeight: 'bold', fontSize: 13, color: Colors.TEXT_PRIMARY },
     timelineSubEvent: { lineHeight: 20, marginTop: 2 },
-    refundWarningBox: { backgroundColor: Colors.ERROR_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.ERROR, marginTop: 16 },
-    refundWarningTitle: { color: Colors.ERROR, marginBottom: 8 },
-    refundWarningText: { color: Colors.TEXT_SECONDARY },
     floatingFooterContainer: { paddingBottom: 20, paddingHorizontal: 10, backgroundColor: 'transparent' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' },
@@ -586,7 +570,8 @@ const styles = StyleSheet.create({
     actionSheetHandle: { width: 40, height: 4, backgroundColor: Colors.GRAY_LIGHT, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
     actionSheetTitle: { marginBottom: 20 },
     actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 16 },
-    actionIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ERROR_BG, justifyContent: 'center', alignItems: 'center' },
+    actionIconBgPrimary: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.STATUS_APPROVED_BG, justifyContent: 'center', alignItems: 'center' },
+    actionIconBgError: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ERROR_BG, justifyContent: 'center', alignItems: 'center' },
     actionItemText: { fontSize: 16, fontWeight: '600' }
 });
 
