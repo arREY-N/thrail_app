@@ -10,11 +10,18 @@ const DocumentReviewCard = ({
     index,
     needsReview,
     isReviewComplete,
+    isCancelledStatus,
     onViewFile,
     onToggleDecision
 }) => {
     
     const getHelperStatus = () => {
+        if (isCancelledStatus) {
+            return { 
+                text: "✕ Review Locked (Booking Cancelled)", 
+                color: Colors.ERROR 
+            };
+        }
         if (needsReview) {
             return { 
                 text: "* Please open the attachment first to unlock options", 
@@ -53,7 +60,8 @@ const DocumentReviewCard = ({
             style={[
                 styles.docCard,
                 doc.valid === 'approved' && styles.cardApproved,
-                doc.valid === 'rejected' && styles.cardRejected
+                doc.valid === 'rejected' && styles.cardRejected,
+                isCancelledStatus && styles.cardCancelled
             ]}
         >
             <View style={styles.docHeader}>
@@ -61,7 +69,7 @@ const DocumentReviewCard = ({
                     {doc.name}
                 </CustomText>
                 
-                {doc.valid !== 'pending' && (
+                {doc.valid !== 'pending' && !isCancelledStatus && (
                     <View 
                         style={[
                             styles.badge, 
@@ -92,7 +100,7 @@ const DocumentReviewCard = ({
             <TouchableOpacity 
                 style={[
                     styles.viewFileBtn, 
-                    needsReview && styles.viewFileBtnHighlight
+                    needsReview && !isCancelledStatus && styles.viewFileBtnHighlight
                 ]}
                 onPress={() => onViewFile(doc.file, index)}
                 activeOpacity={0.7}
@@ -101,170 +109,180 @@ const DocumentReviewCard = ({
                     library="Feather" 
                     name="eye" 
                     size={16} 
-                    color={needsReview ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY} 
+                    color={needsReview && !isCancelledStatus ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY} 
                 />
                 <CustomText 
                     style={[
                         styles.viewFileText, 
-                        needsReview && { color: Colors.STATUS_PENDING_TEXT }
+                        needsReview && !isCancelledStatus && { color: Colors.STATUS_PENDING_TEXT }
                     ]}
                 >
                     Open Attachment
                 </CustomText>
             </TouchableOpacity>
 
-            <CustomText style={[styles.viewRequiredText, { color: helperStatus.color }]}>
+            <CustomText 
+                style={[
+                    styles.viewRequiredText, 
+                    { color: helperStatus.color }
+                ]}
+            >
                 {helperStatus.text}
             </CustomText>
 
-            <View style={styles.btnRow}>
-                <TouchableOpacity 
-                    style={[
-                        styles.decisionBtn,
-                        doc.valid === 'approved' && styles.btnActiveApprove,
-                        (isReviewComplete || needsReview) && { opacity: 0.4 }
-                    ]}
-                    onPress={() => onToggleDecision(index, 'approved')}
-                    activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
-                >
-                    <CustomIcon 
-                        library="Feather" 
-                        name="check" 
-                        size={16} 
-                        color={doc.valid === 'approved' ? Colors.WHITE : Colors.SUCCESS} 
-                    />
-                    <CustomText 
+            {!isCancelledStatus && (
+                <View style={styles.btnRow}>
+                    <TouchableOpacity 
                         style={[
-                            styles.btnText, 
-                            doc.valid === 'approved' && { color: Colors.WHITE }
+                            styles.decisionBtn,
+                            doc.valid === 'approved' && styles.btnActiveApprove,
+                            (isReviewComplete || needsReview) && { opacity: 0.4 }
                         ]}
+                        onPress={() => onToggleDecision(index, 'approved')}
+                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
                     >
-                        Approve
-                    </CustomText>
-                </TouchableOpacity>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="check" 
+                            size={16} 
+                            color={doc.valid === 'approved' ? Colors.WHITE : Colors.SUCCESS} 
+                        />
+                        <CustomText 
+                            style={[
+                                styles.btnText, 
+                                doc.valid === 'approved' && { color: Colors.WHITE }
+                            ]}
+                        >
+                            Approve
+                        </CustomText>
+                    </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={[
-                        styles.decisionBtn,
-                        doc.valid === 'rejected' && styles.btnActiveReject,
-                        (isReviewComplete || needsReview) && { opacity: 0.4 }
-                    ]}
-                    onPress={() => onToggleDecision(index, 'rejected')}
-                    activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
-                >
-                    <CustomIcon 
-                        library="Feather" 
-                        name="x" 
-                        size={16} 
-                        color={doc.valid === 'rejected' ? Colors.WHITE : Colors.ERROR} 
-                    />
-                    <CustomText 
+                    <TouchableOpacity 
                         style={[
-                            styles.btnText, 
-                            doc.valid === 'rejected' && { color: Colors.WHITE }
+                            styles.decisionBtn,
+                            doc.valid === 'rejected' && styles.btnActiveReject,
+                            (isReviewComplete || needsReview) && { opacity: 0.4 }
                         ]}
+                        onPress={() => onToggleDecision(index, 'rejected')}
+                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
                     >
-                        Reject
-                    </CustomText>
-                </TouchableOpacity>
-            </View>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="x" 
+                            size={16} 
+                            color={doc.valid === 'rejected' ? Colors.WHITE : Colors.ERROR} 
+                        />
+                        <CustomText 
+                            style={[
+                                styles.btnText, 
+                                doc.valid === 'rejected' && { color: Colors.WHITE }
+                            ]}
+                        >
+                            Reject
+                        </CustomText>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    docCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        padding: 16,
-        marginBottom: 16
+    docCard: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 16, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        padding: 16, 
+        marginBottom: 16 
     },
-    cardApproved: {
-        borderColor: Colors.SUCCESS,
-        backgroundColor: Colors.STATUS_APPROVED_BG
+    cardApproved: { 
+        borderColor: Colors.SUCCESS, 
+        backgroundColor: Colors.STATUS_APPROVED_BG 
     },
-    cardRejected: {
-        borderColor: Colors.ERROR,
-        backgroundColor: Colors.ERROR_BG
+    cardRejected: { 
+        borderColor: Colors.ERROR, 
+        backgroundColor: Colors.ERROR_BG 
     },
-    docHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12
+    cardCancelled: { 
+        borderColor: Colors.ERROR_BORDER, 
+        backgroundColor: Colors.ERROR_BG 
     },
-    docName: {
-        fontSize: 15,
-        fontWeight: '600'
+    docHeader: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 12 
     },
-    badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 6
+    docName: { 
+        fontSize: 15, 
+        fontWeight: '600' 
     },
-    badgeText: {
-        fontWeight: 'bold',
-        fontSize: 10
+    badge: { 
+        paddingHorizontal: 8, 
+        paddingVertical: 2, 
+        borderRadius: 6 
     },
-    viewFileBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: Colors.WHITE,
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT
+    badgeText: { 
+        fontWeight: 'bold', 
+        fontSize: 10 
     },
-    viewFileBtnHighlight: {
-        backgroundColor: Colors.STATUS_PENDING_BG,
-        borderColor: Colors.STATUS_PENDING_BORDER,
-        borderWidth: 1
+    viewFileBtn: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        gap: 8, 
+        backgroundColor: Colors.WHITE, 
+        padding: 12, 
+        borderRadius: 12, 
+        marginBottom: 8, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT 
     },
-    viewFileText: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-        fontSize: 13
+    viewFileBtnHighlight: { 
+        backgroundColor: Colors.STATUS_PENDING_BG, 
+        borderColor: Colors.STATUS_PENDING_BORDER, 
+        borderWidth: 1 
     },
-
-    viewRequiredText: {
-        fontSize: 12,
-        textAlign: 'center',
-        marginBottom: 12,
-        fontStyle: 'italic'
+    viewFileText: { 
+        color: Colors.PRIMARY, 
+        fontWeight: 'bold', 
+        fontSize: 13 
     },
-    btnRow: {
-        flexDirection: 'row',
-        gap: 12
+    viewRequiredText: { 
+        fontSize: 12, 
+        textAlign: 'center', 
+        marginBottom: 12, 
+        fontStyle: 'italic' 
     },
-    decisionBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        backgroundColor: Colors.WHITE
+    btnRow: { 
+        flexDirection: 'row', 
+        gap: 12 
     },
-    btnActiveApprove: {
-        backgroundColor: Colors.SUCCESS,
-        borderColor: Colors.SUCCESS
+    decisionBtn: { 
+        flex: 1, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        gap: 8, 
+        paddingVertical: 12, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        backgroundColor: Colors.WHITE 
     },
-    btnActiveReject: {
-        backgroundColor: Colors.ERROR,
-        borderColor: Colors.ERROR
+    btnActiveApprove: { 
+        backgroundColor: Colors.SUCCESS, 
+        borderColor: Colors.SUCCESS 
     },
-    btnText: {
-        fontWeight: 'bold',
-        fontSize: 14,
-        color: Colors.TEXT_PRIMARY
+    btnActiveReject: { 
+        backgroundColor: Colors.ERROR, 
+        borderColor: Colors.ERROR 
+    },
+    btnText: { 
+        fontWeight: 'bold', 
+        fontSize: 14, 
+        color: Colors.TEXT_PRIMARY 
     }
 });
 
