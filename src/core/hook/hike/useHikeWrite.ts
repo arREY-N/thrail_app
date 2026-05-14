@@ -59,8 +59,11 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     useEffect(() => {
         let found: Hike | undefined;
 
-        if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId)))
+        console.log('active:', active);
+        console.log('currentHike:', currentHike);
+        if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))){
             return;
+        }
         
         if (
             currentHike && (
@@ -113,6 +116,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         }
 
         if (!found) {
+            if (currentHike) {
+                return; // Already have a persisted hike
+            }
             setLocalError("No hike data available to start");
             return;
         }
@@ -132,6 +138,20 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         }
     },[hikeId, trailId, profile?.id])
     
+    useEffect(() => {
+        if (!active || currentHike?.status !== 'started' || !timerStartTime) {
+            return;
+        }
+
+        // Update elapsed time every second
+        const interval = setInterval(() => {
+            const currentElapsed = Date.now() - timerStartTime;
+            updateHikeStore({ elapsedTime: currentElapsed });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [active, currentHike?.status, timerStartTime, updateHikeStore]);
+    
     const onStartHike = () => {
         if(!profile?.id) {
             setLocalError("User ID is required to start hike");
@@ -143,7 +163,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             return;
         }
 
-        if(active){
+        if(active && currentHike.status === 'paused'){
             onResumeHike();
             return;
         }
@@ -157,11 +177,19 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             return;
         }
 
+        const currentElapsed = timerStartTime ? Date.now() - timerStartTime : 0;
+        
+        updateHikeStore({ 
+            elapsedTime: currentElapsed,
+            active: false 
+        });
+        
         updateCurrentHike({ status: 'paused' });
     }
 
     const onResumeHike = () => {
         if (!currentHike || currentHike.status !== 'paused') {
+            console.log("Current status: ", currentHike);
             setLocalError("No paused hike to resume");
             return;
         }
@@ -174,6 +202,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
         updateHikeStore({
             timerStartTime: newStartTime,
+            active: true,
         });
     }
 
