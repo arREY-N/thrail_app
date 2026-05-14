@@ -21,13 +21,7 @@ const getTrackerData = (status) => {
 
     if (terminalStatuses.includes(rawStatus)) {
         return {
-            steps: [
-                { 
-                    id: 0, 
-                    defaultLabel: config.label, 
-                    defaultIcon: config.icon 
-                }
-            ],
+            steps: [],
             currentIndex: 0,
             isTerminalError: true,
             config
@@ -35,26 +29,10 @@ const getTrackerData = (status) => {
     }
 
     const steps = [
-        { 
-            id: 0, 
-            defaultLabel: 'REVIEW', 
-            defaultIcon: 'file-text' 
-        },
-        { 
-            id: 1, 
-            defaultLabel: 'PAYMENT', 
-            defaultIcon: 'credit-card' 
-        },
-        { 
-            id: 2, 
-            defaultLabel: 'VERIFYING', 
-            defaultIcon: 'shield' 
-        },
-        { 
-            id: 3, 
-            defaultLabel: 'COMPLETED', 
-            defaultIcon: 'check-circle' 
-        }
+        { id: 0, defaultLabel: 'REVIEW', defaultIcon: 'file-text' },
+        { id: 1, defaultLabel: 'PAYMENT', defaultIcon: 'credit-card' },
+        { id: 2, defaultLabel: 'VERIFYING', defaultIcon: 'shield' },
+        { id: 3, defaultLabel: 'COMPLETED', defaultIcon: 'check-circle' }
     ];
 
     let currentIndex = 0;
@@ -90,7 +68,7 @@ const getTrackerData = (status) => {
     };
 };
 
-const BookingStatus = ({ status }) => {
+const BookingStatus = ({ status, reason }) => {
     const { 
         steps, 
         currentIndex, 
@@ -112,77 +90,104 @@ const BookingStatus = ({ status }) => {
                 </CustomText>
             </View>
 
-            <View 
-                style={[
-                    styles.trackerContainer, 
-                    steps.length === 1 && { justifyContent: 'center' }
-                ]}
-            >
-                {steps.map((step, index) => {
-                    const isDone = index < currentIndex;
-                    const isCurrent = index === currentIndex;
-                    const isLastVisible = index === steps.length - 1;
+            {isTerminalError ? (
+                // ✅ MORPHED TERMINAL BANNER (Replaces the empty white space)
+                <View style={styles.terminalBanner}>
+                    <View style={styles.terminalHeader}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name={config.icon} 
+                            size={20} 
+                            color={Colors.ERROR} 
+                        />
+                        <CustomText style={styles.terminalTitle}>
+                            {config.label}
+                        </CustomText>
+                    </View>
+                    
+                    {reason ? (
+                        <View style={styles.terminalReasonWrapper}>
+                            <CustomText variant="caption" style={styles.terminalReasonText}>
+                                <CustomText style={styles.terminalReasonLabel}>Reason: </CustomText>
+                                {reason}
+                            </CustomText>
+                        </View>
+                    ) : null}
+                </View>
+            ) : (
+                // ✅ ACTIVE STEP TRACKER
+                <View 
+                    style={[
+                        styles.trackerContainer, 
+                        steps.length === 1 && { justifyContent: 'center' }
+                    ]}
+                >
+                    {steps.map((step, index) => {
+                        const isDone = index < currentIndex;
+                        const isCurrent = index === currentIndex;
+                        const isLastVisible = index === steps.length - 1;
 
-                    let circleBg = Colors.GRAY_LIGHT;
-                    let iconColor = Colors.TEXT_SECONDARY;
-                    let iconName = step.defaultIcon;
-                    let labelText = step.defaultLabel;
-                    let labelColor = Colors.TEXT_SECONDARY;
+                        let circleBg = Colors.GRAY_LIGHT;
+                        let iconColor = Colors.TEXT_SECONDARY;
+                        let iconName = step.defaultIcon;
+                        let labelText = step.defaultLabel;
+                        let labelColor = Colors.TEXT_SECONDARY;
 
-                    if (isDone) {
-                        circleBg = Colors.SUCCESS;
-                        iconColor = Colors.WHITE;
-                        iconName = 'check';
-                        labelColor = Colors.TEXT_PRIMARY;
-                    } else if (isCurrent) {
-                        circleBg = config.bgColor;
-                        iconColor = config.textColor === Colors.WHITE ? Colors.WHITE : config.textColor;
-                        iconName = config.icon;
-                        labelText = config.label;
-                        labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor; 
-                    }
+                        if (isDone) {
+                            circleBg = Colors.SUCCESS;
+                            iconColor = Colors.WHITE;
+                            iconName = 'check';
+                            labelColor = Colors.TEXT_PRIMARY;
+                        } else if (isCurrent) {
+                            circleBg = config.bgColor;
+                            iconColor = config.textColor === Colors.WHITE ? Colors.WHITE : config.textColor;
+                            iconName = config.icon;
+                            labelText = config.label;
+                            labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor; 
+                        }
 
-                    return (
-                        <React.Fragment key={step.id}>
-                            <View style={styles.stepWrapper}>
-                                <View 
-                                    style={[
-                                        styles.circle, 
-                                        { backgroundColor: circleBg }
-                                    ]}
-                                >
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name={iconName} 
-                                        size={16} 
-                                        color={iconColor} 
-                                    />
+                        return (
+                            <React.Fragment key={step.id}>
+                                <View style={styles.stepWrapper}>
+                                    <View 
+                                        style={[
+                                            styles.circle, 
+                                            { backgroundColor: circleBg }
+                                        ]}
+                                    >
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={iconName} 
+                                            size={16} 
+                                            color={iconColor} 
+                                        />
+                                    </View>
+                                    <CustomText 
+                                        variant="caption" 
+                                        style={[
+                                            styles.stepText, 
+                                            { color: labelColor }, 
+                                            isCurrent && styles.boldText
+                                        ]}
+                                        numberOfLines={2}
+                                    >
+                                        {labelText}
+                                    </CustomText>
                                 </View>
-                                <CustomText 
-                                    variant="caption" 
-                                    style={[
-                                        styles.stepText, 
-                                        { color: labelColor }, 
-                                        isCurrent && styles.boldText
-                                    ]}
-                                    numberOfLines={2}
-                                >
-                                    {labelText}
-                                </CustomText>
-                            </View>
 
-                            {!isLastVisible && (
-                                <View 
-                                    style={[
-                                        styles.line, 
-                                        { backgroundColor: isDone ? Colors.SUCCESS : Colors.GRAY_LIGHT }
-                                    ]} 
-                                />
-                            )}
-                        </React.Fragment>
-                    );
-                })}
-            </View>
+                                {!isLastVisible && (
+                                    <View 
+                                        style={[
+                                            styles.line, 
+                                            { backgroundColor: isDone ? Colors.SUCCESS : Colors.GRAY_LIGHT }
+                                        ]} 
+                                    />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </View>
+            )}
         </View>
     );
 };
@@ -197,10 +202,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        }, 
+        shadowOffset: { width: 0, height: 2 }, 
         shadowOpacity: 0.05, 
         shadowRadius: 4, 
         elevation: 2 
@@ -246,6 +248,36 @@ const styles = StyleSheet.create({
     },
     boldText: { 
         fontWeight: 'bold' 
+    },
+    // ✅ NEW TERMINAL BANNER STYLES
+    terminalBanner: {
+        backgroundColor: Colors.ERROR_BG,
+        borderColor: Colors.ERROR,
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+    },
+    terminalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    terminalTitle: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    terminalReasonWrapper: {
+        marginTop: 6,
+        paddingLeft: 28, // Aligns exactly under the text, skipping the icon width
+    },
+    terminalReasonText: {
+        color: Colors.ERROR,
+        lineHeight: 18,
+    },
+    terminalReasonLabel: {
+        fontWeight: 'bold',
+        color: Colors.ERROR,
     }
 });
 
