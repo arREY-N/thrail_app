@@ -15,7 +15,8 @@ export default function useReviewLogic(booking, offers) {
     const currentStatus = booking?.status || 'for-reservation';
     const isApprovedStatus = ['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
-    const isReviewComplete = isApprovedStatus || isRejectedStatus;
+    const isCancelledStatus = ['cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected'].includes(currentStatus);
+    const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus;
 
     const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
 
@@ -75,7 +76,7 @@ export default function useReviewLogic(booking, offers) {
         personalVerified, setPersonalVerified,
         emergencyVerified, setEmergencyVerified,
         isMinor,
-        currentStatus, isApprovedStatus, isRejectedStatus, isReviewComplete,
+        currentStatus, isApprovedStatus, isRejectedStatus, isCancelledStatus, isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
         availableOffers
