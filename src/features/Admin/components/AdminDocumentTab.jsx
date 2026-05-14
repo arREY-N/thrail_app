@@ -2,8 +2,6 @@ import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
-import CustomText from '@/src/components/CustomText';
-import { Colors } from '@/src/constants/colors';
 import DocumentReviewCard from '@/src/features/Admin/components/DocumentReviewCard';
 
 const AdminDocumentTab = ({ 
@@ -13,6 +11,7 @@ const AdminDocumentTab = ({
     viewedDocs, 
     isReviewComplete, 
     isRejectedStatus, 
+    isCancelledStatus,
     hasRejections, 
     rejectionReason, 
     setRejectionReason, 
@@ -23,7 +22,10 @@ const AdminDocumentTab = ({
         if (isReviewComplete) return; 
         
         if (!viewedDocs[index] && docStates[index].valid === 'pending') {
-            return Alert.alert("Review Required", "Please open the attachment first.");
+            return Alert.alert(
+                "Review Required", 
+                "Please open the attachment first."
+            );
         }
         
         const updated = [...docStates];
@@ -41,40 +43,27 @@ const AdminDocumentTab = ({
                     index={index} 
                     needsReview={!viewedDocs[index] && doc.valid === 'pending'}
                     isReviewComplete={isReviewComplete}
+                    isCancelledStatus={isCancelledStatus}
                     onViewFile={onViewFile} 
                     onToggleDecision={toggleDocDecision}
                 />
             ))}
 
-            {isRejectedStatus && booking?.cancellationReason ? (
+            {!isReviewComplete && hasRejections && (
                 <View style={styles.reasonBox}>
-                    <CustomText style={styles.rejectionLabel}>
-                        Rejection Reason
-                    </CustomText>
-                    
-                    <View style={styles.readOnlyReason}>
-                        <CustomText style={{ color: Colors.ERROR }}>
-                            {booking.cancellationReason}
-                        </CustomText>
-                    </View>
+                    <CustomFeedbackInput 
+                        label="Rejection Reason *"
+                        helperText="Explain why the document was rejected. The hiker will receive this exact message."
+                        placeholder="Explain what needs to be fixed..."
+                        value={rejectionReason}
+                        onChangeText={setRejectionReason}
+                        suggestions={[
+                            "Blurry / Unreadable Image",
+                            "Document Expired",
+                            "Wrong File Uploaded"
+                        ]}
+                    />
                 </View>
-            ) : (
-                hasRejections && !isReviewComplete && (
-                    <View style={styles.reasonBox}>
-                        <CustomFeedbackInput 
-                            label="Rejection Reason *"
-                            helperText="Explain why the document was rejected. The hiker will receive this exact message."
-                            placeholder="Explain what needs to be fixed..."
-                            value={rejectionReason}
-                            onChangeText={setRejectionReason}
-                            suggestions={[
-                                "Blurry / Unreadable Image",
-                                "Document Expired",
-                                "Wrong File Uploaded"
-                            ]}
-                        />
-                    </View>
-                )
             )}
             
         </View>
@@ -87,18 +76,6 @@ const styles = StyleSheet.create({
     },
     reasonBox: { 
         marginBottom: 24 
-    },
-    rejectionLabel: { 
-        color: Colors.ERROR, 
-        marginBottom: 8, 
-        fontWeight: 'bold' 
-    },
-    readOnlyReason: { 
-        backgroundColor: Colors.ERROR_BG, 
-        padding: 16, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.ERROR_BORDER 
     }
 });
 
