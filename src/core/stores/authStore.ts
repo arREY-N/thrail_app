@@ -78,7 +78,11 @@ export const useAuthStore = create<AuthState>()(
 		initialize: () => {
 			try {
 				const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
-					set({ isLoading: true, error: null });
+					set({ error: null });
+
+					if (!get().user) {
+						set({ isLoading: true });
+					}
 					console.log("init");
 					const currentUnsub = get()._unsubscribe;
 	
@@ -92,27 +96,12 @@ export const useAuthStore = create<AuthState>()(
 					if (firebaseUser) {
 						console.log("with user");
 	
-						const idTokenResult = await firebaseUser.getIdTokenResult(true);
-						const userRole = (idTokenResult.claims as CustomClaims)?.role || null;
-	
-						if (!userRole) {
-							console.log("Failed fetching user role");
-							setTimeout(() => firebaseUser.getIdToken(true), 2000);
-							set({ isLoading: false, error: "Failed fetching user role. Retrying..." });
-							return;
-						}
+						const idTokenResult = await firebaseUser.getIdTokenResult(false);
 	
 						const businessId =
 							(idTokenResult.claims as CustomClaims).businessId ||
 							(idTokenResult.claims as CustomClaims).owner ||
-							null;
-	
-						set({
-							user: firebaseUser,
-							role: userRole,
-							businessId,
-						});
-							
+							null;							
 						
 						const ref = doc(db, "users", firebaseUser.uid).withConverter(
 							userConverter,
@@ -124,8 +113,11 @@ export const useAuthStore = create<AuthState>()(
 								if (snap.exists()) {
 									console.log('snap exists')
 									set({
+										user: firebaseUser,
+										role: snap.data().role,
 										profile: snap.data(),
 										isLoading: false,
+										businessId,
 									});
 								} else {
 									console.log("User document does not exists");
