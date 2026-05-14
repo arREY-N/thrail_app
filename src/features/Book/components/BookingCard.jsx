@@ -23,6 +23,15 @@ const BookingCard = ({
     const isPast = hikeDate.getTime() < today.getTime();
 
     let displayStatus = booking?.status;
+
+    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation') {
+        const payments = booking?.payment || [];
+        const hasRefund = payments.some(p => p.status === 'refunded' || p.status === 'refund');
+        if (hasRefund) {
+            displayStatus = 'refunded';
+        }
+    }
+
     const isDead = [
         'cancelled', 
         'refund', 
@@ -46,13 +55,13 @@ const BookingCard = ({
     let actionIcon = "chevron-right";
 
     if (!isPast && !isDead) {
-        if (['for-payment', 'approved-docs'].includes(booking?.status)) {
+        if (['for-payment', 'approved-docs'].includes(displayStatus)) {
             actionLabel = "Pay Now";
             actionColor = Colors.SUCCESS; 
-        } else if (booking?.status === 'reservation-rejected') {
+        } else if (displayStatus === 'reservation-rejected') {
             actionLabel = "Update Docs";
             actionColor = Colors.ERROR;
-        } else if (booking?.status === 'downpayment') {
+        } else if (displayStatus === 'downpayment') {
             actionLabel = "Pay Balance";
             actionColor = Colors.WARNING;
         }
@@ -135,7 +144,7 @@ const BookingCard = ({
             <View style={styles.dottedDivider} />
 
             <View style={styles.bottomRow}>
-                {booking?.status === 'downpayment' ? (
+                {displayStatus === 'downpayment' ? (
                     <View style={styles.priceColumnContainer}>
                         <View style={styles.flexCol}>
                             <CustomText variant="caption" style={styles.dataLabel}>
