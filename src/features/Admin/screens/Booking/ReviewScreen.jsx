@@ -26,6 +26,7 @@ import { Layout } from '@/src/constants/layout';
 import AdminDocumentTab from '@/src/features/Admin/components/AdminDocumentTab';
 import AdminPaymentTab from '@/src/features/Admin/components/AdminPaymentTab';
 import HikerProfileCard from '@/src/features/Admin/components/HikerProfileCard';
+import ReviewStatusBanner from '@/src/features/Admin/components/ReviewStatusBanner';
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 
 const ReviewScreen = ({ 
@@ -49,7 +50,7 @@ const ReviewScreen = ({
         personalVerified, setPersonalVerified,
         emergencyVerified, setEmergencyVerified,
         isMinor,
-        currentStatus, isApprovedStatus, isRejectedStatus, isReviewComplete,
+        currentStatus, isApprovedStatus, isRejectedStatus, isCancelledStatus, isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
         availableOffers
@@ -138,24 +139,11 @@ const ReviewScreen = ({
                         <ErrorMessage error={error} />
                     )}
                     
-                    {isReviewComplete && (
-                        <View style={styles.completedBanner}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name={isApprovedStatus ? "check-circle" : "alert-circle"} 
-                                size={20} 
-                                color={isApprovedStatus ? Colors.SUCCESS : Colors.ERROR} 
-                            />
-                            <CustomText 
-                                style={[
-                                    styles.completedBannerText, 
-                                    { color: isApprovedStatus ? Colors.SUCCESS : Colors.ERROR }
-                                ]}
-                            >
-                                {isApprovedStatus ? "Review Completed & Approved" : "Booking Rejected"}
-                            </CustomText>
-                        </View>
-                    )}
+                    <ReviewStatusBanner 
+                        currentStatus={currentStatus}
+                        cancellationReason={booking?.cancellationReason}
+                        rejectionReason={rejectionReason}
+                    />
 
                     <HikerProfileCard 
                         user={booking.user}
@@ -228,6 +216,7 @@ const ReviewScreen = ({
                             viewedDocs={viewedDocs}
                             isReviewComplete={isReviewComplete}
                             isRejectedStatus={isRejectedStatus}
+                            isCancelledStatus={isCancelledStatus}
                             hasRejections={hasRejections}
                             rejectionReason={rejectionReason}
                             setRejectionReason={setRejectionReason}
@@ -241,6 +230,7 @@ const ReviewScreen = ({
                             currentStatus={currentStatus}
                             isApprovedStatus={isApprovedStatus}
                             isRejectedStatus={isRejectedStatus}
+                            isCancelledStatus={isCancelledStatus}
                             onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
                         />
                     )}
@@ -400,21 +390,6 @@ const styles = StyleSheet.create({
         paddingBottom: 120, 
         paddingTop: 20 
     },
-    completedBanner: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        padding: 16, 
-        borderRadius: 12, 
-        marginBottom: 16, 
-        backgroundColor: Colors.WHITE, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        gap: 8 
-    },
-    completedBannerText: { 
-        fontWeight: 'bold' 
-    },
     tabContainer: { 
         flexDirection: 'row', 
         backgroundColor: Colors.WHITE, 
@@ -445,7 +420,6 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         width: '100%' 
     },
-    
     modalOverlay: { 
         flex: 1, 
         backgroundColor: 'rgba(0,0,0,0.5)', 
