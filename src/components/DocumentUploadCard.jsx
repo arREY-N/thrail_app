@@ -12,7 +12,6 @@ const DocumentUploadCard = ({
     docKey,
     isUploaded,
     isRejected = false, 
-    rejectionReason = '',
     onUploadSuccess,
     allowMultiple = false,
     onDelete
@@ -131,10 +130,10 @@ const DocumentUploadCard = ({
                 </View>
             </View>
 
-            {((isRejected && Boolean(rejectionReason)) || (isError && Boolean(errorMessage))) ? (
+            {isError && Boolean(errorMessage) ? (
                 <View style={styles.rejectionReasonBox}>
                     <CustomText variant="caption" style={styles.rejectionReasonText}>
-                        {isRejected ? `Admin Note: ${rejectionReason}` : errorMessage}
+                        {errorMessage}
                     </CustomText>
                 </View>
             ) : null}
@@ -175,8 +174,8 @@ const styles = StyleSheet.create({
     uploadInfo: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        flex: 1,
-        paddingRight: 8
+        flex: 1, // ✅ Forces the left side to consume remaining space
+        paddingRight: 12
     },
     iconWrapper: { 
         width: 40, 
@@ -186,73 +185,27 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         marginRight: 12 
     },
-    iconWrapperPending: { 
-        backgroundColor: Colors.BACKGROUND 
-    },
-    iconWrapperSuccess: { 
-        backgroundColor: Colors.STATUS_APPROVED_BG 
-    },
-    iconWrapperError: { 
-        backgroundColor: Colors.WHITE 
-    }, 
+    iconWrapperPending: { backgroundColor: Colors.BACKGROUND },
+    iconWrapperSuccess: { backgroundColor: Colors.STATUS_APPROVED_BG },
+    iconWrapperError: { backgroundColor: Colors.WHITE }, 
     docName: { 
-        flex: 1 
+        flex: 1, // ✅ Works with flexShrink below
+        flexShrink: 1 // ✅ Critical fix: Forces long text to truncate/wrap before it crushes the buttons
     },
     actionContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        gap: 8 
+        gap: 8,
+        flexShrink: 0 // ✅ Ensures buttons never get squeezed by the text
     },
-    uploadBtn: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
-        borderRadius: 20, 
-        minWidth: 80, 
-        alignItems: 'center', 
-        backgroundColor: Colors.PRIMARY 
-    },
-    uploadBtnText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
-    },
-    uploadedBtn: { 
-        backgroundColor: Colors.WHITE, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_MEDIUM, 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
-        borderRadius: 20, 
-        minWidth: 80, 
-        alignItems: 'center' 
-    },
-    uploadedBtnText: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold' 
-    },
-    errorBtn: { 
-        backgroundColor: Colors.ERROR, 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
-        borderRadius: 20, 
-        minWidth: 80, 
-        alignItems: 'center' 
-    },
-    errorBtnText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
-    },
-    viewBtn: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 12, 
-        borderRadius: 20, 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        borderWidth: 1, 
-        borderColor: Colors.SUCCESS 
-    },
-    viewBtnText: { 
-        color: Colors.SUCCESS, 
-        fontWeight: 'bold' 
-    },
+    uploadBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center', backgroundColor: Colors.PRIMARY },
+    uploadBtnText: { color: Colors.WHITE, fontWeight: 'bold' },
+    uploadedBtn: { backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_MEDIUM, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center' },
+    uploadedBtnText: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold' },
+    errorBtn: { backgroundColor: Colors.ERROR, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center' },
+    errorBtnText: { color: Colors.WHITE, fontWeight: 'bold' },
+    viewBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Colors.STATUS_APPROVED_BG, borderWidth: 1, borderColor: Colors.SUCCESS },
+    viewBtnText: { color: Colors.SUCCESS, fontWeight: 'bold' },
     rejectionReasonBox: { 
         backgroundColor: Colors.ERROR_BG, 
         padding: 10, 
