@@ -13,6 +13,43 @@ import useBook from '@/src/core/hook/book/useBook';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 
+
+const DUMMY_FUTURE_OFFERS = [
+    {
+        id: 'dummy-offer-1',
+        date: new Date(new Date().setDate(new Date().getDate() + 14)),
+        price: 1500,
+        duration: 'Day Hike (12 hrs)',
+        minPax: 5,
+        maxPax: 12,
+        business: { id: 'biz-1', name: 'Adventure Guides PH' },
+        trail: { id: 'trail-1', name: 'Mt. Daraitan' },
+        description: 'Experience the sea of clouds and the pristine waters of Tinipak River.',
+        inclusions: ['Guide Fee', 'Environmental Fee', 'Roundtrip Transfer from Manila'],
+        thingsToBring: ['2L Water', 'Packed Lunch', 'Trail Snacks', 'Extra Clothes'],
+        schedule: [
+            { day: 1, activities: [
+                { time: new Date(new Date().setHours(4, 0, 0, 0)), event: 'Assembly at Greenfield District' },
+                { time: new Date(new Date().setHours(6, 0, 0, 0)), event: 'Start Trek' }
+            ]}
+        ]
+    },
+    {
+        id: 'dummy-offer-2',
+        date: new Date(new Date().setDate(new Date().getDate() + 30)),
+        price: 1800,
+        duration: 'Overnight',
+        minPax: 4,
+        maxPax: 10,
+        business: { id: 'biz-1', name: 'Adventure Guides PH' },
+        trail: { id: 'trail-2', name: 'Mt. Batulao' },
+        description: 'Perfect for beginners. Enjoy the rolling scenic views of Batangas.',
+        inclusions: ['Guide Fee', 'Environmental Fee', 'Tent Rental'],
+        thingsToBring: ['3L Water', 'Jacket', 'Headlamp', 'Sleeping Bag'],
+        schedule: []
+    }
+];
+
 export default function listBook(){
     const { onBackPress } = useAppNavigation();
     const { profile } = useAuthHook();
@@ -30,6 +67,7 @@ export default function listBook(){
         error,
         onCancelBookingPress,
         onRefundBookingPress,
+        onRescheduleBooking,
         onPayOffer,
         getBookOffer,
     } = useBookOffer();
@@ -56,8 +94,10 @@ export default function listBook(){
 			onBackPress={onBackPress}
 			onCancelBookingPress={onCancelBookingPress}
 			onRefundBookingPress={onRefundBookingPress}
+            onRescheduleBooking={onRescheduleBooking}
 			onPayOffer={onPayOffer}
 			getBookOffer={getBookOffer}
+            availableFutureOffers={DUMMY_FUTURE_OFFERS}
 			initialBookingId={bookingId}
             initialView={view}
 		/>
