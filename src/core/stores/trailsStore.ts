@@ -30,115 +30,116 @@ const init = {
   discoverTrail: [],
 };
 
-// [DEV TESTING MOCKS]
-// We created these 'tempoTrails' temporary offline mock endpoints to bypass Firebase requirements during UI/UX development.
-// Because the actual map geometries (trails.json) represent these specific mountains, we feed these exact 'startLat' and 'startLong'
-// coordinates down from the 'Hike' button into the MapLibre components. This guarantees we can functionally test
-// that the map camera perfectly centers precisely on the drawn green trails without needing a live network connection to Firestore.
-// DO NOT DELETE these mocks until the Map Navigation and "Hike Map FlyTo" camera animation is fully validated in production!
-const tempoTrails = [
-  {
-    id: "mock_tagapo",
-    name: "Mount Tagapo",
-    province: "Rizal",
-    address: "Talim Island, Rizal",
-    score: 4.8,
-    masl: 438,
-    length: 5,
-    geography: { startLat: 14.3392772, startLong: 121.2325293 },
-  },
-  {
-    id: "mock_marami",
-    name: "Mount Marami",
-    province: "Rizal",
-    address: "Tanay, Rizal",
-    score: 4.9,
-    masl: 739,
-    length: 7,
-    geography: { startLat: 14.1986108, startLong: 120.6858334 },
-  },
-  {
-    id: "mock_batulao",
-    name: "Mount Batulao",
-    province: "Batangas",
-    address: "Nasugbu, Batangas",
-    score: 4.7,
-    masl: 811,
-    length: 9,
-    geography: { startLat: 14.0399434, startLong: 120.8023782 },
-  },
-  {
-    id: "mock_makiling",
-    name: "Mount Makiling",
-    province: "Laguna",
-    address: "Los Baños, Laguna",
-    score: 4.6,
-    masl: 1090,
-    length: 12,
-    geography: { startLat: 14.1352241, startLong: 121.1944517 },
-  },
-  {
-    id: "mock_maculot",
-    name: "Mount Maculot",
-    province: "Batangas",
-    address: "Cuenca, Batangas",
-    score: 4.8,
-    masl: 930,
-    length: 4,
-    geography: { startLat: 13.9208682, startLong: 121.0516961 },
-  },
-].map((matchedMock) => ({
-  id: matchedMock.id,
-  general: {
-    name: matchedMock.name,
-    address: matchedMock.address,
-    province: [matchedMock.province],
-    mountain: [matchedMock.name],
-    rating: matchedMock.score,
-    reviewCount: 150,
-  },
-  geography: matchedMock.geography,
-  difficulty: {
-    length: matchedMock.length,
-    elevation: matchedMock.masl,
-    slope: 10,
-    hours: 4,
-    circularity: "Out and Back",
-  },
-  tourism: {},
-})) as any as Trail[];
+// // [DEV TESTING MOCKS]
+// // We created these 'tempoTrails' temporary offline mock endpoints to bypass Firebase requirements during UI/UX development.
+// // Because the actual map geometries (trails.json) represent these specific mountains, we feed these exact 'startLat' and 'startLong'
+// // coordinates down from the 'Hike' button into the MapLibre components. This guarantees we can functionally test
+// // that the map camera perfectly centers precisely on the drawn green trails without needing a live network connection to Firestore.
+// // DO NOT DELETE these mocks until the Map Navigation and "Hike Map FlyTo" camera animation is fully validated in production!
+// const tempoTrails = [
+//   {
+//     id: "mock_tagapo",
+//     name: "Mount Tagapo",
+//     province: "Rizal",
+//     address: "Talim Island, Rizal",
+//     score: 4.8,
+//     masl: 438,
+//     length: 5,
+//     geography: { startLat: 14.3392772, startLong: 121.2325293 },
+//   },
+//   {
+//     id: "mock_marami",
+//     name: "Mount Marami",
+//     province: "Rizal",
+//     address: "Tanay, Rizal",
+//     score: 4.9,
+//     masl: 739,
+//     length: 7,
+//     geography: { startLat: 14.1986108, startLong: 120.6858334 },
+//   },
+//   {
+//     id: "mock_batulao",
+//     name: "Mount Batulao",
+//     province: "Batangas",
+//     address: "Nasugbu, Batangas",
+//     score: 4.7,
+//     masl: 811,
+//     length: 9,
+//     geography: { startLat: 14.0399434, startLong: 120.8023782 },
+//   },
+//   {
+//     id: "mock_makiling",
+//     name: "Mount Makiling",
+//     province: "Laguna",
+//     address: "Los Baños, Laguna",
+//     score: 4.6,
+//     masl: 1090,
+//     length: 12,
+//     geography: { startLat: 14.1352241, startLong: 121.1944517 },
+//   },
+//   {
+//     id: "mock_maculot",
+//     name: "Mount Maculot",
+//     province: "Batangas",
+//     address: "Cuenca, Batangas",
+//     score: 4.8,
+//     masl: 930,
+//     length: 4,
+//     geography: { startLat: 13.9208682, startLong: 121.0516961 },
+//   },
+// ].map((matchedMock) => ({
+//   id: matchedMock.id,
+//   general: {
+//     name: matchedMock.name,
+//     address: matchedMock.address,
+//     province: [matchedMock.province],
+//     mountain: [matchedMock.name],
+//     rating: matchedMock.score,
+//     reviewCount: 150,
+//   },
+//   geography: matchedMock.geography,
+//   difficulty: {
+//     length: matchedMock.length,
+//     elevation: matchedMock.masl,
+//     slope: 10,
+//     hours: 4,
+//     circularity: "Out and Back",
+//   },
+//   tourism: {},
+// })) as any as Trail[];
 
 export const useTrailsStore = create<TrailState>()(
   immer((set, get) => ({
     ...init,
-    data: tempoTrails, // Preload mocks immediately into init state
+    data: [], // Preload mocks immediately into init state
 
     fetchAll: async () => {
       // Only return if we have real data beyond just the mocks
-      if (get().data.length > tempoTrails.length) return;
+      if (get().data.length > 0) return;
 
       set({ isLoading: true, error: null });
 
       try {
         const trails = await TrailRepository.fetchAll();
-        const normalizedFirebaseTrails = trails.map((t: any) => ({
-          ...t,
-          difficulty: {
-            ...(t.difficulty || {}),
-            elevation: t.difficulty?.elevation ?? t.masl ?? t.geography?.masl,
-            length: t.difficulty?.length ?? t.length,
-          },
-          general: {
-            ...(t.general || {}),
-            name: t.general?.name ?? t.name,
-            address: t.general?.address ?? t.address,
-            rating: t.general?.rating ?? t.score,
-            province: t.general?.province ?? (t.province ? [t.province] : []),
-          },
-        }));
-        // Combine real Firebase trails with our temp mocks
-        const combined = [...tempoTrails, ...normalizedFirebaseTrails];
-        const sorted = combined.sort((a, b) =>
+        // const normalizedFirebaseTrails = trails.map((t: any) => ({
+        //   ...t,
+        //   difficulty: {
+        //     ...(t.difficulty || {}),
+        //     elevation: t.difficulty?.elevation ?? t.masl ?? t.geography?.masl,
+        //     length: t.difficulty?.length ?? t.length,
+        //   },
+        //   general: {
+        //     ...(t.general || {}),
+        //     name: t.general?.name ?? t.name,
+        //     address: t.general?.address ?? t.address,
+        //     rating: t.general?.rating ?? t.score,
+        //     province: t.general?.province ?? (t.province ? [t.province] : []),
+        //   },
+        // }));
+        // // Combine real Firebase trails with our temp mocks
+        // const combined = [...normalizedFirebaseTrails];
+       
+        const sorted = trails.sort((a, b) =>
           a.general.name.localeCompare(b.general.name),
         );
         set({
@@ -159,23 +160,7 @@ export const useTrailsStore = create<TrailState>()(
 
       try {
         const trails = await TrailRepository.fetchAll();
-        const normalizedFirebaseTrails = trails.map((t: any) => ({
-          ...t,
-          difficulty: {
-            ...(t.difficulty || {}),
-            elevation: t.difficulty?.elevation ?? t.masl ?? t.geography?.masl,
-            length: t.difficulty?.length ?? t.length,
-          },
-          general: {
-            ...(t.general || {}),
-            name: t.general?.name ?? t.name,
-            address: t.general?.address ?? t.address,
-            rating: t.general?.rating ?? t.score,
-            province: t.general?.province ?? (t.province ? [t.province] : []),
-          },
-        }));
-        const combined = [...tempoTrails, ...normalizedFirebaseTrails];
-        const sorted = combined.sort((a, b) =>
+        const sorted = trails.sort((a, b) =>
           a.general.name.localeCompare(b.general.name),
         );
         set({
@@ -290,6 +275,9 @@ export const useTrailsStore = create<TrailState>()(
       try {
         const data = get().data;
         const trail = data.find((t) => t.id === id);
+        
+        console.log('trails: ', data);
+        console.log('matched trail id: ', id);
 
         if (!trail) {
           set({
