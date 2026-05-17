@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 
 const paymentMethods = [
@@ -39,146 +40,115 @@ const MethodScreen = ({
             showsVerticalScrollIndicator={false} 
             contentContainerStyle={styles.scrollContent}
         >
-            <View style={styles.section}>
-                
-                <View style={styles.amountDisplayCard}>
-                    <CustomText 
-                        variant="caption" 
-                        style={styles.amountDisplayLabel}
-                    >
-                        Amount to Pay
-                    </CustomText>
-                    <CustomText 
-                        variant="h1" 
-                        style={styles.amountDisplayText}
-                    >
-                        ₱{amountToPay.toFixed(2)}
-                    </CustomText>
-                </View>
-
-                {!isPayingBalance && (
-                    <>
-                        <CustomText variant="h2" style={styles.sectionTitle}>
-                            Payment Options
+            <View style={styles.constrainer}>
+                <View style={styles.section}>
+                    
+                    <View style={styles.amountDisplayCard}>
+                        <CustomText variant="caption" style={styles.amountDisplayLabel}>
+                            Amount to Pay
                         </CustomText>
-                        
-                        <View style={styles.toggleContainer}>
-                            <TouchableOpacity 
-                                style={[
-                                    styles.toggleBtn, 
-                                    paymentType === 'full' && styles.toggleBtnActive
-                                ]}
-                                onPress={() => setPaymentType('full')} 
-                                activeOpacity={0.8}
-                            >
-                                <CustomText 
-                                    style={[
-                                        styles.toggleText, 
-                                        paymentType === 'full' && styles.toggleTextActive
-                                    ]}
-                                >
-                                    Pay in Full
-                                </CustomText>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={[
-                                    styles.toggleBtn, 
-                                    paymentType === 'downpayment' && styles.toggleBtnActive
-                                ]}
-                                onPress={() => setPaymentType('downpayment')} 
-                                activeOpacity={0.8}
-                            >
-                                <CustomText 
-                                    style={[
-                                        styles.toggleText, 
-                                        paymentType === 'downpayment' && styles.toggleTextActive
-                                    ]}
-                                >
-                                    50% Downpayment
-                                </CustomText>
-                            </TouchableOpacity>
-                        </View>
-
-                        {paymentType === 'downpayment' && (
-                            <View style={styles.infoWarningContainer}>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="alert-triangle" 
-                                    size={16} 
-                                    color={Colors.WARNING} 
-                                />
-                                <CustomText 
-                                    variant="caption" 
-                                    style={styles.infoWarningText}
-                                >
-                                    The remaining balance must be paid directly to the guide on or before the hike date.
-                                </CustomText>
-                            </View>
-                        )}
-                    </>
-                )}
-
-                {paymentError && (
-                    <View style={styles.errorBanner}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="x-circle" 
-                            size={18} 
-                            color={Colors.ERROR} 
-                        />
-                        <CustomText 
-                            variant="caption" 
-                            style={styles.errorBannerText}
-                        >
-                            {paymentError}
+                        <CustomText variant="h1" style={styles.amountDisplayText}>
+                            ₱{amountToPay.toFixed(2)}
                         </CustomText>
                     </View>
-                )}
 
-                <CustomText variant="h2" style={styles.sectionTitle}>
-                    Select Wallet
-                </CustomText>
-
-                {paymentMethods.map((method) => {
-                    const isSelected = selectedMethod === method.id;
-                    return (
-                        <TouchableOpacity
-                            key={method.id}
-                            style={[
-                                styles.methodCard, 
-                                isSelected && styles.selectedMethodCard
-                            ]}
-                            activeOpacity={0.7}
-                            onPress={() => setSelectedMethod(method.id)}
-                        >
-                            <View style={styles.methodIconWrapper}>
-                                <CustomIcon 
-                                    library={method.library} 
-                                    name={method.icon} 
-                                    size={20} 
-                                    color={isSelected ? Colors.PRIMARY : Colors.TEXT_PLACEHOLDER} 
-                                />
-                            </View>
-                            <CustomText 
-                                variant="body" 
-                                style={styles.methodName}
-                            >
-                                {method.name}
+                    {!isPayingBalance && (
+                        <>
+                            <CustomText variant="h2" style={styles.sectionTitle}>
+                                Payment Options
                             </CustomText>
-                            <View style={styles.radioOuter}>
-                                {isSelected && <View style={styles.radioInner} />}
+                            
+                            <View style={styles.toggleContainer}>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.toggleBtn, 
+                                        paymentType === 'full' && styles.toggleBtnActive
+                                    ]}
+                                    onPress={() => setPaymentType('full')} 
+                                    activeOpacity={0.8}
+                                >
+                                    <CustomText 
+                                        style={[
+                                            styles.toggleText, 
+                                            paymentType === 'full' && styles.toggleTextActive
+                                        ]}
+                                    >
+                                        Pay in Full
+                                    </CustomText>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.toggleBtn, 
+                                        paymentType === 'downpayment' && styles.toggleBtnActive
+                                    ]}
+                                    onPress={() => setPaymentType('downpayment')} 
+                                    activeOpacity={0.8}
+                                >
+                                    <CustomText 
+                                        style={[
+                                            styles.toggleText, 
+                                            paymentType === 'downpayment' && styles.toggleTextActive
+                                        ]}
+                                    >
+                                        50% Downpayment
+                                    </CustomText>
+                                </TouchableOpacity>
                             </View>
-                        </TouchableOpacity>
-                    );
-                })}
 
-                <View style={styles.termsWrapper}>
-                    <TermsSignature 
-                        expectedName={profileFullName}
-                        isMinor={isMinor}
-                        minorName={minorName}
-                        onValidChange={setIsSignatureValid}
-                    />
+                            {paymentType === 'downpayment' && (
+                                <View style={styles.infoWarningContainer}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.WARNING} />
+                                    <CustomText variant="caption" style={styles.infoWarningText}>
+                                        The remaining balance must be paid directly to the guide on or before the hike date.
+                                    </CustomText>
+                                </View>
+                            )}
+                        </>
+                    )}
+
+                    {paymentError && (
+                        <View style={styles.errorBanner}>
+                            <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
+                            <CustomText variant="caption" style={styles.errorBannerText}>
+                                {paymentError}
+                            </CustomText>
+                        </View>
+                    )}
+
+                    <CustomText variant="h2" style={styles.sectionTitle}>
+                        Select Wallet
+                    </CustomText>
+
+                    {paymentMethods.map((method) => {
+                        const isSelected = selectedMethod === method.id;
+                        return (
+                            <TouchableOpacity
+                                key={method.id}
+                                style={[styles.methodCard, isSelected && styles.selectedMethodCard]}
+                                activeOpacity={0.7}
+                                onPress={() => setSelectedMethod(method.id)}
+                            >
+                                <View style={styles.methodIconWrapper}>
+                                    <CustomIcon library={method.library} name={method.icon} size={20} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PLACEHOLDER} />
+                                </View>
+                                <CustomText variant="body" style={styles.methodName}>
+                                    {method.name}
+                                </CustomText>
+                                <View style={styles.radioOuter}>
+                                    {isSelected && <View style={styles.radioInner} />}
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+
+                    <View style={styles.termsWrapper}>
+                        <TermsSignature 
+                            expectedName={profileFullName}
+                            isMinor={isMinor}
+                            minorName={minorName}
+                            onValidChange={setIsSignatureValid}
+                        />
+                    </View>
                 </View>
             </View>
         </ScrollView>
@@ -186,9 +156,14 @@ const MethodScreen = ({
 };
 
 const styles = StyleSheet.create({
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16
+    },
     scrollContent: { 
-        paddingHorizontal: 20, 
-        paddingBottom: 120 
+        paddingBottom: 120
     },
     section: { 
         paddingTop: 24 
@@ -248,11 +223,11 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY 
     },
     infoWarningContainer: { 
-        backgroundColor: '#FFF9E6', 
+        backgroundColor: Colors.STATUS_WARNING_BG, 
         padding: 12, 
         borderRadius: 8, 
         borderWidth: 1, 
-        borderColor: '#FFE4A0', 
+        borderColor: Colors.STATUS_WARNING_BORDER, 
         flexDirection: 'row', 
         alignItems: 'flex-start', 
         gap: 8, 
@@ -260,7 +235,7 @@ const styles = StyleSheet.create({
     },
     infoWarningText: { 
         flex: 1, 
-        color: '#A06B00', 
+        color: Colors.STATUS_WARNING_TEXT, 
         lineHeight: 18 
     },
     errorBanner: { 
