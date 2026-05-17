@@ -3,15 +3,16 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
-import StickyFooter from '@/src/features/Book/components/StickyFooter';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 
 const getStrictDocKey = (docName) => {
@@ -21,7 +22,7 @@ const getStrictDocKey = (docName) => {
     if (lower.includes('bir')) return 'bir';
     if (lower.includes('dti')) return 'dti';
     if (lower.includes('denr')) return 'denr';
-    if (lower.includes('parent') || lower.includes('guardian')) return 'guardianId'; // <-- ADDED for minor logic
+    if (lower.includes('parent') || lower.includes('guardian')) return 'guardianId'; 
     return 'validId';
 };
 
@@ -101,124 +102,131 @@ const DetailsScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.section}>
-                    <View style={styles.sectionHeaderRow}>
-                        <CustomText variant="h2" style={styles.sectionTitleFlat}>
-                            Hiker Information
-                        </CustomText>
-
-                        {hasProfileData && !isEditingPhone && (
-                            <TouchableOpacity 
-                                style={styles.headerActionBtn} 
-                                onPress={() => setShowEditModal(true)}
-                            >
-                                <CustomIcon library="Feather" name="edit-3" size={14} color={Colors.PRIMARY} />
-                                <CustomText variant="caption" style={styles.headerActionBtnText}>
-                                    Edit Phone
-                                </CustomText>
-                            </TouchableOpacity>
-                        )}
-                        
-                        {hasProfileData && isEditingPhone && (
-                            <TouchableOpacity 
-                                style={styles.headerResetBtn} 
-                                onPress={handleResetPhone}
-                            >
-                                <CustomIcon library="Feather" name="refresh-ccw" size={14} color={Colors.TEXT_SECONDARY} />
-                                <CustomText variant="caption" style={styles.headerResetBtnText}>
-                                    Reset
-                                </CustomText>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                <View style={styles.constrainer}>
                     
-                    <View style={styles.lockedInputContainer}>
-                        <CustomTextInput 
-                            label="Full Name" 
-                            value={profileFullName} 
-                            editable={false} 
-                            style={styles.inputSpacing} 
-                        />
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <CustomText variant="h2" style={styles.sectionTitleFlat}>
+                                Hiker Information
+                            </CustomText>
+
+                            {hasProfileData && !isEditingPhone && (
+                                <TouchableOpacity 
+                                    style={styles.headerActionBtn} 
+                                    onPress={() => setShowEditModal(true)}
+                                >
+                                    <CustomIcon library="Feather" name="edit-3" size={14} color={Colors.PRIMARY} />
+                                    <CustomText variant="caption" style={styles.headerActionBtnText}>
+                                        Edit Phone
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
+                            
+                            {hasProfileData && isEditingPhone && (
+                                <TouchableOpacity 
+                                    style={styles.headerResetBtn} 
+                                    onPress={handleResetPhone}
+                                >
+                                    <CustomIcon library="Feather" name="refresh-ccw" size={14} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText variant="caption" style={styles.headerResetBtnText}>
+                                        Reset
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        
+                        <View style={styles.lockedInputContainer}>
+                            <CustomTextInput 
+                                label="Full Name" 
+                                value={profileFullName} 
+                                editable={false} 
+                                style={styles.inputSpacing} 
+                            />
+                        </View>
+
+                        <View style={!isEditingPhone ? styles.lockedInputContainer : {}}>
+                            <CustomTextInput 
+                                label="Phone Number" 
+                                placeholder="9XX XXX XXXX" 
+                                prefix="+63" 
+                                type="phone"
+                                value={formData.phone || ''} 
+                                keyboardType="number-pad" 
+                                editable={isEditingPhone}
+                                onChangeText={(text) => handleInputChange('phone', text)} 
+                                maxLength={12}
+                            />
+                        </View>
                     </View>
 
-                    <View style={!isEditingPhone ? styles.lockedInputContainer : {}}>
+                    <View style={styles.section}>
+                        <CustomText variant="h2" style={styles.sectionTitle}>
+                            {isMinor ? "Parent/Guardian Contact" : "Emergency Contact"}
+                        </CustomText>
+                        
                         <CustomTextInput 
-                            label="Phone Number" 
+                            label={isMinor ? "Guardian Name" : "Contact Name"} 
+                            placeholder="Maria Dela Cruz"
+                            value={formData.emergencyName || ''} 
+                            onChangeText={(text) => handleInputChange('emergencyName', text)}
+                            style={styles.inputSpacing}
+                        />
+
+                        <CustomTextInput 
+                            label={isMinor ? "Guardian Phone Number" : "Contact Phone Number"} 
                             placeholder="9XX XXX XXXX" 
                             prefix="+63" 
                             type="phone"
-                            value={formData.phone || ''} 
-                            keyboardType="number-pad" 
-                            editable={isEditingPhone}
-                            onChangeText={(text) => handleInputChange('phone', text)} 
+                            value={formData.emergencyPhone || ''} 
+                            keyboardType="number-pad"
+                            onChangeText={(text) => handleInputChange('emergencyPhone', text)} 
                             maxLength={12}
                         />
                     </View>
-                </View>
 
-                <View style={styles.section}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        {isMinor ? "Parent/Guardian Contact" : "Emergency Contact"}
-                    </CustomText>
-                    
-                    <CustomTextInput 
-                        label={isMinor ? "Guardian Name" : "Contact Name"} 
-                        placeholder="Maria Dela Cruz"
-                        value={formData.emergencyName || ''} 
-                        onChangeText={(text) => handleInputChange('emergencyName', text)}
-                        style={styles.inputSpacing}
-                    />
+                    {activeDocuments.length > 0 && (
+                        <View style={styles.section}>
+                            <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>
+                                Required Documents
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.sectionSubtitle}>
+                                Please upload the requirements specific to this offer.
+                            </CustomText>
 
-                    <CustomTextInput 
-                        label={isMinor ? "Guardian Phone Number" : "Contact Phone Number"} 
-                        placeholder="9XX XXX XXXX" 
-                        prefix="+63" 
-                        type="phone"
-                        value={formData.emergencyPhone || ''} 
-                        keyboardType="number-pad"
-                        onChangeText={(text) => handleInputChange('emergencyPhone', text)} 
-                        maxLength={12}
-                    />
-                </View>
+                            {activeDocuments.map((doc, index) => (
+                                <DocumentUploadCard 
+                                    key={index}
+                                    docName={doc}
+                                    docKey={getStrictDocKey(doc)} 
+                                    isUploaded={uploadedDocs[doc]}
+                                    onUploadSuccess={(url) => {
+                                        setUploadedDocs(prev => ({ ...prev, [doc]: url }));
+                                    }}
+                                />
+                            ))}
+                        </View>
+                    )}
 
-                {activeDocuments.length > 0 && (
                     <View style={styles.section}>
-                        <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>
-                            Required Documents
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.sectionSubtitle}>
-                            Please upload the requirements specific to this offer.
-                        </CustomText>
-
-                        {activeDocuments.map((doc, index) => (
-                            <DocumentUploadCard 
-                                key={index}
-                                docName={doc}
-                                docKey={getStrictDocKey(doc)} 
-                                isUploaded={uploadedDocs[doc]}
-                                onUploadSuccess={(url) => {
-                                    setUploadedDocs(prev => ({ ...prev, [doc]: url }));
-                                }}
-                            />
-                        ))}
+                        <TermsSignature 
+                            isMinor={isMinor}
+                            minorName={profileFullName}
+                            expectedName={isMinor ? formData.emergencyName : profileFullName}
+                            onValidChange={(isValid) => setIsSignatureValid(isValid)}
+                            onTermsPress={onTermsPress}
+                            onPrivacyPress={onPrivacyPress}
+                        />
                     </View>
-                )}
-
-                <TermsSignature 
-                    isMinor={isMinor}
-                    minorName={profileFullName}
-                    expectedName={isMinor ? formData.emergencyName : profileFullName}
-                    onValidChange={(isValid) => setIsSignatureValid(isValid)}
-                    onTermsPress={onTermsPress}
-                    onPrivacyPress={onPrivacyPress}
-                />
-                
+                    
+                </View>
             </ScrollView>
 
-            <StickyFooter 
-                title={isSubmitting ? "Reserving..." : "Reserve"} 
-                isDisabled={!isFormValid() || isSubmitting}
-                onPress={() => onContinue({ hikerDetails: formData, uploadedDocs })} 
+            <CustomStickyFooter 
+                primaryButton={{
+                    title: isSubmitting ? "Reserving..." : "Reserve",
+                    disabled: !isFormValid() || isSubmitting,
+                    onPress: () => onContinue({ hikerDetails: formData, uploadedDocs })
+                }}
             />
 
             <ConfirmationModal 
@@ -238,32 +246,35 @@ const styles = StyleSheet.create({
     container: { 
         flex: 1, 
         backgroundColor: Colors.BACKGROUND, 
-        paddingHorizontal: 16, 
-        paddingTop: 0, 
-        paddingBottom: 16 
+    },
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
     scrollContent: { 
-        paddingBottom: 80 
+        paddingBottom: 120 
     },
+    
     section: { 
-        marginBottom: 0 
+        marginBottom: 8, 
     },
+    
     sectionHeaderRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: 16, 
-        paddingTop: 16 
     },
     sectionTitleFlat: { 
         marginBottom: 0 
     },
     sectionTitleFlatDocuments: { 
         marginBottom: 8, 
-        paddingTop: 16 
     },
     sectionTitle: { 
-        paddingTop: 16, 
         paddingHorizontal: 0, 
         marginBottom: 16 
     },
@@ -301,7 +312,7 @@ const styles = StyleSheet.create({
     },
     lockedInputContainer: { 
         opacity: 0.6, 
-        marginBottom: 8 
+        marginBottom: 0 
     },
     inputSpacing: { 
         marginBottom: 16 

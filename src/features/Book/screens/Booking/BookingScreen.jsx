@@ -6,6 +6,7 @@ import CustomLoading from '@/src/components/CustomLoading';
 import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen from '@/src/features/Book/screens/Booking/DetailsScreen';
@@ -154,43 +155,45 @@ const BookingScreen = ({
                 onBackPress={currentView === 3 ? null : handleHeaderBackPress}
             />
 
-            <View style={styles.progressWrapper}>
-                <View style={styles.progressContainer}>
-                    <View style={styles.lineWrapper}>
-                        <View style={styles.progressLineBackground} />
-                        <View
-                            style={[
-                                styles.progressLineActive,
-                                { width: `${lineFillPercentage}%` },
-                            ]}
-                        />
-                    </View>
+            <View style={styles.progressOuterBounds}>
+                <View style={styles.progressWrapper}>
+                    <View style={styles.progressContainer}>
+                        <View style={styles.lineWrapper}>
+                            <View style={styles.progressLineBackground} />
+                            <View
+                                style={[
+                                    styles.progressLineActive,
+                                    { width: `${lineFillPercentage}%` },
+                                ]}
+                            />
+                        </View>
 
-                    <View style={styles.progressRow}>
-                        <ProgressStep
-                            stepNum={1}
-                            title="Offers"
-                            libraryName="FontAwesome5"
-                            iconName="tag"
-                            currentView={currentView}
-                            onStepPress={handleStepNavigation}
-                        />
-                        <ProgressStep
-                            stepNum={2}
-                            title="Details"
-                            libraryName="Ionicons"
-                            iconName="document-text"
-                            currentView={currentView}
-                            onStepPress={handleStepNavigation}
-                        />
-                        <ProgressStep
-                            stepNum={3}
-                            title="Status"
-                            libraryName="MaterialCommunityIcons"
-                            iconName="clock-check-outline"
-                            currentView={currentView}
-                            onStepPress={handleStepNavigation}
-                        />
+                        <View style={styles.progressRow}>
+                            <ProgressStep
+                                stepNum={1}
+                                title="Offers"
+                                libraryName="FontAwesome5"
+                                iconName="tag"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                            <ProgressStep
+                                stepNum={2}
+                                title="Details"
+                                libraryName="Ionicons"
+                                iconName="document-text"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                            <ProgressStep
+                                stepNum={3}
+                                title="Status"
+                                libraryName="MaterialCommunityIcons"
+                                iconName="clock-check-outline"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -262,23 +265,33 @@ const BookingScreen = ({
 };
 
 const styles = StyleSheet.create({
+    progressOuterBounds: {
+        width: '100%',
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
     progressWrapper: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
         paddingVertical: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         backgroundColor: Colors.BACKGROUND,
         shadowColor: Colors.SHADOW,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 4,
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        zIndex: 10,
         elevation: 4,
     },
     progressContainer: {
         position: 'relative',
+        width: '100%',
+        maxWidth: 450, 
+        alignSelf: 'center',
     },
     progressRow: {
         flexDirection: 'row',
@@ -287,9 +300,9 @@ const styles = StyleSheet.create({
     },
     lineWrapper: {
         position: 'absolute',
-        top: 20,
-        left: 20,
-        right: 20,
+        top: 19, 
+        left: 35, 
+        right: 35, 
         height: 2,
         zIndex: 1,
     },

@@ -5,12 +5,14 @@ import {
     View
 } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
 const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
@@ -67,39 +69,50 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.calendarSectionWrapper}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        Select Date
-                    </CustomText>
-                    <OfferCalendar
-                        uniqueDates={uniqueDates}
-                        selectedDate={selectedDate}
-                        onSelectDate={handleDateSelect}
-                    />
-                </View>
+                <View style={styles.constrainer}>
 
-                <View style={styles.offersSection}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        Available Offers
-                    </CustomText>
+                    <View style={styles.calendarContainer}>
+                        <CustomText variant="h2" style={styles.sectionTitle}>
+                            Select Date
+                        </CustomText>
+                        <OfferCalendar
+                            uniqueDates={uniqueDates}
+                            selectedDate={selectedDate}
+                            onSelectDate={handleDateSelect}
+                        />
+                    </View>
 
-                    {filteredOffers.length > 0 ? (
-                        filteredOffers.map((offer) => (
-                            <OfferCard
-                                key={offer.id}
-                                offer={offer}
-                                isSelected={localSelectedId === offer.id}
-                                isExpired={isSelectedDatePast}
-                                onSelect={() => handleOfferSelect(offer.id)}
-                            />
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
-                                No offers available for this date.
-                            </CustomText>
-                        </View>
-                    )}
+                    <View style={styles.offersContainer}>
+                        <CustomText variant="h2" style={styles.sectionTitle}>
+                            Available Offers
+                        </CustomText>
+
+                        {filteredOffers.length > 0 ? (
+                            filteredOffers.map((offer) => (
+                                <OfferCard
+                                    key={offer.id}
+                                    offer={offer}
+                                    isSelected={localSelectedId === offer.id}
+                                    isExpired={isSelectedDatePast}
+                                    onSelect={() => handleOfferSelect(offer.id)}
+                                />
+                            ))
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="calendar" 
+                                    size={32} 
+                                    color={Colors.GRAY_LIGHT} 
+                                    style={styles.emptyIcon}
+                                />
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                                    No offers available for this date.
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
+
                 </View>
             </ScrollView>
 
@@ -115,12 +128,53 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.BACKGROUND, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
-    scrollContent: { paddingBottom: 100 },
-    calendarSectionWrapper: { marginBottom: 8 },
-    sectionTitle: { paddingTop: 0, paddingHorizontal: 0, marginBottom: 16, fontWeight: 'bold' },
-    offersSection: { paddingHorizontal: 0 },
-    emptyState: { paddingVertical: 40, alignItems: 'center', backgroundColor: Colors.WHITE, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
+    container: { 
+        flex: 1, 
+        backgroundColor: Colors.BACKGROUND, 
+        paddingTop: 16 
+    },
+    scrollContent: { 
+        paddingBottom: 100 
+    },
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16,
+    },
+
+    calendarContainer: {
+        width: '100%',
+        maxWidth: 450,
+        alignSelf: 'center',
+        marginBottom: 32,
+    },
+
+    offersContainer: {
+        width: '100%',
+        marginBottom: 32,
+    },
+    
+    sectionTitle: { 
+        paddingTop: 0, 
+        paddingHorizontal: 0, 
+        marginBottom: 16, 
+        fontWeight: 'bold' 
+    },
+    
+    emptyState: { 
+        paddingVertical: 40, 
+        paddingHorizontal: 20,
+        alignItems: 'center', 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 16, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT 
+    },
+    emptyIcon: {
+        marginBottom: 12,
+    }
 });
 
 export default OffersScreen;
