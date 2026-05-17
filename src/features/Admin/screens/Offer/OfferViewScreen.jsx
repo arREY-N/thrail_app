@@ -15,9 +15,9 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
-import AdminBookingCard from '@/src/features/Admin/components/AdminBookingCard';
-import OfferSummaryCard from '@/src/features/Admin/components/OfferSummaryCard';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
+import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
+import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';
 
 const OfferViewScreen = ({ 
     offerId,

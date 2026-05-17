@@ -21,7 +21,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import ScheduleBuilderModal from '@/src/features/Admin/components/ScheduleBuilderModal';
+import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
 
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];

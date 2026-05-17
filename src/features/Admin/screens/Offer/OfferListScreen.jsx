@@ -18,8 +18,8 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
-import OfferCard from '@/src/features/Admin/components/OfferCard';
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
+import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
 
 const OfferListScreen = ({ 
     offers,
