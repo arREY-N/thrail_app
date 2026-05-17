@@ -12,7 +12,12 @@ export default function useReviewLogic(booking, offers) {
     const [emergencyVerified, setEmergencyVerified] = useState(false);
     const [isMinor, setIsMinor] = useState(false);
 
-    const currentStatus = booking?.status || 'for-reservation';
+    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+    const currentStatus = hasRefundedPayment ? 'refunded' : (booking?.status || 'for-reservation');
+    const displayCancellationReason = hasRefundedPayment 
+        ? 'Refund processed securely via PayMongo.' 
+        : booking?.cancellationReason;
+
     const isApprovedStatus = ['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
     const isCancelledStatus = ['cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected'].includes(currentStatus);
@@ -76,9 +81,15 @@ export default function useReviewLogic(booking, offers) {
         personalVerified, setPersonalVerified,
         emergencyVerified, setEmergencyVerified,
         isMinor,
-        currentStatus, isApprovedStatus, isRejectedStatus, isCancelledStatus, isReviewComplete,
+        currentStatus, 
+        isApprovedStatus, 
+        isRejectedStatus, 
+        isCancelledStatus, 
+        isReviewComplete,
         adminStatusConfig,
-        hasRejections, isDecisionIncomplete,
-        availableOffers
+        hasRejections, 
+        isDecisionIncomplete,
+        availableOffers,
+        displayCancellationReason
     };
 }
