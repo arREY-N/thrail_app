@@ -9,6 +9,7 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
 import BookingCard from '@/src/features/Book/components/BookingCard';
 import BookTabs from '@/src/features/Book/components/BookTabs';
@@ -116,40 +117,44 @@ const MyBookingsScreen = ({
                     }
                 />
 
-                <BookTabs 
-                    tabs={tabs}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                />
+                <View style={styles.constrainer}>
+                    <BookTabs 
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                    />
+                </View>
 
                 <ScrollView 
                     showsVerticalScrollIndicator={false} 
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {displayError && (
-                        <View style={styles.errorBox}>
-                            <CustomText variant="caption" color={Colors.ERROR}>
-                                {displayError}
-                            </CustomText>
-                        </View>
-                    )}
+                    <View style={styles.constrainer}>
+                        {displayError && (
+                            <View style={styles.errorBox}>
+                                <CustomText variant="caption" color={Colors.ERROR}>
+                                    {displayError}
+                                </CustomText>
+                            </View>
+                        )}
 
-                    {filteredBookings.length > 0 ? (
-                        filteredBookings.map((booking) => (
-                            <BookingCard 
-                                key={booking.id} 
-                                booking={booking} 
-                                onSelectBooking={(b) => { setSelectedBookingId(b.id); setCurrentView('overview'); }} 
-                            />
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_LIGHT} />
-                            <CustomText variant="body" style={styles.emptyText}>
-                                No bookings found with current filters.
-                            </CustomText>
-                        </View>
-                    )}
+                        {filteredBookings.length > 0 ? (
+                            filteredBookings.map((booking) => (
+                                <BookingCard 
+                                    key={booking.id} 
+                                    booking={booking} 
+                                    onSelectBooking={(b) => { setSelectedBookingId(b.id); setCurrentView('overview'); }} 
+                                />
+                            ))
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_LIGHT} />
+                                <CustomText variant="body" style={styles.emptyText}>
+                                    No bookings found with current filters.
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
                 </ScrollView>
 
                 <CustomFilterModal
@@ -232,6 +237,11 @@ const MyBookingsScreen = ({
 };
 
 const styles = StyleSheet.create({
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+    },
     scrollContent: { 
         padding: 16, 
         paddingBottom: 40,
