@@ -29,6 +29,9 @@ const CustomButton = ({
         buttonStyle = styles.outline;
         labelStyle = styles.textOutline;
         useShadow = false;
+    } else if (variant === 'destructive') {
+        buttonStyle = styles.destructive;
+        labelStyle = styles.textDestructive;
     }
 
     return (
@@ -118,6 +121,15 @@ const styles = StyleSheet.create({
     textOutline: {
         color: Colors.PRIMARY,
     },
+
+    destructive: {
+        backgroundColor: Colors.ERROR,
+        borderWidth: 1.5,
+        borderColor: Colors.ERROR,
+    },
+    textDestructive: {
+        color: Colors.WHITE,
+    }
 });
 
 export default CustomButton;
