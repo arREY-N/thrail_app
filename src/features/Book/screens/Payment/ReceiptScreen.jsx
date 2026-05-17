@@ -8,6 +8,7 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 const ReceiptScreen = ({ 
@@ -17,7 +18,6 @@ const ReceiptScreen = ({
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
     const capturedPayments = payments.filter(p => p.status === 'captured');
     const latestPayment = capturedPayments[capturedPayments.length - 1] || payments[0];
-    
     
     const transactionRef = latestPayment?.referenceCode || latestPayment?.sessionId || `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
     const paymentMethod = latestPayment?.gateway || 'Online Payment';
@@ -56,81 +56,83 @@ const ReceiptScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.successHeader}>
-                    <View style={[styles.iconCircle, { backgroundColor: headerColor, shadowColor: headerColor }]}>
-                        <CustomIcon library="Feather" name={headerIcon} size={36} color={Colors.WHITE} />
-                    </View>
-                    <CustomText variant="h1" style={styles.successTitle}>
-                        {headerTitle}
-                    </CustomText>
-                    <CustomText variant="body" style={styles.successSubtitle}>
-                        {headerSubtitle}
-                    </CustomText>
-                </View>
-
-                <View style={styles.ticketCard}>
-                    <View style={styles.ticketHeader}>
-                        <CustomText variant="h2" style={styles.trailName}>
-                            {bookingData?.trail?.name || 'Trail Name'}
+                <View style={styles.constrainer}>
+                    <View style={styles.successHeader}>
+                        <View style={[styles.iconCircle, { backgroundColor: headerColor, shadowColor: headerColor }]}>
+                            <CustomIcon library="Feather" name={headerIcon} size={36} color={Colors.WHITE} />
+                        </View>
+                        <CustomText variant="h1" style={styles.successTitle}>
+                            {headerTitle}
                         </CustomText>
-                        <CustomText variant="caption" style={styles.guideName}>
-                            Provided by {bookingData?.business?.name || 'Tour Provider'}
+                        <CustomText variant="body" style={styles.successSubtitle}>
+                            {headerSubtitle}
                         </CustomText>
                     </View>
 
-                    <View style={styles.dottedDivider} />
-
-                    <View style={styles.infoSection}>
-                        <CustomText variant="h3" style={styles.sectionTitle}>
-                            Transaction Details
-                        </CustomText>
-                        
-                        <View style={styles.dataColumn}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY} style={{ marginBottom: 4 }}>
-                                Reference No.
+                    <View style={styles.ticketCard}>
+                        <View style={styles.ticketHeader}>
+                            <CustomText variant="h2" style={styles.trailName}>
+                                {bookingData?.trail?.name || 'Trail Name'}
                             </CustomText>
-                            <CustomText variant="body" style={styles.longValue} selectable={true}>
-                                {transactionRef}
-                            </CustomText>
-                        </View>
-                        
-                        <View style={styles.dataRow}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Payment Method</CustomText>
-                            <CustomText variant="body" style={[styles.value, { textTransform: 'capitalize' }]}>
-                                {paymentMethod}
+                            <CustomText variant="caption" style={styles.guideName}>
+                                Provided by {bookingData?.business?.name || 'Tour Provider'}
                             </CustomText>
                         </View>
 
-                        <View style={styles.dataRow}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Date Paid</CustomText>
-                            <CustomText variant="body" style={styles.value}>{datePaid}</CustomText>
-                        </View>
+                        <View style={styles.dottedDivider} />
 
-                        <View style={styles.divider} />
-
-                        <CustomText variant="h3" style={styles.sectionTitle}>
-                            Booking Details
-                        </CustomText>
-
-                        <View style={styles.dataRow}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Hiker Name</CustomText>
-                            <CustomText variant="body" style={styles.value} numberOfLines={1}>
-                                {bookingData?.user?.firstname} {bookingData?.user?.lastname}
+                        <View style={styles.infoSection}>
+                            <CustomText variant="h3" style={styles.sectionTitle}>
+                                Transaction Details
                             </CustomText>
-                        </View>
+                            
+                            <View style={styles.dataColumn}>
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY} style={{ marginBottom: 4 }}>
+                                    Reference No.
+                                </CustomText>
+                                <CustomText variant="body" style={styles.longValue} selectable={true}>
+                                    {transactionRef}
+                                </CustomText>
+                            </View>
+                            
+                            <View style={styles.dataRow}>
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Payment Method</CustomText>
+                                <CustomText variant="body" style={[styles.value, { textTransform: 'capitalize' }]}>
+                                    {paymentMethod}
+                                </CustomText>
+                            </View>
 
-                        <View style={styles.dataRow}>
-                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Schedule</CustomText>
-                            <CustomText variant="body" style={styles.value}>{formattedDate}</CustomText>
-                        </View>
+                            <View style={styles.dataRow}>
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Date Paid</CustomText>
+                                <CustomText variant="body" style={styles.value}>{datePaid}</CustomText>
+                            </View>
 
-                        <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                        <View style={styles.totalRow}>
-                            <CustomText variant="body" style={styles.totalLabel}>Amount Paid</CustomText>
-                            <CustomText variant="h2" style={[styles.totalValue, { color: headerColor }]}>
-                                ₱{totalPaid.toFixed(2)}
+                            <CustomText variant="h3" style={styles.sectionTitle}>
+                                Booking Details
                             </CustomText>
+
+                            <View style={styles.dataRow}>
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Hiker Name</CustomText>
+                                <CustomText variant="body" style={styles.value} numberOfLines={1}>
+                                    {bookingData?.user?.firstname} {bookingData?.user?.lastname}
+                                </CustomText>
+                            </View>
+
+                            <View style={styles.dataRow}>
+                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Schedule</CustomText>
+                                <CustomText variant="body" style={styles.value}>{formattedDate}</CustomText>
+                            </View>
+
+                            <View style={styles.divider} />
+
+                            <View style={styles.totalRow}>
+                                <CustomText variant="body" style={styles.totalLabel}>Amount Paid</CustomText>
+                                <CustomText variant="h2" style={[styles.totalValue, { color: headerColor }]}>
+                                    ₱{totalPaid.toFixed(2)}
+                                </CustomText>
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -147,14 +149,19 @@ const ReceiptScreen = ({
 };
 
 const styles = StyleSheet.create({
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16,
+    },
     scrollContent: { 
-        paddingHorizontal: 20, 
         paddingTop: 32, 
-        paddingBottom: 120,
+        paddingBottom: 120 
     },
     successHeader: { 
         alignItems: 'center', 
-        marginBottom: 32,
+        marginBottom: 32 
     },
     iconCircle: { 
         width: 80, 
@@ -162,106 +169,112 @@ const styles = StyleSheet.create({
         borderRadius: 40, 
         justifyContent: 'center', 
         alignItems: 'center', 
-        marginBottom: 20,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        marginBottom: 20, 
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        }, 
+        shadowOpacity: 0.3, 
+        shadowRadius: 8, 
+        elevation: 6 
     },
     successTitle: { 
         color: Colors.TEXT_PRIMARY, 
-        marginBottom: 8,
-        textAlign: 'center',
+        marginBottom: 8, 
+        textAlign: 'center' 
     },
     successSubtitle: { 
         textAlign: 'center', 
         color: Colors.TEXT_SECONDARY, 
-        lineHeight: 22,
-        paddingHorizontal: 15,
+        lineHeight: 22, 
+        paddingHorizontal: 15 
     },
-    ticketCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        overflow: 'hidden',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
-        marginBottom: 24,
+    ticketCard: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 24, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        overflow: 'hidden', 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 10, 
+        elevation: 3, 
+        marginBottom: 24 
     },
-    ticketHeader: {
-        padding: 24,
-        backgroundColor: Colors.WHITE,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+    ticketHeader: { 
+        padding: 24, 
+        backgroundColor: Colors.WHITE, 
+        borderBottomWidth: 1, 
+        borderBottomColor: Colors.GRAY_ULTRALIGHT 
     },
-    trailName: {
-        color: Colors.PRIMARY,
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 4,
+    trailName: { 
+        color: Colors.PRIMARY, 
+        fontSize: 20, 
+        fontWeight: 'bold', 
+        marginBottom: 4 
     },
-    guideName: {
-        color: Colors.TEXT_SECONDARY,
+    guideName: { 
+        color: Colors.TEXT_SECONDARY 
     },
-    dottedDivider: {
-        height: 1,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        borderStyle: 'dashed',
-        marginHorizontal: -10,
+    dottedDivider: { 
+        height: 1, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        borderStyle: 'dashed', 
+        marginHorizontal: -10 
     },
-    infoSection: {
-        padding: 24,
+    infoSection: { 
+        padding: 24 
     },
     sectionTitle: { 
         color: Colors.TEXT_PRIMARY, 
         marginBottom: 16 
     },
-    dataRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
+    dataRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 16 
     },
-    dataColumn: {
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        marginBottom: 16,
+    dataColumn: { 
+        flexDirection: 'column', 
+        alignItems: 'flex-start', 
+        marginBottom: 16 
     },
-    value: {
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '600',
-        textAlign: 'right',
-        flex: 1,
-        marginLeft: 16,
+    value: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: '600', 
+        textAlign: 'right', 
+        flex: 1, 
+        marginLeft: 16 
     },
     longValue: { 
         color: Colors.TEXT_PRIMARY, 
         fontWeight: '600', 
-        textAlign: 'left', 
+        textAlign: 'left' 
     },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 12,
+    divider: { 
+        height: 1, 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        marginVertical: 12 
     },
-    totalRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 4,
+    totalRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginTop: 4 
     },
-    totalLabel: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
+    totalLabel: { 
+        fontWeight: 'bold', 
+        color: Colors.TEXT_PRIMARY 
     },
-    totalValue: {
-        fontWeight: 'bold',
-    },
+    totalValue: { 
+        fontWeight: 'bold' 
+    }
 });
 
 export default ReceiptScreen;
