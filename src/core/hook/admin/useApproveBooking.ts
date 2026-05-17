@@ -8,6 +8,7 @@ import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 
 export type UseApproveBookingParams = {
     bookingId: string;
@@ -187,7 +188,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }
 
-    const onRefund = () => {
+    const onRefund = async () => {
         try {
             if(!booking) throw new Error('Booking not found');
 
@@ -197,15 +198,37 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             
             if(role !== 'admin') throw new Error('Only admins can refund bookings');
 
-            const response = refundBooking({
+            await refundBooking({
                 amount: totalAmountPaid,
                 bookingId: booking.id,
                 userId: booking.user.id,
                 type: 'full',
                 returnUrl: ''
             });
+
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to refund booking');  
+        }
+    }
+
+    // TODO: implement cancel function for unpaid bookings
+    const onCancelUnpaid = async () => {
+        try {
+            if(!booking) throw new Error('Booking not found');
+            if(role !== 'admin') throw new Error('Only admins can cancel bookings');
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            Alert.alert(
+                "Placeholder Active", 
+                "BACKEND: Insert `cancelBooking` Cloud Function call here."
+            );
+
+            router.back();
+
+        } catch (error) {
+            console.error('Error cancelling unpaid booking: ', error);
+            setLocalError((error as Error).message || 'Failed to cancel booking');
         }
     }
 
@@ -220,5 +243,6 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
+        onCancelUnpaid
     }
 }
