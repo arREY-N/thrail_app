@@ -25,6 +25,7 @@ export default function adminViewBooking() {
         onRejectBooking, 
         onRescheduleBooking,
         onRefund,
+        onCancelUnpaid
     } = useApproveBooking({ bookingId, offerId });
 
     if(!booking) return <Text>Booking not found</Text>;
@@ -43,6 +44,7 @@ export default function adminViewBooking() {
                 onReject={onRejectBooking}
                 onReschedule={onRescheduleBooking}
                 onRefund={onRefund}
+                onCancelUnpaid={onCancelUnpaid}
                 isLoading={isLoading}
                 error={error}            
             />
