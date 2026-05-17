@@ -60,9 +60,10 @@ const TACScreen = ({
                     cancelText="Cancel"
                     onConfirm={confirmDecline}
                     onClose={() => setShowDeclineModal(false)}
+                    isDestructive={true}
+                    iconName="x-octagon"
                 />
 
-                {/* 4. Card swaps constraints based on screen size */}
                 <View style={[
                     styles.modalCard, 
                     isLargeScreen ? styles.modalCardLarge : styles.modalCardMobile
