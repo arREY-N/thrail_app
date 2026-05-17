@@ -7,6 +7,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from '@/src/core/stores/authStore';
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
@@ -332,14 +333,14 @@ const styles = StyleSheet.create({
         flex: 1 
     },
     progressWrapper: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
         paddingVertical: 20, 
         paddingHorizontal: 20, 
         backgroundColor: Colors.BACKGROUND,
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05, 
         shadowRadius: 4, 
         borderBottomWidth: 1,
@@ -350,7 +351,10 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     progressContainer: { 
-        position: 'relative' 
+        position: 'relative',
+        width: '100%',
+        maxWidth: 340,
+        alignSelf: 'center',
     },
     progressRow: { 
         flexDirection: 'row', 
@@ -359,9 +363,9 @@ const styles = StyleSheet.create({
     },
     lineWrapper: { 
         position: 'absolute', 
-        top: 20, 
-        left: 20, 
-        right: 20, 
+        top: 19,
+        left: 35,
+        right: 35,
         height: 2, 
         zIndex: 1 
     },
