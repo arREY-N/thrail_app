@@ -3,7 +3,6 @@ import {
     ActivityIndicator,
     Alert,
     Linking,
-    Modal,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -13,6 +12,7 @@ import {
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomLoading from '@/src/components/CustomLoading';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
@@ -23,11 +23,14 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
-import AdminDocumentTab from '@/src/features/Admin/components/AdminDocumentTab';
-import AdminPaymentTab from '@/src/features/Admin/components/AdminPaymentTab';
-import HikerProfileCard from '@/src/features/Admin/components/HikerProfileCard';
-import ReviewStatusBanner from '@/src/features/Admin/components/ReviewStatusBanner';
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
+import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
+import AdminCancelModal from '@/src/features/Admin/screens/Booking/components/AdminCancelModal';
+import AdminDocumentTab from '@/src/features/Admin/screens/Booking/components/AdminDocumentTab';
+import AdminPaymentTab from '@/src/features/Admin/screens/Booking/components/AdminPaymentTab';
+import AdminRefundModal from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
+import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
+import ReviewStatusBanner from '@/src/features/Admin/screens/Booking/components/ReviewStatusBanner';
 
 const ReviewScreen = ({ 
     isLoading, 
@@ -39,6 +42,7 @@ const ReviewScreen = ({
     onReject, 
     onReschedule, 
     onRefund, 
+    onCancelUnpaid,
     error 
 }) => {
     
@@ -50,10 +54,15 @@ const ReviewScreen = ({
         personalVerified, setPersonalVerified,
         emergencyVerified, setEmergencyVerified,
         isMinor,
-        currentStatus, isApprovedStatus, isRejectedStatus, isCancelledStatus, isReviewComplete,
+        currentStatus, 
+        isApprovedStatus, 
+        isRejectedStatus, 
+        isCancelledStatus, 
+        isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
-        availableOffers
+        availableOffers,
+        displayCancellationReason
     } = useReviewLogic(booking, offers);
 
     const [previewImageUrl, setPreviewImageUrl] = useState(null);
@@ -62,6 +71,12 @@ const ReviewScreen = ({
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState(null);
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
+    
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
+
+    const totalAmountPaid = booking?.payment?.reduce((sum, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
 
     const handleViewFile = async (url, index) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
@@ -77,31 +92,29 @@ const ReviewScreen = ({
         }
     };
 
-    const handleFinalDecision = () => {
+    const handleFinalDecision = async () => {
+        setIsConfirmVisible(false);
         const allApproved = docStates.every(d => d.valid === 'approved');
         
-        if (allApproved) {
-            onApprove(docStates);
-            setActiveTab('payment');
-        } else {
-            onReject(rejectionReason, docStates); 
+        setIsProcessingAction(true);
+        try {
+            if (allApproved) {
+                await onApprove(docStates);
+                setActiveTab('payment');
+            } else {
+                await onReject(rejectionReason, docStates); 
+            }
+        } finally {
+            setIsProcessingAction(false);
         }
-        setIsConfirmVisible(false);
     };
 
     if (isLoading || !booking || !booking.user) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader 
-                    title="Review Booking" 
-                    centerTitle={true} 
-                    onBackPress={onBackPress} 
-                />
+                <CustomHeader title="Review Booking" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.centerContent}>
-                    <ActivityIndicator 
-                        size="large" 
-                        color={Colors.PRIMARY} 
-                    />
+                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
                 </View>
             </ScreenWrapper>
         );
@@ -109,6 +122,12 @@ const ReviewScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            
+            <CustomLoading 
+                visible={isProcessingAction} 
+                message="Processing request..." 
+            />
+
             <CustomHeader 
                 title="Review Booking" 
                 centerTitle={true} 
@@ -119,20 +138,12 @@ const ReviewScreen = ({
                         onPress={() => setShowActionMenu(true)} 
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="more-vertical" 
-                            size={24} 
-                            color={Colors.PRIMARY} 
-                        />
+                        <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 }
             />
             
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
-                contentContainerStyle={styles.scrollContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.constrainer}>
                     
                     {error && !error.includes('No payment found') && (
@@ -141,7 +152,7 @@ const ReviewScreen = ({
                     
                     <ReviewStatusBanner 
                         currentStatus={currentStatus}
-                        cancellationReason={booking?.cancellationReason}
+                        cancellationReason={displayCancellationReason}
                         rejectionReason={rejectionReason}
                     />
 
@@ -160,49 +171,23 @@ const ReviewScreen = ({
 
                     <View style={styles.tabContainer}>
                         <TouchableOpacity 
-                            style={[
-                                styles.tabBtn, 
-                                activeTab === 'documents' && styles.tabBtnActive
-                            ]} 
+                            style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]} 
                             onPress={() => setActiveTab('documents')} 
                             activeOpacity={0.7}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="file-text" 
-                                size={16} 
-                                color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} 
-                            />
-                            <CustomText 
-                                style={[
-                                    styles.tabText, 
-                                    activeTab === 'documents' && { color: Colors.WHITE }
-                                ]}
-                            >
+                            <CustomIcon library="Feather" name="file-text" size={16} color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
+                            <CustomText style={[styles.tabText, activeTab === 'documents' && { color: Colors.WHITE }]}>
                                 Documents
                             </CustomText>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
-                            style={[
-                                styles.tabBtn, 
-                                activeTab === 'payment' && styles.tabBtnActive
-                            ]} 
+                            style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]} 
                             onPress={() => setActiveTab('payment')} 
                             activeOpacity={0.7}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="credit-card" 
-                                size={16} 
-                                color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} 
-                            />
-                            <CustomText 
-                                style={[
-                                    styles.tabText, 
-                                    activeTab === 'payment' && { color: Colors.WHITE }
-                                ]}
-                            >
+                            <CustomIcon library="Feather" name="credit-card" size={16} color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
+                            <CustomText style={[styles.tabText, activeTab === 'payment' && { color: Colors.WHITE }]}>
                                 Payment
                             </CustomText>
                         </TouchableOpacity>
@@ -262,19 +247,20 @@ const ReviewScreen = ({
                 onClose={() => setIsConfirmVisible(false)} 
                 onConfirm={handleFinalDecision} 
                 title="Process Decision" 
-                message={
-                    hasRejections 
-                        ? "Reject this booking and request corrections?" 
-                        : "Documents are valid. Approve to proceed to payment?"
-                } 
+                message={hasRejections ? "Reject this booking and request corrections?" : "Documents are valid. Approve to proceed to payment?"} 
             />
 
             <ConfirmationModal 
                 visible={isConfirmPaymentVisible} 
                 onClose={() => setIsConfirmPaymentVisible(false)} 
-                onConfirm={() => {
+                onConfirm={async () => {
                     setIsConfirmPaymentVisible(false);
-                    onConfirmPayment();
+                    setIsProcessingAction(true);
+                    try {
+                        await onConfirmPayment();
+                    } finally {
+                        setIsProcessingAction(false);
+                    }
                 }} 
                 title="Complete Booking" 
                 message="Are you sure you want to mark this transaction as verified and complete?" 
@@ -289,12 +275,52 @@ const ReviewScreen = ({
                 onSelect={(selected) => {
                     setSelectedRescheduleOffer(selected);
                     setShowRescheduleModal(false);
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         if (onReschedule) {
-                            onReschedule(selected.originalData);
+                            setIsProcessingAction(true);
+                            try {
+                                await onReschedule(selected.originalData);
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
                         }
                     }, 300);
                 }} 
+            />
+
+            <AdminRefundModal 
+                visible={showRefundModal}
+                amountPaid={totalAmountPaid}
+                onClose={() => setShowRefundModal(false)}
+                onSelect={(refundType) => {
+                    setShowRefundModal(false);
+                    setTimeout(async () => {
+                        if (onRefund) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onRefund(refundType);
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
+                        }
+                    }, 300);
+                }}
+            />
+
+            <AdminCancelModal 
+                visible={showCancelUnpaidModal}
+                onClose={() => setShowCancelUnpaidModal(false)}
+                onConfirm={async () => {
+                    setShowCancelUnpaidModal(false);
+                    if (onCancelUnpaid) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onCancelUnpaid();
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    }
+                }}
             />
             
             <ImagePreviewModal 
@@ -303,70 +329,24 @@ const ReviewScreen = ({
                 onClose={() => setPreviewImageUrl(null)} 
             />
 
-            <Modal 
-                transparent={true} 
-                visible={showActionMenu} 
-                animationType="fade" 
-                onRequestClose={() => setShowActionMenu(false)}
-            >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setShowActionMenu(false)}
-                >
-                    <View style={styles.actionSheetWrapper}>
-                        <View style={styles.actionSheet}>
-                            <View style={styles.actionSheetHandle} />
-                            
-                            <CustomText variant="h3" style={styles.actionSheetTitle}>
-                                Manage Booking
-                            </CustomText>
-                            
-                            <TouchableOpacity 
-                                style={styles.actionItem} 
-                                onPress={() => { 
-                                    setShowActionMenu(false); 
-                                    setTimeout(() => setShowRescheduleModal(true), 300); 
-                                }}
-                            >
-                                <View style={styles.actionIconBg}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name="calendar" 
-                                        size={18} 
-                                        color={Colors.PRIMARY} 
-                                    />
-                                </View>
-                                <CustomText style={styles.actionItemText}>
-                                    Reschedule Booking
-                                </CustomText>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={styles.actionItem} 
-                                onPress={() => { 
-                                    setShowActionMenu(false); 
-                                    setTimeout(() => { 
-                                        if (onRefund) onRefund(); 
-                                    }, 300); 
-                                }}
-                            >
-                                <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name="refresh-ccw" 
-                                        size={18} 
-                                        color={Colors.ERROR} 
-                                    />
-                                </View>
-                                <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
-                                    Issue Refund / Cancel
-                                </CustomText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
+            <AdminActionMenu 
+                visible={showActionMenu}
+                onClose={() => setShowActionMenu(false)}
+                isCancelledStatus={isCancelledStatus}
+                totalAmountPaid={totalAmountPaid}
+                onRescheduleClick={() => {
+                    setShowActionMenu(false);
+                    setTimeout(() => setShowRescheduleModal(true), 300);
+                }}
+                onRefundClick={() => {
+                    setShowActionMenu(false);
+                    setTimeout(() => setShowRefundModal(true), 300);
+                }}
+                onCancelClick={() => {
+                    setShowActionMenu(false);
+                    setTimeout(() => setShowCancelUnpaidModal(true), 300);
+                }}
+            />
         </ScreenWrapper>
     );
 };
@@ -419,55 +399,6 @@ const styles = StyleSheet.create({
     footerWrapper: { 
         alignItems: 'center', 
         width: '100%' 
-    },
-    modalOverlay: { 
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
-        justifyContent: 'flex-end', 
-        alignItems: 'center' 
-    },
-    actionSheetWrapper: { 
-        width: '100%', 
-        maxWidth: 768 
-    },
-    actionSheet: { 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
-        padding: 24, 
-        paddingBottom: 40 
-    },
-    actionSheetHandle: { 
-        width: 40, 
-        height: 4, 
-        backgroundColor: Colors.GRAY_LIGHT, 
-        borderRadius: 2, 
-        alignSelf: 'center', 
-        marginBottom: 16 
-    },
-    actionSheetTitle: { 
-        marginBottom: 20 
-    },
-    actionItem: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        paddingVertical: 16, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
-        gap: 16 
-    },
-    actionIconBg: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-    actionItemText: { 
-        fontSize: 16, 
-        fontWeight: '600', 
-        color: Colors.TEXT_PRIMARY 
     }
 });
 
