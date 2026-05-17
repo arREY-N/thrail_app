@@ -8,6 +8,7 @@ import {
 import { Colors } from '@/src/constants/colors';
 
 import CustomButton from '@/src/components/CustomButton';
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 const ConfirmationModal = ({ 
@@ -18,10 +19,19 @@ const ConfirmationModal = ({
     message = "Are you sure you want to proceed?",
     cancelText = "Cancel",
     confirmText = "Confirm",
+    isDestructive = false,
+    iconName,
+    iconLibrary = "Feather",
     children
 }) => {
 
-return (
+    const containerBgColor = isDestructive ? Colors.WHITE : Colors.SECONDARY;
+    const textColor = isDestructive ? Colors.TEXT_PRIMARY : Colors.TEXT_INVERSE;
+    const primaryButtonVariant = isDestructive ? "destructive" : "primary";
+    const cancelButtonVariant = isDestructive ? "secondary" : "secondary"; 
+    const defaultIconColor = isDestructive ? Colors.ERROR : Colors.TEXT_INVERSE;
+
+    return (
         <Modal
             transparent
             visible={visible}
@@ -29,16 +39,27 @@ return (
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
-                <View style={styles.container}>
+                <View style={[styles.container, { backgroundColor: containerBgColor }]}>
+                    
+                    {iconName && (
+                        <View style={styles.iconWrapper}>
+                            <CustomIcon 
+                                library={iconLibrary} 
+                                name={iconName} 
+                                size={36} 
+                                color={defaultIconColor} 
+                            />
+                        </View>
+                    )}
                 
-                    <CustomText variant="subtitle" style={styles.title}>
+                    <CustomText variant="subtitle" style={[styles.title, { color: textColor }]}>
                         {title}
                     </CustomText>
 
                     {children ? (
                         children
                     ) : (
-                        <CustomText variant="caption" style={styles.message}>
+                        <CustomText variant="caption" style={[styles.message, { color: textColor }]}>
                             {message}
                         </CustomText>
                     )}
@@ -47,14 +68,17 @@ return (
                         <CustomButton 
                             title={cancelText}
                             onPress={onClose}
-                            variant="secondary"
-                            style={styles.modalButton}
+                            variant={cancelButtonVariant}
+                            style={[
+                                styles.modalButton, 
+                                isDestructive && { borderColor: Colors.GRAY_LIGHT, borderWidth: 1 }
+                            ]}
                         />
 
                         <CustomButton 
                             title={confirmText}
                             onPress={onConfirm}
-                            variant="primary"
+                            variant={primaryButtonVariant}
                             style={styles.modalButton}
                         />
                     </View>
@@ -74,7 +98,6 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     container: {
-        backgroundColor: Colors.SECONDARY,
         borderRadius: 24,
         paddingVertical: 32,
         paddingHorizontal: 16,
@@ -86,23 +109,22 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 5,
     },
-
+    iconWrapper: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
     title: {
-        color: Colors.TEXT_INVERSE,
         fontSize: 18,
         fontWeight: '700',
         textAlign: 'center',
         marginBottom: 8,
     },
-
     message: {
-        color: Colors.TEXT_INVERSE,
         textAlign: 'center',
         paddingHorizontal: 16,
         marginBottom: 32,
         lineHeight: 22,
     },
-
     buttonContainer: {
         flexDirection: 'row',
         paddingHorizontal: 16,
