@@ -1,0 +1,155 @@
+import React from 'react';
+import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
+
+const AdminActionMenu = ({ 
+    visible, 
+    onClose, 
+    isCancelledStatus, 
+    totalAmountPaid, 
+    onRescheduleClick, 
+    onRefundClick, 
+    onCancelClick 
+}) => {
+    return (
+        <Modal 
+            transparent={true} 
+            visible={visible} 
+            animationType="fade" 
+            onRequestClose={onClose}
+        >
+            <TouchableOpacity 
+                style={styles.modalOverlay} 
+                activeOpacity={1} 
+                onPress={onClose}
+            >
+                <View style={styles.actionSheetWrapper}>
+                    <View style={styles.actionSheet}>
+                        <View style={styles.actionSheetHandle} />
+                        
+                        <CustomText variant="h3" style={styles.actionSheetTitle}>
+                            Manage Booking
+                        </CustomText>
+                        
+                        {!isCancelledStatus ? (
+                            <>
+                                <TouchableOpacity 
+                                    style={styles.actionItem} 
+                                    onPress={onRescheduleClick}
+                                >
+                                    <View style={styles.actionIconBg}>
+                                        <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
+                                    </View>
+                                    <CustomText style={styles.actionItemText}>
+                                        Reschedule Booking
+                                    </CustomText>
+                                </TouchableOpacity>
+
+                                {totalAmountPaid > 0 ? (
+                                    <TouchableOpacity 
+                                        style={styles.actionItem} 
+                                        onPress={onRefundClick}
+                                    >
+                                        <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                            <CustomIcon library="Feather" name="corner-up-left" size={18} color={Colors.ERROR} />
+                                        </View>
+                                        <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                            Issue Refund
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <TouchableOpacity 
+                                        style={styles.actionItem} 
+                                        onPress={onCancelClick}
+                                    >
+                                        <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
+                                            <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
+                                        </View>
+                                        <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                            Cancel Booking
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                )}
+                            </>
+                        ) : (
+                            <View style={styles.lockedStateBox}>
+                                <CustomIcon library="Feather" name="lock" size={32} color={Colors.GRAY_MEDIUM} style={{ marginBottom: 12 }} />
+                                <CustomText style={styles.lockedStateText}>
+                                    No actions available. This booking has already been closed, cancelled, or refunded.
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
+};
+
+const styles = StyleSheet.create({
+    modalOverlay: { 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        justifyContent: 'flex-end', 
+        alignItems: 'center' 
+    },
+    actionSheetWrapper: { 
+        width: '100%', 
+        maxWidth: 768 
+    },
+    actionSheet: { 
+        backgroundColor: Colors.WHITE, 
+        borderTopLeftRadius: 24, 
+        borderTopRightRadius: 24, 
+        padding: 24, 
+        paddingBottom: 40 
+    },
+    actionSheetHandle: { 
+        width: 40, 
+        height: 4, 
+        backgroundColor: Colors.GRAY_LIGHT, 
+        borderRadius: 2, 
+        alignSelf: 'center', 
+        marginBottom: 16 
+    },
+    actionSheetTitle: { 
+        marginBottom: 20 
+    },
+    actionItem: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingVertical: 16, 
+        borderBottomWidth: 1, 
+        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
+        gap: 16 
+    },
+    actionIconBg: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    actionItemText: { 
+        fontSize: 16, 
+        fontWeight: '600', 
+        color: Colors.TEXT_PRIMARY 
+    },
+    lockedStateBox: {
+        paddingVertical: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    lockedStateText: {
+        textAlign: 'center',
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 22,
+        paddingHorizontal: 16,
+    }
+});
+
+export default AdminActionMenu;
