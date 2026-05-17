@@ -15,6 +15,7 @@ import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatTime } from '@/src/utils/dateFormatter';
 
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem.jsx';
@@ -184,18 +185,7 @@ const BookingDetailsScreen = ({
             };
         }
 
-        if (isConfirmed) {
-            return {
-                primaryButton: { 
-                    title: "View Receipt", 
-                    variant: "primary", 
-                    style: { borderRadius: 12 },
-                    onPress: () => onViewReceipt(booking) 
-                }
-            };
-        }
-
-        if (isCancelled && hasHistoricalPayments) {
+        if (isConfirmed || (isCancelled && hasHistoricalPayments)) {
             return {
                 primaryButton: { 
                     title: "View Receipt", 
@@ -311,127 +301,131 @@ const BookingDetailsScreen = ({
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
             >
-                <HeroHeader booking={enhancedBooking} />
+                <View style={styles.constrainer}>
+                    
+                    <HeroHeader booking={enhancedBooking} />
 
-                <QuickInfoCard booking={enhancedBooking} />
+                    <QuickInfoCard booking={enhancedBooking} />
 
-                <BookingStatus status={displayStatus} reason={cancellationReason} />
+                    <BookingStatus status={displayStatus} reason={cancellationReason} />
 
-                {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
-                    <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                        <View style={styles.infoBanner}>
-                            <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
-                            <CustomText variant="caption" style={styles.infoBannerText}>
-                                Verification usually takes 1–2 business days. You will receive a notification once you are cleared to proceed to payment.
-                            </CustomText>
+                    {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.infoBanner}>
+                                <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
+                                <CustomText variant="caption" style={styles.infoBannerText}>
+                                    Verification usually takes 1–2 business days. You will receive a notification once you are cleared to proceed to payment.
+                                </CustomText>
+                            </View>
                         </View>
-                    </View>
-                )}
+                    )}
 
-                {((Array.isArray(localDocs) && localDocs.length > 0) || Object.keys(localDocs).length > 0) && (
-                    <AccordionItem 
-                        title="Required Documents" 
-                        icon="file-text"
-                        defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
-                    >
-                        {Array.isArray(localDocs) 
-                            ? localDocs.map((doc, idx) => renderDocumentRow(doc, idx))
-                            : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({name: key, valid: val}, idx))
-                        }
-                    </AccordionItem>
-                )}
+                    {((Array.isArray(localDocs) && localDocs.length > 0) || Object.keys(localDocs).length > 0) && (
+                        <AccordionItem 
+                            title="Required Documents" 
+                            icon="file-text"
+                            defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
+                        >
+                            {Array.isArray(localDocs) 
+                                ? localDocs.map((doc, idx) => renderDocumentRow(doc, idx))
+                                : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({name: key, valid: val}, idx))
+                            }
+                        </AccordionItem>
+                    )}
 
-                {(user || emergencyContact) && (
-                    <AccordionItem title="Personal Information" icon="user" defaultOpen={false}>
-                        {user && (
-                            <View style={styles.attendeeBlock}>
-                                <CustomText variant="caption" style={styles.attendeeLabel}>Full Name</CustomText>
-                                <CustomText variant="body" style={styles.attendeeValue}>{user.firstname} {user.lastname}</CustomText>
-                                <CustomText variant="caption" style={styles.attendeeSubValue}>{user.email}</CustomText>
-                            </View>
-                        )}
-                        {user && emergencyContact && <View style={styles.divider} />}
-                        {emergencyContact && (
-                            <View style={styles.attendeeBlock}>
-                                <CustomText variant="caption" style={styles.attendeeLabel}>Emergency Contact</CustomText>
-                                <CustomText variant="body" style={styles.attendeeValue}>{emergencyContact.name}</CustomText>
-                                <CustomText variant="caption" style={styles.attendeeSubValue}>{emergencyContact.contactNumber}</CustomText>
-                            </View>
-                        )}
-                    </AccordionItem>
-                )}
-
-                {inclusions.length > 0 && (
-                    <AccordionItem title="Inclusions" icon="archive" defaultOpen={false}>
-                        {inclusions.map((item, idx) => (
-                            <View key={idx} style={styles.bulletRow}>
-                                <View style={styles.tinyDot} />
-                                <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
-                            </View>
-                        ))}
-                    </AccordionItem>
-                )}
-
-                {thingsToBring.length > 0 && (
-                    <AccordionItem title="Things to Bring" icon="briefcase" defaultOpen={isConfirmed}>
-                        {thingsToBring.map((item, idx) => (
-                            <View key={idx} style={styles.bulletRow}>
-                                <View style={styles.tinyDot} />
-                                <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
-                            </View>
-                        ))}
-                    </AccordionItem>
-                )}
-
-                {schedule.length > 0 && (
-                    <AccordionItem title="Itinerary" icon="map" defaultOpen={isConfirmed}>
-                        <View style={styles.timelineContainer}>
-                            {schedule.map((dayData, dayIdx) => (
-                                <View key={dayIdx} style={styles.timelineDay}>
-                                    <CustomText variant="label" style={styles.dayLabelText}>Day {dayData.day}</CustomText>
-                                    {dayData.activities?.map((act, actIdx) => (
-                                        <View key={actIdx} style={styles.timelineRow}>
-                                            <View style={styles.timelineDot} />
-                                            <View style={styles.timelineContent}>
-                                                <CustomText variant="label" style={styles.timelineTime}>
-                                                    {formatTime(act.time)} — {act.event.split(' - ')[0] || 'Activity'}
-                                                </CustomText>
-                                                {act.event.includes(' - ') && (
-                                                    <CustomText variant="caption" style={styles.timelineSubEvent}>
-                                                        {act.event.split(' - ')[1]}
-                                                    </CustomText>
-                                                )}
-                                            </View>
-                                        </View>
-                                    ))}
+                    {(user || emergencyContact) && (
+                        <AccordionItem title="Personal Information" icon="user" defaultOpen={false}>
+                            {user && (
+                                <View style={styles.attendeeBlock}>
+                                    <CustomText variant="caption" style={styles.attendeeLabel}>Full Name</CustomText>
+                                    <CustomText variant="body" style={styles.attendeeValue}>{user.firstname} {user.lastname}</CustomText>
+                                    <CustomText variant="caption" style={styles.attendeeSubValue}>{user.email}</CustomText>
                                 </View>
-                            ))}
-                        </View>
-                    </AccordionItem>
-                )}
+                            )}
+                            {user && emergencyContact && <View style={styles.divider} />}
+                            {emergencyContact && (
+                                <View style={styles.attendeeBlock}>
+                                    <CustomText variant="caption" style={styles.attendeeLabel}>Emergency Contact</CustomText>
+                                    <CustomText variant="body" style={styles.attendeeValue}>{emergencyContact.name}</CustomText>
+                                    <CustomText variant="caption" style={styles.attendeeSubValue}>{emergencyContact.contactNumber}</CustomText>
+                                </View>
+                            )}
+                        </AccordionItem>
+                    )}
 
-                {reminders.length > 0 && (
-                    <AccordionItem title="Important Reminders" icon="alert-circle" defaultOpen={!isCancelled}>
-                        {Array.isArray(reminders) ? (
-                            reminders.map((item, idx) => (
+                    {inclusions.length > 0 && (
+                        <AccordionItem title="Inclusions" icon="archive" defaultOpen={false}>
+                            {inclusions.map((item, idx) => (
                                 <View key={idx} style={styles.bulletRow}>
                                     <View style={styles.tinyDot} />
                                     <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
                                 </View>
-                            ))
-                        ) : (
-                            <CustomText variant="caption" style={styles.bulletText}>{reminders}</CustomText>
-                        )}
-                    </AccordionItem>
-                )}
+                            ))}
+                        </AccordionItem>
+                    )}
 
-                <View style={styles.spacing} />
+                    {thingsToBring.length > 0 && (
+                        <AccordionItem title="Things to Bring" icon="briefcase" defaultOpen={isConfirmed}>
+                            {thingsToBring.map((item, idx) => (
+                                <View key={idx} style={styles.bulletRow}>
+                                    <View style={styles.tinyDot} />
+                                    <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
+                                </View>
+                            ))}
+                        </AccordionItem>
+                    )}
 
-                <PaymentSummaryCard 
-                    totalAmount={totalAmount} 
-                    amountPaid={amountPaid} 
-                    remainingBalance={remainingBalance} 
-                />
+                    {schedule.length > 0 && (
+                        <AccordionItem title="Itinerary" icon="map" defaultOpen={isConfirmed}>
+                            <View style={styles.timelineContainer}>
+                                {schedule.map((dayData, dayIdx) => (
+                                    <View key={dayIdx} style={styles.timelineDay}>
+                                        <CustomText variant="label" style={styles.dayLabelText}>Day {dayData.day}</CustomText>
+                                        {dayData.activities?.map((act, actIdx) => (
+                                            <View key={actIdx} style={styles.timelineRow}>
+                                                <View style={styles.timelineDot} />
+                                                <View style={styles.timelineContent}>
+                                                    <CustomText variant="label" style={styles.timelineTime}>
+                                                        {formatTime(act.time)} — {act.event.split(' - ')[0] || 'Activity'}
+                                                    </CustomText>
+                                                    {act.event.includes(' - ') && (
+                                                        <CustomText variant="caption" style={styles.timelineSubEvent}>
+                                                            {act.event.split(' - ')[1]}
+                                                        </CustomText>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                ))}
+                            </View>
+                        </AccordionItem>
+                    )}
+
+                    {reminders.length > 0 && (
+                        <AccordionItem title="Important Reminders" icon="alert-circle" defaultOpen={!isCancelled}>
+                            {Array.isArray(reminders) ? (
+                                reminders.map((item, idx) => (
+                                    <View key={idx} style={styles.bulletRow}>
+                                        <View style={styles.tinyDot} />
+                                        <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
+                                    </View>
+                                ))
+                            ) : (
+                                <CustomText variant="caption" style={styles.bulletText}>{reminders}</CustomText>
+                            )}
+                        </AccordionItem>
+                    )}
+
+                    <View style={styles.spacing} />
+
+                    <PaymentSummaryCard 
+                        totalAmount={totalAmount} 
+                        amountPaid={amountPaid} 
+                        remainingBalance={remainingBalance} 
+                    />
+
+                </View>
             </ScrollView>
 
             {footerConfig && (
@@ -532,47 +526,218 @@ const BookingDetailsScreen = ({
 };
 
 const styles = StyleSheet.create({
-    scrollContent: { paddingBottom: 100 },
-    spacing: { height: 16 },
-    spacingBottom: { marginBottom: 16 },
-    paddingHorizontal: { paddingHorizontal: 20 },
-    headerOptionsBtn: { paddingHorizontal: 8 },
-    infoBanner: { flexDirection: 'row', backgroundColor: Colors.GRAY_ULTRALIGHT, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, gap: 12 },
-    infoBannerText: { flex: 1, color: Colors.TEXT_SECONDARY, lineHeight: 20 },
-    bulletRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 12 },
-    tinyDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.PRIMARY, marginTop: 8 },
-    bulletText: { flex: 1, lineHeight: 22 },
-    documentRowContainer: { borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 12 },
-    uploadCardWrapper: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT },
-    documentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    docNameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    documentText: { color: Colors.TEXT_PRIMARY, fontWeight: '500' },
-    statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    documentStatusText: { fontWeight: 'bold', textTransform: 'uppercase', fontSize: 10, letterSpacing: 0.5 },
-    attendeeBlock: { marginVertical: 4 },
-    attendeeLabel: { color: Colors.TEXT_SECONDARY, marginBottom: 4, textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 },
-    attendeeValue: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY, fontSize: 16 },
-    attendeeSubValue: { color: Colors.TEXT_SECONDARY, marginTop: 2 },
-    divider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginVertical: 16 },
-    timelineContainer: { borderLeftWidth: 1, borderLeftColor: Colors.GRAY_LIGHT, marginLeft: 8, paddingLeft: 16, marginTop: 8 },
-    timelineDay: { marginBottom: 20 },
-    dayLabelText: { fontWeight: 'bold', color: Colors.PRIMARY, marginBottom: 12 },
-    timelineRow: { flexDirection: 'row', marginBottom: 16, position: 'relative' },
-    timelineDot: { position: 'absolute', left: -20.5, top: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.PRIMARY },
-    timelineContent: { flex: 1 },
-    timelineTime: { fontWeight: 'bold', fontSize: 13, color: Colors.TEXT_PRIMARY },
-    timelineSubEvent: { lineHeight: 20, marginTop: 2 },
-    floatingFooterContainer: { paddingBottom: 20, paddingHorizontal: 10, backgroundColor: 'transparent' },
-
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' },
-    actionSheetWrapper: { width: '100%', maxWidth: 768 },
-    actionSheet: { backgroundColor: Colors.WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    actionSheetHandle: { width: 40, height: 4, backgroundColor: Colors.GRAY_LIGHT, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-    actionSheetTitle: { marginBottom: 20 },
-    actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 16 },
-    actionIconBgPrimary: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.STATUS_APPROVED_BG, justifyContent: 'center', alignItems: 'center' },
-    actionIconBgError: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ERROR_BG, justifyContent: 'center', alignItems: 'center' },
-    actionItemText: { fontSize: 16, fontWeight: '600' }
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+    },
+    scrollContent: { 
+        paddingBottom: 100 
+    },
+    spacing: { 
+        height: 16 
+    },
+    spacingBottom: { 
+        marginBottom: 16 
+    },
+    paddingHorizontal: { 
+        paddingHorizontal: 16 
+    },
+    headerOptionsBtn: { 
+        paddingHorizontal: 8 
+    },
+    infoBanner: { 
+        flexDirection: 'row', 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        padding: 16, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        gap: 12 
+    },
+    infoBannerText: { 
+        flex: 1, 
+        color: Colors.TEXT_SECONDARY, 
+        lineHeight: 20 
+    },
+    bulletRow: { 
+        flexDirection: 'row', 
+        alignItems: 'flex-start', 
+        marginBottom: 10, 
+        gap: 12 
+    },
+    tinyDot: { 
+        width: 6, 
+        height: 6, 
+        borderRadius: 3, 
+        backgroundColor: Colors.PRIMARY, 
+        marginTop: 8 
+    },
+    bulletText: { 
+        flex: 1, 
+        lineHeight: 22 
+    },
+    documentRowContainer: { 
+        borderBottomWidth: 1, 
+        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
+        paddingVertical: 12 
+    },
+    uploadCardWrapper: { 
+        paddingVertical: 8, 
+        borderBottomWidth: 1, 
+        borderBottomColor: Colors.GRAY_ULTRALIGHT 
+    },
+    documentRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+    },
+    docNameRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 10 
+    },
+    documentText: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: '500' 
+    },
+    statusGroup: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 12 
+    },
+    documentStatusText: { 
+        fontWeight: 'bold', 
+        textTransform: 'uppercase', 
+        fontSize: 10, 
+        letterSpacing: 0.5 
+    },
+    attendeeBlock: { 
+        marginVertical: 4 
+    },
+    attendeeLabel: { 
+        color: Colors.TEXT_SECONDARY, 
+        marginBottom: 4, 
+        textTransform: 'uppercase', 
+        fontSize: 11, 
+        letterSpacing: 0.5 
+    },
+    attendeeValue: { 
+        fontWeight: 'bold', 
+        color: Colors.TEXT_PRIMARY, 
+        fontSize: 16 
+    },
+    attendeeSubValue: { 
+        color: Colors.TEXT_SECONDARY, 
+        marginTop: 2 
+    },
+    divider: { 
+        height: 1, 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        marginVertical: 16 
+    },
+    timelineContainer: { 
+        borderLeftWidth: 1, 
+        borderLeftColor: Colors.GRAY_LIGHT, 
+        marginLeft: 8, 
+        paddingLeft: 16, 
+        marginTop: 8 
+    },
+    timelineDay: { 
+        marginBottom: 20 
+    },
+    dayLabelText: { 
+        fontWeight: 'bold', 
+        color: Colors.PRIMARY, 
+        marginBottom: 12 
+    },
+    timelineRow: { 
+        flexDirection: 'row', 
+        marginBottom: 16, 
+        position: 'relative' 
+    },
+    timelineDot: { 
+        position: 'absolute', 
+        left: -20.5, 
+        top: 6, 
+        width: 8, 
+        height: 8, 
+        borderRadius: 4, 
+        backgroundColor: Colors.PRIMARY 
+    },
+    timelineContent: { 
+        flex: 1 
+    },
+    timelineTime: { 
+        fontWeight: 'bold', 
+        fontSize: 13, 
+        color: Colors.TEXT_PRIMARY 
+    },
+    timelineSubEvent: { 
+        lineHeight: 20, 
+        marginTop: 2 
+    },
+    floatingFooterContainer: { 
+        paddingBottom: 20, 
+        paddingHorizontal: 10, 
+        backgroundColor: 'transparent' 
+    },
+    modalOverlay: { 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        justifyContent: 'flex-end', 
+        alignItems: 'center' 
+    },
+    actionSheetWrapper: { 
+        width: '100%', 
+        maxWidth: 768 
+    },
+    actionSheet: { 
+        backgroundColor: Colors.WHITE, 
+        borderTopLeftRadius: 24, 
+        borderTopRightRadius: 24, 
+        padding: 24, 
+        paddingBottom: 40 
+    },
+    actionSheetHandle: { 
+        width: 40, 
+        height: 4, 
+        backgroundColor: Colors.GRAY_LIGHT, 
+        borderRadius: 2, 
+        alignSelf: 'center', 
+        marginBottom: 16 
+    },
+    actionSheetTitle: { 
+        marginBottom: 20 
+    },
+    actionItem: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingVertical: 16, 
+        borderBottomWidth: 1, 
+        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
+        gap: 16 
+    },
+    actionIconBgPrimary: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    actionIconBgError: { 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
+        backgroundColor: Colors.ERROR_BG, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    actionItemText: { 
+        fontSize: 16, 
+        fontWeight: '600' 
+    }
 });
 
 export default BookingDetailsScreen;
