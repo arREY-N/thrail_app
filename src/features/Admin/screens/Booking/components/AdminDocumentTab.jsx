@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
-import DocumentReviewCard from '@/src/features/Admin/components/DocumentReviewCard';
+import DocumentReviewCard from '@/src/features/Admin/screens/Booking/components/DocumentReviewCard';
 
 const AdminDocumentTab = ({ 
     booking, 

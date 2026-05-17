@@ -14,6 +14,12 @@ const AdminPaymentTab = ({
     isCancelledStatus,
     onConfirmPaymentClick 
 }) => {
+    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+    
+    const lockedMessage = hasRefundedPayment 
+        ? "Payment actions are locked because this booking has been explicitly Refunded."
+        : "Payment actions are locked because this booking has been Cancelled.";
+
     return (
         <View style={styles.tabContent}>
             
@@ -24,7 +30,7 @@ const AdminPaymentTab = ({
                         name="clock" 
                         size={32} 
                         color={Colors.STATUS_PENDING_TEXT} 
-                        style={{ marginBottom: 12 }} 
+                        style={styles.iconSpacing} 
                     />
                     <CustomText style={styles.emptyPaymentText}>
                         Waiting for the hiker to complete their payment.
@@ -37,12 +43,7 @@ const AdminPaymentTab = ({
                     
                     {currentStatus === 'completed' && (
                         <View style={styles.successBadge}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="check-circle" 
-                                size={16} 
-                                color={Colors.SUCCESS} 
-                            />
+                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
                             <CustomText style={styles.successBadgeText}>
                                 Payment Verified & Completed
                             </CustomText>
@@ -50,48 +51,18 @@ const AdminPaymentTab = ({
                     )}
                     
                     {currentStatus === 'downpayment' && (
-                        <View 
-                            style={[
-                                styles.warningBadge, 
-                                { backgroundColor: Colors.STATUS_DOWNPAYMENT_BG }
-                            ]}
-                        >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="alert-circle" 
-                                size={16} 
-                                color={Colors.STATUS_DOWNPAYMENT_TEXT} 
-                            />
-                            <CustomText 
-                                style={[
-                                    styles.warningBadgeText, 
-                                    { color: Colors.STATUS_DOWNPAYMENT_TEXT }
-                                ]}
-                            >
+                        <View style={[styles.warningBadge, styles.downpaymentBg]}>
+                            <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.STATUS_DOWNPAYMENT_TEXT} />
+                            <CustomText style={[styles.warningBadgeText, styles.downpaymentText]}>
                                 PENDING REMAINING BALANCE (50%)
                             </CustomText>
                         </View>
                     )}
 
                     {currentStatus === 'paid' && (
-                        <View 
-                            style={[
-                                styles.fullPaidBadge, 
-                                { backgroundColor: Colors.STATUS_FULLY_PAID_BG }
-                            ]}
-                        >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="check-circle" 
-                                size={16} 
-                                color={Colors.STATUS_FULLY_PAID_TEXT} 
-                            />
-                            <CustomText 
-                                style={[
-                                    styles.fullPaidBadgeText, 
-                                    { color: Colors.STATUS_FULLY_PAID_TEXT }
-                                ]}
-                            >
+                        <View style={[styles.fullPaidBadge, styles.fullyPaidBg]}>
+                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.STATUS_FULLY_PAID_TEXT} />
+                            <CustomText style={[styles.fullPaidBadgeText, styles.fullyPaidText]}>
                                 FULLY PAID (100%)
                             </CustomText>
                         </View>
@@ -107,11 +78,7 @@ const AdminPaymentTab = ({
                                 <CustomText variant="caption" style={styles.detailLabel}>
                                     Gateway
                                 </CustomText>
-                                <CustomText 
-                                    variant="body" 
-                                    style={styles.detailValue} 
-                                    textTransform="capitalize"
-                                >
+                                <CustomText variant="body" style={styles.detailValue} textTransform="capitalize">
                                     {paymentRecord.gateway || 'PayMongo'}
                                 </CustomText>
                             </View>
@@ -120,11 +87,7 @@ const AdminPaymentTab = ({
                                 <CustomText variant="caption" style={styles.detailLabel}>
                                     Reference No.
                                 </CustomText>
-                                <CustomText 
-                                    variant="body" 
-                                    style={styles.detailValue} 
-                                    numberOfLines={1}
-                                >
+                                <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
                                     {paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
                                 </CustomText>
                             </View>
@@ -137,7 +100,7 @@ const AdminPaymentTab = ({
                                     variant="caption" 
                                     style={[
                                         styles.detailValue,
-                                        paymentRecord.status === 'refunded' ? { color: Colors.ERROR } : {}
+                                        paymentRecord.status === 'refunded' && styles.errorText
                                     ]} 
                                     textTransform="uppercase"
                                 >
@@ -145,14 +108,38 @@ const AdminPaymentTab = ({
                                 </CustomText>
                             </View>
 
-                            <View style={[styles.detailRow, { marginBottom: 0 }]}>
+                            <View style={[styles.detailRow, paymentRecord.status !== 'refunded' && styles.noMarginBottom]}>
                                 <CustomText variant="caption" style={styles.detailLabel}>
-                                    Amount
+                                    Original Amount
                                 </CustomText>
-                                <CustomText variant="h3" style={[styles.totalValue, paymentRecord.status === 'refunded' ? { color: Colors.ERROR } : {}]}>
+                                <CustomText 
+                                    variant="h3" 
+                                    style={[
+                                        styles.detailValue, 
+                                        paymentRecord.status === 'refunded' ? styles.strikethroughAmount : styles.totalValue
+                                    ]}
+                                >
                                     ₱{paymentRecord.amount.toFixed(2)}
                                 </CustomText>
                             </View>
+
+                            {paymentRecord.status === 'refunded' && (
+                                <View style={styles.refundedAmountRow}>
+                                    <CustomText variant="caption" style={[styles.detailLabel, styles.errorText]}>
+                                        Amount Refunded
+                                    </CustomText>
+                                    
+                                    {paymentRecord.refundedAmount ? (
+                                        <CustomText variant="h3" style={[styles.detailValue, styles.errorText]}>
+                                            ₱{paymentRecord.refundedAmount.toFixed(2)}
+                                        </CustomText>
+                                    ) : (
+                                        <CustomText variant="body" style={[styles.detailValue, styles.refundedAmountMissing]}>
+                                            Not recorded
+                                        </CustomText>
+                                    )}
+                                </View>
+                            )}
                         </View>
                     ))}
 
@@ -167,36 +154,28 @@ const AdminPaymentTab = ({
                             title="Complete Booking" 
                             variant="primary" 
                             onPress={onConfirmPaymentClick}
-                            style={{ marginTop: 16 }}
+                            style={styles.buttonSpacing}
                         />
                     )}
                 </View>
             )}
 
             {isCancelledStatus && (
-                <View style={[styles.emptyPaymentBox, { borderColor: Colors.ERROR_BORDER, backgroundColor: Colors.ERROR_BG, marginTop: booking?.payment?.length > 0 ? 16 : 0 }]}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="lock" 
-                        size={32} 
-                        color={Colors.ERROR} 
-                        style={{ marginBottom: 12 }} 
-                    />
-                    <CustomText style={[styles.emptyPaymentText, { color: Colors.ERROR }]}>
-                        Payment actions are locked because this booking has been Cancelled or Refunded.
+                <View style={[
+                    styles.emptyPaymentBox, 
+                    styles.lockedErrorBox, 
+                    booking?.payment?.length > 0 && styles.buttonSpacing
+                ]}>
+                    <CustomIcon library="Feather" name="lock" size={32} color={Colors.ERROR} style={styles.iconSpacing} />
+                    <CustomText style={[styles.emptyPaymentText, styles.errorText]}>
+                        {lockedMessage}
                     </CustomText>
                 </View>
             )}
 
             {!isApprovedStatus && !isRejectedStatus && !isCancelledStatus && (
                 <View style={styles.emptyPaymentBox}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="lock" 
-                        size={32} 
-                        color={Colors.GRAY_MEDIUM} 
-                        style={{ marginBottom: 12 }} 
-                    />
+                    <CustomIcon library="Feather" name="lock" size={32} color={Colors.GRAY_MEDIUM} style={styles.iconSpacing} />
                     <CustomText style={styles.emptyPaymentText}>
                         You must approve all documents before accessing the payment verification phase.
                     </CustomText>
@@ -255,6 +234,12 @@ const styles = StyleSheet.create({
     warningBadgeText: { 
         fontWeight: 'bold' 
     },
+    downpaymentBg: { 
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG 
+    },
+    downpaymentText: { 
+        color: Colors.STATUS_DOWNPAYMENT_TEXT 
+    },
     fullPaidBadge: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -265,6 +250,12 @@ const styles = StyleSheet.create({
     },
     fullPaidBadgeText: { 
         fontWeight: 'bold' 
+    },
+    fullyPaidBg: { 
+        backgroundColor: Colors.STATUS_FULLY_PAID_BG 
+    },
+    fullyPaidText: { 
+        color: Colors.STATUS_FULLY_PAID_TEXT 
     },
     paymentRecordBox: { 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
@@ -296,12 +287,45 @@ const styles = StyleSheet.create({
     totalValue: { 
         color: Colors.PRIMARY 
     },
+    noMarginBottom: { 
+        marginBottom: 0 
+    },
+    errorText: { 
+        color: Colors.ERROR 
+    },
+    strikethroughAmount: { 
+        textDecorationLine: 'line-through', 
+        color: Colors.TEXT_SECONDARY, 
+        fontSize: 16 
+    },
+    refundedAmountRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 0, 
+        marginTop: 4 
+    },
+    refundedAmountMissing: { 
+        color: Colors.TEXT_SECONDARY, 
+        fontStyle: 'italic', 
+        fontWeight: '400' 
+    },
+    lockedErrorBox: { 
+        borderColor: Colors.ERROR_BORDER, 
+        backgroundColor: Colors.ERROR_BG 
+    },
     downpaymentNote: { 
         color: Colors.TEXT_SECONDARY, 
         fontStyle: 'italic', 
         marginTop: 8, 
         marginBottom: 16, 
         textAlign: 'center' 
+    },
+    buttonSpacing: { 
+        marginTop: 16 
+    },
+    iconSpacing: { 
+        marginBottom: 12 
     }
 });
 

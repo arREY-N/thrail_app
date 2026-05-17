@@ -13,9 +13,12 @@ const AdminBookingCard = ({
     offerId, 
     onViewBooking 
 }) => {
-    const statusConfig = getStatusConfig(booking.status, 'admin');
+    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+    const displayStatus = hasRefundedPayment ? 'refunded' : booking.status;
+
+    const statusConfig = getStatusConfig(displayStatus, 'admin');
     
-    const requiresAdminAction = ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(booking.status);
+    const requiresAdminAction = ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(displayStatus);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';
