@@ -1,136 +1,177 @@
-import useHike from '@/src/core/hook/hike/useHike';
-import { Hike } from '@/src/core/models/Hike/Hike';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useIsFocused } from "@react-navigation/native";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo, useState } from "react";
+import { Keyboard, View } from "react-native";
+
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { Trail } from "@/src/core/models/Trail/Trail";
+import { formatDate } from "@/src/core/utility/date";
+
+import useBook from "@/src/core/hook/book/useBook";
+import useBookOffer from "@/src/core/hook/book/useBookOffer";
+import { useGroupList } from "@/src/core/hook/group/useGroupList";
+import useHike from "@/src/core/hook/hike/useHike";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useTrailsStore } from "@/src/core/stores/trailsStore";
 
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
-import { useIsFocused } from '@react-navigation/native';
 
-import CustomFAB from '@/src/components/CustomFAB';
-import CustomHeader from '@/src/components/CustomHeader';
-import ScreenWrapper from '@/src/components/ScreenWrapper';
-import { Colors } from '@/src/constants/colors';
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-
-export default function hike(){
+export default function hike() {
     const isFocused = useIsFocused();
-    const { 
-        hikes,
-        viewHike,
-        isLoading,
-        error
-    } = useHike({});
+    const { onGroupPress, onBookingPress } = useAppNavigation();
+    
+    // Fetch User Profile
+    const { profile } = useAuthHook();
+    
+    // Fetch background sync for bookings
+    useBook({ userId: profile?.id }); 
+    const { bookings } = useBookOffer(); 
+    const { groups } = useGroupList(profile?.id || "");
+    
+    // Fetch hike state & trails database
+    const { viewHike, isLoading: hikeLoading } = useHike({});
+    const trailsDb = useTrailsStore(s => s.data);
 
-    const {
-        onGroupPress
-    } = useAppNavigation();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
+
+    // Filter the list of trails dynamically
+    const filteredTrails = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        return trailsDb.filter(t => 
+            t.general?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [searchQuery, trailsDb]);
+
+    // Find the closest upcoming booking directly from the bookings database
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    const upcomingBookings = bookings?.filter(b => {
+        if (!b.offer?.date) return false;
+        if ([
+            'for-reservation',
+            'for-payment',
+            'downpayment',
+            'reservation-rejected', 
+            'for-cancellation', 
+            'cancellation-rejected', 
+            'refund', 
+            'for-reschedule', 
+            'reschedule-rejected', 
+            'rescheduled'
+        ].includes(b.status)) return false;
+        
+        const bDate = new Date(b.offer.date);
+        bDate.setHours(0, 0, 0, 0);
+        return bDate.getTime() >= currentDate.getTime();
+    }).sort((a, b) => new Date(a.offer.date).getTime() - new Date(b.offer.date).getTime());
+
+    const nextBooking = upcomingBookings?.[0] || null;
+
+    let isFutureBooking = false;
+    let formattedBookingDate = "";
+
+    if (nextBooking) {
+        const targetDate = new Date(nextBooking.offer.date);
+        targetDate.setHours(0, 0, 0, 0);
+
+        if (targetDate.getTime() > currentDate.getTime()) {
+            isFutureBooking = true;
+            formattedBookingDate = formatDate(nextBooking.offer.date);
+        }
+    }
+
+    const handleSearchChange = (text: string) => {
+        setSearchQuery(text);
+        if (text.trim() === "") {
+            setSelectedTrail(null);
+            Keyboard.dismiss(); 
+        }
+    };
+
+    const handleTrailSelect = (trail: Trail) => {
+        setSelectedTrail(trail);
+        setSearchQuery(trail.general?.name || "");
+        Keyboard.dismiss();
+    };
+
+    const handleSearchSubmit = () => {
+        if (filteredTrails.length > 0 && !selectedTrail) {
+            handleTrailSelect(filteredTrails[0]);
+        }
+        Keyboard.dismiss();
+    };
+
+    const handleBookedGroupChatPress = () => {
+        if (!nextBooking) return;
+        const targetGroup = groups?.find(g => 
+            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking.id)
+        );
+
+        if (targetGroup) {
+            router.push({
+                pathname: '/(main)/group/room',
+                params: { roomId: targetGroup.id }
+            });
+        } else {
+            onGroupPress();
+        }
+    };
+
+    const handleStartTracking = () => {
+        const targetGroup = groups?.find(g => 
+            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking?.id)
+        );
+
+        if (nextBooking && !isFutureBooking) {
+            router.push({ pathname: '/(main)/hike/view', params: { trailId: nextBooking.trail.id, groupId: targetGroup?.id } });
+        } else {
+            viewHike(selectedTrail ? selectedTrail.id : "new_diy_session");
+        }
+    };
+
+    // Secure Bypass Logic
+    const handleDeveloperBypass = () => {
+        if (!nextBooking) return;
+        const targetGroup = groups?.find(g => 
+            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking.id)
+        );
+        router.push({ pathname: '/(main)/hike/view', params: { trailId: nextBooking.trail.id, groupId: targetGroup?.id } });
+    };
+
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
+
+    console.log("Upcoming Bookings:", upcomingBookings);
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={{}}>
+        <View style={{ flex: 1 }}>
+            <StatusBar style="dark" translucent backgroundColor="transparent" />
             
-            <CustomHeader 
-                title="Hike"
-                showDefaultIcons={true} 
-                onBackPress={undefined}
-                rightActions={null}
-                style={{}}
-            >
-                {null} 
-            </CustomHeader>
+            {isFocused && (
+                <NavigationScreen
+                    bookingContext={nextBooking}
+                    isFutureBooking={isFutureBooking}
+                    formattedDate={formattedBookingDate}
+                    
+                    searchQuery={searchQuery}
+                    filteredTrails={filteredTrails}
+                    selectedTrail={selectedTrail}
+                    isLoading={hikeLoading}
+                    
+                    onSearchChange={handleSearchChange}
+                    onSearchSubmit={handleSearchSubmit}
+                    onTrailSelect={handleTrailSelect}
+                    
+                    onGroupChatPress={onGroupPress}
+                    onBookedGroupChatPress={handleBookedGroupChatPress}
+                    onBookingPress={onBookingPress}
+                    onStartTracking={handleStartTracking}
 
-            <View style={{ flex: 1 }}>
-                { isFocused && <NavigationScreen/> }
-                <TestListHike 
-                    hikes={hikes} 
-                    viewHike={viewHike}
-                    isLoading={isLoading}
-                    error={error}
-                />  
-            </View>
-
-            <CustomFAB 
-                onPress={onGroupPress} 
-                style={undefined} 
-            />
-
-        </ScreenWrapper>
-    )
+                    onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}
+                />
+            )}
+        </View>
+    );
 }
-
-
-export type TestListHikeParams = {
-    hikes: Hike[];
-    viewHike: (id: string) => void;
-    isLoading?: boolean;
-    error?: string | null;
-}
-
-export const TestListHike = (params: TestListHikeParams) => {
-    const { 
-        hikes,
-        viewHike,
-        isLoading,
-        error
-    } = params;
-
-    if (isLoading) {
-        return (
-            <View style={styles.center}>
-                <Text>Loading hikes...</Text>
-            </View>
-        )
-    }
-
-    if (error) {
-        return (
-            <View style={styles.center}>
-                <Text style={{color: 'red'}}>Error: {error}</Text>
-            </View>
-        )
-    }
-
-    if (!hikes || hikes.length === 0) {
-        return (
-            <View style={styles.center}>
-                <Text>No hikes found. Start a new adventure!</Text>
-            </View>
-        )
-    }
-
-    return(
-        <ScrollView>
-            {
-                hikes.map(h => (
-                    <Pressable key={h.id} style={styles.review} onPress={() => viewHike(h.id)}>
-                        <Text>{ h.name }</Text>
-                        <Text>{ h.predictedDifficulty }</Text>
-                        { h.completed 
-                            ? <Text>Completed</Text> 
-                            : <Text>Not Completed</Text> 
-                        }
-                        <Text>{ h.mode }</Text>
-                        { h.mode === 'booked' && 
-                            <Text>Booking ID: { h.bookingId }</Text>
-                        }
-                    </Pressable>
-                ))
-            }
-        </ScrollView>
-    )
-}
-
-const styles = StyleSheet.create({
-    review: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 8,
-        padding: 12,
-        margin: 10
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20
-    }
-})
