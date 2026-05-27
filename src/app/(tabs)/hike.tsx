@@ -6,7 +6,6 @@ import { Keyboard, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { formatDate } from "@/src/core/utility/date";
 
 import useBook from "@/src/core/hook/book/useBook";
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
@@ -44,44 +43,25 @@ export default function hike() {
         );
     }, [searchQuery, trailsDb]);
 
-    // Find the closest upcoming booking directly from the bookings database
+    // Find closest valid booking (Status MUST be completed or paid)
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
-    const upcomingBookings = bookings?.filter(b => {
-        if (!b.offer?.date) return false;
-        if ([
-            'for-reservation',
-            'for-payment',
-            'downpayment',
-            'reservation-rejected', 
-            'for-cancellation', 
-            'cancellation-rejected', 
-            'refund', 
-            'for-reschedule', 
-            'reschedule-rejected', 
-            'rescheduled'
-        ].includes(b.status)) return false;
-        
-        const bDate = new Date(b.offer.date);
-        bDate.setHours(0, 0, 0, 0);
-        return bDate.getTime() >= currentDate.getTime();
-    }).sort((a, b) => new Date(a.offer.date).getTime() - new Date(b.offer.date).getTime());
+    const upcomingBookings = useMemo(() => {
+        if (!bookings) return [];
+        return bookings.filter(b => {
+            // Only include booking status 'completed' and 'paid'
+            if (!['completed', 'paid'].includes(b.status)) return false;
 
-    const nextBooking = upcomingBookings?.[0] || null;
-
-    let isFutureBooking = false;
-    let formattedBookingDate = "";
-
-    if (nextBooking) {
-        const targetDate = new Date(nextBooking.offer.date);
-        targetDate.setHours(0, 0, 0, 0);
-
-        if (targetDate.getTime() > currentDate.getTime()) {
-            isFutureBooking = true;
-            formattedBookingDate = formatDate(nextBooking.offer.date);
-        }
-    }
+            // Only include booking status 'completed'
+            // if (b.status !== 'completed') return false; 
+            if (!b.offer?.date) return false;
+            
+            const bDate = new Date(b.offer.date);
+            bDate.setHours(0, 0, 0, 0);
+            return bDate.getTime() >= currentDate.getTime();
+        }).sort((a, b) => new Date(a.offer.date).getTime() - new Date(b.offer.date).getTime());
+    }, [bookings]);
 
     const handleSearchChange = (text: string) => {
         setSearchQuery(text);
@@ -104,46 +84,28 @@ export default function hike() {
         Keyboard.dismiss();
     };
 
-    const handleBookedGroupChatPress = () => {
-        if (!nextBooking) return;
-        const targetGroup = groups?.find(g => 
-            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking.id)
-        );
-
-        if (targetGroup) {
-            router.push({
-                pathname: '/(main)/group/room',
-                params: { roomId: targetGroup.id }
-            });
+    const handleStartTracking = (bookingContext?: any) => {
+        if (bookingContext) {
+            const targetGroup = groups?.find(g => 
+                g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
+            );
+            router.push({ pathname: '/(main)/hike/view', params: { trailId: bookingContext.trail.id, groupId: targetGroup?.id } });
+        } else if (selectedTrail) {
+            viewHike(selectedTrail.id);
         } else {
-            onGroupPress();
+            viewHike("new_diy_session");
         }
     };
 
-    const handleStartTracking = () => {
+    const handleDeveloperBypass = (bookingContext: any) => {
+        if (!bookingContext) return;
         const targetGroup = groups?.find(g => 
-            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking?.id)
+            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
         );
-
-        if (nextBooking && !isFutureBooking) {
-            router.push({ pathname: '/(main)/hike/view', params: { trailId: nextBooking.trail.id, groupId: targetGroup?.id } });
-        } else {
-            viewHike(selectedTrail ? selectedTrail.id : "new_diy_session");
-        }
-    };
-
-    // Secure Bypass Logic
-    const handleDeveloperBypass = () => {
-        if (!nextBooking) return;
-        const targetGroup = groups?.find(g => 
-            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === nextBooking.id)
-        );
-        router.push({ pathname: '/(main)/hike/view', params: { trailId: nextBooking.trail.id, groupId: targetGroup?.id } });
+        router.push({ pathname: '/(main)/hike/view', params: { trailId: bookingContext.trail.id, groupId: targetGroup?.id } });
     };
 
     const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
-
-    console.log("Upcoming Bookings:", upcomingBookings);
 
     return (
         <View style={{ flex: 1 }}>
@@ -151,9 +113,9 @@ export default function hike() {
             
             {isFocused && (
                 <NavigationScreen
-                    bookingContext={nextBooking}
-                    isFutureBooking={isFutureBooking}
-                    formattedDate={formattedBookingDate}
+                    upcomingBookings={upcomingBookings}
+                    groups={groups}
+                    currentUserId={profile?.id}
                     
                     searchQuery={searchQuery}
                     filteredTrails={filteredTrails}
@@ -165,10 +127,8 @@ export default function hike() {
                     onTrailSelect={handleTrailSelect}
                     
                     onGroupChatPress={onGroupPress}
-                    onBookedGroupChatPress={handleBookedGroupChatPress}
                     onBookingPress={onBookingPress}
                     onStartTracking={handleStartTracking}
-
                     onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}
                 />
             )}
