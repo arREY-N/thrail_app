@@ -17,13 +17,28 @@ const ReceiptScreen = ({
 }) => {
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
     const capturedPayments = payments.filter(p => p.status === 'captured');
+    const refundedPayments = payments.filter(p => p.status === 'refunded');
+    
     const latestPayment = capturedPayments[capturedPayments.length - 1] || payments[0];
     
     const transactionRef = latestPayment?.referenceCode || latestPayment?.sessionId || `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
     const paymentMethod = latestPayment?.gateway || 'Online Payment';
     
     const totalAmount = bookingData?.offer?.price || 0;
-    const totalPaid = capturedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) || totalAmount;
+    const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
+    
+    const totalPaid = capturedPayments.length > 0 
+        ? capturedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) 
+        : (isRefunded ? 0 : totalAmount);
+        
+    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
+    const hasUnrecordedRefund = refundedPayments.some(p => p.refundedAmount === undefined || p.refundedAmount === null);
+
+    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
+        ? ` (${Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100)}%)`
+        : '';
+        
     const formattedDate = formatBookingDate(bookingData?.offer?.date);
     
     let datePaid = 'Recently';
@@ -36,13 +51,20 @@ const ReceiptScreen = ({
 
     const isVerifying = bookingData?.status === 'paid';
     
-    const headerTitle = isVerifying ? "Verifying Payment" : "Payment Successful!";
-    const headerSubtitle = isVerifying 
+    let headerTitle = isVerifying ? "Verifying Payment" : "Payment Successful!";
+    let headerSubtitle = isVerifying 
         ? "Your transaction receipt has been sent. The provider is currently verifying it."
         : "Your transaction was verified. Present this digital receipt to your guide on the day of the hike.";
     
-    const headerColor = Colors.PRIMARY; 
-    const headerIcon = isVerifying ? "clock" : "check";
+    let headerColor = Colors.PRIMARY; 
+    let headerIcon = isVerifying ? "clock" : "check";
+
+    if (isRefunded) {
+        headerTitle = "Refund Processed!";
+        headerSubtitle = "A refund has been processed for this booking. The refunded amount has been returned to your original payment method.";
+        headerColor = Colors.ERROR;
+        headerIcon = "refresh-ccw";
+    }
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -127,9 +149,28 @@ const ReceiptScreen = ({
 
                             <View style={styles.divider} />
 
+                            {refundedPayments.length > 0 && (
+                                <>
+                                    <View style={styles.dataRow}>
+                                        <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                                            Amount Refunded{refundPercentageLabel}
+                                        </CustomText>
+                                        <CustomText variant="body" style={[styles.value, { color: Colors.ERROR }]}>
+                                            {hasUnrecordedRefund && totalRefunded === 0
+                                                ? 'Not recorded'
+                                                : `₱${totalRefunded.toFixed(2)}`
+                                            }
+                                        </CustomText>
+                                    </View>
+                                    <View style={styles.divider} />
+                                </>
+                            )}
+
                             <View style={styles.totalRow}>
-                                <CustomText variant="body" style={styles.totalLabel}>Amount Paid</CustomText>
-                                <CustomText variant="h2" style={[styles.totalValue, { color: headerColor }]}>
+                                <CustomText variant="body" style={styles.totalLabel}>
+                                    {isRefunded ? "Net Amount Paid" : "Amount Paid"}
+                                </CustomText>
+                                <CustomText variant="h2" style={[styles.totalValue, { color: isRefunded ? Colors.TEXT_PRIMARY : headerColor }]}>
                                     ₱{totalPaid.toFixed(2)}
                                 </CustomText>
                             </View>

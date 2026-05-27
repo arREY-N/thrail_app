@@ -1032,7 +1032,8 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     }
 
     // Dual-System Authorization Check
-    const isAdmin = caller.token.role === 'admin' && caller.token.businessId === data.business.id;
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && adminBusinessId === data.business.id;
     const isSuperAdmin = caller.token.role === 'superadmin';
     const isOwner = caller.uid === data.user.id;
 
@@ -1078,6 +1079,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason);
 
         capturedPayment.status = 'refunded';
+        capturedPayment.refundedAmount = refundAmount;
 
         await bookingRef.update({
             status: 'cancelled',

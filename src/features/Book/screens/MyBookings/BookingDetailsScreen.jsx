@@ -423,6 +423,7 @@ const BookingDetailsScreen = ({
                         totalAmount={totalAmount} 
                         amountPaid={amountPaid} 
                         remainingBalance={remainingBalance} 
+                        payments={booking?.payment || []}
                     />
 
                 </View>
