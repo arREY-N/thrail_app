@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Modal,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -13,6 +12,7 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import DynamicListBuilder from '@/src/components/DynamicListBuilder';
@@ -20,7 +20,8 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import ScheduleBuilderModal from '@/src/features/Admin/components/ScheduleBuilderModal';
+import { Layout } from '@/src/constants/layout';
+import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
 
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];
@@ -51,6 +52,7 @@ const OfferWriteScreen = ({
 
     const [days, setDays] = useState('');
     const [nights, setNights] = useState('');
+    const [focusedField, setFocusedField] = useState(null);
 
     const prevStartDate = useRef(offer?.date);
     const prevEndDate = useRef(offer?.endDate);
@@ -62,23 +64,12 @@ const OfferWriteScreen = ({
         }
     }, []);
 
-    useEffect(() => {
-        if (offer?.duration) {
-            const dMatch = offer.duration.match(/(\d+)\s*Day/i);
-            const nMatch = offer.duration.match(/(\d+)\s*Night/i);
-            if (dMatch) setDays(dMatch[1]);
-            if (nMatch) setNights(nMatch[1]);
-        }
-    }, [offer?.id]);
-
     const handleUpdate = (params) => {
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
     };
 
     useEffect(() => {
-        if (offer?.date === prevStartDate.current && offer?.endDate === prevEndDate.current) return;
-
         if (offer?.date && offer?.endDate) {
             const start = new Date(offer.date);
             start.setHours(0, 0, 0, 0);
@@ -107,16 +98,77 @@ const OfferWriteScreen = ({
             if (offer.duration !== durString) {
                 handleUpdate({ section: 'root', id: 'duration', value: durString });
             }
+        } else if (offer?.schedule?.length > 0) {
+            const calcDays = offer.schedule.length;
+            const calcNights = calcDays > 0 ? calcDays - 1 : 0;
+
+            setDays(String(calcDays));
+            setNights(String(calcNights));
+
+            let durString = '';
+            if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
+            if (calcDays > 0 && calcNights > 0) durString += ', ';
+            if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
+
+            if (offer.duration !== durString) {
+                handleUpdate({ section: 'root', id: 'duration', value: durString });
+            }
         } else {
             setDays('');
             setNights('');
+            if (offer.duration !== '') {
+                handleUpdate({ section: 'root', id: 'duration', value: '' });
+            }
         }
         
         prevStartDate.current = offer?.date;
         prevEndDate.current = offer?.endDate;
 
-    }, [offer?.date, offer?.endDate]);
+    }, [offer?.date, offer?.endDate, offer?.schedule?.length]);
 
+    const handleStartDateChange = (val) => {
+        handleUpdate({ section: 'root', id: 'date', value: val });
+        
+        const scheduleLength = offer?.schedule?.length || 0;
+        if (val && scheduleLength > 0) {
+            const newEnd = new Date(val);
+            newEnd.setHours(0, 0, 0, 0);
+            newEnd.setDate(newEnd.getDate() + scheduleLength - 1);
+            handleUpdate({ section: 'root', id: 'endDate', value: newEnd });
+        }
+    };
+
+    const handleEndDateChange = (val) => {
+        handleUpdate({ section: 'root', id: 'endDate', value: val });
+
+        if (offer?.date && val) {
+            const start = new Date(offer.date);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(val);
+            end.setHours(0, 0, 0, 0);
+            
+            if (end >= start) {
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const targetDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                
+                let currentSchedule = Array.isArray(offer?.schedule) ? [...offer.schedule] : [];
+                
+                if (currentSchedule.length < targetDays) {
+                    const daysToAdd = targetDays - currentSchedule.length;
+                    for (let i = 0; i < daysToAdd; i++) {
+                        currentSchedule.push({ 
+                            day: currentSchedule.length + 1, 
+                            activities: [{ hourVal: '', minuteVal: '', periodVal: 'AM', event: '' }] 
+                        });
+                    }
+                    handleUpdate({ section: 'root', id: 'schedule', value: currentSchedule });
+                } else if (currentSchedule.length > targetDays) {
+                    currentSchedule = currentSchedule.slice(0, targetDays);
+                    handleUpdate({ section: 'root', id: 'schedule', value: currentSchedule });
+                }
+            }
+        }
+    };
 
     const handleAddToArray = (field, currentArray, value) => {
         if (!value.trim()) return;
@@ -203,6 +255,12 @@ const OfferWriteScreen = ({
         }, 100);
     };
 
+    const trailOptions = trails ? trails.map(trail => ({
+        label: trail.general?.name || "Unnamed Trail",
+        value: trail.id,
+        originalData: trail
+    })) : [];
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
@@ -215,193 +273,206 @@ const OfferWriteScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.formCard}>
-                    
-                    <CustomText variant="label" style={styles.multiSelectLabel}>
-                        Select Trail *
-                    </CustomText>
-                    <TouchableOpacity 
-                        style={styles.dropdownButton} 
-                        onPress={() => setShowTrailModal(true)} 
-                        activeOpacity={0.7}
-                    >
-                        <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
-                            {offer?.trail?.name || "Select a trail..."}
-                        </CustomText>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-down" 
-                            size={20} 
-                            color={Colors.TEXT_SECONDARY} 
+                <View style={styles.constrainer}>
+
+                    <View style={styles.formCard}>
+                        
+                        <View style={styles.fieldContainer}>
+                            <CustomText variant="label" style={styles.fieldLabel}>
+                                Select Trail *
+                            </CustomText>
+                            <TouchableOpacity 
+                                style={styles.dropdownButton} 
+                                onPress={() => setShowTrailModal(true)} 
+                                activeOpacity={0.7}
+                            >
+                                <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
+                                    {offer?.trail?.name || "Select a trail..."}
+                                </CustomText>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="chevron-down" 
+                                    size={20} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        <CustomTextInput 
+                            label="Description *" 
+                            placeholder="Type the full description here..."
+                            value={offer.description}
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
+                            multiline={true} 
+                            numberOfLines={5}
+                            style={styles.noMarginBottom} 
+                            inputStyle={styles.textArea}
                         />
-                    </TouchableOpacity>
 
-                    <CustomTextInput 
-                        label="Price per Pax *" 
-                        placeholder="0" 
-                        prefix="₱" 
-                        value={offer.price ? String(offer.price) : ''}
-                        keyboardType="numeric"
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
-                        style={styles.inputSpacing}
-                    />
+                        <CustomTextInput 
+                            label="Price per Pax *" 
+                            placeholder="0" 
+                            prefix="₱" 
+                            value={offer.price ? String(offer.price) : ''}
+                            keyboardType="numeric"
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
+                            style={styles.noMarginBottom}
+                        />
 
-                    <CustomTextInput 
-                        label="Description *" 
-                        placeholder="Type the full description here..."
-                        value={offer.description}
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
-                        multiline={true} 
-                        numberOfLines={5}
-                        style={styles.inputSpacing} 
-                        inputStyle={styles.textArea}
-                    />
+                        <View style={styles.fieldContainer}>
+                            <CustomText variant="label" style={styles.fieldLabel}>
+                                Pax Capacity *
+                            </CustomText>
+                            <View style={styles.inlineRowContainer}>
+                                
+                                <View style={[styles.durationWrapper, focusedField === 'minPax' && styles.wrapperFocused]}>
+                                    <View style={styles.durationInputHalf}>
+                                        <TextInput 
+                                            placeholder="0" 
+                                            value={offer.minPax ? String(offer.minPax) : ''}
+                                            keyboardType="numeric"
+                                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
+                                            style={styles.durationInput} 
+                                            placeholderTextColor={Colors.TEXT_SECONDARY}
+                                            onFocus={() => setFocusedField('minPax')}
+                                            onBlur={() => setFocusedField(null)}
+                                        />
+                                    </View>
+                                    <View style={styles.verticalDivider} />
+                                    <View style={styles.durationLabelHalf}>
+                                        <CustomText style={styles.durationLabelText}>Min</CustomText>
+                                    </View>
+                                </View>
+                                
+                                <View style={styles.dividerContainer}>
+                                    <CustomText style={styles.dividerText}>-</CustomText>
+                                </View>
+                                
+                                <View style={[styles.durationWrapper, focusedField === 'maxPax' && styles.wrapperFocused]}>
+                                    <View style={styles.durationInputHalf}>
+                                        <TextInput 
+                                            placeholder="0" 
+                                            value={offer.maxPax ? String(offer.maxPax) : ''}
+                                            keyboardType="numeric"
+                                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
+                                            style={styles.durationInput} 
+                                            placeholderTextColor={Colors.TEXT_SECONDARY}
+                                            onFocus={() => setFocusedField('maxPax')}
+                                            onBlur={() => setFocusedField(null)}
+                                        />
+                                    </View>
+                                    <View style={styles.verticalDivider} />
+                                    <View style={styles.durationLabelHalf}>
+                                        <CustomText style={styles.durationLabelText}>Max</CustomText>
+                                    </View>
+                                </View>
 
-                    <View style={styles.inlineRowContainer}>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                type="calendar" 
-                                label="Start Date *" 
-                                placeholder="Select Date"
-                                value={offer.date || null}
-                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'date', value: val })}
-                                allowFutureDates={true} 
-                                showTodayButton={true} 
-                                defaultMode="date" 
-                                style={styles.noMarginBottom}
-                                dateFormat="MM/DD/YY"
-                            />
+                            </View>
                         </View>
-                        <View style={styles.dateDividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        <View style={styles.flexHalf}>
-                            <CustomTextInput 
-                                type="calendar" 
-                                label="End Date *" 
-                                placeholder="Select Date"
-                                value={offer.endDate || null}
-                                onChangeText={(val) => handleUpdate({ section: 'root', id: 'endDate', value: val })}
-                                allowFutureDates={true} 
-                                showTodayButton={true} 
-                                defaultMode="date" 
-                                style={styles.noMarginBottom}
-                                dateFormat="MM/DD/YY"
-                            />
-                        </View>
-                    </View>
 
-                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 16 }]}>
-                        Duration *
-                    </CustomText>
-                    <View style={styles.inlineRowContainer}>
-                        
-                        <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="00" 
-                                    value={days}
-                                    editable={false} 
-                                    style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
+                        <View style={styles.fieldContainer}>
+                            <View style={styles.inlineRowContainer}>
+                                <View style={styles.flexHalf}>
+                                    <CustomTextInput 
+                                        type="calendar" 
+                                        label="Start Date *" 
+                                        placeholder="Select Date"
+                                        value={offer.date || null}
+                                        onChangeText={handleStartDateChange}
+                                        allowFutureDates={true} 
+                                        showTodayButton={true} 
+                                        defaultMode="date" 
+                                        style={styles.noMarginBottom}
+                                        dateFormat="MM/DD/YY"
+                                    />
+                                </View>
+                                <View style={styles.dateDividerContainer}>
+                                    <CustomText style={styles.dividerText}>-</CustomText>
+                                </View>
+                                <View style={styles.flexHalf}>
+                                    <CustomTextInput 
+                                        type="calendar" 
+                                        label="End Date *" 
+                                        placeholder="Select Date"
+                                        value={offer.endDate || null}
+                                        onChangeText={handleEndDateChange}
+                                        allowFutureDates={true} 
+                                        showTodayButton={true} 
+                                        defaultMode="date" 
+                                        style={styles.noMarginBottom}
+                                        dateFormat="MM/DD/YY"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                            
+                        <View style={styles.fieldContainer}>
+                            <CustomText variant="label" style={styles.fieldLabel}>
+                                Itinerary & Schedule *
+                            </CustomText>
+                            <TouchableOpacity 
+                                style={styles.scheduleCard} 
+                                onPress={() => setShowScheduleModal(true)} 
+                                activeOpacity={0.7}
+                            >
+                                <View>
+                                    <CustomText style={styles.scheduleTitle}>
+                                        {totalDays > 0 ? `${totalDays} Days Set` : "No Schedule Set"}
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.scheduleSubtitle}>
+                                        {totalActivities} total activities planned
+                                    </CustomText>
+                                </View>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="edit-3" 
+                                    size={20} 
+                                    color={Colors.PRIMARY} 
                                 />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                                <CustomText style={styles.durationLabelText}>Days</CustomText>
-                            </View>
+                            </TouchableOpacity>
                         </View>
-                        
-                        <View style={styles.dividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        
-                        <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="00" 
-                                    value={nights}
-                                    editable={false} 
-                                    style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
-                                <CustomText style={styles.durationLabelText}>Nights</CustomText>
+
+                        <View style={styles.fieldContainer}>
+                            <CustomText variant="label" style={styles.fieldLabel}>
+                                Duration (Auto-calculated) *
+                            </CustomText>
+                            <View style={styles.inlineRowContainer}>
+                                <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                    <View style={styles.durationInputHalf}>
+                                        <TextInput 
+                                            placeholder="00" 
+                                            value={days}
+                                            editable={false} 
+                                            style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
+                                        />
+                                    </View>
+                                    <View style={styles.verticalDivider} />
+                                    <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                        <CustomText style={styles.durationLabelText}>Days</CustomText>
+                                    </View>
+                                </View>
+                                
+                                <View style={styles.dividerContainer}>
+                                    <CustomText style={styles.dividerText}>-</CustomText>
+                                </View>
+                                
+                                <View style={[styles.durationWrapper, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                    <View style={styles.durationInputHalf}>
+                                        <TextInput 
+                                            placeholder="00" 
+                                            value={nights}
+                                            editable={false} 
+                                            style={[styles.durationInput, { color: Colors.TEXT_SECONDARY }]} 
+                                        />
+                                    </View>
+                                    <View style={styles.verticalDivider} />
+                                    <View style={[styles.durationLabelHalf, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                        <CustomText style={styles.durationLabelText}>Nights</CustomText>
+                                    </View>
+                                </View>
                             </View>
                         </View>
 
-                    </View>
-
-                    <CustomText variant="label" style={[styles.multiSelectLabel, { marginTop: 24 }]}>
-                        Pax Capacity *
-                    </CustomText>
-                    <View style={styles.inlineRowContainer}>
-                        <View style={[styles.durationWrapper]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="0" 
-                                    value={offer.minPax ? String(offer.minPax) : ''}
-                                    keyboardType="numeric"
-                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
-                                    style={styles.durationInput} 
-                                    placeholderTextColor={Colors.TEXT_SECONDARY}
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={styles.durationLabelHalf}>
-                                <CustomText style={styles.durationLabelText}>Min</CustomText>
-                            </View>
-                        </View>
-                        
-                        <View style={styles.dividerContainer}>
-                            <CustomText style={styles.dividerText}>-</CustomText>
-                        </View>
-                        
-                        <View style={[styles.durationWrapper]}>
-                            <View style={styles.durationInputHalf}>
-                                <TextInput 
-                                    placeholder="0" 
-                                    value={offer.maxPax ? String(offer.maxPax) : ''}
-                                    keyboardType="numeric"
-                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
-                                    style={styles.durationInput} 
-                                    placeholderTextColor={Colors.TEXT_SECONDARY}
-                                />
-                            </View>
-                            <View style={styles.verticalDivider} />
-                            <View style={styles.durationLabelHalf}>
-                                <CustomText style={styles.durationLabelText}>Max</CustomText>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.scheduleSection}>
-                        <CustomText variant="label" style={styles.multiSelectLabel}>
-                            Itinerary & Schedule *
-                        </CustomText>
-                        <TouchableOpacity 
-                            style={styles.scheduleCard} 
-                            onPress={() => setShowScheduleModal(true)} 
-                            activeOpacity={0.7}
-                        >
-                            <View>
-                                <CustomText style={styles.scheduleTitle}>
-                                    {totalDays > 0 ? `${totalDays} Days Set` : "No Schedule Set"}
-                                </CustomText>
-                                <CustomText variant="caption" style={styles.scheduleSubtitle}>
-                                    {totalActivities} total activities planned
-                                </CustomText>
-                            </View>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="edit-3" 
-                                size={20} 
-                                color={Colors.PRIMARY} 
-                            />
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={{ marginTop: 24 }}>
                         <DynamicListBuilder 
                             label="Required Documents *" 
                             placeholder="e.g. Valid ID" 
@@ -437,96 +508,62 @@ const OfferWriteScreen = ({
                             presets={PRESET_BRING}
                             onTogglePreset={(val) => handleTogglePreset('thingsToBring', offer.thingsToBring, val)}
                         />
-                    </View>
 
-                    <CustomFeedbackInput 
-                        label="Reminders" 
-                        helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
-                        placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
-                        value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
-                        onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
-                        suggestions={[
-                            "Strictly Non-refundable",
-                            "Arrive 30 mins before call time",
-                            "Subject to weather conditions",
-                            "Bring physical Valid ID"
-                        ]}
-                        style={styles.inputSpacing}
-                    />
-
-                    {error && <ErrorMessage error={error} />}
-
-                    <View style={styles.buttonContainer}>
-                        <CustomButton 
-                            title={isLoading ? "Saving..." : "Save Offer"}
-                            onPress={handleSaveClick}
-                            variant="primary"
-                            style={!isReadyToSubmit ? styles.disabledButton : undefined}
+                        <CustomFeedbackInput 
+                            label="Reminders" 
+                            helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
+                            placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
+                            value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
+                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
+                            suggestions={[
+                                "Strictly Non-refundable",
+                                "Arrive 30 mins before call time",
+                                "Subject to weather conditions",
+                                "Bring physical Valid ID"
+                            ]}
+                            style={styles.noMarginBottom}
                         />
-                        
-                        {isEditing && (
-                            <CustomButton 
-                                title="Delete Offer"
-                                onPress={() => setIsDeleteModalVisible(true)}
-                                variant="outline"
-                                style={[styles.deleteBtn, isLoading && styles.disabledButton]}
-                                textStyle={{ color: Colors.ERROR }}
-                            />
-                        )}
-                    </View>
 
+                        {error && <ErrorMessage error={error} />}
+
+                        <View style={styles.buttonContainer}>
+                            <CustomButton 
+                                title={isLoading ? "Saving..." : "Save Offer"}
+                                onPress={handleSaveClick}
+                                variant="primary"
+                                style={!isReadyToSubmit ? styles.disabledButton : undefined}
+                            />
+                            
+                            {isEditing && (
+                                <CustomButton 
+                                    title="Delete Offer"
+                                    onPress={() => setIsDeleteModalVisible(true)}
+                                    variant="outline"
+                                    style={[styles.deleteBtn, isLoading && styles.disabledButton]}
+                                    textStyle={{ color: Colors.ERROR }}
+                                />
+                            )}
+                        </View>
+
+                    </View>
                 </View>
             </ScrollView>
 
-            <Modal 
-                visible={showTrailModal} 
-                animationType="fade" 
-                transparent={true}
-            >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPress={() => setShowTrailModal(false)}
-                >
-                    <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <CustomText variant="h3">Select Trail</CustomText>
-                            <TouchableOpacity 
-                                onPress={() => setShowTrailModal(false)} 
-                                style={styles.closeBtn}
-                            >
-                                <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {trails.map(trail => {
-                                const isSelected = offer?.trail?.id === trail.id;
-                                return (
-                                    <TouchableOpacity 
-                                        key={trail.id}
-                                        style={[styles.modalOption, isSelected && styles.modalOptionSelected]}
-                                        onPress={() => {
-                                            handleUpdate({ 
-                                                section: 'root', 
-                                                id: 'trail', 
-                                                value: { id: trail.id, name: trail.general.name } 
-                                            });
-                                            setShowTrailModal(false);
-                                        }}
-                                    >
-                                        <CustomText style={isSelected ? styles.modalTextSelected : styles.modalText}>
-                                            {trail.general.name}
-                                        </CustomText>
-                                        {isSelected && (
-                                            <CustomIcon library="Feather" name="check" size={20} color={Colors.PRIMARY} />
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </ScrollView>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
+            <CustomSelectionModal 
+                visible={showTrailModal}
+                onClose={() => setShowTrailModal(false)}
+                title="Select Trail"
+                options={trailOptions}
+                selectedValue={offer?.trail?.id}
+                onSelect={(selected) => {
+                    handleUpdate({ 
+                        section: 'root', 
+                        id: 'trail', 
+                        value: { id: selected.value, name: selected.label } 
+                    });
+                    setShowTrailModal(false);
+                }}
+            />
 
             <ScheduleBuilderModal 
                 visible={showScheduleModal}
@@ -540,6 +577,7 @@ const OfferWriteScreen = ({
                     const newDaysCount = newSchedule.length;
                     if (offer.date && newDaysCount > 0) {
                         const start = new Date(offer.date);
+                        start.setHours(0,0,0,0);
                         start.setDate(start.getDate() + newDaysCount - 1);
                         handleUpdate({ section: 'root', id: 'endDate', value: start }); 
                     }
@@ -596,6 +634,12 @@ const styles = StyleSheet.create({
         paddingVertical: 24, 
         paddingHorizontal: 16 
     },
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+        flex: 1,
+    },
     formCard: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 24, 
@@ -607,7 +651,16 @@ const styles = StyleSheet.create({
         shadowRadius: 8, 
         elevation: 2, 
         borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT 
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        gap: 24,
+    },
+    fieldContainer: {
+        gap: 8,
+    },
+    fieldLabel: { 
+        marginLeft: 4, 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: 'bold' 
     },
     dropdownButton: { 
         flexDirection: 'row', 
@@ -617,7 +670,6 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         borderRadius: 12, 
-        marginBottom: 16, 
         backgroundColor: Colors.BACKGROUND 
     },
     dropdownText: { 
@@ -627,9 +679,6 @@ const styles = StyleSheet.create({
     dropdownPlaceholder: { 
         color: Colors.TEXT_SECONDARY, 
         fontSize: 16 
-    },
-    scheduleSection: { 
-        marginTop: 24 
     },
     scheduleCard: { 
         flexDirection: 'row', 
@@ -649,51 +698,6 @@ const styles = StyleSheet.create({
     },
     scheduleSubtitle: { 
         color: Colors.TEXT_SECONDARY 
-    },
-    modalOverlay: { 
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
-        justifyContent: 'flex-end' 
-    },
-    modalContent: { 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
-        maxHeight: '80%', 
-        padding: 24, 
-        paddingBottom: 40 
-    },
-    modalHeader: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 20 
-    },
-    closeBtn: { 
-        padding: 4 
-    },
-    modalOption: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        paddingVertical: 16, 
-        paddingHorizontal: 12, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT 
-    },
-    modalOptionSelected: { 
-        backgroundColor: '#E8F5E9', 
-        borderRadius: 12, 
-        borderBottomWidth: 0 
-    },
-    modalText: { 
-        fontSize: 16, 
-        color: Colors.TEXT_PRIMARY 
-    },
-    modalTextSelected: { 
-        fontSize: 16, 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold' 
     },
     inlineRowContainer: { 
         flexDirection: 'row', 
@@ -719,7 +723,7 @@ const styles = StyleSheet.create({
         flex: 1 
     },
     noMarginBottom: { 
-        marginBottom: 0 
+        marginBottom: 0
     },
     durationWrapper: { 
         flex: 1, 
@@ -732,6 +736,10 @@ const styles = StyleSheet.create({
         height: 54, 
         overflow: 'hidden', 
         paddingHorizontal: 0 
+    },
+    wrapperFocused: {
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.WHITE,
     },
     durationInputHalf: { 
         flex: 1, 
@@ -763,13 +771,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         fontWeight: '500' 
     },
-    activeBorder: { 
-        borderColor: Colors.PRIMARY, 
-        backgroundColor: Colors.WHITE 
-    },
-    inputSpacing: { 
-        marginBottom: 16 
-    },
     textArea: { 
         minHeight: 140, 
         height: 140, 
@@ -777,18 +778,8 @@ const styles = StyleSheet.create({
         paddingTop: 16, 
         paddingBottom: 16 
     },
-    row: { 
-        flexDirection: 'row', 
-        gap: 16 
-    },
-    multiSelectLabel: { 
-        marginBottom: 8, 
-        marginLeft: 4, 
-        color: Colors.TEXT_PRIMARY, 
-        fontWeight: 'bold' 
-    },
     buttonContainer: { 
-        marginTop: 16, 
+        marginTop: 8,
         gap: 12 
     },
     deleteBtn: { 

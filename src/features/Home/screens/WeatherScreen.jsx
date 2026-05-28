@@ -16,8 +16,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { formatSunTime } from '@/src/core/utility/date';
-import { getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
+import { formatLastUpdatedLabel, formatWeatherDisplay, getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useLocation } from '@/src/hooks/useLocation';
 import { useWeather } from '@/src/hooks/useWeather';
@@ -58,15 +57,10 @@ const WeatherScreen = ({
 
     const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
 
-    const lastUpdatedLabel = React.useMemo(() => {
-        if (!weatherData?.lastUpdated) return null;
-        const diffMs = Date.now() - new Date(weatherData.lastUpdated).getTime();
-        const diffMin = Math.floor(diffMs / 60000);
-        if (diffMin < 1) return 'Just now';
-        if (diffMin < 60) return `${diffMin} min ago`;
-        const diffHr = Math.floor(diffMin / 60);
-        return `${diffHr}h ${diffMin % 60}m ago`;
-    }, [weatherData?.lastUpdated]);
+    const lastUpdatedLabel = React.useMemo(
+        () => formatLastUpdatedLabel(weatherData?.lastUpdated),
+        [weatherData?.lastUpdated]
+    );
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -75,24 +69,13 @@ const WeatherScreen = ({
         setRefreshing(false);
     }, [onRefreshPress, refetch]);
 
-    const hasData = weatherData && !error;
-    const { condition, icon: mainIcon, library: mainLib } = getWeatherInfoUI(weatherData?.weatherCode);
-    const temperature = weatherData?.temperature !== undefined ? Math.round(weatherData.temperature) : "--";
-    const dayTemp = weatherData?.forecast?.[0]?.temperatureMax !== undefined ? Math.round(weatherData.forecast[0].temperatureMax) : "--";
-    const nightTemp = weatherData?.forecast?.[0]?.temperatureMin !== undefined ? Math.round(weatherData.forecast[0].temperatureMin) : "--";
-    
+    const display = formatWeatherDisplay(weatherData);
+    const hasData = display.hasData && !error;
+
+    // Raw numeric values kept only for alert-level color thresholds
     const windRaw = weatherData?.windSpeed;
     const precipRaw = weatherData?.precipitationProbability;
     const uvRaw = weatherData?.uvIndex;
-    const humidityRaw = weatherData?.humidity;
-    
-    const windVal = windRaw !== undefined ? windRaw : "--";
-    const precipVal = precipRaw !== undefined ? precipRaw : "--";
-    const uvVal = uvRaw !== undefined ? Math.round(uvRaw) : "--";
-    const humVal = humidityRaw !== undefined ? Math.round(humidityRaw) : "--";
-    
-    const sunrise = weatherData?.sunrise ? formatSunTime(weatherData.sunrise) : "--:-- AM";
-    const sunset = weatherData?.sunset ? formatSunTime(weatherData.sunset) : "--:-- PM";
 
     if ((loading && !weatherData) || refreshing) {
         return <WeatherSkeleton onBackPress={onBackPress} />;
@@ -120,38 +103,38 @@ const WeatherScreen = ({
                 <View style={styles.heroSection}>
                     <View style={styles.heroTop}>
                         <View style={styles.hiLoContainer}>
-                            <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.TEXT_PRIMARY} />
-                            <CustomText variant="label" style={styles.hiLoText}>Day {dayTemp}°</CustomText>
+                            <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.WEATHER_SUN} />
+                            <CustomText variant="label" style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
                             
                             <View style={styles.dotSeparator} />
                             
-                            <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.TEXT_PRIMARY} />
-                            <CustomText variant="label" style={styles.hiLoText}>Night {nightTemp}°</CustomText>
+                            <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.WEATHER_MOON} />
+                            <CustomText variant="label" style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
                         </View>
                     </View>
 
                     <View style={styles.mainWeatherRow}>
                         <View style={styles.tempBlock}>
                             <View style={styles.tempContainer}>
-                                <CustomText style={styles.mainTemp}>{temperature}°</CustomText>
+                                <CustomText style={styles.mainTemp}>{display.temperature}°</CustomText>
                                 <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
                             </View>
-                            {weatherData?.apparentTemperature != null && (
+                            {display.feelsLike != null && (
                                 <CustomText variant="caption" style={styles.feelsLikeHero}>
-                                    Feels like {Math.round(weatherData.apparentTemperature)}°C
+                                    Feels like {display.feelsLike}°C
                                 </CustomText>
                             )}
                         </View>
 
                         <View style={styles.iconBlock}>
                             <CustomIcon 
-                                library={mainLib} 
-                                name={hasData ? mainIcon : "cloud-offline-outline"} 
+                                library={display.library} 
+                                name={hasData ? display.icon : "cloud-offline-outline"} 
                                 size={80} 
                                 color={Colors.PRIMARY} 
                             />
                             <CustomText variant="label" style={styles.conditionText}>
-                                {hasData ? condition : "Loading"}
+                                {hasData ? display.condition : "Loading"}
                             </CustomText>
                         </View>
                     </View>
@@ -234,7 +217,7 @@ const WeatherScreen = ({
                         <View style={styles.bentoGrid}>
                             <BentoBox 
                                 title="Wind" 
-                                value={windVal} 
+                                value={display.windSpeed} 
                                 unit="km/h" 
                                 desc="Current speed" 
                                 icon="wind" 
@@ -244,7 +227,7 @@ const WeatherScreen = ({
                             />
                             <BentoBox 
                                 title="Precipitation" 
-                                value={precipVal} 
+                                value={display.precipChance} 
                                 unit="%" 
                                 desc="Chance of rain" 
                                 icon="rainy-outline" 
@@ -254,7 +237,7 @@ const WeatherScreen = ({
                             />
                             <BentoBox 
                                 title="UV Index" 
-                                value={uvVal} 
+                                value={display.uvIndex} 
                                 unit="" 
                                 desc={weatherData?.uvIndexMax ? `Real-time. Peak: ${Math.round(weatherData.uvIndexMax)}` : "Current level"}
                                 icon="thermometer-outline"  
@@ -264,7 +247,7 @@ const WeatherScreen = ({
                             />
                             <BentoBox 
                                 title="Humidity" 
-                                value={humVal} 
+                                value={display.humidity} 
                                 unit="%" 
                                 desc="Relative humidity" 
                                 icon="water-outline" 
@@ -290,10 +273,10 @@ const WeatherScreen = ({
                                         library="Feather" 
                                         name="sunrise" 
                                         size={32} 
-                                        color={Colors.PRIMARY} 
+                                        color={Colors.WEATHER_SUN} 
                                     />
                                     <View>
-                                        <CustomText style={styles.sunTimeText}>{sunrise}</CustomText>
+                                        <CustomText style={styles.sunTimeText}>{display.sunrise}</CustomText>
                                         <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
                                     </View>
                                 </View>
@@ -305,10 +288,10 @@ const WeatherScreen = ({
                                         library="Feather" 
                                         name="sunset" 
                                         size={32} 
-                                        color={Colors.PRIMARY} 
+                                        color={Colors.WEATHER_MOON} 
                                     />
                                     <View style={{ alignItems: 'flex-end' }}>
-                                        <CustomText style={styles.sunTimeText}>{sunset}</CustomText>
+                                        <CustomText style={styles.sunTimeText}>{display.sunset}</CustomText>
                                         <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
                                     </View>
                                 </View>
@@ -534,7 +517,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         gap: 12, 
-        paddingRight: 16 
+        flexGrow: 1,
+        justifyContent: 'center',
     },
     fItem: { 
         alignItems: 'center', 

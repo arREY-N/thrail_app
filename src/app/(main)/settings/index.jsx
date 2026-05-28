@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import SettingsScreen from '@/src/features/Profile/screens/SettingsScreen';
@@ -10,6 +11,11 @@ export default function settings() {
     const { profile } = useAuthHook();
 
     const { onBackPress } = useAppNavigation();
+
+    const { 
+            onPrivacy,
+            onTerms
+        } = useLandingNavigation();
 
     const { 
         role, 
@@ -35,6 +41,8 @@ export default function settings() {
             onAdminPress={onAdminPress}
             onSuperadminPress={onSuperadminPress}
             onApplyPress={onApplyPress}
+            onTerms={onTerms}
+            onPrivacy={onPrivacy}
         />
     );
 }

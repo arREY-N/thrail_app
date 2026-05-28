@@ -8,6 +8,7 @@ import CustomText from "@/src/components/CustomText";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
+import { Layout } from "@/src/constants/layout";
 import { formatDate } from "@/src/core/utility/date";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
         gap: 20,
     },
     scrollContentWide: {
-        maxWidth: 680,
+        maxWidth: Layout.MAX_WIDTH,
         width: '100%',
         alignSelf: 'center',
     },

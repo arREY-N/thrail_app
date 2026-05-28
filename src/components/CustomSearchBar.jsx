@@ -36,6 +36,16 @@ const CustomSearchBar = ({
                         style={styles.searchInputContainer}
                         inputStyle={styles.searchInput}
                     />
+                    
+                    {searchValue?.length > 0 && (
+                        <TouchableOpacity 
+                            style={styles.clearButton} 
+                            onPress={() => onSearchChange('')}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.GRAY_MEDIUM} />
+                        </TouchableOpacity>
+                    )}
                 </View>
                 
                 {rightIconName && (
@@ -103,6 +113,8 @@ const styles = StyleSheet.create({
     },
     inputWrapper: {
         flex: 1,
+        position: 'relative',
+        justifyContent: 'center',
     },
     searchInputContainer: {
         marginBottom: 0,
@@ -112,6 +124,16 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+        paddingRight: 40,
+    },
+
+    clearButton: {
+        position: 'absolute',
+        right: 12,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
     },
     iconButton: {
         width: 54,

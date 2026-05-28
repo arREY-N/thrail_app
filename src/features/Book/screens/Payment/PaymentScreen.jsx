@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -7,12 +7,13 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
+import { checkIfMinor } from '@/src/utils/dateFormatter';
 
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
-import UploadScreen from '@/src/features/Book/screens/Payment/UploadScreen';
 
 import { app } from '@/src/core/config/Firebase';
 import * as Linking from 'expo-linking';
@@ -25,34 +26,84 @@ const PaymentScreen = ({
     onPayOffer,
 }) => {
     const { profile } = useAuthStore();
-    const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
+    
+    const hikerFirstName = bookingData?.user?.firstname || profile?.firstname || '';
+    const hikerLastName = bookingData?.user?.lastname || profile?.lastname || '';
+    const hikerFullName = `${hikerFirstName} ${hikerLastName}`.trim();
 
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
     
     const [paymentType, setPaymentType] = useState('full');
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
-    
-    const [receiptImage, setReceiptImage] = useState(null); 
+
+    const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
+    const latestPayment = payments[payments.length - 1];
 
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountToPay = paymentType === 'full' ? totalPrice : totalPrice / 2;
+    const amountPaidAlready = payments.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0);
+    const remainingBalance = totalPrice - amountPaidAlready;
+    
+    const isPayingBalance = amountPaidAlready > 0;
+    const effectivePaymentType = isPayingBalance ? 'full' : paymentType;
+    const amountToPay = isPayingBalance 
+        ? remainingBalance 
+        : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
+
+    const rawBirthday = bookingData?.user?.birthday || profile?.birthday;
+    const isUserMinor = checkIfMinor(rawBirthday);
+    
+    const expectedSignatureName = isUserMinor && bookingData?.emergencyContact?.name 
+        ? bookingData.emergencyContact.name.trim() 
+        : hikerFullName;
+
+    useEffect(() => {
+        if (!isWaitingForVerification || !latestPayment) return;
+
+        if (latestPayment?.status === 'failed') {
+            setIsWaitingForVerification(false);
+            setPaymentError("Your payment failed or was declined by the provider. Please check your balance and try again.");
+            return;
+        }
+
+        if (latestPayment?.status === 'expired') {
+            setIsWaitingForVerification(false);
+            setPaymentError("Your payment session expired because it took too long. Please initiate a new payment.");
+            return;
+        }
+
+        const isNowPaid = 
+            bookingData.status === 'paid' || 
+            bookingData.status === 'completed' || 
+            (bookingData.status === 'downpayment' && effectivePaymentType === 'downpayment');
+
+        if (isNowPaid || latestPayment?.status === 'captured') {
+            setIsWaitingForVerification(false);
+            setCurrentStep(2); 
+        }
+    }, [bookingData, isWaitingForVerification, effectivePaymentType, latestPayment]);
 
     const handleHeaderBackPress = () => {
-        if (currentStep === 3) {
+        if (isWaitingForVerification) {
+            setIsWaitingForVerification(false); 
+            return;
+        }
+        if (currentStep === 2) {
             handleNextStep(); 
-        } else if (currentStep === 2) {
-            setCurrentStep(1);
         } else {
             onBackPress();
         }
     };
 
     const handleStepNavigation = (step) => {
-        if (currentStep === 3) return; 
-        if (step > currentStep || isSubmitting) return; 
+        if (currentStep === 2) return; 
+        if (step > currentStep || isSubmitting || isWaitingForVerification) return; 
         setCurrentStep(step);
     };
 
@@ -61,20 +112,34 @@ const PaymentScreen = ({
             setPaymentError(null);
 
             if (['gcash', 'maya'].includes(selectedMethod)) {
+                let popup = null;
+                if (Platform.OS === 'web') {
+                    const width = 450;
+                    const height = 750;
+                    const left = (window.screen.width / 2) - (width / 2);
+                    const top = (window.screen.height / 2) - (height / 2);
+                    popup = window.open(
+                        '', 
+                        'PayMongoCheckout', 
+                        `toolbar=no, location=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=${width}, height=${height}, top=${top}, left=${left}`
+                    );
+                }
+
                 setIsSubmitting(true);
                 try {
+                    const urlParams = { 
+                        queryParams: { 
+                            bookingId: bookingData?.id, 
+                            view: 'overview' 
+                        } 
+                    };
+                    const rawUrl = Linking.createURL('book/list', urlParams);
+                    const appUrl = Platform.OS === 'web' 
+                        ? rawUrl 
+                        : Linking.createURL('book/list', { scheme: 'thrailapp', ...urlParams });
                     
-                    // Create return URL automatically based on the environment
-                    const rawUrl = Linking.createURL('payment-result');
-                    const appUrl = Platform.OS === 'web' ? rawUrl : Linking.createURL('payment-result', { scheme: 'thrailapp' });
-                    
-                    // Always use the production HTTPS cloud function even in DEV. 
-                    // This is because PayMongo and mobile browsers forcefully upgrade URLs to HTTPS, 
-                    // which causes SSL errors when trying to hit the local unencrypted 10.0.2.2 emulator.
                     const projectId = app.options.projectId || 'thrail';
                     const redirectFunctionUrl = `https://us-central1-${projectId}.cloudfunctions.net/paymongoRedirect`;
-
-                    // Wrap the deep link in our custom Firebase HTTP function to bypass PayMongo's strict URL validator
                     const secureReturnUrl = `${redirectFunctionUrl}?url=${encodeURIComponent(appUrl)}`;
                     
                     const response = await onPayOffer(
@@ -86,73 +151,122 @@ const PaymentScreen = ({
                     
                     const checkoutUrl = response.checkout_url;
                     
-                    // Use the in-app browser for a seamless experience
-                    await WebBrowser.openBrowserAsync(checkoutUrl, {
-                        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-                        toolbarColor: Colors.PRIMARY,
-                        enableBarCollapsing: true,
-                        showTitle: true,
-                    });
+                    if (Platform.OS === 'web') {
+                        if (popup) {
+                            popup.location.href = checkoutUrl;
+                            setIsWaitingForVerification(true);
+                            
+                            const pollTimer = setInterval(() => {
+                                if (popup.closed) {
+                                    clearInterval(pollTimer);
+                                    setTimeout(() => {
+                                        setIsWaitingForVerification(prev => {
+                                            if (prev) {
+                                                setPaymentError("You closed the payment window. If you didn't complete the payment, please try again. If you already paid, your booking will automatically update shortly.");
+                                                return false;
+                                            }
+                                            return prev;
+                                        });
+                                    }, 2000); 
+                                }
+                            }, 1000);
 
-                    // Proceed to Status, passing PayMongo sessionId as the "receipt" 
-                    // before going to the status tab
-                    setReceiptImage({ uri: 'paymongo_source', id: response.sessionId });
-                    setCurrentStep(3);
+                        } else {
+                            window.location.href = checkoutUrl;
+                            setIsWaitingForVerification(true);
+                        }
+                    } else {
+                        const browserResult = await WebBrowser.openAuthSessionAsync(
+                            checkoutUrl, 
+                            appUrl
+                        );
+                        
+                        if (browserResult.type === 'cancel') {
+                            setIsWaitingForVerification(true); 
+                            setTimeout(() => {
+                                setIsWaitingForVerification(prev => {
+                                    if (prev) {
+                                        setPaymentError("The payment browser was closed. If you didn't complete the payment, please try again. If you already paid, your booking will automatically update shortly.");
+                                        return false;
+                                    }
+                                    return prev;
+                                });
+                            }, 3000);
+                        } else {
+                            setIsWaitingForVerification(true);
+                        }
+                    }
 
                 } catch (error) {
+                    if (popup) popup.close();
                     console.error("Payment Error:", error);
-                    setPaymentError(error.message || "Failed to initialize payment gateway. Please try again or use another method.");
+                    setPaymentError(
+                        error.message || "Failed to initialize payment gateway. Please try again."
+                    );
                 } finally {
                     setIsSubmitting(false);
                 }
-            } else {
-                setCurrentStep(2);
-            }
+            } 
         } else if (currentStep === 2) {
-            setIsSubmitting(true);
-            setTimeout(() => {
-                setIsSubmitting(false);
-                setCurrentStep(3); 
-            }, 1200);
-        } else if (currentStep === 3) {
             onContinue({
-                paymentType,
+                paymentType: effectivePaymentType,
                 paymentMethod: selectedMethod,
-                amountPaid: amountToPay,
-                proofUploaded: receiptImage 
+                amountPaid: latestPayment?.amount || amountToPay,
             });
         }
     };
 
     const getFooterConfig = () => {
-        if (currentStep === 1) return { title: "Continue", disabled: !(selectedMethod && isSignatureValid) };
-        if (currentStep === 2) return { title: "Submit Payment", disabled: !receiptImage };
-        if (currentStep === 3) return { title: "View Status", disabled: false }; 
-        return { title: "Continue", disabled: false };
+        if (isWaitingForVerification) return { 
+            title: "Cancel Verification", 
+            onPress: () => setIsWaitingForVerification(false), 
+            variant: "outline" 
+        };
+        if (currentStep === 1) return { 
+            title: "Continue to Payment", 
+            disabled: !(selectedMethod && isSignatureValid) 
+        };
+        if (currentStep === 2) return { 
+            title: "Return to Bookings", 
+            disabled: false 
+        }; 
+        return { 
+            title: "Continue", 
+            disabled: false 
+        };
     };
 
     const footerConfig = getFooterConfig();
-    const lineFillPercentage = ((currentStep - 1) / 2) * 100; 
+    const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
             <CustomLoading 
-                visible={isSubmitting} 
-                message="Loading..." 
+                visible={isSubmitting || isWaitingForVerification} 
+                message={
+                    isWaitingForVerification 
+                        ? "Verifying Payment with Gateway..." 
+                        : "Opening Secure Gateway..."
+                } 
             />
 
             <CustomHeader 
-                title={currentStep === 3 ? "Payment Status" : "Setup Payment"} 
+                title={currentStep === 2 ? "Payment Status" : "Setup Payment"} 
                 centerTitle={true} 
-                onBackPress={currentStep === 3 ? null : handleHeaderBackPress} 
+                onBackPress={currentStep === 2 ? null : handleHeaderBackPress} 
             />
 
             <View style={styles.progressWrapper}>
                 <View style={styles.progressContainer}>
                     <View style={styles.lineWrapper}>
                         <View style={styles.progressLineBackground} />
-                        <View style={[styles.progressLineActive, { width: `${lineFillPercentage}%` }]} />
+                        <View 
+                            style={[
+                                styles.progressLineActive, 
+                                { width: `${lineFillPercentage}%` }
+                            ]} 
+                        />
                     </View>
 
                     <View style={styles.progressRow}>
@@ -166,14 +280,6 @@ const PaymentScreen = ({
                         />
                         <ProgressStep
                             stepNum={2}
-                            title="Upload"
-                            libraryName="Feather"
-                            iconName="upload"
-                            currentView={currentStep}
-                            onStepPress={handleStepNavigation}
-                        />
-                        <ProgressStep
-                            stepNum={3}
                             title="Status"
                             libraryName="Feather"
                             iconName="check-circle"
@@ -188,30 +294,24 @@ const PaymentScreen = ({
                 {currentStep === 1 && (
                     <MethodScreen 
                         amountToPay={amountToPay}
-                        paymentType={paymentType}
+                        paymentType={effectivePaymentType}
                         setPaymentType={setPaymentType}
                         selectedMethod={selectedMethod}
                         setSelectedMethod={setSelectedMethod}
-                        profileFullName={profileFullName}
+                        profileFullName={expectedSignatureName}
                         setIsSignatureValid={setIsSignatureValid}
                         paymentError={paymentError}
+                        isPayingBalance={isPayingBalance}
+                        isMinor={isUserMinor}
+                        minorName={hikerFullName}
                     />
                 )}
                 {currentStep === 2 && (
-                    <UploadScreen 
-                        amountToPay={amountToPay}
-                        selectedMethod={selectedMethod}
-                        businessName={bookingData?.business?.name || 'Tour Provider'}
-                        receiptImage={receiptImage}
-                        setReceiptImage={setReceiptImage}
-                    />
-                )}
-                {currentStep === 3 && (
                     <StatusScreen 
-                        selectedMethod={selectedMethod} 
-                        amountToPay={amountToPay} 
+                        selectedMethod={latestPayment?.gateway || selectedMethod} 
+                        amountToPay={latestPayment?.amount || amountToPay} 
                         bookingId={bookingData?.id}
-                        receiptImage={receiptImage}
+                        referenceCode={latestPayment?.referenceCode || latestPayment?.sessionId}
                     />
                 )}
             </View>
@@ -219,8 +319,9 @@ const PaymentScreen = ({
             <CustomStickyFooter
                 primaryButton={{
                     title: footerConfig.title,
-                    onPress: handleNextStep,
-                    disabled: footerConfig.disabled
+                    onPress: footerConfig.onPress || handleNextStep,
+                    disabled: footerConfig.disabled,
+                    variant: footerConfig.variant || "primary"
                 }}
             />
         </ScreenWrapper>
@@ -232,6 +333,9 @@ const styles = StyleSheet.create({
         flex: 1 
     },
     progressWrapper: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
         paddingVertical: 20, 
         paddingHorizontal: 20, 
         backgroundColor: Colors.BACKGROUND,
@@ -247,7 +351,10 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     progressContainer: { 
-        position: 'relative' 
+        position: 'relative',
+        width: '100%',
+        maxWidth: 340,
+        alignSelf: 'center',
     },
     progressRow: { 
         flexDirection: 'row', 
@@ -256,9 +363,9 @@ const styles = StyleSheet.create({
     },
     lineWrapper: { 
         position: 'absolute', 
-        top: 20, 
-        left: 20, 
-        right: 20, 
+        top: 19,
+        left: 35,
+        right: 35,
         height: 2, 
         zIndex: 1 
     },

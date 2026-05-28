@@ -15,7 +15,8 @@ export default function home(){
         onDownloadPress, 
         onWeatherPress, 
         onViewAllRecommendationPress, 
-        onViewAllTrendingPress 
+        onViewAllTrendingPress,
+        onGroupPress
     } = useAppNavigation();
 
     return (
@@ -28,6 +29,7 @@ export default function home(){
             discoverTrails={trails}
             onMountainPress={onViewTrail}
             onDownloadPress={onDownloadPress}
+            onGroupPress={onGroupPress}
         />
     );
 }

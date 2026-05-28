@@ -191,7 +191,7 @@ const OfferCalendar = ({
 };
 
 const styles = StyleSheet.create({
-    container: { width: '100%', marginBottom: 16 },
+    container: { width: '100%', marginBottom: 0 },
     dropdownButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         backgroundColor: Colors.WHITE, paddingHorizontal: 16, paddingVertical: 14,

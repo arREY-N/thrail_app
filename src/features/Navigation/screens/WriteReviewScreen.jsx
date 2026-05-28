@@ -3,7 +3,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -16,6 +16,8 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import SelectionChip from '@/src/features/Auth/components/SelectionChip';
+import SelectionOption from '@/src/features/Auth/components/SelectionOption';
 
 const DIFFICULTY_LEVELS = [
     { label: 'Easy', icon: 'emoticon-outline' },
@@ -26,9 +28,9 @@ const DIFFICULTY_LEVELS = [
 ];
 
 const MAINTENANCE_OPTIONS = [
-    'New/well-maintained',
-    'Damaged but usable',
-    'Critical and unusable'
+    { label: 'New/well-maintained', value: 'Easy' },
+    { label: 'Damaged but usable', value: 'Moderate' },
+    { label: 'Critical and unusable', value: 'Extreme' }
 ];
 
 const DIFFICULTY_FACTORS = [
@@ -48,28 +50,27 @@ const WriteReviewScreen = ({
     isLoading, 
     error, 
     onUpdatePress, 
-    onSaveReview,
-    onBackPress
+    onSaveReview
 }) => {
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+    const [touchedMaintenance, setTouchedMaintenance] = useState(false); 
 
-    const STEPS = ['rating', 'difficulty', 'factors_diff', 'factors_fav', 'review_text'];
+    const STEPS = ['ratings', 'factors', 'details'];
     const currentStep = STEPS[stepIndex];
     const progressPercentage = ((stepIndex + 1) / STEPS.length) * 100;
 
     let hasAnswer = false;
-    if (currentStep === 'rating') {
-        hasAnswer = review.overallRating > 0;
-    } else if (currentStep === 'difficulty') {
-        hasAnswer = (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') && 
-                    (review.trailMaintenance && review.trailMaintenance !== 'undefined');
-    } else if (currentStep === 'factors_diff') {
-        hasAnswer = review.difficultyFactors?.length > 0;
-    } else if (currentStep === 'factors_fav') {
-        hasAnswer = review.favoredFactors?.length > 0;
-    } else if (currentStep === 'review_text') {
-        hasAnswer = review.review?.trim().length > 0;
+    if (currentStep === 'ratings') {
+        hasAnswer = 
+            review.overallRating > 0 && 
+            (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') &&
+            (review.trailMaintenance && review.trailMaintenance !== 'undefined') &&
+            touchedMaintenance; 
+    } else if (currentStep === 'factors') {
+        hasAnswer = true;
+    } else if (currentStep === 'details') {
+        hasAnswer = true;
     }
 
     const handleNext = () => {
@@ -99,162 +100,166 @@ const WriteReviewScreen = ({
         updateReview(field, newArray);
     };
 
-    const SelectionPill = ({ label, selected, onPress }) => (
-        <TouchableOpacity 
-            style={[styles.pill, selected && styles.pillActive]} 
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View style={styles.pillRow}>
-                <View style={[styles.radioCircle, selected && styles.radioCircleActive]}>
-                    {selected && <View style={styles.radioDot} />}
-                </View>
-                <CustomText style={[styles.pillText, selected && styles.pillTextActive]}>
-                    {label}
-                </CustomText>
-            </View>
-        </TouchableOpacity>
-    );
-
     const renderStepContent = () => {
         switch (currentStep) {
-            case 'rating':
-                return (
-                    <View style={styles.centerContent}>
-                        <CustomText variant="subtitle" style={styles.question}>
-                            How was your hike overall?
-                        </CustomText>
-                        <View style={styles.starContainer}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <TouchableOpacity 
-                                    key={star} 
-                                    onPress={() => updateReview('overallRating', star)}
-                                    activeOpacity={0.7}
-                                    style={styles.starWrapper}
-                                >
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name={star <= review.overallRating ? "star" : "star-outline"} 
-                                        size={48} 
-                                        color={Colors.YELLOW} 
-                                    />
-                                    <CustomText style={styles.starLabel}>{star}</CustomText>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                );
+            case 'ratings':
+                const showDifficulty = review.overallRating > 0;
+                const showMaintenance = showDifficulty && (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined');
 
-            case 'difficulty':
                 return (
                     <View>
-                        <CustomText variant="subtitle" style={styles.question}>
-                            How would you describe the trail difficulty?
-                        </CustomText>
-                        <View style={styles.faceContainer}>
-                            {DIFFICULTY_LEVELS.map((diff) => {
-                                const isSelected = review.perceivedDifficulty === diff.label;
-                                return (
+                        <View style={styles.sectionContainer}>
+                            <CustomText variant="subtitle" style={styles.question}>
+                                How was your hike overall? <CustomText style={styles.requiredMark}>*</CustomText>
+                            </CustomText>
+                            <View style={styles.starContainer}>
+                                {[1, 2, 3, 4, 5].map((star) => (
                                     <TouchableOpacity 
-                                        key={diff.label} 
-                                        onPress={() => updateReview('perceivedDifficulty', diff.label)}
-                                        style={[styles.faceWrapper, isSelected && styles.faceWrapperActive]}
+                                        key={star} 
+                                        onPress={() => updateReview('overallRating', star)}
                                         activeOpacity={0.7}
+                                        style={styles.starWrapper}
                                     >
                                         <CustomIcon 
-                                            library="MaterialCommunityIcons" 
-                                            name={diff.icon} 
-                                            size={42} 
-                                            color={isSelected ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                                            library="Ionicons" 
+                                            name={star <= review.overallRating ? "star" : "star-outline"} 
+                                            size={48} 
+                                            color={Colors.YELLOW} 
                                         />
-                                        <CustomText style={[styles.faceLabel, isSelected && styles.faceLabelActive]}>
-                                            {diff.label}
-                                        </CustomText>
+                                        <CustomText style={styles.starLabel}>{star}</CustomText>
                                     </TouchableOpacity>
-                                );
-                            })}
+                                ))}
+                            </View>
                         </View>
 
-                        <CustomText variant="subtitle" style={[styles.question, { marginTop: 32 }]}>
-                            Was the trail safe and easy to follow?
-                        </CustomText>
-                        <View style={styles.optionsWrapper}>
-                            {MAINTENANCE_OPTIONS.map(opt => (
-                                <SelectionPill 
-                                    key={opt}
-                                    label={opt}
-                                    selected={review.trailMaintenance === opt}
-                                    onPress={() => updateReview('trailMaintenance', opt)}
-                                />
-                            ))}
-                        </View>
+                        {showDifficulty && (
+                            <View style={styles.sectionContainer}>
+                                <CustomText variant="subtitle" style={styles.question}>
+                                    How would you describe the trail difficulty? <CustomText style={styles.requiredMark}>*</CustomText>
+                                </CustomText>
+                                <View style={styles.faceContainer}>
+                                    {DIFFICULTY_LEVELS.map((diff) => {
+                                        const isSelected = review.perceivedDifficulty === diff.label;
+                                        return (
+                                            <TouchableOpacity 
+                                                key={diff.label} 
+                                                onPress={() => updateReview('perceivedDifficulty', diff.label)}
+                                                style={[styles.faceWrapper, isSelected && styles.faceWrapperActive]}
+                                                activeOpacity={0.7}
+                                            >
+                                                <CustomIcon 
+                                                    library="MaterialCommunityIcons" 
+                                                    name={diff.icon} 
+                                                    size={42} 
+                                                    color={isSelected ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
+                                                />
+                                                <CustomText style={[styles.faceLabel, isSelected && styles.faceLabelActive]}>
+                                                    {diff.label}
+                                                </CustomText>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
+
+                        {showMaintenance && (
+                            <View style={styles.sectionContainer}>
+                                <CustomText variant="subtitle" style={styles.question}>
+                                    Was the trail safe and easy to follow? <CustomText style={styles.requiredMark}>*</CustomText>
+                                </CustomText>
+                                <View style={styles.optionsWrapper}>
+                                    {MAINTENANCE_OPTIONS.map(opt => (
+                                        <SelectionOption 
+                                            key={opt.value}
+                                            label={opt.label}
+                                            selected={touchedMaintenance && review.trailMaintenance === opt.value}
+                                            onPress={() => {
+                                                setTouchedMaintenance(true);
+                                                updateReview('trailMaintenance', opt.value);
+                                            }}
+                                        />
+                                    ))}
+                                </View>
+                            </View>
+                        )}
                     </View>
                 );
 
-            case 'factors_diff':
+            case 'factors':
                 return (
                     <View>
-                        <CustomText variant="subtitle" style={styles.question}>
-                            What affected the difficulty most?
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subLabel}>(Select all that apply)</CustomText>
-                        
-                        <View style={styles.optionsWrapper}>
-                            {DIFFICULTY_FACTORS.map(opt => (
-                                <SelectionPill 
-                                    key={opt}
-                                    label={opt}
-                                    selected={(review.difficultyFactors || []).includes(opt)}
-                                    onPress={() => toggleArrayItem('difficultyFactors', opt)}
-                                />
-                            ))}
-                        </View>
-                    </View>
-                );
-
-            case 'factors_fav':
-                return (
-                    <View>
-                        <CustomText variant="subtitle" style={styles.question}>
-                            What did you enjoy most?
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subLabel}>(Select all that apply)</CustomText>
-                        
-                        <View style={styles.optionsWrapper}>
-                            {FAVORED_FACTORS.map(opt => (
-                                <SelectionPill 
-                                    key={opt}
-                                    label={opt}
-                                    selected={(review.favoredFactors || []).includes(opt)}
-                                    onPress={() => toggleArrayItem('favoredFactors', opt)}
-                                />
-                            ))}
-                        </View>
-                    </View>
-                );
-
-            case 'review_text':
-                return (
-                    <View>
-                        <CustomText variant="subtitle" style={styles.question}>
-                            Write your thoughts or tips for other hikers
-                        </CustomText>
-                        <CustomFeedbackInput 
-                            placeholder="Type your review here..."
-                            value={review.review}
-                            onChangeText={(val) => updateReview('review', val)}
-                        />
-                        
-                        <View style={{ marginTop: 24 }}>
-                            <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
-                                Add a Photo (Optional)
+                        <View style={styles.sectionContainer}>
+                            <CustomText variant="subtitle" style={styles.question}>
+                                What affected the difficulty most?
                             </CustomText>
-                            <DocumentUploadCard 
-                                docName="Trail Photo"
-                                docKey="reviewImage"
-                                isUploaded={review.image && review.image.length > 0 ? review.image[0] : null}
-                                onUploadSuccess={(url) => updateReview('image', [url])}
+                            <CustomText variant="caption" style={styles.subLabel}>(Select all that apply)</CustomText>
+                            
+                            <View style={styles.chipWrapper}>
+                                {DIFFICULTY_FACTORS.map(opt => (
+                                    <SelectionChip 
+                                        key={opt}
+                                        label={opt}
+                                        selected={(review.difficultyFactors || []).includes(opt)}
+                                        onPress={() => toggleArrayItem('difficultyFactors', opt)}
+                                    />
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={[styles.sectionContainer]}>
+                            <CustomText variant="subtitle" style={styles.question}>
+                                What did you enjoy most?
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.subLabel}>(Select all that apply)</CustomText>
+                            
+                            <View style={styles.chipWrapper}>
+                                {FAVORED_FACTORS.map(opt => (
+                                    <SelectionChip 
+                                        key={opt}
+                                        label={opt}
+                                        selected={(review.favoredFactors || []).includes(opt)}
+                                        onPress={() => toggleArrayItem('favoredFactors', opt)}
+                                    />
+                                ))}
+                            </View>
+                        </View>
+                    </View>
+                );
+
+            case 'details':
+                return (
+                    <View>
+                        <View style={styles.sectionContainer}>
+                            <CustomText variant="subtitle" style={styles.question}>
+                                Write your thoughts or tips for other hikers
+                            </CustomText>
+                            <CustomFeedbackInput 
+                                placeholder="Type your review here..."
+                                value={review.review}
+                                onChangeText={(val) => updateReview('review', val)}
                             />
+                            
+                            <View style={{ marginTop: 24 }}>
+                                <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
+                                    Add a Photo (Optional)
+                                </CustomText>
+                                <DocumentUploadCard 
+                                    docName="Trail Photo"
+                                    docKey="reviewImage"
+                                    isUploaded={review.image || []}
+                                    allowMultiple={true}
+                                    onUploadSuccess={(url) => {
+                                        const currentImages = review.image || [];
+                                        updateReview('image', [...currentImages, url]);
+                                    }}
+                                    onDelete={(indexToRemove) => {
+                                        const currentImages = review.image || [];
+                                        const updatedImages = currentImages.filter((_, idx) => idx !== indexToRemove);
+                                        updateReview('image', updatedImages);
+                                    }}
+                                />
+                            </View>
                         </View>
                     </View>
                 );
@@ -277,7 +282,6 @@ const WriteReviewScreen = ({
             <CustomHeader 
                 title={review?.trail?.name ? `Review: ${review.trail.name}` : "How Was Your Hike?"} 
                 centerTitle={true}
-                onBackPress={onBackPress}
             />
 
             <View style={styles.progressBarBackground}>
@@ -372,7 +376,7 @@ const styles = StyleSheet.create({
         flex: 1, 
     },
     fixedQuestionArea: {
-        paddingTop: 16,
+        paddingTop: 8,
     },
     optionsScrollView: {
         flex: 1,
@@ -381,27 +385,33 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     
+    sectionContainer: {
+        marginBottom: 32,
+    },
+
     question: { 
         fontSize: 22, 
         fontWeight: 'bold', 
         marginBottom: 8, 
-        color: Colors.TEXT_PRIMARY 
+        color: Colors.TEXT_PRIMARY,
+        textAlign: 'left' 
+    },
+    requiredMark: {
+        color: Colors.ERROR,
+        fontSize: 22,
     },
     subLabel: { 
         fontStyle: 'italic', 
-        marginBottom: 20, 
-        color: Colors.TEXT_SECONDARY
+        marginBottom: 16, 
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'left'
     },
 
-    centerContent: {
-        alignItems: 'center',
-        paddingTop: 24,
-    },
     starContainer: {
         flexDirection: 'row',
-        justifyContent: 'center',
+        justifyContent: 'center', 
         gap: 12,
-        marginTop: 24,
+        marginTop: 16,
     },
     starWrapper: {
         alignItems: 'center',
@@ -415,13 +425,15 @@ const styles = StyleSheet.create({
 
     faceContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-between', 
         marginTop: 16,
-        paddingHorizontal: 8,
+        gap: 4, 
     },
     faceWrapper: {
+        flex: 1,
         alignItems: 'center',
-        padding: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 2,
         borderRadius: 16,
         borderWidth: 2,
         borderColor: 'transparent',
@@ -435,59 +447,25 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
+        textAlign: 'center',
     },
     faceLabelActive: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
+        textAlign: 'center',
     },
 
     optionsWrapper: { 
         width: '100%', 
         flexDirection: 'column',
-        gap: 12,
+        marginTop: 8,
     },
-    pill: {
-        backgroundColor: Colors.BACKGROUND,
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    pillActive: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.PRIMARY,
-    },
-    pillRow: {
+    
+    chipWrapper: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    radioCircle: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: Colors.GRAY_MEDIUM,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioCircleActive: {
-        borderColor: Colors.PRIMARY,
-    },
-    radioDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Colors.PRIMARY,
-    },
-    pillText: {
-        fontSize: 16,
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '500',
-    },
-    pillTextActive: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
+        flexWrap: 'wrap', 
+        gap: 10, 
+        marginTop: 8,
     },
 
     footerContainer: {

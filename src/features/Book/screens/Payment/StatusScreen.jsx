@@ -4,69 +4,65 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
-const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage }) => {
+const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCode }) => {
+    const displayRef = referenceCode || `TRX-${bookingId?.substring(0, 8).toUpperCase() || '102938A'}`;
+
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
             contentContainerStyle={styles.scrollContent}
         >
-            <View style={styles.headerSection}>
-                <View style={styles.iconCircle}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="check" 
-                        size={40} 
-                        color={Colors.WHITE} 
-                    />
-                </View>
-                
-                <CustomText variant="h1" style={styles.title}>
-                    Payment Submitted!
-                </CustomText>
-                
-                <CustomText variant="body" style={styles.subtitle}>
-                    Your payment receipt has been successfully sent to the 
-                    tour provider for verification.
-                </CustomText>
-            </View>
-
-            <View style={styles.summaryCard}>
-                <CustomText variant="h3" style={styles.summaryTitle}>
-                    Transaction Summary
-                </CustomText>
-                
-                <View style={styles.divider} />
-
-                <View style={styles.detailRow}>
-                    <CustomText variant="caption" style={styles.detailLabel}>
-                        Reference No.
+            <View style={styles.constrainer}>
+                <View style={styles.headerSection}>
+                    <View style={styles.iconCircle}>
+                        <CustomIcon library="Feather" name="check" size={40} color={Colors.WHITE} />
+                    </View>
+                    
+                    <CustomText variant="h1" style={styles.title}>
+                        Payment Submitted!
                     </CustomText>
-                    <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
-                        {receiptImage?.id || `TRX-${bookingId?.toUpperCase() || '102938A'}`}
+                    
+                    <CustomText variant="body" style={styles.subtitle}>
+                        Your payment receipt has been successfully sent to the 
+                        tour provider for verification.
                     </CustomText>
                 </View>
 
-                <View style={styles.detailRow}>
-                    <CustomText variant="caption" style={styles.detailLabel}>
-                        Method
+                <View style={styles.summaryCard}>
+                    <CustomText variant="h3" style={styles.summaryTitle}>
+                        Transaction Summary
                     </CustomText>
-                    <CustomText 
-                        variant="body" 
-                        style={styles.detailValue} 
-                        textTransform="capitalize"
-                    >
-                        {selectedMethod || 'N/A'}
-                    </CustomText>
-                </View>
+                    
+                    <View style={styles.divider} />
 
-                <View style={styles.detailRow}>
-                    <CustomText variant="caption" style={styles.detailLabel}>
-                        Amount Sent
-                    </CustomText>
-                    <CustomText variant="h3" style={styles.totalValue}>
-                        ₱{amountToPay.toFixed(2)}
-                    </CustomText>
+                    <View style={styles.dataColumn}>
+                        <CustomText variant="caption" style={styles.detailLabel}>
+                            Reference No.
+                        </CustomText>
+                        <CustomText variant="body" style={styles.longValue} selectable={true}>
+                            {displayRef}
+                        </CustomText>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <CustomText variant="caption" style={styles.detailLabel}>
+                            Method
+                        </CustomText>
+                        <CustomText variant="body" style={styles.detailValue} textTransform="capitalize">
+                            {selectedMethod || 'N/A'}
+                        </CustomText>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                        <CustomText variant="caption" style={styles.detailLabel}>
+                            Amount Sent
+                        </CustomText>
+                        <CustomText variant="h3" style={styles.totalValue}>
+                            ₱{Number(amountToPay).toFixed(2)}
+                        </CustomText>
+                    </View>
                 </View>
             </View>
         </ScrollView>
@@ -74,15 +70,21 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, receiptImage
 };
 
 const styles = StyleSheet.create({
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16,
+        alignItems: 'center'
+    },
     scrollContent: { 
-        paddingHorizontal: 20, 
         paddingTop: 40, 
         paddingBottom: 120,
-        alignItems: 'center',
+        alignItems: 'center'
     },
     headerSection: { 
         alignItems: 'center', 
-        marginBottom: 32,
+        marginBottom: 32 
     },
     iconCircle: { 
         width: 80, 
@@ -93,20 +95,23 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         marginBottom: 20, 
         shadowColor: Colors.SUCCESS, 
-        shadowOffset: { width: 0, height: 4 }, 
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        }, 
         shadowOpacity: 0.3, 
         shadowRadius: 8, 
-        elevation: 6,
+        elevation: 6 
     },
     title: { 
         marginBottom: 12, 
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.TEXT_PRIMARY 
     },
     subtitle: { 
         textAlign: 'center', 
         color: Colors.TEXT_SECONDARY, 
         paddingHorizontal: 20, 
-        lineHeight: 22,
+        lineHeight: 22 
     },
     summaryCard: { 
         backgroundColor: Colors.WHITE, 
@@ -116,40 +121,54 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
+        shadowOffset: { 
+            width: 0, 
+            height: 2 
+        }, 
         shadowOpacity: 0.05, 
         shadowRadius: 8, 
-        elevation: 2,
+        elevation: 2 
     },
     summaryTitle: { 
-        marginBottom: 16,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
+        marginBottom: 16, 
+        fontWeight: '700', 
+        color: Colors.TEXT_PRIMARY 
     },
     divider: { 
         height: 1, 
         backgroundColor: Colors.GRAY_LIGHT, 
-        marginBottom: 16,
+        marginBottom: 16 
     },
     detailRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: 16,
+        marginBottom: 16 
+    },
+    dataColumn: { 
+        flexDirection: 'column', 
+        alignItems: 'flex-start', 
+        marginBottom: 16 
     },
     detailLabel: { 
-        color: Colors.TEXT_SECONDARY,
+        color: Colors.TEXT_SECONDARY, 
+        marginBottom: 4 
     },
     detailValue: { 
         color: Colors.TEXT_PRIMARY, 
         fontWeight: '600', 
         flex: 1, 
         textAlign: 'right', 
-        marginLeft: 20,
+        marginLeft: 20 
+    },
+    longValue: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: '600', 
+        textAlign: 'left' 
     },
     totalValue: { 
-        color: Colors.PRIMARY,
-    },
+        color: Colors.PRIMARY 
+    }
 });
 
 export default StatusScreen;

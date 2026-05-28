@@ -3,38 +3,85 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-
 import { Colors } from '@/src/constants/colors';
+import { getStatusConfig } from '@/src/constants/statusConfig';
 
-const getStepIndex = (status) => {
-    switch (status) {
+const getTrackerData = (status) => {
+    const config = getStatusConfig(status, 'user');
+    const rawStatus = status || 'unknown';
+
+    const terminalStatuses = [
+        'reservation-rejected', 
+        'cancelled', 
+        'refund', 
+        'refunded', 
+        'cancellation-rejected', 
+        'reschedule-rejected'
+    ];
+
+    if (terminalStatuses.includes(rawStatus)) {
+        return {
+            steps: [],
+            currentIndex: 0,
+            isTerminalError: true,
+            config
+        };
+    }
+
+    const steps = [
+        { id: 0, defaultLabel: 'REVIEW', defaultIcon: 'file-text' },
+        { id: 1, defaultLabel: 'PAYMENT', defaultIcon: 'credit-card' },
+        { id: 2, defaultLabel: 'VERIFYING', defaultIcon: 'shield' },
+        { id: 3, defaultLabel: 'COMPLETED', defaultIcon: 'check-circle' }
+    ];
+
+    let currentIndex = 0;
+
+    switch (rawStatus) {
         case 'for-reservation':
         case 'pending-docs':
-        case 'for-reschedule':
-            return 0; // Pending
-        case 'for-payment':
+            currentIndex = 0;
+            break;
         case 'approved-docs':
-            return 1; // Approved
+        case 'for-payment':
+            currentIndex = 1;
+            break;
+        case 'downpayment':
         case 'paid':
-            return 2; // Paid
+            currentIndex = 2;
+            break;
         case 'completed':
-            return 3; // Confirmed Payment
+        case 'rescheduled':
+        case 'for-reschedule':
+        case 'for-cancellation':
+            currentIndex = 3;
+            break;
         default:
-            return -1; // Cancelled
+            currentIndex = 0;
     }
+
+    return { 
+        steps, 
+        currentIndex, 
+        isTerminalError: false, 
+        config 
+    };
 };
 
-const BookingStatus = ({ status }) => {
-    const currentStep = getStepIndex(status);
-
-    if (currentStep === -1) return null;
+const BookingStatus = ({ status, reason }) => {
+    const { 
+        steps, 
+        currentIndex, 
+        isTerminalError, 
+        config 
+    } = getTrackerData(status);
 
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
                 <CustomIcon 
                     library="Feather" 
-                    name="list" 
+                    name="map" 
                     size={18} 
                     color={Colors.TEXT_PRIMARY} 
                 />
@@ -43,159 +90,195 @@ const BookingStatus = ({ status }) => {
                 </CustomText>
             </View>
 
-            <View style={styles.trackerContainer}>
-                
-                <View style={styles.stepWrapper}>
-                    <View style={[styles.circle, currentStep >= 0 ? styles.activeCircle : styles.inactiveCircle]}>
+            {isTerminalError ? (
+                // ✅ MORPHED TERMINAL BANNER (Replaces the empty white space)
+                <View style={styles.terminalBanner}>
+                    <View style={styles.terminalHeader}>
                         <CustomIcon 
                             library="Feather" 
-                            name="clock" 
-                            size={16} 
-                            color={currentStep >= 0 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
+                            name={config.icon} 
+                            size={20} 
+                            color={Colors.ERROR} 
                         />
+                        <CustomText style={styles.terminalTitle}>
+                            {config.label}
+                        </CustomText>
                     </View>
-                    <CustomText 
-                        variant="caption" 
-                        style={[styles.stepText, currentStep >= 0 && styles.activeText]}
-                    >
-                        Pending
-                    </CustomText>
+                    
+                    {reason ? (
+                        <View style={styles.terminalReasonWrapper}>
+                            <CustomText variant="caption" style={styles.terminalReasonText}>
+                                <CustomText style={styles.terminalReasonLabel}>Reason: </CustomText>
+                                {reason}
+                            </CustomText>
+                        </View>
+                    ) : null}
                 </View>
+            ) : (
+                // ✅ ACTIVE STEP TRACKER
+                <View 
+                    style={[
+                        styles.trackerContainer, 
+                        steps.length === 1 && { justifyContent: 'center' }
+                    ]}
+                >
+                    {steps.map((step, index) => {
+                        const isDone = index < currentIndex;
+                        const isCurrent = index === currentIndex;
+                        const isLastVisible = index === steps.length - 1;
 
-                <View style={[styles.line, currentStep >= 1 ? styles.activeLine : styles.inactiveLine]} />
+                        let circleBg = Colors.GRAY_LIGHT;
+                        let iconColor = Colors.TEXT_SECONDARY;
+                        let iconName = step.defaultIcon;
+                        let labelText = step.defaultLabel;
+                        let labelColor = Colors.TEXT_SECONDARY;
 
-                <View style={styles.stepWrapper}>
-                    <View style={[styles.circle, currentStep >= 1 ? styles.activeCircle : styles.inactiveCircle]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="check" 
-                            size={16} 
-                            color={currentStep >= 1 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
-                        />
-                    </View>
-                    <CustomText 
-                        variant="caption" 
-                        style={[styles.stepText, currentStep >= 1 && styles.activeText]}
-                    >
-                        Approved
-                    </CustomText>
+                        if (isDone) {
+                            circleBg = Colors.SUCCESS;
+                            iconColor = Colors.WHITE;
+                            iconName = 'check';
+                            labelColor = Colors.TEXT_PRIMARY;
+                        } else if (isCurrent) {
+                            circleBg = config.bgColor;
+                            iconColor = config.textColor === Colors.WHITE ? Colors.WHITE : config.textColor;
+                            iconName = config.icon;
+                            labelText = config.label;
+                            labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor; 
+                        }
+
+                        return (
+                            <React.Fragment key={step.id}>
+                                <View style={styles.stepWrapper}>
+                                    <View 
+                                        style={[
+                                            styles.circle, 
+                                            { backgroundColor: circleBg }
+                                        ]}
+                                    >
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={iconName} 
+                                            size={16} 
+                                            color={iconColor} 
+                                        />
+                                    </View>
+                                    <CustomText 
+                                        variant="caption" 
+                                        style={[
+                                            styles.stepText, 
+                                            { color: labelColor }, 
+                                            isCurrent && styles.boldText
+                                        ]}
+                                        numberOfLines={2}
+                                    >
+                                        {labelText}
+                                    </CustomText>
+                                </View>
+
+                                {!isLastVisible && (
+                                    <View 
+                                        style={[
+                                            styles.line, 
+                                            { backgroundColor: isDone ? Colors.SUCCESS : Colors.GRAY_LIGHT }
+                                        ]} 
+                                    />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </View>
-
-                <View style={[styles.line, currentStep >= 2 ? styles.activeLine : styles.inactiveLine]} />
-
-                <View style={styles.stepWrapper}>
-                    <View style={[styles.circle, currentStep >= 2 ? styles.activeCircle : styles.inactiveCircle]}>
-                        <CustomIcon 
-                            library="FontAwesome5" 
-                            name="money-bill-wave" 
-                            size={14} 
-                            color={currentStep >= 2 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
-                        />
-                    </View>
-                    <CustomText 
-                        variant="caption" 
-                        style={[styles.stepText, currentStep >= 2 && styles.activeText]}
-                    >
-                        Paid
-                    </CustomText>
-                </View>
-
-                <View style={[styles.line, currentStep >= 3 ? styles.activeLine : styles.inactiveLine]} />
-
-                <View style={styles.stepWrapper}>
-                    <View style={[styles.circle, currentStep >= 3 ? styles.activeCircle : styles.inactiveCircle]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="check" 
-                            size={16} 
-                            color={currentStep >= 3 ? Colors.WHITE : Colors.TEXT_SECONDARY} 
-                        />
-                    </View>
-                    <CustomText 
-                        variant="caption" 
-                        style={[styles.stepText, currentStep >= 3 && styles.activeText]}
-                    >
-                        Confirmed
-                    </CustomText>
-                </View>
-
-            </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    container: { 
         backgroundColor: Colors.WHITE, 
-        borderRadius: 16,
-        padding: 20,
-        marginHorizontal: 20,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        borderRadius: 16, 
+        padding: 20, 
+        marginHorizontal: 20, 
+        marginBottom: 16, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 4, 
+        elevation: 2 
     },
-    headerRow: {
+    headerRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8, 
+        marginBottom: 20 
+    },
+    title: { 
+        fontWeight: 'bold', 
+        fontSize: 16 
+    },
+    trackerContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'flex-start', 
+        justifyContent: 'space-between' 
+    },
+    stepWrapper: { 
+        alignItems: 'center', 
+        width: 75 
+    }, 
+    circle: { 
+        width: 36, 
+        height: 36, 
+        borderRadius: 18, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginBottom: 8 
+    },
+    line: { 
+        flex: 1, 
+        height: 2, 
+        marginTop: 18, 
+        marginHorizontal: -8 
+    },
+    stepText: { 
+        fontSize: 10, 
+        textAlign: 'center', 
+        lineHeight: 14, 
+        textTransform: 'uppercase'
+    },
+    boldText: { 
+        fontWeight: 'bold' 
+    },
+    // ✅ NEW TERMINAL BANNER STYLES
+    terminalBanner: {
+        backgroundColor: Colors.ERROR_BG,
+        borderColor: Colors.ERROR,
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+    },
+    terminalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 20,
     },
-    title: {
+    terminalTitle: {
+        color: Colors.ERROR,
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 15,
     },
-    trackerContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
+    terminalReasonWrapper: {
+        marginTop: 6,
+        paddingLeft: 28, // Aligns exactly under the text, skipping the icon width
     },
-    stepWrapper: {
-        alignItems: 'center',
-        width: 60,
+    terminalReasonText: {
+        color: Colors.ERROR,
+        lineHeight: 18,
     },
-    circle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    activeCircle: {
-        backgroundColor: Colors.PRIMARY,
-    },
-    inactiveCircle: {
-        backgroundColor: Colors.GRAY_LIGHT,
-    },
-    line: {
-        flex: 1,
-        height: 2,
-        marginTop: 18, 
-        marginHorizontal: -10, 
-    },
-    activeLine: {
-        backgroundColor: Colors.PRIMARY,
-    },
-    inactiveLine: {
-        backgroundColor: Colors.GRAY_LIGHT,
-    },
-    stepText: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-        textAlign: 'center',
-    },
-    activeText: {
-        color: Colors.PRIMARY,
+    terminalReasonLabel: {
         fontWeight: 'bold',
-    },
+        color: Colors.ERROR,
+    }
 });
 
 export default BookingStatus;

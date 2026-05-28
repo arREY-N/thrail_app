@@ -54,7 +54,7 @@ export const formatDateToStandard = (dateObj) => {
 
 export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = false) => {
     if (!startDateObj) return 'TBA';
-    
+
     const start = safeParseDateString(startDateObj);
     const end = endDateObj ? safeParseDateString(endDateObj) : null;
 
@@ -91,6 +91,29 @@ export const formatTime = (dateInput) => {
     });
 };
 
+// --- TIME PARSER ---
+export const parseTimeToDate = (timeString) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0); 
+    
+    try {
+        const [timePart, period] = timeString.split(' ');
+        let [hours, minutes] = timePart ? timePart.split(':') : ['', ''];
+        
+        hours = parseInt(hours, 10);
+        minutes = parseInt(minutes, 10) || 0;
+
+        if (isNaN(hours)) hours = 0; 
+
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        d.setHours(hours, minutes, 0, 0);
+    } catch(e) {}
+    
+    return d; 
+};
+
 // --- 3. INPUT FORMATTERS (MM/DD/YYYY & MM/DD/YY) ---
 export const formatToMMDDYYYY = (dateInput) => {
     if (!dateInput) return '';
@@ -108,4 +131,42 @@ export const formatToMMDDYY = (dateInput) => {
     const dd = String(d.getDate()).padStart(2, '0');
     const yy = String(d.getFullYear()).slice(-2);
     return `${mm}/${dd}/${yy}`;
+};
+
+// --- Check if Minor ---
+export const checkIfMinor = (dateInput) => {
+    if (!dateInput) return false;
+    
+    const bday = safeParseDateString(dateInput);
+    if (isNaN(bday.getTime())) return false;
+
+    const today = new Date();
+    let age = today.getFullYear() - bday.getFullYear();
+    const m = today.getMonth() - bday.getMonth();
+    
+    if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
+        age--;
+    }
+    
+    return age < 18;
+};
+
+// --- Notification Update ---
+export const getRecentUpdateText = (updatedAt, createdAt) => {
+    const timestamp = updatedAt || createdAt;
+    if (!timestamp) return null;
+
+    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffMins = diffMs / (1000 * 60);
+
+    // Only show badge if updated within the last 24 hours
+    if (diffHours < 24 && diffHours >= 0) {
+        if (diffMins < 1) return 'Updated just now';
+        if (diffMins < 60) return `Updated ${Math.floor(diffMins)}m ago`;
+        return `Updated ${Math.floor(diffHours)}h ago`;
+    }
+    return null;
 };

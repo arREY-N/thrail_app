@@ -6,80 +6,13 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const getHeroBadgeStyle = (status) => {
-    switch (status) {
-        case 'for-reservation': 
-        case 'pending-docs':
-            return { 
-                label: 'PENDING DOCS', 
-                bgColor: Colors.STATUS_PENDING_BG, 
-                textColor: Colors.STATUS_PENDING_TEXT 
-            };
-        case 'approved-docs':
-        case 'for-payment': 
-            return { 
-                label: 'APPROVED - AWAITING PAYMENT', 
-                bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.STATUS_APPROVED_TEXT 
-            };
-        case 'paid':
-            return { 
-                label: 'VERIFYING PAYMENT', 
-                bgColor: Colors.STATUS_PENDING_BG, 
-                textColor: Colors.STATUS_PENDING_TEXT 
-            };
-        case 'completed':
-            return { 
-                label: 'CONFIRMED', 
-                bgColor: Colors.STATUS_APPROVED_BG, 
-                textColor: Colors.PRIMARY 
-            };
-        case 'for-cancellation':
-        case 'cancellation-rejected':
-        case 'refund': 
-        case 'cancelled':
-            return { 
-                label: 'CANCELLED / REFUND', 
-                bgColor: Colors.STATUS_CANCELLED_BG, 
-                textColor: Colors.STATUS_CANCELLED_TEXT 
-            };
-        case 'for-reschedule':
-        case 'reschedule-rejected':
-        case 'rescheduled': 
-            return { 
-                label: 'RESCHEDULING', 
-                bgColor: Colors.STATUS_PENDING_BG, 
-                textColor: Colors.STATUS_PENDING_TEXT 
-            };
-        case 'reservation-rejected':
-            return { 
-                label: 'ACTION REQUIRED - DOCS REJECTED', 
-                bgColor: Colors.ERROR_BG, 
-                textColor: Colors.ERROR 
-            };
-        default: 
-            return { 
-                label: 'UNKNOWN', 
-                bgColor: Colors.GRAY_ULTRALIGHT, 
-                textColor: Colors.TEXT_SECONDARY 
-            };
-    }
-};
-
 const HeroHeader = ({ booking }) => {
-    const badge = getHeroBadgeStyle(booking?.status);
     const trail = booking?.trail;
 
     const hasValidLocation = trail?.location && trail.location.trim() !== '' && trail.location !== 'N/A';
 
     return (
-<View style={styles.container}>
-            <View style={[styles.badgeContainer, { backgroundColor: badge.bgColor }]}>
-                <CustomText variant="caption" style={[styles.badgeText, { color: badge.textColor }]}>
-                    {badge.label}
-                </CustomText>
-            </View>
-
+        <View style={styles.container}>
             <CustomText variant="h1" style={styles.trailName}>
                 {trail?.name || 'N/A'}
             </CustomText>
@@ -103,24 +36,11 @@ const HeroHeader = ({ booking }) => {
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
         paddingTop: 16,
         paddingBottom: 24,
         backgroundColor: Colors.BACKGROUND,
-    },
-    badgeContainer: {
-        alignSelf: 'flex-start',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    badgeText: {
-        fontWeight: 'bold',
-        fontSize: 12,
-        letterSpacing: 0.5,
+        // alignItems: 'center',
     },
     trailName: {
         color: Colors.TEXT_PRIMARY,
@@ -128,10 +48,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         lineHeight: 38,
         marginBottom: 8,
+        // textAlign: 'center',
     },
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        // justifyContent: 'center',
         gap: 8,
     },
     locationText: {

@@ -8,6 +8,7 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 
 import { StyleSheet } from "react-native";
 
+import useBookingsStore from "@/src/core/stores/bookingsStore";
 import OfferListScreen from "@/src/features/Admin/screens/Offer/OfferListScreen";
 
 export default function adminOfferList() {
@@ -27,12 +28,15 @@ export default function adminOfferList() {
         onViewOfferBookings,
     } = useAdminOffer();
 
+    const bookingByOffer = useBookingsStore(s => s.bookingByOffer);
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
             
             <OfferListScreen 
                 offers={businessOffers}
+                bookingByOffer={bookingByOffer}
                 isLoading={isLoading}
                 onAddOffer={onWriteOffer} 
                 onEditOffer={onWriteOffer}

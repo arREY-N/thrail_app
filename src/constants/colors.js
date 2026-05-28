@@ -26,6 +26,7 @@ export const Palette = {
     Blue600:    '#1976D2',
     Blue100:    '#BBDEFB',
     Blue50:     '#E3F2FD',
+    Indigo400:  '#5C6BC0',
 
     // Yellows & Ambers
     Yellow700:  '#F57F17',
@@ -61,6 +62,7 @@ export const Colors = {
 
     // UI Elements
     YELLOW:           Palette.Yellow600,
+    BLUE:             Palette.Blue600,
     SHADOW:           Palette.TrueBlack,
     MODAL_OVERLAY:    Palette.BlackAlpha50,
     SEARCH_BAR_BG:    Palette.GrayAlpha25,
@@ -99,6 +101,20 @@ export const Colors = {
     STATUS_CANCELLED_TEXT:  Palette.Red700,
     STATUS_CANCELLED_BORDER:Palette.Red100,
 
+    STATUS_NEEDS_REVIEW_BG:    Palette.Blue50,
+    STATUS_NEEDS_REVIEW_TEXT:  Palette.Blue600,
+
+    STATUS_WAITING_USER_BG:    Palette.Neutral100,
+    STATUS_WAITING_USER_TEXT:  Palette.Neutral500,
+
+    STATUS_DOWNPAYMENT_BG:     Palette.Yellow50,
+    STATUS_DOWNPAYMENT_TEXT:   Palette.Yellow700,
+    STATUS_DOWNPAYMENT_BORDER: Palette.Yellow100,
+
+    STATUS_FULLY_PAID_BG:      Palette.Green50,
+    STATUS_FULLY_PAID_TEXT:    Palette.Green700,
+    STATUS_FULLY_PAID_BORDER:  Palette.Green100,
+
     // Weather
     WEATHER_SAFE_MAIN:      Palette.Green700,
     WEATHER_SAFE_BG:        Palette.Green50,
@@ -108,6 +124,9 @@ export const Colors = {
     
     WEATHER_DANGER_MAIN:    Palette.Red700,
     WEATHER_DANGER_BG:      Palette.Red50,
+
+    WEATHER_SUN:            Palette.Amber500, 
+    WEATHER_MOON:           Palette.Indigo400 ,
 };
 
 // Color Samples

@@ -10,6 +10,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
 const PersonnelWriteScreen = ({
     businessAdmins,
@@ -27,7 +28,9 @@ const PersonnelWriteScreen = ({
     };
 
     const UserResultCard = ({ user }) => {
-        const isAlreadyAdmin = user.role === 'admin';
+        const isSystemAdmin = user.role === 'admin';
+        const isBusinessAdmin = Array.isArray(businessAdmins) && businessAdmins.some(admin => admin.id === user.id);
+        const isAlreadyAdmin = isSystemAdmin || isBusinessAdmin;
 
         return (
             <View style={styles.card}>
@@ -101,52 +104,54 @@ const PersonnelWriteScreen = ({
 
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
                 
-                <CustomText style={styles.subtitle}>
-                    Search for a registered user by email to grant them admin privileges.
-                </CustomText>
-
-                <View style={styles.searchSection}>
-                    <View style={styles.inputWrapper}>
-                        <CustomTextInput
-                            placeholder="user@example.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            style={styles.searchInput}
-                            autoCapitalize="none"
-                        />
-                    </View>
-                    <TouchableOpacity 
-                        style={[
-                            styles.searchBtn, 
-                            isLoading && { opacity: 0.5 }
-                        ]} 
-                        onPress={handleSearch}
-                        disabled={isLoading}
-                    >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="search" 
-                            size={20} 
-                            color={Colors.WHITE} 
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.resultsSection}>
-                    <CustomText variant="caption" style={styles.resultsTitle}>
-                        Search Results
+                <View style={styles.constrainer}>
+                    <CustomText style={styles.subtitle}>
+                        Search for a registered user by email to grant them admin privileges.
                     </CustomText>
-                    
-                    {searched.length > 0 ? (
-                        searched.map((user) => <UserResultCard key={user.id} user={user} />)
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <CustomText style={styles.emptyText}>
-                                {email ? "No user found." : "Enter an email to search."}
-                            </CustomText>
+
+                    <View style={styles.searchSection}>
+                        <View style={styles.inputWrapper}>
+                            <CustomTextInput
+                                placeholder="user@example.com"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                style={styles.searchInput}
+                                autoCapitalize="none"
+                            />
                         </View>
-                    )}
+                        <TouchableOpacity 
+                            style={[
+                                styles.searchBtn, 
+                                isLoading && { opacity: 0.5 }
+                            ]} 
+                            onPress={handleSearch}
+                            disabled={isLoading}
+                        >
+                            <CustomIcon 
+                                library="Feather" 
+                                name="search" 
+                                size={20} 
+                                color={Colors.WHITE} 
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.resultsSection}>
+                        <CustomText variant="caption" style={styles.resultsTitle}>
+                            Search Results
+                        </CustomText>
+                        
+                        {searched.length > 0 ? (
+                            searched.map((user) => <UserResultCard key={user.id} user={user} />)
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <CustomText style={styles.emptyText}>
+                                    {email ? "No user found." : "Enter an email to search."}
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
             </ResponsiveScrollView>
@@ -169,6 +174,13 @@ const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
         paddingBottom: 40,
+    },
+
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center',
+        flex: 1,
     },
     subtitle: { 
         color: Colors.TEXT_SECONDARY, 

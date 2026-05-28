@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 
 const CustomStickyFooter = ({ primaryButton, secondaryButton }) => {
     if (!primaryButton) return null;
@@ -50,8 +51,11 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute',
         bottom: 0,
-        left: 0,
-        right: 0,
+        
+        alignSelf: 'center', 
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        
         backgroundColor: Colors.WHITE,
         paddingHorizontal: 16,
         paddingTop: 16,

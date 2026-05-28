@@ -326,8 +326,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center',
         gap: 12,
-        paddingRight: 16,
-        overflow: 'hidden',
+        flexGrow: 1,
+        justifyContent: 'center',
     },
     forecastPillSkeleton: { 
         width: 70, 
@@ -465,15 +465,15 @@ const styles = StyleSheet.create({
     },
     widgetForecastRow: { 
         flexDirection: 'row', 
-        justifyContent: 'space-between',
+        justifyContent: 'center',
+        gap: 12,
         marginBottom: 32,
-        overflow: 'hidden'
+        flexGrow: 1,
     },
     widgetForecastPill: { 
         width: 70, 
         height: 100, 
-        borderRadius: 16,
-        marginRight: 12,
+        borderRadius: 16, 
     },
     widgetGridContainer: {
         gap: 12,

@@ -31,7 +31,7 @@ const ProgressStep = ({ stepNum, title, libraryName, iconName, currentView, onSt
                     library={libraryName}
                     name={iconName} 
                     size={20} 
-                    color={isActive ? Colors.WHITE : Colors.GRAY_MEDIUM} 
+                    color={isActive ? Colors.WHITE : Colors.TEXT_PLACEHOLDER} 
                 />
             </View>
 
@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     stepContainer: {
         alignItems: 'center',
         gap: 8,
-        backgroundColor: Colors.BACKGROUND,
-        paddingHorizontal: 4,
+        width: 70,
+        zIndex: 10,
     },
     iconCircle: {
         width: 40,
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     inactiveStepText: {
-        color: Colors.GRAY_MEDIUM,
+        color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
     },
 });

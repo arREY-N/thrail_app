@@ -134,104 +134,109 @@ const CustomTextInput = ({
         finalKeyboardType = 'visible-password';
     }
 
+    if (type === 'date') {
+        return (
+            <CustomDateInput 
+                value={value} 
+                onChangeText={onChangeText}
+                label={label}
+                style={style}
+            > 
+                {children}
+            </CustomDateInput>
+        );
+    }
+
+    if (type === 'calendar') {
+        return (
+            <CustomCalendarInput 
+                value={value} 
+                onChangeText={onChangeText}
+                label={label}
+                placeholder={placeholder}
+                showTodayButton={showTodayButton}
+                allowFutureDates={allowFutureDates}
+                defaultMode={defaultMode}
+                maximumDate={maximumDate}
+                dateFormat={dateFormat}
+                style={style}
+            />
+        );
+    }
+
     return (
         <View style={[styles.container, style]}>
-            {type === 'date' ? (
-                <CustomDateInput 
-                    value={value} 
-                    onChangeText={onChangeText}
-                    label={label}
-                > 
-                    {children}
-                </CustomDateInput>
-            ) : type === 'calendar' ? (
-                <CustomCalendarInput 
-                    value={value} 
-                    onChangeText={onChangeText}
-                    label={label}
-                    placeholder={placeholder}
-                    showTodayButton={showTodayButton}
-                    allowFutureDates={allowFutureDates}
-                    defaultMode={defaultMode}
-                    maximumDate={maximumDate}
-                    dateFormat={dateFormat}
-                />
-            ) : (
-                <>
-                    {label && (
-                        <CustomText variant="label" style={styles.label}>
-                            {label}
-                        </CustomText>
-                    )}
-                    
-                    <View style={[
-                        styles.inputContainer,
-                        { 
-                            borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
-                            backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
-                        },
-                        multiline && { height: 'auto', alignItems: 'flex-start' },
-                        
-                        inputStyle 
-                    ]}>
-                        
-                        {icon && (
-                            <View style={styles.iconContainer}>
-                                <CustomIcon 
-                                    name={icon} 
-                                    library={iconLibrary} 
-                                    size={20} 
-                                    color={Colors.TEXT_SECONDARY} 
-                                />
-                            </View>
-                        )}
-
-                        {prefix && (
-                            <View style={styles.prefixContainer}>
-                                <CustomText style={styles.prefixText}>
-                                    {prefix}
-                                </CustomText>
-                                <View style={styles.prefixSeparator} />
-                            </View>
-                        )}
-
-                        <TextInput 
-                            style={[
-                                styles.input,
-                                multiline && { height: 'auto', textAlignVertical: 'top' } 
-                            ]}
-                            placeholder={placeholder}
-                            placeholderTextColor={Colors.TEXT_PLACEHOLDER}
-                            value={localValue}
-                            onChangeText={handleTextChange} 
-                            secureTextEntry={secureTextEntry && !showPassword}
-                            keyboardType={finalKeyboardType} 
-                            autoCorrect={secureTextEntry ? false : undefined}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => setIsFocused(false)}
-                            multiline={multiline}
-                            {...props} 
-                        />
-
-                        {secureTextEntry && (
-                            <TouchableOpacity 
-                                onPress={togglePassword}
-                                style={styles.eyeIcon}
-                            >
-                                <CustomIcon 
-                                    library="Feather"
-                                    name={showPassword ? "eye" : "eye-off"} 
-                                    size={20} 
-                                    color={Colors.TEXT_SECONDARY} 
-                                />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    
-                    {children}
-
-                </>
+            {label && (
+                <CustomText variant="label" style={styles.label}>
+                    {label}
+                </CustomText>
             )}
+            
+            <View style={[
+                styles.inputContainer,
+                { 
+                    borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
+                    backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
+                },
+                multiline && { height: 'auto', alignItems: 'flex-start' },
+                inputStyle 
+            ]}>
+                
+                {icon && (
+                    <View style={styles.iconContainer}>
+                        <CustomIcon 
+                            name={icon} 
+                            library={iconLibrary} 
+                            size={20} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
+                    </View>
+                )}
+
+                {prefix && (
+                    <View style={styles.prefixContainer}>
+                        <CustomText style={styles.prefixText}>
+                            {prefix}
+                        </CustomText>
+                        <View style={styles.prefixSeparator} />
+                    </View>
+                )}
+
+                <TextInput 
+                    style={[
+                        styles.input,
+                        multiline && { height: 'auto', textAlignVertical: 'top' } 
+                    ]}
+                    placeholder={placeholder}
+                    placeholderTextColor={Colors.TEXT_PLACEHOLDER}
+                    value={localValue}
+                    onChangeText={handleTextChange} 
+                    secureTextEntry={secureTextEntry && !showPassword}
+                    keyboardType={finalKeyboardType} 
+                    autoCorrect={secureTextEntry ? false : undefined}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    multiline={multiline}
+                    {...props} 
+                />
+
+                {secureTextEntry && (
+                    <TouchableOpacity 
+                        onPress={togglePassword}
+                        style={styles.eyeIcon}
+                    >
+                        <CustomIcon 
+                            library="Feather"
+                            name={showPassword ? "eye" : "eye-off"} 
+                            size={20} 
+                            color={Colors.TEXT_SECONDARY} 
+                        />
+                    </TouchableOpacity>
+                )}
+            </View>
+            
+            {children}
+
         </View>
     );
 };

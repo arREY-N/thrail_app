@@ -88,16 +88,16 @@ const TermsSignature = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 24, 
+        marginBottom: 0, 
     },
     title: {
-        paddingTop: 16,
-        marginBottom: 16,
+        // paddingTop: 16,
+        marginBottom: 8,
         color: Colors.TEXT_PRIMARY,
     },
     description: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 20,
+        marginBottom: 16,
         lineHeight: 22,
     },
     boldText: {

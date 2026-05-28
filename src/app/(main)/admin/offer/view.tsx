@@ -4,10 +4,14 @@ import { Offer } from "@/src/core/models/Offer/Offer";
 import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen";
+
+import CustomHeader from "@/src/components/CustomHeader";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
 
 export default function viewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
@@ -21,14 +25,23 @@ export default function viewOffer() {
         offer,
         onViewBooking,
         error,
+        isLoading
     } = useOfferBooking({ offerId });
 
-    if(!offerBookings) {
+    if(!offerBookings || (isLoading && !offer)) {
         return (
-            <>
+            <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={undefined}>
                 <Stack.Screen options={{ headerShown: false }} />
-                <Text>Loading...</Text>
-            </>
+                
+                <CustomHeader 
+                    title="Offer Details"
+                    centerTitle={true}
+                    onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined}                />
+
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                </View>
+            </ScreenWrapper>
         )
     }
 
@@ -89,4 +102,4 @@ const TestOfferView = (params: ViewOfferParams) => {
             }
         </ScrollView>
     )
-}  
+}

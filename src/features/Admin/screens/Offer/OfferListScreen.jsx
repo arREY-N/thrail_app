@@ -1,8 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
-import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -10,16 +15,15 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
+import { safeParseDateString } from '@/src/utils/dateFormatter';
 
-const formatDate = (dateObj) => {
-    if (!dateObj) return "TBA";
-    const d = new Date(dateObj);
-    const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-};
+import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
+import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
 
 const OfferListScreen = ({ 
     offers,
+    bookingByOffer, 
     isLoading, 
     error,
     onAddOffer, 
@@ -28,15 +32,14 @@ const OfferListScreen = ({
     onBackPress 
 }) => {
     
-    const sortedOffers = useMemo(() => {
-        if (!offers) return [];
-        return [...offers].sort((a, b) => {
-            const dateA = new Date(a.createdAt || 0);
-            const dateB = new Date(b.createdAt || 0);
-            return dateB - dateA; 
-        });
-    }, [offers]);
-
+    const { 
+        searchQuery, 
+        setSearchQuery, 
+        activeFilter, 
+        setActiveFilter, 
+        filteredAndSortedOffers 
+    } = useOfferFilters(offers);
+    
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEditId, setSelectedEditId] = useState(null);
 
@@ -52,103 +55,155 @@ const OfferListScreen = ({
         }
     };
 
+    const HeaderAddAction = (
+        <TouchableOpacity 
+            style={styles.headerAddButton}
+            onPress={onAddOffer}
+            activeOpacity={0.7}
+        >
+            <CustomIcon 
+                library="Feather" 
+                name="plus" 
+                size={16} 
+                color={Colors.WHITE} 
+            />
+            <CustomText style={styles.headerAddText}>
+                New
+            </CustomText>
+        </TouchableOpacity>
+    );
+
+    const getOfferStatusDetails = (offer) => {
+        const status = (offer.status || '').toLowerCase();
+        const offerDate = safeParseDateString(offer.date || offer.hikeDate);
+        offerDate.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (status === 'cancelled') {
+            return { 
+                label: 'Cancelled', 
+                color: Colors.ERROR, 
+                bg: Colors.ERROR_BG 
+            };
+        }
+        if (status === 'rescheduled') {
+            return { 
+                label: 'Rescheduled', 
+                color: Colors.WARNING, 
+                bg: Colors.STATUS_WARNING_BG 
+            };
+        }
+        if (offerDate < today) {
+            return { 
+                label: 'Expired', 
+                color: Colors.TEXT_SECONDARY, 
+                bg: Colors.GRAY_ULTRALIGHT 
+            };
+        }
+        return { 
+            label: 'Active', 
+            color: Colors.SUCCESS, 
+            bg: Colors.STATUS_APPROVED_BG 
+        };
+    };
+
+    const getActionableBookingsCount = (offerId) => {
+        if (!bookingByOffer || !bookingByOffer[offerId]) return 0;
+        
+        return bookingByOffer[offerId].filter(b => {
+            const status = b.status || '';
+            return status === 'pending-docs' || 
+                   status === 'for-reservation' || 
+                   status === 'paid' || 
+                   status === 'downpayment';
+        }).length;
+    };
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Manage Offers" centerTitle={true} onBackPress={onBackPress} />
+            <CustomHeader 
+                title="Manage Offers" 
+                centerTitle={true} 
+                onBackPress={onBackPress}
+                rightActions={HeaderAddAction} 
+                hasSearch={true}
+                searchProps={{
+                    searchPlaceholder: "Search by trail name...",
+                    searchValue: searchQuery,
+                    onSearchChange: setSearchQuery,
+                    tabs: FILTER_OPTIONS,
+                    activeTab: activeFilter,
+                    onTabSelect: setActiveFilter
+                }}
+            />
 
             <ScrollView 
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                <CustomButton 
-                    title="+ Add New Offer"
-                    onPress={() => onAddOffer()}
-                    variant="primary"
-                    style={styles.addButton}
-                />
+                <View style={styles.constrainer}>
+                    <ErrorMessage error={error} />
 
-                <ErrorMessage error={error} />
+                    {isLoading && (
+                        <View style={styles.centerContent}>
+                            <ActivityIndicator 
+                                size="large" 
+                                color={Colors.PRIMARY} 
+                            />
+                        </View>
+                    )}
 
-                {isLoading && (
-                    <CustomText style={styles.loadingText}>Loading your offers...</CustomText>
-                )}
+                    {!isLoading && offers?.length === 0 && (
+                        <View style={styles.emptyState}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="inbox" 
+                                size={48} 
+                                color={Colors.GRAY_MEDIUM} 
+                            />
+                            <CustomText variant="h3" style={styles.emptyTitle}>
+                                No Offers Yet
+                            </CustomText>
+                            <CustomText variant="body" style={styles.emptySubtitle}>
+                                Create your first hiking package to start receiving bookings.
+                            </CustomText>
+                        </View>
+                    )}
 
-                {!isLoading && sortedOffers.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_MEDIUM} />
-                        <CustomText variant="h3" style={styles.emptyTitle}>No Offers Yet</CustomText>
-                        <CustomText variant="body" style={styles.emptySubtitle}>
-                            Create your first hiking package to start receiving bookings.
-                        </CustomText>
-                    </View>
-                )}
+                    {!isLoading && offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
+                        <View style={styles.emptyState}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="search" 
+                                size={48} 
+                                color={Colors.GRAY_MEDIUM} 
+                            />
+                            <CustomText variant="h3" style={styles.emptyTitle}>
+                                No Results
+                            </CustomText>
+                            <CustomText variant="body" style={styles.emptySubtitle}>
+                                No offers matched your search or filters.
+                            </CustomText>
+                        </View>
+                    )}
 
-                {!isLoading && sortedOffers.length > 0 && (
-                    <View style={styles.listContainer}>
-                        {sortedOffers.map(offer => (
-                            <View key={offer.id} style={styles.offerCard}>
-                                
-                                <View style={styles.cardHeader}>
-                                    <View style={styles.trailInfo}>
-                                        <CustomText variant="label" style={styles.trailLabel}>TRAIL</CustomText>
-                                        <CustomText variant="h3" style={styles.trailName} numberOfLines={1}>
-                                            {offer.trail?.name || "Unknown Trail"}
-                                        </CustomText>
-                                    </View>
-                                    <View style={styles.priceInfo}>
-                                        <CustomText variant="title" style={styles.priceText}>
-                                            ₱{offer.price}
-                                        </CustomText>
-                                        <CustomText variant="caption" style={styles.perPax}>/ person</CustomText>
-                                    </View>
-                                </View>
-
-                                <View style={styles.divider} />
-
-                                <View style={styles.detailsGrid}>
-                                    <View style={styles.detailRow}>
-                                        <CustomIcon library="Feather" name="calendar" size={14} color={Colors.TEXT_SECONDARY} />
-                                        <CustomText variant="caption" style={styles.detailText}>
-                                            {formatDate(offer.date || offer.hikeDate)}
-                                        </CustomText>
-                                    </View>
-                                    
-                                    <View style={styles.detailRow}>
-                                        <CustomIcon library="Feather" name="clock" size={14} color={Colors.TEXT_SECONDARY} />
-                                        <CustomText variant="caption" style={styles.detailText}>
-                                            {offer.duration || offer.hikeDuration || "1 Day"}
-                                        </CustomText>
-                                    </View>
-
-                                    <View style={styles.detailRow}>
-                                        <CustomIcon library="Feather" name="users" size={14} color={Colors.TEXT_SECONDARY} />
-                                        <CustomText variant="caption" style={styles.detailText}>
-                                            {offer.minPax} - {offer.maxPax} Pax
-                                        </CustomText>
-                                    </View>
-                                </View>
-
-                                <CustomText variant="caption" style={styles.description} numberOfLines={2}>
-                                    {offer.description}
-                                </CustomText>
-
-                                <CustomButton 
-                                    title="Manage Bookings"
-                                    onPress={() => onViewOfferBookings(offer.id)}
-                                    variant="primary"
-                                    style={styles.viewBookingsButton}
+                    {!isLoading && filteredAndSortedOffers.length > 0 && (
+                        <View style={styles.listContainer}>
+                            {filteredAndSortedOffers.map(offer => (
+                                <OfferCard 
+                                    key={offer.id}
+                                    offer={offer}
+                                    statusDetails={getOfferStatusDetails(offer)}
+                                    actionableCount={getActionableBookingsCount(offer.id)}
+                                    onViewBookings={onViewOfferBookings}
+                                    onEditPress={handleEditPress}
                                 />
-
-                                <CustomButton 
-                                    title="Edit Offer"
-                                    onPress={() => handleEditPress(offer.id)}
-                                    variant="outline"
-                                    style={styles.editButton}
-                                />
-                            </View>
-                        ))}
-                    </View>
-                )}
+                            ))}
+                        </View>
+                    )}
+                </View>
             </ScrollView>
 
             <ConfirmationModal 
@@ -165,127 +220,59 @@ const OfferListScreen = ({
 };
 
 const styles = StyleSheet.create({
-    scrollContent: {
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        paddingBottom: 40,
+    scrollContent: { 
+        paddingVertical: 16, 
+        paddingHorizontal: 16, 
+        paddingBottom: 40 
     },
-    addButton: {
-        marginBottom: 20,
-        shadowColor: Colors.PRIMARY,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+    constrainer: { 
+        width: '100%', 
+        maxWidth: Layout.MAX_WIDTH, 
+        alignSelf: 'center' 
     },
-    loadingText: {
-        textAlign: 'center',
-        marginTop: 40,
-        color: Colors.TEXT_SECONDARY,
+    centerContent: { 
+        paddingVertical: 60, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
     },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-        backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
+    headerAddButton: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        backgroundColor: Colors.PRIMARY, 
+        paddingHorizontal: 16, 
+        height: 32, 
+        alignSelf: 'center', 
+        borderRadius: 16, 
+        gap: 4 
     },
-    emptyTitle: {
-        marginTop: 16,
-        marginBottom: 8,
-        color: Colors.TEXT_PRIMARY,
+    headerAddText: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold', 
+        fontSize: 12 
     },
-    emptySubtitle: {
-        color: Colors.TEXT_SECONDARY,
-        textAlign: 'center',
-        paddingHorizontal: 32,
+    emptyState: { 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        paddingVertical: 60, 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 24, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT 
     },
-    listContainer: {
-        gap: 16,
+    emptyTitle: { 
+        marginTop: 16, 
+        marginBottom: 8, 
+        color: Colors.TEXT_PRIMARY 
     },
-    offerCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 20,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        elevation: 2,
+    emptySubtitle: { 
+        color: Colors.TEXT_SECONDARY, 
+        textAlign: 'center', 
+        paddingHorizontal: 32 
     },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    trailInfo: {
-        flex: 1,
-        paddingRight: 12,
-    },
-    trailLabel: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-        fontSize: 12,
-        letterSpacing: 2,
-        marginBottom: 8,
-    },
-    trailName: {
-        fontSize: 18,
-        color: Colors.TEXT_PRIMARY,
-    },
-    priceInfo: {
-        alignItems: 'flex-end',
-        gap: 0
-    },
-    priceText: {
-        color: Colors.PRIMARY,
-        fontSize: 20,
-    },
-    perPax: {
-        color: Colors.TEXT_SECONDARY,
-        marginTop: -4,
-        fontSize: 12,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 12,
-    },
-    detailsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 12,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.BACKGROUND,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        gap: 6,
-    },
-    detailText: {
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '500',
-    },
-    description: {
-        color: Colors.TEXT_SECONDARY,
-        lineHeight: 18,
-        marginBottom: 16,
-    },
-    viewBookingsButton: {
-        paddingVertical: 10,
-        marginBottom: 8,
-    },
-    editButton: {
-        paddingVertical: 10,
-    },
+    listContainer: { 
+        gap: 16 
+    }
 });
 
 export default OfferListScreen;

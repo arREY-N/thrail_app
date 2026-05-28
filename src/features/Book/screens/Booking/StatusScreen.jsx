@@ -9,9 +9,14 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-const StatusScreen = ({ onReturn, bookedOffer, isSuccess = true }) => {
+const StatusScreen = ({ 
+    onReturn, 
+    bookedOffer, 
+    isSuccess = true 
+}) => {
     
     const trailName = bookedOffer?.business?.name || bookedOffer?.trail?.name || "Hiking Package";
     const hikeDate = formatBookingDate(bookedOffer?.date || bookedOffer?.hikeDate);
@@ -29,102 +34,167 @@ const StatusScreen = ({ onReturn, bookedOffer, isSuccess = true }) => {
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.headerSection}>
-                    <View style={[styles.iconCircle, isError && styles.iconCircleError]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name={isError ? "x" : "check"} 
-                            size={40} 
-                            color={Colors.WHITE} 
-                        />
-                    </View>
-                    <CustomText variant="h1" style={styles.title}>
-                        {isError ? "Booking Failed" : "Request Submitted!"}
-                    </CustomText>
-                    <CustomText variant="body" style={styles.subtitle}>
-                        {isError 
-                            ? "There was an issue processing your reservation. The group may be unavailable or the offer is invalid. Please try again."
-                            : "Your reservation request has been successfully sent to the tour provider."}
-                    </CustomText>
-                </View>
-
-                {!isError && (
-                    <>
-                        <View style={styles.infoBanner}>
+                
+                <View style={styles.constrainer}>
+                    
+                    <View style={styles.headerSection}>
+                        <View 
+                            style={[
+                                styles.iconCircle, 
+                                isError && styles.iconCircleError
+                            ]}
+                        >
                             <CustomIcon 
                                 library="Feather" 
-                                name="info" 
-                                size={16} 
-                                color={Colors.TEXT_SECONDARY} 
+                                name={isError ? "x" : "check"} 
+                                size={40} 
+                                color={Colors.WHITE} 
                             />
-                            <CustomText variant="caption" style={styles.infoText}>
-                                You will receive a notification as soon as your reservation is approved.
-                            </CustomText>
                         </View>
+                        
+                        <CustomText variant="h1" style={styles.title}>
+                            {isError ? "Booking Failed" : "Request Submitted!"}
+                        </CustomText>
+                        
+                        <CustomText variant="body" style={styles.subtitle}>
+                            {isError 
+                                ? "There was an issue processing your reservation. The group may be unavailable or the offer is invalid. Please try again."
+                                : "Your reservation request has been successfully sent to the tour provider."
+                            }
+                        </CustomText>
+                    </View>
 
-                        <View style={styles.summaryCard}>
-                            <CustomText variant="h3" style={styles.summaryTitle}>
-                                Reservation Summary
-                            </CustomText>
-                            
-                            <View style={styles.divider} />
-
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLabelRow}>
-                                    <CustomIcon library="Feather" name="map-pin" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText variant="caption" style={styles.detailLabel}>Package</CustomText>
-                                </View>
-                                <CustomText variant="body" style={styles.detailValue} numberOfLines={1}>
-                                    {trailName}
+                    {!isError && (
+                        <>
+                            <View style={styles.infoBanner}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="info" 
+                                    size={16} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText variant="caption" style={styles.infoText}>
+                                    You will receive a notification as soon as your reservation is approved.
                                 </CustomText>
                             </View>
 
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLabelRow}>
-                                    <CustomIcon library="Feather" name="calendar" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText variant="caption" style={styles.detailLabel}>Date</CustomText>
-                                </View>
-                                <CustomText variant="body" style={styles.detailValue}>{hikeDate}</CustomText>
-                            </View>
+                            <View style={styles.summaryCard}>
+                                <CustomText variant="h3" style={styles.summaryTitle}>
+                                    Reservation Summary
+                                </CustomText>
+                                
+                                <View style={styles.divider} />
 
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLabelRow}>
-                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText variant="caption" style={styles.detailLabel}>Duration</CustomText>
-                                </View>
-                                <CustomText variant="body" style={styles.detailValue}>{duration}</CustomText>
-                            </View>
-
-                            <View style={styles.detailRow}>
-                                <View style={styles.detailLabelRow}>
-                                    <CustomIcon library="Feather" name="users" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText variant="caption" style={styles.detailLabel}>Group Size</CustomText>
-                                </View>
-                                <CustomText variant="body" style={styles.detailValue}>{minPax} - {maxPax} Pax</CustomText>
-                            </View>
-
-                            {inclusions.length > 0 && (
-                                <>
-                                    <View style={[styles.divider, styles.marginTopSmall]} />
-                                    <CustomText variant="caption" style={styles.inclusionsTitle}>Includes:</CustomText>
-                                    <View style={styles.inclusionsWrapper}>
-                                        <CustomText variant="caption" style={styles.inclusionsText}>
-                                            {inclusions.join('  •  ')}
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailLabelRow}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name="map-pin" 
+                                            size={16} 
+                                            color={Colors.TEXT_SECONDARY} 
+                                        />
+                                        <CustomText variant="caption" style={styles.detailLabel}>
+                                            Package
                                         </CustomText>
                                     </View>
-                                </>
-                            )}
+                                    <CustomText 
+                                        variant="body" 
+                                        style={styles.detailValue} 
+                                        numberOfLines={1}
+                                    >
+                                        {trailName}
+                                    </CustomText>
+                                </View>
 
-                            <View style={[styles.divider, styles.marginTopLarge]} />
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailLabelRow}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name="calendar" 
+                                            size={16} 
+                                            color={Colors.TEXT_SECONDARY} 
+                                        />
+                                        <CustomText variant="caption" style={styles.detailLabel}>
+                                            Date
+                                        </CustomText>
+                                    </View>
+                                    <CustomText variant="body" style={styles.detailValue}>
+                                        {hikeDate}
+                                    </CustomText>
+                                </View>
 
-                            <View style={styles.totalRow}>
-                                <CustomText variant="body" style={styles.totalLabel}>Total Amount</CustomText>
-                                <CustomText variant="h2" style={styles.totalValue}>₱{price}</CustomText>
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailLabelRow}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name="clock" 
+                                            size={16} 
+                                            color={Colors.TEXT_SECONDARY} 
+                                        />
+                                        <CustomText variant="caption" style={styles.detailLabel}>
+                                            Duration
+                                        </CustomText>
+                                    </View>
+                                    <CustomText variant="body" style={styles.detailValue}>
+                                        {duration}
+                                    </CustomText>
+                                </View>
+
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailLabelRow}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name="users" 
+                                            size={16} 
+                                            color={Colors.TEXT_SECONDARY} 
+                                        />
+                                        <CustomText variant="caption" style={styles.detailLabel}>
+                                            Group Size
+                                        </CustomText>
+                                    </View>
+                                    <CustomText variant="body" style={styles.detailValue}>
+                                        {minPax} - {maxPax} Pax
+                                    </CustomText>
+                                </View>
+
+                                {inclusions.length > 0 && (
+                                    <>
+                                        <View 
+                                            style={[
+                                                styles.divider, 
+                                                styles.marginTopSmall
+                                            ]} 
+                                        />
+                                        <CustomText variant="caption" style={styles.inclusionsTitle}>
+                                            Includes:
+                                        </CustomText>
+                                        <View style={styles.inclusionsWrapper}>
+                                            <CustomText variant="caption" style={styles.inclusionsText}>
+                                                {inclusions.join('  •  ')}
+                                            </CustomText>
+                                        </View>
+                                    </>
+                                )}
+
+                                <View 
+                                    style={[
+                                        styles.divider, 
+                                        styles.marginTopLarge
+                                    ]} 
+                                />
+
+                                <View style={styles.totalRow}>
+                                    <CustomText variant="body" style={styles.totalLabel}>
+                                        Total Amount
+                                    </CustomText>
+                                    <CustomText variant="h2" style={styles.totalValue}>
+                                        ₱{price}
+                                    </CustomText>
+                                </View>
                             </View>
-                        </View>
-                    </>
-                )}
-
+                        </>
+                    )}
+                </View>
             </ScrollView>
 
             <CustomStickyFooter 
@@ -142,16 +212,20 @@ const styles = StyleSheet.create({
         flex: 1, 
         backgroundColor: Colors.BACKGROUND, 
     },
-    scrollContent: { 
-        paddingHorizontal: 20, 
-        paddingTop: 40, 
-        paddingBottom: 120,
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingHorizontal: 16,
         alignItems: 'center',
     },
-    
+    scrollContent: { 
+        paddingTop: 40, 
+        paddingBottom: 120,
+    },
     headerSection: { 
         alignItems: 'center', 
-        marginBottom: 24,
+        marginBottom: 24 
     },
     iconCircle: { 
         width: 80, 
@@ -162,26 +236,28 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         marginBottom: 20, 
         shadowColor: Colors.SUCCESS, 
-        shadowOffset: { width: 0, height: 4 }, 
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        }, 
         shadowOpacity: 0.3, 
         shadowRadius: 8, 
-        elevation: 6,
+        elevation: 6 
     },
-    iconCircleError: {
-        backgroundColor: Colors.ERROR,
-        shadowColor: Colors.ERROR,
+    iconCircleError: { 
+        backgroundColor: Colors.ERROR, 
+        shadowColor: Colors.ERROR 
     },
     title: { 
         marginBottom: 12, 
-        color: Colors.TEXT_PRIMARY,
+        color: Colors.TEXT_PRIMARY 
     },
     subtitle: { 
         textAlign: 'center', 
         color: Colors.TEXT_SECONDARY, 
         paddingHorizontal: 20, 
-        lineHeight: 22,
+        lineHeight: 22 
     },
-
     infoBanner: { 
         flexDirection: 'row', 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
@@ -192,14 +268,13 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start', 
         gap: 12, 
         borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT,
+        borderColor: Colors.GRAY_LIGHT 
     },
     infoText: { 
         flex: 1, 
         color: Colors.TEXT_SECONDARY, 
-        lineHeight: 20,
+        lineHeight: 20 
     },
-
     summaryCard: { 
         backgroundColor: Colors.WHITE, 
         width: '100%', 
@@ -208,78 +283,77 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
+        shadowOffset: { 
+            width: 0, 
+            height: 2 
+        }, 
         shadowOpacity: 0.05, 
         shadowRadius: 8, 
-        elevation: 2,
+        elevation: 2 
     },
     summaryTitle: { 
-        marginBottom: 16,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
+        marginBottom: 16, 
+        fontWeight: '700', 
+        color: Colors.TEXT_PRIMARY 
     },
     divider: { 
         height: 1, 
         backgroundColor: Colors.GRAY_LIGHT, 
-        marginBottom: 16,
+        marginBottom: 16 
     },
-    
     detailRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: 16,
+        marginBottom: 16 
     },
     detailLabelRow: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        gap: 8,
+        gap: 8 
     },
     detailLabel: { 
-        color: Colors.TEXT_SECONDARY,
+        color: Colors.TEXT_SECONDARY 
     },
     detailValue: { 
         color: Colors.TEXT_PRIMARY, 
         fontWeight: '600', 
         flex: 1, 
         textAlign: 'right', 
-        marginLeft: 20,
+        marginLeft: 20 
     },
-
     inclusionsTitle: { 
         color: Colors.TEXT_SECONDARY, 
         marginBottom: 8, 
-        fontWeight: 'bold',
+        fontWeight: 'bold' 
     },
     inclusionsWrapper: { 
         backgroundColor: Colors.BACKGROUND, 
         padding: 12, 
-        borderRadius: 8,
+        borderRadius: 8 
     },
     inclusionsText: { 
         color: Colors.TEXT_PRIMARY, 
-        lineHeight: 20,
+        lineHeight: 20 
     },
-
-    marginTopSmall: {
-        marginTop: 8,
+    marginTopSmall: { 
+        marginTop: 8 
     },
-    marginTopLarge: {
-        marginTop: 16,
+    marginTopLarge: { 
+        marginTop: 16 
     },
-
     totalRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginTop: 4,
+        marginTop: 4 
     },
     totalLabel: { 
         color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold',
+        fontWeight: 'bold' 
     },
     totalValue: { 
-        color: Colors.PRIMARY,
+        color: Colors.PRIMARY 
     },
 });
 

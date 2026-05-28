@@ -1,41 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import CustomFAB from "@/src/components/CustomFAB";
+import CustomFilterModal from "@/src/components/CustomFilterModal";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
 import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
-import FilterModal from "@/src/features/Explore/components/FilterModal";
-
 import { Colors } from "@/src/constants/colors";
-import { fetchWeatherFromApi } from "@/src/core/repositories/weatherRepository";
-import { getWeatherInfoUI } from "@/src/core/utility/weatherHelpers";
+import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
-const MOUNTAIN_COORDS = {
-    tagapo: { lat: 14.3392772, lon: 121.2325293 },
-    marami: { lat: 14.1986108, lon: 120.6858334 },
-    batulao: { lat: 14.0399434, lon: 120.8023782 },
-    makiling: { lat: 14.1352241, lon: 121.1944517 },
-    maculot: { lat: 13.9208682, lon: 121.0516961 },
-};
+const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
+const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
-const resolveCoordsForTrail = (trail) => {
-    const name = (trail?.general?.name ?? "").toLowerCase();
-    for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
-        if (name.includes(keyword)) return coords;
-    }
-    return null;
-};
-
-const ExploreScreen = ({ trails, onViewMountain }) => {
+const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
     const [weatherMap, setWeatherMap] = useState({});
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+    
     const [activeFilters, setActiveFilters] = useState({
         provinces: [],
         elevation: null,
@@ -59,34 +46,7 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
 
     useEffect(() => {
         if (!trails || trails.length === 0) return;
-
-        const fetchAll = async () => {
-            const targets = trails.reduce((acc, trail) => {
-                const coords = resolveCoordsForTrail(trail);
-                if (coords) acc.push({ id: trail.id, ...coords });
-                return acc;
-            }, []);
-
-            if (targets.length === 0) return;
-
-            const results = await Promise.allSettled(
-                targets.map(({ lat, lon }) => fetchWeatherFromApi(lat, lon)),
-            );
-
-            const nextMap = {};
-            results.forEach((result, index) => {
-                if (result.status === "fulfilled" && result.value) {
-                    const { icon } = getWeatherInfoUI(result.value.weatherCode);
-                    nextMap[targets[index].id] = {
-                        icon,
-                        temperature: result.value.temperature,
-                    };
-                }
-            });
-            setWeatherMap(nextMap);
-        };
-
-        fetchAll();
+        fetchTrailWeatherBadges(trails).then(setWeatherMap);
     }, [trails]);
 
     const filteredTrails = useMemo(() => {
@@ -128,6 +88,23 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
     }, [selectedCategory, trails, searchQuery, activeFilters]);
 
     const shouldCenterGrid = filteredTrails.length > 0 && filteredTrails.length < numColumns;
+
+    const filterSections = [
+        {
+            id: 'provinces',
+            title: 'Province',
+            type: 'pill',
+            multiSelect: true,
+            options: PROVINCES.map(p => ({ label: p, value: p }))
+        },
+        {
+            id: 'elevation',
+            title: 'Elevation Range',
+            type: 'pill',
+            multiSelect: false,
+            options: ELEVATIONS.map(e => ({ label: e, value: e }))
+        }
+    ];
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -177,7 +154,7 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                         ) : (
                             <View style={styles.emptyState}>
                                 <CustomText style={{ color: Colors.TEXT_SECONDARY }}>
-                                    {searchQuery || activeFilters.provinces.length > 0
+                                    {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
                                         ? "No trails match your current filters and search." 
                                         : `No trails found for "${selectedCategory}".`}
                                 </CustomText>
@@ -186,12 +163,18 @@ const ExploreScreen = ({ trails, onViewMountain }) => {
                     </View>
                 </ResponsiveScrollView>
 
-                <FilterModal
+                <CustomFilterModal
                     visible={isFilterModalVisible}
                     onClose={() => setIsFilterModalVisible(false)}
-                    initialFilters={activeFilters}
-                    onApply={(filters) => setActiveFilters(filters)}
+                    title="Filters"
+                    sections={filterSections}
+                    initialValues={activeFilters}
+                    defaultValues={{ provinces: [], elevation: null }}
+                    onApply={(values) => setActiveFilters(values)}
                 />
+
+                <CustomFAB onPress={onGroupPress} />
+
             </View>
         </ScreenWrapper>
     );
