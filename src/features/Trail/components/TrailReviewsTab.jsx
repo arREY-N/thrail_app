@@ -1,24 +1,63 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const TrailReviewsTab = () => {
+import PostCard from '@/src/components/PostCard';
+
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
+const TrailReviewsTab = ({
+    reviews,
+    isLoading,
+    likeReview,
+    isLiked,
+    onWriteReviewPress,
+    isOwned,
+}) => {
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const { isDesktop, isTablet } = useBreakpoints();
+    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
+
+    const renderPostCard = useCallback(({ item }) => (
+        <PostCard 
+            review={item}
+            variant="community"
+            onLike={() => likeReview(item)}
+            isLiked={isLiked(item)}
+            onEdit={() => onWriteReviewPress(item)}
+            isOwned={isOwned(item)}
+        />
+    ), [likeReview, isLiked, onWriteReviewPress, isOwned]);
+
     return (
         <View style={styles.tabContent}>
-            <View style={[styles.placeholderBox, { height: 100 }]}>
-                <CustomIcon 
-                    library="Feather" 
-                    name="message-square" 
-                    size={32} 
-                    color={Colors.GRAY_MEDIUM} 
-                />
-                <CustomText style={styles.placeholderText}>
-                    User Reviews List
-                </CustomText>
-            </View>
+            <FlatList
+                data={reviews ?? []}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
+                ]}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false} 
+                nestedScrollEnabled={true}
+
+                renderItem={renderPostCard}
+                ListEmptyComponent={
+                    !isLoading ? (
+                        <View style={styles.emptyStateContainer}>
+                            <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                            <CustomText variant="caption" style={styles.emptyStateText}>
+                                {searchQuery ? "No posts found matching search." : "No community posts found."}
+                            </CustomText>
+                        </View>
+                    ) : null
+                }
+            />
         </View>
     );
 };
@@ -27,17 +66,26 @@ const styles = StyleSheet.create({
     tabContent: {
         gap: 20,
     },
-    placeholderBox: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-        gap: 8,
+    feedWrapper: {
+        flex: 1,
     },
-    placeholderText: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
+    scrollContent: {
+        paddingTop: 0,
+        paddingBottom: 40,
+        paddingHorizontal: 0,
+        gap: 16
+    },
+    emptyStateContainer: {
+        paddingTop: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        gap: 12,
+    },
+    emptyStateText: {
+        color: Colors.TEXT_PLACEHOLDER,
+        fontStyle: 'italic',
+        fontSize: 16,
     },
 });
 

@@ -41,6 +41,8 @@ export function useEmergencyContact(){
             
             if(!emergencyContact) throw new Error("No emergency contact provided");
 
+            if(profile.id === emergencyContact.userId) throw new Error("Cannot set yourself as an emergency contact");
+
             await setContact(profile, emergencyContact);
 
             if(user){

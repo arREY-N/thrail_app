@@ -70,6 +70,9 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
     const curatedTime = stats.time || "--";
     const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
     const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
+    const classification = trail?.difficulty?.classification === 'minor' ? 'Minor' : 'Major';
+    const status = trail?.general?.active ? 'Open' : 'Closed';
+    const tips = getArray(trail?.general?.safety_tips, ['No safety tips available.']);
 
     console.log('trail info: ', trail);
     return (
@@ -90,10 +93,10 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
                             color="#2196F3"
                         />
                         <StatItem
-                            icon="schedule"
-                            label="Est. Time"
-                            value={curatedTime}
-                            color="#9C27B0"
+                            icon="terrain"
+                            label="Peak"
+                            value={curatedMASL}
+                            color="#795548"
                         />
                         <StatItem
                             icon="trending-up"
@@ -108,23 +111,23 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
                     {/* Secondary Row: The Contextual Details */}
                     <View style={styles.statsRow}>
                         <StatItem
-                            icon="terrain"
-                            label="Peak"
-                            value={curatedMASL}
+                            icon="class"
+                            label="Class"
+                            value={classification}
                             color="#795548"
                             size="small"
                         />
                         <StatItem
-                            icon="trending-down"
-                            label="Descent"
-                            value={computedDescent}
+                            icon="signal-cellular-alt"
+                            label="Difficulty"
+                            value={curatedDiff}
                             color="#FF7043"
                             size="small"
                         />
                         <StatItem
-                            icon="speed"
-                            label="Difficulty"
-                            value={curatedDiff}
+                            icon="directions-walk"
+                            label="Status"
+                            value={status}
                             color="#607D8B"
                             size="small"
                         />
@@ -176,7 +179,19 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
 
                 <View style={styles.tagContainer}>
                     {guidelines?.map((vp, index) => (
-                        <Text key={`vp-${index}`}>{vp}</Text>
+                        <Text key={`vp-${index}`}>{index+1}. {vp}</Text>
+                    ))}
+                </View>
+            </View>
+
+            <View style={styles.section}>
+                <CustomText variant="h3" style={styles.sectionTitle}>
+                    Safety Tips
+                </CustomText>
+
+                <View style={styles.tagContainer}>
+                    {tips?.map((vp, index) => (
+                        <Text key={`vp-${index}`}>{index+1}. {vp}</Text>
                     ))}
                 </View>
             </View>
