@@ -46,11 +46,29 @@ const PostCard = ({
         return name.substring(0, 2).toUpperCase();
     };
 
-    const formatStat = (val, unit) => {
-        if (val === undefined || val === null || val === '--') return '--';
-        const strVal = String(val).trim();
-        if (strVal.toLowerCase().includes(unit)) return strVal;
-        return `${strVal} ${unit}`;
+    const formatStat = (val, type) => {
+        if (val === undefined || val === null || val === '--' || isNaN(val)) return '--';
+        
+        const numVal = Number(val);
+
+        if (type === 'distance') {
+            if (numVal < 1000) return `${Math.round(numVal)} m`;
+            return `${(numVal / 1000).toFixed(2)} km`;
+        }
+        
+        if (type === 'elevation') {
+            return `${Math.round(numVal)} m`;
+        }
+        
+        if (type === 'duration') {
+            const totalMins = Math.floor(numVal / 60000);
+            if (totalMins < 1) return '< 1m';
+            const hours = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+            return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        }
+
+        return String(val);
     };
 
     const getDifficultyStyle = (diff) => {
@@ -198,7 +216,7 @@ const PostCard = ({
                 <View style={styles.verticalDivider} />
                 <StatItem 
                     label="Distance" 
-                    value={formatStat(review.distance, 'km')} 
+                    value={formatStat(review.distance, 'distance')}
                     icon="map-outline" 
                     lib="Ionicons"
                     style={styles.otherStat}
@@ -206,7 +224,7 @@ const PostCard = ({
                 <View style={styles.verticalDivider} />
                 <StatItem 
                     label="Elevation" 
-                    value={formatStat(review.elevation, 'm')} 
+                    value={formatStat(review.elevation, 'elevation')}
                     icon="trending-up" 
                     lib="Feather"
                     style={styles.otherStat}
@@ -214,7 +232,7 @@ const PostCard = ({
                 <View style={styles.verticalDivider} />
                 <StatItem 
                     label="Duration" 
-                    value={formatStat(review.duration, 'hr')} 
+                    value={formatStat(review.duration, 'duration')}
                     icon="time-outline" 
                     lib="Ionicons"
                     style={styles.otherStat}

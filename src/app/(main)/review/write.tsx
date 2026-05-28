@@ -6,12 +6,17 @@ import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import WriteReviewScreen from "@/src/features/Navigation/screens/WriteReviewScreen";
 
 export default function WriteReview() {
-    const { reviewId: rawId, trailId: rawTrail } = useLocalSearchParams();
+    const { reviewId: rawId, trailId: rawTrail, hikeId: rawHike, distance, duration, elevation } = useLocalSearchParams();
 
     const reviewId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
+    const hikeId = getSearchParam(rawHike);
 
-    const  { onBackPress } = useAppNavigation();
+    const { onBackPress } = useAppNavigation();
+
+    const parsedDistance = parseFloat(distance as string) || 0;
+    const parsedDuration = parseInt(duration as string, 10) || 0;
+    const parsedElevation = parseFloat(elevation as string) || 0;
 
     const {
         review,
@@ -19,7 +24,15 @@ export default function WriteReview() {
         error,
         onUpdatePress,
         onSaveReview,
-    } = useReviewWrite({ reviewId, trailId });
+    } = useReviewWrite({ 
+        reviewId, 
+        trailId, 
+        hikeId,
+
+        distance: parsedDistance,
+        duration: parsedDuration,
+        elevation: parsedElevation
+    });
 
     return (
         <WriteReviewScreen 
@@ -28,7 +41,7 @@ export default function WriteReview() {
             isLoading={isLoading}
             onUpdatePress={onUpdatePress}
             onSaveReview={onSaveReview}
-            onBackPress={onBackPress}
+            // onBackPress={onBackPress}
         />
     )
 }

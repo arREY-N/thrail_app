@@ -22,6 +22,10 @@ export interface IHikeBase<T, TRating> extends IHikeSurvey<T, TRating>{
     bookingId?: string | undefined;
     startTime?: T | undefined;
     endTime?: T | undefined;
+
+    distance?: number;
+    duration?: number;
+    elevation?: number;
 }
 
 export interface IHikeDB extends IHikeBase<Timestamp, number>{}

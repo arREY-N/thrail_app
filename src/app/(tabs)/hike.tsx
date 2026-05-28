@@ -20,22 +20,18 @@ export default function hike() {
     const isFocused = useIsFocused();
     const { onGroupPress, onBookingPress } = useAppNavigation();
     
-    // Fetch User Profile
     const { profile } = useAuthHook();
     
-    // Fetch background sync for bookings
     useBook({ userId: profile?.id }); 
     const { bookings } = useBookOffer(); 
     const { groups } = useGroupList(profile?.id || "");
     
-    // Fetch hike state & trails database
     const { viewHike, isLoading: hikeLoading } = useHike({});
     const trailsDb = useTrailsStore(s => s.data);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
 
-    // Filter the list of trails dynamically
     const filteredTrails = useMemo(() => {
         if (!searchQuery.trim()) return [];
         return trailsDb.filter(t => 
@@ -43,18 +39,13 @@ export default function hike() {
         );
     }, [searchQuery, trailsDb]);
 
-    // Find closest valid booking (Status MUST be completed or paid)
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
     const upcomingBookings = useMemo(() => {
         if (!bookings) return [];
         return bookings.filter(b => {
-            // Only include booking status 'completed' and 'paid'
-            if (!['completed', 'paid'].includes(b.status)) return false;
-
-            // Only include booking status 'completed'
-            // if (b.status !== 'completed') return false; 
+            if (b.status !== 'completed') return false; 
             if (!b.offer?.date) return false;
             
             const bDate = new Date(b.offer.date);
@@ -89,7 +80,14 @@ export default function hike() {
             const targetGroup = groups?.find(g => 
                 g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
             );
-            router.push({ pathname: '/(main)/hike/view', params: { trailId: bookingContext.trail.id, groupId: targetGroup?.id } });
+            router.push({ 
+                pathname: '/(main)/hike/view', 
+                params: { 
+                    trailId: bookingContext.trail.id, 
+                    groupId: targetGroup?.id,
+                    bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+                } 
+            });
         } else if (selectedTrail) {
             viewHike(selectedTrail.id);
         } else {
@@ -102,7 +100,14 @@ export default function hike() {
         const targetGroup = groups?.find(g => 
             g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
         );
-        router.push({ pathname: '/(main)/hike/view', params: { trailId: bookingContext.trail.id, groupId: targetGroup?.id } });
+        router.push({ 
+            pathname: '/(main)/hike/view', 
+            params: { 
+                trailId: bookingContext.trail.id, 
+                groupId: targetGroup?.id,
+                bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+            } 
+        });
     };
 
     const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';

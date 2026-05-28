@@ -201,6 +201,23 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     </TouchableOpacity>
                 )}
 
+                <TouchableOpacity 
+                style={[styles.floatingIconBtn, { bottom: 520, backgroundColor: Colors.YELLOW }]} 
+                onPress={() => {
+                    // Pass a real trailId so the map loads, but pass the fake DEV_TEST booking ID
+                    router.push({
+                        pathname: '/(main)/hike/view',
+                        params: { 
+                            trailId: filteredTrails[0]?.id || "mock_batulao", // Uses first available trail
+                            bookingId: "DEV_TEST" 
+                        }
+                    });
+                }} 
+                activeOpacity={0.8}
+            >
+                <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
+            </TouchableOpacity>
+
                 <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupChatPress} activeOpacity={0.8}>
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>

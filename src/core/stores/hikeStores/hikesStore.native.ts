@@ -14,6 +14,10 @@ export const useHikesStore = create<HikeState>()(
             partialize: (state) => ({ 
                 currentHike: state.currentHike,
                 elapsedTime: state.elapsedTime,
+                timerStartTime: state.timerStartTime,
+                totalDistance: state.totalDistance,
+                totalElevationGain: state.totalElevationGain,
+                active: state.active,
             }),
         }
     )

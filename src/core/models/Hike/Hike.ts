@@ -43,6 +43,10 @@ export class Hike implements IHike {
             startTime: data.startTime ? toDate(data.startTime) : undefined,
             endTime: data.endTime ? toDate(data.endTime) : undefined,
             trailMaintenance: toTextual(data.trailMaintenance),
+
+            distance: data.distance || 0,
+            duration: data.duration || 0,
+            elevation: data.elevation || 0,
         }
         
         return new Hike(mapped);
@@ -62,7 +66,11 @@ export class Hike implements IHike {
             favoredFactors: this.favoredFactors,
             review: this.review,
             image: this.image,
-            perceivedDifficulty: this.perceivedDifficulty !== 'undefined' ? toNumerical(this.perceivedDifficulty) : 0
+            perceivedDifficulty: this.perceivedDifficulty !== 'undefined' ? toNumerical(this.perceivedDifficulty) : 0,
+
+            distance: this.distance || 0,
+            duration: this.duration || 0,
+            elevation: this.elevation || 0,
         }
 
         if(this.mode === 'booked' && this.bookingId) {

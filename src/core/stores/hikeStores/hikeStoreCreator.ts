@@ -5,6 +5,16 @@ import { useAuthStore } from "@/src/core/stores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371000; 
+    const toRad = (val: number) => (val * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.asin(Math.sqrt(a));
+    return R * c;
+}
+
 export interface HikeState {
     hikes: Hike[];
     isLoading: boolean;
@@ -14,6 +24,10 @@ export interface HikeState {
     currentHike: Hike | null;
     elapsedTime: number;
     timerStartTime: number;
+    
+    totalDistance: number;
+    totalElevationGain: number;
+
     active: boolean;
     coordinates: Location[];
     live: boolean;
@@ -21,7 +35,6 @@ export interface HikeState {
 
     locationByGroup: Record<string, Location[]>;
     activeListeners: Record<string, Unsubscribe>;
-
 
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
@@ -47,6 +60,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     currentHike: null,
     elapsedTime: 0,
     timerStartTime: 0,
+    totalDistance: 0,
+    totalElevationGain: 0,
     active: false,
     coordinates: [new Location()],
     live: false,
@@ -56,42 +71,52 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     addCoordinate: async (coordinate: Location) => {
         try {
-            const coordinates = get().coordinates;
             const profile = useAuthStore.getState().profile;
             const currentHike = get().currentHike;
             const activeGroupId = get().activeGroupId;
             const active = get().active;
 
             if(!active) return;
-
             if(!profile) throw new Error("Cannot save coordinates without user");
             if(!currentHike) throw new Error("Cannot save coordinates without active hike");
 
-            if(coordinates.length % 5 === 0 && coordinates.length !== 0 && get().currentHike) {
-                console.log('Adding coordinate to hike after 5 new coordinates collected');
-                
+            set((state) => {
+                if(state.currentHike && state.active && state.currentHike.status === 'started') {
+                    if(!state.coordinates) state.coordinates = [];
+                    
+                    const lastCoord = state.coordinates[state.coordinates.length - 1];
+                    
+                    if (lastCoord && lastCoord.latitude && lastCoord.longitude && coordinate.latitude && coordinate.longitude) {
+                        const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
+                        
+                        if (distMeters > 1 && distMeters < 200) {
+                            state.totalDistance += distMeters;
+                        }
+                        
+                        const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
+                        if (altDiff > 2 && altDiff < 100) { 
+                            state.totalElevationGain += altDiff;
+                        }
+                    }
+                    state.coordinates.push(coordinate);
+                }
+            });
+
+            const updatedCoordinates = get().coordinates;
+
+            if(updatedCoordinates.length % 5 === 0 && updatedCoordinates.length !== 0 && get().currentHike) {
                 await HikeRepository.writeCoordinates(
                     profile.id,
                     currentHike.id,
-                    coordinates.slice(1)
+                    updatedCoordinates.slice(1)
                 );
-
-                set({ coordinates: [coordinates[3]] });
+                set({ coordinates: [updatedCoordinates[4]] }); 
             }  
 
             if(get().live){
                 if(!activeGroupId) throw new Error('Cannot save live coordinates without active group ID');
                 await HikeRepository.shareLocation(profile.id, activeGroupId, coordinate);
             }
-
-            set((state) => {
-                if(state.currentHike && state.active) {
-                    if(!state.coordinates){
-                        state.coordinates = [];
-                    }
-                    state.coordinates.push(coordinate);
-                }
-            });
         } catch (error) {
             console.error('Error adding coordinates: ', error);
             throw error;
@@ -101,49 +126,29 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     startShareLocation: async (groupId: string) => {
         try {
             const activeListeners = get().activeListeners;
-            if (activeListeners[groupId]) {
-                console.log("Listener already active for this group");
-                return;
-            }
-
-            if(!get().currentHike) {
-                throw new Error("No active hike to share location for");
-            }
-
-            if(get().live) {
-                return;
-            }
+            if (activeListeners[groupId]) return;
+            if(!get().currentHike) throw new Error("No active hike to share location for");
+            if(get().live) return;
 
             const profile = useAuthStore.getState().profile;
-    
-            if(!profile)
-                throw new Error("User profile not found. Cannot share location.");
+            if(!profile) throw new Error("User profile not found.");
             
             const lastCoordinate = get().getLastKnownCoordinate();
-
-            if(!lastCoordinate) {
-                throw new Error("No coordinates to share");
-            }
+            if(!lastCoordinate) throw new Error("No coordinates to share");
 
             await HikeRepository.shareLocation(profile.id, groupId, lastCoordinate);
 
             const unsubscribe = HikeRepository.listenToLocations(
                 groupId, 
                 (locations) => set((state) => ({
-                    locationByGroup: {
-                        ...state.locationByGroup,
-                        [groupId]: locations
-                    }
+                    locationByGroup: { ...state.locationByGroup, [groupId]: locations }
                 }))
             );
 
             set((state) => ({
                 activeGroupId: groupId, 
                 live: true,
-                activeListeners: {
-                    ...state.activeListeners,
-                    [groupId]: unsubscribe
-                }
+                activeListeners: { ...state.activeListeners, [groupId]: unsubscribe }
             }))
         } catch (error) {
             console.error('Error sharing location: ', error);
@@ -154,21 +159,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     stopShareLocation: (groupId: string) => {
         try {
             const unsubscribe = get().activeListeners[groupId];
-
             if(unsubscribe) {
                 unsubscribe();
                 set((state) => {
                     const newListeners = { ...state.activeListeners };
                     delete newListeners[groupId];
-                    return {    
-                        ...state,
-                        activeListeners: newListeners,
-                        live: false,
-                    }
+                    return { ...state, activeListeners: newListeners, live: false }
                 })
             }
-
-            console.log('unsubscribed', get().activeListeners[groupId])
         } catch (error) {
             console.error('Error stopping location sharing: ', error);
             throw error;
@@ -177,29 +175,19 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     getLastKnownCoordinate: (): Location | null  => {
         const coordinates = get().coordinates
-        console.log('coordinates: ', coordinates)
-        if(!coordinates || coordinates.length === 0){
-            
-            return null;
-        }
-        
+        if(!coordinates || coordinates.length === 0) return null;
         return coordinates[coordinates.length - 1];
     },
     
     updateCurrentHike: (patch) => set((state) => {
-        if(state.currentHike) {
-            Object.assign(state.currentHike, patch);
-        }
+        if(state.currentHike) { Object.assign(state.currentHike, patch); }
     }),
 
     startHike: async (userId: string) => {
         set({isLoading: true});
         try {
             const hike = get().currentHike;
-            
-            if(!hike) {
-                throw new Error("No hike loaded to start");
-            }
+            if(!hike) throw new Error("No hike loaded to start");
 
             const active = new Hike({
                 ...hike,
@@ -209,14 +197,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             const updated = await HikeRepository.write(active, userId);
             
-            console.log('updated: ', updated);
-
             set({
                 currentHike: updated,
                 coordinates: [new Location()],
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
+                totalDistance: 0, 
+                totalElevationGain: 0, 
             })
         } catch (error) {
             console.error(error);
@@ -229,54 +217,42 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     updateHikeStore: (patch) => set((state) => {    
         Object.assign(state, patch);
     }),
-    
 
     fetchAll: async (userId: string) => {
         if(get().hikes.length > 0) return;
-        
         set({isLoading: true, error: null});
-        
         try {
             const hikes = await HikeRepository.fetchAll(userId);
             set({hikes, isLoading: false});
         } catch (error) {
-            console.error(error);
             set({error: "Failed to fetch hikes", isLoading: false});
         }
     },
 
     refresh: async (userId: string) => {
         set({isLoading: true, error: null});
-        
         try {
             const hikes = await HikeRepository.fetchAll(userId);
             set({hikes, isLoading: false});
         } catch (error) {
-            console.error(error);
             set({error: "Failed to refresh hikes", isLoading: false});
         }
     },
 
     load: async (id: string, userId: string): Promise<Hike | null> => {
         set({isLoading: true, error: null});
-
         try {
             let hike = null;
-
             if(get().hikes.some(h => h.id === id)) {
                 hike = get().hikes.find(h => h.id === id);
             }
-
             if(!hike) {
                 hike = await HikeRepository.fetchById(userId, id);
             }
-            
             if(!hike) throw new Error('Hike not found');
-            
             set({isLoading: false});
             return hike;
         } catch (error) {
-            console.error(error);
             set({error: "Failed to load hike", isLoading: false});
             return null;
         }
@@ -284,27 +260,18 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     create: async (userId: string, hike?: Hike): Promise<void> => {
         set({isLoading: true, error: null});
-
         try {
-            if(!userId) {
-                throw new Error("User ID is required to create hike");
-            }
+            if(!userId) throw new Error("User ID is required to create hike");
 
             const toUploadHike = get().currentHike ?? hike;
-
-            if(!toUploadHike) {
-                throw new Error("No hike data provided to create");
-            }
+            if(!toUploadHike) throw new Error("No hike data provided to create");
 
             const response = await HikeRepository.write(toUploadHike, userId);
             
             set((state) => {
                 const index = state.hikes.findIndex(h => h.id === response.id);
-                if(index !== -1){
-                    state.hikes[index] = response;
-                } else {
-                    state.hikes.push(response);
-                }
+                if(index !== -1){ state.hikes[index] = response; } 
+                else { state.hikes.push(response); }
                 state.isLoading = false;
             });
         } catch (error) {

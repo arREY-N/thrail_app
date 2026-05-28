@@ -24,7 +24,7 @@ export default function useBookingFilters(userBookings = []) {
             const hikeDate = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal || 0);
             
             const isPast = hikeDate.getTime() < today.getTime();
-            const isDead = ['cancelled', 'refund', 'refunded', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
+            const isDead = ['cancelled', 'refund', 'refunded', 'cancellation-rejected', 'reschedule-rejected', 'finished'].includes(status);
             
             if (isDead || isPast) {
                 return activeTab === 'history';
