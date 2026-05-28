@@ -12,7 +12,7 @@ import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useGroupList } from "@/src/core/hook/group/useGroupList";
 import useHike from "@/src/core/hook/hike/useHike";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 

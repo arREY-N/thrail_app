@@ -12,7 +12,7 @@ import { Layout } from "@/src/constants/layout";
 import { formatDate } from "@/src/core/utility/date";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
-const InfoRow = ({ icon, label, value }) => (
+export const InfoRow = ({ icon, label, value }) => (
     <View style={styles.infoRow}>
         <View style={styles.iconCircle}>
             <CustomIcon library="Feather" name={icon} size={20} color={Colors.PRIMARY} />

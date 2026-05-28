@@ -21,6 +21,7 @@ const TESTWRITETRAIL = (params: IUseTrailWrite) => {
     const tourism = information.filter((a: ITrailFormField) => a.section === 'tourism');
     const difficulty = information.filter((a: ITrailFormField) => a.section === 'difficulty');
 
+    console.log(general, geography, tourism, difficulty);
     return(
         <ScrollView>
             <View style={styles.group}>

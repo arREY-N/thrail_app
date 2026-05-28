@@ -39,15 +39,19 @@ export interface IGeographyUI {
 }
 
 export interface IGeneral {
+    active: boolean;
     name: string;
     address: string;
     province: string[];
     mountain: string[];
     rating: number;
     reviewCount: number;
+    description: string;
+    guidelines: string[];
 }
 
 export interface IDifficulty {
+    lascoRating: number;
     length: Kilometers;
     gain: Meters;
     slope: Percentage;

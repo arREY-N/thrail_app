@@ -6,7 +6,7 @@ import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { HikeRepository } from "@/src/core/repositories/hikeRepository";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useEffect, useState } from "react";

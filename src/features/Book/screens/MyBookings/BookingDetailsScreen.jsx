@@ -4,7 +4,7 @@ import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-nat
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -423,6 +423,7 @@ const BookingDetailsScreen = ({
                         totalAmount={totalAmount} 
                         amountPaid={amountPaid} 
                         remainingBalance={remainingBalance} 
+                        payments={booking?.payment || []}
                     />
 
                 </View>

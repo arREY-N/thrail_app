@@ -1,7 +1,7 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Location } from "@/src/core/models/Location/Location";
 import { HikeRepository } from "@/src/core/repositories/hikeRepository";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -63,7 +63,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     totalDistance: 0,
     totalElevationGain: 0,
     active: false,
-    coordinates: [new Location()],
+    coordinates: [],
     live: false,
     locationByGroup: {},
     activeListeners: {},
@@ -76,7 +76,15 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const activeGroupId = get().activeGroupId;
             const active = get().active;
 
-            if(!active) return;
+            console.log('Adding coordinate: ', coordinate);
+            if(!active || (currentHike && currentHike.status === 'paused')) {
+                console.log('not active');
+                set({
+                    coordinates: [coordinate]
+                })
+                return
+            };
+
             if(!profile) throw new Error("Cannot save coordinates without user");
             if(!currentHike) throw new Error("Cannot save coordinates without active hike");
 
@@ -108,9 +116,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 await HikeRepository.writeCoordinates(
                     profile.id,
                     currentHike.id,
-                    updatedCoordinates.slice(1)
+                    updatedCoordinates
                 );
-                set({ coordinates: [updatedCoordinates[4]] }); 
+                set({ coordinates: [updatedCoordinates[updatedCoordinates.length - 1]] });
             }  
 
             if(get().live){
@@ -199,7 +207,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             
             set({
                 currentHike: updated,
-                coordinates: [new Location()],
+                coordinates: [],
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),

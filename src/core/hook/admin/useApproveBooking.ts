@@ -188,7 +188,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }
 
-    const onRefund = async () => {
+    const onRefund = async (refundPercentage: 'full' | 'partial' = 'full') => {
         try {
             if(!booking) throw new Error('Booking not found');
 
@@ -202,9 +202,11 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 amount: totalAmountPaid,
                 bookingId: booking.id,
                 userId: booking.user.id,
-                type: 'full',
+                type: refundPercentage,
                 returnUrl: ''
             });
+
+            router.back();
 
         } catch (error) {
             setLocalError((error as Error).message || 'Failed to refund booking');  

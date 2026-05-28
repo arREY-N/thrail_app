@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { useTrailsStore } from '@/src/core/stores/trailStores/trailsStore';
 import { formatDate } from '@/src/core/utility/date';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');

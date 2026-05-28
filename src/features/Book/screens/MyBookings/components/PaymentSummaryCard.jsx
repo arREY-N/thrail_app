@@ -5,7 +5,16 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance }) => {
+const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }) => {
+    const refundedPayments = payments.filter(p => p.status === 'refunded');
+    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
+    const hasUnrecordedRefund = refundedPayments.some(p => p.refundedAmount === undefined || p.refundedAmount === null);
+
+    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
+        ? ` (${Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100)}%)`
+        : '';
+
     return (
         <View style={styles.container}>
             <CustomText variant="label" style={styles.title}>
@@ -29,6 +38,20 @@ const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance }) => {
                     -₱{amountPaid.toFixed(2)}
                 </CustomText>
             </View>
+
+            {refundedPayments.length > 0 && (
+                <View style={styles.row}>
+                    <CustomText variant="caption" style={[styles.label, { color: Colors.ERROR }]}>
+                        Amount Refunded{refundPercentageLabel}
+                    </CustomText>
+                    <CustomText variant="body" style={[styles.value, { color: Colors.ERROR }]}>
+                        {hasUnrecordedRefund && totalRefunded === 0
+                            ? 'Not recorded'
+                            : `₱${totalRefunded.toFixed(2)}`
+                        }
+                    </CustomText>
+                </View>
+            )}
 
             <View style={styles.balanceContainer}>
                 <CustomText variant="label" style={styles.balanceLabel}>

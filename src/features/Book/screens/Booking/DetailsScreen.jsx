@@ -10,7 +10,7 @@ import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { useAuthStore } from '@/src/core/stores/authStore';
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
 import TermsSignature from '@/src/features/Book/components/TermsSignature';

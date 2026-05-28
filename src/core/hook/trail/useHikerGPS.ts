@@ -2,16 +2,25 @@ import NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { useEffect, useRef, useState } from "react";
-import { Alert, AppState, Linking, PermissionsAndroid, Platform } from "react-native";
-
+import {
+  Alert,
+  AppState,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+} from "react-native";
+import { exportHikeData } from "../../utility/hikeStorage";
+import { LOCATION_TASK } from "../../utility/locationTask";
+// NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
 import { Location as LocationModel } from "@/src/core/models/Location/Location";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { HikeState } from "@/src/core/stores/hikeStores/hikeStoreCreator";
-import { exportHikeData, saveToCSV } from "../../utility/hikeStorage";
-import { LOCATION_TASK } from "../../utility/locationTask";
+
 
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
+  const addCoordinate = useHikesStore.getState().addCoordinate;
+
   if (error) return;
   const { locations } = data;
   const location = locations[0];
@@ -20,10 +29,40 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   const lon = location.coords.longitude;
   const alt = location.coords.altitude ?? 0;
   const timestamp = new Date(location.timestamp).toISOString();
+  console.log('calling from background task');
+    //await saveToCSV(lat, lon, alt, timestamp);
+  addCoordinate(new LocationModel({
+    latitude: lat,
+    longitude: lon,
+    altitude: alt,
+    timestamp: new Date(timestamp),
+    status: 'APP_BACKGROUNDED',
+  }));
 
-  await saveToCSV(lat, lon, alt, timestamp);
+  // await saveToCSV(lat, lon, alt, timestamp);
 });
 
+/**
+ * A comprehensive hook that manages real-time and background GPS tracking for hikers.
+ *
+ * This hook serves as the central location engine for the app, handling:
+ * 1. **Service Validation**: Checks if device GPS hardware is enabled.
+ * 2. **Permission Management**: Orchestrates Foreground and Background permission requests.
+ * 3. **Dual-Mode Tracking**: 
+ *    - Foreground: Uses `watchPositionAsync` for low-latency UI updates (map markers).
+ *    - Background: Uses `startLocationUpdatesAsync` via a TaskManager task to track progress while the screen is off.
+ * 4. **Signal Monitoring**: Detects GPS signal loss (heartbeat) and manages error states in the global store.
+ * 5. **Data Persistence**: Automatically logs coordinates to local CSV storage and updates the global Hike store.
+ *
+ * @returns {Object} An object containing GPS state and control functions.
+ * @property {boolean} permissionGranted - True if location permissions (foreground) have been authorized.
+ * @property {boolean} isOnline - Real-time network reachability status.
+ * @property {[number, number] | null} userLocation - Current `[longitude, latitude]` for immediate map centering.
+ * @property {[number, number][]} routeCoordinates - Breadcrumb path of the current session as `[lon, lat]` array.
+ * @property {Function} exportHikeData - Utility to trigger a file export of the recorded hike data.
+ * @property {() => Promise<void>} onStartGps - Starts the GPS tracking session (foreground and background).
+ * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
+ */
 export const useHikerGPS = () => {
   const addCoordinate = useHikesStore((state: HikeState) => state.addCoordinate);
   const updateHikeStore = useHikesStore((state: HikeState) => state.updateHikeStore);
@@ -54,14 +93,33 @@ export const useHikerGPS = () => {
       setIsOnline(!!state.isInternetReachable);
     });
 
-    appStateSubscription.current = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "background" || nextState === "inactive") {
-        saveToCSV("APP_BACKGROUNDED", "", "", new Date().toISOString());
-      }
-      if (nextState === "active") {
-        saveToCSV("APP_RESUMED", "", "", new Date().toISOString());
-      }
-    });
+    appStateSubscription.current = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        if (nextState === "background" || nextState === "inactive") {
+          const timestamp = new Date().toISOString();
+          // saveToCSV("APP_BACKGROUNDED", "", "", timestamp);
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_BACKGROUNDED',
+          }));
+        }
+        if (nextState === "active") {
+          const timestamp = new Date().toISOString();
+          // saveToCSV("APP_RESUMED", "", "", timestamp);
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_RESUMED',
+          }));
+        }
+      },
+    );
 
     try {
       const isGpsEnabled = await Location.hasServicesEnabledAsync();
@@ -97,38 +155,55 @@ export const useHikerGPS = () => {
           const alt = location.coords.altitude ?? 0;
           const timestamp = new Date(location.timestamp).toISOString();
 
+          // console.log(
+          //   `📍 Location Updated: ${lat}, ${lon}, ${alt}m at ${timestamp}`,
+          // );
+
           if (isGpsLost.current) {
             isGpsLost.current = false;
             setGpsError(null);
-            saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
+            // saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
+            addCoordinate(new LocationModel({
+              latitude: lat,
+              longitude: lon,
+              altitude: alt,
+              timestamp: new Date(timestamp),
+              status: 'GPS_SIGNAL_RESTORED',
+            }));
           }
 
           if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
           gpsTimeoutTimer.current = setTimeout(() => {
             isGpsLost.current = true;
             setGpsError("GPS signal lost. Searching for satellites...");
-            saveToCSV("GPS_SIGNAL_LOST", "", "", new Date().toISOString());
+            // const lostTimestamp = new Date().toISOString();
+            // saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
+            addCoordinate(new LocationModel({
+              latitude: lat,
+              longitude: lon,
+              altitude: alt,
+              timestamp: new Date(),
+              status: 'GPS_SIGNAL_LOST',
+            }));
           }, GPS_TIMEOUT_MS);
 
           if (location.coords.accuracy && location.coords.accuracy > 20) return;
 
           // Always update the Blue Dot position
           setUserLocation([lon, lat]);
+          setRouteCoordinates((prev) => [...prev, [lon, lat]]);
+          // saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
 
-          // ✅ CRITICAL FIX: Only draw line and save data if explicitly recording
-          const isRecording = useHikesStore.getState().active;
-          if (isRecording) {
-            setRouteCoordinates((prev) => [...prev, [lon, lat]]);
-            saveToCSV(lat, lon, alt, timestamp);
-            
-            addCoordinate(new LocationModel({
-              latitude: lat,
-              longitude: lon,
-              altitude: alt,
-              timestamp: new Date(timestamp),
-            }));
-          }
-        }
+          console.log('logging from useHikerGPS');
+          // Global Store Integration
+          addCoordinate(new LocationModel({
+            latitude: lat,
+            longitude: lon,
+            altitude: alt,
+            timestamp: new Date(timestamp),
+            status: 'ACTIVE',
+          }));
+        },
       );
     } catch (err: any) {
       console.error("Failed to start location tracking:", err);

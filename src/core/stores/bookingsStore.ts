@@ -1,6 +1,6 @@
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";

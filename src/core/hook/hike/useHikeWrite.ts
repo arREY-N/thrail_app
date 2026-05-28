@@ -7,7 +7,7 @@ import { BookingRepository } from "@/src/core/repositories/bookingRepository";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -134,9 +134,22 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     },[hikeId, trailId, bookingId, profile?.id]);
     
     const onStartHike = () => {
-        if(!profile?.id || !currentHike) return;
-        if(active) { onResumeHike(); return; }
-        startHike(profile.id);
+        if(!profile?.id) {
+            setLocalError("User ID is required to start hike");
+            return;
+        }
+
+        if(!currentHike) {
+            setLocalError("No hike loaded to start");
+            return;
+        }
+
+        if(active && currentHike.status === 'paused'){
+            onResumeHike();
+            return;
+        }
+
+        startHike(profile!.id);
     };
 
     const onPauseHike = () => {
@@ -149,8 +162,15 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const onResumeHike = () => {
         if (!currentHike || currentHike.status !== 'paused') return;
         const newStartTime = Date.now() - elapsedTime; 
-        updateCurrentHike({ status: 'started' });
-        updateHikeStore({ timerStartTime: newStartTime });
+
+        updateCurrentHike({
+            status: 'started', 
+        });
+
+        updateHikeStore({
+            timerStartTime: newStartTime,
+            active: true,
+        });
     }
 
     const onCompleteHike = async () => {

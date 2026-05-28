@@ -38,7 +38,8 @@ export async function refundBooking(params: UsePayBookingParams): Promise<IPayme
     await refundBookingFunction({
         bookingId: params.bookingId,
         userId: params.userId,
-        reason: 'requested_by_customer'
+        reason: 'requested_by_customer',
+        refundPercentage: params.type
     });
 
     const response: IPayment<Date> = {

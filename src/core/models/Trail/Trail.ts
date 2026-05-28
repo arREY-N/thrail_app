@@ -8,7 +8,7 @@ export class Trail implements ITrail {
     [immerable] = true;
     id: string = '';
     createdAt: Date = new Date();
-    updatedAt: Date = new Date(); 
+    updatedAt: Date = new Date();
     geography: IGeographyUI = {
         masl: 0,
         startLat: 0,
@@ -17,12 +17,15 @@ export class Trail implements ITrail {
         endLong: 0,
     };
     general: IGeneral = {
+        active: true,
         name: "",
         address: "",
         province: [],
         mountain: [],
         rating: 0,
-        reviewCount: 0
+        reviewCount: 0,
+        description: "",
+        guidelines: []
     }; 
     difficulty: IDifficulty = {
         length: 0,
@@ -32,7 +35,8 @@ export class Trail implements ITrail {
         hours: 0,
         circularity: "Circular",
         quality: [],
-        difficulty_points: []
+        difficulty_points: [],
+        lascoRating: 0
     };
     tourism: ITourism = {
         shelter: null,

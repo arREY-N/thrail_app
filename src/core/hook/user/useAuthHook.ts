@@ -1,4 +1,4 @@
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { router } from "expo-router";
 
 export function useAuthHook(){

@@ -104,7 +104,9 @@ const AdminPaymentTab = ({
                                     ]} 
                                     textTransform="uppercase"
                                 >
-                                    {paymentRecord.status}
+                                    {paymentRecord.status === 'refunded' && paymentRecord.refundedAmount && paymentRecord.amount > 0
+                                        ? `${paymentRecord.status} (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)`
+                                        : paymentRecord.status}
                                 </CustomText>
                             </View>
 

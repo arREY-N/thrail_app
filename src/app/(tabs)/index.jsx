@@ -1,20 +1,17 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 import useTrailDomain from '@/src/core/hook/trail/useTrailDomain';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
-    const { profile } = useAuthHook();
     const { 
         trails, 
-        onViewTrail
+        onViewTrail 
     } = useTrailDomain();
-    
-    const { 
-        onMountainPress, 
+
+    const {
         onDownloadPress, 
         onWeatherPress, 
         onViewAllRecommendationPress, 
@@ -22,11 +19,6 @@ export default function home(){
         onGroupPress
     } = useAppNavigation();
 
-    const discoverList = useMemo(() => {
-        if (!trails || !Array.isArray(trails)) return [];
-        return trails.slice(0, 3);
-    }, [trails]);
-    
     return (
         <HomeScreen 
             locationTemp={{}} 
@@ -34,7 +26,7 @@ export default function home(){
             onViewAllRecommendationPress={onViewAllRecommendationPress}
             onViewAllTrendingPress={onViewAllTrendingPress}
             recommendedTrails={[]}
-            discoverTrails={discoverList}
+            discoverTrails={trails}
             onMountainPress={onViewTrail}
             onDownloadPress={onDownloadPress}
             onGroupPress={onGroupPress}

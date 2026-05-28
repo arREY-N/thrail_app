@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from "@expo/vector-icons";
+import React from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
@@ -51,7 +51,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
     const diffPoints = getArray(trail?.difficulty?.difficulty_points, trail?.difficulty_points);
     const viewpoints = getArray(trail?.tourism?.viewpoint, trail?.viewpoint);
     const circularity = trail?.difficulty?.circularity || trail?.circularity || '';
-
+    const guidelines = getArray(trail?.general?.guidelines, ['No guidelines available.']);
     // 1. HARD STATS (Computed from GeoJSON)
     const computedDistance = trailStats 
         ? `${(trailStats.distance / 1000).toFixed(1)} km` 
@@ -69,8 +69,9 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
     // We use the Developer's estimated time because human knowledge accounts for trail conditions
     const curatedTime = stats.time || "--";
     const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
-    const curatedDiff = trail?.difficulty?.level || "--";
+    const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
 
+    console.log('trail info: ', trail);
     return (
         <View style={styles.tabContent}>
             {statsLoading ? (
@@ -137,11 +138,11 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
                 </CustomText>
 
                 <CustomText style={styles.descriptionText}>
-                    This is a {formatList(qualityList) || 'scenic'} {circularity} trail located in {location}.
-                    {"\n\n"}
-                    {diffPoints.length > 0 
-                        ? `Expect features such as ${formatList(diffPoints)}.` 
-                        : 'A great trail for outdoor enthusiasts.'}
+                    {
+                        trail?.general?.description 
+                            ? trail.general.description
+                            : "No description available for this trail."
+                    }
                 </CustomText>
             </View>
 
@@ -164,6 +165,18 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail, location }) =
                     
                     {viewpoints?.map((vp, index) => (
                         <Tag key={`vp-${index}`} label={vp} />
+                    ))}
+                </View>
+            </View>
+
+            <View style={styles.section}>
+                <CustomText variant="h3" style={styles.sectionTitle}>
+                    Guidelines and Reminders
+                </CustomText>
+
+                <View style={styles.tagContainer}>
+                    {guidelines?.map((vp, index) => (
+                        <Text key={`vp-${index}`}>{vp}</Text>
                     ))}
                 </View>
             </View>
