@@ -1,4 +1,5 @@
-import { useAuthStore } from "@/src/core/stores/authStore";
+
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Stack } from "expo-router";
 import LoadingScreen from "../loading";
 

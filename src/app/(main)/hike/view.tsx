@@ -1,11 +1,10 @@
-import useWriteHike from "@/src/core/hook/hike/useHikeWrite";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useCurrentHike from "@/src/core/hook/hike/useCurrentHike";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Hike } from "@/src/core/models/Hike/Hike";
+import { Location } from "@/src/core/models/Location/Location";
 import { formatDate } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import getSearchParam from "@/src/core/utility/getSearchParam";
-import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -14,14 +13,11 @@ export default function hikeView(){
     
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
-    const { onBackPress } = useAppNavigation();
     const {
-        hike,
-        booking,
+        currentHike,
         error,
         elapsedTime,
         isLoading,
-        
         onStartHike,
         onAddReview,
         onPauseHike,
@@ -29,26 +25,14 @@ export default function hikeView(){
         onResumeHike,
         onResetHike,
         onEmergencyPress,
-    } = useWriteHike({hikeId, trailId});
-
-    if((hikeId && hike?.id !== hikeId) || (trailId && hike?.trail.id !== trailId)) {
-        return (
-            <View>
-                <Pressable onPress={() => onBackPress()}>
-                    <Text>Back</Text>
-                </Pressable>
-                <Text>Hike in progress: {hike?.trail.name} </Text>
-            </View>
-        )
-    }
-
+        lastKnownCoordinate,
+    } = useCurrentHike(trailId);
 
     return(
         <>
             <Stack.Screen options={{headerShown: true}}/>
             <TestView 
-                hike={hike} 
-                booking={booking}
+                hike={currentHike} 
                 error={error}
                 onStartHike={onStartHike}
                 onPauseHike={onPauseHike}
@@ -63,6 +47,7 @@ export default function hikeView(){
                 lat={paramLat}
                 onEmergencyPress={onEmergencyPress}
                 isLoading={isLoading}
+                lastKnownCoordinate={lastKnownCoordinate}
             />        
         </>
     )
@@ -86,6 +71,7 @@ export type HikeViewParams = {
     onResetHike: () => void;
     onAddReview: (trailId: string) => void;
     onEmergencyPress: () => void;
+    lastKnownCoordinate?: Location | null;
 }
 
 export const TestView = (params: HikeViewParams) => {
@@ -104,13 +90,12 @@ export const TestView = (params: HikeViewParams) => {
         onResetHike,
         onEmergencyPress,
         onAddReview,
+        lastKnownCoordinate
     } = params;
 
-    if(!hike) {
+    if(!hike || isLoading) {
         return <Text>Loading hike...</Text>;
     }
-
-    console.log(hike);
 
     return(
         <ScrollView>
@@ -125,6 +110,11 @@ export const TestView = (params: HikeViewParams) => {
             <Pressable onPress={() => onEmergencyPress()}>
                 <Text>EMERGENCY BUTTON</Text>
             </Pressable>
+            { lastKnownCoordinate && (
+                <View>
+                    <Text>Last Known Coordinate: {lastKnownCoordinate?.latitude}, {lastKnownCoordinate?.longitude}</Text>
+                </View>
+            )}
             {booking && (
                 <View>
                     <Text>Booking ID: {booking.id}</Text>
@@ -174,7 +164,7 @@ export const TestView = (params: HikeViewParams) => {
                     </Pressable>
                 }
             </View>
-            <NavigationScreen lon={params.lon} lat={params.lat}/>
+            {/* <NavigationScreen lon={params.lon} lat={params.lat}/> */}
         </ScrollView>
     )
 }

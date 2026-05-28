@@ -1,7 +1,7 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Location } from "@/src/core/models/Location/Location";
 import { HikeRepository } from "@/src/core/repositories/hikeRepository";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 

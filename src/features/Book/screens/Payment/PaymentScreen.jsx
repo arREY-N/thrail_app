@@ -7,7 +7,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { useAuthStore } from '@/src/core/stores/authStore';
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';

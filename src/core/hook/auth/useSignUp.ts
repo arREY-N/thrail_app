@@ -1,5 +1,5 @@
 import { SignUp } from "@/src/core/models/User/SignUp";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
 

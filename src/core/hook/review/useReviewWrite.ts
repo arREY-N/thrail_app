@@ -4,7 +4,7 @@ import { ReviewLogic } from "@/src/core/models/Review/Logic/Review.logic";
 import { Review } from "@/src/core/models/Review/Review";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
@@ -21,10 +21,11 @@ export interface IReviewWrite {
 export type UseReviewWriteParams = {
     reviewId?: string;
     trailId?: string;
+    hikeId?: string;
 }
 
 export default function useReviewWrite(params: UseReviewWriteParams): IReviewWrite {
-    const { reviewId, trailId } = params;
+    const { reviewId, trailId, hikeId } = params;
     const { profile } = useAuthHook();
 
     const isLoading = useReviewStore(s => s.isLoading);

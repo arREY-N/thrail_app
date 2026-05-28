@@ -4,7 +4,7 @@ import { Hike } from "@/src/core/models/Hike/Hike";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 

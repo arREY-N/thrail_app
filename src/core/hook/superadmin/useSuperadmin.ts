@@ -1,6 +1,6 @@
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { useMountainsStore } from '@/src/core/stores/mountainsStore';
-import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { useEffect } from 'react';
 import { Role } from '../../models/User/User.types';

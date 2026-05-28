@@ -1,7 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
-import { useEffect, useState, useRef } from "react";
+import { useRef, useState } from "react";
 import {
   Alert,
   AppState,
@@ -9,15 +9,18 @@ import {
   PermissionsAndroid,
   Platform,
 } from "react-native";
-import { exportHikeData, saveToCSV } from "../../utility/hikeStorage";
+import { exportHikeData } from "../../utility/hikeStorage";
 import { LOCATION_TASK } from "../../utility/locationTask";
 // NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
 import { Location as LocationModel } from "@/src/core/models/Location/Location";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { HikeState } from "@/src/core/stores/hikeStores/hikeStoreCreator";
 
+
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
+  const addCoordinate = useHikesStore.getState().addCoordinate;
+
   if (error) return;
   const { locations } = data;
   const location = locations[0];
@@ -26,8 +29,16 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   const lon = location.coords.longitude;
   const alt = location.coords.altitude ?? 0;
   const timestamp = new Date(location.timestamp).toISOString();
+  console.log('calling from background task');
+    //await saveToCSV(lat, lon, alt, timestamp);
+  addCoordinate(new LocationModel({
+    latitude: lat,
+    longitude: lon,
+    altitude: alt,
+    timestamp: new Date(timestamp),
+    status: 'APP_BACKGROUNDED',
+  }));
 
-  await saveToCSV(lat, lon, alt, timestamp);
 });
 
 /**
@@ -112,11 +123,25 @@ export const useHikerGPS = () => {
       (nextState) => {
         if (nextState === "background" || nextState === "inactive") {
           const timestamp = new Date().toISOString();
-          saveToCSV("APP_BACKGROUNDED", "", "", timestamp);
+          // saveToCSV("APP_BACKGROUNDED", "", "", timestamp);
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_BACKGROUNDED',
+          }));
         }
         if (nextState === "active") {
           const timestamp = new Date().toISOString();
-          saveToCSV("APP_RESUMED", "", "", timestamp);
+          // saveToCSV("APP_RESUMED", "", "", timestamp);
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_RESUMED',
+          }));
         }
       },
     );
@@ -185,22 +210,36 @@ export const useHikerGPS = () => {
           const alt = location.coords.altitude ?? 0; // ✅ altitude
           const timestamp = new Date(location.timestamp).toISOString();
 
-          console.log(
-            `📍 Location Updated: ${lat}, ${lon}, ${alt}m at ${timestamp}`,
-          );
+          // console.log(
+          //   `📍 Location Updated: ${lat}, ${lon}, ${alt}m at ${timestamp}`,
+          // );
 
           if (isGpsLost.current) {
             isGpsLost.current = false;
             setGpsError(null);
-            saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
+            // saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
+            addCoordinate(new LocationModel({
+              latitude: lat,
+              longitude: lon,
+              altitude: alt,
+              timestamp: new Date(timestamp),
+              status: 'GPS_SIGNAL_RESTORED',
+            }));
           }
 
           if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
           gpsTimeoutTimer.current = setTimeout(() => {
             isGpsLost.current = true;
             setGpsError("GPS signal lost. Searching for satellites...");
-            const lostTimestamp = new Date().toISOString();
-            saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
+            // const lostTimestamp = new Date().toISOString();
+            // saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
+            addCoordinate(new LocationModel({
+              latitude: lat,
+              longitude: lon,
+              altitude: alt,
+              timestamp: new Date(),
+              status: 'GPS_SIGNAL_LOST',
+            }));
           }, GPS_TIMEOUT_MS);
 
           if (location.coords.accuracy && location.coords.accuracy > 20) {
@@ -210,14 +249,16 @@ export const useHikerGPS = () => {
 
           setUserLocation([lon, lat]);
           setRouteCoordinates((prev) => [...prev, [lon, lat]]);
-          saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
+          // saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
 
+          console.log('logging from useHikerGPS');
           // Global Store Integration
           addCoordinate(new LocationModel({
             latitude: lat,
             longitude: lon,
             altitude: alt,
             timestamp: new Date(timestamp),
+            status: 'ACTIVE',
           }));
         },
       );
@@ -267,11 +308,11 @@ export const useHikerGPS = () => {
   };
 
   // Clean up on unmount just in case
-  useEffect(() => {
-    return () => {
-      onEndGps();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     onEndGps();
+  //   };
+  // }, []);
 
   return {
     permissionGranted,

@@ -1,5 +1,5 @@
 import { Location } from "@/src/core/models/Location/Location";
-import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore.native";
+import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import * as TaskManager from "expo-task-manager";
 
 

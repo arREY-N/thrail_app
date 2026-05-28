@@ -9,7 +9,7 @@ import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { httpsCallable } from "firebase/functions";
 import { produce } from "immer";

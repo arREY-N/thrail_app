@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';

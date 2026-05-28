@@ -20,13 +20,18 @@ export default function write(){
     const { onBackPress } = useAppNavigation();
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+        <ScreenWrapper 
+            backgroundColor={Colors.BACKGROUND}  
+            style={undefined}
+        >
             <CustomHeader 
-                title="Applications" 
-                centerTitle={true} 
-                onBackPress={onBackPress}
+                title="Applications"
+                centerTitle={true}
+                onBackPress={onBackPress} 
+                rightActions={undefined} 
+                style={undefined} 
+                children={undefined}            
             />
-
             <TESTWRITETRAIL { ...controller }/>
         </ScreenWrapper>
     )

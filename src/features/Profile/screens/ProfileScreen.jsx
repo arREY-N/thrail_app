@@ -51,8 +51,9 @@ const ProfileScreen = ({
         ? `@${profile.username}` 
         : '@username';
 
+        console.log('Profile data:', formatDate(profile.createdAt));
     const createdDate = profile?.createdAt 
-        ? formatDate(profile.createdAt) 
+        ? formatDate(profile.createdAt ?? new Date()) 
         : 'Mar 2026';
 
     const userInitials = getInitials(profile?.firstname, profile?.lastname);

@@ -8,7 +8,7 @@ import CustomTextInput from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 
 import { Colors } from '@/src/constants/colors';
-import { useAuthStore } from '@/src/core/stores/authStore';
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import StickyFooter from '@/src/features/Book/components/StickyFooter';

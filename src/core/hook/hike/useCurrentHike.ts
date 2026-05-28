@@ -2,9 +2,10 @@ import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Location } from "@/src/core/models/Location/Location";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export default function useCurrentHike(trailId: string){
@@ -18,6 +19,7 @@ export default function useCurrentHike(trailId: string){
     const isLoading = useHikesStore(s => s.isLoading);
     const active = useHikesStore(s => s.active);
     const startHike = useHikesStore(s => s.startHike);
+    const create = useHikesStore(s => s.create);
 
     const { onStartGps, onEndGps } = useHikerGPS();
 
@@ -114,7 +116,7 @@ export default function useCurrentHike(trailId: string){
             console.log('Starting hike with id: ', currentHike.id);
             await startHike(profile.id);
             onStartGps();
-
+            console.log('current hike: ', currentHike);
         } catch(error){
             console.error("Error starting hike: ", error);
             setLocalError("Failed to start hike. Please try again.");
@@ -152,8 +154,34 @@ export default function useCurrentHike(trailId: string){
         onStartGps();
     }
 
-    const onCompleteHike = () => {
+    const onCompleteHike = async() => {
+        if(!currentHike) {
+            setLocalError("No active hike to complete");
+            return;
+        }
+    
         onEndGps();
+
+        updateHikeStore({
+            active: false,
+            elapsedTime: 0,
+            timerStartTime: undefined,
+        })
+
+        updateCurrentHike({ 
+            status: 'completed', 
+            endTime: new Date()
+        });
+
+        const completedHike = new Hike({
+            ...currentHike,
+            status: 'completed',
+            endTime: new Date(),
+        })
+        
+        console.log('Completed hike: ', completedHike);
+        await create(profile!.id, completedHike);
+        //router.replace('/');
     }
 
 
@@ -162,7 +190,22 @@ export default function useCurrentHike(trailId: string){
     }
 
     const onAddReview = () => {
+        try {
+            if(!currentHike) 
+                throw new Error("No hike data available to review"); 
+    
+            if(currentHike.status !== 'completed')
+                throw new Error('Cannot review an incomplete hike');
 
+            router.push({
+                pathname: '/(main)/review/write',
+                params: {
+                    trailId: currentHike.trail.id,
+                }
+            });   
+        } catch (error) {
+            setLocalError("No hike data available to review"); 
+        }
     }
 
     return {

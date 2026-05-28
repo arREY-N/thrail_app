@@ -1,6 +1,6 @@
 import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { useEffect } from "react";
 
 export interface ITrailDomain extends IBaseDomainHook{

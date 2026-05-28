@@ -1,5 +1,5 @@
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Stack } from "expo-router";
 
 export default function superadminLayout(){

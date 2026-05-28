@@ -5,7 +5,8 @@ import {
   GoogleAuthProvider,
   initializeAuth,
 } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+// Import standard initializeFirestore
+import { connectFirestoreEmulator, initializeFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
@@ -28,7 +29,12 @@ export const auth = persistence
   ? initializeAuth(app, { persistence })
   : getAuth(app);
 
-export const db = getFirestore(app);
+// FIX: Initialize Firestore using empty/default settings block.
+// In the React Native Firebase JS SDK environments, Firestore automatically 
+// configures its native SQLite/LevelDB disk persistence out-of-the-box 
+// WITHOUT requiring explicit web-centric properties.
+export const db = initializeFirestore(app, {});
+
 export const functions = getFunctions(app);
 export const provider = new GoogleAuthProvider();
 export const storage = getStorage();

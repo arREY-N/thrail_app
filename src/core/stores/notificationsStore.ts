@@ -1,6 +1,6 @@
 import { Notification } from "@/src/core/models/Notification/Notification";
 import { NotificationRepository } from "@/src/core/repositories/notificationRepository";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";

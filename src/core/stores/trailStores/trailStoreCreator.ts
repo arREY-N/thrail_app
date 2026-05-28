@@ -1,18 +1,21 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { IRecommendedTrail } from "@/src/core/models/Recommendation/Recommendation.types";
+import { Trail } from "@/src/core/models/Trail/Trail";
 import { TrailRepository } from "@/src/core/repositories/trailRepository";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-import { Trail } from "../models/Trail/Trail";
+import NetInfo from "@react-native-community/netinfo";
+import { StateCreator } from "zustand";
+
 export interface TrailState extends BaseStore<Trail> {
   hikingTrail: {
     trail: Trail | null;
     hiking: boolean;
   };
-  setHikingTrail: (id: string) => void;
   recommendedTrail: Trail[];
-  setRecommendedTrail: (trails: IRecommendedTrail[]) => Promise<Trail[]>;
   discoverTrail: Trail[];
+  hasLoadedSession: boolean;
+
+  setHikingTrail: (id: string) => void;
+  setRecommendedTrail: (trails: IRecommendedTrail[]) => Promise<Trail[]>;
   setDiscoverTrail: () => Promise<Trail[]>;
   setOnHike: () => void;
 }
@@ -28,129 +31,49 @@ const init = {
   },
   recommendedTrail: [],
   discoverTrail: [],
+  hasLoadedSession: false,
 };
 
-// // [DEV TESTING MOCKS]
-// // We created these 'tempoTrails' temporary offline mock endpoints to bypass Firebase requirements during UI/UX development.
-// // Because the actual map geometries (trails.json) represent these specific mountains, we feed these exact 'startLat' and 'startLong'
-// // coordinates down from the 'Hike' button into the MapLibre components. This guarantees we can functionally test
-// // that the map camera perfectly centers precisely on the drawn green trails without needing a live network connection to Firestore.
-// // DO NOT DELETE these mocks until the Map Navigation and "Hike Map FlyTo" camera animation is fully validated in production!
-// const tempoTrails = [
-//   {
-//     id: "mock_tagapo",
-//     name: "Mount Tagapo",
-//     province: "Rizal",
-//     address: "Talim Island, Rizal",
-//     score: 4.8,
-//     masl: 438,
-//     length: 5,
-//     geography: { startLat: 14.3392772, startLong: 121.2325293 },
-//   },
-//   {
-//     id: "mock_marami",
-//     name: "Mount Marami",
-//     province: "Rizal",
-//     address: "Tanay, Rizal",
-//     score: 4.9,
-//     masl: 739,
-//     length: 7,
-//     geography: { startLat: 14.1986108, startLong: 120.6858334 },
-//   },
-//   {
-//     id: "mock_batulao",
-//     name: "Mount Batulao",
-//     province: "Batangas",
-//     address: "Nasugbu, Batangas",
-//     score: 4.7,
-//     masl: 811,
-//     length: 9,
-//     geography: { startLat: 14.0399434, startLong: 120.8023782 },
-//   },
-//   {
-//     id: "mock_makiling",
-//     name: "Mount Makiling",
-//     province: "Laguna",
-//     address: "Los Baños, Laguna",
-//     score: 4.6,
-//     masl: 1090,
-//     length: 12,
-//     geography: { startLat: 14.1352241, startLong: 121.1944517 },
-//   },
-//   {
-//     id: "mock_maculot",
-//     name: "Mount Maculot",
-//     province: "Batangas",
-//     address: "Cuenca, Batangas",
-//     score: 4.8,
-//     masl: 930,
-//     length: 4,
-//     geography: { startLat: 13.9208682, startLong: 121.0516961 },
-//   },
-// ].map((matchedMock) => ({
-//   id: matchedMock.id,
-//   general: {
-//     name: matchedMock.name,
-//     address: matchedMock.address,
-//     province: [matchedMock.province],
-//     mountain: [matchedMock.name],
-//     rating: matchedMock.score,
-//     reviewCount: 150,
-//   },
-//   geography: matchedMock.geography,
-//   difficulty: {
-//     length: matchedMock.length,
-//     elevation: matchedMock.masl,
-//     slope: 10,
-//     hours: 4,
-//     circularity: "Out and Back",
-//   },
-//   tourism: {},
-// })) as any as Trail[];
-
-export const useTrailsStore = create<TrailState>()(
-  immer((set, get) => ({
+export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
-    data: [], // Preload mocks immediately into init state
 
     fetchAll: async () => {
-      // Only return if we have real data beyond just the mocks
-      if (get().data.length > 0) return;
+      const network = await NetInfo.fetch();
+      const isOnline = !!(network.isConnected && network.isInternetReachable);
 
-      set({ isLoading: true, error: null });
+      if (!isOnline) {
+        console.log("🌲 Device is offline. Using persisted AsyncStorage data.");
+        set({ isLoading: false });
+        return;
+      }
+
+      const isCacheEmpty = get().data.length === 0;
+      set({ isLoading: isCacheEmpty, error: null });
 
       try {
+        console.log("Device is online: Fetching fresh update from repository");
         const trails = await TrailRepository.fetchAll();
-        // const normalizedFirebaseTrails = trails.map((t: any) => ({
-        //   ...t,
-        //   difficulty: {
-        //     ...(t.difficulty || {}),
-        //     elevation: t.difficulty?.elevation ?? t.masl ?? t.geography?.masl,
-        //     length: t.difficulty?.length ?? t.length,
-        //   },
-        //   general: {
-        //     ...(t.general || {}),
-        //     name: t.general?.name ?? t.name,
-        //     address: t.general?.address ?? t.address,
-        //     rating: t.general?.rating ?? t.score,
-        //     province: t.general?.province ?? (t.province ? [t.province] : []),
-        //   },
-        // }));
-        // // Combine real Firebase trails with our temp mocks
-        // const combined = [...normalizedFirebaseTrails];
-       
-        const sorted = trails.sort((a, b) =>
-          a.general.name.localeCompare(b.general.name),
-        );
-        set({
-          data: sorted,
-          isLoading: false,
-        });
+
+        if (trails && Array.isArray(trails) && trails.length > 0) {
+          const sorted = trails.sort((a, b) =>
+            a.general.name.localeCompare(b.general.name),
+          );
+
+          set({
+            data: sorted,
+            isLoading: false,
+          });
+          console.log("Zustand store updated with fresh trail records.");
+        } else {
+          console.log("Repository returned no records. Preserving current cache.");
+          set({ isLoading: false });
+        }
+
       } catch (err) {
-        console.error(err);
+        console.error("Online update fetch failed:", err);
         set({
-          error: (err as Error).message ?? "Failed to load trails",
           isLoading: false,
+          error: get().data.length === 0 ? ((err as Error).message ?? "Failed to load trails") : null,
         });
       }
     },
@@ -330,5 +253,4 @@ export const useTrailsStore = create<TrailState>()(
       let recommended: Trail[] = [];
       return recommended;
     },
-  })),
-);
+})

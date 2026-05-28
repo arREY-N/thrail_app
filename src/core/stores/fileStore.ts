@@ -1,5 +1,5 @@
 import { FileRepository } from "@/src/core/repositories/fileRepository";
-import { useAuthStore } from "@/src/core/stores/authStore";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { create } from "zustand";
