@@ -9,6 +9,7 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import getSearchParam from "@/src/core/utility/getSearchParam";
+import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
 import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
 
 export default function groupRoom() {
@@ -62,7 +63,7 @@ export default function groupRoom() {
         )
     };
 
-    const headerTitle = currentGroup.trail?.name || currentGroup.GroupName;
+    const headerTitle = formatGroupName(currentGroup);
 
     return(
         <>

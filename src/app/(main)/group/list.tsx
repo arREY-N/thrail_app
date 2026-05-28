@@ -26,33 +26,5 @@ export default function groupList() {
                 onBackPress={onBackPress}
             />
         </>
-
-        // <>
-        //     <Stack.Screen options={{ title: 'Your Groups', headerShown: true }}/>
-        //     <TestGroupList
-        //         groups={groups}
-        //         onEnterRoom={onEnterRoom}
-        //     />
-        // </>
     )
 }
-
-// export type GroupListParams = {
-//     groups: Group[];
-//     onEnterRoom: (groupId: string) => void;
-// }
-
-// export const TestGroupList = (params: GroupListParams) => {
-//     console.log('Groups:', params.groups);  
-
-//     return (
-//         <ScrollView>
-//             <Text>Group List</Text>
-//             {(params.groups || []).map(group => (
-//                 <Pressable key={group.id} onPress={() => params.onEnterRoom(group.id)}>
-//                      <Text>{group.GroupName}</Text>
-//                 </Pressable>
-//             ))}
-//         </ScrollView>
-//     )
-// }

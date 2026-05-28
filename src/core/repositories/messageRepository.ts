@@ -25,7 +25,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
                         
             return docSnap.data();
         } catch (error) {
-            console.error('MessageRepository Error:', error);
+            console.log('MessageRepository Error:', error);
             throw error;
         }
     }
@@ -66,7 +66,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
 
             await setDoc(ref, group, {merge: true});
         } catch (error) {
-            console.error('MessageRepository Error:', error);
+            console.log('MessageRepository Error:', error);
             throw error;
         }
     }
@@ -87,7 +87,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
             }, { merge: true });
 
         } catch (error) {
-            console.error('MessageRepository Error:', error);
+            console.log('MessageRepository Error:', error);
             throw error;
         }
     }
@@ -116,7 +116,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
             });
             
         } catch (error) {
-            console.error('Failed to mark as read:', error);
+            console.log('Failed to mark as read:', error);
         }
     }
 }

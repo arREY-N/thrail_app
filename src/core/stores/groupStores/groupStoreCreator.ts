@@ -140,7 +140,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         try {
             await MessageRepository.writeGroup(group);
         } catch (error) {
-            console.error("Failed to create group:", error);
+            console.log("Failed to create group:", error);
             throw error;
         }
     },
@@ -150,7 +150,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
             const group = await MessageRepository.fetchGroup(groupId);  
             return group;
         } catch (error) {
-            console.error("Failed to check group existence:", error);
+            console.log("Failed to check group existence:", error);
             throw error;
         }
     },
@@ -166,7 +166,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
             await MessageRepository.writeGroup(newGroup);
 
         } catch (error) {
-            console.error("Failed to join group:", error);
+            console.log("Failed to join group:", error);
             throw error;
         }
     },

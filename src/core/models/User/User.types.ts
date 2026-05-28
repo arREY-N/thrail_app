@@ -19,6 +19,8 @@ export interface IPreference {
 export interface IEmergencyContact {
     name: string;
     contactNumber: string;
+    userId?: string;
+    email?: string; 
 }
 
 export interface IMedicalProfile {  // New

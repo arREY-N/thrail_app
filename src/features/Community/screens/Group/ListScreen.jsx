@@ -14,7 +14,13 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
-const formatGroupName = (group) => {
+export const formatGroupName = (group) => {
+    if(group?.type === 'chat') {
+        const participants = group.members;
+
+        return `${participants[0].firstname}, ${participants[1].firstname}`;
+    }
+
     if (group?.trail?.name && group?.business?.name) {
         return `${group.trail.name} • ${group.business.name}`;
     }

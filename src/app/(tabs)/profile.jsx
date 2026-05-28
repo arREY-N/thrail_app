@@ -6,11 +6,33 @@ import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useEmergencyContact } from '@/src/core/hook/user/useEmergencyContact';
 
 export default function profile(){
-    const   {
+    const {
         onSettingsPress,
     } = useAppNavigation();
+
+    const {
+        findUser,
+        setEmergencyContact,
+    } = useEmergencyContact();
+
+    // useEffect(() => {
+    //     const fetch = async () => {
+    //         console.log('findUser function from useEmergencyContact hook:');
+    //         const found = await findUser('emman90@sample.com');
+
+    //         await setEmergencyContact({
+    //             userId: found[0].id,
+    //             name: `${found[0].firstname} ${found[0].lastname}`,
+    //             contactNumber: found[0].phoneNumber,
+    //             email: found[0].email,
+    //         }, found[0]);
+    //     }
+
+    //     fetch();
+    // },[])
 
     const {
         profile,

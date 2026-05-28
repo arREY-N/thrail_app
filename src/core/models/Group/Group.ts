@@ -13,6 +13,7 @@ export class Group implements IGroup {
     [immerable] = true;
 
     id: string = '';
+    type: 'group' | 'chat' = 'group';
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
     participantsIds: string[] = [];
@@ -97,6 +98,7 @@ export class Group implements IGroup {
             id: this.id,
             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
             updatedAt: serverTimestamp(),
+            type: this.type,
             members: this.members,
             participantsIds: this.participantsIds,
             admins: this.admins,
@@ -134,7 +136,7 @@ export class Group implements IGroup {
                 timesent: Timestamp.fromDate(this.lastMessage.timesent)
             },
             status: this.status,
-            image: this.image,
+            image: this.image
         };
 
         return mapped;

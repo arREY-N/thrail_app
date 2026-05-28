@@ -1,4 +1,4 @@
-import { NotificationToken } from '@/src/core/models/User/User.types';
+import { IEmergencyContact, NotificationToken } from '@/src/core/models/User/User.types';
 import { UserRepository } from '@/src/core/repositories/userRepository';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
@@ -8,7 +8,8 @@ export interface UserState extends BaseStore<User> {
     searched: User[];
     loadUserByEmail: (email: string) => Promise<User[]>;
     loadUser: (id: string) => Promise<User | null>;
-    addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;  
+    addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;
+    setEmergencyContact: (user: User, contact: IEmergencyContact) => Promise<void>;  
 }
 
 const init = {
@@ -169,6 +170,27 @@ export const useUsersStore = create<UserState>((set, get) => ({
         }
 
         return true;
+    },
+    
+    setEmergencyContact: async (user: User, contact: IEmergencyContact) => {
+        set({ isLoading: true, error: null });
+
+        try {
+            const validatedUser = new User({
+                ...user,
+                emergencyContact: contact
+            });
+
+            const savedUser = await UserRepository.write(validatedUser);
+
+            set({ isLoading: false })
+        } catch (err) {
+            console.error(err);
+            set({
+                error: (err as Error).message,
+                isLoading: false
+            })
+        }
     },
 
     delete: async (id: string) => {
