@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import { Colors } from '@/src/constants/colors';
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
@@ -25,13 +26,18 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
     const [contactPhone, setContactPhone] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    const [errorMsg, setErrorMsg] = useState(null);
+    const [infoMsg, setInfoMsg] = useState(null);
+
     useEffect(() => {
         if (visible) {
             setMyPhone(initialUserPhone);
-            setSearchEmail('');
             setSearchResults([]);
             setShowDropdown(false);
+            setErrorMsg(null);
+            setInfoMsg(null);
             
+            setSearchEmail(profile?.emergencyContact?.email || '');
             setSelectedUser(profile?.emergencyContact?.userId ? { id: profile.emergencyContact.userId, email: profile.emergencyContact.email } : null);
             setContactName(profile?.emergencyContact?.name || '');
             setContactPhone(profile?.emergencyContact?.contactNumber || '');
@@ -39,18 +45,35 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
     }, [visible, initialUserPhone, profile]);
 
     const handleCloseOrSkip = () => {
+        setErrorMsg(null);
+        setInfoMsg(null);
         if (mode === 'emergency_only' && onSkip) {
             onSkip();
+        } else if (onClose) {
+            onClose();
         }
-        if (onClose) onClose();
+    };
+
+    const handleEmailChange = (text) => {
+        setSearchEmail(text);
+        setShowDropdown(false);
+        setErrorMsg(null);
+        setInfoMsg(null);
+        
+        if (selectedUser && text.trim().toLowerCase() !== (selectedUser.email || '').toLowerCase()) {
+            setSelectedUser(null);
+        }
     };
 
     const handleSearch = async () => {
+        setErrorMsg(null);
+        setInfoMsg(null);
         const cleanedSearch = searchEmail.trim().toLowerCase();
+        
         if (!cleanedSearch) return;
         
         if (cleanedSearch === profile?.email?.trim().toLowerCase()) {
-            Alert.alert("Invalid Email", "You cannot use your own email as an emergency contact.");
+            setErrorMsg("You cannot use your own email as an emergency contact.");
             return;
         }
 
@@ -61,7 +84,7 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
             const results = await findUser(cleanedSearch);
             
             if (!results || results.length === 0) {
-                Alert.alert("No Account Found", "No Thrail account found with this email. We will save this as an external SMS contact.");
+                setInfoMsg("No Thrail account found with this email. Please provide the contact name and phone number, we will save this as an external SMS contact.");
                 setSelectedUser(null);
             } else if (results.length === 1) {
                 handleSelectUser(results[0]);
@@ -70,7 +93,7 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
                 setShowDropdown(true);
             }
         } catch (error) {
-            Alert.alert("Search Failed", "Could not connect to the server. Please check your connection and try again.");
+            setErrorMsg("Could not connect to the server. Please try again.");
         } finally {
             setIsSearching(false);
         }
@@ -78,70 +101,71 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
 
     const handleSelectUser = (user) => {
         setSelectedUser(user);
+        setSearchEmail(user.email);
         setContactName(`${user.firstname} ${user.lastname}`.trim());
         setShowDropdown(false);
+        setErrorMsg(null);
 
         if (user.phoneNumber) {
             setContactPhone(user.phoneNumber);
+            setInfoMsg(`Successfully linked to ${user.firstname}!`);
         } else {
             setContactPhone('');
-            Alert.alert("Phone Number Missing", `We found ${user.firstname}, but their profile is missing a phone number. Please provide it below.`);
+            setInfoMsg(`We found ${user.firstname}, but their profile is missing a phone number. Please provide it below.`);
         }
     };
 
     const handleSave = async () => {
+        setErrorMsg(null);
+        setInfoMsg(null);
+
         const cleanedContactName = contactName.trim();
         const cleanedContactPhone = cleanPhoneNumber(contactPhone);
         const cleanedMyPhone = cleanPhoneNumber(myPhone);
 
         if (!cleanedContactName || !cleanedContactPhone) {
-            Alert.alert("Missing Fields", "Please provide both the name and contact number for your emergency contact.");
+            setErrorMsg("Please provide both the name and contact number for your emergency contact.");
             return;
         }
         if (cleanedContactPhone.length < 10) {
-            Alert.alert("Invalid Phone", "Please enter a valid emergency contact phone number.");
+            setErrorMsg("Please enter a valid emergency contact phone number.");
             return;
         }
         if (mode === 'unified') {
-            if (!cleanedMyPhone) {
-                Alert.alert("Missing Phone", "Please provide your own phone number for this booking.");
-                return;
-            }
-            if (cleanedMyPhone.length < 10) {
-                Alert.alert("Invalid Phone", "Please enter a valid phone number for yourself.");
+            if (!cleanedMyPhone || cleanedMyPhone.length < 10) {
+                setErrorMsg("Please enter a valid phone number for yourself.");
                 return;
             }
             if (cleanedMyPhone === cleanedContactPhone) {
-                Alert.alert("Invalid Setup", "Your emergency contact number cannot be the exact same as your own number.");
+                setErrorMsg("Your emergency contact number cannot be exactly the same as your own number.");
                 return;
             }
         }
 
         setIsSaving(true);
-        try {
-            const contactPayload = {
-                name: cleanedContactName,
-                contactNumber: cleanedContactPhone,
-                userId: selectedUser ? selectedUser.id : '',
-                email: selectedUser ? selectedUser.email : ''
-            };
+        const contactPayload = {
+            name: cleanedContactName,
+            contactNumber: cleanedContactPhone,
+            userId: selectedUser ? selectedUser.id : '',
+            email: selectedUser ? selectedUser.email : ''
+        };
 
-            await setEmergencyContact(contactPayload, selectedUser);
+        const success = await setEmergencyContact(contactPayload, selectedUser);
+        setIsSaving(false);
 
+        if (success) {
             if (mode === 'unified' && onSaveLocalPhone) {
                 onSaveLocalPhone(cleanedMyPhone);
             }
-            onClose();
-        } catch (error) {
-            Alert.alert("Error", localError || "Failed to save emergency contact.");
-        } finally {
-            setIsSaving(false);
+            if (onClose) onClose();
+        } else {
+            setErrorMsg(localError || "Failed to save. Check your connection.");
         }
     };
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={handleCloseOrSkip}>
-            <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 
                 <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={handleCloseOrSkip} />
                 
@@ -174,14 +198,23 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
                                         label="Search by Email (Optional)" 
                                         placeholder="friend@email.com" 
                                         value={searchEmail} 
-                                        onChangeText={(text) => { setSearchEmail(text); setShowDropdown(false); }} 
+                                        onChangeText={handleEmailChange} 
                                         keyboardType="email-address" autoCapitalize="none"
                                     />
                                 </View>
-
                                 <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={isSearching}>
                                     {isSearching ? <ActivityIndicator color={Colors.WHITE} size="small" /> : <CustomIcon library="Feather" name="search" size={20} color={Colors.WHITE} />}
                                 </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.alertContainer}>
+                                {errorMsg ? <ErrorMessage error={errorMsg} style={{ marginBottom: 12, width: '100%' }} /> : null}
+                                {infoMsg ? (
+                                    <View style={styles.infoBox}>
+                                        <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                                        <CustomText style={styles.infoText}>{infoMsg}</CustomText>
+                                    </View>
+                                ) : null}
                             </View>
 
                             {showDropdown && searchResults.length > 0 && (
@@ -223,13 +256,16 @@ const styles = StyleSheet.create({
     bottomSheet: { backgroundColor: Colors.WHITE, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12, maxHeight: '90%', ...dropShadow },
     dragHandle: { width: 40, height: 5, borderRadius: 3, backgroundColor: Colors.GRAY_LIGHT, alignSelf: 'center', marginBottom: 16 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    headerTitle: {marginBottom: 0},
+    headerTitle: { marginBottom: 0 },
     closeBtn: { padding: 8, backgroundColor: Colors.GRAY_ULTRALIGHT, borderRadius: 20 },
     section: { marginBottom: 4 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.TEXT_PRIMARY, marginBottom: 4 },
     sectionSubtitle: { fontSize: 13, color: Colors.TEXT_SECONDARY, marginBottom: 20, lineHeight: 18 },
     searchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 0, zIndex: 10 },
     searchBtn: { backgroundColor: Colors.PRIMARY, height: 50, width: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 28 },
+    
+    alertContainer: { width: '100%' },
+    
     dropdown: { backgroundColor: Colors.WHITE, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, marginBottom: 20, overflow: 'hidden', ...dropShadow },
     dropdownItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 12 },
     dropdownAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' },
@@ -238,4 +274,7 @@ const styles = StyleSheet.create({
     inputSpacing: { marginBottom: 0 },
     saveBtn: { backgroundColor: Colors.PRIMARY, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
     saveBtnText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 16 },
+    
+    infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#C8E6C9', gap: 8, width: '100%' },
+    infoText: { color: Colors.PRIMARY, fontSize: 13, flex: 1, fontWeight: '500' }
 });
