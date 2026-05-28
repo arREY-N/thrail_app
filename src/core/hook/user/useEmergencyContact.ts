@@ -2,7 +2,7 @@ import { Group } from "@/src/core/models/Group/Group";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { User } from "@/src/core/models/User/User";
 import { IEmergencyContact } from "@/src/core/models/User/User.types";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore.native";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useState } from "react";
