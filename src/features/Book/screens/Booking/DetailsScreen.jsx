@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
+import EmergencySetupModal from '@/src/components/EmergencySetupModal';
 
+import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { checkIfMinor } from '@/src/utils/dateFormatter';
-
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
+import { checkIfMinor } from '@/src/utils/dateFormatter';
 
 const getStrictDocKey = (docName) => {
     if (!docName) return 'validId';
@@ -26,18 +25,8 @@ const getStrictDocKey = (docName) => {
     return 'validId';
 };
 
-const DetailsScreen = ({ 
-    selectedOffer, 
-    savedDetails, 
-    savedDocs, 
-    onContinue, 
-    isSubmitting,
-    onTermsPress,
-    onPrivacyPress
-}) => {
-
+const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isSubmitting, onTermsPress, onPrivacyPress }) => {
     const { profile } = useAuthStore();
-    const hasProfileData = !!(profile?.firstname || profile?.lastname);
     const requiredDocuments = selectedOffer?.documents || [];
 
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
@@ -47,23 +36,18 @@ const DetailsScreen = ({
         if (savedDetails) return savedDetails;
         return {
             phone: profilePhone,
-            emergencyName: '',
-            emergencyPhone: '',
+            emergencyName: profile?.emergencyContact?.name || '',
+            emergencyPhone: profile?.emergencyContact?.contactNumber || '',
         };
     };
 
     const [formData, setFormData] = useState(getInitialData());
     const [uploadedDocs, setUploadedDocs] = useState(savedDocs || {});
-    
-    const [isEditingPhone, setIsEditingPhone] = useState(!hasProfileData); 
-    const [showEditModal, setShowEditModal] = useState(false);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
-
     const [isMinor, setIsMinor] = useState(false);
+    const [showUnifiedModal, setShowUnifiedModal] = useState(false);
 
-    useEffect(() => {
-        setIsMinor(checkIfMinor(profile?.birthday));
-    }, [profile?.birthday]);
+    useEffect(() => { setIsMinor(checkIfMinor(profile?.birthday)); }, [profile?.birthday]);
 
     const activeDocuments = [...requiredDocuments];
     if (isMinor && !activeDocuments.includes('Parent/Guardian Valid ID')) {
@@ -71,153 +55,89 @@ const DetailsScreen = ({
     }
 
     useEffect(() => {
-        setFormData(getInitialData());
-        setUploadedDocs(savedDocs || {});
-    }, [savedDetails, savedDocs, profile]); 
+        setFormData(prev => ({
+            ...prev,
+            emergencyName: profile?.emergencyContact?.name || '',
+            emergencyPhone: profile?.emergencyContact?.contactNumber || '',
+        }));
+    }, [profile?.emergencyContact]);
 
-    const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const confirmEditPhone = () => {
-        setIsEditingPhone(true);
-        setShowEditModal(false);
-    };
-
-    const handleResetPhone = () => {
-        setFormData(prev => ({ ...prev, phone: profilePhone }));
-        setIsEditingPhone(false);
+    const handleLocalPhoneSave = (newPhone) => {
+        setFormData(prev => ({ ...prev, phone: formatLocalPhoneNumber(newPhone) }));
     };
 
     const isFormValid = () => {
         const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
         const areAllDocsUploaded = activeDocuments.every(doc => !!uploadedDocs[doc]);
-
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
     
     return (
         <View style={styles.container}>
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
-                contentContainerStyle={styles.scrollContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.constrainer}>
                     
                     <View style={styles.section}>
                         <View style={styles.sectionHeaderRow}>
-                            <CustomText variant="h2" style={styles.sectionTitleFlat}>
-                                Hiker Information
-                            </CustomText>
+                            <CustomText variant="h2" style={styles.sectionTitleFlat}>Contact Summary</CustomText>
 
-                            {hasProfileData && !isEditingPhone && (
-                                <TouchableOpacity 
-                                    style={styles.headerActionBtn} 
-                                    onPress={() => setShowEditModal(true)}
-                                >
-                                    <CustomIcon library="Feather" name="edit-3" size={14} color={Colors.PRIMARY} />
-                                    <CustomText variant="caption" style={styles.headerActionBtnText}>
-                                        Edit Phone
+                            <TouchableOpacity style={styles.headerActionBtn} onPress={() => setShowUnifiedModal(true)}>
+                                <CustomIcon library="Feather" name="edit-3" size={14} color={Colors.PRIMARY} />
+                                <CustomText style={styles.headerActionBtnText}>Edit Contacts</CustomText>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.premiumCard}>
+                            <View style={styles.infoRow}>
+                                <View style={styles.iconCircle}>
+                                    <CustomIcon library="Feather" name="user" size={16} color={Colors.TEXT_PRIMARY} />
+                                </View>
+                                <View style={styles.infoCol}>
+                                    <CustomText variant="caption" style={styles.infoLabel}>Hiker Contact</CustomText>
+                                    <CustomText style={styles.infoName}>{profileFullName}</CustomText>
+                                    <CustomText style={styles.infoDesc}>{formData.phone || 'Not set'}</CustomText>
+                                </View>
+                            </View>
+
+                            <View style={styles.verticalConnector} />
+
+                            <View style={styles.infoRow}>
+                                <View style={[styles.iconCircle, { backgroundColor: Colors.ERROR_BG }]}>
+                                    <CustomIcon library="Feather" name="phone-call" size={16} color={Colors.ERROR} />
+                                </View>
+                                <View style={styles.infoCol}>
+                                    <CustomText variant="caption" style={styles.infoLabel}>{isMinor ? "Guardian Contact" : "Emergency Contact"}</CustomText>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <CustomText style={styles.infoName}>{formData.emergencyName || 'Not set'}</CustomText>
+                                        {profile?.emergencyContact?.userId ? (
+                                            <View style={styles.linkedBadge}>
+                                                <CustomIcon library="Feather" name="link" size={10} color={Colors.PRIMARY} />
+                                                <CustomText style={styles.linkedText}>Linked</CustomText>
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                    <CustomText style={styles.infoDesc}>
+                                        {formData.emergencyPhone || 'No number'}
+                                        {(!profile?.emergencyContact?.userId && formData.emergencyPhone) ? ' • SMS Only' : ''}
                                     </CustomText>
-                                </TouchableOpacity>
-                            )}
-                            
-                            {hasProfileData && isEditingPhone && (
-                                <TouchableOpacity 
-                                    style={styles.headerResetBtn} 
-                                    onPress={handleResetPhone}
-                                >
-                                    <CustomIcon library="Feather" name="refresh-ccw" size={14} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText variant="caption" style={styles.headerResetBtnText}>
-                                        Reset
-                                    </CustomText>
-                                </TouchableOpacity>
-                            )}
+                                </View>
+                            </View>
                         </View>
-                        
-                        <View style={styles.lockedInputContainer}>
-                            <CustomTextInput 
-                                label="Full Name" 
-                                value={profileFullName} 
-                                editable={false} 
-                                style={styles.inputSpacing} 
-                            />
-                        </View>
-
-                        <View style={!isEditingPhone ? styles.lockedInputContainer : {}}>
-                            <CustomTextInput 
-                                label="Phone Number" 
-                                placeholder="9XX XXX XXXX" 
-                                prefix="+63" 
-                                type="phone"
-                                value={formData.phone || ''} 
-                                keyboardType="number-pad" 
-                                editable={isEditingPhone}
-                                onChangeText={(text) => handleInputChange('phone', text)} 
-                                maxLength={12}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.section}>
-                        <CustomText variant="h2" style={styles.sectionTitle}>
-                            {isMinor ? "Parent/Guardian Contact" : "Emergency Contact"}
-                        </CustomText>
-                        
-                        <CustomTextInput 
-                            label={isMinor ? "Guardian Name" : "Contact Name"} 
-                            placeholder="Maria Dela Cruz"
-                            value={formData.emergencyName || ''} 
-                            onChangeText={(text) => handleInputChange('emergencyName', text)}
-                            style={styles.inputSpacing}
-                        />
-
-                        <CustomTextInput 
-                            label={isMinor ? "Guardian Phone Number" : "Contact Phone Number"} 
-                            placeholder="9XX XXX XXXX" 
-                            prefix="+63" 
-                            type="phone"
-                            value={formData.emergencyPhone || ''} 
-                            keyboardType="number-pad"
-                            onChangeText={(text) => handleInputChange('emergencyPhone', text)} 
-                            maxLength={12}
-                        />
                     </View>
 
                     {activeDocuments.length > 0 && (
                         <View style={styles.section}>
-                            <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>
-                                Required Documents
-                            </CustomText>
-                            <CustomText variant="caption" style={styles.sectionSubtitle}>
-                                Please upload the requirements specific to this offer.
-                            </CustomText>
-
+                            <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>Required Documents</CustomText>
+                            <CustomText variant="caption" style={styles.sectionSubtitle}>Please upload the requirements specific to this offer.</CustomText>
                             {activeDocuments.map((doc, index) => (
-                                <DocumentUploadCard 
-                                    key={index}
-                                    docName={doc}
-                                    docKey={getStrictDocKey(doc)} 
-                                    isUploaded={uploadedDocs[doc]}
-                                    onUploadSuccess={(url) => {
-                                        setUploadedDocs(prev => ({ ...prev, [doc]: url }));
-                                    }}
-                                />
+                                <DocumentUploadCard key={index} docName={doc} docKey={getStrictDocKey(doc)} isUploaded={uploadedDocs[doc]} onUploadSuccess={(url) => setUploadedDocs(prev => ({ ...prev, [doc]: url }))} />
                             ))}
                         </View>
                     )}
 
                     <View style={styles.section}>
-                        <TermsSignature 
-                            isMinor={isMinor}
-                            minorName={profileFullName}
-                            expectedName={isMinor ? formData.emergencyName : profileFullName}
-                            onValidChange={(isValid) => setIsSignatureValid(isValid)}
-                            onTermsPress={onTermsPress}
-                            onPrivacyPress={onPrivacyPress}
-                        />
+                        <TermsSignature isMinor={isMinor} minorName={profileFullName} expectedName={isMinor ? formData.emergencyName : profileFullName} onValidChange={setIsSignatureValid} onTermsPress={onTermsPress} onPrivacyPress={onPrivacyPress} />
                     </View>
-                    
                 </View>
             </ScrollView>
 
@@ -229,94 +149,40 @@ const DetailsScreen = ({
                 }}
             />
 
-            <ConfirmationModal 
-                visible={showEditModal} 
-                onClose={() => setShowEditModal(false)} 
-                onConfirm={confirmEditPhone}
-                title="Change Phone Number?" 
-                confirmText="Edit Number" 
-                cancelText="Cancel"
-                message="Are you sure you want to use a different phone number for this booking? Please ensure it is an active number so your guide can easily reach you on the day of the hike."
+            <EmergencySetupModal 
+                visible={showUnifiedModal}
+                onClose={() => setShowUnifiedModal(false)}
+                mode="unified"
+                initialUserPhone={formData.phone}
+                onSaveLocalPhone={handleLocalPhoneSave}
             />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: Colors.BACKGROUND, 
-    },
-    constrainer: {
-        width: '100%',
-        maxWidth: Layout.MAX_WIDTH,
-        alignSelf: 'center',
-        paddingHorizontal: 16,
-        paddingTop: 16,
-    },
-    scrollContent: { 
-        paddingBottom: 120 
-    },
+    container: { flex: 1, backgroundColor: Colors.BACKGROUND },
+    constrainer: { width: '100%', maxWidth: Layout.MAX_WIDTH, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 16 },
+    scrollContent: { paddingBottom: 120 },
+    section: { marginBottom: 24 },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    sectionTitleFlat: { marginBottom: 0 },
+    sectionTitleFlatDocuments: { marginBottom: 4 },
+    sectionSubtitle: { marginBottom: 16, color: Colors.TEXT_SECONDARY },
     
-    section: { 
-        marginBottom: 8, 
-    },
+    headerActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6 },
+    headerActionBtnText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 13 },
     
-    sectionHeaderRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 16, 
-    },
-    sectionTitleFlat: { 
-        marginBottom: 0 
-    },
-    sectionTitleFlatDocuments: { 
-        marginBottom: 8, 
-    },
-    sectionTitle: { 
-        paddingHorizontal: 0, 
-        marginBottom: 16 
-    },
-    sectionSubtitle: { 
-        marginBottom: 16, 
-        color: Colors.TEXT_SECONDARY 
-    },
-    headerActionBtn: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        paddingHorizontal: 12, 
-        paddingVertical: 6, 
-        borderRadius: 16, 
-        gap: 6 
-    },
-    headerActionBtnText: { 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold' 
-    },
-    headerResetBtn: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Colors.WHITE, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        paddingHorizontal: 12, 
-        paddingVertical: 6, 
-        borderRadius: 16, 
-        gap: 6 
-    },
-    headerResetBtnText: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold' 
-    },
-    lockedInputContainer: { 
-        opacity: 0.6, 
-        marginBottom: 0 
-    },
-    inputSpacing: { 
-        marginBottom: 16 
-    }
+    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
+    iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+    infoCol: { marginLeft: 16, flex: 1 },
+    infoLabel: { color: Colors.TEXT_SECONDARY, marginBottom: 2 },
+    infoName: { fontSize: 16, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
+    infoDesc: { fontSize: 14, color: Colors.TEXT_SECONDARY, marginTop: 4 },
+    verticalConnector: { width: 2, height: 32, backgroundColor: Colors.GRAY_ULTRALIGHT, marginLeft: 17, marginVertical: 4 },
+    linkedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 4 },
+    linkedText: { fontSize: 10, fontWeight: 'bold', color: Colors.PRIMARY }
 });
 
 export default DetailsScreen;
