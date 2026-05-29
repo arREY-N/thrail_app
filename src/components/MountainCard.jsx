@@ -20,6 +20,7 @@ const MountainCard = ({
     onLikePress,
     style,
     weatherBadge,
+    rating,
 }) => {
 
     const { 
@@ -48,7 +49,7 @@ const MountainCard = ({
                     <View style={styles.badgeSection}>
                         <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
                         <CustomText variant="caption" style={styles.badgeText}>
-                            {score}
+                            {rating.toFixed(1)}
                         </CustomText>
                     </View>
 
@@ -62,7 +63,7 @@ const MountainCard = ({
                     </View> */}
                 </View>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={[styles.glassIconBtn, styles.topRightPosition]}
                     onPress={(e) => {
                         e.stopPropagation();
@@ -72,7 +73,7 @@ const MountainCard = ({
                     activeOpacity={0.7}
                 >
                     <CustomIcon library="Ionicons" name="heart-outline" size={18} color={Colors.WHITE} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <LinearGradient
                     colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.9)"]}

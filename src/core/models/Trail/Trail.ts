@@ -36,7 +36,8 @@ export class Trail implements ITrail {
         circularity: "Circular",
         quality: [],
         difficulty_points: [],
-        lascoRating: 0
+        lascoRating: 0,
+        classification: 'major'
     };
     tourism: ITourism = {
         shelter: null,
@@ -48,7 +49,8 @@ export class Trail implements ITrail {
         waterfall: null,
         monument: null,
         community: null,
-        viewpoint: []
+        viewpoint: [],
+        network_connection: false
     };
     
     constructor(init?: Partial<ITrail>){

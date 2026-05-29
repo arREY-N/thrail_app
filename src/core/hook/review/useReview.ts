@@ -16,6 +16,7 @@ export interface IReviewDomain {
     likeReview: (review: Review) => void;
     isLiked: (review: Review) => Boolean;
     refreshFeed: () => void;    
+    getItemRating: (itemId: string) => number;
 }
 
 export type ReviewDomainParams = {
@@ -92,14 +93,22 @@ export default function useReview(): IReviewDomain {
         }
     }
 
+    const getItemRating = (itemId: string): number => {
+        const itemReviews = reviews.filter(r => r.trail.id === itemId);
+        if(itemReviews.length === 0) return 0;
+        const totalRating = itemReviews.reduce((sum, review) => sum + review.overallRating, 0);
+        return totalRating / itemReviews.length;
+    }
+
     return {
         onWriteReviewPress,
         isOwned,
         likeReview,
         isLiked,
         refreshFeed,
+        getItemRating,
         reviews,
         isLoading,
-        error: error || localError
+        error: error || localError, 
     }
 }

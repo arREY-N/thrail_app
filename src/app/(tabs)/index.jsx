@@ -6,6 +6,7 @@ import CustomText from '@/src/components/CustomText';
 import EmergencySetupModal from '@/src/components/EmergencySetupModal';
 import { Colors } from '@/src/constants/colors';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from '@/src/core/hook/trail/useTrailDomain';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
@@ -28,6 +29,10 @@ export default function home(){
         onGroupPress
     } = useAppNavigation();
 
+    const {
+        getItemRating,
+    } = useReview();
+
     const [showNotifBanner, setShowNotifBanner] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
     const slideAnim = useRef(new Animated.Value(-150)).current;
@@ -41,7 +46,7 @@ export default function home(){
                 const skipTime = await AsyncStorage.getItem('skipEmergencyModal');
                 if (skipTime && Date.now() < parseInt(skipTime, 10)) return;
                 */
-
+                
                 setShowNotifBanner(true);
                 Animated.spring(slideAnim, {
                     toValue: 50,
@@ -67,6 +72,7 @@ export default function home(){
         const nextTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
         await AsyncStorage.setItem('skipEmergencyModal', nextTime.toString());
         */
+
         hideBanner();
         setShowEmergencyModal(false);
     };
@@ -88,6 +94,7 @@ export default function home(){
                 onMountainPress={onViewTrail}
                 onDownloadPress={onDownloadPress}
                 onGroupPress={onGroupPress}
+                getItemRating={getItemRating}
             />
 
             {showNotifBanner && (

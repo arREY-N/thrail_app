@@ -48,10 +48,12 @@ export interface IGeneral {
     reviewCount: number;
     description: string;
     guidelines: string[];
+    safety_tips?: string[];
 }
 
 export interface IDifficulty {
     lascoRating: number;
+    classification: 'minor' | 'major';
     length: Kilometers;
     gain: Meters;
     slope: Percentage;
@@ -73,6 +75,7 @@ export interface ITourism {
     monument: boolean | null;
     community: boolean | null;
     viewpoint: ViewpointType[] | [];
+    network_connection: boolean;
 }
 
 export interface ICoordinate {

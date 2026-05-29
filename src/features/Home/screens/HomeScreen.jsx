@@ -35,7 +35,8 @@ const HomeScreen = ({
     discoverTrails,
     onMountainPress,
     onDownloadPress,
-    onGroupPress
+    onGroupPress,
+    getItemRating,
 }) => {
     
     const { latitude, longitude } = useLocation();
@@ -91,6 +92,7 @@ const HomeScreen = ({
 
                             return (
                                 <MountainCard 
+                                    rating={getItemRating(item.id)}
                                     key={`${title}-${item.id}`}
                                     item={item}
                                     onPress={() => onMountainPress(item.id)}

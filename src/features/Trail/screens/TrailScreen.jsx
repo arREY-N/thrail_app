@@ -9,7 +9,6 @@ import {
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import HikeBriefing from '@/src/components/HikeBriefing';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -25,7 +24,13 @@ const TrailScreen = ({
     onBackPress, 
     onDownloadPress, 
     onHikePress, 
-    onBookPress 
+    onBookPress,
+    reviews,
+    isLoading,
+    likeReview,
+    isLiked,
+    onWriteReviewPress,
+    isOwned,
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
     const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
@@ -66,8 +71,8 @@ const TrailScreen = ({
         : (trail?.general?.province || "Unknown Location");  
 
     const address = trail?.general?.address || location;
-    const rating = trail?.general?.rating || "0.0"; 
-    const reviewsCount = trail?.general?.reviewCount || "0";
+    const rating = reviews.map(r => r.overallRating).reduce((acc, r) => acc + (r || 0), 0) / (reviews.length || 1); 
+    const reviewsCount = reviews.length;
 
     const stats = {
         distance: trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--",
@@ -125,13 +130,13 @@ const TrailScreen = ({
                                     />
 
                                     <CustomText style={styles.ratingText}>
-                                        {rating} ({reviewsCount})
+                                        {rating.toFixed(1)} ({reviewsCount})
                                     </CustomText>
                                 </View>
 
                             </View>
                             
-                            <TouchableOpacity 
+                            {/* <TouchableOpacity 
                                 style={styles.downloadButton} 
                                 onPress={() => onDownloadPress(trail?.id)}
                             >
@@ -141,7 +146,7 @@ const TrailScreen = ({
                                     size={20}
                                     color={Colors.WHITE} 
                                 />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                         </View>
                     </View>
@@ -185,7 +190,14 @@ const TrailScreen = ({
                         />
                     )}
                     {activeTab === 'Reviews' && (
-                        <TrailReviewsTab />
+                        <TrailReviewsTab 
+                            reviews={reviews}
+                            isLoading={isLoading}
+                            likeReview={likeReview}
+                            isLiked={isLiked}
+                            onWriteReviewPress={onWriteReviewPress}
+                            isOwned={isOwned}
+                        />
                     )}
 
                 </View>

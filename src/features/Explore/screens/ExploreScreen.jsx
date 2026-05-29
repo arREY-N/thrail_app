@@ -17,7 +17,7 @@ const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
-const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
+const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating }) => {
     const [weatherMap, setWeatherMap] = useState({});
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -143,6 +143,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress }) => {
                         {filteredTrails.length > 0 ? (
                             filteredTrails.map((t) => (
                                 <MountainCard
+                                    rating={getItemRating(t.id)}
                                     key={t.id}
                                     item={t}
                                     onPress={() => onViewMountain(t.id)}
