@@ -1,8 +1,7 @@
 import { Group } from "@/src/core/models/Group/Group";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { User } from "@/src/core/models/User/User";
 import { IEmergencyContact } from "@/src/core/models/User/User.types";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore.native";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useState } from "react";
@@ -30,6 +29,7 @@ export function useEmergencyContact(){
         } catch (error) {
             console.error("Error finding user:", error);
             setLocalError((error as Error).message || "Error finding user");
+            return [];
         }
     }
 
@@ -43,6 +43,13 @@ export function useEmergencyContact(){
 
             await setContact(profile, emergencyContact);
 
+            useAuthStore.setState({ 
+                profile: new User({ 
+                    ...profile, 
+                    emergencyContact: emergencyContact 
+                }) 
+            });
+
             if(user){
                 const groupId = [`${profile.id}_${emergencyContact.userId}`, `${emergencyContact.userId}_${profile.id}`];
     
@@ -52,13 +59,25 @@ export function useEmergencyContact(){
                         console.log("Existing group found for emergency contact:");
                     }
                 } catch (error) {
+                    const safeProfile = {
+                        id: profile.id || '',
+                        username: profile.username || '',
+                        firstname: profile.firstname || '',
+                        lastname: profile.lastname || '',
+                        email: profile.email || ''
+                    };
+                    const safeUser = {
+                        id: user.id || '',
+                        username: user.username || '',
+                        firstname: user.firstname || '',
+                        lastname: user.lastname || '',
+                        email: user.email || ''
+                    };
+
                     const contactChat = new Group({
                         type: 'chat',
                         id: groupId[0],
-                        members: [
-                            UserLogic.toSummary(profile), 
-                            UserLogic.toSummary(user),
-                        ],
+                        members: [safeProfile, safeUser],
                         participantsIds: [profile.id, user.id],
                     });
     
@@ -66,9 +85,11 @@ export function useEmergencyContact(){
                     console.log('created group: ', contactChat);
                 }
             }
+            return true;
         } catch (error) {
             console.log("Error setting emergency contact:", error);
             setLocalError((error as Error).message || "Error setting emergency contact");
+            return false;
         }
     }
    
