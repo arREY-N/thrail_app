@@ -14,11 +14,12 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
-export const formatGroupName = (group) => {
+export const formatGroupName = (group, currentUser) => {
     if(group?.type === 'chat') {
-        const participants = group.members;
-
-        return `${participants[0].firstname}, ${participants[1].firstname}`;
+        const participants = group.members || [];
+        const otherUser = participants.find(p => p.id !== currentUser?.id) || participants[0];
+        
+        return `Emergency: ${otherUser?.firstname} ${otherUser?.lastname}`;
     }
 
     if (group?.trail?.name && group?.business?.name) {
@@ -66,8 +67,8 @@ const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
                 
                 <View style={styles.textContainer}>
                     <View style={styles.headerRow}>
-                        <CustomText variant="label" style={styles.groupName} numberOfLines={1}>
-                            {formatGroupName(item)}
+                        <CustomText numberOfLines={1} style={styles.groupName} variant="label">
+                            {formatGroupName(item, currentUser)}
                         </CustomText>
                     </View>
                     
