@@ -13,6 +13,7 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 import { formatDate } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import TrailMap from "@/src/features/Map/TrailMap";
@@ -48,7 +49,8 @@ interface HikeRecordingScreenProps {
     onResetHike: () => void;
     onAddReview: () => void;
     onBackPress: () => void;
-    onTriggerBackendSOS?: () => void; 
+    onTriggerBackendSOS?: () => void;
+    onTriggerEmergencySOS?: () => void;
     onOpenSOSCamera?: () => void;
     emergencyContactNumber?: string;
 }
@@ -58,7 +60,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     baseElapsedTime, timerStartTime, totalDistance, totalElevationGain, 
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
-    onTriggerBackendSOS, onOpenSOSCamera, emergencyContactNumber,
+    onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
 }) => {
     const insets = useSafeAreaInsets();
     const mapRef = useRef<any>(null);
@@ -74,6 +76,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showBackConfirm, setShowBackConfirm] = useState(false);
     
     const [liveTime, setLiveTime] = useState(baseElapsedTime);
+
+    const { profile } = useAuthStore();
     
     const isStarted = hike.status === "started";
     const isPaused = hike.status === "paused";
@@ -123,6 +127,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const handleGroupSOS = () => {
         if (onTriggerBackendSOS) onTriggerBackendSOS(); 
+        setShowSosMenu(false);
+        setShowCameraPrompt(true);
+    };
+
+    const handleEmergencyContactSOS = () => {
+        if (onTriggerEmergencySOS) onTriggerEmergencySOS();
         setShowSosMenu(false);
         setShowCameraPrompt(true);
     };
@@ -309,11 +319,18 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             </CustomText>
                         </View>
                         
-                        {isGuidedHike && (
+                        {isGuidedHike ? (
                             <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleGroupSOS}>
                                 <CustomIcon library="Feather" name="radio" size={18} color={Colors.WHITE} />
                                 <CustomText style={styles.sheetBtnTextPrimary}>Send Alert to Guide (App)</CustomText>
                             </TouchableOpacity>
+                        ) : (
+                            !isGuidedHike && profile?.emergencyContact?.userId ? (
+                                <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleEmergencyContactSOS}>
+                                    <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.WHITE} />
+                                    <CustomText style={styles.sheetBtnTextPrimary}>Send Alert to Emergency Contact</CustomText>
+                                </TouchableOpacity>
+                            ) : null
                         )}
                         
                         <TouchableOpacity style={styles.sheetBtnOutline} onPress={handleSendSMS}>
