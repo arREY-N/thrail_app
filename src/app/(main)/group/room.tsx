@@ -63,7 +63,7 @@ export default function groupRoom() {
         )
     };
 
-    const headerTitle = formatGroupName(currentGroup);
+    const headerTitle = formatGroupName(currentGroup, profile);
 
     return(
         <>
