@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -9,6 +9,7 @@ import { Colors } from '@/src/constants/colors';
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12 }, android: { elevation: 8 } });
 
 export default function EmergencySetupModal({ visible, onClose, mode = 'emergency_only', initialUserPhone = '', onSaveLocalPhone, onSkip }) {
@@ -29,8 +30,13 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
     const [errorMsg, setErrorMsg] = useState(null);
     const [infoMsg, setInfoMsg] = useState(null);
 
+    const [renderModal, setRenderModal] = useState(visible);
+    const animValue = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
         if (visible) {
+            setRenderModal(true);
+            
             setMyPhone(initialUserPhone);
             setSearchResults([]);
             setShowDropdown(false);
@@ -41,8 +47,20 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
             setSelectedUser(profile?.emergencyContact?.userId ? { id: profile.emergencyContact.userId, email: profile.emergencyContact.email } : null);
             setContactName(profile?.emergencyContact?.name || '');
             setContactPhone(profile?.emergencyContact?.contactNumber || '');
+
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start();
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start(() => setRenderModal(false));
         }
-    }, [visible, initialUserPhone, profile]);
+    }, [visible, initialUserPhone, profile, animValue]);
 
     const handleCloseOrSkip = () => {
         setErrorMsg(null);
@@ -163,13 +181,28 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
         }
     };
 
+    if (!renderModal) return null;
+
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={handleCloseOrSkip}>
-            <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Modal visible={renderModal} transparent animationType="none" onRequestClose={handleCloseOrSkip}>
+            <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 
-                <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={handleCloseOrSkip} />
-                
-                <View style={styles.bottomSheet}>
+                {/* Animated Background Overlay */}
+                <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
+                    <TouchableOpacity style={styles.backdropTouch} activeOpacity={1} onPress={handleCloseOrSkip} />
+                </Animated.View>
+
+                <Animated.View style={[
+                    styles.bottomSheet,
+                    {
+                        transform: [{
+                            translateY: animValue.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [SCREEN_HEIGHT, 0]
+                            })
+                        }]
+                    }
+                ]}>
                     <View style={styles.dragHandle} />
                     
                     <View style={styles.headerRow}>
@@ -180,6 +213,7 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
                         {mode === 'unified' && (
                             <View style={styles.section}>
                                 <CustomText style={styles.sectionTitle}>Your Phone Number</CustomText>
@@ -244,15 +278,17 @@ export default function EmergencySetupModal({ visible, onClose, mode = 'emergenc
                     <TouchableOpacity style={[styles.saveBtn, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving}>
                         {isSaving ? <ActivityIndicator color={Colors.WHITE} /> : <CustomText style={styles.saveBtnText}>Save & Apply</CustomText>}
                     </TouchableOpacity>
-                </View>
+                </Animated.View>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-    dismissArea: { flex: 1, width: '100%' },
+    modalContainer: { flex: 1, justifyContent: 'flex-end' },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+    backdropTouch: { flex: 1, width: '100%' },
+
     bottomSheet: { backgroundColor: Colors.WHITE, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12, maxHeight: '90%', ...dropShadow },
     dragHandle: { width: 40, height: 5, borderRadius: 3, backgroundColor: Colors.GRAY_LIGHT, alignSelf: 'center', marginBottom: 16 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
