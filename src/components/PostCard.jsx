@@ -2,12 +2,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     Image,
-    Platform,
     Pressable,
-    ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -22,7 +20,7 @@ const PostCard = ({
     onLike, 
     isLiked, 
     onEdit,
-    variant = 'community' // 'community' | 'profile'
+    variant = 'community' 
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
@@ -99,17 +97,29 @@ const PostCard = ({
         }
     };
 
-    const hasTags = review.perceivedDifficulty || review.trailMaintenance || review.difficultyFactors?.length || review.favoredFactors?.length;
-    const reviewText = review?.review || "No review text provided for this hike.";
+    const allTags = [];
+    if (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
+        allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
+    }
+    if (review.trailMaintenance && review.trailMaintenance !== 'undefined') {
+        allTags.push({ id: `maint-main`, type: 'maintenance', label: getMaintenanceStyle(review.trailMaintenance).label, style: getMaintenanceStyle(review.trailMaintenance) });
+    }
+    review.difficultyFactors?.forEach(f => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
+    review.favoredFactors?.forEach(f => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
+
+    const visibleTags = isExpanded ? allTags : allTags.slice(0, 2);
+    const hiddenTagsCount = allTags.length - visibleTags.length;
+    const hasTags = allTags.length > 0;
+    
+    const reviewText = review?.review || review?.content || "No review text provided for this hike.";
     const maxLength = 90; 
     const isLong = reviewText.length > maxLength;
-    const displayText = isExpanded ? reviewText : (isLong ? `${reviewText.substring(0, maxLength).trim()}` : reviewText);
+    const displayText = isExpanded ? reviewText : (isLong ? `${reviewText.substring(0, maxLength).trim()}...` : reviewText);
 
     return (
         <View style={styles.card}>
             
             <View style={styles.header}>
-                
                 <View style={styles.headerLeft}>
                     <View style={styles.avatarPlaceholder}>
                         <CustomText variant="label" style={styles.avatarText}>
@@ -128,16 +138,26 @@ const PostCard = ({
 
                 <View style={styles.headerRight}>
                     
-                    <Pressable onPress={onLike} style={styles.likeButton}>
+                    <View style={styles.headerRatingBadge}>
+                        <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
+                        <CustomText variant="label" style={styles.headerRatingText}>
+                            {review.overallRating || review.rate?.toFixed(1) || '--'}
+                        </CustomText>
+                    </View>
+
+                    <Pressable 
+                        onPress={onLike} 
+                        style={[styles.headerLikeBadge, isLiked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive]}
+                    >
                         <CustomIcon 
                             library={isLiked ? "Ionicons" : "Feather"} 
                             name={isLiked ? "heart" : "heart"} 
-                            size={18} 
-                            color={isLiked ? Colors.ERROR : Colors.BLACK} 
+                            size={14} 
+                            color={isLiked ? Colors.ERROR : Colors.TEXT_SECONDARY} 
                         />
                         <CustomText 
                             variant="label" 
-                            style={[styles.likeCount, isLiked ? { color: Colors.ERROR } : { color: Colors.BLACK }]}
+                            style={isLiked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
                         >
                             {review.likes?.length || review.likes || 0}
                         </CustomText>
@@ -145,15 +165,9 @@ const PostCard = ({
 
                     {variant === 'profile' && (
                         <TouchableOpacity onPress={onEdit} style={styles.editIconButton} activeOpacity={0.7}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="edit-2" 
-                                size={18} 
-                                color={Colors.PRIMARY} 
-                            />
+                            <CustomIcon library="Feather" name="edit-2" size={18} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     )}
-
                 </View>
             </View>
 
@@ -162,33 +176,17 @@ const PostCard = ({
                 activeOpacity={0.9}
                 onPress={() => setIsPreviewVisible(true)}
             >
-                <Image 
-                    source={getImgSource(displayImage)} 
-                    style={styles.postImage} 
-                    resizeMode="cover" 
-                />
+                <Image source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
                 
-                <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']}
-                    style={styles.gradientOverlay}
-                >
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
                             {review.trail?.name || review.trailName || "Mountain Name"}
                         </CustomText>
                         
                         <View style={styles.locationRow}>
-                            <CustomIcon
-                                library="FontAwesome6"
-                                name="location-dot"
-                                size={10}
-                                color={Colors.TEXT_INVERSE}
-                            />
-                            <CustomText
-                                variant="caption"
-                                style={styles.locationTextOverlay}
-                                numberOfLines={1}
-                            >
+                            <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
+                            <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
                                 {review.location || "Philippines"}
                             </CustomText>
                         </View>
@@ -196,9 +194,7 @@ const PostCard = ({
 
                     {imagesList.length > 1 && (
                         <View style={styles.imageCountBadge}>
-                            <CustomText variant='label' style={styles.imageCountText}>
-                                {`+${imagesList.length}`}
-                            </CustomText>
+                            <CustomText variant='label' style={styles.imageCountText}>{`+${imagesList.length}`}</CustomText>
                         </View>
                     )}
                 </LinearGradient>
@@ -206,20 +202,11 @@ const PostCard = ({
 
             <View style={styles.statsContainer}>
                 <StatItem 
-                    label="Rate" 
-                    value={review.overallRating || review.rate?.toFixed(1) || '--'} 
-                    icon="star" 
-                    lib="Ionicons"
-                    iconColor={Colors.YELLOW} 
-                    style={styles.rateStat}
-                />
-                <View style={styles.verticalDivider} />
-                <StatItem 
                     label="Distance" 
                     value={formatStat(review.distance, 'distance')}
                     icon="map-outline" 
                     lib="Ionicons"
-                    style={styles.otherStat}
+                    style={styles.threeColStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -227,7 +214,7 @@ const PostCard = ({
                     value={formatStat(review.elevation, 'elevation')}
                     icon="trending-up" 
                     lib="Feather"
-                    style={styles.otherStat}
+                    style={styles.threeColStat}
                 />
                 <View style={styles.verticalDivider} />
                 <StatItem 
@@ -235,7 +222,7 @@ const PostCard = ({
                     value={formatStat(review.duration, 'duration')}
                     icon="time-outline" 
                     lib="Ionicons"
-                    style={styles.otherStat}
+                    style={styles.threeColStat}
                 />
             </View>
 
@@ -243,76 +230,68 @@ const PostCard = ({
 
             {hasTags && (
                 <View style={styles.tagsWrapper}>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.tagsScroll}
-                        contentContainerStyle={styles.tagsContainer}
-                    >
-                        {review.perceivedDifficulty && (
-                            <View style={[styles.statusPill, { backgroundColor: getDifficultyStyle(review.perceivedDifficulty).bg, borderColor: getDifficultyStyle(review.perceivedDifficulty).border }]}>
-                                <CustomIcon 
-                                    library="MaterialCommunityIcons" 
-                                    name={getDifficultyStyle(review.perceivedDifficulty).icon} 
-                                    size={14} 
-                                    color={getDifficultyStyle(review.perceivedDifficulty).text} 
-                                />
-                                <CustomText style={[styles.statusPillText, { color: getDifficultyStyle(review.perceivedDifficulty).text }]}>
-                                    {review.perceivedDifficulty}
-                                </CustomText>
+                    <View style={styles.tagsContainer}>
+                        {visibleTags.map(tag => {
+                            if (tag.type === 'difficulty') {
+                                return (
+                                    <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
+                                        <CustomIcon library="MaterialCommunityIcons" name={tag.style.icon} size={14} color={tag.style.text} />
+                                        <CustomText style={[styles.statusPillText, { color: tag.style.text }]}>{tag.value}</CustomText>
+                                    </View>
+                                );
+                            }
+                            if (tag.type === 'maintenance') {
+                                return (
+                                    <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
+                                        <CustomIcon library="Feather" name={tag.style.icon} size={12} color={tag.style.text} />
+                                        <CustomText style={[styles.statusPillText, { color: tag.style.text }]}>{tag.label}</CustomText>
+                                    </View>
+                                );
+                            }
+                            if (tag.type === 'factor-diff') {
+                                return (
+                                    <View key={tag.id} style={styles.difficultyChip}>
+                                        <CustomText style={styles.difficultyChipText}>{tag.value}</CustomText>
+                                    </View>
+                                );
+                            }
+                            if (tag.type === 'factor-fav') {
+                                return (
+                                    <View key={tag.id} style={styles.favoredChip}>
+                                        <CustomText style={styles.favoredChipText}>{tag.value}</CustomText>
+                                    </View>
+                                );
+                            }
+                            return null;
+                        })}
+
+                        {!isExpanded && hiddenTagsCount > 0 && (
+                            <View style={styles.moreTagsChip}>
+                                <CustomText style={styles.moreTagsText}>+{hiddenTagsCount} more</CustomText>
                             </View>
                         )}
-
-                        {review.trailMaintenance && (
-                            <View style={[styles.statusPill, { backgroundColor: getMaintenanceStyle(review.trailMaintenance).bg, borderColor: getMaintenanceStyle(review.trailMaintenance).border }]}>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name={getMaintenanceStyle(review.trailMaintenance).icon} 
-                                    size={12} 
-                                    color={getMaintenanceStyle(review.trailMaintenance).text} 
-                                />
-                                <CustomText style={[styles.statusPillText, { color: getMaintenanceStyle(review.trailMaintenance).text }]}>
-                                    {getMaintenanceStyle(review.trailMaintenance).label}
-                                </CustomText>
-                            </View>
-                        )}
-
-                        {review.difficultyFactors?.map(factor => (
-                            <View key={`diff-${factor}`} style={styles.factorChip}>
-                                <CustomText style={styles.factorChipText}>{factor}</CustomText>
-                            </View>
-                        ))}
-
-                        {review.favoredFactors?.map(factor => (
-                            <View key={`fav-${factor}`} style={styles.factorChip}>
-                                <CustomText style={styles.factorChipText}>{factor}</CustomText>
-                            </View>
-                        ))}
-                    </ScrollView>
+                    </View>
                 </View>
             )}
 
             <View style={styles.textBody}>
                 <CustomText variant="body" style={styles.reviewContent}>
                     {displayText}
-                    {isLong && !isExpanded && (
-                        <CustomText style={styles.showMoreAction} onPress={() => setIsExpanded(true)}>
-                            ... Show More
-                        </CustomText>
-                    )}
-                    {isLong && isExpanded && (
-                        <CustomText style={styles.showMoreAction} onPress={() => setIsExpanded(false)}>
-                            {" "}Show Less
-                        </CustomText>
-                    )}
                 </CustomText>
+                
+                {((isLong) || hiddenTagsCount > 0) && !isExpanded && (
+                    <TouchableOpacity onPress={() => setIsExpanded(true)} style={{ marginTop: 6 }}>
+                        <CustomText style={styles.showMoreAction}>Show More</CustomText>
+                    </TouchableOpacity>
+                )}
+                {isExpanded && ((isLong) || allTags.length > 2) && (
+                    <TouchableOpacity onPress={() => setIsExpanded(false)} style={{ marginTop: 6 }}>
+                        <CustomText style={styles.showMoreAction}>Show Less</CustomText>
+                    </TouchableOpacity>
+                )}
             </View>
 
-            <ImagePreviewModal 
-                visible={isPreviewVisible} 
-                images={imagesList} 
-                onClose={() => setIsPreviewVisible(false)} 
-            />
+            <ImagePreviewModal visible={isPreviewVisible} images={imagesList} onClose={() => setIsPreviewVisible(false)} />
         </View>
     );
 };
@@ -321,7 +300,7 @@ const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
-            <CustomText variant="caption" style={styles.statValue} numberOfLines={1}>
+            <CustomText variant="caption" style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.7}>
                 {value}
             </CustomText>
         </View>
@@ -332,252 +311,63 @@ const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }
 );
 
 const styles = StyleSheet.create({
-    card: {
-        backgroundColor: Colors.WHITE,
-        marginBottom: 0, 
-        borderRadius: 24, 
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
-        overflow: 'hidden',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        paddingBottom: 12,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        paddingRight: 12,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    avatarPlaceholder: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarText: {
-        color: Colors.TEXT_INVERSE,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    userInfo: {
-        flex: 1,
-        marginLeft: 12,
-        justifyContent: 'center',
-    },
-    userName: {
-        marginBottom: -2,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-    },
-    dateText: {
-        color: Colors.TEXT_SECONDARY,
-    },
-    likeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        padding: 4,
-    },
-    likeCount: {
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    editIconButton: {
-        padding: 4,
-    },
+    card: { backgroundColor: Colors.WHITE, marginBottom: 0, borderRadius: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3, overflow: 'hidden' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 12 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 12 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    avatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.PRIMARY, justifyContent: 'center', alignItems: 'center' },
+    avatarText: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', fontSize: 16 },
+    userInfo: { flex: 1, marginLeft: 12, justifyContent: 'center' },
+    userName: { marginBottom: -2, fontSize: 16, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
+    dateText: { color: Colors.TEXT_SECONDARY },
     
-    imageWrapper: {
-        position: 'relative',
-        height: 200,
-        width: 'auto',
-        marginHorizontal: 16,
-        borderRadius: 16,
-        marginBottom: 16,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        overflow: 'hidden',
-    },
-    postImage: {
-        width: '100%',
-        height: '100%',
-    },
-    gradientOverlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: '50%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-    },
-    headerTextColumn: {
-        flex: 1,
-        paddingRight: 16,
-    },
-    mountainTitleOverlay: {
-        color: Colors.TEXT_INVERSE,
-        fontWeight: 'bold',
-        marginBottom: 2,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-    },
-    locationRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 2,
-        gap: 6,
-    },
-    locationTextOverlay: {
-        color: Colors.TEXT_INVERSE,
-        fontWeight: "500",
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-    },
+    headerRatingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_WARNING_BG, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+    headerRatingText: { color: Colors.STATUS_WARNING_TEXT, fontWeight: 'bold', fontSize: 13 },
 
-    imageCountBadge: {
-        backgroundColor: 'rgba(0,0,0,0.65)',
-        paddingHorizontal: 10, 
-        paddingVertical: 8,
-        borderRadius: 12, 
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    imageCountText: {
-        color: Colors.TEXT_INVERSE,
-        marginTop: -2
-    },
+    headerLikeBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+    headerLikeBadgeActive: { backgroundColor: Colors.ERROR_BG },
+    headerLikeBadgeInactive: { backgroundColor: Colors.GRAY_ULTRALIGHT },
+    headerLikeTextActive: { color: Colors.ERROR, fontWeight: 'bold', fontSize: 13 },
+    headerLikeTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 13 },
+
+    editIconButton: { padding: 4, marginLeft: 4 },
     
-    statsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingBottom: 16,
-    },
-    statBox: {
-        alignItems: 'center',
-        justifyContent: 'center', 
-        paddingHorizontal: 4,
-    },
-    statTopRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-    },
-    statValue: {
-        fontWeight: '900',
-        color: Colors.TEXT_PRIMARY,
-    },
-    statLabel: {
-        fontSize: 10,
-        color: Colors.TEXT_SECONDARY,
-        textTransform: 'uppercase',
-        fontWeight: '600',
-        marginTop: 2,
-    },
+    imageWrapper: { position: 'relative', height: 200, width: 'auto', marginHorizontal: 16, borderRadius: 16, marginBottom: 16, backgroundColor: Colors.GRAY_ULTRALIGHT, overflow: 'hidden' },
+    postImage: { width: '100%', height: '100%' },
+    gradientOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+    headerTextColumn: { flex: 1, paddingRight: 16 },
+    mountainTitleOverlay: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', marginBottom: 2, textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    locationRow: { flexDirection: "row", alignItems: "center", paddingVertical: 2, gap: 6 },
+    locationTextOverlay: { color: Colors.TEXT_INVERSE, fontWeight: "500", textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    imageCountBadge: { backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    imageCountText: { color: Colors.TEXT_INVERSE, marginTop: -2 },
     
-    verticalDivider: {
-        width: 1,
-        height: 24,
-        backgroundColor: Colors.WARNING,
-        flex: 0,
-        marginHorizontal: 4, 
-    },
-
-    rateStat: {
-        flex: 0.8,
-    },
-    otherStat: {
-        flex: 1.1,
-    },
+    statsContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 },
+    statBox: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+    statTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    statValue: { fontWeight: '900', color: Colors.TEXT_PRIMARY },
+    statLabel: { fontSize: 10, color: Colors.TEXT_SECONDARY, textTransform: 'uppercase', fontWeight: '600', marginTop: 2 },
     
-    horizontalDivider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginHorizontal: 16,
-        marginBottom: 12,
-    },
+    verticalDivider: { width: 1, height: 24, backgroundColor: Colors.GRAY_LIGHT, flex: 0, marginHorizontal: 4 },
+    threeColStat: { flex: 1 },
+    horizontalDivider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginHorizontal: 16, marginBottom: 12 },
 
-    tagsWrapper: {
-        marginBottom: 12,
-    },
-    tagsScroll: Platform.select({
-        web: {
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-        },
-        default: {}
-    }),
-    tagsContainer: {
-        paddingHorizontal: 16,
-        gap: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statusPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        gap: 6,
-    },
-    statusPillText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-    },
-    factorChip: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    factorChipText: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '600',
-    },
+    tagsWrapper: { marginBottom: 12, paddingHorizontal: 16 },
+    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, gap: 6 },
+    statusPillText: { fontSize: 11, fontWeight: 'bold' },
+    
+    difficultyChip: { backgroundColor: Colors.STATUS_WARNING_BG, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.STATUS_WARNING_BORDER },
+    difficultyChipText: { fontSize: 11, color: Colors.STATUS_WARNING_TEXT, fontWeight: '600' },
+    favoredChip: { backgroundColor: Colors.STATUS_APPROVED_BG, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.STATUS_APPROVED_BORDER },
+    favoredChipText: { fontSize: 11, color: Colors.STATUS_APPROVED_TEXT, fontWeight: '600' },
 
-    textBody: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
-    },
-    reviewContent: {
-        fontSize: 12,
-        lineHeight: 22,
-        color: Colors.TEXT_SECONDARY,
-    },
-    showMoreAction: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        textDecorationLine: 'underline',
-        color: Colors.PRIMARY, 
-    },
+    moreTagsChip: { backgroundColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
+    moreTagsText: { fontSize: 11, color: Colors.TEXT_SECONDARY, fontWeight: '600', fontStyle: 'italic' },
+
+    textBody: { paddingHorizontal: 16, paddingBottom: 16, width: '100%' },
+    reviewContent: { fontSize: 12, lineHeight: 22, color: Colors.TEXT_SECONDARY, flexShrink: 1 },
+    showMoreAction: { fontSize: 12, fontWeight: 'bold', textDecorationLine: 'underline', color: Colors.PRIMARY },
 });
 
 export default PostCard;
