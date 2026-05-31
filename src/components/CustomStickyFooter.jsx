@@ -1,15 +1,19 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
 const CustomStickyFooter = ({ primaryButton, secondaryButton }) => {
+    const insets = useSafeAreaInsets();
+    const safeBottomPadding = Math.max(insets.bottom, 16);
+
     if (!primaryButton) return null;
 
     return (
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: safeBottomPadding }]}>
             {secondaryButton ? (
                 <View style={styles.buttonRow}>
                     <View style={styles.buttonWrapper}>
@@ -59,7 +63,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         paddingHorizontal: 16,
         paddingTop: 16,
-        paddingBottom: 16,
         
         shadowColor: Colors.SHADOW, 
         shadowOffset: { width: 0, height: -4 },
@@ -73,12 +76,12 @@ const styles = StyleSheet.create({
         
         elevation: 10, 
     },
-    buttonRow: {
-        flexDirection: 'row',
-        gap: 16, 
+    buttonRow: { 
+        flexDirection: 'row', 
+        gap: 16 
     },
-    buttonWrapper: {
-        flex: 1,
+    buttonWrapper: { 
+        flex: 1 
     }
 });
 
