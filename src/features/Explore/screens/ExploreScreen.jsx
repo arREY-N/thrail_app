@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import CustomFAB from "@/src/components/CustomFAB";
 import CustomFilterModal from "@/src/components/CustomFilterModal";
@@ -17,7 +17,7 @@ const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
-const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating }) => {
+const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, isLoading }) => {
     const [weatherMap, setWeatherMap] = useState({});
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -140,7 +140,11 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating }) 
                             justifyContent: shouldCenterGrid ? 'center' : 'flex-start'
                         }
                     ]}>
-                        {filteredTrails.length > 0 ? (
+                        {isLoading && filteredTrails.length === 0 ? (
+                            <View style={styles.loaderContainer}>
+                                <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                            </View>
+                        ) : filteredTrails.length > 0 ? (
                             filteredTrails.map((t) => (
                                 <MountainCard
                                     rating={getItemRating(t.id)}
@@ -230,6 +234,12 @@ const styles = StyleSheet.create({
         paddingBottom: 0,
         flexDirection: "row",
         flexWrap: "wrap",
+    },
+    loaderContainer: {
+        width: '100%',
+        paddingVertical: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     emptyState: {
         paddingTop: 40,
