@@ -115,7 +115,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isGuidedHike = !!booking;
 
     const handleSendSMS = () => {
-        const message = `🚨 EMERGENCY SOS 🚨\n\nI am having a trail emergency and require immediate assistance.\n\n📍 Coordinates: ${lat || 'Unknown'}, ${lon || 'Unknown'}`;
+        const message = `EMERGENCY SOS \n\nI am having a trail emergency and require immediate assistance.\n\n📍 Coordinates: ${lat || 'Unknown'}, ${lon || 'Unknown'}`;
         Linking.openURL(`sms:${emergencyContactNumber || ""}?body=${encodeURIComponent(message)}`);
         setShowSosMenu(false);
     };
@@ -360,7 +360,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 isDestructive={false}
                 iconName="shield" children={undefined}            />
 
-            {/* ✅ Fixed the TS mapping errors with :any types */}
             <Modal visible={showTrailInfo} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
                     <View style={styles.bottomSheet}>
@@ -535,7 +534,6 @@ const styles = StyleSheet.create({
     textLive: { fontSize: 10, fontWeight: 'bold', color: Colors.PRIMARY },
     textOffline: { fontSize: 10, fontWeight: 'bold', color: Colors.TEXT_SECONDARY },
 
-    // Info Sheet
     infoSection: { marginBottom: 20 },
     infoTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.TEXT_PRIMARY, marginBottom: 8 },
     infoSubTitle: { fontSize: 14, fontWeight: 'bold', color: Colors.TEXT_SECONDARY, marginBottom: 6 },
