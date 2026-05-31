@@ -5,7 +5,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
-import EmergencySetupModal from '@/src/components/EmergencySetupModal';
+import EmergencySetupModal from '@/src/components/EmergencyModal';
 
 import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
