@@ -11,6 +11,7 @@ import { useEmergencyContact } from '@/src/core/hook/user/useEmergencyContact';
 export default function profile(){
     const {
         onSettingsPress,
+        onGroupPress
     } = useAppNavigation();
 
     const {
@@ -62,9 +63,9 @@ export default function profile(){
     let maxElev = 0; let maxElevTrail = '--';
 
     myReviews.forEach(log => {
-        const dist = parseFloat(log.distance || log.trail?.length) || 0;
-        const time = parseFloat(log.duration || log.trail?.hours) || 0;
-        const elev = parseFloat(log.elevation || log.trail?.masl) || 0;
+        const dist = parseFloat(log.distance) || 0;
+        const time = parseFloat(log.duration) || 0;
+        const elev = parseFloat(log.elevation) || 0;
         const trailName = log.trail?.name || log.trailName || '--';
 
         if (dist > maxDist) { maxDist = dist; maxDistTrail = trailName; }
@@ -75,10 +76,24 @@ export default function profile(){
     const totalHikesCount = myReviews.length;
     const lastHikeName = totalHikesCount > 0 ? (myReviews[0].trail?.name || myReviews[0].trailName || '--') : '--';
 
+    const formatTime = (ms) => {
+        if (ms === 0) return '--';
+        const totalMins = Math.floor(ms / 60000);
+        if (totalMins < 1) return '< 1m';
+        const hours = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    };
+
+    const formatDistance = (m) => {
+        if (m === 0) return '--';
+        return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
+    };
+
     const computedStats = {
-        longestDistance: { value: maxDist > 0 ? `${maxDist} km` : '--', trail: maxDistTrail },
-        longestTime: { value: maxTime > 0 ? `${maxTime} hr` : '--', trail: maxTimeTrail },
-        highestPoint: { value: maxElev > 0 ? `${maxElev} m` : '--', trail: maxElevTrail },
+        longestDistance: { value: formatDistance(maxDist), trail: maxDistTrail },
+        longestTime: { value: formatTime(maxTime), trail: maxTimeTrail },
+        highestPoint: { value: maxElev > 0 ? `${Math.round(maxElev)} m` : '--', trail: maxElevTrail },
         totalHikes: { value: String(totalHikesCount), lastHike: lastHikeName },
         achievements: { 
             beginner: totalHikesCount >= 1,
@@ -101,6 +116,7 @@ export default function profile(){
             onLikeReview={likeReview}
             isLiked={isLiked}
             onEditReview={onWriteReviewPress}
+            onGroupPress={onGroupPress}
         />
     );
 }
