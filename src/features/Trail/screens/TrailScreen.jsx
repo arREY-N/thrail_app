@@ -5,9 +5,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -25,6 +26,8 @@ const TrailScreen = ({
     onDownloadPress, 
     onHikePress, 
     onBookPress,
+    onEditPress,
+    isSuperadmin,
     reviews,
     isLoading,
     likeReview,
@@ -33,6 +36,8 @@ const TrailScreen = ({
     isOwned,
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
+    const insets = useSafeAreaInsets();
+
     const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
         trail?.general?.name,
         trail?.geography?.startLat,
@@ -40,6 +45,16 @@ const TrailScreen = ({
     );
 
     const heroImage = useMemo(() => {
+        const name = trail?.general?.name || "Unnamed Mountain";
+        const uniqueString = trail?.id ? String(trail.id) : name;
+        
+        let hash = 0;
+        for (let i = 0; i < uniqueString.length; i++) {
+            const char = uniqueString.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash; 
+        }
+
         const images = [
             require('@/src/assets/images/MT1.jpg'),
             require('@/src/assets/images/MT2.jpg'),
@@ -48,19 +63,9 @@ const TrailScreen = ({
             require('@/src/assets/images/MT5.jpg'),
             require("@/src/assets/images/Mt.Tagapo.jpg"),
         ];
-        
-        const uniqueString = trail?.id ? String(trail.id) : (trail?.name || "Unnamed Trail");
-
-        let hash = 0;
-        for (let i = 0; i < uniqueString.length; i++) {
-            const char = uniqueString.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; 
-        }
 
         const positiveHash = Math.abs(hash);
         const imageIndex = positiveHash % images.length;
-        
         return images[imageIndex];
     }, [trail]);
 
@@ -71,8 +76,10 @@ const TrailScreen = ({
         : (trail?.general?.province || "Unknown Location");  
 
     const address = trail?.general?.address || location;
-    const rating = reviews.map(r => r.overallRating).reduce((acc, r) => acc + (r || 0), 0) / (reviews.length || 1); 
-    const reviewsCount = reviews.length;
+    
+    const validReviewsCount = reviews?.length || 1;
+    const rating = (reviews?.reduce((acc, r) => acc + (r?.overallRating || 0), 0) / validReviewsCount) || 0;
+    const reviewsCount = reviews?.length || 0;
 
     const stats = {
         distance: trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--",
@@ -80,13 +87,13 @@ const TrailScreen = ({
         elevation: trail?.difficulty?.elevation ? `${trail.difficulty.elevation} m` : "--",
     };
 
-    const latitude = trail?.geography?.latitude ?? trail?.location?.latitude ?? null;
-    const longitude = trail?.geography?.longitude ?? trail?.location?.longitude ?? null;
+    const latitude = trail?.geography?.startLat ?? null;
+    const longitude = trail?.geography?.startLong ?? null;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             
-            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+            <TouchableOpacity style={styles.backButton} onPress={onBackPress} activeOpacity={0.7}>
                 <CustomIcon 
                     library="Feather" 
                     name="chevron-left" 
@@ -94,11 +101,22 @@ const TrailScreen = ({
                     color={Colors.WHITE} 
                 />
             </TouchableOpacity>
+
+            {isSuperadmin && (
+                <TouchableOpacity style={styles.editButton} onPress={onEditPress} activeOpacity={0.7}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name="edit-2" 
+                        size={20} 
+                        color={Colors.WHITE} 
+                    />
+                </TouchableOpacity>
+            )}
             
             <ResponsiveScrollView 
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
-                style={styles.container}
+                style={[styles.container, { marginTop: -insets.top }]}
             >
                 <View style={styles.imageContainer}>
                     <Image 
@@ -135,24 +153,8 @@ const TrailScreen = ({
                                 </View>
 
                             </View>
-                            
-                            {/* <TouchableOpacity 
-                                style={styles.downloadButton} 
-                                onPress={() => onDownloadPress(trail?.id)}
-                            >
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="download" 
-                                    size={20}
-                                    color={Colors.WHITE} 
-                                />
-                            </TouchableOpacity> */}
-
                         </View>
                     </View>
-
-                    {/* HikeBriefing removed from here — moved into the Details tab */}
-
 
                     <View style={styles.tabContainer}>
                         {['Details', 'Weather', 'Reviews'].map((tab) => (
@@ -182,6 +184,7 @@ const TrailScreen = ({
                             location={address} 
                         />
                     )}
+
                     {activeTab === 'Weather' && (
                         <TrailWeatherTab 
                             latitude={latitude} 
@@ -189,6 +192,7 @@ const TrailScreen = ({
                             trail={trail}
                         />
                     )}
+                    
                     {activeTab === 'Reviews' && (
                         <TrailReviewsTab 
                             reviews={reviews}
@@ -203,29 +207,19 @@ const TrailScreen = ({
                 </View>
             </ResponsiveScrollView>
 
-            <View style={styles.footer}>
-                <View style={styles.buttonWrapper}>
-                    <CustomButton 
-                        title="Hike" 
-                        onPress={() => onHikePress(trail?.id)} 
-                        variant="secondary"
-                        style={[
-                            styles.footerBtn, 
-                            { borderWidth: 1.5, borderColor: Colors.PRIMARY }
-                        ]}
-                        textStyle={{ color: Colors.PRIMARY }}
-                    />
-                </View>
-
-                <View style={styles.buttonWrapper}>
-                    <CustomButton 
-                        title="Book" 
-                        onPress={() => onBookPress(trail?.id)} 
-                        style={styles.footerBtn}
-                        variant="primary"
-                    />
-                </View>
-            </View>
+            <CustomStickyFooter 
+                primaryButton={{ 
+                    title: "Book", 
+                    onPress: () => onBookPress(trail?.id) 
+                }}
+                secondaryButton={{ 
+                    title: "Hike", 
+                    onPress: () => onHikePress(trail?.id), 
+                    variant: 'outline', 
+                    style: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
+                    textStyle: { color: Colors.PRIMARY }
+                }}
+            />
 
         </ScreenWrapper>
     );
@@ -236,8 +230,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
     },
+
     scrollContent: {
-        paddingBottom: 8,
+        paddingBottom: 120,
     },
 
     imageContainer: {
@@ -262,14 +257,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
     },
+    editButton: {
+        position: 'absolute',
+        top: 24,
+        right: 16,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
     
     bodyContainer: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
-        marginTop: -20,
+        marginTop: -24,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        paddingBottom: 96,
         paddingTop: 24,
         paddingHorizontal: 24,
 
@@ -306,16 +312,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
-    downloadButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 1,
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
 
     tabContainer: {
         flexDirection: 'row',
@@ -344,36 +340,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.GRAY_LIGHT,
         marginBottom: 24,
     },
-
-    footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: Colors.WHITE,
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 16,
-
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_LIGHT,
-        gap: 16,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-
-    },
-    buttonWrapper: {
-        flex: 1,
-    },
-    footerBtn: {
-        width: '100%',
-    }
 });
 
 export default TrailScreen;
