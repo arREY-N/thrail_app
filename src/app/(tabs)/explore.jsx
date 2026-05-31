@@ -1,14 +1,17 @@
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback } from 'react';
+
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
-import React from 'react';
 
-import useReview from '@/src/core/hook/review/useReview';
-
-export default function explore(){
+export default function explore() {
     const { 
         onViewTrail, 
-        trails 
+        trails,
+        isLoading,
+        fetchAllTrails
     } = useTrailDomain() 
 
     const {
@@ -18,6 +21,14 @@ export default function explore(){
     const {
         getItemRating,
     } = useReview();
+
+    useFocusEffect(
+        useCallback(() => {
+            if (trails.length === 0 && !isLoading) {
+                fetchAllTrails();
+            }
+        }, [trails.length, isLoading, fetchAllTrails])
+    );
     
     return (
         <ExploreScreen
@@ -25,6 +36,7 @@ export default function explore(){
             trails={trails}
             onViewMountain={onViewTrail}
             onGroupPress={onGroupPress}
+            isLoading={isLoading} // ✅ Pass loading state down
         />
     )
 }
