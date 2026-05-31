@@ -53,10 +53,20 @@ const ProfileScreen = ({
         ? `@${profile.username}` 
         : '@username';
 
-        console.log('Profile data:', formatDate(profile.createdAt));
-    const createdDate = profile?.createdAt 
-        ? formatDate(profile.createdAt ?? new Date()) 
-        : 'Mar 2026';
+    let createdDate = 'Mar 2026';
+    if (profile?.createdAt) {
+        try {
+            const dateObj = typeof profile.createdAt?.toDate === 'function' 
+                ? profile.createdAt.toDate() 
+                : new Date(profile.createdAt);
+            
+            if (!isNaN(dateObj.getTime())) {
+                createdDate = formatDate(dateObj);
+            }
+        } catch (e) {
+            console.warn("Date parse error", e);
+        }
+    }
 
     const userInitials = getInitials(profile?.firstname, profile?.lastname);
 
