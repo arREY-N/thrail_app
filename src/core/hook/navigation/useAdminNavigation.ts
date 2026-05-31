@@ -7,6 +7,15 @@ export type UseAdminNavigationParams = {
     role?: Role;
 }
 
+/**
+ * Custom hook providing navigation handlers for the Admin panel dashboard.
+ * 
+ * @param {UseAdminNavigationParams} params - Navigation parameters.
+ * @param {string} [params.userId] - The ID of the current logged-in user.
+ * @param {string} [params.businessId] - The associated business entity ID.
+ * @param {Role} [params.role] - The role of the current user.
+ * @returns {object} Navigation callback handlers.
+ */
 export default function useAdminNavigation(params: UseAdminNavigationParams){
     const { userId, businessId, role } = params;
 
@@ -32,10 +41,19 @@ export default function useAdminNavigation(params: UseAdminNavigationParams){
         })
     }
 
+    /**
+     * Navigates to the trail list/management screen.
+     * Accessible by both admins and superadmins.
+     */
+    const onManageTrailsPress = () => {
+        router.push('/(main)/superadmin/trail/list');
+    }
+
     return {
         onManageAdminsPress,
         onManageOffersPress,
         onAddAdminPress,
         onWriteOffer,
+        onManageTrailsPress,
     }
 }

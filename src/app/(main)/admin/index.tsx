@@ -39,6 +39,7 @@ export default function adminHome(){
     const {
         onManageAdminsPress,
         onManageOffersPress,    
+        onManageTrailsPress,
     } = useAdminNavigation({ 
         userId: profile?.id,
         businessId,
@@ -53,6 +54,7 @@ export default function adminHome(){
                 businessAccount={businessAccount}
                 onManageAdminsPress={onManageAdminsPress}
                 onManageOffersPress={onManageOffersPress}
+                onManageTrailsPress={onManageTrailsPress}
                 adminProfile={profile}
                 error={error}
                 onBackPress={onBackPress}

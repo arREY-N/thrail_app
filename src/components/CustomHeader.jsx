@@ -12,6 +12,18 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
+/**
+ * @param {object} props
+ * @param {any} [props.title]
+ * @param {any} [props.onBackPress]
+ * @param {any} [props.rightActions]
+ * @param {boolean} [props.showDefaultIcons]
+ * @param {boolean} [props.centerTitle]
+ * @param {boolean} [props.hasSearch]
+ * @param {object} [props.searchProps]
+ * @param {any} [props.style]
+ * @param {any} [props.children]
+ */
 const CustomHeader = ({ 
     title, 
     onBackPress, 

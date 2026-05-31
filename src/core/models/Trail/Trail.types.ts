@@ -22,6 +22,7 @@ export interface ITrailBase<T> {
     tourism: ITourism;
     createdAt: T;
     updatedAt: T;
+    offlinePoints?: IOfflinePoint[];
 }
 
 export interface IGeographyDB {
@@ -82,3 +83,13 @@ export interface ITrailStats {
     elevationGain: number;   // in meters
     elevationLoss: number;   // in meters
 }
+
+export interface IOfflinePoint {
+    id: string;
+    name: string;
+    type: 'checkpoint' | 'viewpoint' | 'water' | 'shelter' | 'summit' | 'hazard';
+    description: string;
+    x: number; // horizontal percentage coordinate (0-100)
+    y: number; // vertical percentage coordinate (0-100)
+}
+

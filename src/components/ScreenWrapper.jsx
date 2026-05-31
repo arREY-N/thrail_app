@@ -11,6 +11,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+/**
+ * @param {object} props
+ * @param {React.ReactNode} [props.children]
+ * @param {any} [props.style]
+ * @param {string} [props.backgroundColor]
+ */
 const ScreenWrapper = ({ children, style, backgroundColor = Colors.BACKGROUND }) => {
     
     const { isMobile } = useBreakpoints();

@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/src/core/stores/authStore";
+import { useTrailsStore } from "@/src/core/stores/trailsStore";
 import { router } from "expo-router";
 
 export function useAuthHook(){
@@ -22,6 +23,7 @@ export function useAuthHook(){
 
     const onSignOutPress = () => {
         signOut(); 
+        useTrailsStore.getState().reset();
     }
 
     const onForgotPassword = () => {

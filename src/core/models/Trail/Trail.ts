@@ -1,4 +1,4 @@
-import { IDifficulty, IGeneral, IGeographyUI, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
+import { IDifficulty, IGeneral, IGeographyUI, IOfflinePoint, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -46,6 +46,7 @@ export class Trail implements ITrail {
         community: null,
         viewpoint: []
     };
+    offlinePoints: IOfflinePoint[] = [];
     
     constructor(init?: Partial<ITrail>){
         Object.assign(this, init);
@@ -58,12 +59,13 @@ export class Trail implements ITrail {
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
             geography: {
-                masl: data.geography.masl,
-                startLat: data.geography.start.latitude,
-                startLong: data.geography.start.longitude,
-                endLat: data.geography.end.latitude,
-                endLong: data.geography.end.longitude,
+                masl: data.geography?.masl || 0,
+                startLat: data.geography?.start?.latitude ?? 0,
+                startLong: data.geography?.start?.longitude ?? 0,
+                endLat: data.geography?.end?.latitude ?? 0,
+                endLong: data.geography?.end?.longitude ?? 0,
             },
+            offlinePoints: data.offlinePoints || [],
         }
 
         return new Trail(mappped);
@@ -80,10 +82,11 @@ export class Trail implements ITrail {
             difficulty: this.difficulty,
             tourism: this.tourism,
             geography: {
-                masl: this.geography.masl,
-                start: new GeoPoint(this.geography.startLat, this.geography.startLong),
-                end: new GeoPoint(this.geography.endLat, this.geography.endLong)
+                masl: this.geography?.masl || 0,
+                start: new GeoPoint(this.geography?.startLat ?? 0, this.geography?.startLong ?? 0),
+                end: new GeoPoint(this.geography?.endLat ?? 0, this.geography?.endLong ?? 0)
             },
+            offlinePoints: this.offlinePoints || [],
         }
 
         return mapped;

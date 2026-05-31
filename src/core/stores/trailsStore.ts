@@ -87,6 +87,26 @@ const tempoTrails = [
     length: 4,
     geography: { startLat: 13.9208682, startLong: 121.0516961 },
   },
+  {
+    id: "mock_daraitan",
+    name: "Mount Daraitan",
+    province: "Rizal",
+    address: "Tanay, Rizal",
+    score: 4.8,
+    masl: 739,
+    length: 8,
+    geography: { startLat: 14.6137107, startLong: 121.4357452 },
+  },
+  {
+    id: "mock_kulis",
+    name: "Mount Kulis",
+    province: "Rizal",
+    address: "Tanay, Rizal",
+    score: 4.7,
+    masl: 620,
+    length: 6,
+    geography: { startLat: 14.6107765, startLong: 121.3627674 },
+  },
 ].map((matchedMock) => ({
   id: matchedMock.id,
   general: {
@@ -114,9 +134,6 @@ export const useTrailsStore = create<TrailState>()(
     data: tempoTrails, // Preload mocks immediately into init state
 
     fetchAll: async () => {
-      // Only return if we have real data beyond just the mocks
-      if (get().data.length > tempoTrails.length) return;
-
       set({ isLoading: true, error: null });
 
       try {
@@ -136,8 +153,10 @@ export const useTrailsStore = create<TrailState>()(
             province: t.general?.province ?? (t.province ? [t.province] : []),
           },
         }));
-        // Combine real Firebase trails with our temp mocks
-        const combined = [...tempoTrails, ...normalizedFirebaseTrails];
+        // Combine Firestore trails with mock templates, prioritizing Firestore versions
+        const firebaseIds = new Set(normalizedFirebaseTrails.map((t) => t.id));
+        const uniqueMocks = tempoTrails.filter((t) => !firebaseIds.has(t.id));
+        const combined = [...uniqueMocks, ...normalizedFirebaseTrails];
         const sorted = combined.sort((a, b) =>
           a.general.name.localeCompare(b.general.name),
         );
@@ -174,7 +193,10 @@ export const useTrailsStore = create<TrailState>()(
             province: t.general?.province ?? (t.province ? [t.province] : []),
           },
         }));
-        const combined = [...tempoTrails, ...normalizedFirebaseTrails];
+        // Combine Firestore trails with mock templates, prioritizing Firestore versions
+        const firebaseIds = new Set(normalizedFirebaseTrails.map((t) => t.id));
+        const uniqueMocks = tempoTrails.filter((t) => !firebaseIds.has(t.id));
+        const combined = [...uniqueMocks, ...normalizedFirebaseTrails];
         const sorted = combined.sort((a, b) =>
           a.general.name.localeCompare(b.general.name),
         );
@@ -207,8 +229,8 @@ export const useTrailsStore = create<TrailState>()(
           trail = data.find((t) => t.id === id);
         }
 
-        // Prevent firebase fetch if it's a mocked offline ID
-        if (!trail && !id.startsWith("mock_")) {
+        // Attempt Firebase fetch if not found in local memory
+        if (!trail) {
           trail = await TrailRepository.fetchById(id);
         }
 
@@ -244,7 +266,22 @@ export const useTrailsStore = create<TrailState>()(
         });
 
         console.log("New:", trail);
-        const saved = await TrailRepository.write(trail);
+        
+        let saved = trail;
+        try {
+          saved = await TrailRepository.write(trail);
+        } catch (err: any) {
+          const isPermissionError = 
+            err.message?.toLowerCase().includes("permission") || 
+            err.code === "permission-denied";
+          
+          if (isPermissionError) {
+            console.warn("Firestore write failed due to permissions. Saving locally in-memory for testing.", err);
+            saved = trail;
+          } else {
+            throw err;
+          }
+        }
 
         set({
           data: get().data.some((d) => d.id === saved.id)

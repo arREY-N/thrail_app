@@ -19,6 +19,7 @@ import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
 import TrailDetailsTab from '../components/TrailDetailsTab';
 import TrailReviewsTab from '../components/TrailReviewsTab';
 import TrailWeatherTab from '../components/TrailWeatherTab';
+import StaticTrailMap from '@/src/features/Map/StaticTrailMap';
 
 const TrailScreen = ({ 
     trail, 
@@ -28,6 +29,7 @@ const TrailScreen = ({
     onBookPress 
 }) => {
     const [activeTab, setActiveTab] = useState('Details');
+    const [scrollEnabled, setScrollEnabled] = useState(true);
     const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
         trail?.general?.name,
         trail?.geography?.startLat,
@@ -94,6 +96,7 @@ const TrailScreen = ({
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.scrollContent}
                 style={styles.container}
+                scrollEnabled={scrollEnabled}
             >
                 <View style={styles.imageContainer}>
                     <Image 
@@ -150,7 +153,7 @@ const TrailScreen = ({
 
 
                     <View style={styles.tabContainer}>
-                        {['Details', 'Weather', 'Reviews'].map((tab) => (
+                        {['Details', 'Offline Map', 'Weather', 'Reviews'].map((tab) => (
                             <TouchableOpacity 
                                 key={tab} 
                                 style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
@@ -176,6 +179,17 @@ const TrailScreen = ({
                             trail={trail} 
                             location={address} 
                         />
+                    )}
+                    {activeTab === 'Offline Map' && (
+                        <View style={{ height: 450, borderRadius: 16, overflow: 'hidden', marginVertical: 10 }}>
+                            <StaticTrailMap 
+                                trailId={trail?.id}
+                                trailName={trail?.general?.name || trail?.name}
+                                offlinePoints={trail?.offlinePoints || []}
+                                isEditable={false}
+                                onGestureActive={(active) => setScrollEnabled(!active)}
+                            />
+                        </View>
                     )}
                     {activeTab === 'Weather' && (
                         <TrailWeatherTab 
