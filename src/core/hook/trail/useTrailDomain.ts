@@ -12,6 +12,7 @@ export default function useTrailDomain(params: TrailParams | null = null){
     const trails = useTrailsStore(s => s.data);
     const trail = useTrailsStore(s => s.current);
     const hikingTrail = useTrailsStore(s => s.hikingTrail);
+    const isLoading = useTrailsStore(s => s.isLoading);
 
     const setOnHike = useTrailsStore(s => s.setOnHike);
     const setHikingTrail = useTrailsStore(s => s.setHikingTrail);
@@ -20,7 +21,9 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     useEffect(() => {
         fetchAllTrails();
-        load(params?.trailId ?? null);
+        if(params?.trailId) {
+            load(params.trailId);
+        }
     }, [params?.trailId])
 
     const activeTrail = trail as any;
@@ -63,9 +66,11 @@ export default function useTrailDomain(params: TrailParams | null = null){
         trails,
         trail: activeTrail,
         hikingTrail,
+        isLoading,
         setOnHike,
         onViewTrail,
         onHikePress,
         onWriteTrail,
+        fetchAllTrails
     }
 }
