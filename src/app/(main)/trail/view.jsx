@@ -6,7 +6,8 @@ import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
-import { Pressable, Text } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 
 export default function viewTrail(){
     const { trailId } = useLocalSearchParams();
@@ -40,12 +41,8 @@ export default function viewTrail(){
     console.log('Trail Reviews:', reviews.filter(r => r.trail.id === trail.id));
 
     return(
-        <>
-            { isSuperadmin && 
-                <Pressable onPress={() => onWriteTrail(trailId)}>
-                    <Text>EDIT</Text>
-                </Pressable>
-            }
+        <View style={{ flex: 1 }}>
+            <StatusBar style="light" translucent backgroundColor="transparent" />
 
             <TrailScreen 
                 trail={trail} 
@@ -53,7 +50,8 @@ export default function viewTrail(){
                 onDownloadPress={onDownloadPress} 
                 onHikePress={onHikePress}
                 onBookPress={onSeeTrailOffers}
-                onEditPress={onWriteTrail}
+                onEditPress={() => onWriteTrail(trailId)}
+                isSuperadmin={isSuperadmin}
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
                 isLoading={isLoading}
@@ -62,6 +60,6 @@ export default function viewTrail(){
                 isOwned={isOwned}
                 isLiked={isLiked}
             />
-        </>
+        </View>
     )
 }
