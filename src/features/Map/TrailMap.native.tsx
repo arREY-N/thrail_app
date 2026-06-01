@@ -199,14 +199,14 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
           ref={cameraRef}
           defaultSettings={{
             zoomLevel: hasInitialCoords ? 12 : 16,
-            centerCoordinate: hasInitialCoords ? [parsedLon, parsedLat] : undefined,
+            centerCoordinate: hasInitialCoords ? [parsedLon, parsedLat] : [120.9842, 14.5995],
           }}
           minZoomLevel={10}
           maxZoomLevel={20}
           animationMode="flyTo"
           animationDuration={500}
-          followUserMode={isFollowing ? MapLibreGL.UserTrackingMode.Follow : undefined}
-          followUserLocation={isFollowing}
+          followUserMode={isFollowing && permissionGranted ? MapLibreGL.UserTrackingMode.Follow : undefined}
+          followUserLocation={isFollowing && permissionGranted}
         />
 
         {geoJsonUrl && (

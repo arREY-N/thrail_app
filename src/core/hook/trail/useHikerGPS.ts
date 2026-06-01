@@ -89,46 +89,37 @@ export const useHikerGPS = () => {
   const initForegroundGps = async () => {
     if (locationSubscription.current) return;
 
-    unsubscribeNetwork.current = NetInfo.addEventListener((state) => {
-      setIsOnline(!!state.isInternetReachable);
-    });
-
-    appStateSubscription.current = AppState.addEventListener(
-      "change",
-      (nextState) => {
-        if (nextState === "background" || nextState === "inactive") {
-          const timestamp = new Date().toISOString();
-          // saveToCSV("APP_BACKGROUNDED", "", "", timestamp);
-          addCoordinate(new LocationModel({
-            latitude: 0,
-            longitude: 0,
-            altitude: 0,
-            timestamp: new Date(timestamp),
-            status: 'APP_BACKGROUNDED',
-          }));
-        }
-        if (nextState === "active") {
-          const timestamp = new Date().toISOString();
-          // saveToCSV("APP_RESUMED", "", "", timestamp);
-          addCoordinate(new LocationModel({
-            latitude: 0,
-            longitude: 0,
-            altitude: 0,
-            timestamp: new Date(timestamp),
-            status: 'APP_RESUMED',
-          }));
-        }
-      },
-    );
-
     try {
-      const isGpsEnabled = await Location.hasServicesEnabledAsync();
+      let isGpsEnabled = await Location.hasServicesEnabledAsync();
+      if (!isGpsEnabled) {
+        if (Platform.OS === "android") {
+          try {
+            await Location.enableNetworkProviderAsync();
+            isGpsEnabled = await Location.hasServicesEnabledAsync();
+          } catch (e) {
+            console.log("Failed to enable network provider:", e);
+          }
+        }
+      }
+
       if (!isGpsEnabled) {
         setGpsError("Device GPS is turned off. Please enable it in your phone settings.");
         Alert.alert(
           "GPS Disabled",
           "Your device's GPS services are turned off. Please enable them to track your hike.",
-          [{ text: "OK", style: "default" }]
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: () => {
+                if (Platform.OS === "android") {
+                  Linking.sendIntent("android.settings.LOCATION_SOURCE_SETTINGS");
+                } else {
+                  Linking.openSettings();
+                }
+              },
+            },
+          ]
         );
         return;
       }
@@ -253,11 +244,49 @@ export const useHikerGPS = () => {
     }
   };
 
-  // Clean up listeners on unmount
+  // Set up listeners on mount and clean up on unmount
   useEffect(() => {
+    unsubscribeNetwork.current = NetInfo.addEventListener((state) => {
+      setIsOnline(!!state.isInternetReachable);
+    });
+
+    appStateSubscription.current = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        if (nextState === "background" || nextState === "inactive") {
+          const timestamp = new Date().toISOString();
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_BACKGROUNDED',
+          }));
+        }
+        if (nextState === "active") {
+          const timestamp = new Date().toISOString();
+          addCoordinate(new LocationModel({
+            latitude: 0,
+            longitude: 0,
+            altitude: 0,
+            timestamp: new Date(timestamp),
+            status: 'APP_RESUMED',
+          }));
+
+          // Automatically retry initialization if the user turned on location in settings
+          if (!locationSubscription.current) {
+            initForegroundGps();
+          }
+        }
+      },
+    );
+
     return () => {
       if (appStateSubscription.current) appStateSubscription.current.remove();
-      if (locationSubscription.current) locationSubscription.current.remove();
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
       if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
       if (unsubscribeNetwork.current) unsubscribeNetwork.current();
       stopBackgroundTracking();
