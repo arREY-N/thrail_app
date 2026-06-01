@@ -1,4 +1,4 @@
-import { IDifficulty, IGeneral, IGeographyUI, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
+import { IDescription, IDifficulty, IGeneral, IGeographyUI, IOfflinePoint, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -7,8 +7,15 @@ export class Trail implements ITrail {
     [key: string]: any;
     [immerable] = true;
     id: string = '';
+    coverImage: string | null = null;
+    routeMapImage: string | null = null;
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
+    description: IDescription = {
+        classificationDescription: "",
+        lascoRatingDescription: "",
+    };
+    offlinePoints: IOfflinePoint[] = [];
     geography: IGeographyUI = {
         masl: 0,
         startLat: 0,
@@ -61,6 +68,10 @@ export class Trail implements ITrail {
         const mappped: ITrail = {
             ...data,
             id,
+            coverImage: data.coverImage || null,
+            routeMapImage: data.routeMapImage || null,
+            description: data.description || {},
+            offlinePoints: data.offlinePoints || [],
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
             geography: {
@@ -80,6 +91,10 @@ export class Trail implements ITrail {
 
         const mapped: ITrailDB = {
             id: this.id,
+            coverImage: this.coverImage,
+            routeMapImage: this.routeMapImage,
+            description: this.description,
+            offlinePoints: this.offlinePoints,
             updatedAt: serverTimestamp(),
             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt), 
             general: this.general,
