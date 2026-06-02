@@ -227,22 +227,15 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             elevation: totalElevationGain       
         });
         
-        const test = true;
-
-        if(test){
-            console.log('exit without save')
-            updateCurrentHike(completedHike); 
-            onStopSharingLocation();
-            return;
-        }
-
+        updateCurrentHike(completedHike); 
         await create(profile.id, completedHike);
-
+        
         if (completedHike.mode === 'booked' && booking) {
             const finishedBooking = new Booking({ ...booking, status: 'finished' });
             await BookingRepository.write(finishedBooking);
         }
-
+        
+        onStopSharingLocation();
     }
 
     const onResetHike = () => {

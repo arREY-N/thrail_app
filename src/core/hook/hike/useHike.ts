@@ -16,7 +16,7 @@ export type UseHikeParams = {
     
 }
 
-export default function useHike(params: UseHikeParams): IUseHike {
+export default function useHike(): IUseHike {
     const { profile } = useAuthHook();
 
     const [localError, setLocalError] = useState<string | null>(null);

@@ -82,7 +82,7 @@ export class Hike implements IHike {
         }
 
         if(this.status === 'completed' && this.endTime){
-            mapped.endTime = Timestamp.fromDate(this.endTime);
+            mapped.endTime = Timestamp.fromDate(this.endTime ?? new Date());
         }
 
         return mapped;
