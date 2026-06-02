@@ -141,8 +141,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const profile = useAuthStore.getState().profile;
             if(!profile) throw new Error("User profile not found.");
             
-            const lastCoordinate = get().getLastKnownCoordinate();
-            if(!lastCoordinate) throw new Error("No coordinates to share");
+            const lastCoordinate = get().getLastKnownCoordinate() || new Location();
+            //if(!lastCoordinate) throw new Error("No coordinates to share");
 
             await HikeRepository.shareLocation(profile.id, groupId, lastCoordinate);
 

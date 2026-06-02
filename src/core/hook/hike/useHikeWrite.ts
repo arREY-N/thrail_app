@@ -35,11 +35,12 @@ export interface IUseWriteHike {
 export type IUseWriteHikeParams = {
     hikeId?: string;
     trailId?: string;
-    bookingId?: string; 
+    bookingId?: string;
+    groupId?: string;
 }
 
 export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWriteHike {
-    const { hikeId, trailId, bookingId } = params;
+    const { hikeId, trailId, bookingId, groupId } = params;
     const { profile } = useAuthHook();
 
     const [localError, setLocalError] = useState<string | null>(null);
@@ -59,6 +60,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const totalDistance = useHikesStore(s => s.totalDistance);
     const totalElevationGain = useHikesStore(s => s.totalElevationGain);
     const active = useHikesStore(s => s.active);
+
+    const shareLocation = useHikesStore(s => s.startShareLocation);
+    const stopSharingLocation = useHikesStore(s => s.stopShareLocation);
 
     const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
     const updateHikeStore = useHikesStore(s => s.updateHikeStore);
@@ -133,7 +137,28 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         }
     },[hikeId, trailId, bookingId, profile?.id]);
     
-    const onStartHike = () => {
+    const onStartSharingLocation = async () => {
+        try {
+            if(!groupId) throw new Error("Group ID is required to share location");
+            
+            await shareLocation(groupId);
+        } catch (error) {
+            console.log(error);
+            setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
+        }    
+    }
+
+    const onStopSharingLocation = () => {
+        try {            
+            if(!groupId) throw new Error("Group ID is required to share location");
+            stopSharingLocation(groupId);    
+        } catch (error) {
+            console.log(error);
+            setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while stopping location sharing.");
+        }
+    }
+
+    const onStartHike = async () => {
         if(!profile?.id) {
             setLocalError("User ID is required to start hike");
             return;
@@ -149,7 +174,11 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             return;
         }
 
-        startHike(profile!.id);
+        await startHike(profile!.id);
+        if(groupId) {
+            updateHikeStore({ activeGroupId: groupId });
+            await onStartSharingLocation();
+        }
     };
 
     const onPauseHike = () => {
@@ -157,9 +186,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         const currentElapsedTime = Date.now() - timerStartTime;
         updateCurrentHike({ status: 'paused' });
         updateHikeStore({ elapsedTime: currentElapsedTime });
+        onStopSharingLocation();
     }
 
-    const onResumeHike = () => {
+    const onResumeHike = async () => {
         if (!currentHike || currentHike.status !== 'paused') return;
         const newStartTime = Date.now() - elapsedTime; 
 
@@ -171,6 +201,11 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             timerStartTime: newStartTime,
             active: true,
         });
+
+        if(groupId) {
+            updateHikeStore({ activeGroupId: groupId });
+            await onStartSharingLocation();
+        }
     }
 
     const onCompleteHike = async () => {
@@ -192,13 +227,22 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             elevation: totalElevationGain       
         });
         
+        const test = true;
+
+        if(test){
+            console.log('exit without save')
+            updateCurrentHike(completedHike); 
+            onStopSharingLocation();
+            return;
+        }
+
         await create(profile.id, completedHike);
-        updateCurrentHike(completedHike); 
 
         if (completedHike.mode === 'booked' && booking) {
             const finishedBooking = new Booking({ ...booking, status: 'finished' });
             await BookingRepository.write(finishedBooking);
         }
+
     }
 
     const onResetHike = () => {

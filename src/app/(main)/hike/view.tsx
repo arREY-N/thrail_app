@@ -45,7 +45,7 @@ export default function hikeView() {
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = useWriteHike({ hikeId, trailId, bookingId }); 
+    } = useWriteHike({ hikeId, trailId, bookingId, groupId }); 
 
     const { currentGroup } = useGroup(groupId || '');
     const {

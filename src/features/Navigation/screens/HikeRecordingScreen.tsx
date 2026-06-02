@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -145,9 +145,26 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     };
 
+    const handlePress = async (url: string) => {
+        const supported = await Linking.canOpenURL(url);
+
+        if (supported) {
+            await Linking.openURL(url);
+        } else {
+            Alert.alert(`Don't know how to open this URL: ${url}`);
+        }
+    };
+
     const sortedMembers = useMemo(() => {
         if (!currentGroup) return [];
-        const allMembers = [...(currentGroup.admins || []), ...(currentGroup.members || [])];
+        const seenIds = new Set<string>();
+        
+        const allMembers = [...(currentGroup.admins || []), ...(currentGroup.members || [])].filter(member => {
+            if (seenIds.has(member.id)) return false;
+            seenIds.add(member.id);
+            return true;
+        });
+
         return allMembers.sort((a, b) => {
             const locA = hikerLocations?.find(loc => loc.id === a.id);
             const locB = hikerLocations?.find(loc => loc.id === b.id);
@@ -165,6 +182,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     }
     const liveDistanceStr = isTracking ? formatDistance(totalDistance) : "--";
     const liveElevationStr = isTracking ? `${Math.round(totalElevationGain)} m` : "--";
+
+    const locationMap = new Map(hikerLocations?.map(loc => [loc.id, loc])) || new Map();
 
     if (Platform.OS === 'web') {
         return (
@@ -440,8 +459,10 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </View>
                         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
                             {sortedMembers.map((member, index) => {
-                                const locData = hikerLocations?.find(loc => loc.id === member.id);
-                                const isInactive = locData ? (Date.now() - new Date(locData.timestamp).getTime() > 5000) : true;
+                                const locData = locationMap.get(member.id);
+                                const isInactive = locData ? (Date.now() - new Date(locData.timestamp).getTime() > 10000) : true;
+                                const locationLink = `https://www.google.com/maps/search/?api=1&query=${locData?.latitude},${locData?.longitude}`;
+                                
                                 return (
                                     <View key={index} style={styles.memberCard}>
                                         <View style={[styles.memberAvatar, isInactive && { backgroundColor: Colors.GRAY_MEDIUM }]}>
@@ -450,6 +471,9 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
                                             <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+                                            { locData && (
+                                                <Text onPress={() => handlePress(locationLink)}>View in Google Maps</Text>
+                                            )}
                                         </View>
                                         <View style={[styles.statusBadge, isInactive ? styles.badgeOffline : styles.badgeLive]}>
                                             <View style={[styles.statusDot, isInactive ? { backgroundColor: Colors.TEXT_SECONDARY } : { backgroundColor: Colors.PRIMARY }]} />
