@@ -72,12 +72,15 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const [booking, setBooking] = useState<Booking | null>(null);
 
     useEffect(() => {
+        setLocalError(null); // Clear local error on parameter change
+    },[]);
+    useEffect(() => {
         let found: Hike | undefined;
 
         if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))) return;
         
         if (currentHike && ((hikeId && currentHike.id !== hikeId) || (trailId && currentHike.trail.id !== trailId)) && active) {
-            setLocalError(`This hike is still active: ${currentHike.trail.name}`);
+            setLocalError(`Rerunning hike: ${currentHike.trail.name}`);
             return;
         }
 
@@ -127,8 +130,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                 updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
             }
         }
-
+        
         if(!found){
+            // updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
             setLocalError("Hiking details not found. Proceed with caution!");
         }
 
@@ -190,7 +194,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         const currentElapsedTime = Date.now() - timerStartTime;
         updateCurrentHike({ status: 'paused' });
         updateHikeStore({ elapsedTime: currentElapsedTime });
-        onStopSharingLocation();
+        if(groupId){
+            onStopSharingLocation();
+        }
     }
 
     const onResumeHike = async () => {
@@ -239,7 +245,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             await BookingRepository.write(finishedBooking);
         }
         
-        onStopSharingLocation();
+        if(groupId){
+            onStopSharingLocation();
+        }
     }
 
     const onResetHike = () => {

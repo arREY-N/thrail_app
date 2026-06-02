@@ -66,7 +66,7 @@ export default function hikeView() {
         );
     }
 
-    if (hike && hike.status !== 'unhiked' && ((hikeId && hike.id !== hikeId) || (trailId && hike.trail.id !== trailId))) {
+    if (hike && hike.status !== 'unhiked' && hike.trail.id !== 'diy' && ((hikeId && hike.id !== hikeId) || (trailId !== undefined && hike.trail.id !== trailId))) {
         return (
             <ScreenWrapper style={undefined}>
                 <CustomHeader title="Active Session Found" onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined} />

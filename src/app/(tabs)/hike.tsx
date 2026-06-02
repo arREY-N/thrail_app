@@ -78,9 +78,11 @@ export default function hike() {
 
     const handleStartTracking = (bookingContext?: any) => {
         if (bookingContext) {
+            console.log('Booking context provided:', bookingContext);
             const targetGroup = groups?.find(g => 
                 g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
             );
+
             router.push({ 
                 pathname: '/(main)/hike/view', 
                 params: { 
@@ -90,13 +92,16 @@ export default function hike() {
                 } 
             });
         } else if (selectedTrail) {
+            console.log('Starting new hike with trail:', selectedTrail.id);
             viewHike(selectedTrail.id);
         } else {
+            console.log('Starting new hike without specific trail');
             viewHike("new_diy_session");
         }
     };
 
     const handleDeveloperBypass = (bookingContext: any) => {
+        console.log('handleDeveloperBypass:', bookingContext);
         if (!bookingContext) return;
         const targetGroup = groups?.find(g => 
             g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
