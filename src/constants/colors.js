@@ -15,6 +15,7 @@ export const Palette = {
 
     // Greens
     Green700:   '#2E7D32',
+    Green600:   '#4CAF50',
     Green400:   '#7DBC81',
     Green200:   '#A5D6A7',
     Green100:   '#C8E6C9',
@@ -147,7 +148,7 @@ export const Colors = {
     TRAIL_STATS_ORANGE:      Palette.Orange800,
 
     TRAIL_RULES_BG:         Palette.White,
-    TRAIL_RULES_BORDER:     Palette.Green200,
+    TRAIL_RULES_BORDER:     Palette.Green600,
     TRAIL_RULES_BULLET_BG:  Palette.Green50,
     TRAIL_RULES_BULLET_TEXT:Palette.Green700,
     
@@ -155,7 +156,13 @@ export const Colors = {
     TRAIL_SAFETY_BORDER:    Palette.Amber500,
     TRAIL_SAFETY_BULLET_BG: Palette.Amber100,
     TRAIL_SAFETY_BULLET_TEXT: Palette.Orange800,
-    TRAIL_SAFETY_ICON:      Palette.Yellow700,
+    TRAIL_SAFETY_ICON:      Palette.Amber500,
+
+    TRAIL_LGU_BG:           Palette.White,
+    TRAIL_LGU_BORDER:       Palette.Indigo400,
+    TRAIL_LGU_BULLET_BG:    Palette.Blue100,
+    TRAIL_LGU_BULLET_TEXT:  Palette.Blue600,
+    TRAIL_LGU_ICON:         Palette.Blue600,
     
     TRAIL_TAG_BORDER:       Palette.Green200,
     TRAIL_TAG_BG:           Palette.White,

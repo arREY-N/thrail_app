@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Image, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import ImageZoom from 'react-native-image-pan-zoom';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -85,12 +88,24 @@ const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => 
                     </TouchableOpacity>
                 )}
                 
+                {/* THE MAGIC HAPPENS HERE
+                  We maintain your exact 80% height layout using Dimensions 
+                */}
                 {currentImage && (
-                    <Image 
-                        source={getSource(currentImage)} 
-                        style={styles.modalImage} 
-                        resizeMode="contain" 
-                    />
+                    <View style={styles.zoomWrapper}>
+                        <ImageZoom 
+                            cropWidth={SCREEN_WIDTH}
+                            cropHeight={SCREEN_HEIGHT * 0.8}
+                            imageWidth={SCREEN_WIDTH}
+                            imageHeight={SCREEN_HEIGHT * 0.8}
+                        >
+                            <Image 
+                                source={getSource(currentImage)} 
+                                style={styles.modalImage} 
+                                resizeMode="contain" 
+                            />
+                        </ImageZoom>
+                    </View>
                 )}
 
                 {imageList.length > 1 && currentIndex < imageList.length - 1 && (
@@ -122,6 +137,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+
+    zoomWrapper: {
+        width: '100%',
+        height: '80%',
+        zIndex: 1,
+    },
     modalCloseButton: {
         position: 'absolute',
         top: 50,
@@ -142,7 +163,7 @@ const styles = StyleSheet.create({
     },
     modalImage: {
         width: '100%',
-        height: '80%',
+        height: '100%',
     },
     navButton: {
         position: 'absolute',
@@ -153,7 +174,6 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         justifyContent: 'center',
         alignItems: 'center',
-        
         backgroundColor: 'rgba(0, 0, 0, 0.6)', 
         zIndex: 10,
     },
@@ -170,6 +190,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 16,
         borderRadius: 16,
+        zIndex: 10,
     },
     counterText: {
         color: Colors.WHITE,
