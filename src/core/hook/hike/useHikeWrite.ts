@@ -128,6 +128,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             }
         }
 
+        if(!found){
+            setLocalError("Hiking details not found. Proceed with caution!");
+        }
+
         updateHikeStore({ currentHike: found });
 
         return () => {
