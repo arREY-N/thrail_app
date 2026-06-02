@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Image,
     StyleSheet,
@@ -15,10 +15,11 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
+import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
-import TrailDetailsTab from '../components/TrailDetailsTab';
-import TrailReviewsTab from '../components/TrailReviewsTab';
-import TrailWeatherTab from '../components/TrailWeatherTab';
+import TrailDetailsTab from '@/src/features/Trail/Tabs/TrailDetailsTab';
+import TrailReviewsTab from '@/src/features/Trail/Tabs/TrailReviewsTab';
+import TrailWeatherTab from '@/src/features/Trail/Tabs/TrailWeatherTab';
 
 const TrailScreen = ({ 
     trail, 
@@ -44,31 +45,7 @@ const TrailScreen = ({
         trail?.geography?.startLong
     );
 
-    const heroImage = useMemo(() => {
-        const name = trail?.general?.name || "Unnamed Mountain";
-        const uniqueString = trail?.id ? String(trail.id) : name;
-        
-        let hash = 0;
-        for (let i = 0; i < uniqueString.length; i++) {
-            const char = uniqueString.charCodeAt(i);
-            hash = (hash << 5) - hash + char;
-            hash = hash & hash; 
-        }
-
-        const images = [
-            require('@/src/assets/images/MT1.jpg'),
-            require('@/src/assets/images/MT2.jpg'),
-            require('@/src/assets/images/MT3.jpg'),
-            require('@/src/assets/images/MT4.jpg'),
-            require('@/src/assets/images/MT5.jpg'),
-            require("@/src/assets/images/Mt.Tagapo.jpg"),
-        ];
-
-        const positiveHash = Math.abs(hash);
-        const imageIndex = positiveHash % images.length;
-        return images[imageIndex];
-    }, [trail]);
-
+    const heroImage = getHeroImageSource(trail);
     const name = trail?.general?.name || "Unnamed Trail";
 
     const location = Array.isArray(trail?.general?.province) 
