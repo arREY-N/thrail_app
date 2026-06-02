@@ -55,7 +55,7 @@ export const ROUTE_GLOSSARY = {
 
 export const getClassColor = (classification) => {
     if (!classification) return Colors.TRAIL_STATS_GRAY;
-    return classification.toLowerCase() === 'minor' ? Colors.TRAIL_STATS_GRAY : Colors.TRAIL_STATS_ORANGE;
+    return classification.toLowerCase() === 'minor' ? Colors.TRAIL_STATS_GRAY : Colors.TRAIL_STATS_RED;
 };
 
 export const getDifficultyColor = (diffString) => {

@@ -19,7 +19,23 @@ export const formatGroupName = (group, currentUser) => {
         const participants = group.members || [];
         const otherUser = participants.find(p => p.id !== currentUser?.id) || participants[0];
         
-        return `Emergency: ${otherUser?.firstname} ${otherUser?.lastname}`;
+        return `${otherUser?.firstname} ${otherUser?.lastname}`;
+    }
+
+    if (group?.trail?.name && group?.offer?.date) {
+        try {
+            const dateObj = group.offer.date.toDate ? group.offer.date.toDate() : new Date(group.offer.date);
+            
+            const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            
+            return `${group.trail.name} • ${formattedDate}`;
+        } catch (error) {
+            console.warn("Date formatting error in formatGroupName:", error);
+        }
     }
 
     if (group?.trail?.name && group?.business?.name) {
@@ -53,15 +69,27 @@ const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
                          lastMsg.senderId !== currentUser.id && 
                          !(lastMsg.readBy || []).some(u => u.id === currentUser.id);
 
+        const isEmergency = item?.type === 'chat';
+        const avatarBgColor = isEmergency ? Colors.AVATAR_BG_Red : Colors.AVATAR_BG_Green;
+        
+        let initials = '?';
+        if (isEmergency) {
+            const participants = item.members || [];
+            const otherUser = participants.find(p => p.id !== currentUser?.id) || participants[0];
+            initials = getInitials(otherUser ? `${otherUser.firstname} ${otherUser.lastname}` : 'EM');
+        } else {
+            initials = getInitials(item.trail?.name || item.GroupName);
+        }
+
         return (
             <TouchableOpacity 
                 style={styles.card} 
                 onPress={() => onEnterRoom(item.id)}
                 activeOpacity={0.7}
             >
-                <View style={styles.avatarContainer}>
+                <View style={[styles.avatarContainer, { backgroundColor: avatarBgColor }]}>
                     <CustomText variant="h3" style={styles.avatarText}>
-                        {getInitials(item.trail?.name || item.GroupName)}
+                        {initials}
                     </CustomText>
                 </View>
                 
@@ -166,8 +194,8 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         color: Colors.TEXT_INVERSE,
-        fontWeight: 'bold',
-        marginBottom: 0,
+        fontWeight: '700',
+        marginBottom: 2,
         fontSize: 16,
     },
     textContainer: {

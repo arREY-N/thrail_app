@@ -125,10 +125,10 @@ const styles = StyleSheet.create({
     tooltipPointer: { position: 'absolute', top: -7, width: 14, height: 14, backgroundColor: Colors.TRAIL_TOOLTIP_BG, transform: [{ rotate: '45deg' }], borderTopWidth: 1, borderLeftWidth: 1, borderColor: Colors.TRAIL_TOOLTIP_BORDER, zIndex: 2 },
     tooltipBody: { backgroundColor: Colors.TRAIL_TOOLTIP_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.TRAIL_TOOLTIP_BORDER, zIndex: 1 },
     tooltipTitle: { fontWeight: 'bold', color: Colors.PRIMARY, marginBottom: 8 },
-    tooltipText: { color: Colors.TEXT_SECONDARY, lineHeight: 20, fontSize: 14 },
+    tooltipText: { color: Colors.TEXT_SECONDARY, lineHeight: 26, fontSize: 14, textAlign: 'justify', letterSpacing: 0.2},
     tooltipPointRow: { flexDirection: 'row', marginBottom: 4, flexWrap: 'wrap' },
-    tooltipPointLabel: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY, fontSize: 13 },
-    tooltipPointText: { color: Colors.TEXT_SECONDARY, fontSize: 13, lineHeight: 20 },
+    tooltipPointLabel: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY, fontSize: 14 },
+    tooltipPointText: { color: Colors.TEXT_SECONDARY, fontSize: 14 },
 
     // Tags
     tag: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.TRAIL_TAG_BG, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: Colors.TRAIL_TAG_BORDER },

@@ -96,7 +96,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
                     <View style={styles.statsRow}>
                         <StatItem id="distance" iconLib="MaterialCommunityIcons" icon="ruler" label="DISTANCE" value={computedDistance} color={Colors.TRAIL_STATS_YELLOW} isActive={activeStat === 'distance'} onPress={handleStatPress} />
                         <StatItem id="peak" iconLib="FontAwesome6" icon="mountain" label="PEAK" value={curatedMASL} color={Colors.TRAIL_STATS_GREEN} isActive={activeStat === 'peak'} onPress={handleStatPress} />
-                        <StatItem id="gain" iconLib="MaterialCommunityIcons" icon="trending-up" label="ELEV. GAIN" value={computedGain} color={Colors.TRAIL_STATS_GREEN} isActive={activeStat === 'gain'} onPress={handleStatPress} />
+                        <StatItem id="gain" iconLib="MaterialCommunityIcons" icon="trending-up" label="ELEV. GAIN" value={computedGain} color={Colors.TRAIL_STATS_ORANGE} isActive={activeStat === 'gain'} onPress={handleStatPress} />
                     </View>
                     {isRow1Active && <GlossaryTooltip activeStat={activeStat} trail={trail} />}
                     <View style={styles.divider} />

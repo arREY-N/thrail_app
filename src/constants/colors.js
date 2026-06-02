@@ -23,6 +23,10 @@ export const Palette = {
     
     // Reds
     Red700:     '#D32F2F',
+    Red650:     '#C62828',
+    Red600:     '#E53935',
+    Red500:     '#F44336',
+    Red400:     '#E57373',
     Red100:     '#FFCDD2',
     Red50:      '#FFEBEE',
     
@@ -74,6 +78,7 @@ export const Colors = {
     // UI Elements
     YELLOW:           Palette.Yellow600,
     BLUE:             Palette.Blue600,
+    RED:              Palette.Red700,
     SHADOW:           Palette.TrueBlack,
     MODAL_OVERLAY:    Palette.BlackAlpha50,
     SEARCH_BAR_BG:    Palette.GrayAlpha25,
@@ -90,6 +95,13 @@ export const Colors = {
     STRENGTH_WEAK:    Palette.Red700,
     STRENGTH_MEDIUM:  Palette.Amber500,
     STRENGTH_STRONG:  Palette.Green700,
+
+    //Group Avatars
+    AVATAR_BG_Green:      Palette.Green700,
+    AVATAR_BG_Blue:       Palette.Blue600,
+    AVATAR_BG_Red:        Palette.Red650,
+    AVATAR_BG_Indigo:     Palette.Indigo400,
+    AVATAR_BG_Orange:     Palette.Orange800,
 
     // Interactive Chips
     CHIP_INACTIVE:    Palette.Neutral100, 
