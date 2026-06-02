@@ -87,10 +87,10 @@ export const StyledListItem = ({ text, index, type }) => {
         bulletBg = { backgroundColor: Colors.TRAIL_SAFETY_BULLET_BG };
         bulletText = { color: Colors.TRAIL_SAFETY_BULLET_TEXT };
     } else if (type === 'lgu') {
-        bgStyle = { backgroundColor: Colors.STATUS_PENDING_BG };
-        borderStyle = { borderColor: Colors.STATUS_PENDING_BORDER };
-        bulletBg = { backgroundColor: Colors.BLUE + '20' };
-        bulletText = { color: Colors.BLUE };
+        bgStyle = { backgroundColor: Colors.TRAIL_LGU_BG };
+        borderStyle = { borderColor: Colors.TRAIL_LGU_BORDER };
+        bulletBg = { backgroundColor: Colors.TRAIL_LGU_BULLET_BG };
+        bulletText = { color: Colors.TRAIL_LGU_BULLET_TEXT };
     } else { // guide
         bgStyle = { backgroundColor: Colors.TRAIL_RULES_BG }; 
         borderStyle = { borderColor: Colors.TRAIL_RULES_BORDER };

@@ -111,7 +111,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
 
             {/* 3. About the Mountain */}
             <View style={styles.section}>
-                <SectionHeader iconLib="Feather" iconName="book-open" title="About the Mountain" />
+                <SectionHeader iconLib="FontAwesome6" iconName="mountain" title="About the Mountain" />
                 <View style={styles.aboutCard}>
                     <CustomText style={styles.descriptionText}>{displayedDescription}</CustomText>
                     {shouldTruncate && (
@@ -173,7 +173,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
             {/* 5. Amenities & Facilities */}
             {tourismFeaturesActive && (
                 <View style={styles.section}>
-                    <SectionHeader iconLib="MaterialCommunityIcons" iconName="map-marker-path" title="Amenities & Facilities" />
+                    <SectionHeader iconLib="Feather" iconName="archive" title="Amenities & Facilities" />
                     <View style={styles.tagContainer}>
                         {isFeatureEnabled(trail?.tourism?.shelter, trail?.shelter) && <Tag label="Shelter" />}
                         {isFeatureEnabled(trail?.tourism?.clean_water, trail?.clean_water) && <Tag label="Drinking Water" />}
@@ -224,7 +224,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
             {/* 7. LGU Rules */}
             {lguRules.length > 0 && (
                 <View style={styles.section}>
-                    <SectionHeader iconLib="FontAwesome5" iconName="file-signature" title="LGU Ordinances" color={Colors.BLUE} />
+                    <SectionHeader iconLib="Feather" iconName="file-text" title="LGU Ordinances" color={Colors.TRAIL_LGU_ICON} />
                     <View style={styles.listWrapper}>
                         {lguRules.map((rule, index) => <StyledListItem key={`lgu-${index}`} text={rule} index={index} type="lgu" />)}
                     </View>
@@ -244,7 +244,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
             {/* 9. Safety Section */}
             {tips.length > 0 && (
                 <View style={styles.section}>
-                    <SectionHeader iconLib="Ionicons" iconName="shield-checkmark-outline" title="Keep Safe" color={Colors.WARNING} />
+                    <SectionHeader iconLib="Feather" iconName="shield" title="Keep Safe" color={Colors.TRAIL_SAFETY_ICON} />
                     <View style={styles.listWrapper}>
                         {tips.map((tip, index) => <StyledListItem key={`tip-${index}`} text={tip} index={index} type="safety" />)}
                     </View>
