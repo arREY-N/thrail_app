@@ -128,7 +128,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             }
         }
 
-        if (found) updateHikeStore({ currentHike: found });
+        updateHikeStore({ currentHike: found });
 
         return () => {
             if(currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked')){

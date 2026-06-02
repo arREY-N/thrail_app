@@ -26,7 +26,8 @@ export default function hike() {
     const { bookings } = useBookOffer(); 
     const { groups } = useGroupList(profile?.id || "");
     
-    const { viewHike, isLoading: hikeLoading } = useHike({});
+    const { viewHike, isLoading: hikeLoading } = useHike();
+    
     const trailsDb = useTrailsStore(s => s.data);
 
     const [searchQuery, setSearchQuery] = useState("");
