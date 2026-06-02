@@ -208,8 +208,9 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     router.push({
                         pathname: '/(main)/hike/view',
                         params: { 
-                            trailId: filteredTrails[0]?.id || "mock_batulao", // Uses first available trail
-                            bookingId: "DEV_TEST" 
+                            hikeId: "new_diy_session",
+                            // trailId: filteredTrails[0]?.id || "mock_batulao", // Uses first available trail
+                            // bookingId: "DEV_TEST" 
                         }
                     });
                 }} 

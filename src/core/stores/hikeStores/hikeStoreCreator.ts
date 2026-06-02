@@ -203,6 +203,11 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 startTime: new Date(),
             })
 
+            console.log('writing:', active);
+
+            console.log(typeof active.startTime);
+            console.log(typeof active.hikeDate);
+
             const updated = await HikeRepository.write(active, userId);
             
             set({

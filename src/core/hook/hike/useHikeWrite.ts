@@ -77,25 +77,35 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     useEffect(() => {
         let found: Hike | undefined;
 
-        if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))) return;
+        if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))) {
+            console.log('Active hike already loaded with matching parameters. Using current hike from store.');
+            return;
+        }
         
         if (currentHike && ((hikeId && currentHike.id !== hikeId) || (trailId && currentHike.trail.id !== trailId)) && active) {
             setLocalError(`Rerunning hike: ${currentHike.trail.name}`);
+            updateCurrentHike({ startTime: new Date() })
+            console.log(currentHike);
             return;
         }
 
         if (!profile?.id) return;
+        console.log('in useHike Write');
+        console.log('Params:', { hikeId, trailId, bookingId, groupId });
 
         // ✅ FIX 1: Safely handle the "new_diy_session" so the app doesn't hang
         if (hikeId === 'new_diy_session') {
+            console.log('starting new DIY hike session');
             found = new Hike({
                 trail: { id: "diy", name: "Free Roam (DIY)" },
                 status: 'unhiked',
-                mode: 'direct'
+                mode: 'direct',
+                startTime: new Date(),
             });
             updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
         } 
         else if (hikeId) {
+            console.log('with hikeId: ', hikeId)
             const exist = hikes.find(h => h.id === hikeId);
             if (exist) {
                 found = exist; 
@@ -107,8 +117,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                     }
                 }
             }
+            console.log('found with hikeId: ', found);
         } 
         else if (trailId) {
+            console.log('with trailId: ', trailId)
             const trail = trails.find(t => t.id === trailId);
             if (trail) {
                 const isBooked = !!bookingId;
@@ -132,15 +144,33 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         }
         
         if(!found){
-            // updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
+            console.log('no hike found, proceeding with empty')
+            updateHikeStore({ 
+                elapsedTime: 0, 
+                timerStartTime: 0, 
+                totalDistance: 0, 
+                totalElevationGain: 0,
+                currentHike: new Hike()
+            });
             setLocalError("Hiking details not found. Proceed with caution!");
+        } else {
+            console.log('hike found, proceed with ', found)
+            updateHikeStore({ currentHike: found });
         }
 
-        updateHikeStore({ currentHike: found });
 
         return () => {
-            if(currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked')){
+            if(
+                (bookingId && currentHike?.bookingId !== bookingId && currentHike?.status === 'unhiked') || 
+                (currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked')))
+            {
+                console.log('linis');
+                console.log(currentHike)
+                console.log(currentHike.status);
+                // console.log('removing current hike');
                 updateHikeStore({ currentHike: null });
+            } else {
+                console.log('or nah')
             }
         }
     },[hikeId, trailId, bookingId, profile?.id]);

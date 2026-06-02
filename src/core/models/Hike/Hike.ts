@@ -30,7 +30,19 @@ export class Hike implements IHike {
     perceivedDifficulty: DifficultyRating = 'undefined';
 
     constructor(init?: Partial<IHike>) {
+        // 1. Perform the shallow copy first
         Object.assign(this, init);
+
+        // 2. Guarantee that dates are true Date instances, not raw strings
+        if (this.hikeDate && typeof this.hikeDate === 'string') {
+            this.hikeDate = toDate(this.hikeDate);
+        }
+        if (this.startTime && typeof this.startTime === 'string') {
+            this.startTime = toDate(this.startTime);
+        }
+        if (this.endTime && typeof this.endTime === 'string') {
+            this.endTime = toDate(this.endTime);
+        }
     }
 
     static fromFirestore(id: string, data: IHikeDB): Hike {
@@ -55,7 +67,7 @@ export class Hike implements IHike {
     toFirestore(): IHikeDB {
         const mapped: IHikeDB = {
             id: this.id,
-            hikeDate: Timestamp.fromDate(this.hikeDate),
+            hikeDate: this.hikeDate ? Timestamp.fromDate(this.hikeDate) : Timestamp.fromDate(new Date()),
             trail: this.trail,
             predictedDifficulty: toNumerical(this.predictedDifficulty),
             mode: this.mode,
@@ -78,11 +90,21 @@ export class Hike implements IHike {
         }
 
         if(this.status !== 'unhiked' && this.startTime){
-            mapped.startTime = Timestamp.fromDate(this.startTime)
+            try {
+                console.log('mapping startTime: ', this.startTime);
+                mapped.startTime = Timestamp.fromDate(this.startTime ?? new Date());
+            } catch (error){
+                console.log('in line 84: ', error);
+            }
         }
 
         if(this.status === 'completed' && this.endTime){
-            mapped.endTime = Timestamp.fromDate(this.endTime ?? new Date());
+            try {
+                console.log('mapping endTime: ', this.endTime);
+                mapped.endTime = Timestamp.fromDate(this.endTime ?? new Date());
+            } catch (error){
+                console.log('in line 92: ', error);
+            }
         }
 
         return mapped;
