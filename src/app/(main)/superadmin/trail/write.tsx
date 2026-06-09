@@ -25,15 +25,20 @@ export default function write() {
 
   if (!controller.object) return <LoadingScreen />;
 
-  return (
-    <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-      <CustomHeader
-        title={trailId ? "Edit Trail" : "New Trail"}
-        centerTitle={true}
-        onBackPress={onBackPress}
-      />
-
-      <TESTWRITETRAIL {...controller} />
-    </ScreenWrapper>
-  );
+    return (
+        <ScreenWrapper 
+            backgroundColor={Colors.BACKGROUND}  
+            style={undefined}
+        >
+            <CustomHeader 
+                title="Applications"
+                centerTitle={true}
+                onBackPress={onBackPress} 
+                rightActions={undefined} 
+                style={undefined} 
+                children={undefined}            
+            />
+            <TESTWRITETRAIL { ...controller }/>
+        </ScreenWrapper>
+    )
 }
