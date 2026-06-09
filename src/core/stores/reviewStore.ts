@@ -9,7 +9,7 @@ export interface ReviewState {
     isLoading: boolean;
     error: string | null;
     
-    subscribeToReviews: () => Promise<Unsubscribe | null>;
+    subscribeToReviews: () => Unsubscribe | null;
 
     fetchAll: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -26,7 +26,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
     error: null,
     unsubscribe: null,
 
-    subscribeToReviews: async () => {
+    subscribeToReviews: () => {
         try {
             const unsubscribe = ReviewRepository.listenToReviews(
                 (reviews) => set({
