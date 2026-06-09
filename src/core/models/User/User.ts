@@ -108,3 +108,8 @@ export const userConverter: FirestoreDataConverter<User> = {
         return User.fromFirestore(snapshot.id, data);
     }
 }
+
+export const editUser = ({user, updates}: {user: User, updates: Partial<User>}) => {
+    console.log("Editing user with updates:", updates);
+    return new User({...user, ...updates});
+}

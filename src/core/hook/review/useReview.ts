@@ -37,11 +37,7 @@ export default function useReview(): IReviewDomain {
     useEffect(() => {
         const unsubscribe = subscribe();
 
-        return () => {
-            if(unsubscribe){
-                unsubscribe
-            }
-        }
+        return () => unsubscribe?.();
     }, []);
 
     const onWriteReviewPress = (id?: string) => {

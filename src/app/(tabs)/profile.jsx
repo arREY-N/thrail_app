@@ -1,12 +1,12 @@
-import React from 'react';
-
-import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
-
 import useHike from '@/src/core/hook/hike/useHike';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import useDeleteProfile from '@/src/core/hook/user/useDeleteProfile';
+import useEditProfile from '@/src/core/hook/user/useEditProfile';
+import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
+import React from 'react';
 
 export default function profile(){
     const {
@@ -30,6 +30,15 @@ export default function profile(){
         onViewAccountPress,
         onApplyPress,
     } = useProfileNavigation();
+
+    const {
+        editProfile
+    } = useEditProfile();
+
+    const {
+        onDeleteProfile,
+        isLoading,
+    } = useDeleteProfile();
 
     const {
         reviews,
