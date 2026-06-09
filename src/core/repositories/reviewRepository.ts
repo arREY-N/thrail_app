@@ -48,7 +48,9 @@ class ReviewRepositoryImpl implements Repository<Review> {
             
             return onSnapshot(q, (snapshot) => {
                 onUpdate(snapshot.docs.map(doc => doc.data()))
-            })
+            }, (error) => {
+                console.error('Error in listenToReviews: ', error);
+            });
         } catch (error: unknown) {
             console.error('Error fetching reviews: ', error);
             throw new Error('Failed to fetch reviews');

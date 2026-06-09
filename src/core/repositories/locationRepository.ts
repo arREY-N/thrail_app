@@ -20,6 +20,8 @@ class LocationRepositoryImpl implements LocationRepositoryInterface{
 
         return onSnapshot(q, (snapshot) => {
             onUpdate(snapshot.docs.map(doc => doc.data()));
+        }, (error) => {
+            console.error('Error in listenToLocations: ', error);
         });
     }
 

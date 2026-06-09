@@ -111,9 +111,13 @@ class BookingRepostoryImpl {
                 where('offer.id', '==', offerId)
             );
 
-            return onSnapshot(q, (snapshot) => {
-                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
-            });
+            return onSnapshot(q, 
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+                }, (error) => {
+                    console.error('Error in business bookings listener: ', error);
+                }   
+            );
 
         } catch (error) {
             if(error instanceof Error) {
@@ -137,9 +141,13 @@ class BookingRepostoryImpl {
             
             const q = collection(db, 'users', userId, 'bookings').withConverter(bookingConverter);
 
-            return onSnapshot(q, (snapshot) => {
-                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
-            });
+            return onSnapshot(q, 
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+                }, (error) => {
+                    console.error('Error in user bookings listener: ', error);
+                }
+            );
 
         } catch (error) {
             if(error instanceof Error) {

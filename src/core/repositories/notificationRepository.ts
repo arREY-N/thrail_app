@@ -10,7 +10,9 @@ class NotificationRepositoryImpl {
     
             return onSnapshot(colRef, (snapshot) => {
                 onUpdate(snapshot.docs.map(doc => doc.data()));
-            })
+            }, (error) => {
+                console.error("Failed to listen to notifications:", error);
+            });
         } catch (error) {
             console.error("Failed to listen to notifications:", error);
             throw error;

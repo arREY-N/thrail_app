@@ -119,16 +119,20 @@ class HikeRepositoryImpl implements BaseRepository<Hike>{
             const q = collection(db, 'groups', groupId, 'liveLocations')
                 .withConverter(locationConverter);
     
-            return onSnapshot(q, (snapshot) => {
-                const locations = snapshot.docs.map(doc => {
-                    const locationInstance = doc.data();
+            return onSnapshot(q, 
+                (snapshot) => {
+                    const locations = snapshot.docs.map(doc => {
+                        const locationInstance = doc.data();
 
-                    (locationInstance as any).id = doc.id;  
-                    return locationInstance;
-                })
-
-                onUpdate(locations);
-            });
+                        (locationInstance as any).id = doc.id;  
+                        return locationInstance;
+                    })
+                    onUpdate(locations);
+                },
+                (error) => {
+                    console.error('Error listening to locations: ', error);
+                }
+            );
         } catch (error) {
             console.error('Error sharing location: ', error);
             throw new Error(error instanceof Error ? error.message : 'Failed sharing location');
