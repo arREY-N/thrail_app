@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
+import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { Colors } from "@/src/constants/colors";
+import { Trail } from "@/src/core/models/Trail/Trail";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import StaticTrailMap from "@/src/features/Map/StaticTrailMap";
+import { MaterialIcons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  StatusBar,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
-import { Trail } from "@/src/core/models/Trail/Trail";
-import StaticTrailMap from "@/src/features/Map/StaticTrailMap";
-import { Colors } from "@/src/constants/colors";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 /**
  * MapEditor page component.

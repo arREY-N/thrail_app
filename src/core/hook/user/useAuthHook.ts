@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 
 export function useAuthHook(){
