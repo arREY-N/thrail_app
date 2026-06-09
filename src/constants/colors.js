@@ -7,18 +7,26 @@ export const Palette = {
     Neutral400: '#A2A2A2',
     Neutral200: '#D9D9D9',
     Neutral100: '#F5F5F5',
+    Neutral75:  '#F0F0F0',
     Neutral50:  '#E5E7EB',
+    Neutral25:  '#FAFAFA',
     White:      '#FFFFFF',
     OffWhite:   '#FAFCFA',
 
     // Greens
     Green700:   '#2E7D32',
+    Green600:   '#4CAF50',
     Green400:   '#7DBC81',
+    Green200:   '#A5D6A7',
     Green100:   '#C8E6C9',
     Green50:    '#E8F5E9',
     
     // Reds
     Red700:     '#D32F2F',
+    Red650:     '#C62828',
+    Red600:     '#E53935',
+    Red500:     '#F44336',
+    Red400:     '#E57373',
     Red100:     '#FFCDD2',
     Red50:      '#FFEBEE',
     
@@ -27,13 +35,20 @@ export const Palette = {
     Blue100:    '#BBDEFB',
     Blue50:     '#E3F2FD',
     Indigo400:  '#5C6BC0',
+    Slate200:   '#E2E8F0',
+    Slate100:   '#F1F5F9',
+    Slate50:    '#F8F9FA',
 
-    // Yellows & Ambers
+    // Yellows & Ambers & Oranges
     Yellow700:  '#F57F17',
     Yellow600:  '#FBC02D',
     Yellow100:  '#FFF9C4',
     Yellow50:   '#FFFDE7',
+    Yellow25:   '#FFFDF5',
     Amber500:   '#F59E0B',
+    Amber100:   '#FFECB3',
+    Orange800:  '#E65100',
+    Orange50:   '#FFF3E0',
 
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
@@ -63,6 +78,7 @@ export const Colors = {
     // UI Elements
     YELLOW:           Palette.Yellow600,
     BLUE:             Palette.Blue600,
+    RED:              Palette.Red700,
     SHADOW:           Palette.TrueBlack,
     MODAL_OVERLAY:    Palette.BlackAlpha50,
     SEARCH_BAR_BG:    Palette.GrayAlpha25,
@@ -79,6 +95,13 @@ export const Colors = {
     STRENGTH_WEAK:    Palette.Red700,
     STRENGTH_MEDIUM:  Palette.Amber500,
     STRENGTH_STRONG:  Palette.Green700,
+
+    //Group Avatars
+    AVATAR_BG_Green:      Palette.Green700,
+    AVATAR_BG_Blue:       Palette.Blue600,
+    AVATAR_BG_Red:        Palette.Red650,
+    AVATAR_BG_Indigo:     Palette.Indigo400,
+    AVATAR_BG_Orange:     Palette.Orange800,
 
     // Interactive Chips
     CHIP_INACTIVE:    Palette.Neutral100, 
@@ -127,6 +150,39 @@ export const Colors = {
 
     WEATHER_SUN:            Palette.Amber500, 
     WEATHER_MOON:           Palette.Indigo400 ,
+
+    // Trail
+    TRAIL_STATS_BLUE:       Palette.Blue600,
+    TRAIL_STATS_GREEN:      Palette.Green700,
+    TRAIL_STATS_YELLOW:     Palette.Yellow600,
+    TRAIL_STATS_RED:        Palette.Red700,
+    TRAIL_STATS_GRAY:       Palette.Neutral500,
+    TRAIL_STATS_ORANGE:      Palette.Orange800,
+
+    TRAIL_RULES_BG:         Palette.White,
+    TRAIL_RULES_BORDER:     Palette.Green600,
+    TRAIL_RULES_BULLET_BG:  Palette.Green50,
+    TRAIL_RULES_BULLET_TEXT:Palette.Green700,
+    
+    TRAIL_SAFETY_BG:        Palette.White,
+    TRAIL_SAFETY_BORDER:    Palette.Amber500,
+    TRAIL_SAFETY_BULLET_BG: Palette.Amber100,
+    TRAIL_SAFETY_BULLET_TEXT: Palette.Orange800,
+    TRAIL_SAFETY_ICON:      Palette.Amber500,
+
+    TRAIL_LGU_BG:           Palette.White,
+    TRAIL_LGU_BORDER:       Palette.Indigo400,
+    TRAIL_LGU_BULLET_BG:    Palette.Blue100,
+    TRAIL_LGU_BULLET_TEXT:  Palette.Blue600,
+    TRAIL_LGU_ICON:         Palette.Blue600,
+    
+    TRAIL_TAG_BORDER:       Palette.Green200,
+    TRAIL_TAG_BG:           Palette.White,
+    TRAIL_TAG_TEXT:         Palette.Green700,
+
+    TRAIL_TOOLTIP_BG:       Palette.Slate50,
+    TRAIL_TOOLTIP_BORDER:   Palette.Slate200,
+    TRAIL_ACTIVE_STAT_BG:   Palette.Slate100,
 };
 
 // Color Samples

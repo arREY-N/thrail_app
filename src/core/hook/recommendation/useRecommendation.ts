@@ -2,7 +2,7 @@ import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { Recommendation } from "@/src/core/models/Recommendation/Recommendation";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { useRecommendationsStore } from "@/src/core/stores/recommendationsStore";
-import { useTrailsStore } from "@/src/core/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { useEffect } from "react";
 
 export interface IRecommendationDomain extends IBaseDomainHook {

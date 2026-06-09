@@ -7,6 +7,7 @@ export class Location implements ILocation {
     latitude: number = 0;
     longitude: number = 0;
     altitude: number = 0;
+    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST' = 'ACTIVE';
     timestamp: Date = new Date();
 
     constructor(init?: Partial<ILocation>) {
@@ -26,6 +27,7 @@ export class Location implements ILocation {
 
     toFirestore(): ILocationDB {
         const mapped: ILocationDB = {
+            status: this.status,
             point: new GeoPoint(this.latitude, this.longitude),
             altitude: this.altitude,
             timestamp: this.timestamp ? Timestamp.fromDate(this.timestamp) : serverTimestamp(),

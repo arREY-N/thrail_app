@@ -10,6 +10,7 @@ export type BookingStatus =
     'paid' |
     'downpayment' |
     'completed' |
+    'finished' |
 
     'reservation-rejected' |
     

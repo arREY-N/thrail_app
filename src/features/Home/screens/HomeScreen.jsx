@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Platform,
     ScrollView,
     StyleSheet,
@@ -24,7 +25,6 @@ import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
 
-
 const HomeScreen = ({
     locationTemp, // unused now but left for signature consistency
     onWeatherPress,
@@ -35,7 +35,9 @@ const HomeScreen = ({
     discoverTrails,
     onMountainPress,
     onDownloadPress,
-    onGroupPress
+    onGroupPress,
+    getItemRating,
+    isLoading,
 }) => {
     
     const { latitude, longitude } = useLocation();
@@ -62,7 +64,7 @@ const HomeScreen = ({
         fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
     }, [recList, discList]);
 
-    const ListSection = ({ title, data, onViewAll }) => {
+    const ListSection = ({ title, data, onViewAll, isSectionLoading }) => {
         const hasData = data && data.length > 0;
 
         return (
@@ -79,7 +81,11 @@ const HomeScreen = ({
                     </TouchableOpacity>
                 </View>
 
-                {hasData ? (
+                {isSectionLoading && !hasData ? (
+                    <View style={styles.loaderContainer}>
+                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                    </View>
+                ) : hasData ? (
                     <ScrollView 
                         horizontal 
                         showsHorizontalScrollIndicator={Platform.OS === 'web' } 
@@ -91,6 +97,7 @@ const HomeScreen = ({
 
                             return (
                                 <MountainCard 
+                                    rating={getItemRating(item.id)}
                                     key={`${title}-${item.id}`}
                                     item={item}
                                     onPress={() => onMountainPress(item.id)}
@@ -139,7 +146,7 @@ const HomeScreen = ({
                 showsVerticalScrollIndicator={false}
                 alwaysBounceVertical={false} 
                 overScrollMode={hasAnyTrails ? 'auto' : 'never'} 
-                scrollEnabled={hasAnyTrails}
+                scrollEnabled={true}
             >
                 <WeatherSection 
                     weatherData={weatherData}
@@ -152,12 +159,14 @@ const HomeScreen = ({
                     title="Recommendations" 
                     data={recList} 
                     onViewAll={onViewAllRecommendationPress} 
+                    isSectionLoading={isLoading}
                 />
 
                 <ListSection 
                     title="Discover" 
                     data={discList}
                     onViewAll={onViewAllTrendingPress} 
+                    isSectionLoading={isLoading}
                 />
 
             </ResponsiveScrollView>
@@ -217,6 +226,12 @@ const styles = StyleSheet.create({
                 marginBottom: -4,
             }
         })
+    },
+    loaderContainer: {
+        width: '100%',
+        paddingVertical: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     emptyStateContainer: {
         width: '100%',

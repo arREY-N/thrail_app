@@ -1,7 +1,8 @@
-import React from "react";
 import WriteComponent from "@/src/components/CustomWriteComponents";
+import { Colors } from "@/src/constants/colors";
 import { IUseTrailWrite } from "@/src/core/hook/trail/useTrailWrite";
 import { ITrailFormField } from "@/src/fields/trailFields";
+import React from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { Colors } from "@/src/constants/colors";
 
 const TESTWRITETRAIL = (params: IUseTrailWrite) => {
   const {

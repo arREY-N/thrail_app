@@ -6,12 +6,13 @@ import { IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IGroupMember extends IUserSummary {
-    bookingId: string;
+    bookingId?: string;
 }
 
 export interface IGroupBase<T> {
     id: string;
     createdAt: T;
+    type: 'group' | 'chat';
     updatedAt: T;
     participantsIds: string[];
     members: IGroupMember[];

@@ -4,7 +4,7 @@ import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { useOffersStore } from '@/src/core/stores/offersStore';
 import { usePaymentsStore } from '@/src/core/stores/paymentsStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
-import { useTrailsStore } from '@/src/core/stores/trailsStore';
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
 

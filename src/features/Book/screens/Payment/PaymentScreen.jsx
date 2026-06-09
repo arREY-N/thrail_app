@@ -8,7 +8,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { useAuthStore } from '@/src/core/stores/authStore';
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 

@@ -20,6 +20,10 @@ export interface IHikeSurvey<T, TRating> {
 
     predictedDifficulty: TRating;
     perceivedDifficulty: TRating;
+
+    distance?: number;
+    duration?: number;
+    elevation?: number;
 }
 
 export interface IReviewBase<T, TRating> extends IHikeSurvey<T, TRating> {

@@ -17,12 +17,30 @@ export interface ITrail extends ITrailBase<Date>{
 
 export interface ITrailBase<T> {
     id: string;
+    coverImage: string | null;
+    routeMapImage: string | null;
+    offlinePoints?: IOfflinePoint[];
     general: IGeneral;
     difficulty: IDifficulty;
     tourism: ITourism;
+    description: IDescription;
     createdAt: T;
     updatedAt: T;
     offlinePoints?: IOfflinePoint[];
+}
+
+export interface IOfflinePoint {
+    id: string;
+    name: string;
+    type: string;
+    description: string;
+    x: number;
+    y: number;
+}
+
+export interface IDescription {
+    classificationDescription?: string;
+    lascoRatingDescription?: string;
 }
 
 export interface IGeographyDB {
@@ -40,15 +58,23 @@ export interface IGeographyUI {
 }
 
 export interface IGeneral {
+    active: boolean;
     name: string;
     address: string;
     province: string[];
     mountain: string[];
     rating: number;
     reviewCount: number;
+    description: string;
+    guidelines: string[];
+    safety_tips?: string[];
+    lgu_rules?: string[];
+    critical_info?: string;
 }
 
 export interface IDifficulty {
+    lascoRating: number;
+    classification: 'minor' | 'major';
     length: Kilometers;
     gain: Meters;
     slope: Percentage;
@@ -57,6 +83,7 @@ export interface IDifficulty {
     circularity: CircularityType;
     quality: TrailQualityType[];
     difficulty_points: DifficultyPointsType[];
+    elevation?: number;
 }
 
 export interface ITourism {
@@ -70,6 +97,7 @@ export interface ITourism {
     monument: boolean | null;
     community: boolean | null;
     viewpoint: ViewpointType[] | [];
+    network_connection: boolean;
 }
 
 export interface ICoordinate {

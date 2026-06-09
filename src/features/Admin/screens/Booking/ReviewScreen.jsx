@@ -25,7 +25,6 @@ import { Layout } from '@/src/constants/layout';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
-import AdminCancelModal from '@/src/features/Admin/screens/Booking/components/AdminCancelModal';
 import AdminDocumentTab from '@/src/features/Admin/screens/Booking/components/AdminDocumentTab';
 import AdminPaymentTab from '@/src/features/Admin/screens/Booking/components/AdminPaymentTab';
 import AdminRefundModal from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
@@ -265,7 +264,29 @@ const ReviewScreen = ({
                 title="Complete Booking" 
                 message="Are you sure you want to mark this transaction as verified and complete?" 
             />
-            
+
+            <ConfirmationModal 
+                visible={showCancelUnpaidModal}
+                onClose={() => setShowCancelUnpaidModal(false)}
+                title="Cancel Booking?"
+                message="Are you sure you want to cancel this unpaid booking? This will clear the slot."
+                confirmText="Yes, Cancel"
+                cancelText="Keep Booking"
+                onConfirm={async () => {
+                    setShowCancelUnpaidModal(false);
+                    if (onCancelUnpaid) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onCancelUnpaid();
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    }
+                }}
+                isDestructive={true}
+                iconName="alert-triangle"
+            />
+
             <CustomSelectionModal 
                 visible={showRescheduleModal} 
                 onClose={() => setShowRescheduleModal(false)} 
@@ -307,22 +328,6 @@ const ReviewScreen = ({
                 }}
             />
 
-            <AdminCancelModal 
-                visible={showCancelUnpaidModal}
-                onClose={() => setShowCancelUnpaidModal(false)}
-                onConfirm={async () => {
-                    setShowCancelUnpaidModal(false);
-                    if (onCancelUnpaid) {
-                        setIsProcessingAction(true);
-                        try {
-                            await onCancelUnpaid();
-                        } finally {
-                            setIsProcessingAction(false);
-                        }
-                    }
-                }}
-            />
-            
             <ImagePreviewModal 
                 visible={!!previewImageUrl} 
                 imageUrl={previewImageUrl} 

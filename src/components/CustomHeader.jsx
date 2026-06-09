@@ -184,6 +184,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,
+        paddingHorizontal: 56,
     },
     rightBoxCentered: {
         flex: 1,

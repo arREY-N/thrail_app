@@ -466,12 +466,14 @@ const RoomScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
-                title={headerTitle} centerTitle={true} onBackPress={onBackPress} 
-                rightActions={
-                    <TouchableOpacity style={styles.headerActionIcon} onPress={onLocationPress} activeOpacity={0.7}>
-                        <CustomIcon library="FontAwesome6" name="map-location-dot" size={24} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                }
+                title={headerTitle?.length > 28 ? `${headerTitle.substring(0, 28)}...` : headerTitle}
+                centerTitle={true}
+                onBackPress={onBackPress} 
+                // rightActions={
+                //     <TouchableOpacity style={styles.headerActionIcon} onPress={onLocationPress} activeOpacity={0.7}>
+                //         <CustomIcon library="FontAwesome6" name="map-location-dot" size={24} color={Colors.PRIMARY} />
+                //     </TouchableOpacity>
+                // }
             />
             
             <View style={[styles.container, { paddingBottom: Platform.OS === 'android' && !isKeyboardVisible ? insets.bottom : 0, alignItems: 'center' }]}>

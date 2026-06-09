@@ -5,7 +5,6 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import LocationScreen from "@/src/features/Community/screens/Group/LocationScreen";
@@ -23,8 +22,8 @@ export default function groupLocation() {
 
     const {
         permissionGranted,
-        onStartGps,
-        onEndGps
+        // onStartGps,
+        // onEndGps
     } = useHikerGPS();
 
     const {
@@ -43,12 +42,12 @@ export default function groupLocation() {
     } = useGroupLocation(groupId);
     
     const handleStartHike = (group: Group, booking: Booking) => {
-        onStartGps();
+        // onStartGps();
         onStartHike(group, booking);
     };
 
     const handleCompleteHike = () => {
-        onEndGps();
+        // onEndGps();
         onCompleteHike();
     };
 

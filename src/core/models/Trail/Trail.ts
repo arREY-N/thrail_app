@@ -1,4 +1,4 @@
-import { IDifficulty, IGeneral, IGeographyUI, IOfflinePoint, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
+import { IDescription, IDifficulty, IGeneral, IGeographyUI, IOfflinePoint, ITourism, ITrail, ITrailDB } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
@@ -7,8 +7,15 @@ export class Trail implements ITrail {
     [key: string]: any;
     [immerable] = true;
     id: string = '';
+    coverImage: string | null = null;
+    routeMapImage: string | null = null;
     createdAt: Date = new Date();
-    updatedAt: Date = new Date(); 
+    updatedAt: Date = new Date();
+    description: IDescription = {
+        classificationDescription: "",
+        lascoRatingDescription: "",
+    };
+    offlinePoints: IOfflinePoint[] = [];
     geography: IGeographyUI = {
         masl: 0,
         startLat: 0,
@@ -17,12 +24,15 @@ export class Trail implements ITrail {
         endLong: 0,
     };
     general: IGeneral = {
+        active: true,
         name: "",
         address: "",
         province: [],
         mountain: [],
         rating: 0,
-        reviewCount: 0
+        reviewCount: 0,
+        description: "",
+        guidelines: []
     }; 
     difficulty: IDifficulty = {
         length: 0,
@@ -32,7 +42,9 @@ export class Trail implements ITrail {
         hours: 0,
         circularity: "Circular",
         quality: [],
-        difficulty_points: []
+        difficulty_points: [],
+        lascoRating: 0,
+        classification: 'major'
     };
     tourism: ITourism = {
         shelter: null,
@@ -44,7 +56,8 @@ export class Trail implements ITrail {
         waterfall: null,
         monument: null,
         community: null,
-        viewpoint: []
+        viewpoint: [],
+        network_connection: false
     };
     offlinePoints: IOfflinePoint[] = [];
     
@@ -56,6 +69,10 @@ export class Trail implements ITrail {
         const mappped: ITrail = {
             ...data,
             id,
+            coverImage: data.coverImage || null,
+            routeMapImage: data.routeMapImage || null,
+            description: data.description || {},
+            offlinePoints: data.offlinePoints || [],
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
             geography: {
@@ -76,6 +93,10 @@ export class Trail implements ITrail {
 
         const mapped: ITrailDB = {
             id: this.id,
+            coverImage: this.coverImage,
+            routeMapImage: this.routeMapImage,
+            description: this.description,
+            offlinePoints: this.offlinePoints,
             updatedAt: serverTimestamp(),
             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt), 
             general: this.general,

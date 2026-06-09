@@ -595,7 +595,8 @@ const OfferWriteScreen = ({
                     onDeleteOffer(offer.id); 
                 }} 
                 onClose={() => setIsDeleteModalVisible(false)} 
-                isDestructive={true} 
+                isDestructive={true}
+                iconName="trash-2"
             />
             
             <ConfirmationModal 
@@ -609,7 +610,8 @@ const OfferWriteScreen = ({
                     onBackPress(); 
                 }} 
                 onClose={() => setShowBackWarningModal(false)} 
-                isDestructive={true} 
+                isDestructive={true}
+                iconName="alert-triangle"
             />
             
             <ConfirmationModal 

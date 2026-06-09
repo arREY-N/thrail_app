@@ -31,17 +31,25 @@ export const OPTIONS = {
         'Traverse'
     ],
     quality: [
-        'Q1', 
-        'Q2', 
-        'Q3'
+        'Dusty when dry, muddy when wet',  
+        'Forest area',  
+        'Rocky trail',
+        'Grassland and ridges',
+        'Hilly landscapes',
+        'Well-maintained pathway'
     ],
     difficulty_points: [
-        'Cliff', 
-        'River'
+        'Open ridges and rocky terrains',
+        'River crossings and limestone hazards',
+        'Dense jungle trails',
+        'Minimal obstacles'
     ],
     viewpoints: [
-        'V1', 
-        'V2', 
-        'V3'
+        'Scenic hills', 
+        'Rolling hills', 
+        'Limestone formations',
+        'Jungle trails',
+        'Art installations and statues',
+
     ],
 }

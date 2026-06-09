@@ -34,6 +34,8 @@ export class User implements IUser{
     emergencyContact: IEmergencyContact = {
         name: '',
         contactNumber: '',
+        email: '',
+        userId: '',
     }
 
     constructor(init?: Partial<User>){

@@ -1,20 +1,22 @@
-import React, { useMemo } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback } from 'react';
+import { View } from 'react-native';
 
+import EmergencyNotification from '@/src/components/EmergencyNotification';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-
+import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from '@/src/core/hook/trail/useTrailDomain';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
-    const { profile } = useAuthHook();
     const { 
         trails, 
-        onViewTrail
+        onViewTrail,
+        isLoading,
+        fetchAllTrails
     } = useTrailDomain();
-    
-    const { 
-        onMountainPress, 
+
+    const {
         onDownloadPress, 
         onWeatherPress, 
         onViewAllRecommendationPress, 
@@ -22,22 +24,35 @@ export default function home(){
         onGroupPress
     } = useAppNavigation();
 
-    const discoverList = useMemo(() => {
-        if (!trails || !Array.isArray(trails)) return [];
-        return trails.slice(0, 3);
-    }, [trails]);
-    
+    const {
+        getItemRating,
+    } = useReview();
+
+    useFocusEffect(
+        useCallback(() => {
+            if (trails.length === 0) {
+                fetchAllTrails();
+            }
+        }, [trails.length, fetchAllTrails])
+    );
+
     return (
-        <HomeScreen 
-            locationTemp={{}} 
-            onWeatherPress={onWeatherPress}
-            onViewAllRecommendationPress={onViewAllRecommendationPress}
-            onViewAllTrendingPress={onViewAllTrendingPress}
-            recommendedTrails={[]}
-            discoverTrails={discoverList}
-            onMountainPress={onViewTrail}
-            onDownloadPress={onDownloadPress}
-            onGroupPress={onGroupPress}
-        />
+        <View style={{ flex: 1 }}>
+            <HomeScreen 
+                locationTemp={{}} 
+                onWeatherPress={onWeatherPress}
+                onViewAllRecommendationPress={onViewAllRecommendationPress}
+                onViewAllTrendingPress={onViewAllTrendingPress}
+                recommendedTrails={[]}
+                discoverTrails={trails}
+                onMountainPress={onViewTrail}
+                onDownloadPress={onDownloadPress}
+                onGroupPress={onGroupPress}
+                getItemRating={getItemRating}
+                isLoading={isLoading}
+            />
+
+            <EmergencyNotification />
+        </View>
     );
 }

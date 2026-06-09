@@ -66,7 +66,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     prefix={undefined}
                                     children={undefined}
                                     showTodayButton={undefined}
-                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                    />
+                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                    />
                             </View>
                         )
                     }
@@ -92,6 +92,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                                     key={optionKey}
                                                     style={(val === o || (Array.isArray(val) && val?.find(v => v === o))) ? styles.true : styles.false} 
                                                     onPress={() => onEditProperty({section, id, value: o})}
+                                                    key={o}
                                                 >
                                                     <Text>{o}</Text>
                                                 </Pressable>
@@ -142,7 +143,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     prefix={undefined}
                                     children={undefined}
                                     showTodayButton={undefined}
-                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                    />
+                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                    />
                             </View>
                         )
                     }
@@ -212,7 +213,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                 prefix={undefined}
                                 children={undefined}
                                 showTodayButton={undefined}
-                                allowFutureDates={undefined} inputStyle={undefined} multiline={undefined}                                />
+                                allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                />
                         )
                     }
                 })

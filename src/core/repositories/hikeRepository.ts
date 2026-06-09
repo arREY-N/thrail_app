@@ -63,14 +63,16 @@ class HikeRepositoryImpl implements BaseRepository<Hike>{
 
     async writeCoordinates(userId: string, hikeId: string, coordinates: Location[]): Promise<void> {
         try {
-            const coordRef = doc(collection(db, 'users', userId, 'hikes', hikeId, 'coordinates'));
-            
             const lastTimestamp = coordinates[coordinates.length -1].timestamp;
+
+            const docId = lastTimestamp.getTime().toString();
+
+            const coordRef = doc(collection(db, 'users', userId, 'hikes', hikeId, 'coordinates'), docId);
+            
 
             const coordinatesData = coordinates.map(coord => coord.toFirestore());
 
             console.log({
-                coordinates,
                 lastCooordinate: lastTimestamp
             });
 

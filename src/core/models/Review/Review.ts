@@ -11,20 +11,11 @@ export class Review implements IReview {
     [immerable] = true
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
-    user: IUserSummary = {
-        id: "",
-        username: "",
-        firstname: "",
-        lastname: "",
-        email: ""
-    };
+    user: IUserSummary = { id: "", username: "", firstname: "", lastname: "", email: "" };
     likes: IUserSummary[] = [];
     id: string = '';
     hikeDate: Date = new Date();
-    trail: ITrailSummary = {
-        id: "",
-        name: ""
-    };
+    trail: ITrailSummary = { id: "", name: "" };
     overallRating: number = 0;
     trailMaintenance: DifficultyRating = 'Easy';
     difficultyFactors: DifficultyFactors[] = [];
@@ -34,6 +25,9 @@ export class Review implements IReview {
     predictedDifficulty: DifficultyRating = 'Easy';
     perceivedDifficulty: DifficultyRating = 'undefined';
     
+    distance?: number;
+    duration?: number;
+    elevation?: number;
     
     constructor(init?: Partial<IReview>) {
         Object.assign(this, init);
@@ -49,14 +43,16 @@ export class Review implements IReview {
             updatedAt: toDate(data.updatedAt),
             predictedDifficulty: (data.predictedDifficulty && data.predictedDifficulty > 0) ? toTextual(data.predictedDifficulty) : 'undefined',
             perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
+
+            distance: data.distance || 0,
+            duration: data.duration || 0,
+            elevation: data.elevation || 0,
         }
-        
         return new Review(mapped);
     }
 
     toFirestore(): IReviewDB {
         const isNew = this.id === '';
-
         const mapped: IReviewDB = {
             id: this.id,
             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
@@ -72,9 +68,12 @@ export class Review implements IReview {
             review: this.review,    
             image: this.image,
             predictedDifficulty: (this.predictedDifficulty !== 'undefined') ? toNumerical(this.predictedDifficulty) : 0,
-            perceivedDifficulty: (this.perceivedDifficulty !== 'undefined') ? toNumerical(this.perceivedDifficulty) : 0
+            perceivedDifficulty: (this.perceivedDifficulty !== 'undefined') ? toNumerical(this.perceivedDifficulty) : 0,
+
+            distance: this.distance || 0,
+            duration: this.duration || 0,
+            elevation: this.elevation || 0,
         }
-        
         return mapped;
     }
 }
