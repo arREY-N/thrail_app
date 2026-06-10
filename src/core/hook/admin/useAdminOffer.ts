@@ -32,9 +32,7 @@ export default function useAdminOffer() {
 
         // 2. Attach real-time listeners ONLY to those active offers
         activeOfferIds.forEach(offerId => {
-            subscribeToBusinessBookings(offerId).catch(err => {
-                console.error(`Failed to subscribe to offer ${offerId}:`, err);
-            });
+            subscribeToBusinessBookings(offerId);
         });
 
         // 3. CLEANUP: When the Admin leaves the list screen, kill the listeners to save memory/data!
