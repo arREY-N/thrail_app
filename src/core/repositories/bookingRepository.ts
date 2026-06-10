@@ -1,5 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
-import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
 import { Booking, bookingConverter } from '../models/Booking/Booking';
 
 const createBookingCollection = (id: string) => {
@@ -135,7 +135,7 @@ class BookingRepostoryImpl {
      * @param callback
      * @return Unsubscribe function
      */
-    async listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+    listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Unsubscribe {
         try {
             if(!userId) throw new Error('User ID missing');
             
