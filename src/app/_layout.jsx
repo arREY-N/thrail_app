@@ -11,7 +11,6 @@ import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
-import LoadingScreen from "@/src/app/loading";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
@@ -22,7 +21,6 @@ export default function RootLayout() {
 
 	const {
 		initialize,
-		isLoading
 	} = useAuthHook();
 
 	SplashScreen.preventAutoHideAsync();
@@ -49,8 +47,6 @@ export default function RootLayout() {
 			SplashScreen.hideAsync();
 		}
 	}, [fontsLoaded, fontError]);
-
-	if(isLoading) return <LoadingScreen/>
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
