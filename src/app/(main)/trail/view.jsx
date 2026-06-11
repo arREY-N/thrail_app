@@ -58,7 +58,7 @@ export default function viewTrail(){
                 likeReview={likeReview}
                 onWriteReviewPress={onWriteReviewPress}
                 isOwned={isOwned}
-                isLiked={isLiked}
+                isLiked={() => isLiked()}
             />
         </View>
     )

@@ -69,12 +69,10 @@ export default function useReview(): IReviewDomain {
 
     const isLiked = (review: Review): Boolean => {
         try {
-            if(!profile)
-                throw new Error('User must be logged in to like a review')
+            if(!profile) return false
+                
 
-            return review.likes.find(r => r.id === profile?.id)
-                ? true
-                : false
+            return review.likes.some(r => r.id === profile?.id);
         } catch (error) {
             console.error(error);
             setLocalError((error as Error).message)

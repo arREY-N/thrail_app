@@ -79,7 +79,7 @@ const CommunityScreen = ({
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
-            isLiked={isLiked(item)}
+            isLiked={isLiked}
             onEdit={() => onWriteReviewPress(item)}
             isOwned={isOwned(item)}
         />
