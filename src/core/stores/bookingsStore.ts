@@ -65,7 +65,7 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
             return unsubscribe;
         } catch (error) {
             console.error('Error subscribing to user bookings: ', error);
-            throw error;
+            return null;
         }
     },
 

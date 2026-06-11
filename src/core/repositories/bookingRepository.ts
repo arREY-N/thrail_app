@@ -101,7 +101,7 @@ class BookingRepostoryImpl {
      * @return Unsubscribe function
      */
 
-    async listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+    listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): () => void {
         try {
             if(!businessId) throw new Error('Business ID missing');
             if(!offerId) throw new Error('Offer ID missing');
