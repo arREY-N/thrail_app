@@ -204,6 +204,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 error: (err as Error).message ?? "Error logging in",
                 isLoading: false,
             });
+            throw new Error((err as Error).message ?? "Error logging in");
         }
     },
 
@@ -211,6 +212,12 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         try {
             set({ isLoading: true, error: null });
             await signOut(auth);
+            
+            const currentUnsub = get()._unsubscribe;
+            
+            if (currentUnsub) {
+                currentUnsub();
+            }
         } catch (err) {
             set({
                 error: (err as Error).message ?? "Failed signing out",
@@ -286,12 +293,15 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
 
     gmailSignUp: async () => {
         try {
-            set({ isLoading: true, error: null });
+            set({ isChecking: true, error: null, isLoading: true });
+        
             if(Platform.OS === 'web') {
                 await AuthRepository.webSignUpWithGoogle();
             } else {
                 await AuthRepository.signUpWithGoogle();
             }
+
+            set({ isChecking: false, error: null });
         } catch (error) {
             console.error("Google sign-in error:", error);
             set({

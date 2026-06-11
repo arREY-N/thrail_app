@@ -32,7 +32,7 @@ class AuthRepositoryImpl {
             if(unavailable.length > 0) 
                 throw new Error(`${unavailable.join(', ')} already in use`);
         } catch (err) { 
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -58,7 +58,7 @@ class AuthRepositoryImpl {
         
             return user;
         } catch (err){
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -102,7 +102,7 @@ class AuthRepositoryImpl {
                 {merge: true}
             );
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -144,7 +144,7 @@ class AuthRepositoryImpl {
             );
         
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -157,7 +157,7 @@ class AuthRepositoryImpl {
                 data.password
             );
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
