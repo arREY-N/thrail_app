@@ -18,6 +18,7 @@ export interface ReviewState {
     create: (review: Review) => Promise<void>;
     remove: (id: string) => Promise<void>;
     likeReview: (review: Review) => void;
+    unsubscribe: Unsubscribe | null;
 }
 
 export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
@@ -34,6 +35,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
                 })
             )
 
+            set({ unsubscribe });
             return unsubscribe;
         } catch (error) {
             console.error('Error subscribing to reviews: ', error)
