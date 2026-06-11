@@ -9,12 +9,11 @@ import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useOffersStore } from "@/src/core/stores/offersStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { router } from "expo-router";
 import { httpsCallable } from "firebase/functions";
 import { produce } from "immer";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Platform } from "react-native";
 
 export type UseBookOfferParams = {
@@ -24,55 +23,19 @@ export type UseBookOfferParams = {
 }
 
 export default function useBookOffer(params: UseBookOfferParams = {}) {
-    const { bookingId, trailId, offerId } = params;
-
     const { profile } = useAuthHook();
-
     const bookings = useBookingsStore(s => s.userBookings);
-
     const fetchOffer = useOffersStore(s => s.fetchOfferById);
-    const load = useBookingsStore(s => s.load); 
-
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
-    const trails = useTrailsStore(s => s.data);
     const createBooking = useBookingsStore(s => s.create);
     const joinGroup = useGroupStore(s => s.joinGroup);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
-    const subscribeToUserBookings = useBookingsStore(s => s.subscribeToUserBookings);
 
 
     const [localError, setLocalError] = useState<string | null>(null);
 
     const [booking, setBooking] = useState<Booking>(new Booking());
-
-    useEffect(() => {
-        let unsubscribe: (() => void) | undefined;
-        let isCancelled = false;
-
-        const startListening = async () => {
-            try {
-                const sub = await subscribeToUserBookings();
-                
-                if (isCancelled) {
-                    if(sub) sub(); 
-                } else {
-                    if(sub) unsubscribe = sub;
-                }
-            } catch (err) {
-                console.error("Failed to start listener", err);
-                setLocalError(`Failed to load bookings. Please try again later. ${(err as Error).message}`);
-            }
-        };
-
-        startListening();
-
-        return () => {
-            isCancelled = true;
-            if (unsubscribe) 
-                unsubscribe();
-        };
-    }, [subscribeToUserBookings]);
 
     const getBookOffer = async (offerId: string): Promise<Offer | null> => {
         try {

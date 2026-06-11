@@ -1,5 +1,4 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback } from 'react';
+import React from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useReview from '@/src/core/hook/review/useReview';
@@ -11,7 +10,7 @@ export default function explore() {
         onViewTrail, 
         trails,
         isLoading,
-        fetchAllTrails
+        // fetchAllTrails
     } = useTrailDomain() 
 
     const {
@@ -22,13 +21,13 @@ export default function explore() {
         getItemRating,
     } = useReview();
 
-    useFocusEffect(
-        useCallback(() => {
-            if (trails.length === 0 && !isLoading) {
-                fetchAllTrails();
-            }
-        }, [trails.length, isLoading, fetchAllTrails])
-    );
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         if (trails.length === 0 && !isLoading) {
+    //             fetchAllTrails();
+    //         }
+    //     }, [trails.length, isLoading, fetchAllTrails])
+    // );
     
     return (
         <ExploreScreen

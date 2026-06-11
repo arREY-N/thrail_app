@@ -30,7 +30,7 @@ export default function MapEditor() {
   const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 
   const trails = useTrailsStore((s) => s.data);
-  const fetchAll = useTrailsStore((s) => s.fetchAll);
+  // const fetchAll = useTrailsStore((s) => s.fetchAll);
   const create = useTrailsStore((s) => s.create);
   const isLoadingStore = useTrailsStore((s) => s.isLoading);
 
@@ -38,11 +38,11 @@ export default function MapEditor() {
   const [offlinePoints, setOfflinePoints] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (trails.length === 0) {
-      fetchAll();
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (trails.length === 0) {
+  //     fetchAll();
+  //   }
+  // }, []);
 
   useEffect(() => {
     if (activeTrail) {

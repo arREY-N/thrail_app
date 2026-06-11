@@ -4,7 +4,7 @@ import { Review } from "@/src/core/models/Review/Review";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export interface IReviewDomain {
     reviews: Review[];
@@ -27,18 +27,11 @@ export default function useReview(): IReviewDomain {
     const { profile } = useAuthHook();
 
     const reviews = useReviewStore(s => s.reviews);
-    const subscribe = useReviewStore(s => s.subscribeToReviews);
     const like = useReviewStore(s => s.likeReview);
     const isLoading = useReviewStore(s => s.isLoading);
     const error = useReviewStore(s => s.error);
     const refreshFeed = useReviewStore(s => s.refresh);
     const [localError, setLocalError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const unsubscribe = subscribe();
-
-        return () => unsubscribe?.();
-    }, []);
 
     const onWriteReviewPress = (id?: string) => {
         if(id){
