@@ -9,6 +9,7 @@ export class Location implements ILocation {
     altitude: number = 0;
     status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST' = 'ACTIVE';
     timestamp: Date = new Date();
+    hikerName?: string;
 
     constructor(init?: Partial<ILocation>) {
         Object.assign(this, init);
@@ -21,6 +22,9 @@ export class Location implements ILocation {
             longitude: data.point.longitude,
             timestamp: data.timestamp ? toDate(data.timestamp) : new Date(),
         }
+        if (data.hikerName) {
+            mapped.hikerName = data.hikerName;
+        }
 
         return new Location(mapped)
     }
@@ -32,6 +36,9 @@ export class Location implements ILocation {
             altitude: this.altitude,
             timestamp: this.timestamp ? Timestamp.fromDate(this.timestamp) : serverTimestamp(),
         };
+        if (this.hikerName) {
+            mapped.hikerName = this.hikerName;
+        }
 
         return mapped;
     }
