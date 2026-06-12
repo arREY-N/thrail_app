@@ -8,7 +8,7 @@ import { View } from 'react-native';
 
 export default function login(){
     const { 
-        onBackPress, 
+        onLanding,
         onSignUpPress 
     } = useAppNavigation();
     
@@ -34,7 +34,7 @@ export default function login(){
                 onSignUpPress={onSignUpPress} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
-                onBackPress={onBackPress}
+                onBackPress={onLanding}
                 onRememberMePress={onRememberMePress}
                 remember={remember}
                 onGmailLogIn={onGmailLogIn}

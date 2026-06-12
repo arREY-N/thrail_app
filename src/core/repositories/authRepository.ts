@@ -37,6 +37,20 @@ class AuthRepositoryImpl {
         }
     }
     
+    async checkEmail(email: string): Promise<boolean> {
+        const checkCredentials = httpsCallable(functions, 'checkEmail');
+        try {
+            const response = await checkCredentials({email, username: 'checkExistingEmailOnly'});
+
+            if((response as CredentialResponse).data.emailAvailable) return false;
+
+            return true;
+        } catch (err) { 
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    }
+    
     async signUp(accountData: SignUp): Promise<User> {
         const { email, password } = accountData;
         
