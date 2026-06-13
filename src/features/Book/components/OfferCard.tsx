@@ -1,16 +1,17 @@
 import React from 'react';
-import {
+import { Platform, 
     StyleSheet,
     TouchableOpacity,
     View
-} from 'react-native';
+ } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const formatTime = (dateObj) => {
+const formatTime = (dateObj: any) => {
     if (!dateObj) return '--:--';
     try {
         const d = typeof dateObj.toDate === 'function' ? dateObj.toDate() : new Date(dateObj);
@@ -20,7 +21,27 @@ const formatTime = (dateObj) => {
     }
 };
 
-const OfferCard = ({ 
+export interface OfferData {
+    business?: { name?: string };
+    duration?: string;
+    price?: number;
+    minPax?: number;
+    maxPax?: number;
+    description?: string;
+    schedule?: Array<{ day: number; activities?: Array<{ time: any; event: string }> }>;
+    inclusions?: string[];
+    thingsToBring?: string[];
+    reminders?: string[] | string;
+    [key: string]: unknown;
+}
+
+export interface OfferCardProps {
+    offer: OfferData;
+    isSelected: boolean;
+    onSelect: () => void;
+}
+
+const OfferCard: React.FC<OfferCardProps> = ({ 
     offer, 
     isSelected, 
     onSelect 
@@ -288,6 +309,8 @@ const OfferCard = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     offerCard: {
         backgroundColor: Colors.WHITE,
@@ -296,11 +319,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     selectedOfferCard: {
         borderColor: Colors.PRIMARY,

@@ -8,8 +8,25 @@ import {
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const ProgressStep = ({ stepNum, title, libraryName, iconName, currentView, onStepPress }) => {
+export interface ProgressStepProps {
+    stepNum: number;
+    title: string;
+    libraryName: IconLibrary;
+    iconName: string;
+    currentView: number;
+    onStepPress: (step: number) => void;
+}
+
+const ProgressStep: React.FC<ProgressStepProps> = ({ 
+    stepNum, 
+    title, 
+    libraryName, 
+    iconName, 
+    currentView, 
+    onStepPress 
+}) => {
     const isActive = currentView >= stepNum;
 
     const isClickable = stepNum < currentView && currentView !== 4; 

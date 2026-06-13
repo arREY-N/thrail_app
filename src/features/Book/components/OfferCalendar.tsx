@@ -1,17 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
+import { Platform, 
     StyleSheet,
     TouchableOpacity,
     View
-} from 'react-native';
+ } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
-const OfferCalendar = ({ 
+export interface OfferCalendarProps {
+    uniqueDates?: string[];
+    selectedDate?: string | null;
+    onSelectDate: (date: string) => void;
+}
+
+const OfferCalendar: React.FC<OfferCalendarProps> = ({ 
     uniqueDates = [], 
     selectedDate, 
     onSelectDate 
@@ -42,8 +49,8 @@ const OfferCalendar = ({
 
     const todayFormatted = useMemo(() => formatDateToStandard(normalizedToday), [normalizedToday]);
 
-    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-    const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const handlePrevMonth = () => {
         setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1));
@@ -53,7 +60,7 @@ const OfferCalendar = ({
         setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1));
     };
 
-    const handleDayPress = (dateObj, isPast) => {
+    const handleDayPress = (dateObj: Date, isPast: boolean) => {
         if (isPast) return;
         const formatted = formatDateToStandard(dateObj);
         onSelectDate(formatted);
@@ -66,8 +73,8 @@ const OfferCalendar = ({
         const daysInMonth = getDaysInMonth(year, month);
         const firstDay = getFirstDayOfMonth(year, month);
 
-        let matrix = [];
-        let currentWeek = [];
+        let matrix: Array<Array<Date | null>> = [];
+        let currentWeek: Array<Date | null> = [];
 
         for (let i = 0; i < firstDay; i++) {
             currentWeek.push(null);
@@ -190,22 +197,24 @@ const OfferCalendar = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: { width: '100%', marginBottom: 0 },
     dropdownButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         backgroundColor: Colors.WHITE, paddingHorizontal: 16, paddingVertical: 14,
         borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+         
+          ...dropShadow,
     },
     dropdownActive: { borderColor: Colors.PRIMARY },
     dropdownText: { fontWeight: '600', color: Colors.TEXT_PRIMARY },
     calendarCard: {
         marginTop: 8, backgroundColor: Colors.WHITE, borderRadius: 16,
         padding: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+         
+          ...dropShadow,
     },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     monthTitle: { fontWeight: 'bold', fontSize: 16 },

@@ -6,7 +6,16 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
-const TermsSignature = ({ 
+export interface TermsSignatureProps {
+    expectedName: string;
+    isMinor?: boolean;
+    minorName?: string;
+    onValidChange: (isValid: boolean) => void;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
+}
+
+const TermsSignature: React.FC<TermsSignatureProps> = ({ 
     expectedName, 
     isMinor = false, 
     minorName = '',
@@ -22,7 +31,7 @@ const TermsSignature = ({
         
         const isValid = cleanExpected.length > 0 && cleanExpected === cleanSignature;
         onValidChange(isValid);
-    }, [signature, expectedName]);
+    }, [signature, expectedName, onValidChange]);
 
     return (
         <View style={styles.container}>
@@ -91,7 +100,6 @@ const styles = StyleSheet.create({
         marginBottom: 0, 
     },
     title: {
-        // paddingTop: 16,
         marginBottom: 8,
         color: Colors.TEXT_PRIMARY,
     },

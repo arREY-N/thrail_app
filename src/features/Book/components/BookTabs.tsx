@@ -9,7 +9,18 @@ import {
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const BookTabs = ({ 
+export interface TabItem {
+    id: string;
+    label: string;
+}
+
+export interface BookTabsProps {
+    tabs: (string | TabItem)[];
+    activeTab: string;
+    onTabChange: (tabId: string) => void;
+}
+
+const BookTabs: React.FC<BookTabsProps> = ({ 
     tabs,
     activeTab, 
     onTabChange 

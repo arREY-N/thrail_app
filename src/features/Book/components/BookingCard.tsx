@@ -1,14 +1,23 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform,  StyleSheet, TouchableOpacity, View  } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
-import { formatBookingDate, getRecentUpdateText } from '@/src/utils/dateFormatter';
+import { formatBookingDate, getRecentUpdateText, safeParseDateString } from '@/src/utils/dateFormatter';
 
-const BookingCard = ({ 
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+
+export interface BookingCardProps {
+    booking: IBooking | null;
+    onSelectBooking: (booking: IBooking) => void;
+    role?: 'user' | 'admin' | 'superadmin' | 'business';
+}
+
+const BookingCard: React.FC<BookingCardProps> = ({ 
     booking, 
     onSelectBooking, 
     role = 'user' 
@@ -19,43 +28,42 @@ const BookingCard = ({
     today.setHours(0, 0, 0, 0);
     
     const dateVal = booking?.offer?.date;
-    const hikeDate = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal || 0);
+    const hikeDate = safeParseDateString(dateVal);
     const isPast = hikeDate.getTime() < today.getTime();
 
     let displayStatus = booking?.status;
 
-    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation') {
+    if (displayStatus === 'for-cancellation') {
         const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded' || p.status === 'refund');
+        const hasRefund = payments.some(p => p.status === 'refunded');
         if (hasRefund) {
-            displayStatus = 'refunded';
+            displayStatus = 'refund';
         }
     }
 
     const isDead = [
-        'cancelled', 
         'refund', 
-        'refunded', 
         'cancellation-rejected', 
         'reschedule-rejected'
-    ].includes(displayStatus);
+    ].includes(displayStatus || '');
 
     if (isPast && !isDead) {
-        if (['completed', 'paid', 'rescheduled'].includes(displayStatus)) {
+        if (['completed', 'paid', 'rescheduled'].includes(displayStatus || '')) {
             displayStatus = 'finished'; 
         } else {
-            displayStatus = 'expired'; 
+            displayStatus = 'reservation-rejected'; 
         }
     }
 
-    const statusConfig = getStatusConfig(displayStatus, role);
+    const configRole = (role === 'admin' || role === 'superadmin') ? 'admin' : 'user';
+    const statusConfig = getStatusConfig(displayStatus, configRole);
 
     let actionLabel = "View Details";
-    let actionColor = Colors.PRIMARY;
+    let actionColor: string = Colors.PRIMARY;
     let actionIcon = "chevron-right";
 
     if (!isPast && !isDead) {
-        if (['for-payment', 'approved-docs'].includes(displayStatus)) {
+        if (['for-payment', 'approved-docs'].includes(displayStatus || '')) {
             actionLabel = "Pay Now";
             actionColor = Colors.SUCCESS; 
         } else if (displayStatus === 'reservation-rejected') {
@@ -70,7 +78,7 @@ const BookingCard = ({
     const recentUpdateText = getRecentUpdateText(booking?.updatedAt, booking?.createdAt);
     const trailName = booking?.trail?.name || 'Hiking Package';
     const businessName = booking?.business?.name || 'Independent Guide';
-    const formattedDate = formatBookingDate(booking?.offer?.date, booking?.offer?.endDate, true);
+    const formattedDate = formatBookingDate(booking?.offer?.date, undefined, true);
     const price = booking?.offer?.price || 0;
 
     return (
@@ -214,6 +222,8 @@ const BookingCard = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     cardContainer: { 
         backgroundColor: Colors.WHITE, 
@@ -222,14 +232,11 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 8, 
-        elevation: 3 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     topRow: { 
         flexDirection: 'row', 
