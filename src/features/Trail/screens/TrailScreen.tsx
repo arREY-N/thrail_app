@@ -15,13 +15,31 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
+import { IReview } from '@/src/core/models/Review/Review.types';
+import { ITrail } from '@/src/core/models/Trail/Trail.types';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
-import TrailDetailsTab from '@/src/features/Trail/Tabs/TrailDetailsTab';
-import TrailReviewsTab from '@/src/features/Trail/Tabs/TrailReviewsTab';
-import TrailWeatherTab from '@/src/features/Trail/Tabs/TrailWeatherTab';
+import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
+import TrailReviewsTab from '@/src/features/Trail/tabs/TrailReviewsTab';
+import TrailWeatherTab from '@/src/features/Trail/tabs/TrailWeatherTab';
 
-const TrailScreen = ({ 
+export interface TrailScreenProps {
+    trail?: ITrail | null;
+    onBackPress: () => void;
+    onDownloadPress?: () => void;
+    onHikePress: (id?: string) => void;
+    onBookPress: (id?: string) => void;
+    onEditPress: () => void;
+    isSuperadmin: boolean;
+    reviews?: IReview[] | null;
+    isLoading: boolean;
+    likeReview: (review: IReview) => void;
+    isLiked: (review: IReview) => boolean;
+    onWriteReviewPress: (review: IReview) => void;
+    isOwned: (review: IReview) => boolean;
+}
+
+const TrailScreen: React.FC<TrailScreenProps> = ({ 
     trail, 
     onBackPress, 
     onDownloadPress, 
@@ -55,7 +73,8 @@ const TrailScreen = ({
     const address = trail?.general?.address || location;
     
     const validReviewsCount = reviews?.length || 1;
-    const rating = (reviews?.reduce((acc, r) => acc + (r?.overallRating || 0), 0) / validReviewsCount) || 0;
+    const totalRating = reviews?.reduce((acc, r) => acc + (r?.overallRating || 0), 0) ?? 0;
+    const rating = (totalRating / validReviewsCount) || 0;
     const reviewsCount = reviews?.length || 0;
 
     const stats = {
@@ -113,7 +132,7 @@ const TrailScreen = ({
                                 </CustomText>
 
                                 <CustomText variant="body" style={styles.address}>
-                                    {address}
+                                    {address as string}
                                 </CustomText>
 
                                 <View style={styles.ratingRow}>
@@ -158,7 +177,6 @@ const TrailScreen = ({
                             trailStats={trailStats}
                             statsLoading={statsLoading}
                             trail={trail} 
-                            location={address} 
                         />
                     )}
 
