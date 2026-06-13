@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Platform,  StyleSheet, TouchableOpacity, View  } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PrivacyContent } from '@/src/features/Legal/screens/PrivacyScreen';
 import { TermsContent } from '@/src/features/Legal/screens/TermsScreen';
 
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+export interface TACScreenProps {
+    onAcceptPress?: () => void;
+    onDeclinePress?: () => void;
+    error?: string | null;
+}
+
 const TACScreen = ({ 
     onAcceptPress, 
     onDeclinePress,
-}) => {
+    error,
+}: TACScreenProps) => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isLargeScreen = isDesktop || isTablet;
 
-    const [activeTab, setActiveTab] = useState('terms');
+    const [activeTab, setActiveTab] = useState<'terms' | 'privacy'>('terms');
     const [isChecked, setIsChecked] = useState(false);
     const [showDeclineModal, setShowDeclineModal] = useState(false);
 
@@ -147,6 +156,8 @@ const TACScreen = ({
 
                     <View style={styles.agreementContainer}>
                         
+                        <ErrorMessage error={error} />
+                        
                         <View style={[styles.instructionBox, canAccept && styles.instructionBoxSuccess]}>
                             <View style={[styles.iconCircle, canAccept && styles.iconCircleSuccess]}>
                                 <CustomIcon 
@@ -213,6 +224,8 @@ const TACScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
@@ -232,11 +245,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
         alignItems: 'center',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 10,
+        
+        
+        
+        
+        ...dropShadow,
     },
     modalCardLarge: {
         maxWidth: 900,
@@ -268,11 +281,11 @@ const styles = StyleSheet.create({
     },
     activeTab: {
         backgroundColor: Colors.WHITE,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     activeTabRead: {
         backgroundColor: Colors.PRIMARY,

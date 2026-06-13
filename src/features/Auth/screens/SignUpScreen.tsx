@@ -16,13 +16,21 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
+export interface SignUpScreenProps {
+    onLogInPress: () => void;
+    onBackPress: () => void;
+    onSignUpPress: (email?: string, password?: string, username?: string, confirmPassword?: string) => void;
+    onGmailSignUp: () => void;
+    error?: string | null;
+}
+
 const SignUpScreen = ({ 
     onLogInPress, 
     onBackPress, 
     onSignUpPress, 
     onGmailSignUp, 
     error 
-}) => {
+}: SignUpScreenProps) => {
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');

@@ -13,6 +13,17 @@ import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
+export interface LogInScreenProps {
+    onLogInPress: (email?: string, password?: string) => void;
+    onSignUpPress: () => void;
+    onBackPress: () => void;
+    onForgotPasswordPress: () => void;
+    onRememberMePress: () => void;
+    onGmailLogIn: () => void;
+    error?: string | null;
+    remember?: boolean;
+}
+
 const LogInScreen = ({ 
     onLogInPress, 
     onSignUpPress, 
@@ -22,7 +33,7 @@ const LogInScreen = ({
     onGmailLogIn, 
     error,
     remember,
-}) => {
+}: LogInScreenProps) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

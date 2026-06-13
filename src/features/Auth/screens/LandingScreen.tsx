@@ -13,13 +13,21 @@ import CustomButton from "@/src/components/CustomButton";
 import CustomText from "@/src/components/CustomText";
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+
+export interface LandingScreenProps {
+    onLogInPress: () => void;
+    onSignUpPress: () => void;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
+}
 
 const LandingScreen = ({ 
     onLogInPress, 
     onSignUpPress, 
     onTermsPress, 
     onPrivacyPress  
-}) => {
+}: LandingScreenProps) => {
     const insets = useSafeAreaInsets();
 
     return (
@@ -96,6 +104,8 @@ const LandingScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: {
         flex: 1, 
@@ -124,16 +134,16 @@ const styles = StyleSheet.create({
 
         ...Platform.select({
             ios: {
-                shadowColor: Colors.SHADOW,
-                shadowOffset: { width: 0, height: -8 },
-                shadowOpacity: 0.15,
-                shadowRadius: 20,
+                
+                
+                
+                
             },
             android: {
-                elevation: 24,
+                ...dropShadow,
             },
             web: {
-                boxShadow: '0px -8px 24px rgba(0, 0, 0, 0.12)', 
+                boxShadow: '0px -8px 24px rgba(0, 0, 0, 0.12)'
             }
         })
     },  

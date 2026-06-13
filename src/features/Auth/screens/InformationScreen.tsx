@@ -12,11 +12,17 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
+export interface InformationScreenProps {
+    onContinuePress: (phone: string, first: string, last: string, bday: string | Date, address: string) => void;
+    onBackPress: () => void;
+    error?: string | null;
+}
+
 const InformationScreen = ({ 
     onContinuePress, 
     onBackPress, 
     error 
-}) => {
+}: InformationScreenProps) => {
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [firstname, setFirstname] = useState('');

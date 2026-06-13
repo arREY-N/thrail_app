@@ -20,6 +20,15 @@ import { Colors } from '@/src/constants/colors';
 import MountainSelectChip from '@/src/features/Auth/components/MountainSelectChip';
 import SelectionOption from '@/src/features/Auth/components/SelectionOption';
 
+export interface PreferenceScreenProps {
+    questions: any;
+    setAnswer: (key: string, value: any) => void;
+    setMedicalDetails: (details: string) => void;
+    setMedicalClearance: (uri: string) => void;
+    onFinish: () => void;
+    error?: string | null;
+}
+
 const PreferenceScreen = ({ 
     questions, 
     setAnswer, 
@@ -27,7 +36,7 @@ const PreferenceScreen = ({
     setMedicalClearance,
     onFinish, 
     error 
-}) => {
+}: PreferenceScreenProps) => {
 
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
@@ -59,7 +68,7 @@ const PreferenceScreen = ({
         ? (1 / FLOW_YES.length) * 100 
         : ((stepIndex + 1) / currentFlow.length) * 100;
 
-    const handleSelect = (value) => {
+    const handleSelect = (value: any) => {
         setAnswer(currentStepKey, value);
     };
 
@@ -84,7 +93,7 @@ const PreferenceScreen = ({
         }
     };
 
-    const isSelected = (optionValue) => {
+    const isSelected = (optionValue: any) => {
         if (currentAnswer === null || currentAnswer === undefined) return false;
 
         if (currentQuestionData?.type === 'binary' || currentQuestionData?.type === 'medical') {
@@ -105,7 +114,7 @@ const PreferenceScreen = ({
         if (currentStepKey === 'q5') {
             return (
                 <View style={styles.gridContainer}>
-                    {dynamicOptions.map(opt => (
+                    {dynamicOptions.map((opt: string) => (
                         <View key={opt} style={styles.gridItem}>
                             <SelectionOption 
                                 label={opt} 
@@ -131,7 +140,7 @@ const PreferenceScreen = ({
         if (currentStepKey === 'medical') {
             return (
                 <View style={styles.optionsWrapper}>
-                    {dynamicOptions.map(opt => (
+                    {dynamicOptions.map((opt: string) => (
                         <SelectionOption 
                             key={opt}
                             label={opt} 
@@ -171,7 +180,7 @@ const PreferenceScreen = ({
 
         return (
             <View style={styles.optionsWrapper}>
-                {dynamicOptions.map(opt => (
+                {dynamicOptions.map((opt: string) => (
                     <SelectionOption 
                         key={opt}
                         label={opt} 
