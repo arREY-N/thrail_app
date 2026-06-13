@@ -19,7 +19,7 @@ export default function superadminDashboard(){
     //     onManageApplicationPress,
     // } = useSuperadminDomain();
 
-    const superadminData = useSuperadminDomain();
+    const superadminData = useSuperadminDomain(null);
     const { onBackPress } = useAppNavigation();
 
     return(
@@ -59,6 +59,19 @@ const TESTSUPERADMIN = ({
     onManageUsersPress,
     onManageMountainPress,
     onManageApplicationPress,
+}: {
+    businessCount: number;
+    trailCount: number;
+    userCount: number;
+    adminCount: number;
+    superadminCount: number;
+    mountainCount: number;
+    applicationCount: number;
+    onManageBusinessPress: () => void;
+    onManageTrailsPress: () => void;
+    onManageUsersPress: () => void;
+    onManageMountainPress: () => void;
+    onManageApplicationPress: () => void;
 }) => {
     return(
         <View>
