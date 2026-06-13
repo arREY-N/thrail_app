@@ -8,14 +8,14 @@ export default function receipt(){
     const { paymentId } = useLocalSearchParams();
     const router = useRouter();
 
-    const loadPayment = usePaymentsStore(s => s.loadPayment);
-    const payment = usePaymentsStore(s => s.payment);
+    const loadPayment = usePaymentsStore((s) => s.load);
+    const payment = usePaymentsStore((s) => s.current);
     useEffect(() => {
         loadPayment(paymentId);
     }, [paymentId])
 
     const onHomePress = () => {
-        router.replace('/(tabs)')
+        router.replace('/(tabs)' as any)
     }
 
     if(!payment) return <LoadingScreen/>
@@ -32,6 +32,9 @@ export default function receipt(){
 const TESTRECEIPT = ({
     payment,
     onHomePress
+}: {
+    payment: Record<string, any>;
+    onHomePress: () => void;
 }) => {
     const { receipt, offer, user, business } = payment;
     
