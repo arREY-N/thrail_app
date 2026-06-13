@@ -10,6 +10,22 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+export interface HikerProfileCardProps {
+    user: any;
+    emergencyContact: any;
+    personalVerified: boolean;
+    emergencyVerified: boolean;
+    onTogglePersonalVerify: () => void;
+    onToggleEmergencyVerify: () => void;
+    statusText?: string;
+    statusBgColor?: string;
+    statusTextColor?: string;
+    isMinor: boolean;
+}
+
+/**
+ * HikerProfileCard — Displays hiker and emergency contact details for a booking.
+ */
 const HikerProfileCard = ({ 
     user, 
     emergencyContact, 
@@ -21,9 +37,9 @@ const HikerProfileCard = ({
     statusBgColor,
     statusTextColor,
     isMinor
-}) => {
+}: HikerProfileCardProps) => {
 
-    const handleCall = async (phoneNumber) => {
+    const handleCall = async (phoneNumber: string) => {
         if (!phoneNumber) return;
         const url = `tel:${phoneNumber}`;
         if (await Linking.canOpenURL(url)) {

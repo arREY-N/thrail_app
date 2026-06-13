@@ -6,6 +6,18 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+export interface AdminPaymentTabProps {
+    booking: any;
+    currentStatus: string;
+    isApprovedStatus: boolean;
+    isRejectedStatus: boolean;
+    isCancelledStatus: boolean;
+    onConfirmPaymentClick: () => void;
+}
+
+/**
+ * AdminPaymentTab — Displays the payment details for a booking, allowing the admin to verify payments.
+ */
 const AdminPaymentTab = ({ 
     booking, 
     currentStatus, 
@@ -13,8 +25,8 @@ const AdminPaymentTab = ({
     isRejectedStatus,
     isCancelledStatus,
     onConfirmPaymentClick 
-}) => {
-    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+}: AdminPaymentTabProps) => {
+    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
     
     const lockedMessage = hasRefundedPayment 
         ? "Payment actions are locked because this booking has been explicitly Refunded."
@@ -72,13 +84,13 @@ const AdminPaymentTab = ({
                         Transaction Summary
                     </CustomText>
                     
-                    {booking?.payment?.map((paymentRecord, idx) => (
+                    {booking?.payment?.map((paymentRecord: any, idx: number) => (
                         <View key={idx} style={styles.paymentRecordBox}>
                             <View style={styles.detailRow}>
                                 <CustomText variant="caption" style={styles.detailLabel}>
                                     Gateway
                                 </CustomText>
-                                <CustomText variant="body" style={styles.detailValue} textTransform="capitalize">
+                                <CustomText variant="body" style={[styles.detailValue, { textTransform: 'capitalize' }]}>
                                     {paymentRecord.gateway || 'PayMongo'}
                                 </CustomText>
                             </View>
@@ -100,9 +112,9 @@ const AdminPaymentTab = ({
                                     variant="caption" 
                                     style={[
                                         styles.detailValue,
-                                        paymentRecord.status === 'refunded' && styles.errorText
+                                        paymentRecord.status === 'refunded' && styles.errorText,
+                                        { textTransform: 'uppercase' }
                                     ]} 
-                                    textTransform="uppercase"
                                 >
                                     {paymentRecord.status === 'refunded' && paymentRecord.refundedAmount && paymentRecord.amount > 0
                                         ? `${paymentRecord.status} (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)`

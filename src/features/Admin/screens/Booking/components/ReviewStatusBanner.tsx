@@ -5,7 +5,41 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const getBannerConfig = (status) => {
+/** Configuration object returned by getBannerConfig for each booking status. */
+interface BannerConfig {
+    title: string;
+    icon: string;
+    color: string;
+    bg: string;
+    showReason?: boolean;
+}
+
+/** Union of all supported booking status strings for the banner display. */
+type BannerStatus =
+    | 'for-reservation'
+    | 'pending-docs'
+    | 'approved-docs'
+    | 'for-payment'
+    | 'downpayment'
+    | 'paid'
+    | 'completed'
+    | 'finished'
+    | 'reservation-rejected'
+    | 'for-reschedule'
+    | 'reschedule-rejected'
+    | 'rescheduled'
+    | 'for-cancellation'
+    | 'cancellation-rejected'
+    | 'cancelled'
+    | 'refund'
+    | 'refunded'
+    | 'expired';
+
+/**
+ * Returns the visual configuration (title, icon, colors) for a given booking status.
+ * @param status - The current booking status string.
+ */
+const getBannerConfig = (status: string): BannerConfig => {
     switch (status) {
         case 'for-reservation':
         case 'pending-docs':
@@ -129,11 +163,27 @@ const getBannerConfig = (status) => {
     }
 };
 
+/**
+ * Props for the ReviewStatusBanner component.
+ * @param currentStatus - The booking's current status string.
+ * @param cancellationReason - Optional reason text if booking was cancelled.
+ * @param rejectionReason - Optional reason text if booking was rejected.
+ */
+interface ReviewStatusBannerProps {
+    currentStatus: string;
+    cancellationReason?: string;
+    rejectionReason?: string;
+}
+
+/**
+ * ReviewStatusBanner — Displays a colored status banner at the top of the
+ * admin booking review screen, with an optional reason message.
+ */
 const ReviewStatusBanner = ({ 
     currentStatus, 
     cancellationReason,
     rejectionReason 
-}) => {
+}: ReviewStatusBannerProps) => {
     if (!currentStatus) return null;
 
     const config = getBannerConfig(currentStatus);

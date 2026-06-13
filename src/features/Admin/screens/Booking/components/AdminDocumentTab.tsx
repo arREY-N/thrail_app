@@ -4,6 +4,31 @@ import { Alert, StyleSheet, View } from 'react-native';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import DocumentReviewCard from '@/src/features/Admin/screens/Booking/components/DocumentReviewCard';
 
+export type DocValidState = 'pending' | 'approved' | 'rejected';
+
+export interface DocState {
+    name: string;
+    file: string;
+    valid: DocValidState;
+}
+
+export interface AdminDocumentTabProps {
+    booking: any;
+    docStates: DocState[];
+    setDocStates: (states: DocState[]) => void;
+    viewedDocs: Record<number, boolean>;
+    isReviewComplete: boolean;
+    isRejectedStatus: boolean;
+    isCancelledStatus: boolean;
+    hasRejections: boolean;
+    rejectionReason: string;
+    setRejectionReason: (reason: string) => void;
+    onViewFile: (fileUrl: string, index: number) => void;
+}
+
+/**
+ * AdminDocumentTab — Displays the list of required documents for a booking and handles approvals/rejections.
+ */
 const AdminDocumentTab = ({ 
     booking, 
     docStates, 
@@ -16,9 +41,9 @@ const AdminDocumentTab = ({
     rejectionReason, 
     setRejectionReason, 
     onViewFile 
-}) => {
+}: AdminDocumentTabProps) => {
 
-    const toggleDocDecision = (index, statusString) => {
+    const toggleDocDecision = (index: number, statusString: DocValidState) => {
         if (isReviewComplete) return; 
         
         if (!viewedDocs[index] && docStates[index].valid === 'pending') {

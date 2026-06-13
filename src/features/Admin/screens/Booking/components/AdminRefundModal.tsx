@@ -1,12 +1,25 @@
 import React from 'react';
-import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform,  Modal, StyleSheet, TouchableOpacity, View  } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 
-const AdminRefundModal = ({ visible, onClose, onSelect, amountPaid = 0 }) => {
+export type RefundType = 'full' | 'partial';
+
+export interface AdminRefundModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onSelect: (refundType: RefundType) => void;
+    amountPaid?: number;
+}
+
+/**
+ * AdminRefundModal — A modal to select full or partial refund.
+ */
+const AdminRefundModal = ({ visible, onClose, onSelect, amountPaid = 0 }: AdminRefundModalProps) => {
     const fullRefundAmount = amountPaid;
     const partialRefundAmount = amountPaid * 0.10;
 
@@ -89,6 +102,8 @@ const AdminRefundModal = ({ visible, onClose, onSelect, amountPaid = 0 }) => {
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
@@ -133,11 +148,11 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderWidth: 1.5,
         borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 4,
-        elevation: 1,
+        
+        
+        
+        
+        ...dropShadow,
     },
     iconWrapper: {
         width: 44,

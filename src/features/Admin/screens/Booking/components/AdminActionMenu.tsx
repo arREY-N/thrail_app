@@ -5,6 +5,30 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+/**
+ * Props for the AdminActionMenu component.
+ * @param visible - Whether the action sheet modal is visible.
+ * @param onClose - Callback to close the modal.
+ * @param isCancelledStatus - Whether the booking has a terminal cancelled/refunded status.
+ * @param totalAmountPaid - The total captured payment amount for refund eligibility.
+ * @param onRescheduleClick - Callback when "Reschedule Booking" is pressed.
+ * @param onRefundClick - Callback when "Issue Refund" is pressed.
+ * @param onCancelClick - Callback when "Cancel Booking" is pressed.
+ */
+interface AdminActionMenuProps {
+    visible: boolean;
+    onClose: () => void;
+    isCancelledStatus: boolean;
+    totalAmountPaid: number;
+    onRescheduleClick: () => void;
+    onRefundClick: () => void;
+    onCancelClick: () => void;
+}
+
+/**
+ * AdminActionMenu — A bottom-sheet action menu for admin booking management.
+ * Displays reschedule, refund, or cancel options depending on booking state.
+ */
 const AdminActionMenu = ({ 
     visible, 
     onClose, 
@@ -13,7 +37,7 @@ const AdminActionMenu = ({
     onRescheduleClick, 
     onRefundClick, 
     onCancelClick 
-}) => {
+}: AdminActionMenuProps) => {
     return (
         <Modal 
             transparent={true} 

@@ -5,6 +5,46 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+/** The validation state of a single document in admin review. */
+type DocValidState = 'pending' | 'approved' | 'rejected';
+
+/** Represents the state of a single document being reviewed. */
+interface DocState {
+    name: string;
+    file: string;
+    valid: DocValidState;
+}
+
+/** Status helper return type with display text and color. */
+interface HelperStatus {
+    text: string;
+    color: string;
+}
+
+/**
+ * Props for the DocumentReviewCard component.
+ * @param doc - The document state object containing name, file URL, and validation status.
+ * @param index - The index of this document in the docStates array.
+ * @param needsReview - Whether the document hasn't been viewed yet and is still pending.
+ * @param isReviewComplete - Whether the overall review process is finalized.
+ * @param isCancelledStatus - Whether the booking has a terminal cancelled status.
+ * @param onViewFile - Callback to open the document's file attachment.
+ * @param onToggleDecision - Callback to toggle the approve/reject decision for this document.
+ */
+interface DocumentReviewCardProps {
+    doc: DocState;
+    index: number;
+    needsReview: boolean;
+    isReviewComplete: boolean;
+    isCancelledStatus: boolean;
+    onViewFile: (fileUrl: string, index: number) => void;
+    onToggleDecision: (index: number, status: DocValidState) => void;
+}
+
+/**
+ * DocumentReviewCard — Displays a single document for admin review with
+ * view, approve, and reject actions. Locks interactions when review is complete.
+ */
 const DocumentReviewCard = ({
     doc,
     index,
@@ -13,9 +53,12 @@ const DocumentReviewCard = ({
     isCancelledStatus,
     onViewFile,
     onToggleDecision
-}) => {
+}: DocumentReviewCardProps) => {
     
-    const getHelperStatus = () => {
+    /**
+     * Returns the helper status text and color based on the current document state.
+     */
+    const getHelperStatus = (): HelperStatus => {
         if (isCancelledStatus) {
             return { 
                 text: "✕ Review Locked (Booking Cancelled)", 
