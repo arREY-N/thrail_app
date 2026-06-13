@@ -9,15 +9,28 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IUser } from '@/src/core/models/User/User.types';
 import { Layout } from '@/src/constants/layout';
 
+export interface PersonnelListScreenProps {
+    businessId: string;
+    businessAdmins: IUser[];
+    onReloadPress: (businessId: string) => Promise<void>;
+    onBackPress: () => void;
+    onAddAdminPress: () => void;
+}
+
+/**
+ * PersonnelListScreen — Displays the list of admins for the business.
+ */
 const PersonnelListScreen = ({ 
     businessId, 
     businessAdmins, 
     onReloadPress, 
     onBackPress,
     onAddAdminPress
-}) => {
+}: PersonnelListScreenProps) => {
     
     const [refreshing, setRefreshing] = useState(false);
 
@@ -27,7 +40,7 @@ const PersonnelListScreen = ({
         setRefreshing(false);
     }, [businessId, onReloadPress]);
 
-    const AdminCard = ({ admin }) => {
+    const AdminCard = ({ admin }: { admin: IUser }) => {
         const initials = `${admin.firstname?.charAt(0) || ''}${admin.lastname?.charAt(0) || ''}`.trim().toUpperCase();
         
         const fullName = (admin.firstname || admin.lastname) 
@@ -134,16 +147,7 @@ const PersonnelListScreen = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 6 
-    },
-    android: { elevation: 2 },
-    web: { boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.05)' }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     scrollContent: { 
@@ -181,7 +185,7 @@ const styles = StyleSheet.create({
         borderRadius: 16, 
         alignItems: 'flex-start', 
         gap: 16, 
-        ...dropShadow, 
+        ...(dropShadow as any), 
     },
     avatar: { 
         width: 48, 

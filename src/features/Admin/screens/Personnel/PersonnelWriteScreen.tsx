@@ -10,8 +10,23 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { IUser } from '@/src/core/models/User/User.types';
 
+export interface PersonnelWriteScreenProps {
+    businessAdmins: IUser[];
+    onFindUserPress: (email: string) => void;
+    searched: IUser[];
+    onMakeAdminPress: (user: IUser) => void;
+    isOwner: boolean;
+    isLoading: boolean;
+    onBackPress: () => void;
+}
+
+/**
+ * PersonnelWriteScreen — Admin screen to search and add new personnel via email.
+ */
 const PersonnelWriteScreen = ({
     businessAdmins,
     onFindUserPress,
@@ -20,16 +35,16 @@ const PersonnelWriteScreen = ({
     isOwner,
     isLoading,
     onBackPress 
-}) => {
+}: PersonnelWriteScreenProps) => {
     const [email, setEmail] = useState('');
 
     const handleSearch = () => {
         if (email.trim()) onFindUserPress(email);
     };
 
-    const UserResultCard = ({ user }) => {
+    const UserResultCard = ({ user }: { user: IUser }) => {
         const isSystemAdmin = user.role === 'admin';
-        const isBusinessAdmin = Array.isArray(businessAdmins) && businessAdmins.some(admin => admin.id === user.id);
+        const isBusinessAdmin = Array.isArray(businessAdmins) && businessAdmins.some((admin) => admin.id === user.id);
         const isAlreadyAdmin = isSystemAdmin || isBusinessAdmin;
 
         return (
@@ -159,16 +174,7 @@ const PersonnelWriteScreen = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4 
-    },
-    android: { elevation: 1 },
-    web: { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)' }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     scrollContent: { 
@@ -226,7 +232,7 @@ const styles = StyleSheet.create({
         gap: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow,
+        ...(dropShadow as any),
     },
     avatar: { 
         width: 44, 
