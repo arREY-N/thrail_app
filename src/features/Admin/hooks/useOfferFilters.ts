@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 export const FILTER_OPTIONS = ['All', 'Active', 'Expired', 'Rescheduled', 'Cancelled'];
 
-export default function useOfferFilters(offers) {
+export default function useOfferFilters(offers: any[]) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
 
@@ -62,10 +62,10 @@ export default function useOfferFilters(offers) {
             if (!isActiveA && isActiveB) return 1;
 
             if (isActiveA && isActiveB) {
-                return dateA - dateB;
+                return dateA.getTime() - dateB.getTime();
             }
 
-            return dateB - dateA;
+            return dateB.getTime() - dateA.getTime();
         });
     }, [offers, searchQuery, activeFilter]);
 

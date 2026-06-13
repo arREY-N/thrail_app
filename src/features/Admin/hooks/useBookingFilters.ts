@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpayment', 'Fully Paid', 'Completed', 'Rejected'];
 
-export default function useBookingFilters(bookings) {
+export default function useBookingFilters(bookings: any[]) {
     const [activeFilter, setActiveFilter] = useState('All');
 
     const filteredBookings = useMemo(() => {
@@ -26,7 +26,7 @@ export default function useBookingFilters(bookings) {
             });
         }
 
-        const getPriorityScore = (status) => {
+        const getPriorityScore = (status: any) => {
             const s = status || '';
 
             if (s === 'pending-docs' || s === 'for-reservation') return 1;
@@ -48,7 +48,7 @@ export default function useBookingFilters(bookings) {
                 return priorityA - priorityB;
             }
 
-            const getMs = (val) => val?.toDate ? val.toDate().getTime() : new Date(val || 0).getTime();
+            const getMs = (val: any) => val?.toDate ? val.toDate().getTime() : new Date(val || 0).getTime();
             const timeA = getMs(a.updatedAt || a.createdAt);
             const timeB = getMs(b.updatedAt || b.createdAt);
             

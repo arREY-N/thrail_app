@@ -2,17 +2,17 @@ import { getStatusConfig } from '@/src/constants/statusConfig';
 import { checkIfMinor, formatDateToStandard } from '@/src/utils/dateFormatter';
 import { useEffect, useMemo, useState } from 'react';
 
-export default function useReviewLogic(booking, offers) {
+export default function useReviewLogic(booking: any, offers: any[]) {
     const [activeTab, setActiveTab] = useState('documents'); 
-    const [docStates, setDocStates] = useState([]);
-    const [viewedDocs, setViewedDocs] = useState({});
+    const [docStates, setDocStates] = useState<any[]>([]);
+    const [viewedDocs, setViewedDocs] = useState<any>({});
     const [rejectionReason, setRejectionReason] = useState('');
     
     const [personalVerified, setPersonalVerified] = useState(false);
     const [emergencyVerified, setEmergencyVerified] = useState(false);
     const [isMinor, setIsMinor] = useState(false);
 
-    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
     const currentStatus = hasRefundedPayment ? 'refunded' : (booking?.status || 'for-reservation');
     const displayCancellationReason = hasRefundedPayment 
         ? 'Refund processed securely via PayMongo.' 
@@ -32,7 +32,7 @@ export default function useReviewLogic(booking, offers) {
     useEffect(() => {
         if (!booking?.documents) return;
 
-        const mapDocument = (name, file, valid) => {
+        const mapDocument = (name: any, file: any, valid: any) => {
             let validState = 'pending';
             if (valid === 'approved' || valid === true) validState = 'approved';
             if (valid === 'rejected' || valid === false) validState = 'rejected';
@@ -42,13 +42,13 @@ export default function useReviewLogic(booking, offers) {
         };
 
         const docsArray = Array.isArray(booking.documents) 
-            ? booking.documents.map((d, i) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
-            : Object.entries(booking.documents).map(([k, v]) => mapDocument(v.name || k, v.file || '', v.valid));
+            ? booking.documents.map((d: any, i: any) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
+            : Object.entries(booking.documents).map(([k, v]: [string, any]) => mapDocument(v.name || k, v.file || '', v.valid));
         
         setDocStates(docsArray);
         
-        const initialViewed = {};
-        docsArray.forEach((d, i) => { 
+        const initialViewed: any = {};
+        docsArray.forEach((d: any, i: any) => { 
             if (d.valid !== 'pending') initialViewed[i] = true; 
         });
         setViewedDocs(initialViewed);
@@ -59,12 +59,12 @@ export default function useReviewLogic(booking, offers) {
 
     }, [booking, booking?.documents, isApprovedStatus, isRejectedStatus]);
 
-    const hasRejections = docStates.some(d => d.valid === 'rejected');
-    const isDecisionIncomplete = docStates.length > 0 && docStates.some(d => d.valid === 'pending');
+    const hasRejections = docStates.some((d: any) => d.valid === 'rejected');
+    const isDecisionIncomplete = docStates.length > 0 && docStates.some((d: any) => d.valid === 'pending');
     
     const availableOffers = useMemo(() => {
         return offers 
-            ? offers.filter(o => o.id !== booking?.offer?.id).map(o => ({ 
+            ? offers.filter((o: any) => o.id !== booking?.offer?.id).map((o: any) => ({ 
                 id: o.id, 
                 label: formatDateToStandard(o.date),
                 subLabel: `₱${o.price}`, 
