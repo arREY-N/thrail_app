@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform,  StyleSheet, View  } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
@@ -13,7 +14,23 @@ import DetailsScreen from '@/src/features/Book/screens/Booking/DetailsScreen';
 import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
 import StatusScreen from '@/src/features/Book/screens/Booking/StatusScreen';
 
-const BookingScreen = ({
+export interface BookingScreenProps {
+    offers?: Array<{ id: string; date?: string | Date; [key: string]: unknown }>;
+    onBackPress: () => void;
+    onSetOffer?: (offer: unknown) => void;
+    onCompleteOffer: (data: { hikerDetails: Record<string, any> }) => Promise<boolean>;
+    onUpdatePress?: (payload: { section: string; id: string; value: unknown }) => void;
+    onTermsPress?: () => void;
+    onPrivacyPress?: () => void;
+}
+
+export interface BookingDataState {
+    selectedOfferId: string | null;
+    hikerDetails: Record<string, any> | null;
+    uploadedDocs: Record<string, string> | null;
+}
+
+const BookingScreen: React.FC<BookingScreenProps> = ({
     offers = [],
     onBackPress,
     onSetOffer,
@@ -29,7 +46,7 @@ const BookingScreen = ({
 
     const [isBookingSuccess, setIsBookingSuccess] = useState(false); 
 
-    const [bookingData, setBookingData] = useState({
+    const [bookingData, setBookingData] = useState<BookingDataState>({
         selectedOfferId: null,
         hikerDetails: null,
         uploadedDocs: null,
@@ -70,16 +87,16 @@ const BookingScreen = ({
         }
     };
 
-    const handleStepNavigation = (step) => {
+    const handleStepNavigation = (step: number) => {
         if (currentView === 3) return;
         if (step > currentView || isSubmitting) return;
         setCurrentView(step);
     };
 
-    const handleReserve = (detailsData) => {
+    const handleReserve = (detailsData: { hikerDetails: Record<string, any>; uploadedDocs: Record<string, string> }) => {
         setIsSubmitting(true);
 
-        const normalizedHikerDetails = {
+        const normalizedHikerDetails: Record<string, any> = {
             ...detailsData.hikerDetails,
             phone: cleanPhoneNumber(detailsData.hikerDetails?.phone || ''),
             emergencyPhone: cleanPhoneNumber(detailsData.hikerDetails?.emergencyPhone || ''),
@@ -125,7 +142,7 @@ const BookingScreen = ({
                 
                 try {
                     successFlag = await completeOfferRef.current({
-                        hikerDetails: bookingDataRef.current.hikerDetails,
+                        hikerDetails: bookingDataRef.current.hikerDetails || {},
                     });
                 } catch (backendError) {
                     console.error("Booking Error:", backendError);
@@ -152,7 +169,7 @@ const BookingScreen = ({
             <CustomHeader
                 title={currentView === 3 ? 'Booking Status' : 'Book Trail'}
                 centerTitle={true}
-                onBackPress={currentView === 3 ? null : handleHeaderBackPress}
+                onBackPress={currentView === 3 ? undefined : handleHeaderBackPress}
             />
 
             <View style={styles.progressOuterBounds}>
@@ -213,12 +230,12 @@ const BookingScreen = ({
                                 if (selectedOffer.date) {
                                     if (selectedOffer.date instanceof Date) {
                                         properDate = selectedOffer.date;
-                                    } else if (typeof selectedOffer.date.toDate === 'function') {
-                                        properDate = selectedOffer.date.toDate();
-                                    } else if (selectedOffer.date.seconds) {
-                                        properDate = new Date(selectedOffer.date.seconds * 1000);
+                                    } else if (typeof (selectedOffer.date as any).toDate === 'function') {
+                                        properDate = (selectedOffer.date as any).toDate();
+                                    } else if ((selectedOffer.date as any).seconds) {
+                                        properDate = new Date((selectedOffer.date as any).seconds * 1000);
                                     } else {
-                                        properDate = new Date(selectedOffer.date);
+                                        properDate = new Date(selectedOffer.date as string | number);
                                     }
                                 }
                                 onSetOffer({ ...selectedOffer, date: properDate });
@@ -264,6 +281,8 @@ const BookingScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     progressOuterBounds: {
         width: '100%',
@@ -277,15 +296,15 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 16,
         backgroundColor: Colors.BACKGROUND,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
+        
+        
+        
+        
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        elevation: 4,
+        ...dropShadow,
     },
     progressContainer: {
         position: 'relative',

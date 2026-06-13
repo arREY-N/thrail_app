@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform,  ScrollView, StyleSheet, TouchableOpacity, View  } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
@@ -9,12 +9,30 @@ import EmergencySetupModal from '@/src/components/EmergencyModal';
 
 import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
-const getStrictDocKey = (docName) => {
+export interface HikerDetails {
+    phone?: string;
+    emergencyName?: string;
+    emergencyPhone?: string;
+    [key: string]: unknown;
+}
+
+export interface DetailsScreenProps {
+    selectedOffer?: { documents?: string[]; [key: string]: unknown } | null;
+    savedDetails?: HikerDetails | null;
+    savedDocs?: Record<string, string> | null;
+    onContinue: (payload: { hikerDetails: HikerDetails; uploadedDocs: Record<string, string> }) => void;
+    isSubmitting?: boolean;
+    onTermsPress?: () => void;
+    onPrivacyPress?: () => void;
+}
+
+const getStrictDocKey = (docName: string) => {
     if (!docName) return 'validId';
     const lower = docName.toLowerCase();
     if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
@@ -25,14 +43,22 @@ const getStrictDocKey = (docName) => {
     return 'validId';
 };
 
-const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isSubmitting, onTermsPress, onPrivacyPress }) => {
+const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
+    selectedOffer, 
+    savedDetails, 
+    savedDocs, 
+    onContinue, 
+    isSubmitting, 
+    onTermsPress, 
+    onPrivacyPress 
+}) => {
     const { profile } = useAuthStore();
     const requiredDocuments = selectedOffer?.documents || [];
 
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
     const profilePhone = formatLocalPhoneNumber(cleanPhoneNumber(profile?.phoneNumber || ''));
 
-    const getInitialData = () => {
+    const getInitialData = (): HikerDetails => {
         if (savedDetails) return savedDetails;
         return {
             phone: profilePhone,
@@ -41,8 +67,8 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isS
         };
     };
 
-    const [formData, setFormData] = useState(getInitialData());
-    const [uploadedDocs, setUploadedDocs] = useState(savedDocs || {});
+    const [formData, setFormData] = useState<HikerDetails>(getInitialData());
+    const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>(savedDocs || {});
     const [isSignatureValid, setIsSignatureValid] = useState(false);
     const [isMinor, setIsMinor] = useState(false);
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
@@ -62,12 +88,12 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isS
         }));
     }, [profile?.emergencyContact]);
 
-    const handleLocalPhoneSave = (newPhone) => {
+    const handleLocalPhoneSave = (newPhone: string) => {
         setFormData(prev => ({ ...prev, phone: formatLocalPhoneNumber(newPhone) }));
     };
 
     const isFormValid = () => {
-        const isBasicInfoFilled = formData.phone && formData.emergencyName && formData.emergencyPhone;
+        const isBasicInfoFilled = !!(formData.phone && formData.emergencyName && formData.emergencyPhone);
         const areAllDocsUploaded = activeDocuments.every(doc => !!uploadedDocs[doc]);
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
@@ -136,7 +162,7 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isS
                     )}
 
                     <View style={styles.section}>
-                        <TermsSignature isMinor={isMinor} minorName={profileFullName} expectedName={isMinor ? formData.emergencyName : profileFullName} onValidChange={setIsSignatureValid} onTermsPress={onTermsPress} onPrivacyPress={onPrivacyPress} />
+                        <TermsSignature isMinor={isMinor} minorName={profileFullName} expectedName={isMinor ? formData.emergencyName || '' : profileFullName} onValidChange={setIsSignatureValid} onTermsPress={onTermsPress || (() => {})} onPrivacyPress={onPrivacyPress || (() => {})} />
                     </View>
                 </View>
             </ScrollView>
@@ -160,6 +186,8 @@ const DetailsScreen = ({ selectedOffer, savedDetails, savedDocs, onContinue, isS
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
     constrainer: { width: '100%', maxWidth: Layout.MAX_WIDTH, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 16 },
@@ -173,7 +201,7 @@ const styles = StyleSheet.create({
     headerActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6 },
     headerActionBtnText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 13 },
     
-    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT,     ...dropShadow, },
     infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
     iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     infoCol: { marginLeft: 16, flex: 1 },

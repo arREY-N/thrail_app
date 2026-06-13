@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     View
@@ -9,10 +10,31 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-const StatusScreen = ({ 
+export interface BookedOffer {
+    date?: string | Date;
+    hikeDate?: string | Date;
+    price?: number;
+    duration?: string;
+    minPax?: number;
+    maxPax?: number;
+    inclusions?: string[];
+    trail?: { name?: string };
+    business?: { name?: string };
+    [key: string]: unknown;
+}
+
+export interface StatusScreenProps {
+    onReturn: () => void;
+    bookedOffer?: BookedOffer | null;
+    hikerDetails?: Record<string, unknown> | null;
+    isSuccess?: boolean;
+}
+
+const StatusScreen: React.FC<StatusScreenProps> = ({ 
     onReturn, 
     bookedOffer, 
     isSuccess = true 
@@ -207,6 +229,8 @@ const StatusScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: { 
         flex: 1, 
@@ -234,19 +258,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.SUCCESS, 
         justifyContent: 'center', 
         alignItems: 'center', 
-        marginBottom: 20, 
-        shadowColor: Colors.SUCCESS, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.3, 
-        shadowRadius: 8, 
-        elevation: 6 
+        marginBottom: 20,
+        ...dropShadow, 
     },
     iconCircleError: { 
         backgroundColor: Colors.ERROR, 
-        shadowColor: Colors.ERROR 
     },
     title: { 
         marginBottom: 12, 
@@ -282,14 +298,11 @@ const styles = StyleSheet.create({
         padding: 20, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 8, 
-        elevation: 2 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     summaryTitle: { 
         marginBottom: 16, 

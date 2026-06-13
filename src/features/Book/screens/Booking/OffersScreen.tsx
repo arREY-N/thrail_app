@@ -15,16 +15,28 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
-const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
+export interface OfferData {
+    id: string;
+    date?: string | Date;
+    [key: string]: unknown;
+}
+
+export interface OffersScreenProps {
+    offers?: OfferData[];
+    selectedOfferId?: string | null;
+    onContinue: (offerId: string | null) => void;
+}
+
+const OffersScreen: React.FC<OffersScreenProps> = ({ offers = [], selectedOfferId, onContinue }) => {
     const [selectedDate, setSelectedDate] = useState(() => formatDateToStandard(new Date()));
-    const [localSelectedId, setLocalSelectedId] = useState(selectedOfferId);
+    const [localSelectedId, setLocalSelectedId] = useState<string | null>(selectedOfferId || null);
 
     const safeOffers = useMemo(() => Array.isArray(offers) ? offers : [], [offers]);
 
     const uniqueDates = useMemo(() => {
         const dates = safeOffers
             .map((offer) => formatDateToStandard(offer?.date))
-            .filter(Boolean);
+            .filter(Boolean) as string[];
         return [...new Set(dates)];
     }, [safeOffers]);
 
@@ -54,12 +66,12 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
         }
     }, [selectedOfferId, safeOffers]);
 
-    const handleDateSelect = (date) => {
+    const handleDateSelect = (date: string) => {
         setSelectedDate(date);
         setLocalSelectedId(null);
     };
 
-    const handleOfferSelect = (offerId) => {
+    const handleOfferSelect = (offerId: string) => {
         setLocalSelectedId(localSelectedId === offerId ? null : offerId);
     };
 
@@ -93,7 +105,6 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                                     key={offer.id}
                                     offer={offer}
                                     isSelected={localSelectedId === offer.id}
-                                    isExpired={isSelectedDatePast}
                                     onSelect={() => handleOfferSelect(offer.id)}
                                 />
                             ))
@@ -106,7 +117,7 @@ const OffersScreen = ({ offers = [], selectedOfferId, onContinue }) => {
                                     color={Colors.GRAY_LIGHT} 
                                     style={styles.emptyIcon}
                                 />
-                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                                <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY }}>
                                     No offers available for this date.
                                 </CustomText>
                             </View>
