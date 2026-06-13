@@ -99,7 +99,7 @@ export class Offer implements IOffer {
                     activities: schedule.activities.map(activity => {
                         return {
                             ...activity,
-                            time: Timestamp.fromDate(activity.time),
+                            time: Timestamp.fromDate(activity.time || new Date()),
                         }
                     })                    
                 }
