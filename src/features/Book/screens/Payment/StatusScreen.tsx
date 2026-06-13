@@ -4,9 +4,17 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 
-const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCode }) => {
+export interface StatusScreenProps {
+    selectedMethod?: string | null;
+    amountToPay?: number | string;
+    bookingId?: string;
+    referenceCode?: string;
+}
+
+const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCode }: StatusScreenProps) => {
     const displayRef = referenceCode || `TRX-${bookingId?.substring(0, 8).toUpperCase() || '102938A'}`;
 
     return (
@@ -50,7 +58,7 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCod
                         <CustomText variant="caption" style={styles.detailLabel}>
                             Method
                         </CustomText>
-                        <CustomText variant="body" style={styles.detailValue} textTransform="capitalize">
+                        <CustomText variant="body" style={[styles.detailValue, { textTransform: 'capitalize' }]}>
                             {selectedMethod || 'N/A'}
                         </CustomText>
                     </View>
@@ -68,6 +76,8 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCod
         </ScrollView>
     );
 };
+
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     constrainer: {
@@ -94,14 +104,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center', 
         marginBottom: 20, 
-        shadowColor: Colors.SUCCESS, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.3, 
-        shadowRadius: 8, 
-        elevation: 6 
+
+        ...dropShadow, 
     },
     title: { 
         marginBottom: 12, 
@@ -120,14 +124,11 @@ const styles = StyleSheet.create({
         padding: 20, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 8, 
-        elevation: 2 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     summaryTitle: { 
         marginBottom: 16, 

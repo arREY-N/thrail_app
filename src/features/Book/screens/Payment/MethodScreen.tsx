@@ -1,13 +1,22 @@
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform,  ScrollView, StyleSheet, TouchableOpacity, View  } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const paymentMethods = [
+export interface PaymentMethodOption {
+    id: string;
+    name: string;
+    icon: string;
+    library: IconLibrary;
+}
+
+const paymentMethods: PaymentMethodOption[] = [
     { 
         id: 'gcash', 
         name: 'GCash', 
@@ -22,6 +31,22 @@ const paymentMethods = [
     },
 ];
 
+export interface MethodScreenProps {
+    amountToPay: number;
+    paymentType: 'full' | 'downpayment' | string;
+    setPaymentType: (type: 'full' | 'downpayment') => void;
+    selectedMethod: string | null;
+    setSelectedMethod: (method: string) => void;
+    profileFullName: string;
+    setIsSignatureValid: (isValid: boolean) => void;
+    paymentError?: string | null;
+    isPayingBalance: boolean;
+    isMinor: boolean;
+    minorName?: string;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
+}
+
 const MethodScreen = ({
     amountToPay,
     paymentType,
@@ -33,8 +58,11 @@ const MethodScreen = ({
     paymentError,
     isPayingBalance,
     isMinor,
-    minorName
-}) => {
+    minorName,
+    onTermsPress,
+    onPrivacyPress
+}: MethodScreenProps) => {
+
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
@@ -147,6 +175,8 @@ const MethodScreen = ({
                             isMinor={isMinor}
                             minorName={minorName}
                             onValidChange={setIsSignatureValid}
+                            onTermsPress={onTermsPress}
+                            onPrivacyPress={onPrivacyPress}
                         />
                     </View>
                 </View>
@@ -154,6 +184,8 @@ const MethodScreen = ({
         </ScrollView>
     );
 };
+
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     constrainer: {
@@ -206,14 +238,11 @@ const styles = StyleSheet.create({
     },
     toggleBtnActive: { 
         backgroundColor: Colors.WHITE, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
-        elevation: 2 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     toggleText: { 
         fontWeight: 'bold', 

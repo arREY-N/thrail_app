@@ -8,31 +8,38 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { IBooking, IPayment } from '@/src/core/models/Booking/Booking.types';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
+
+export interface ReceiptScreenProps {
+    bookingData: IBooking;
+    onFinish: () => void;
+}
 
 const ReceiptScreen = ({ 
     bookingData, 
     onFinish 
-}) => {
+}: ReceiptScreenProps) => {
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
-    const capturedPayments = payments.filter(p => p.status === 'captured');
-    const refundedPayments = payments.filter(p => p.status === 'refunded');
+    const capturedPayments = payments.filter((p: IPayment<Date>) => p.status === 'captured');
+    const refundedPayments = payments.filter((p: IPayment<Date>) => p.status === 'refunded');
     
-    const latestPayment = capturedPayments[capturedPayments.length - 1] || payments[0];
+    const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || payments[0];
     
     const transactionRef = latestPayment?.referenceCode || latestPayment?.sessionId || `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
     const paymentMethod = latestPayment?.gateway || 'Online Payment';
     
     const totalAmount = bookingData?.offer?.price || 0;
-    const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
+    const isRefunded = (bookingData?.status as string) === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
     
     const totalPaid = capturedPayments.length > 0 
         ? capturedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) 
         : (isRefunded ? 0 : totalAmount);
         
-    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
-    const hasUnrecordedRefund = refundedPayments.some(p => p.refundedAmount === undefined || p.refundedAmount === null);
+    const totalRefunded = refundedPayments.reduce((sum, p: any) => sum + (p.refundedAmount || 0), 0);
+    const hasUnrecordedRefund = refundedPayments.some((p: any) => p.refundedAmount === undefined || p.refundedAmount === null);
 
     const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
@@ -43,7 +50,7 @@ const ReceiptScreen = ({
     
     let datePaid = 'Recently';
     if (latestPayment?.createdAt) {
-        const paymentDateObj = latestPayment.createdAt.toDate ? latestPayment.createdAt.toDate() : new Date(latestPayment.createdAt);
+        const paymentDateObj = (latestPayment.createdAt as any).toDate ? (latestPayment.createdAt as any).toDate() : new Date(latestPayment.createdAt);
         datePaid = paymentDateObj.toLocaleDateString('en-PH', { 
             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
         });
@@ -56,8 +63,8 @@ const ReceiptScreen = ({
         ? "Your transaction receipt has been sent. The provider is currently verifying it."
         : "Your transaction was verified. Present this digital receipt to your guide on the day of the hike.";
     
-    let headerColor = Colors.PRIMARY; 
-    let headerIcon = isVerifying ? "clock" : "check";
+    let headerColor: string = Colors.PRIMARY; 
+    let headerIcon: string = isVerifying ? "clock" : "check";
 
     if (isRefunded) {
         headerTitle = "Refund Processed!";
@@ -80,10 +87,10 @@ const ReceiptScreen = ({
             >
                 <View style={styles.constrainer}>
                     <View style={styles.successHeader}>
-                        <View style={[styles.iconCircle, { backgroundColor: headerColor, shadowColor: headerColor }]}>
+                        <View style={[styles.iconCircle, { backgroundColor: headerColor }]}>
                             <CustomIcon library="Feather" name={headerIcon} size={36} color={Colors.WHITE} />
                         </View>
-                        <CustomText variant="h1" style={styles.successTitle}>
+                        <CustomText variant="h2" style={styles.successTitle}>
                             {headerTitle}
                         </CustomText>
                         <CustomText variant="body" style={styles.successSubtitle}>
@@ -93,30 +100,17 @@ const ReceiptScreen = ({
 
                     <View style={styles.ticketCard}>
                         <View style={styles.ticketHeader}>
-                            <CustomText variant="h2" style={styles.trailName}>
-                                {bookingData?.trail?.name || 'Trail Name'}
+                            <CustomText variant="h3" style={styles.trailName}>
+                                {bookingData?.trail?.name || 'Trail Hike'}
                             </CustomText>
                             <CustomText variant="caption" style={styles.guideName}>
-                                Provided by {bookingData?.business?.name || 'Tour Provider'}
+                                Reference: {transactionRef}
                             </CustomText>
                         </View>
-
+                        
                         <View style={styles.dottedDivider} />
-
+                        
                         <View style={styles.infoSection}>
-                            <CustomText variant="h3" style={styles.sectionTitle}>
-                                Transaction Details
-                            </CustomText>
-                            
-                            <View style={styles.dataColumn}>
-                                <CustomText variant="caption" color={Colors.TEXT_SECONDARY} style={{ marginBottom: 4 }}>
-                                    Reference No.
-                                </CustomText>
-                                <CustomText variant="body" style={styles.longValue} selectable={true}>
-                                    {transactionRef}
-                                </CustomText>
-                            </View>
-                            
                             <View style={styles.dataRow}>
                                 <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Payment Method</CustomText>
                                 <CustomText variant="body" style={[styles.value, { textTransform: 'capitalize' }]}>
@@ -189,6 +183,8 @@ const ReceiptScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     constrainer: {
         width: '100%',
@@ -211,13 +207,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center', 
         marginBottom: 20, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.3, 
-        shadowRadius: 8, 
-        elevation: 6 
+         
+         
+         
+        ...dropShadow, 
     },
     successTitle: { 
         color: Colors.TEXT_PRIMARY, 
@@ -236,14 +229,11 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         overflow: 'hidden', 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 10, 
-        elevation: 3, 
+         
+         
+         
+         
+        ...dropShadow, 
         marginBottom: 24 
     },
     ticketHeader: { 

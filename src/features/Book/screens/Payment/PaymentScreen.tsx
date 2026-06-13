@@ -7,6 +7,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
@@ -16,15 +17,27 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
+import { IBooking, IPayment } from '@/src/core/models/Booking/Booking.types';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+
+export interface PaymentScreenProps {
+    bookingData: IBooking;
+    onBackPress: () => void;
+    onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
+    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<any>;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
+}
 
 const PaymentScreen = ({
     bookingData,
     onBackPress,
     onContinue,
     onPayOffer,
-}) => {
+    onTermsPress,
+    onPrivacyPress,
+}: PaymentScreenProps) => {
     const { profile } = useAuthStore();
     
     const hikerFirstName = bookingData?.user?.firstname || profile?.firstname || '';
@@ -34,17 +47,17 @@ const PaymentScreen = ({
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
-    const [paymentError, setPaymentError] = useState(null);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
     
-    const [paymentType, setPaymentType] = useState('full');
-    const [selectedMethod, setSelectedMethod] = useState(null);
+    const [paymentType, setPaymentType] = useState<'full' | 'downpayment'>('full');
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
 
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
-    const latestPayment = payments[payments.length - 1];
+    const latestPayment = payments[payments.length - 1] as any; // Cast as any because some properties might not be in the strict type yet
 
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountPaidAlready = payments.reduce((sum, p) => {
+    const amountPaidAlready = payments.reduce((sum, p: any) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0);
@@ -101,7 +114,7 @@ const PaymentScreen = ({
         }
     };
 
-    const handleStepNavigation = (step) => {
+    const handleStepNavigation = (step: number) => {
         if (currentStep === 2) return; 
         if (step > currentStep || isSubmitting || isWaitingForVerification) return; 
         setCurrentStep(step);
@@ -111,8 +124,8 @@ const PaymentScreen = ({
         if (currentStep === 1) {
             setPaymentError(null);
 
-            if (['gcash', 'maya'].includes(selectedMethod)) {
-                let popup = null;
+            if (selectedMethod && ['gcash', 'maya'].includes(selectedMethod)) {
+                let popup: Window | null = null;
                 if (Platform.OS === 'web') {
                     const width = 450;
                     const height = 750;
@@ -197,7 +210,7 @@ const PaymentScreen = ({
                         }
                     }
 
-                } catch (error) {
+                } catch (error: any) {
                     if (popup) popup.close();
                     console.error("Payment Error:", error);
                     setPaymentError(
@@ -210,7 +223,7 @@ const PaymentScreen = ({
         } else if (currentStep === 2) {
             onContinue({
                 paymentType: effectivePaymentType,
-                paymentMethod: selectedMethod,
+                paymentMethod: selectedMethod || '',
                 amountPaid: latestPayment?.amount || amountToPay,
             });
         }
@@ -254,7 +267,7 @@ const PaymentScreen = ({
             <CustomHeader 
                 title={currentStep === 2 ? "Payment Status" : "Setup Payment"} 
                 centerTitle={true} 
-                onBackPress={currentStep === 2 ? null : handleHeaderBackPress} 
+                onBackPress={currentStep === 2 ? undefined : handleHeaderBackPress} 
             />
 
             <View style={styles.progressWrapper}>
@@ -295,7 +308,7 @@ const PaymentScreen = ({
                     <MethodScreen 
                         amountToPay={amountToPay}
                         paymentType={effectivePaymentType}
-                        setPaymentType={setPaymentType}
+                        setPaymentType={setPaymentType as any}
                         selectedMethod={selectedMethod}
                         setSelectedMethod={setSelectedMethod}
                         profileFullName={expectedSignatureName}
@@ -304,6 +317,8 @@ const PaymentScreen = ({
                         isPayingBalance={isPayingBalance}
                         isMinor={isUserMinor}
                         minorName={hikerFullName}
+                        onTermsPress={onTermsPress}
+                        onPrivacyPress={onPrivacyPress}
                     />
                 )}
                 {currentStep === 2 && (
@@ -321,12 +336,14 @@ const PaymentScreen = ({
                     title: footerConfig.title,
                     onPress: footerConfig.onPress || handleNextStep,
                     disabled: footerConfig.disabled,
-                    variant: footerConfig.variant || "primary"
+                    variant: (footerConfig.variant as "primary" | "outline") || "primary"
                 }}
             />
         </ScreenWrapper>
     );
 };
+
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     contentArea: { 
@@ -339,16 +356,16 @@ const styles = StyleSheet.create({
         paddingVertical: 20, 
         paddingHorizontal: 20, 
         backgroundColor: Colors.BACKGROUND,
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
+         
+        
+         
+         
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT, 
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24, 
         zIndex: 10, 
-        elevation: 4,
+        ...dropShadow,
     },
     progressContainer: { 
         position: 'relative',
