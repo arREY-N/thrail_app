@@ -1,18 +1,58 @@
 import React, { useCallback } from 'react';
-import {
+import { Platform, 
     FlatList,
+    ListRenderItemInfo,
     Pressable,
     StyleSheet,
-    View
-} from 'react-native';
+    View,
+ } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const getIcon = (title) => {
+/**
+ * Interface representing a single notification item.
+ */
+export interface AppNotification {
+    id: string | number;
+    title: string;
+    message: string;
+    time: string;
+    isRead: boolean;
+}
+
+/**
+ * Props for the NotificationScreen component.
+ */
+export interface NotificationScreenProps {
+    /** Array of notification objects to display */
+    notifications: AppNotification[];
+    /** Callback fired when the back button is pressed */
+    onBackPress: () => void;
+    /** Callback fired when a specific notification item is pressed */
+    onPressItem: (id: string | number) => void;
+}
+
+/**
+ * Interface representing the icon data returned for a notification category.
+ */
+interface NotificationIconData {
+    name: string;
+    lib: IconLibrary;
+    color: string;
+}
+
+/**
+ * Determines the icon properties based on the notification title.
+ * @param title - The title of the notification
+ * @returns {NotificationIconData} The icon data (name, library, and color)
+ */
+const getIcon = (title: string): NotificationIconData => {
     const t = title.toLowerCase();
     if (t.includes('update')) return { name: 'download-cloud', lib: 'Feather', color: Colors.PRIMARY };
     if (t.includes('welcome')) return { name: 'star', lib: 'Feather', color: '#FFC107' };
@@ -20,9 +60,13 @@ const getIcon = (title) => {
     return { name: 'bell', lib: 'Feather', color: Colors.PRIMARY };
 };
 
-const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
+/**
+ * Screen displaying a list of user notifications.
+ * @param {NotificationScreenProps} props - The component props
+ */
+const NotificationScreen = ({ notifications, onBackPress, onPressItem }: NotificationScreenProps) => {
 
-    const renderItem = useCallback(({ item }) => {
+    const renderItem = useCallback(({ item }: ListRenderItemInfo<AppNotification>) => {
         const iconData = getIcon(item.title);
         
         return (
@@ -93,7 +137,9 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }) => {
             />
         </ScreenWrapper>
     );
-}
+};
+
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     listContent: {
@@ -108,11 +154,11 @@ const styles = StyleSheet.create({
         padding: 16,
         alignItems: 'flex-start',
         
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     cardPressed: {
         opacity: 0.9,

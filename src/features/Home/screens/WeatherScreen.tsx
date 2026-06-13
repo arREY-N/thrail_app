@@ -16,14 +16,24 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatLastUpdatedLabel, formatWeatherDisplay, getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useLocation } from '@/src/hooks/useLocation';
 import { useWeather } from '@/src/hooks/useWeather';
+import { IconLibrary } from '@/src/types/ui.types';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
 
-const getMetricAlertLevel = (type, value) => {
+/**
+ * Standardized alert levels for weather metrics.
+ */
+export type AlertLevel = 'normal' | 'warning' | 'danger';
+
+/**
+ * Helper to determine the severity alert level of a weather metric.
+ */
+const getMetricAlertLevel = (type: 'wind' | 'precip' | 'uv', value: number | undefined | null): AlertLevel => {
     if (value === undefined || value === null) return 'normal';
     if (type === 'wind') return value >= 60 ? 'danger' : value >= 40 ? 'warning' : 'normal';
     if (type === 'precip') return value >= 70 ? 'danger' : value >= 50 ? 'warning' : 'normal';
@@ -31,13 +41,28 @@ const getMetricAlertLevel = (type, value) => {
     return 'normal';
 };
 
+/**
+ * Props for the main WeatherScreen component.
+ */
+export interface WeatherScreenProps {
+    latitude?: number;
+    longitude?: number;
+    locationName?: string;
+    onBackPress?: () => void;
+    onRefreshPress?: () => Promise<void> | void;
+}
+
+/**
+ * A comprehensive weather dashboard displaying current conditions, 
+ * a 7-day forecast, and various environmental metrics (Wind, UV, etc.).
+ */
 const WeatherScreen = ({ 
     latitude, 
     longitude, 
     locationName, 
     onBackPress, 
     onRefreshPress 
-}) => {
+}: WeatherScreenProps) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
@@ -53,7 +78,7 @@ const WeatherScreen = ({
         propLocationName: locationName 
     });
 
-    const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
 
     const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
 
@@ -128,7 +153,7 @@ const WeatherScreen = ({
 
                         <View style={styles.iconBlock}>
                             <CustomIcon 
-                                library={display.library} 
+                                library={display.library as IconLibrary} 
                                 name={hasData ? display.icon : "cloud-offline-outline"} 
                                 size={80} 
                                 color={Colors.PRIMARY} 
@@ -204,7 +229,7 @@ const WeatherScreen = ({
                                             key={idx} 
                                             day={dayName} 
                                             icon={icon} 
-                                            lib={library}
+                                            lib={library as IconLibrary}
                                             low={Math.round(day.temperatureMin)} 
                                             high={Math.round(day.temperatureMax)} 
                                             isToday={idx === 0}
@@ -283,7 +308,7 @@ const WeatherScreen = ({
                                 
                                 <View style={styles.sunConnector} />
 
-                                <View style={[styles.sunItem, { alignItems: 'flex-end', textAlign: 'right' }]}>
+                                <View style={[styles.sunItem, { alignItems: 'flex-end' }]}>
                                     <CustomIcon 
                                         library="Feather" 
                                         name="sunset" 
@@ -304,7 +329,16 @@ const WeatherScreen = ({
     );
 };
 
-const ForecastItem = ({ day, icon, lib, low, high, isToday }) => (
+interface ForecastItemProps {
+    day: string;
+    icon: string;
+    lib: IconLibrary;
+    low: number;
+    high: number;
+    isToday: boolean;
+}
+
+const ForecastItem = ({ day, icon, lib, low, high, isToday }: ForecastItemProps) => (
     <View style={[styles.fItem, isToday && styles.fItemToday]}>        
         <CustomText variant="label" style={[styles.fDay, isToday && styles.fDayToday]}>
             {isToday ? "Today" : day}
@@ -325,7 +359,18 @@ const ForecastItem = ({ day, icon, lib, low, high, isToday }) => (
     </View>
 );
 
-const BentoBox = ({ title, value, unit, desc, icon, lib, alertLevel = 'normal', isDesktop }) => {
+interface BentoBoxProps {
+    title: string;
+    value: string | number | undefined;
+    unit: string;
+    desc: string;
+    icon: string;
+    lib: IconLibrary;
+    alertLevel?: AlertLevel;
+    isDesktop: boolean;
+}
+
+const BentoBox = ({ title, value, unit, desc, icon, lib, alertLevel = 'normal', isDesktop }: BentoBoxProps) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
     const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
 
@@ -354,20 +399,7 @@ const BentoBox = ({ title, value, unit, desc, icon, lib, alertLevel = 'normal', 
     );
 };
 
-const dropShadow = Platform.select({
-    ios: {
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-    },
-    android: {
-        elevation: 3,
-    },
-    web: {
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.06)',
-    }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     container: { 
@@ -416,6 +448,7 @@ const styles = StyleSheet.create({
     lastUpdatedLabel: {
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
+        lineHeight: 18,
     },
     mainWeatherRow: {
         flexDirection: 'row',
@@ -667,6 +700,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24, 
         paddingVertical: 12, 
         borderRadius: 12 
+    },
+    retryText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
     }
 });
 
