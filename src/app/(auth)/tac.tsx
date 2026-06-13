@@ -1,13 +1,12 @@
 import React from 'react';
 import { View } from 'react-native';
 
-
 import CustomLoading from "@/src/components/CustomLoading";
 import useSignUp from "@/src/core/hook/auth/useSignUp";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import TACScreen from "@/src/features/Auth/screens/TACScreen";
 
-export default function tac(){
+export default function Tac() {
     const { onBackPress } = useAppNavigation();
     
     const { 
@@ -17,7 +16,7 @@ export default function tac(){
         isLoading,
     } = useSignUp();
 
-    return(
+    return (
         <View style={{ flex: 1, backgroundColor: 'transparent' }}>
             <CustomLoading 
                 visible={isLoading} 
@@ -30,5 +29,5 @@ export default function tac(){
                 error={error}
             />
         </View>
-    )
+    );
 }

@@ -1,8 +1,8 @@
+import React from 'react';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
-import React from 'react';
 
-export default function landing(){
+export default function Landing() {
     const { 
         onLogIn, 
         onSignUp,
@@ -15,6 +15,7 @@ export default function landing(){
             onLogInPress={onLogIn} 
             onSignUpPress={onSignUp}
             onPrivacyPress={onPrivacy}
-            onTermsPress={onTerms}/>
-    )
+            onTermsPress={onTerms}
+        />
+    );
 }

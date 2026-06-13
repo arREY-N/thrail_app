@@ -1,12 +1,12 @@
-
+import React from 'react';
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import PrivacyScreen from "@/src/features/Legal/screens/PrivacyScreen";
+import TermsScreen from "@/src/features/Legal/screens/TermsScreen";
 
-export default function Privacy() {
+export default function Terms() {
     const { onBackPress } = useAppNavigation();
 
     return (
-        <PrivacyScreen 
+        <TermsScreen 
             onBackPress={onBackPress}
         />
     );

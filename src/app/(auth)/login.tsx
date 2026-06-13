@@ -1,12 +1,12 @@
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import React, { useEffect } from 'react';
-
-import CustomLoading from '@/src/components/CustomLoading';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { View } from 'react-native';
 
-export default function login(){
+import CustomLoading from '@/src/components/CustomLoading';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+
+export default function Login() {
     const { 
         onBackPress, 
         onSignUpPress 
@@ -30,8 +30,8 @@ export default function login(){
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen 
-                onLogInPress={onLogIn} 
-                onSignUpPress={onSignUpPress} 
+                onLogInPress={onLogIn as any} 
+                onSignUpPress={onSignUpPress as any} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
                 onBackPress={onBackPress}
@@ -45,5 +45,5 @@ export default function login(){
                 message="Signing in..." 
             />
         </View>
-    )
+    );
 }
