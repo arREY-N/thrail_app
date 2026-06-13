@@ -45,7 +45,7 @@ export function useAppNavigation() {
         })
     }
     
-    const onViewAllTrendingPress = () => {
+    const onViewAllDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
             params: { filter: 'trending'}
@@ -80,7 +80,7 @@ export function useAppNavigation() {
         onNotificationPress,
         onWeatherPress,
         onViewAllRecommendationPress,
-        onViewAllTrendingPress,
+        onViewAllDiscoverPress,
         onGroupPress,
         onLeaderBoardPress,
         onSettingsPress
