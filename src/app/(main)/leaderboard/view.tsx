@@ -14,8 +14,8 @@ export default function Leaderboard() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <LeaderboardScreen 
-                leaderboardData={DUMMY_LEADERBOARD}
-                currentUserData={CURRENT_USER_DUMMY}
+                leaderboardData={DUMMY_LEADERBOARD as any}
+                currentUserData={CURRENT_USER_DUMMY as any}
                 onBackPress={onBackPress} 
             />
         </>
