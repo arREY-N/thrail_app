@@ -1,18 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import {
+import { Platform, 
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
-} from 'react-native';
+ } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }) => {
+export interface MountainSelectChipProps {
+    options?: string[];
+    selectedValues?: string[];
+    onToggle: (value: string) => void;
+}
+
+const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: MountainSelectChipProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isScrolledToEnd, setIsScrolledToEnd] = useState(false);
 
@@ -41,7 +50,7 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }) => 
         }
     };
 
-    const handleScroll = (event) => {
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
         const paddingToRight = 20;
         setIsScrolledToEnd(layoutMeasurement.width + contentOffset.x >= contentSize.width - paddingToRight);
@@ -154,6 +163,8 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }) => 
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: {
         width: '100%',
@@ -201,11 +212,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3, 
+        
+        
+        
+        
+        ...dropShadow, 
     },
     listScroll: {
         maxHeight: 320, 

@@ -1,8 +1,10 @@
 import React from 'react';
 import {
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -10,13 +12,33 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
+/**
+ * Props for the SelectionOption component.
+ */
+export interface SelectionOptionProps {
+    /** The text label to display if no children are provided */
+    label?: string;
+    /** Whether this option is currently selected */
+    selected?: boolean;
+    /** Callback fired when the option is pressed */
+    onPress?: () => void;
+    /** Custom style for the outermost container */
+    style?: StyleProp<ViewStyle>;
+    /** Optional React nodes to render inside the option (replaces label) */
+    children?: React.ReactNode;
+}
+
+/**
+ * A selectable item component primarily used in lists or grids
+ * (e.g., choosing a location or category).
+ */
 const SelectionOption = ({ 
     label, 
     selected, 
     onPress,
     style,
     children
-}) => {
+}: SelectionOptionProps) => {
 
     return (
         <TouchableOpacity 

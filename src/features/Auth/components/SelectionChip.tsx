@@ -4,11 +4,17 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+export interface SelectionChipProps {
+    label: string;
+    selected?: boolean;
+    onPress: () => void;
+}
+
 const SelectionChip = ({ 
     label, 
     selected, 
     onPress 
-}) => {
+}: SelectionChipProps) => {
     return (
         <TouchableOpacity 
             style={[
