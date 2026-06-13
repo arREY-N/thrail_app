@@ -19,6 +19,7 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Review } from '@/src/core/models/Review/Review';
 import { formatDate } from '@/src/core/utility/date';
 import { IconLibrary } from '@/src/types/ui.types';
 
@@ -30,8 +31,8 @@ interface PostCardProps {
     review: any;
     /** Callback fired when the like button is pressed */
     onLike?: () => void;
-    /** Indicates if the current user has liked the post */
-    isLiked?: boolean;
+    /** Helper function to check if the current user has liked the post */
+    isLiked?: (review: Review) => boolean;
     /** Callback fired when the edit button is pressed (only visible in 'profile' variant) */
     onEdit?: () => void;
     /** The visual variant of the post card */
@@ -54,7 +55,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
     if (!review) return null;
 
-    const liked = useMemo(() => isLiked(review), [review, isLiked]);
+    const liked = useMemo(() => isLiked ? isLiked(review) : false, [review, isLiked]);
 
     const fallbackImage = require('@/src/assets/images/Mt.Tagapo.jpg');
     const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];

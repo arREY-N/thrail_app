@@ -40,7 +40,7 @@ const HikeLogTab = ({ hikeLog, onLikeReview, isLiked, onEditReview }: HikeLogTab
                     key={log.id} 
                     review={log}
                     variant="profile" 
-                    isLiked={Boolean(isLiked(log))}
+                    isLiked={isLiked}
                     onLike={() => onLikeReview(log)}
                     onEdit={() => onEditReview(log.id)}
                 />

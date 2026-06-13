@@ -16,6 +16,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import PostCard from '@/src/components/PostCard';
 import { Colors } from '@/src/constants/colors';
+import { Review } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
@@ -23,7 +24,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  */
 export interface CommunityScreenProps {
     /** Array of review/post data */
-    reviews: any[];
+    reviews: Review[];
     /** Indicates if feed is currently loading/refreshing */
     isLoading: boolean;
     /** Callback to pull-to-refresh the feed */
@@ -31,9 +32,9 @@ export interface CommunityScreenProps {
     /** Callback to navigate to the leaderboard */
     onLeaderboardPress: () => void;
     /** Callback to toggle like on a review */
-    likeReview: (review: any) => void;
+    likeReview: (review: Review) => void;
     /** Helper to check if current user liked a review */
-    isLiked: (review: any) => boolean | Boolean;
+    isLiked: (review: Review) => boolean;
     /** Callback to edit/write a review */
     onWriteReviewPress: (id?: string) => void;
     /** Callback for floating action button */
