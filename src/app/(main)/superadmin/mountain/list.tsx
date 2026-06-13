@@ -37,6 +37,10 @@ const TestMountainList = ({
     isLoading,
     mountains,
     onWritePress,
+}: {
+    isLoading: boolean;
+    mountains: Array<{ id: string; name: string; province: string[] }>;
+    onWritePress: (id?: string) => void;
 }) => {
     return(
         <ScrollView>

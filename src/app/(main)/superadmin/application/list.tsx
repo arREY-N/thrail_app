@@ -1,5 +1,6 @@
 import useApply from "@/src/core/hook/apply/useApply";
 import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
+import { IApplication } from "@/src/core/models/Application/Application.types";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { formatDate } from "@/src/core/utility/date";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -11,9 +12,9 @@ import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 
 export default function listApplications(){
     const { role } = useAuthHook();
-    const { onViewApplicationPress } = useSuperadminDomain();
+    const { onViewApplicationPress } = useSuperadminDomain(null);
 
-    const { applications } = useApply({ role });
+    const { applications } = useApply({ role } as any);
 
     const { onBackPress } = useAppNavigation();
 
@@ -36,10 +37,13 @@ export default function listApplications(){
 const TESTAPPLICATIONLIST = ({
     applications,
     onViewApplicationPress,  
+}: {
+    applications: IApplication[];
+    onViewApplicationPress: (id: string) => void;
 }) => {
-    const pendingApplication = applications.filter(a => a.status === 'pending');
-    const approvedApplication = applications.filter(a => a.status === 'approved');
-    const rejectedApplication = applications.filter(a => a.status === 'rejected');
+    const pendingApplication = applications.filter((a) => a.status === 'pending');
+    const approvedApplication = applications.filter((a) => a.status === 'approved');
+    const rejectedApplication = applications.filter((a) => a.status === 'rejected');
 
     return(
         <ScrollView>
@@ -47,7 +51,7 @@ const TESTAPPLICATIONLIST = ({
 
             <Text>PENDING APPLICATIONS</Text>
             { pendingApplication.length > 0 
-                ? pendingApplication.map(a => {
+                ? pendingApplication.map((a) => {
                     console.log(a);
                     console.log(formatDate(a.createdAt));
                     return(
@@ -66,7 +70,7 @@ const TESTAPPLICATIONLIST = ({
 
             <Text>APPROVED APPLICATIONS</Text>
             { approvedApplication.length > 0 
-                ? approvedApplication.map(a => {
+                ? approvedApplication.map((a) => {
                     console.log(a);
                     console.log(formatDate(a.createdAt));
                     return(
@@ -85,7 +89,7 @@ const TESTAPPLICATIONLIST = ({
 
             <Text>REJECTED APPLICATIONS</Text>
             { rejectedApplication.length > 0 
-                ? rejectedApplication.map(a => {
+                ? rejectedApplication.map((a) => {
                     console.log(a);
                     console.log(formatDate(a.createdAt));
                     return(

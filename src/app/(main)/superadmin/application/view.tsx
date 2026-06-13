@@ -108,11 +108,11 @@ const TESTAPPLICATION = (params: ApplicationScreenParams) => {
                         value={application.message}
                         onChangeText={(text: string) => setRejectionLetter(text)}
                         secureTextEntry={false}
-                        keyboardType={null}
+                        keyboardType={undefined}
                         isPasswordVisible={true}
-                        onTogglePassword={null}
-                        style={null}
-                        icon={null}
+                        onTogglePassword={undefined}
+                        style={undefined}
+                        icon={undefined}
                     />
                 </View>
             }

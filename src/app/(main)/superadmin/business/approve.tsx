@@ -13,7 +13,7 @@ export default function approveBusiness(){
         applicationLoading,
         onApproveApplicationPress,
         onRejectApplicationPress
-    } = useSuperadmin();
+    } = useSuperadmin({ role: null }) as any;
 
     const { onBackPress } = useAppNavigation();
 
@@ -40,6 +40,11 @@ const TESTAPPLICATIONAPPROVE = ({
     onApproveApplicationPress,
     applicationsIsLoading,
     onRejectApplicationPress
+}: {
+    application: Record<string, string>;
+    onApproveApplicationPress: (data: Record<string, string>) => void;
+    applicationsIsLoading: boolean;
+    onRejectApplicationPress: () => void;
 }) => {
     return (
         <ScrollView>
