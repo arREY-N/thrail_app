@@ -3,7 +3,8 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    Platform
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -12,8 +13,22 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const StatCard = ({ title, count, icon, library, color = Colors.PRIMARY, onPress }) => (
+/**
+ * Props for the StatCard component
+ */
+export interface StatCardProps {
+    title: string;
+    count: number;
+    icon: string;
+    library: IconLibrary;
+    color?: string;
+    onPress: () => void;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, count, icon, library, color = Colors.PRIMARY, onPress }) => (
     <TouchableOpacity 
         style={styles.statCard} 
         onPress={onPress}
@@ -31,7 +46,20 @@ const StatCard = ({ title, count, icon, library, color = Colors.PRIMARY, onPress
     </TouchableOpacity>
 );
 
-const NavItem = ({ title, subtitle, icon, library = "Feather", onPress, badgeCount, color = Colors.PRIMARY }) => (
+/**
+ * Props for the NavItem component
+ */
+export interface NavItemProps {
+    title: string;
+    subtitle: string;
+    icon: string;
+    library?: IconLibrary;
+    onPress: () => void;
+    badgeCount?: number;
+    color?: string;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ title, subtitle, icon, library = "Feather", onPress, badgeCount, color = Colors.PRIMARY }) => (
     <TouchableOpacity 
         style={styles.navItem} 
         onPress={onPress} 
@@ -49,7 +77,7 @@ const NavItem = ({ title, subtitle, icon, library = "Feather", onPress, badgeCou
             </CustomText>
         </View>
         
-        {badgeCount > 0 && (
+        {!!badgeCount && badgeCount > 0 && (
             <View style={styles.badge}>
                 <CustomText variant="caption" style={styles.badgeText}>
                     {badgeCount}
@@ -66,7 +94,26 @@ const NavItem = ({ title, subtitle, icon, library = "Feather", onPress, badgeCou
     </TouchableOpacity>
 );
 
-const DashboardScreen = ({
+/**
+ * Props for the DashboardScreen component
+ */
+export interface DashboardScreenProps {
+    businesses?: unknown[];
+    trails?: unknown[];
+    superadmin?: unknown[];
+    admin?: unknown[];
+    users?: unknown[];
+    mountains?: unknown[];
+    pendingApplication?: unknown[];
+    onManageBusinessPress: () => void;
+    onManageTrailsPress: () => void;
+    onManageUsersPress: () => void;
+    onManageMountainPress: () => void;
+    onManageApplicationPress: () => void;
+    onBackPress: () => void;
+}
+
+const DashboardScreen: React.FC<DashboardScreenProps> = ({
     businesses,
     trails,
     superadmin,
@@ -230,6 +277,8 @@ const DashboardScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
@@ -304,11 +353,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        ...dropShadow,
     },
     iconWrapper: {
         width: 36,
@@ -342,11 +387,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        ...dropShadow,
     },
     navItem: {
         flexDirection: 'row',
