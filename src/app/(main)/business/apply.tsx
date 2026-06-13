@@ -8,10 +8,12 @@ import {
 import LoadingScreen from '@/src/app/loading';
 import WriteComponent from '@/src/components/CustomWriteComponents';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
 import useApplyWrite from '@/src/core/hook/apply/useApplyWrite';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { IFormField } from '@/src/core/interface/formFieldInterface';
 import ApplyScreen from '@/src/features/Profile/screens/ApplyScreen';
 import { Pressable, Text } from 'react-native';
 
@@ -32,13 +34,15 @@ export default function applyBusiness(){
 
     return (
         <ApplyScreen
-            information={information}
-            application={application}
-            options={options}
-            system={error}
-            onUpdatePress={onUpdatePress}
-            onSubmitPress={onSubmitPress}
-            onBackPress={onBackPress}
+            {...{
+                information: information,
+                application: application as any,
+                options: options,
+                system: error as any,
+                onUpdatePress: onUpdatePress,
+                onSubmitPress: onSubmitPress,
+                onBackPress: onBackPress,
+            } as any}
         />
     )
 }
@@ -50,30 +54,37 @@ const TESTAPPLY = ({
     onApplyPress,
     options,
     error
+}: {
+    information: IFormField<any>[];
+    application: Record<string, unknown>;
+    onEditProperty: (key: string, value: unknown) => void;
+    onApplyPress: () => void;
+    options: Record<string, unknown>;
+    error?: string;
 }) => {
-    const root = information.filter(i => i.section === 'root');
-    const owner = information.filter(i => i.section === 'owner');
-    const permits = information.filter(i => i.section === 'permits');
+    const root = information.filter((i) => i.section === 'root');
+    const owner = information.filter((i) => i.section === 'owner');
+    const permits = information.filter((i) => i.section === 'permits');
 
     return(
         <ScrollView style={styles.scrollContent}>
             <WriteComponent
                 informationSet={root}
                 object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
+                onEditProperty={onEditProperty as any}
+                optionSet={options as any}
                 />
             <WriteComponent
                 informationSet={owner}
                 object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
+                onEditProperty={onEditProperty as any}
+                optionSet={options as any}
                 />
             <WriteComponent
                 informationSet={permits}
                 object={application}
-                onEditProperty={onEditProperty}
-                optionSet={options}
+                onEditProperty={onEditProperty as any}
+                optionSet={options as any}
             />
             
             {error && <Text>{error}</Text>}
@@ -127,7 +138,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 8,
-        elevation: 2,
+...GlobalStyles.dropShadow(2),
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
     },
