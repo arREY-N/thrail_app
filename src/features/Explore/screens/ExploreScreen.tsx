@@ -10,20 +10,49 @@ import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
-import { fetchTrailWeatherBadges } from "@/src/core/utility/weatherHelpers";
+import { ITrail } from "@/src/core/models/Trail/Trail.types";
+import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
-const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, isLoading }) => {
-    const [weatherMap, setWeatherMap] = useState({});
-    const [selectedCategory, setSelectedCategory] = useState("All");
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+/**
+ * Props for the ExploreScreen component.
+ */
+export interface ExploreScreenProps {
+    /** The complete list of available trails */
+    trails: ITrail[];
+    /** Callback fired when a trail is selected */
+    onViewMountain: (id: string) => void;
+    /** Callback fired when the group/FAB action is pressed */
+    onGroupPress: () => void;
+    /** Function to calculate or retrieve the rating for a specific trail */
+    getItemRating: (id: string) => number | string;
+    /** Whether the trails list is currently loading */
+    isLoading: boolean;
+}
+
+/**
+ * Interface defining the active filters state.
+ */
+interface ActiveFilters {
+    provinces: string[];
+    elevation: string | null;
+}
+
+/**
+ * Screen displaying the full exploration view, including search, categorisation,
+ * filtering, and a responsive grid of trails.
+ */
+const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, isLoading }: ExploreScreenProps) => {
+    const [weatherMap, setWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
+    const [selectedCategory, setSelectedCategory] = useState<string>("All");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [isFilterModalVisible, setIsFilterModalVisible] = useState<boolean>(false);
     
-    const [activeFilters, setActiveFilters] = useState({
+    const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
         provinces: [],
         elevation: null,
     });
@@ -54,27 +83,27 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
 
         if (searchQuery.trim().length > 0) {
             const query = searchQuery.toLowerCase();
-            result = result.filter((t) =>
+            result = result.filter((t: ITrail) =>
                 t.general?.name?.toLowerCase().includes(query) ||
-                t.general?.province?.some((p) => p.toLowerCase().includes(query))
+                t.general?.province?.some((p: string) => p.toLowerCase().includes(query))
             );
         }
 
         if (activeFilters.provinces.length > 0) {
-            result = result.filter((t) => {
+            result = result.filter((t: ITrail) => {
                 const targetProvinces = Array.isArray(t.general?.province) 
                     ? t.general.province 
-                    : [t.general?.province || t.address || ""];
+                    : [t.general?.province || t.general?.address || ""];
                 
-                return activeFilters.provinces.some(filterProv => 
-                    targetProvinces.some(p => p.toLowerCase().includes(filterProv.toLowerCase()))
+                return activeFilters.provinces.some((filterProv: string) => 
+                    targetProvinces.some((p: string) => p.toLowerCase().includes(filterProv.toLowerCase()))
                 );
             });
         }
 
         if (activeFilters.elevation) {
-            result = result.filter((t) => {
-                const elevRaw = t.masl || t.general?.elevation || "0";
+            result = result.filter((t: ITrail) => {
+                const elevRaw = t.geography?.masl || t.difficulty?.elevation || "0";
                 const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
                 
                 if (activeFilters.elevation === '< 500 masl') return elev < 500;
@@ -93,14 +122,14 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
         {
             id: 'provinces',
             title: 'Province',
-            type: 'pill',
+            type: 'pill' as const,
             multiSelect: true,
             options: PROVINCES.map(p => ({ label: p, value: p }))
         },
         {
             id: 'elevation',
             title: 'Elevation Range',
-            type: 'pill',
+            type: 'pill' as const,
             multiSelect: false,
             options: ELEVATIONS.map(e => ({ label: e, value: e }))
         }
@@ -175,7 +204,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
                     sections={filterSections}
                     initialValues={activeFilters}
                     defaultValues={{ provinces: [], elevation: null }}
-                    onApply={(values) => setActiveFilters(values)}
+                    onApply={(values) => setActiveFilters(values as ActiveFilters)}
                 />
 
                 <CustomFAB onPress={onGroupPress} />
@@ -185,28 +214,26 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
     );
 };
 
-const filterTrailsByCategory = (trails, category) => {
+const filterTrailsByCategory = (trails: ITrail[], category: string): ITrail[] => {
     if (!trails) return [];
 
     switch (category) {
         case "Recommended":
-            return trails.filter((t) => (t.score || 0) >= 4.6);
+            return trails.filter((t: ITrail) => (t.general?.rating || 0) >= 4.6);
         case "Nearby":
-            return trails.filter((t) => {
-                const address = t.address || "";
-                const provinceData = t.general?.province || t.province;
-                const isRizal = Array.isArray(provinceData)
-                    ? provinceData.some(p => p.includes("Rizal"))
-                    : (provinceData || "").includes("Rizal");
+            return trails.filter((t: ITrail) => {
+                const address = t.general?.address || "";
+                const provinceData = t.general?.province || [];
+                const isRizal = provinceData.some((p: string) => p.includes("Rizal"));
                 return address.includes("Rizal") || isRizal;
             });
         case "Discover":
             return trails.slice(0, 3);
         case "Challenge":
-            return trails.filter((t) => {
-                const elevRaw = t.masl || t.general?.elevation || "0";
+            return trails.filter((t: ITrail) => {
+                const elevRaw = t.geography?.masl || t.difficulty?.elevation || "0";
                 const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
-                const len = Number(t.length || 0);
+                const len = Number(t.difficulty?.length || 0);
                 return elev > 600 || len > 10;
             });
         case "All":
