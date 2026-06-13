@@ -60,11 +60,11 @@ export default function useMountainWrite(params: IUseMountainWriteParams): IUseM
         router.back();
     }
 
-    const onUpdatePress = (params: TEdit) => {
+    const onUpdatePress = (params: TEdit<Mountain>) => {
         const { section, id, value } = params;
         try {
             if(section !== 'root' && !id)
-                throw new Error(`Missing key for ${section}`);
+                throw new Error(`Missing key for ${String(section)}`);
             
             const fieldConfig = information.find(f => f.section === section && f.id === id);
             
