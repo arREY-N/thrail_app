@@ -29,12 +29,12 @@ export default function settings() {
     } = useProfileNavigation();
 
     const onProfileInfoPress = () => {
-        router.push(`/(main)/user/view?userId=${profile?.id}`);
+        router.push(`/(main)/user/view?userId=${profile?.id}` as any);
     };
 
     return (
         <SettingsScreen
-            role={role}
+            role={role as any}
             onBackPress={onBackPress}
             onProfileInfoPress={onProfileInfoPress}
             onSignOutPress={onSignOutPress}
