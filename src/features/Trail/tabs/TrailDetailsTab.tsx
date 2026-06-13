@@ -5,48 +5,66 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
+import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail.types';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { ROUTE_GLOSSARY, getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10 },
-    android: { elevation: 3 },
-    web: { boxShadow: '0px 4px 10px rgba(0,0,0,0.08)' }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
-const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
+export interface TrailDetailsTabProps {
+    stats: { distance: string | number; elevation: string | number };
+    trailStats?: ITrailStats | null;
+    statsLoading: boolean;
+    trail?: ITrail | null;
+}
+
+interface LegacyTrail extends ITrail {
+    viewpoint?: string[];
+    shelter?: boolean;
+    clean_water?: boolean;
+    resting?: boolean;
+    information_board?: boolean;
+    community?: boolean;
+    river?: boolean;
+    lake?: boolean;
+    waterfall?: boolean;
+    monument?: boolean;
+}
+
+const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, statsLoading, trail }) => {
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-    const [activeStat, setActiveStat] = useState(null);
+    const [activeStat, setActiveStat] = useState<string | null>(null);
     const [showRouteInfo, setShowRouteInfo] = useState(false);
     const [isMapPreviewVisible, setIsMapPreviewVisible] = useState(false);
 
-    const viewpoints = getArray(trail?.tourism?.viewpoint, trail?.viewpoint);
-    const guidelines = getArray(trail?.general?.guidelines, []);
-    const tips = getArray(trail?.general?.safety_tips, []);
-    const lguRules = getArray(trail?.general?.lgu_rules, []);
+    const viewpoints = getArray<string>(trail?.tourism?.viewpoint, (trail as LegacyTrail)?.viewpoint);
+    const guidelines = getArray<string>(trail?.general?.guidelines, []);
+    const tips = getArray<string>(trail?.general?.safety_tips, []);
+    const lguRules = getArray<string>(trail?.general?.lgu_rules, []);
     const criticalInfo = trail?.general?.critical_info || null; 
     
     const slope = trail?.difficulty?.slope ? `${trail.difficulty.slope}%` : "--";
     const obstacles = trail?.difficulty?.obstacles ? `${trail.difficulty.obstacles}m` : "--";
-    const qualityTags = getArray(trail?.difficulty?.quality, []);
+    const qualityTags = getArray<string>(trail?.difficulty?.quality, []);
     const routeType = trail?.difficulty?.circularity || "Route Type";
 
     const hasDifficultyData = slope !== "--" || obstacles !== "--" || qualityTags.length > 0;
     
-    const tourismFeaturesActive = isFeatureEnabled(trail?.tourism?.shelter, trail?.shelter) ||
-        isFeatureEnabled(trail?.tourism?.clean_water, trail?.clean_water) ||
-        isFeatureEnabled(trail?.tourism?.resting, trail?.resting) ||
-        isFeatureEnabled(trail?.tourism?.information_board, trail?.information_board) ||
-        isFeatureEnabled(trail?.tourism?.community, trail?.community) ||
-        isFeatureEnabled(trail?.tourism?.river, trail?.river) ||
-        isFeatureEnabled(trail?.tourism?.lake, trail?.lake) ||
-        isFeatureEnabled(trail?.tourism?.waterfall, trail?.waterfall) ||
-        isFeatureEnabled(trail?.tourism?.monument, trail?.monument) ||
+    const tourismFeaturesActive = isFeatureEnabled(trail?.tourism?.shelter, (trail as LegacyTrail)?.shelter) ||
+        isFeatureEnabled(trail?.tourism?.clean_water, (trail as LegacyTrail)?.clean_water) ||
+        isFeatureEnabled(trail?.tourism?.resting, (trail as LegacyTrail)?.resting) ||
+        isFeatureEnabled(trail?.tourism?.information_board, (trail as LegacyTrail)?.information_board) ||
+        isFeatureEnabled(trail?.tourism?.community, (trail as LegacyTrail)?.community) ||
+        isFeatureEnabled(trail?.tourism?.river, (trail as LegacyTrail)?.river) ||
+        isFeatureEnabled(trail?.tourism?.lake, (trail as LegacyTrail)?.lake) ||
+        isFeatureEnabled(trail?.tourism?.waterfall, (trail as LegacyTrail)?.waterfall) ||
+        isFeatureEnabled(trail?.tourism?.monument, (trail as LegacyTrail)?.monument) ||
         viewpoints.length > 0;
 
-    const computedDistance = trailStats ? `${(trailStats.distance / 1000).toFixed(1)} km` : stats.distance;
-    const computedGain = trailStats ? `${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` : stats.elevation;
+    const computedDistance = trailStats ? `${(trailStats.distance / 1000).toFixed(1)} km` : stats?.distance || "--";
+    const computedGain = trailStats ? `${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` : stats?.elevation || "--";
     const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
     const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
     const classification = trail?.difficulty?.classification === 'minor' ? 'Minor' : 'Major';
@@ -64,12 +82,12 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
     const officialPlaceholder = require('@/src/assets/images/Mt.Tagapo.jpg');
     const routeMapImageSource = trail?.routeMapImage ? { uri: trail.routeMapImage } : officialPlaceholder;
 
-    const handleStatPress = (id) => {
+    const handleStatPress = (id: string) => {
         setActiveStat(prev => prev === id ? null : id); 
     };
 
-    const isRow1Active = ['distance', 'peak', 'gain'].includes(activeStat);
-    const isRow2Active = ['class', 'difficulty', 'status'].includes(activeStat);
+    const isRow1Active = ['distance', 'peak', 'gain'].includes(activeStat || "");
+    const isRow2Active = ['class', 'difficulty', 'status'].includes(activeStat || "");
 
     return (
         <View style={styles.tabContent}>
@@ -103,7 +121,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
                     <View style={styles.statsRow}>
                         <StatItem id="class" iconLib="FontAwesome5" icon="book-open" label="CLASS" value={classification} color={getClassColor(classification)} isActive={activeStat === 'class'} onPress={handleStatPress} />
                         <StatItem id="difficulty" iconLib="MaterialCommunityIcons" icon="dumbbell" label="DIFFICULTY" value={curatedDiff} color={getDifficultyColor(curatedDiff)} isActive={activeStat === 'difficulty'} onPress={handleStatPress} />
-                        <StatItem id="status" iconLib={statusIcon.lib} icon={statusIcon.name} label="STATUS" value={status} color={getStatusColor(status)} isActive={activeStat === 'status'} onPress={handleStatPress} />
+                        <StatItem id="status" iconLib={statusIcon.lib as import('@/src/types/ui.types').IconLibrary} icon={statusIcon.name} label="STATUS" value={status} color={getStatusColor(status)} isActive={activeStat === 'status'} onPress={handleStatPress} />
                     </View>
                     {isRow2Active && <GlossaryTooltip activeStat={activeStat} trail={trail} />}
                 </View>
@@ -175,15 +193,15 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
                 <View style={styles.section}>
                     <SectionHeader iconLib="Feather" iconName="archive" title="Amenities & Facilities" />
                     <View style={styles.tagContainer}>
-                        {isFeatureEnabled(trail?.tourism?.shelter, trail?.shelter) && <Tag label="Shelter" />}
-                        {isFeatureEnabled(trail?.tourism?.clean_water, trail?.clean_water) && <Tag label="Drinking Water" />}
-                        {isFeatureEnabled(trail?.tourism?.resting, trail?.resting) && <Tag label="Resting Area" />}
-                        {isFeatureEnabled(trail?.tourism?.information_board, trail?.information_board) && <Tag label="Info Board" />}
-                        {isFeatureEnabled(trail?.tourism?.community, trail?.community) && <Tag label="Community" />}
-                        {isFeatureEnabled(trail?.tourism?.river, trail?.river) && <Tag label="River" />}
-                        {isFeatureEnabled(trail?.tourism?.lake, trail?.lake) && <Tag label="Lake" />}
-                        {isFeatureEnabled(trail?.tourism?.waterfall, trail?.waterfall) && <Tag label="Waterfall" />}
-                        {isFeatureEnabled(trail?.tourism?.monument, trail?.monument) && <Tag label="Monument" />}
+                        {isFeatureEnabled(trail?.tourism?.shelter, (trail as LegacyTrail)?.shelter) && <Tag label="Shelter" />}
+                        {isFeatureEnabled(trail?.tourism?.clean_water, (trail as LegacyTrail)?.clean_water) && <Tag label="Drinking Water" />}
+                        {isFeatureEnabled(trail?.tourism?.resting, (trail as LegacyTrail)?.resting) && <Tag label="Resting Area" />}
+                        {isFeatureEnabled(trail?.tourism?.information_board, (trail as LegacyTrail)?.information_board) && <Tag label="Info Board" />}
+                        {isFeatureEnabled(trail?.tourism?.community, (trail as LegacyTrail)?.community) && <Tag label="Community" />}
+                        {isFeatureEnabled(trail?.tourism?.river, (trail as LegacyTrail)?.river) && <Tag label="River" />}
+                        {isFeatureEnabled(trail?.tourism?.lake, (trail as LegacyTrail)?.lake) && <Tag label="Lake" />}
+                        {isFeatureEnabled(trail?.tourism?.waterfall, (trail as LegacyTrail)?.waterfall) && <Tag label="Waterfall" />}
+                        {isFeatureEnabled(trail?.tourism?.monument, (trail as LegacyTrail)?.monument) && <Tag label="Monument" />}
                         {viewpoints?.map((vp, index) => <Tag key={`vp-${index}`} label={vp} />)}
                     </View>
                 </View>
@@ -253,7 +271,7 @@ const TrailDetailsTab = ({ stats, trailStats, statsLoading, trail }) => {
 
             <ImagePreviewModal 
                 visible={isMapPreviewVisible} 
-                imageUrl={routeMapImageSource} 
+                imageUrl={routeMapImageSource as any} 
                 onClose={() => setIsMapPreviewVisible(false)}
             />
 

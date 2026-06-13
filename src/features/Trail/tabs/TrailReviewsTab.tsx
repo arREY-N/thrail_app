@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, ListRenderItemInfo, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -7,9 +7,19 @@ import { Colors } from '@/src/constants/colors';
 
 import PostCard from '@/src/components/PostCard';
 
+import { IReview } from '@/src/core/models/Review/Review.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-const TrailReviewsTab = ({
+export interface TrailReviewsTabProps {
+    reviews?: IReview[] | null;
+    isLoading: boolean;
+    likeReview: (review: IReview) => void;
+    isLiked: (review: IReview) => boolean;
+    onWriteReviewPress: (review: IReview) => void;
+    isOwned: (review: IReview) => boolean;
+}
+
+const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
     reviews,
     isLoading,
     likeReview,
@@ -22,14 +32,13 @@ const TrailReviewsTab = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
-    const renderPostCard = useCallback(({ item }) => (
+    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<IReview>) => (
         <PostCard 
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
             isLiked={isLiked(item)}
             onEdit={() => onWriteReviewPress(item)}
-            isOwned={isOwned(item)}
         />
     ), [likeReview, isLiked, onWriteReviewPress, isOwned]);
 
@@ -40,7 +49,7 @@ const TrailReviewsTab = ({
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
+                    { maxWidth: contentMaxWidth as any, alignSelf: 'center', width: '100%' }
                 ]}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false} 
@@ -70,22 +79,25 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingTop: 0,
         paddingBottom: 40,
-        paddingHorizontal: 0,
-        gap: 16
+        gap: 16,
     },
     emptyStateContainer: {
-        paddingTop: 60,
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+        backgroundColor: Colors.BACKGROUND,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
         gap: 12,
+        marginTop: 10,
     },
     emptyStateText: {
-        color: Colors.TEXT_PLACEHOLDER,
-        fontStyle: 'italic',
-        fontSize: 16,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        fontSize: 14,
     },
 });
 

@@ -1,6 +1,13 @@
 import { Colors } from '@/src/constants/colors';
+import { ITrail } from '@/src/core/models/Trail/Trail.types';
 
-export const STAT_GLOSSARY = {
+export interface GlossaryData {
+    title: string;
+    points: Array<{ label: string; text: string }>;
+    col: number;
+}
+
+export const STAT_GLOSSARY: Record<string, GlossaryData> = {
     distance: { 
         title: "Distance", 
         points: [{ label: "Total Length", text: "The full distance of the trail." }], 
@@ -45,7 +52,7 @@ export const STAT_GLOSSARY = {
     }
 };
 
-export const ROUTE_GLOSSARY = {
+export const ROUTE_GLOSSARY: Record<string, string> = {
     "Out and Back": "You will hike to the destination and return using the exact same path.",
     "Out-and-Back": "You will hike to the destination and return using the exact same path.",
     "Point-to-Point": "The hike starts at one location and ends at a completely different location.",
@@ -53,45 +60,45 @@ export const ROUTE_GLOSSARY = {
     "Loop": "The trail forms a loop, returning to the start without repeating the exact same path."
 };
 
-export const getClassColor = (classification) => {
+export const getClassColor = (classification?: string | null): string => {
     if (!classification) return Colors.TRAIL_STATS_GRAY;
     return classification.toLowerCase() === 'minor' ? Colors.TRAIL_STATS_GRAY : Colors.TRAIL_STATS_RED;
 };
 
-export const getDifficultyColor = (diffString) => {
+export const getDifficultyColor = (diffString?: string | null): string => {
     if (!diffString || diffString === "--/9") return Colors.TRAIL_STATS_GRAY;
-    const val = parseInt(diffString.split('/')[0]);
+    const val = parseInt(diffString.split('/')[0], 10);
     if (val <= 2) return Colors.TRAIL_STATS_GREEN;
     if (val <= 5) return Colors.TRAIL_STATS_BLUE;
     if (val <= 7) return Colors.TRAIL_STATS_YELLOW;
     return Colors.TRAIL_STATS_RED;
 };
 
-export const getStatusColor = (status) => {
+export const getStatusColor = (status?: string | null): string => {
     if (!status) return Colors.TRAIL_STATS_GRAY;
     return status.toLowerCase() === 'open' ? Colors.TRAIL_STATS_GREEN : Colors.TRAIL_STATS_RED;
 };
 
-export const getStatusIconInfo = (status) => {
+export const getStatusIconInfo = (status?: string | null): { lib: string; name: string } => {
     if (!status) return { lib: "FontAwesome5", name: "minus-circle" };
     return status.toLowerCase() === 'open' 
         ? { lib: "FontAwesome5", name: "walking" } 
         : { lib: "FontAwesome5", name: "ban" };
 };
 
-export const isFeatureEnabled = (nestedValue, flatValue) => {
+export const isFeatureEnabled = (nestedValue?: unknown, flatValue?: unknown): boolean => {
     if (nestedValue === true || String(nestedValue).toLowerCase() === 'true') return true;
     if (flatValue === true || String(flatValue).toLowerCase() === 'true') return true;
     return false;
 };
 
-export const getArray = (nestedValue, flatValue) => {
-    if (Array.isArray(nestedValue) && nestedValue.length > 0) return nestedValue;
-    if (Array.isArray(flatValue) && flatValue.length > 0) return flatValue;
+export const getArray = <T>(nestedValue?: unknown, flatValue?: unknown): T[] => {
+    if (Array.isArray(nestedValue) && nestedValue.length > 0) return nestedValue as T[];
+    if (Array.isArray(flatValue) && flatValue.length > 0) return flatValue as T[];
     return [];
 };
 
-export const getFeatureIcon = (label) => {
+export const getFeatureIcon = (label: string): { library: string; name: string } => {
     const lower = label.toLowerCase();
     if (lower.includes('shelter')) return { library: 'MaterialCommunityIcons', name: 'tent' };
     if (lower.includes('rest')) return { library: 'FontAwesome5', name: 'wheelchair' }; 
@@ -104,17 +111,17 @@ export const getFeatureIcon = (label) => {
     return { library: 'Feather', name: 'check-circle' }; 
 };
 
-export const getHeroImageSource = (item) => {
+export const getHeroImageSource = (item?: Partial<ITrail> | null): { uri: string } | any => {
     if (item?.coverImage) return { uri: item.coverImage };
     if (item?.routeMapImage) return { uri: item.routeMapImage };
-    return require('@/src/assets/images/Mt.Tagapo.jpg'); // Official Fallback
+    return require('@/src/assets/images/Mt.Tagapo.jpg'); 
 };
 
-export const isUsingMapFallback = (item) => {
+export const isUsingMapFallback = (item?: Partial<ITrail> | null): boolean => {
     return !item?.coverImage && !!item?.routeMapImage;
 };
 
-export const formatRouteType = (routeType) => {
+export const formatRouteType = (routeType?: string | null): string => {
     let display = routeType || "--";
     if (display === "Out and Back" || display === "Out-and-Back") return "Out & Back"; 
     if (display === "Point-to-Point") return "Pt to Pt"; 

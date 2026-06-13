@@ -5,10 +5,11 @@ import WeatherWidget from '@/src/components/WeatherWidget';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { ITrail } from '@/src/core/models/Trail/Trail.types';
 
 // Fallback coordinate table keyed by mountain name substring (lowercase).
 // Used when the Firestore trail document does not carry lat/lng fields.
-const MOUNTAIN_COORDS = {
+const MOUNTAIN_COORDS: Record<string, { lat: number; lon: number }> = {
   tagapo: { lat: 14.3392772, lon: 121.2325293 },
   marami: { lat: 14.1986108, lon: 120.6858334 },
   batulao: { lat: 14.0399434, lon: 120.8023782 },
@@ -17,7 +18,7 @@ const MOUNTAIN_COORDS = {
 };
 
 /** Resolve coordinates for a trail from the fallback lookup table. */
-const resolveCoords = (trailName) => {
+const resolveCoords = (trailName: string | null): { lat: number; lon: number } | null => {
     const lower = (trailName ?? '').toLowerCase();
     for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
         if (lower.includes(keyword)) return coords;
@@ -25,7 +26,13 @@ const resolveCoords = (trailName) => {
     return null;
 };
 
-const TrailWeatherTab = ({ latitude, longitude, trail }) => {
+export interface TrailWeatherTabProps {
+    latitude?: number | null;
+    longitude?: number | null;
+    trail?: ITrail | null;
+}
+
+const TrailWeatherTab: React.FC<TrailWeatherTabProps> = ({ latitude, longitude, trail }) => {
     // Use explicit props if valid numbers; otherwise fall back to name-based lookup.
     const resolvedCoords = useMemo(() => {
         if (typeof latitude === 'number' && typeof longitude === 'number') {
