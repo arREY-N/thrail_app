@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from "react-native";
+import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from "react-native";
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomText from '@/src/components/CustomText';
@@ -7,14 +7,22 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { PRIVACY_TEXT } from '@/src/constants/legal';
+import { TERMS_TEXT } from '@/src/constants/legal';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 
-export const PrivacyContent = ({ onScrollToBottom }) => {
+export interface LegalContentProps {
+    onScrollToBottom?: () => void;
+}
+
+export interface LegalScreenProps {
+    onBackPress?: () => void;
+}
+
+export const TermsContent = ({ onScrollToBottom }: LegalContentProps) => {
     
-    const handleScroll = (event) => {
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        const paddingToBottom = 20; 
+        const paddingToBottom = 20;
         
         if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
             if (onScrollToBottom) onScrollToBottom();
@@ -28,14 +36,14 @@ export const PrivacyContent = ({ onScrollToBottom }) => {
                 scrollEventThrottle={16}
             >
                 <CustomText variant="body" style={styles.legalText}>
-                    {PRIVACY_TEXT}
+                    {TERMS_TEXT}
                 </CustomText>
             </ResponsiveScrollView>
         </View>
     );
 };
 
-const PrivacyScreen = ({ onBackPress }) => {
+const TermsScreen = ({ onBackPress }: LegalScreenProps) => {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <ResponsiveScrollView 
@@ -48,11 +56,11 @@ const PrivacyScreen = ({ onBackPress }) => {
                 <View style={AuthStyles.pageContent}>
                     <View style={AuthStyles.formConstrainer}>
                         <CustomText variant="title" style={AuthStyles.pageTitle}>
-                            Privacy Policy
+                            Terms of Service
                         </CustomText>
                         
                         <View style={styles.standaloneContainer}>
-                            <PrivacyContent />
+                            <TermsContent />
                         </View>
                     </View>
                 </View>
@@ -63,7 +71,7 @@ const PrivacyScreen = ({ onBackPress }) => {
 
 const styles = StyleSheet.create({
     contentContainer: {
-        flex: 1, 
+        flex: 1,
         width: '100%',
         backgroundColor: Colors.WHITE,
         padding: 16,
@@ -82,4 +90,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PrivacyScreen;
+export default TermsScreen;
