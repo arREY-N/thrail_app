@@ -7,8 +7,13 @@ import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { Hike } from '@/src/core/models/Hike/Hike';
 
-export default function profile(){
+/**
+ * Controller component for the Profile tab.
+ * Gathers user data, hike logs, reviews, and computes summary statistics.
+ */
+export default function profile() {
     const {
         onSettingsPress,
         onGroupPress
@@ -27,7 +32,6 @@ export default function profile(){
     const {
         onAdminPress,
         onSuperadminPress,
-        onViewAccountPress,
         onApplyPress,
     } = useProfileNavigation();
 
@@ -41,15 +45,15 @@ export default function profile(){
 
     const myReviews = reviews.filter(r => isOwned(r));
 
-    let maxDist = null; let maxDistTrail = '--';
-    let maxTime = null; let maxTimeTrail = '--';
-    let maxElev = null; let maxElevTrail = '--';
+    let maxDist = 0; let maxDistTrail = '--';
+    let maxTime = 0; let maxTimeTrail = '--';
+    let maxElev = 0; let maxElevTrail = '--';
 
-    hikes.forEach(log => {
-        const dist = parseFloat(log.distance) || 0;
-        const time = parseFloat(log.duration) || 0;
-        const elev = parseFloat(log.elevation) || 0;
-        const trailName = log.trail?.name || log.trailName || '--';
+    hikes.forEach((log: Hike) => {
+        const dist = log.distance ?? 0;
+        const time = log.duration ?? 0;
+        const elev = log.elevation ?? 0;
+        const trailName = log.trail?.name || '--';
 
         if (dist && dist > maxDist) { maxDist = dist; maxDistTrail = trailName; }
         if (time && time > maxTime) { maxTime = time; maxTimeTrail = trailName; }
@@ -57,9 +61,9 @@ export default function profile(){
     });
 
     const totalHikesCount = myReviews.length;
-    const lastHikeName = totalHikesCount > 0 ? (myReviews[0].trail?.name || myReviews[0].trailName || '--') : '--';
+    const lastHikeName = totalHikesCount > 0 ? (myReviews[0].trail?.name || '--') : '--';
 
-    const formatTime = (ms) => {
+    const formatTime = (ms: number) => {
         if (ms === 0) return '--';
         const totalMins = Math.floor(ms / 60000);
         if (totalMins < 1) return '< 1m';
@@ -68,7 +72,7 @@ export default function profile(){
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     };
 
-    const formatDistance = (m) => {
+    const formatDistance = (m: number) => {
         if (m === 0) return '--';
         return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
     };
@@ -76,7 +80,7 @@ export default function profile(){
     const computedStats = {
         longestDistance: { value: formatDistance(maxDist), trail: maxDistTrail },
         longestTime: { value: formatTime(maxTime), trail: maxTimeTrail },
-        highestPoint: { value: maxElev !== null ? `${Math.round(maxElev)} m` : '--', trail: maxElevTrail },
+        highestPoint: { value: maxElev !== 0 ? `${Math.round(maxElev)} m` : '--', trail: maxElevTrail },
         totalHikes: { value: String(totalHikesCount), lastHike: lastHikeName },
         achievements: { 
             beginner: totalHikesCount >= 5,
@@ -94,10 +98,10 @@ export default function profile(){
             onSuperadminPress={onSuperadminPress}
             stats={computedStats}
             hikeLog={myReviews}
-            profile={profile}
-            role={role}
+            profile={profile ?? undefined}
+            role={role ?? undefined}
             onLikeReview={likeReview}
-            isLiked={isLiked}
+            isLiked={(review) => Boolean(isLiked(review))}
             onEditReview={onWriteReviewPress}
             onGroupPress={onGroupPress}
         />

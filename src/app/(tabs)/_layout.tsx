@@ -3,6 +3,9 @@ import React from "react";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
 
+/**
+ * Main navigation layout for the bottom tab bar.
+ */
 export default function homeLayout() {
     return (
         <Tabs

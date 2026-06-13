@@ -28,7 +28,6 @@ export default function community(){
             reviews={reviews}
             isLoading={isLoading}
             onWriteReviewPress={onWriteReviewPress}
-            isOwned={isOwned}
             likeReview={likeReview}
             isLiked={isLiked}
             onRefresh={refreshFeed}

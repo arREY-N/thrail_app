@@ -6,17 +6,21 @@ import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 
+/**
+ * Controller component for the Explore tab.
+ * Responsible for fetching trail data and passing navigation callbacks.
+ */
 export default function explore() {
     const { 
         onViewTrail, 
         trails,
         isLoading,
         fetchAllTrails
-    } = useTrailDomain() 
+    } = useTrailDomain();
 
     const {
         onGroupPress
-    } = useAppNavigation()
+    } = useAppNavigation();
     
     const {
         getItemRating,
@@ -36,7 +40,7 @@ export default function explore() {
             trails={trails}
             onViewMountain={onViewTrail}
             onGroupPress={onGroupPress}
-            isLoading={isLoading} // ✅ Pass loading state down
+            isLoading={isLoading} 
         />
-    )
+    );
 }
