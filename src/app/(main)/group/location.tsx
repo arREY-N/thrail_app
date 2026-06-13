@@ -60,7 +60,7 @@ export default function groupLocation() {
                 booking={booking}
                 onStartSharingLocation={onStartSharingLocation}
                 onStopSharingLocation={onStopSharingLocation}
-                onStartHike={handleStartHike}
+                onStartHike={handleStartHike as any}
                 onPauseHike={onPauseHike}
                 onResumeHike={onResumeHike}
                 onCompleteHike={handleCompleteHike}
@@ -69,7 +69,7 @@ export default function groupLocation() {
                 error={error}
                 isLive={isLive}
                 currentHike={currentHike}
-                location={location}
+                location={location as any}
                 onBackPress={onBackPress}
             />
 

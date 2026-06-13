@@ -74,7 +74,7 @@ export default function groupRoom() {
                 currentGroup={currentGroup}
                 sendMessage={sendMessage}
                 currentUser={profile}
-                markAsRead={markAsRead}
+                markAsRead={markAsRead as any}
                 headerTitle={headerTitle}   
                 onBackPress={onBackPress}         
                 onAttachPress={handleAttachPress}
