@@ -12,14 +12,31 @@ import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
+export interface ReasonModalProps {
+    /** Whether the modal is visible */
+    visible: boolean;
+    /** Callback to close the modal */
+    onClose: () => void;
+    /** Callback when user confirms reason */
+    onConfirm: (reason: string) => void;
+    /** Type of action being performed */
+    actionType: 'cancel' | 'refund' | null | string;
+}
+
+/**
+ * Modal to collect a reason for cancellation or refund.
+ * 
+ * @param {ReasonModalProps} props - Component props
+ */
 const ReasonModal = ({ 
     visible, 
     onClose, 
     onConfirm, 
     actionType 
-}) => {
-    const [reason, setReason] = useState('');
+}: ReasonModalProps) => {
+    const [reason, setReason] = useState<string>('');
 
     const isCancel = actionType === 'cancel';
     const title = isCancel ? "Cancel Booking" : "Request Refund";
@@ -136,6 +153,8 @@ const ReasonModal = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     overlay: { 
         flex: 1, 
@@ -150,14 +169,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         borderRadius: 16, 
         padding: 24, 
-        shadowColor: '#000', 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 12, 
-        elevation: 8, 
+         
+         
+         
+         
+        ...dropShadow, 
         maxHeight: '90%' 
     },
     header: { 

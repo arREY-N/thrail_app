@@ -12,16 +12,33 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
+export interface RescheduleModalProps {
+    /** Whether the modal is visible */
+    visible: boolean;
+    /** Callback to close the modal */
+    onClose: () => void;
+    /** Callback when user confirms selection */
+    onConfirm: (selectedOffer: IOffer | 'explore') => void;
+    /** Array of available future offers */
+    availableFutureOffers?: IOffer[];
+}
+
+/**
+ * Modal to select a new date from future offers to reschedule.
+ * 
+ * @param {RescheduleModalProps} props - Component props
+ */
 const RescheduleModal = ({ 
     visible, 
     onClose, 
     onConfirm, 
     availableFutureOffers = [] 
-}) => {
-    const [selectedOfferId, setSelectedOfferId] = useState(null);
+}: RescheduleModalProps) => {
+    const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
 
     const handleConfirm = () => {
         const selected = availableFutureOffers.find(o => o.id === selectedOfferId);
@@ -78,7 +95,7 @@ const RescheduleModal = ({
                                     </CustomText>
                                     
                                     <OfferCard 
-                                        offer={offer}
+                                        offer={offer as any}
                                         isSelected={selectedOfferId === offer.id}
                                         onSelect={() => {
                                             setSelectedOfferId(

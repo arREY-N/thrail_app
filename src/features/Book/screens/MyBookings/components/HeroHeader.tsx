@@ -5,8 +5,19 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
 
-const HeroHeader = ({ booking }) => {
+export interface HeroHeaderProps {
+    /** The booking data */
+    booking: IBooking | any; // To allow for the enhancedBooking passed from details screen
+}
+
+/**
+ * Header section displaying the trail name and location.
+ * 
+ * @param {HeroHeaderProps} props - Component props
+ */
+const HeroHeader = ({ booking }: HeroHeaderProps) => {
     const trail = booking?.trail;
 
     const hasValidLocation = trail?.location && trail.location.trim() !== '' && trail.location !== 'N/A';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -12,13 +12,42 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IconLibrary } from '@/src/types/ui.types';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const AccordionItem = ({ title, subtitle, icon, library = "Feather", children, defaultOpen = false }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
+export interface AccordionItemProps {
+    /** Title of the accordion */
+    title: string;
+    /** Optional subtitle */
+    subtitle?: string;
+    /** Icon name */
+    icon: string;
+    /** Icon library, defaults to Feather */
+    library?: IconLibrary;
+    /** Children elements to render inside */
+    children: ReactNode;
+    /** Initial open state */
+    defaultOpen?: boolean;
+}
+
+/**
+ * Accordion component to display expandable content.
+ * 
+ * @param {AccordionItemProps} props - Component props
+ */
+const AccordionItem = ({ 
+    title, 
+    subtitle, 
+    icon, 
+    library = "Feather", 
+    children, 
+    defaultOpen = false 
+}: AccordionItemProps) => {
+    const [isOpen, setIsOpen] = useState<boolean>(defaultOpen);
 
     const toggleAccordion = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -67,6 +96,8 @@ const AccordionItem = ({ title, subtitle, icon, library = "Feather", children, d
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: {
         backgroundColor: Colors.WHITE,
@@ -76,11 +107,11 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginBottom: 12,
         overflow: 'hidden',
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     header: {
         flexDirection: 'row',

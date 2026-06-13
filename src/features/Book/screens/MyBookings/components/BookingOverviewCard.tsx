@@ -1,12 +1,24 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform,  StyleSheet, View  } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
 
-const BookingOverviewCard = ({ booking }) => {
+export interface BookingOverviewCardProps {
+    /** The booking data */
+    booking: IBooking;
+}
+
+/**
+ * Card displaying high-level summary of a booking.
+ * 
+ * @param {BookingOverviewCardProps} props - Component props
+ */
+const BookingOverviewCard = ({ booking }: BookingOverviewCardProps) => {
     const formattedDate = formatBookingDate(booking?.offer?.date);
 
     return (
@@ -50,6 +62,8 @@ const BookingOverviewCard = ({ booking }) => {
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     card: { 
         backgroundColor: Colors.WHITE, 
@@ -57,11 +71,11 @@ const styles = StyleSheet.create({
         padding: 20, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
-        elevation: 2, 
+         
+         
+         
+         
+        ...dropShadow, 
         marginBottom: 16,
     },
     trailName: { 

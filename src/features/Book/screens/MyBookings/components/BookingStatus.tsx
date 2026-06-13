@@ -1,12 +1,26 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform,  StyleSheet, View  } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking.types';
 
-const getTrackerData = (status) => {
+export interface BookingTrackerData {
+    steps: Array<{ id: number, defaultLabel: string, defaultIcon: string }>;
+    currentIndex: number;
+    isTerminalError: boolean;
+    config: any;
+}
+
+/**
+ * Gets tracker data based on booking status.
+ * @param {BookingStatusType | string | undefined} status - Booking status
+ * @returns {BookingTrackerData} Tracker state
+ */
+const getTrackerData = (status?: BookingStatusType | string): BookingTrackerData => {
     const config = getStatusConfig(status, 'user');
     const rawStatus = status || 'unknown';
 
@@ -19,7 +33,7 @@ const getTrackerData = (status) => {
         'reschedule-rejected'
     ];
 
-    if (terminalStatuses.includes(rawStatus)) {
+    if (terminalStatuses.includes(rawStatus as string)) {
         return {
             steps: [],
             currentIndex: 0,
@@ -68,7 +82,19 @@ const getTrackerData = (status) => {
     };
 };
 
-const BookingStatus = ({ status, reason }) => {
+export interface BookingStatusProps {
+    /** The status of the booking */
+    status?: BookingStatusType | string;
+    /** Optional cancellation reason */
+    reason?: string;
+}
+
+/**
+ * Visual tracker for the booking status.
+ * 
+ * @param {BookingStatusProps} props - Component props
+ */
+const BookingStatus = ({ status, reason }: BookingStatusProps) => {
     const { 
         steps, 
         currentIndex, 
@@ -127,11 +153,11 @@ const BookingStatus = ({ status, reason }) => {
                         const isCurrent = index === currentIndex;
                         const isLastVisible = index === steps.length - 1;
 
-                        let circleBg = Colors.GRAY_LIGHT;
-                        let iconColor = Colors.TEXT_SECONDARY;
-                        let iconName = step.defaultIcon;
-                        let labelText = step.defaultLabel;
-                        let labelColor = Colors.TEXT_SECONDARY;
+                        let circleBg: string = Colors.GRAY_LIGHT;
+                        let iconColor: string = Colors.TEXT_SECONDARY;
+                        let iconName: string = step.defaultIcon;
+                        let labelText: string = step.defaultLabel;
+                        let labelColor: string = Colors.TEXT_SECONDARY;
 
                         if (isDone) {
                             circleBg = Colors.SUCCESS;
@@ -192,6 +218,8 @@ const BookingStatus = ({ status, reason }) => {
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: { 
         backgroundColor: Colors.WHITE, 
@@ -201,11 +229,11 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
-        elevation: 2 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     headerRow: { 
         flexDirection: 'row', 

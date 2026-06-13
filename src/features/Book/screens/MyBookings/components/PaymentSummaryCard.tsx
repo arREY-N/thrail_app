@@ -1,14 +1,35 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform,  StyleSheet, View  } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IPayment } from '@/src/core/models/Booking/Booking.types';
 
-const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }) => {
+export interface PaymentSummaryCardProps {
+    /** Total amount for the package */
+    totalAmount: number;
+    /** Amount already paid */
+    amountPaid: number;
+    /** Remaining balance to pay */
+    remainingBalance: number;
+    /** Array of payment history */
+    payments?: IPayment<any>[];
+}
+
+/**
+ * Card displaying payment summary, including refunds and remaining balance.
+ * 
+ * @param {PaymentSummaryCardProps} props - Component props
+ */
+const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }: PaymentSummaryCardProps) => {
     const refundedPayments = payments.filter(p => p.status === 'refunded');
-    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
-    const hasUnrecordedRefund = refundedPayments.some(p => p.refundedAmount === undefined || p.refundedAmount === null);
+    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (((p as unknown as { refundedAmount?: number }).refundedAmount) || 0), 0);
+    const hasUnrecordedRefund = refundedPayments.some(p => {
+        const refundedAmount = (p as unknown as { refundedAmount?: number }).refundedAmount;
+        return refundedAmount === undefined || refundedAmount === null;
+    });
 
     const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
@@ -67,6 +88,8 @@ const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payment
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: {
         backgroundColor: Colors.WHITE,
@@ -76,11 +99,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     title: {
         fontWeight: 'bold',

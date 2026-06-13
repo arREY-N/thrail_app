@@ -6,7 +6,17 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 
-const CancellationReasonCard = ({ reason }) => {
+export interface CancellationReasonCardProps {
+    /** Reason text to display */
+    reason?: string;
+}
+
+/**
+ * Simple card to display cancellation reasons.
+ * 
+ * @param {CancellationReasonCardProps} props - Component props
+ */
+const CancellationReasonCard = ({ reason }: CancellationReasonCardProps) => {
     if (!reason) return null;
 
     return (
