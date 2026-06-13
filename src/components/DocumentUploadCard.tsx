@@ -5,9 +5,34 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import useFileUpload from '@/src/core/hook/file/useFileUpload';
 
-const DocumentUploadCard = ({ 
+/**
+ * Props for the DocumentUploadCard component.
+ */
+interface DocumentUploadCardProps {
+    /** The display name of the document to be uploaded */
+    docName: string;
+    /** The key/identifier for the document type */
+    docKey?: string;
+    /** Whether the document has been uploaded (can be boolean, string URL, or array of URLs) */
+    isUploaded?: string | string[] | boolean;
+    /** Indicates if the previously uploaded document was rejected */
+    isRejected?: boolean;
+    /** Callback fired when an upload is successfully completed */
+    onUploadSuccess?: (url: string) => void;
+    /** Whether multiple documents can be uploaded */
+    allowMultiple?: boolean;
+    /** Callback fired when a document is deleted */
+    onDelete?: (index: number) => void;
+}
+
+/**
+ * DocumentUploadCard — A card component that handles document/image uploads
+ * with support for status indicators (pending, success, rejected, error) and image preview.
+ */
+const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({ 
     docName, 
     docKey,
     isUploaded,
@@ -24,7 +49,10 @@ const DocumentUploadCard = ({
     
     const { pickDocument } = useFileUpload();
 
-    const imagesList = Array.isArray(isUploaded) ? isUploaded : (isUploaded ? [isUploaded] : []);
+    const imagesList: string[] = Array.isArray(isUploaded) 
+        ? isUploaded.filter((url): url is string => typeof url === 'string') 
+        : (typeof isUploaded === 'string' ? [isUploaded] : []);
+        
     const isComplete = imagesList.length > 0 && !isRejected;
 
     const handleUploadPress = async () => {
@@ -32,14 +60,14 @@ const DocumentUploadCard = ({
         setIsError(false);
         setErrorMessage('');
         try {
-            const url = await pickDocument(docKey || 'validId');
+            const url = await pickDocument((docKey || 'validId') as any);
             if (url && onUploadSuccess) {
                 onUploadSuccess(url); 
             } else {
                 setIsError(true);
                 setErrorMessage('Upload failed or was canceled.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Upload failed for ${docKey}:`, error);
             setIsError(true);
             setErrorMessage(error.message || 'An error occurred during upload.');
@@ -142,7 +170,7 @@ const DocumentUploadCard = ({
                 visible={isPreviewVisible} 
                 images={imagesList} 
                 onClose={() => setIsPreviewVisible(false)} 
-                onDelete={onDelete ? (idx) => onDelete(idx) : undefined} 
+                onDelete={onDelete ? (idx: number) => onDelete(idx) : undefined} 
             />
         </View>
     );
@@ -165,8 +193,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 }, 
         shadowOpacity: 0.05, 
         shadowRadius: 4, 
-        elevation: 2 
-    },
+...GlobalStyles.dropShadow(2),},
     uploadCardError: {
         borderColor: Colors.ERROR_BORDER,
         backgroundColor: Colors.ERROR_BG, 
@@ -174,7 +201,7 @@ const styles = StyleSheet.create({
     uploadInfo: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        flex: 1, // ✅ Forces the left side to consume remaining space
+        flex: 1,
         paddingRight: 12
     },
     iconWrapper: { 
@@ -189,14 +216,14 @@ const styles = StyleSheet.create({
     iconWrapperSuccess: { backgroundColor: Colors.STATUS_APPROVED_BG },
     iconWrapperError: { backgroundColor: Colors.WHITE }, 
     docName: { 
-        flex: 1, // ✅ Works with flexShrink below
-        flexShrink: 1 // ✅ Critical fix: Forces long text to truncate/wrap before it crushes the buttons
+        flex: 1,
+        flexShrink: 1
     },
     actionContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         gap: 8,
-        flexShrink: 0 // ✅ Ensures buttons never get squeezed by the text
+        flexShrink: 0
     },
     uploadBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center', backgroundColor: Colors.PRIMARY },
     uploadBtnText: { color: Colors.WHITE, fontWeight: 'bold' },

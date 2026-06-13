@@ -11,7 +11,35 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
-const DynamicListBuilder = ({ 
+/**
+ * Props for the DynamicListBuilder component.
+ */
+interface DynamicListBuilderProps {
+    /** The label for the input field */
+    label: string;
+    /** Placeholder text for the input field */
+    placeholder?: string;
+    /** List of currently selected or added items */
+    items?: string[];
+    /** The current value of the input field */
+    inputValue: string;
+    /** Callback to update the input field value */
+    setInputValue: (val: string) => void;
+    /** Callback fired when a new custom item is added */
+    onAddItem: (val: string) => void;
+    /** Callback fired when an item is removed */
+    onRemoveItem: (val: string) => void;
+    /** List of preset items that can be toggled on or off */
+    presets?: string[];
+    /** Callback fired when a preset item is toggled */
+    onTogglePreset: (val: string) => void;
+}
+
+/**
+ * DynamicListBuilder — A component that allows users to select from a list of presets
+ * or dynamically add and remove their own custom string items.
+ */
+const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({ 
     label, 
     placeholder, 
     items = [], 
@@ -151,7 +179,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'flex-end',
         paddingRight: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: `${Colors.BACKGROUND}CC`,
     },
     presetChip: {
         backgroundColor: Colors.WHITE,

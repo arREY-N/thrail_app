@@ -1,15 +1,22 @@
-import Feather from '@expo/vector-icons/Feather';
-
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
+    StyleProp,
     StyleSheet,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const ErrorMessage = ({ 
+interface ErrorMessageProps {
+    error?: string | null;
+    style?: StyleProp<ViewStyle>;
+    children?: ReactNode;
+}
+
+const ErrorMessage: React.FC<ErrorMessageProps> = ({ 
     error, 
     style,
     children
@@ -19,7 +26,8 @@ const ErrorMessage = ({
 
     return (
         <View style={[styles.container, style]}>
-            <Feather 
+            <CustomIcon 
+                library="Feather" 
                 name="alert-circle" 
                 size={18} 
                 color={Colors.ERROR} 

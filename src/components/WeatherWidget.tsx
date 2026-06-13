@@ -7,6 +7,7 @@ import { WeatherWidgetSkeleton } from '@/src/features/Home/components/WeatherSke
 
 import { Colors } from '@/src/constants/colors';
 import { ProcessedWeatherData } from '../core/types/weather';
+import { IconLibrary } from '@/src/types/ui.types';
 import {
     formatForecastDay,
     formatLastUpdatedLabel,
@@ -133,7 +134,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
                                 {isToday ? "Today" : formatForecastDay(day.date, index)}
                             </CustomText>
                             <View style={styles.fIconWrapper}>
-                                <CustomIcon library={library} name={icon} size={26} color={Colors.PRIMARY} />
+                                <CustomIcon library={library as IconLibrary} name={icon} size={26} color={Colors.PRIMARY} />
                             </View>
                             <View style={styles.forecastTempRow}>
                                 <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>

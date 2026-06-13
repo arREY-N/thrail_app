@@ -14,11 +14,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const CustomSelectionModal = ({ 
+interface SelectionOption {
+    id?: string | number;
+    value?: string | number;
+    label: string;
+    subLabel?: string;
+}
+
+/**
+ * A generic bottom-sheet style modal for selecting from a list of options.
+ */
+interface CustomSelectionModalProps {
+    visible: boolean;
+    onClose: () => void;
+    title?: string;
+    options?: SelectionOption[];
+    selectedValue?: string | number | null;
+    onSelect: (option: SelectionOption) => void;
+}
+
+const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({ 
     visible, 
     onClose, 
     title = "Select Option", 
@@ -30,7 +50,7 @@ const CustomSelectionModal = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
-    const [renderModal, setRenderModal] = useState(visible);
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
     const animValue = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -91,7 +111,7 @@ const CustomSelectionModal = ({
                     </View>
                     
                     <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
-                        {options.length > 0 ? options.map(option => {
+                        {options.length > 0 ? options.map((option: SelectionOption) => {
                             const optionKey = option.value !== undefined ? option.value : option.id;
                             const isSelected = selectedValue === optionKey;
                             
@@ -134,20 +154,16 @@ const CustomSelectionModal = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: {
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
+const dropShadow = {
+    shadowColor: Colors.SHADOW,
+    shadowOffset: { 
+        width: 0, 
+        height: -4 
     },
-    android: {
-        elevation: 10,
-    },
-    web: {
-        boxShadow: '0px -4px 20px rgba(0, 0, 0, 0.08)',
-    }
-});
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+...GlobalStyles.dropShadow(10),
+};
 
 const styles = StyleSheet.create({
     modalContainer: {
@@ -156,7 +172,7 @@ const styles = StyleSheet.create({
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: Colors.MODAL_OVERLAY,
     },
     backdropTouch: {
         flex: 1,
@@ -204,10 +220,11 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.GRAY_ULTRALIGHT,
     },
     modalOptionSelected: {
-        backgroundColor: '#E8F5E9',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderColor: Colors.PRIMARY,
         borderRadius: 12,
         borderBottomWidth: 0,
-        paddingHorizontal: 16, // Adds padding when highlighted
+        paddingHorizontal: 16, 
         marginVertical: 4,
     },
     leftContent: {

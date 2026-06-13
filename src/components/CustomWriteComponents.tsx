@@ -116,7 +116,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                     label={`${label}${required ? ' *' : ''}`}
                                     placeholder={`Select ${label}`}
                                     options={options}
-                                    value={val}
+                                    value={val as any}
                                     onSelect={(value: string) => onEditProperty({ section, id, value })} children={undefined}                                />
                             </View>
                         )

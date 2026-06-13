@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
     Modal,
     StyleSheet,
@@ -6,12 +6,33 @@ import {
 } from 'react-native';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const ConfirmationModal = ({ 
+/**
+ * A reusable confirmation dialog with destructive/primary action support.
+ * Renders as a centered modal overlay with icon, title, message, and action buttons.
+ */
+
+interface ConfirmationModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title?: string;
+    message?: string;
+    cancelText?: string;
+    confirmText?: string;
+    isDestructive?: boolean;
+    iconName?: string;
+    iconLibrary?: IconLibrary;
+    children?: ReactNode;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ 
     visible, 
     onClose, 
     onConfirm, 
@@ -25,11 +46,11 @@ const ConfirmationModal = ({
     children
 }) => {
 
-    const containerBgColor = isDestructive ? Colors.WHITE : Colors.SECONDARY;
-    const textColor = isDestructive ? Colors.TEXT_PRIMARY : Colors.TEXT_INVERSE;
-    const primaryButtonVariant = isDestructive ? "destructive" : "primary";
-    const cancelButtonVariant = isDestructive ? "secondary" : "secondary"; 
-    const defaultIconColor = isDestructive ? Colors.ERROR : Colors.TEXT_INVERSE;
+    const containerBgColor: string = isDestructive ? Colors.WHITE : Colors.SECONDARY;
+    const textColor: string = isDestructive ? Colors.TEXT_PRIMARY : Colors.TEXT_INVERSE;
+    const primaryButtonVariant: 'destructive' | 'primary' = isDestructive ? "destructive" : "primary";
+    const cancelButtonVariant: 'secondary' = "secondary"; 
+    const defaultIconColor: string = isDestructive ? Colors.ERROR : Colors.TEXT_INVERSE;
 
     return (
         <Modal
@@ -39,7 +60,12 @@ const ConfirmationModal = ({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: containerBgColor }]}>
+                <View 
+                    style={[
+                        styles.container, 
+                        { backgroundColor: containerBgColor }
+                    ]}
+                >
                     
                     {iconName && (
                         <View style={styles.iconWrapper}>
@@ -52,14 +78,26 @@ const ConfirmationModal = ({
                         </View>
                     )}
                 
-                    <CustomText variant="subtitle" style={[styles.title, { color: textColor }]}>
+                    <CustomText 
+                        variant="subtitle" 
+                        style={[
+                            styles.title, 
+                            { color: textColor }
+                        ]}
+                    >
                         {title}
                     </CustomText>
 
                     {children ? (
                         children
                     ) : (
-                        <CustomText variant="caption" style={[styles.message, { color: textColor }]}>
+                        <CustomText 
+                            variant="caption" 
+                            style={[
+                                styles.message, 
+                                { color: textColor }
+                            ]}
+                        >
                             {message}
                         </CustomText>
                     )}
@@ -70,8 +108,11 @@ const ConfirmationModal = ({
                             onPress={onClose}
                             variant={cancelButtonVariant}
                             style={[
-                                styles.modalButton, 
-                                isDestructive && { borderColor: Colors.GRAY_LIGHT, borderWidth: 1 }
+                                styles.modalButton,
+                                isDestructive && {
+                                    borderColor: Colors.GRAY_LIGHT,
+                                    borderWidth: 1
+                                }
                             ]}
                         />
 
@@ -79,7 +120,7 @@ const ConfirmationModal = ({
                             title={confirmText}
                             onPress={onConfirm}
                             variant={primaryButtonVariant}
-                            style={styles.modalButton}
+                            style={styles.modalButton} 
                         />
                     </View>
 
@@ -104,10 +145,13 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 380, 
         shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.1,
         shadowRadius: 12,
-        elevation: 5,
+...GlobalStyles.dropShadow(5),
     },
     iconWrapper: {
         alignItems: 'center',

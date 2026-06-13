@@ -1,10 +1,31 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { 
+    GestureResponderEvent,
+    StyleProp,
+    StyleSheet, 
+    TouchableOpacity,
+    ViewStyle
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const CustomFAB = ({ 
+/**
+ * A floating action button (FAB) component placed at the bottom right.
+ */
+interface CustomFABProps {
+    onPress?: (event: GestureResponderEvent) => void;
+    iconLibrary?: IconLibrary;
+    iconName?: string;
+    iconSize?: number;
+    iconColor?: string;
+    backgroundColor?: string;
+    style?: StyleProp<ViewStyle>;
+}
+
+const CustomFAB: React.FC<CustomFABProps> = ({ 
     onPress, 
     iconLibrary = "Ionicons", 
     iconName = "chatbubbles", 
@@ -17,7 +38,7 @@ const CustomFAB = ({
         <TouchableOpacity 
             style={[
                 styles.fab, 
-                { backgroundColor },
+                { backgroundColor: backgroundColor },
                 style
             ]} 
             onPress={onPress}
@@ -43,10 +64,12 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        
-        elevation: 6,
+...GlobalStyles.dropShadow(6),
         shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.3,
         shadowRadius: 6,
         zIndex: 1000,

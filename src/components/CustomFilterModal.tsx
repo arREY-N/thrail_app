@@ -15,15 +15,38 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+interface FilterOption {
+    label: string;
+    value: string;
+}
+
+interface FilterSection {
+    id: string;
+    title: string;
+    type: 'radio' | 'pill';
+    multiSelect?: boolean;
+    options: FilterOption[];
+}
+
+interface CustomFilterModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onApply: (values: Record<string, any>) => void;
+    title?: string;
+    sections?: FilterSection[];
+    initialValues?: Record<string, any>;
+    defaultValues?: Record<string, any>;
+}
+
 /**
  * Universal Data-Driven Filter Modal
- * @param {Array} sections - Array of objects: { id, title, type: 'radio'|'pill', multiSelect: boolean, options: [{label, value}] }
  */
-const CustomFilterModal = ({ 
+const CustomFilterModal: React.FC<CustomFilterModalProps> = ({ 
     visible, 
     onClose, 
     onApply, 
@@ -36,8 +59,8 @@ const CustomFilterModal = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
-    const [renderModal, setRenderModal] = useState(visible);
-    const [localValues, setLocalValues] = useState(initialValues);
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
+    const [localValues, setLocalValues] = useState<Record<string, any>>(initialValues);
     const animValue = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -66,7 +89,7 @@ const CustomFilterModal = ({
         onClose();
     };
 
-    const toggleValue = (sectionId, value, isMulti) => {
+    const toggleValue = (sectionId: string, value: string, isMulti?: boolean): void => {
         setLocalValues(prev => {
             if (!isMulti) {
                 return { 
@@ -80,7 +103,7 @@ const CustomFilterModal = ({
             if (currentArray.includes(value)) {
                 return { 
                     ...prev, 
-                    [sectionId]: currentArray.filter(v => v !== value) 
+                    [sectionId]: currentArray.filter((v: string) => v !== value) 
                 };
             }
             
@@ -165,7 +188,7 @@ const CustomFilterModal = ({
                         showsVerticalScrollIndicator={false} 
                         contentContainerStyle={styles.scrollBody}
                     >
-                        {sections.map((section, index) => {
+                        {sections.map((section: FilterSection, index: number) => {
                             const isMulti = section.multiSelect;
                             const currentValue = localValues[section.id];
                             
@@ -258,20 +281,7 @@ const CustomFilterModal = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: -4 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 12 
-    },
-    android: { 
-        elevation: 10 
-    },
-    web: { 
-        boxShadow: '0px -4px 20px rgba(0, 0, 0, 0.08)' 
-    }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     modalContainer: { 

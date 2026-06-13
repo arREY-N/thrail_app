@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
+    GestureResponderEvent,
     Platform,
     Pressable,
-    StyleSheet
+    StyleProp,
+    StyleSheet,
+    TextStyle,
+    ViewStyle
 } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const CustomButton = ({ 
+/**
+ * A custom button component that supports various styles, sizes, and states.
+ */
+interface CustomButtonProps {
+    title?: string;
+    onPress?: (event: GestureResponderEvent) => void;
+    variant?: 'primary' | 'secondary' | 'outline' | 'destructive';
+    style?: StyleProp<ViewStyle>;
+    textStyle?: StyleProp<TextStyle>;
+    disabled?: boolean;
+    children?: ReactNode;
+}
+
+const CustomButton: React.FC<CustomButtonProps> = ({ 
     title, 
     onPress, 
     variant = 'primary',
@@ -18,20 +36,20 @@ const CustomButton = ({
     children
 }) => {
     
-    let buttonStyle = styles.primary;
-    let labelStyle = styles.textPrimary;
-    let useShadow = true;
+    let buttonStyle = styles.primary as StyleProp<ViewStyle>;
+    let labelStyle = styles.textPrimary as StyleProp<TextStyle>;
+    let useShadow: boolean = true;
 
     if (variant === 'secondary') {
-        buttonStyle = styles.secondary;
-        labelStyle = styles.textSecondary;
+        buttonStyle = styles.secondary as StyleProp<ViewStyle>;
+        labelStyle = styles.textSecondary as StyleProp<TextStyle>;
     } else if (variant === 'outline') {
-        buttonStyle = styles.outline;
-        labelStyle = styles.textOutline;
+        buttonStyle = styles.outline as StyleProp<ViewStyle>;
+        labelStyle = styles.textOutline as StyleProp<TextStyle>;
         useShadow = false;
     } else if (variant === 'destructive') {
-        buttonStyle = styles.destructive;
-        labelStyle = styles.textDestructive;
+        buttonStyle = styles.destructive as StyleProp<ViewStyle>;
+        labelStyle = styles.textDestructive as StyleProp<TextStyle>;
     }
 
     return (
@@ -39,18 +57,24 @@ const CustomButton = ({
             onPress={onPress}
             disabled={disabled}
             style={({ pressed }) => [
-                styles.baseButton, 
+                styles.baseButton as StyleProp<ViewStyle>, 
                 buttonStyle, 
-                useShadow && !disabled && styles.shadows,
+                useShadow && !disabled && (styles.shadows as StyleProp<ViewStyle>),
                 style,
-                pressed && !disabled && styles.pressed,
-                disabled && styles.disabledState
+                pressed && !disabled && (styles.pressed as StyleProp<ViewStyle>),
+                disabled && (styles.disabledState as StyleProp<ViewStyle>)
             ]}
         >
             {children ? (
                 children
             ) : (
-                <CustomText style={[styles.baseText, labelStyle, textStyle]}>
+                <CustomText 
+                    style={[
+                        styles.baseText as StyleProp<TextStyle>, 
+                        labelStyle, 
+                        textStyle
+                    ]}
+                >
                     {title}
                 </CustomText>
             )}
@@ -69,17 +93,20 @@ const styles = StyleSheet.create({
     shadows: Platform.select({
         ios: {
             shadowColor: Colors.SHADOW,
-            shadowOffset: { width: 0, height: 4 },
+            shadowOffset: { 
+                width: 0, 
+                height: 4 
+            },
             shadowOpacity: 0.15,
             shadowRadius: 8,
         },
         android: {
-            elevation: 4,
+...GlobalStyles.dropShadow(4),
         },
         web: {
-            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)', 
+            boxShadow: `0px 4px 8px ${Colors.SHADOW}1F`, 
         }
-    }),
+    }) as any,
     baseText: {
         fontWeight: 'bold',
         fontSize: 16,
@@ -91,7 +118,7 @@ const styles = StyleSheet.create({
     disabledState: {
         opacity: 0.5,
         ...Platform.select({
-            web: { cursor: 'not-allowed' }
+            web: { cursor: 'not-allowed' } as any
         })
     },
 

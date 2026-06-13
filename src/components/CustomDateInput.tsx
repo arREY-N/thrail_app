@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
+    ListRenderItemInfo,
     Modal,
     Pressable,
     StyleSheet,
@@ -11,20 +12,37 @@ import {
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const CustomDateInput = ({ 
+/**
+ * A component designed specifically for date entry and display.
+ */
+interface CustomDateInputProps {
+    value?: Date | null;
+    onChangeText: (date: Date) => void;
+    label?: string;
+    children?: ReactNode;
+}
+
+interface DropdownOption {
+    label: string;
+    value: string;
+}
+
+const CustomDateInput: React.FC<CustomDateInputProps> = ({ 
     value, 
     onChangeText, 
     label,
     children
 }) => {
-    const [activePicker, setActivePicker] = useState(null);
-    const [mm, setMm] = useState('');
-    const [dd, setDd] = useState('');
-    const [yyyy, setYyyy] = useState('');
+    
+    const [activePicker, setActivePicker] = useState<'MM' | 'DD' | 'YYYY' | null>(null);
+    const [mm, setMm] = useState<string>('');
+    const [dd, setDd] = useState<string>('');
+    const [yyyy, setYyyy] = useState<string>('');
 
     useEffect(() => {
-        if (value instanceof Date && !isNaN(value)) {
+        if (value instanceof Date && !isNaN(value.getTime())) {
             setMm((value.getMonth() + 1).toString().padStart(2, '0'));
             setDd(value.getDate().toString().padStart(2, '0'));
             setYyyy(value.getFullYear().toString());
@@ -37,7 +55,7 @@ const CustomDateInput = ({
         }
     }, [value]);
 
-    const daysData = useMemo(() => {
+    const daysData = useMemo<DropdownOption[]>(() => {
         let daysInMonth = 31;
         if (mm && yyyy) {
             daysInMonth = new Date(parseInt(yyyy), parseInt(mm), 0).getDate();
@@ -52,7 +70,7 @@ const CustomDateInput = ({
         });
     }, [mm, yyyy]);
 
-    const monthsData = useMemo(() => {
+    const monthsData = useMemo<DropdownOption[]>(() => {
         const months = [
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
@@ -63,7 +81,7 @@ const CustomDateInput = ({
         }));
     }, []);
 
-    const yearsData = useMemo(() => {
+    const yearsData = useMemo<DropdownOption[]>(() => {
         const currentYear = new Date().getFullYear();
         return Array.from({ length: 100 }, (_, i) => ({ 
             label: (currentYear - i).toString(), 
@@ -71,7 +89,7 @@ const CustomDateInput = ({
         }));
     }, []);
 
-    const handleSelect = (category, val) => {
+    const handleSelect = (category: 'MM' | 'DD' | 'YYYY', val: string): void => {
         let newMM = mm;
         let newDD = dd;
         let newYYYY = yyyy;
@@ -101,11 +119,11 @@ const CustomDateInput = ({
 
     return (
         <View style={styles.container}>
-            {label && 
+            {label && (
                 <CustomText variant="label" style={styles.label}> 
                     {label} 
                 </CustomText>
-            }
+            )}
 
             <View style={styles.dateGroupContainer}>
                 <DropdownPicker 
@@ -149,7 +167,19 @@ const CustomDateInput = ({
     );
 };
 
-const DropdownPicker = ({ 
+interface DropdownPickerProps {
+    label: string;
+    value: string;
+    options: DropdownOption[];
+    onSelect: (val: string) => void;
+    flex?: number;
+    isMonth?: boolean;
+    isActive: boolean;
+    onOpen: () => void;
+    onClose: () => void;
+}
+
+const DropdownPicker: React.FC<DropdownPickerProps> = ({ 
     label, 
     value, 
     options, 
@@ -161,15 +191,15 @@ const DropdownPicker = ({
     onClose 
 }) => {
 
-    let displayValue = value;
+    let displayValue: string = value;
     if (isMonth && value) {
         const monthObj = options.find(o => o.value === value);
         if (monthObj) displayValue = monthObj.label;
     }
 
-    const textColor = value ? Colors.TEXT_PRIMARY : Colors.TEXT_PLACEHOLDER;
+    const textColor: string = value ? Colors.TEXT_PRIMARY : Colors.TEXT_PLACEHOLDER;
 
-    const renderListItem = useCallback(({ item }) => {
+    const renderListItem = useCallback(({ item }: ListRenderItemInfo<DropdownOption>) => {
         const isSelected = item.value === value;
         return (
             <TouchableOpacity 
@@ -209,7 +239,10 @@ const DropdownPicker = ({
             >
                 <CustomText 
                     variant="body" 
-                    style={[styles.dropdownText, { color: textColor }]}
+                    style={[
+                        styles.dropdownText, 
+                        { color: textColor }
+                    ]}
                     numberOfLines={1}
                 >
                     {displayValue || label}
@@ -285,7 +318,7 @@ const styles = StyleSheet.create({
     
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -297,11 +330,14 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 16,
         
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { 
+            width: 0, 
+            height: 10 
+        },
         shadowOpacity: 0.25,
         shadowRadius: 15,
-        elevation: 10,
+...GlobalStyles.dropShadow(10),
         overflow: 'hidden',
     },
     modalHeader: {

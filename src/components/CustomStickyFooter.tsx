@@ -1,12 +1,37 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { 
+    GestureResponderEvent,
+    StyleProp,
+    StyleSheet, 
+    TextStyle,
+    View,
+    ViewStyle
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 
-const CustomStickyFooter = ({ primaryButton, secondaryButton }) => {
+interface FooterButtonConfig {
+    title: string;
+    onPress: (event: GestureResponderEvent) => void;
+    variant?: 'primary' | 'secondary' | 'outline' | 'destructive';
+    style?: StyleProp<ViewStyle>;
+    textStyle?: StyleProp<TextStyle>;
+    disabled?: boolean;
+}
+
+/**
+ * A sticky footer container usually placed at the bottom of forms or screens.
+ */
+interface CustomStickyFooterProps {
+    primaryButton?: FooterButtonConfig;
+    secondaryButton?: FooterButtonConfig;
+}
+
+const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ primaryButton, secondaryButton }) => {
     const insets = useSafeAreaInsets();
     const safeBottomPadding = Math.max(insets.bottom, 16);
 
@@ -55,26 +80,24 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute',
         bottom: 0,
-        
         alignSelf: 'center', 
         width: '100%',
         maxWidth: Layout.MAX_WIDTH,
-        
         backgroundColor: Colors.WHITE,
         paddingHorizontal: 16,
         paddingTop: 16,
-        
         shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: -4 },
+        shadowOffset: { 
+            width: 0, 
+            height: -4 
+        },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
-        
-        elevation: 10, 
+...GlobalStyles.dropShadow(10), 
     },
     buttonRow: { 
         flexDirection: 'row', 

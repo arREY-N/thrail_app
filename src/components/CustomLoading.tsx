@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -8,8 +8,18 @@ import {
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const CustomLoading = ({ 
+/**
+ * A full-screen loading overlay to block interaction while tasks process.
+ */
+interface CustomLoadingProps {
+    visible?: boolean;
+    message?: string;
+    children?: ReactNode;
+}
+
+const CustomLoading: React.FC<CustomLoadingProps> = ({ 
     visible = true, 
     message = "Loading...", 
     children
@@ -36,11 +46,11 @@ const CustomLoading = ({
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 9999,
-        elevation: 10,
+...GlobalStyles.dropShadow(10),
     },
     container: {
         backgroundColor: Colors.WHITE,
@@ -49,17 +59,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 16,
-        
-        shadowColor: Colors.SHADOW || '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.1,
         shadowRadius: 12,
-        elevation: 5,
+...GlobalStyles.dropShadow(5),
         minWidth: 150,
     },
     text: {
         fontWeight: '600',
-        color: Colors.TEXT_PRIMARY || '#000',
+        color: Colors.TEXT_PRIMARY,
     }
 });
 

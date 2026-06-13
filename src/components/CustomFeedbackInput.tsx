@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import {
+    LayoutChangeEvent,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     ScrollView,
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -11,7 +16,20 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
-const CustomFeedbackInput = ({ 
+/**
+ * A component tailored for receiving user feedback, usually a multiline text area.
+ */
+interface CustomFeedbackInputProps {
+    label?: string;
+    helperText?: string;
+    placeholder?: string;
+    value?: string;
+    onChangeText: (text: string) => void;
+    suggestions?: string[];
+    style?: StyleProp<ViewStyle>;
+}
+
+const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({ 
     label, 
     helperText, 
     placeholder, 
@@ -21,20 +39,20 @@ const CustomFeedbackInput = ({
     style 
 }) => {
 
-    const [contentWidth, setContentWidth] = useState(0);
-    const [layoutWidth, setLayoutWidth] = useState(0);
-    const [scrollX, setScrollX] = useState(0);
+    const [contentWidth, setContentWidth] = useState<number>(0);
+    const [layoutWidth, setLayoutWidth] = useState<number>(0);
+    const [scrollX, setScrollX] = useState<number>(0);
 
-    const showRightArrow = contentWidth > layoutWidth && scrollX < (contentWidth - layoutWidth - 10);
+    const showRightArrow: boolean = contentWidth > layoutWidth && scrollX < (contentWidth - layoutWidth - 10);
 
-    const handleSuggestionPress = (suggestion) => {
+    const handleSuggestionPress = (suggestion: string): void => {
         const currentText = value || '';
         const lines = currentText.split('\n');
 
-        const isCurrentlyActive = lines.some(line => line.trim() === suggestion);
+        const isCurrentlyActive = lines.some((line: string) => line.trim() === suggestion);
 
         if (isCurrentlyActive) {
-            const newLines = lines.filter(line => line.trim() !== suggestion);
+            const newLines = lines.filter((line: string) => line.trim() !== suggestion);
             onChangeText(newLines.join('\n'));
         } else {
             let newLines = [...lines];
@@ -64,11 +82,11 @@ const CustomFeedbackInput = ({
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipScrollContent}
                         scrollEventThrottle={16}
-                        onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
-                        onContentSizeChange={(width) => setContentWidth(width)}
-                        onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
+                        onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => setScrollX(e.nativeEvent.contentOffset.x)}
+                        onContentSizeChange={(width: number) => setContentWidth(width)}
+                        onLayout={(e: LayoutChangeEvent) => setLayoutWidth(e.nativeEvent.layout.width)}
                     >
-                        {suggestions.map((item, index) => {
+                        {suggestions.map((item: string, index: number) => {
                             const isActive = (value || '').includes(item);
 
                             return (
@@ -110,7 +128,7 @@ const CustomFeedbackInput = ({
             <CustomTextInput 
                 placeholder={placeholder}
                 value={value}
-                onChangeText={onChangeText} 
+                onChangeText={onChangeText}
                 multiline={true}
                 numberOfLines={4}
                 inputStyle={styles.textArea}
@@ -119,7 +137,12 @@ const CustomFeedbackInput = ({
 
             {helperText && (
                 <View style={styles.helperRow}>
-                    <CustomIcon library="Feather" name="info" size={12} color={Colors.TEXT_SECONDARY} />
+                    <CustomIcon 
+                        library="Feather" 
+                        name="info" 
+                        size={12} 
+                        color={Colors.TEXT_SECONDARY} 
+                    />
                     <CustomText style={styles.helperText}>
                         {helperText}
                     </CustomText>
@@ -158,7 +181,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'flex-end', 
         paddingRight: 4, 
-        backgroundColor: 'rgba(255, 255, 255, 0.8)' 
+        backgroundColor: Colors.BACKGROUND, 
     },
     chip: { 
         backgroundColor: Colors.WHITE, 

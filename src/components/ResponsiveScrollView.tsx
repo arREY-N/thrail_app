@@ -1,15 +1,32 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
     ScrollView,
+    ScrollViewProps,
+    StyleProp,
     StyleSheet,
+    ViewStyle,
     useWindowDimensions
 } from 'react-native';
 
-const ResponsiveScrollView = ({ children, minHeight = 600, contentContainerStyle, ...props }) => {
+/**
+ * A responsive scroll view wrapper that adjusts padding for desktop/mobile views.
+ */
+interface ResponsiveScrollViewProps extends ScrollViewProps {
+    children?: ReactNode;
+    minHeight?: number;
+    contentContainerStyle?: StyleProp<ViewStyle>;
+}
+
+const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({ 
+    children, 
+    minHeight = 600, 
+    contentContainerStyle, 
+    ...props 
+}) => {
     
     const { height } = useWindowDimensions();
     
-    const isShortScreen = height < minHeight;
+    const isShortScreen: boolean = height < minHeight;
 
     return (
         <ScrollView

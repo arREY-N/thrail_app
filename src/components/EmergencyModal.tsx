@@ -17,27 +17,48 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const dropShadow = Platform.select({ 
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: -4 
-        }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 12 
-    }, 
-    android: { 
-        elevation: 8 
-    } 
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
-const EmergencyModal = ({ 
+/**
+ * Props for the EmergencyModal component.
+ */
+interface EmergencyModalProps {
+    /** Whether the modal is visible */
+    visible: boolean;
+    /** Callback fired when the modal is requested to close */
+    onClose?: () => void;
+    /** Operating mode for the modal. Unified allows editing own phone number too. */
+    mode?: 'emergency_only' | 'unified';
+    /** The initial phone number of the current user (if in unified mode) */
+    initialUserPhone?: string;
+    /** Callback fired to save the user's local phone number */
+    onSaveLocalPhone?: (phone: string) => void;
+    /** Callback fired when the user chooses to skip setup */
+    onSkip?: () => void;
+}
+
+/**
+ * Interface representing a user search result for emergency contact.
+ */
+interface UserSearchResult {
+    id: string;
+    email: string;
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+}
+
+/**
+ * EmergencyModal — A bottom sheet modal for users to set up or edit their
+ * emergency contact information. Optionally allows editing their own phone number.
+ */
+const EmergencyModal: React.FC<EmergencyModalProps> = ({ 
     visible, 
     onClose, 
     mode = 'emergency_only', 
@@ -51,16 +72,16 @@ const EmergencyModal = ({
     const [myPhone, setMyPhone] = useState(initialUserPhone);
     const [searchEmail, setSearchEmail] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [searchResults, setSearchResults] = useState([]);
+    const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
 
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
     const [contactName, setContactName] = useState('');
     const [contactPhone, setContactPhone] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    const [errorMsg, setErrorMsg] = useState(null);
-    const [infoMsg, setInfoMsg] = useState(null);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
     const [renderModal, setRenderModal] = useState(visible);
     const animValue = useRef(new Animated.Value(0)).current;
@@ -80,7 +101,7 @@ const EmergencyModal = ({
                 profile?.emergencyContact?.userId 
                     ? { 
                         id: profile.emergencyContact.userId, 
-                        email: profile.emergencyContact.email 
+                        email: profile.emergencyContact.email || ''
                     } 
                     : null
             );
@@ -111,7 +132,7 @@ const EmergencyModal = ({
         }
     };
 
-    const handleEmailChange = (text) => {
+    const handleEmailChange = (text: string) => {
         setSearchEmail(text);
         setShowDropdown(false);
         setErrorMsg(null);
@@ -156,7 +177,7 @@ const EmergencyModal = ({
         }
     };
 
-    const handleSelectUser = (user) => {
+    const handleSelectUser = (user: UserSearchResult) => {
         setSelectedUser(user);
         setSearchEmail(user.email);
         setContactName(`${user.firstname} ${user.lastname}`.trim());
@@ -207,7 +228,7 @@ const EmergencyModal = ({
             email: selectedUser ? selectedUser.email : ''
         };
 
-        const success = await setEmergencyContact(contactPayload, selectedUser);
+        const success = await setEmergencyContact(contactPayload, selectedUser as any);
         setIsSaving(false);
 
         if (success) {
@@ -457,7 +478,7 @@ const styles = StyleSheet.create({
     },
     backdrop: { 
         ...StyleSheet.absoluteFillObject, 
-        backgroundColor: 'rgba(0,0,0,0.4)' 
+        backgroundColor: Colors.MODAL_OVERLAY 
     },
     backdropTouch: { 
         flex: 1, 
@@ -550,7 +571,7 @@ const styles = StyleSheet.create({
         width: 36, 
         height: 36, 
         borderRadius: 18, 
-        backgroundColor: '#E8F5E9', 
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
         justifyContent: 'center', 
         alignItems: 'center' 
     },
@@ -583,12 +604,12 @@ const styles = StyleSheet.create({
     infoBox: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        backgroundColor: '#E8F5E9', 
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
         padding: 12, 
         borderRadius: 12, 
         marginBottom: 16, 
         borderWidth: 1, 
-        borderColor: '#C8E6C9', 
+        borderColor: Colors.STATUS_APPROVED_BORDER, 
         gap: 8, 
         width: '100%' 
     },

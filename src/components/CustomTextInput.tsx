@@ -1,20 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
     Platform,
+    StyleProp,
     StyleSheet,
     TextInput,
+    TextInputProps,
+    TextStyle,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle,
 } from 'react-native';
 
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
 import CustomCalendarInput from '@/src/components/CustomCalendarInput';
 import CustomDateInput from '@/src/components/CustomDateInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
-export const formatLocalPhoneNumber = (text) => {
+export const formatLocalPhoneNumber = (text?: string): string => {
     if (!text) return '';
     let cleaned = text.replace(/\D/g, '');
 
@@ -43,7 +48,7 @@ export const formatLocalPhoneNumber = (text) => {
     return formatted;
 };
 
-export const cleanPhoneNumber = (formattedText) => {
+export const cleanPhoneNumber = (formattedText?: string): string => {
     if (!formattedText) return '';
     let cleanNumber = formattedText.replace(/\s+/g, '');
     
@@ -54,13 +59,41 @@ export const cleanPhoneNumber = (formattedText) => {
     return cleanNumber;
 };
 
-export const formatCoordinate = (text) => {
+export const formatCoordinate = (text?: string): string => {
     if (!text) return '';
     let cleaned = text.replace(/[^0-9.,-]/g, ''); 
     return cleaned;
 };
 
-const CustomTextInput = ({ 
+/**
+ * A highly customizable text input component that supports passwords, numbers, coordinates, dates, and calendars.
+ */
+interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeText' | 'style'> {
+    label?: string;
+    placeholder?: string;
+    value?: string | Date | null | number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onChangeText?: (text: any) => void;
+    secureTextEntry?: boolean;
+    keyboardType?: TextInputProps['keyboardType'];
+    isPasswordVisible?: boolean;
+    onTogglePassword?: () => void;
+    type?: 'text' | 'phone' | 'coordinate' | 'numerical' | 'date' | 'calendar';
+    style?: StyleProp<ViewStyle>;
+    inputStyle?: StyleProp<TextStyle>;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    prefix?: string;
+    children?: ReactNode;
+    showTodayButton?: boolean;
+    allowFutureDates?: boolean;
+    defaultMode?: 'date' | 'month' | 'year';
+    multiline?: boolean;
+    maximumDate?: Date | null;
+    dateFormat?: string;
+}
+
+const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
     label, 
     placeholder, 
     value, 
@@ -92,7 +125,7 @@ const CustomTextInput = ({
 
     useEffect(() => {
         if (type === 'coordinate' || type === 'numerical') {
-            const parsedParent = parseFloat(value);
+            const parsedParent = parseFloat(value as string);
             const parsedLocal = parseFloat(localValue);
             if (parsedParent !== parsedLocal && !(isNaN(parsedParent) && isNaN(parsedLocal))) {
                 setLocalValue(value !== null && value !== undefined ? String(value) : '');
@@ -105,22 +138,22 @@ const CustomTextInput = ({
     const showPassword = onTogglePassword ? isPasswordVisible : internalShowPassword;
     const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
 
-    const handleTextChange = (text) => {
+    const handleTextChange = (text: string) => {
         if (type === 'phone') {
             const formatted = formatLocalPhoneNumber(text);
             setLocalValue(formatted);
-            onChangeText(formatted);
+            onChangeText?.(formatted);
         } else if (type === 'coordinate') {
             const formatted = formatCoordinate(text);
             setLocalValue(formatted);
-            onChangeText(formatted);
+            onChangeText?.(formatted);
         } else if (type === 'numerical') {
             let cleaned = text.replace(/[^0-9.]/g, '');
             setLocalValue(cleaned);
-            onChangeText(cleaned);
+            onChangeText?.(cleaned);
         } else {
             setLocalValue(text);
-            onChangeText(text);
+            onChangeText?.(text);
         }
     };
 
@@ -137,10 +170,10 @@ const CustomTextInput = ({
     if (type === 'date') {
         return (
             <CustomDateInput 
-                value={value} 
-                onChangeText={onChangeText}
+                value={value as Date | null | undefined} 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChangeText={onChangeText as any}
                 label={label}
-                style={style}
             > 
                 {children}
             </CustomDateInput>
@@ -150,8 +183,10 @@ const CustomTextInput = ({
     if (type === 'calendar') {
         return (
             <CustomCalendarInput 
-                value={value} 
-                onChangeText={onChangeText}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                value={value as any} 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChangeText={onChangeText as any}
                 label={label}
                 placeholder={placeholder}
                 showTodayButton={showTodayButton}
@@ -178,8 +213,7 @@ const CustomTextInput = ({
                     borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
                     backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
                 },
-                multiline && { height: 'auto', alignItems: 'flex-start' },
-                inputStyle 
+                multiline && { height: 'auto', alignItems: 'flex-start' }
             ]}>
                 
                 {icon && (
@@ -205,7 +239,8 @@ const CustomTextInput = ({
                 <TextInput 
                     style={[
                         styles.input,
-                        multiline && { height: 'auto', textAlignVertical: 'top' } 
+                        multiline && { height: 'auto', textAlignVertical: 'top' },
+                        inputStyle
                     ]}
                     placeholder={placeholder}
                     placeholderTextColor={Colors.TEXT_PLACEHOLDER}
@@ -287,7 +322,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         height: '100%',
         ...Platform.select({
-            web: { outlineStyle: 'none' }
+            web: { outlineStyle: 'none' } as any
         })
     },
     eyeIcon: {

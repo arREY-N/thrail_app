@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleProp, TextStyle } from 'react-native';
 
 import {
     AntDesign,
@@ -10,8 +11,21 @@ import {
 } from '@expo/vector-icons';
 
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const CustomIcon = ({ 
+/**
+ * Custom icon wrapper supporting multiple vector icon libraries.
+ * Defaults to 'Feather' if no library is specified.
+ */
+interface CustomIconProps {
+    library?: IconLibrary;
+    name: string;
+    size?: number;
+    color?: string;
+    style?: StyleProp<TextStyle>;
+}
+
+const CustomIcon: React.FC<CustomIconProps> = ({ 
     library = 'Feather',
     name, 
     size = 24, 
@@ -20,7 +34,7 @@ const CustomIcon = ({
 }) => {
 
     const commonProps = {
-        name,
+        name: name as any,
         size,
         color,
         style,

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -10,9 +12,25 @@ import CustomSearchBar from '@/src/components/CustomSearchBar';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
-const CustomHeader = ({ 
+/**
+ * A custom header component that can display a title, back button, and actions.
+ */
+interface CustomHeaderProps {
+    title?: string;
+    onBackPress?: () => void;
+    rightActions?: ReactNode;
+    showDefaultIcons?: boolean;
+    centerTitle?: boolean;
+    hasSearch?: boolean;
+    searchProps?: Record<string, any>;
+    style?: StyleProp<ViewStyle>;
+    children?: ReactNode;
+}
+
+const CustomHeader: React.FC<CustomHeaderProps> = ({ 
     title, 
     onBackPress, 
     rightActions, 
@@ -31,7 +49,7 @@ const CustomHeader = ({
 
     const enhancedSearchProps = {
         ...searchProps,
-        onChangeText: searchProps.onChangeText || searchProps.onSearchChange,
+        onSearchChange: searchProps.onChangeText || searchProps.onSearchChange,
     };
 
     return (
@@ -40,7 +58,6 @@ const CustomHeader = ({
                 styles.masterContainer, 
                 hasSearch ? styles.withSearchShadowAndRadius : styles.flatHeader, 
                 hasSearch && { marginTop: -10, paddingTop: 10 },
-                
                 style
             ]}>
                 <View style={styles.titleRow}>
@@ -58,7 +75,7 @@ const CustomHeader = ({
                                     name="chevron-left"
                                     size={24}
                                     color={Colors.PRIMARY} 
-                                    style={{scale: 1.2}}
+                                    style={styles.backButtonIcon}
                                 />
                             </TouchableOpacity>
                         ) : (
@@ -135,16 +152,19 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     flatHeader: {
-        elevation: 0,
+...GlobalStyles.dropShadow(0),
         shadowOpacity: 0,
         borderBottomWidth: 0,
     },
     withSearchShadowAndRadius: {
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        elevation: 4,
+...GlobalStyles.dropShadow(4),
         shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         borderBottomWidth: 1,
@@ -191,6 +211,9 @@ const styles = StyleSheet.create({
     backButton: {
         padding: 8,
         marginLeft: -8, 
+    },
+    backButtonIcon: {
+        transform: [{ scale: 1.2 }],
     },
     headline: {
         textAlign: 'left',

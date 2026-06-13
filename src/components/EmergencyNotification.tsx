@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -11,24 +12,16 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import EmergencyModal from '@/src/components/EmergencyModal';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 
-const dropShadow = Platform.select({ 
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        }, 
-        shadowOpacity: 0.15, 
-        shadowRadius: 12 
-    }, 
-    android: { 
-        elevation: 8 
-    } 
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
-const EmergencyNotification = () => {
+/**
+ * EmergencyNotification — A component that displays a notification banner if the user
+ * has not yet set up an emergency contact, prompting them to open the EmergencyModal.
+ */
+const EmergencyNotification: React.FC = () => {
     const profile = useAuthStore(s => s.profile);
     
     const [showNotifBanner, setShowNotifBanner] = useState(false);
@@ -141,7 +134,7 @@ const EmergencyNotification = () => {
             />
         </>
     );
-}
+};
 
 const styles = StyleSheet.create({
     notifBanner: { 

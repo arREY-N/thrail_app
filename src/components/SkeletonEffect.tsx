@@ -3,12 +3,26 @@ import {
     Animated,
     Easing,
     Platform,
-    StyleSheet
+    StyleProp,
+    StyleSheet,
+    ViewStyle
 } from 'react-native';
 
 import { Colors } from '@/src/constants/colors';
 
-const SkeletonEffect = ({ style }) => {
+/**
+ * Props for the SkeletonEffect component.
+ */
+interface SkeletonEffectProps {
+    /** Additional styles to apply to the skeleton container */
+    style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * SkeletonEffect — A generic pulsing skeleton loader component used
+ * as a placeholder while data is being fetched.
+ */
+const SkeletonEffect: React.FC<SkeletonEffectProps> = ({ style }) => {
     const opacity = useRef(new Animated.Value(0.3)).current;
 
     useEffect(() => {

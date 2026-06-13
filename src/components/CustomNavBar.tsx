@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
     Platform,
+    Pressable,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const getTabConfig = (routeName, isFocused) => {
+interface TabConfig {
+    icon: ReactNode;
+    label: string;
+}
+
+const getTabConfig = (routeName: string, isFocused: boolean): TabConfig => {
     const iconColor = isFocused ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY;
     const iconSize = 24;
 
@@ -86,7 +94,9 @@ const getTabConfig = (routeName, isFocused) => {
     }
 };
 
-const CustomNavBar = ({ 
+interface CustomNavBarProps extends BottomTabBarProps {}
+
+const CustomNavBar: React.FC<CustomNavBarProps> = ({ 
     state, 
     descriptors, 
     navigation
@@ -106,7 +116,7 @@ const CustomNavBar = ({
                 } 
             ]}
         >
-            {state.routes.map((route, index) => {
+            {state.routes.map((route: any, index: number) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
                 
@@ -130,7 +140,7 @@ const CustomNavBar = ({
                         accessibilityRole='button'
                         accessibilityState={isFocused ? { selected: true } : {}}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
-                        testID={options.tabBarTestID}
+                        testID={options.tabBarButtonTestID}
                         onPress={onPress}
                         style={styles.tabItem}
                         activeOpacity={0.7}
@@ -172,23 +182,24 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
-
         ...Platform.select({
             ios: {
                 shadowColor: Colors.SHADOW, 
-                shadowOffset: { width: 0, height: -4 },
+                shadowOffset: { 
+                    width: 0, 
+                    height: -4 
+                },
                 shadowOpacity: 0.1,
                 shadowRadius: 6,
             },
             android: {
-                elevation: 12,
+...GlobalStyles.dropShadow(12),
             },
             web: {
-                boxShadow: "0px -4px 10px rgba(0, 0, 0, 0.05)",
+                boxShadow: `0px -4px 10px ${Colors.SHADOW}0D`,
             },
         }),
-    },
-
+    } as any,
     tabItem: {
         flex: 1,
         alignItems: 'center',
@@ -196,7 +207,6 @@ const styles = StyleSheet.create({
         height: '100%',
         gap: 4,
     },
-
     iconPill: {
         width: 64,               
         height: 40,              
@@ -205,13 +215,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         overflow: 'hidden',
     },
-
     label: {
         fontSize: 11,            
         lineHeight: 14,
         textAlign: 'center',
         includeFontPadding: false, 
-        // marginBottom: 4,
     },
 });
 

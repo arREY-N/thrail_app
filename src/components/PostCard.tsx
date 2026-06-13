@@ -1,11 +1,16 @@
+/* eslint-disable i18next/no-literal-string */
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
     Image,
+    ImageSourcePropType,
+    Platform,
     Pressable,
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -13,9 +18,31 @@ import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatDate } from '@/src/core/utility/date';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const PostCard = ({ 
+/**
+ * Props for the PostCard component.
+ */
+interface PostCardProps {
+    /** The review or post object containing data */
+    review: any;
+    /** Callback fired when the like button is pressed */
+    onLike?: () => void;
+    /** Indicates if the current user has liked the post */
+    isLiked?: boolean;
+    /** Callback fired when the edit button is pressed (only visible in 'profile' variant) */
+    onEdit?: () => void;
+    /** The visual variant of the post card */
+    variant?: 'community' | 'profile';
+}
+
+/**
+ * PostCard — A comprehensive card component used to display user reviews,
+ * photos, stats, and tags within the community feed or user profile.
+ */
+const PostCard: React.FC<PostCardProps> = ({ 
     review, 
     onLike, 
     isLiked, 
@@ -31,11 +58,11 @@ const PostCard = ({
     const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
     const displayImage = imagesList[0];
 
-    const getImgSource = (img) => {
+    const getImgSource = (img: string | ImageSourcePropType): ImageSourcePropType => {
         return typeof img === 'string' ? { uri: img } : img;
     };
 
-    const getInitials = (name) => {
+    const getInitials = (name: string): string => {
         if (!name) return '?';
         const parts = name.trim().split(' ');
         if (parts.length > 1) {
@@ -44,8 +71,8 @@ const PostCard = ({
         return name.substring(0, 2).toUpperCase();
     };
 
-    const formatStat = (val, type) => {
-        if (val === undefined || val === null || val === '--' || isNaN(val)) return '--';
+    const formatStat = (val: unknown, type: string): string => {
+        if (val === undefined || val === null || val === '--' || isNaN(val as any)) return '--';
         
         const numVal = Number(val);
 
@@ -69,22 +96,22 @@ const PostCard = ({
         return String(val);
     };
 
-    const getDifficultyStyle = (diff) => {
+    const getDifficultyStyle = (diff: string) => {
         switch(diff) {
             case 'Easy': 
             case 'Just Right': 
-                return { bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'emoticon-happy-outline' };
+                return { bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'emoticon-happy-outline' as const };
             case 'Moderate': 
-                return { bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'emoticon-neutral-outline' };
+                return { bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'emoticon-neutral-outline' as const };
             case 'Hard': 
             case 'Extreme': 
-                return { bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'emoticon-sad-outline' };
+                return { bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'emoticon-sad-outline' as const };
             default: 
-                return { bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'image-filter-hdr' };
+                return { bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'image-filter-hdr' as const };
         }
     };
 
-    const getMaintenanceStyle = (maint) => {
+    const getMaintenanceStyle = (maint: string) => {
         switch(maint) {
             case 'Easy': 
                 return { label: 'Well-maintained', bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'check-circle' };
@@ -97,15 +124,15 @@ const PostCard = ({
         }
     };
 
-    const allTags = [];
+    const allTags: any[] = [];
     if (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
         allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
     }
     if (review.trailMaintenance && review.trailMaintenance !== 'undefined') {
         allTags.push({ id: `maint-main`, type: 'maintenance', label: getMaintenanceStyle(review.trailMaintenance).label, style: getMaintenanceStyle(review.trailMaintenance) });
     }
-    review.difficultyFactors?.forEach(f => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
-    review.favoredFactors?.forEach(f => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
+    review.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
+    review.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
 
     const visibleTags = isExpanded ? allTags : allTags.slice(0, 2);
     const hiddenTagsCount = allTags.length - visibleTags.length;
@@ -178,7 +205,7 @@ const PostCard = ({
             >
                 <Image source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
                 
-                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)']} style={styles.gradientOverlay}>
+                <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
                             {review.trail?.name || review.trailName || "Mountain Name"}
@@ -296,7 +323,21 @@ const PostCard = ({
     );
 };
 
-const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }) => (
+const StatItem = ({ 
+    label, 
+    value, 
+    icon, 
+    lib, 
+    iconColor = Colors.PRIMARY, 
+    style 
+}: { 
+    label: string, 
+    value: string, 
+    icon: string, 
+    lib: IconLibrary, 
+    iconColor?: string, 
+    style?: StyleProp<ViewStyle> 
+}) => (
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
@@ -311,7 +352,22 @@ const StatItem = ({ label, value, icon, lib, iconColor = Colors.PRIMARY, style }
 );
 
 const styles = StyleSheet.create({
-    card: { backgroundColor: Colors.WHITE, marginBottom: 0, borderRadius: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3, overflow: 'hidden' },
+    card: { 
+        backgroundColor: Colors.WHITE, 
+        marginBottom: 0, 
+        borderRadius: 24, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        shadowColor: Colors.SHADOW, 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.05, 
+        shadowRadius: 8, 
+...GlobalStyles.dropShadow(3), 
+        overflow: 'hidden',
+        ...Platform.select({
+            web: { boxShadow: `0px 4px 8px ${Colors.SHADOW}0D` }
+        })
+    },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 12 },
     headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 12 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -336,10 +392,10 @@ const styles = StyleSheet.create({
     postImage: { width: '100%', height: '100%' },
     gradientOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
     headerTextColumn: { flex: 1, paddingRight: 16 },
-    mountainTitleOverlay: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', marginBottom: 2, textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    mountainTitleOverlay: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', marginBottom: 2, textShadowColor: `${Colors.BLACK}BF`, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
     locationRow: { flexDirection: "row", alignItems: "center", paddingVertical: 2, gap: 6 },
-    locationTextOverlay: { color: Colors.TEXT_INVERSE, fontWeight: "500", textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    imageCountBadge: { backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    locationTextOverlay: { color: Colors.TEXT_INVERSE, fontWeight: "500", textShadowColor: `${Colors.BLACK}BF`, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    imageCountBadge: { backgroundColor: `${Colors.BLACK}A6`, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
     imageCountText: { color: Colors.TEXT_INVERSE, marginTop: -2 },
     
     statsContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 },

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { ReactNode, useRef, useState } from 'react';
 import {
     Modal,
     ScrollView,
@@ -7,11 +7,31 @@ import {
     View
 } from 'react-native';
 
-import { Colors } from '../constants/colors';
-import CustomIcon from './CustomIcon';
-import CustomText from './CustomText';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const CustomDropdown = ({ 
+/**
+ * A dropdown selector component allowing single or multiple selections.
+ */
+interface CustomDropdownProps {
+    options?: string[];
+    value?: string;
+    onSelect: (item: string) => void;
+    placeholder?: string;
+    label?: string;
+    children?: ReactNode;
+}
+
+interface DropdownLayout {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+const CustomDropdown: React.FC<CustomDropdownProps> = ({ 
     options = [], 
     value, 
     onSelect, 
@@ -19,22 +39,23 @@ const CustomDropdown = ({
     label,
     children
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
-    const buttonRef = useRef(null);
+    
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [dropdownLayout, setDropdownLayout] = useState<DropdownLayout>({ x: 0, y: 0, width: 0, height: 0 });
+    const buttonRef = useRef<View>(null);
 
-    const toggleDropdown = () => {
+    const toggleDropdown = (): void => {
         if (isOpen) {
             setIsOpen(false);
         } else {
-            buttonRef.current.measure((fx, fy, width, height, px, py) => {
+            buttonRef.current!.measure((fx: number, fy: number, width: number, height: number, px: number, py: number) => {
                 setDropdownLayout({ x: px, y: py + height + 8, width, height });
                 setIsOpen(true);
             });
         }
     };
 
-    const handleSelect = (item) => {
+    const handleSelect = (item: string): void => {
         onSelect(item);
         setIsOpen(false);
     };
@@ -49,12 +70,20 @@ const CustomDropdown = ({
             
             <TouchableOpacity 
                 ref={buttonRef}
-                style={[styles.dropdownButton, isOpen && styles.activeBorder]} 
+                style={[
+                    styles.dropdownButton, 
+                    isOpen && styles.activeBorder
+                ]} 
                 onPress={toggleDropdown}
                 activeOpacity={0.8}
             >
                 {children ? children : (
-                    <CustomText style={[styles.text, !value && styles.placeholder]}>
+                    <CustomText 
+                        style={[
+                            styles.text, 
+                            !value && styles.placeholder
+                        ]}
+                    >
                         {value || placeholder}
                     </CustomText>
                 )}
@@ -78,14 +107,16 @@ const CustomDropdown = ({
                     activeOpacity={1} 
                     onPress={() => setIsOpen(false)}
                 >
-                    <View style={[
-                        styles.dropdownList, 
-                        { 
-                            top: dropdownLayout.y, 
-                            left: dropdownLayout.x, 
-                            width: dropdownLayout.width 
-                        }
-                    ]}>
+                    <View 
+                        style={[
+                            styles.dropdownList, 
+                            { 
+                                top: dropdownLayout.y, 
+                                left: dropdownLayout.x, 
+                                width: dropdownLayout.width 
+                            }
+                        ]}
+                    >
                         <ScrollView 
                             nestedScrollEnabled 
                             style={styles.scrollList}
@@ -102,10 +133,12 @@ const CustomDropdown = ({
                                         ]}
                                         onPress={() => handleSelect(option)}
                                     >
-                                        <CustomText style={[
-                                            styles.optionText, 
-                                            isSelected && styles.selectedOptionText
-                                        ]}>
+                                        <CustomText 
+                                            style={[
+                                                styles.optionText, 
+                                                isSelected && styles.selectedOptionText
+                                            ]}
+                                        >
                                             {option}
                                         </CustomText>
                                         
@@ -155,7 +188,8 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     placeholder: {
-        color: "#9ca3af",
+        color: Colors.TEXT_PLACEHOLDER,
+        fontSize: 16,
     },
     
     modalOverlay: {
@@ -169,11 +203,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden', 
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
+        shadowColor: Colors.SHADOW,
+        shadowOffset: { 
+            width: 0, 
+            height: 4 
+        },
         shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 5,
+...GlobalStyles.dropShadow(5),
         maxHeight: 200,
     },
     scrollList: {
@@ -187,7 +224,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     selectedOption: {
-        backgroundColor: '#F3F4F6',
+        backgroundColor: Colors.GRAY_LIGHT,
     },
     optionText: {
         fontSize: 14,

@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
+    StyleProp,
     StyleSheet,
-    Text
+    Text,
+    TextProps,
+    TextStyle
 } from 'react-native';
 
 import { Colors } from '@/src/constants/colors';
 
-const CustomText = ({ 
+/**
+ * A customizable text component that standardizes typography.
+ */
+interface CustomTextProps extends TextProps {
+    children?: ReactNode;
+    variant?: 'title' | 'h1' | 'h2' | 'subtitle' | 'h3' | 'body' | 'label' | 'caption';
+    color?: string;
+    style?: StyleProp<TextStyle>;
+}
+
+const CustomText: React.FC<CustomTextProps> = ({ 
     children, 
     variant = 'body', 
     color = undefined, 
@@ -14,7 +27,7 @@ const CustomText = ({
     ...props 
 }) => {
     
-    let variantStyle;
+    let variantStyle: StyleProp<TextStyle>;
 
     switch (variant) {
         case 'title':

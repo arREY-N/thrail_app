@@ -11,8 +11,25 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const CustomSearchBar = ({ 
+/**
+ * A highly customizable search bar component with optional trailing icon and selection tabs.
+ */
+
+interface CustomSearchBarProps {
+    searchPlaceholder?: string;
+    searchValue?: string;
+    onSearchChange?: (text: string) => void;
+    rightIconLibrary?: IconLibrary;
+    rightIconName?: string;
+    onRightButtonPress?: () => void;
+    tabs?: string[];
+    activeTab?: string;
+    onTabSelect?: (tab: string) => void;
+}
+
+const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ 
     searchPlaceholder = "Search...",
     searchValue,
     onSearchChange,
@@ -30,25 +47,24 @@ const CustomSearchBar = ({
                     <CustomTextInput
                         placeholder={searchPlaceholder}
                         value={searchValue}
-                        onChangeText={onSearchChange}
+                        onChangeText={onSearchChange as any}
                         icon="search"
                         iconLibrary="Feather"
                         style={styles.searchInputContainer}
                         inputStyle={styles.searchInput}
                     />
                     
-                    {searchValue?.length > 0 && (
+                    {(searchValue?.length ?? 0) > 0 && (
                         <TouchableOpacity 
                             style={styles.clearButton} 
-                            onPress={() => onSearchChange('')}
+                            onPress={() => onSearchChange?.('')}
                             activeOpacity={0.7}
                         >
                             <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.GRAY_MEDIUM} />
                         </TouchableOpacity>
                     )}
                 </View>
-                
-                {rightIconName && (
+                {rightIconName ? (
                     <TouchableOpacity 
                         style={styles.iconButton} 
                         onPress={onRightButtonPress}
@@ -61,22 +77,22 @@ const CustomSearchBar = ({
                             color={Colors.PRIMARY} 
                         />
                     </TouchableOpacity>
-                )}
+                ) : null}
             </View>
 
-            {tabs.length > 0 && (
+            {tabs && tabs.length > 0 && (
                 <View style={styles.chipContainer}>
                     <ScrollView 
                         horizontal 
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipScroll}
                     >
-                        {tabs.map((tab) => {
+                        {tabs.map((tab: string) => {
                             const isActive = activeTab === tab;
                             return (
                                 <TouchableOpacity 
                                     key={tab} 
-                                    onPress={() => onTabSelect(tab)}
+                                    onPress={() => onTabSelect?.(tab)}
                                     style={[
                                         styles.chip,
                                         isActive && styles.activeChip
@@ -120,11 +136,7 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     searchInput: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        paddingRight: 40,
+        paddingRight: 16,
     },
 
     clearButton: {

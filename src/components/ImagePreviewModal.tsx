@@ -1,14 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, ImageSourcePropType, Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import ImageZoom from 'react-native-image-pan-zoom';
+
+const TypedImageZoom = ImageZoom as unknown as React.FC<any>;
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+/**
+ * Props for the ImagePreviewModal component.
+ */
+interface ImagePreviewModalProps {
+    /** Whether the modal is visible */
+    visible: boolean;
+    /** Single image URL to preview */
+    imageUrl?: string;
+    /** Array of image URLs to preview (supports carousel navigation) */
+    images?: (string | { uri: string })[];
+    /** Callback fired when the modal is closed */
+    onClose: () => void;
+    /** Callback fired when the delete button is pressed */
+    onDelete?: (index: number) => void;
+}
 
-const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => {
+/**
+ * ImagePreviewModal — A full-screen modal component that allows users to 
+ * view, pan, and zoom images. Supports single images or an array of images.
+ */
+const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ 
+    visible, 
+    imageUrl, 
+    images, 
+    onClose, 
+    onDelete 
+}) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const imageList = images && images.length > 0 ? images : (imageUrl ? [imageUrl] : []);
@@ -43,9 +69,13 @@ const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => 
         }
     };
 
-    const getSource = (img) => {
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const cropHeight = windowHeight * 0.8;
+
+    const getSource = (img: unknown): ImageSourcePropType | null => {
         if (!img) return null;
         if (typeof img === 'string') return { uri: img };
+        if (typeof img === 'number') return img;
         return img; 
     };
 
@@ -88,23 +118,20 @@ const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => 
                     </TouchableOpacity>
                 )}
                 
-                {/* THE MAGIC HAPPENS HERE
-                  We maintain your exact 80% height layout using Dimensions 
-                */}
                 {currentImage && (
                     <View style={styles.zoomWrapper}>
-                        <ImageZoom 
-                            cropWidth={SCREEN_WIDTH}
-                            cropHeight={SCREEN_HEIGHT * 0.8}
-                            imageWidth={SCREEN_WIDTH}
-                            imageHeight={SCREEN_HEIGHT * 0.8}
+                        <TypedImageZoom 
+                            cropWidth={windowWidth}
+                            cropHeight={cropHeight}
+                            imageWidth={windowWidth}
+                            imageHeight={cropHeight}
                         >
                             <Image 
-                                source={getSource(currentImage)} 
-                                style={styles.modalImage} 
+                                source={getSource(currentImage) as any} 
+                                style={{ width: windowWidth, height: cropHeight }} 
                                 resizeMode="contain" 
                             />
-                        </ImageZoom>
+                        </TypedImageZoom>
                     </View>
                 )}
 
@@ -133,7 +160,7 @@ const ImagePreviewModal = ({ visible, imageUrl, images, onClose, onDelete }) => 
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -149,7 +176,7 @@ const styles = StyleSheet.create({
         right: 20,
         zIndex: 10,
         padding: 10,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: `${Colors.BLACK}99`,
         borderRadius: 24,
     },
     modalDeleteButton: {
@@ -158,7 +185,7 @@ const styles = StyleSheet.create({
         left: 20,
         zIndex: 10,
         padding: 10,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: `${Colors.BLACK}99`,
         borderRadius: 24,
     },
     modalImage: {
@@ -174,7 +201,7 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+        backgroundColor: `${Colors.BLACK}99`, 
         zIndex: 10,
     },
     navLeft: {
@@ -186,7 +213,7 @@ const styles = StyleSheet.create({
     counterBadge: {
         position: 'absolute',
         bottom: 40,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: `${Colors.BLACK}99`,
         paddingVertical: 6,
         paddingHorizontal: 16,
         borderRadius: 16,
