@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
 
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
@@ -51,7 +52,15 @@ const DUMMY_FUTURE_OFFERS = [
 ];
 
 export default function listBook(){
-    const { onBackPress } = useAppNavigation();
+    const { 
+        onBackPress 
+    } = useAppNavigation();
+    
+    const { 
+        onTerms: onTermsPress, 
+        onPrivacy: onPrivacyPress 
+    } = useLandingNavigation();
+
     const { profile } = useAuthHook();
 
 	const { bookingId, view } = useLocalSearchParams();
@@ -87,19 +96,23 @@ export default function listBook(){
     const displayBookings = [...(bookings || [])];
     
     return(
-		<MyBookingsScreen 
-			userBookings={displayBookings}
-			isLoading={isLoading}
-			error={error}
-			onBackPress={onBackPress}
-			onCancelBookingPress={onCancelBookingPress}
-			onRefundBookingPress={onRefundBookingPress}
-            onRescheduleBooking={onRescheduleBooking}
-			onPayOffer={onPayOffer}
-			getBookOffer={getBookOffer}
-            availableFutureOffers={DUMMY_FUTURE_OFFERS}
-			initialBookingId={bookingId}
-            initialView={view}
-		/>
+        <>
+            <MyBookingsScreen 
+                userBookings={displayBookings as any}
+                isLoading={isLoading}
+                error={error as any}
+                onBackPress={onBackPress}
+                onCancelBookingPress={onCancelBookingPress as any}
+                onRefundBookingPress={onRefundBookingPress as any}
+                onRescheduleBooking={onRescheduleBooking as any}
+                onPayOffer={onPayOffer as any}
+                getBookOffer={getBookOffer as any}
+                availableFutureOffers={DUMMY_FUTURE_OFFERS as any}
+                initialBookingId={bookingId as any}
+                initialView={view as any}
+                onTermsPress={onTermsPress}
+                onPrivacyPress={onPrivacyPress}
+            />
+        </>
     );
 }
