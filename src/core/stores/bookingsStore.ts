@@ -14,9 +14,9 @@ interface BookState{
     loadById: (bookingId: string) => Promise<void>; 
     loadAll: (role: string) => Promise<void>;
     load: (userId: string) => Promise<void>;
-    subscribeToBusinessBookings: (offerId: string) => Promise<void>;
+    subscribeToBusinessBookings: (offerId: string) => void;
     unsubscribeFromBusinessBookings: (offerId: string) => void;
-    subscribeToUserBookings: () => Promise<Unsubscribe | null>;
+    subscribeToUserBookings: () => Unsubscribe | null;
 
 
     data: Booking[];
@@ -28,6 +28,7 @@ interface BookState{
 
     bookingByOffer: Record<string, Booking[]>;
     activeListeners: Record<string, Unsubscribe>;
+    unsubscribe: Unsubscribe | null;
 }
 
 const init = {
@@ -39,6 +40,7 @@ const init = {
     isLoading: false,
     bookingByOffer: {},
     activeListeners: {},
+    unsubscribe: null,
 }
 
 export const useBookingsStore = create<BookState>()(immer((set, get) => ({
@@ -46,11 +48,10 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
 
     reset: () => set(init),
 
-    subscribeToUserBookings: async () => {
+    subscribeToUserBookings: () => {
         try {
             const { profile } = useAuthStore.getState();
             
-
             if(!profile)
                 throw new Error('User not found');
 
@@ -60,11 +61,11 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
                     userBookings: bookings
                 })
             )
-
+            set({ unsubscribe });
             return unsubscribe;
         } catch (error) {
             console.error('Error subscribing to user bookings: ', error);
-            throw error;
+            return null;
         }
     },
 

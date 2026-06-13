@@ -138,8 +138,9 @@ export const useUsersStore = create<UserState>((set, get) => ({
         }
     },
 
-    create: async () => {
-        const current = get().current;
+    create: async (user?: User) => {
+
+        const current = user || get().current;
 
         if(!current){
             set({  error: 'No new data to save' });

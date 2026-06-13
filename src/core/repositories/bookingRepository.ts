@@ -1,5 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
-import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
 import { Booking, bookingConverter } from '../models/Booking/Booking';
 
 const createBookingCollection = (id: string) => {
@@ -101,7 +101,7 @@ class BookingRepostoryImpl {
      * @return Unsubscribe function
      */
 
-    async listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+    listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): () => void {
         try {
             if(!businessId) throw new Error('Business ID missing');
             if(!offerId) throw new Error('Offer ID missing');
@@ -111,9 +111,13 @@ class BookingRepostoryImpl {
                 where('offer.id', '==', offerId)
             );
 
-            return onSnapshot(q, (snapshot) => {
-                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
-            });
+            return onSnapshot(q, 
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+                }, (error) => {
+                    console.error('Error in business bookings listener: ', error);
+                }   
+            );
 
         } catch (error) {
             if(error instanceof Error) {
@@ -131,15 +135,19 @@ class BookingRepostoryImpl {
      * @param callback
      * @return Unsubscribe function
      */
-    async listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Promise<() => void> {
+    listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Unsubscribe {
         try {
             if(!userId) throw new Error('User ID missing');
             
             const q = collection(db, 'users', userId, 'bookings').withConverter(bookingConverter);
 
-            return onSnapshot(q, (snapshot) => {
-                onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
-            });
+            return onSnapshot(q, 
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(docsnap => docsnap.data()));
+                }, (error) => {
+                    console.error('Error in user bookings listener: ', error);
+                }
+            );
 
         } catch (error) {
             if(error instanceof Error) {

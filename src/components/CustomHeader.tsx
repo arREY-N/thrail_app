@@ -17,6 +17,16 @@ import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 /**
  * A custom header component that can display a title, back button, and actions.
+ * @param {object} props
+ * @param {any} [props.title]
+ * @param {any} [props.onBackPress]
+ * @param {any} [props.rightActions]
+ * @param {boolean} [props.showDefaultIcons]
+ * @param {boolean} [props.centerTitle]
+ * @param {boolean} [props.hasSearch]
+ * @param {object} [props.searchProps]
+ * @param {any} [props.style]
+ * @param {any} [props.children]
  */
 interface CustomHeaderProps {
     title?: string;

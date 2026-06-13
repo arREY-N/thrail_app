@@ -9,7 +9,7 @@ export interface ReviewState {
     isLoading: boolean;
     error: string | null;
     
-    subscribeToReviews: () => Promise<Unsubscribe | null>;
+    subscribeToReviews: () => Unsubscribe | null;
 
     fetchAll: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -18,6 +18,7 @@ export interface ReviewState {
     create: (review: Review) => Promise<void>;
     remove: (id: string) => Promise<void>;
     likeReview: (review: Review) => void;
+    unsubscribe: Unsubscribe | null;
 }
 
 export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
@@ -26,7 +27,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
     error: null,
     unsubscribe: null,
 
-    subscribeToReviews: async () => {
+    subscribeToReviews: () => {
         try {
             const unsubscribe = ReviewRepository.listenToReviews(
                 (reviews) => set({
@@ -34,6 +35,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
                 })
             )
 
+            set({ unsubscribe });
             return unsubscribe;
         } catch (error) {
             console.error('Error subscribing to reviews: ', error)

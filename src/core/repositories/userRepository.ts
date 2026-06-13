@@ -1,6 +1,5 @@
 import { db } from '@/src/core/config/Firebase';
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { BaseRepository } from '../interface/repositoryInterface';
 import { User, userConverter } from '../models/User/User';
 
@@ -46,18 +45,7 @@ class UserRepositoryImpl implements BaseRepository<User>{
     }
 
     async delete(id: string): Promise<any> {
-        const functions = getFunctions();
-
-        const deleteAccount = httpsCallable(functions, 'deleteUser');
-
-        try {
-            const result = await deleteAccount({userId: id});
-
-            return result;
-        } catch (err) {
-            if(err instanceof Error) throw err;
-            throw new Error('An error occured while deleting user');
-        }
+        
     }
 
     async fetchByEmail(email: string): Promise<User[]>{

@@ -19,16 +19,16 @@ export type UseTrailParams = {
 export default function useTrail(params: UseTrailParams = {}): ITrailDomain{
     const { id } = params;
 
-    const loadAllTrails = useTrailsStore(s => s.fetchAll);
+    // const loadAllTrails = useTrailsStore(s => s.fetchAll);
     const loadTrail = useTrailsStore(s => s.load);
     const trails = useTrailsStore(s => s.data);
     const trail = useTrailsStore(s => s.current);
     const isLoading = useTrailsStore(s => s.isLoading);
     const error = useTrailsStore(s => s.error);
     
-    useEffect(() => {
-        loadAllTrails();
-    },[])
+    // useEffect(() => {
+    //     loadAllTrails();
+    // },[])
 
     useEffect(() => {
         loadTrail(id);

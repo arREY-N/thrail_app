@@ -65,12 +65,17 @@ export function useAppNavigation() {
     }
 
     const onSettingsPress = () => {
-            router.push({
-                pathname: '/(main)/settings',
-            })
-        }
+        router.push({
+            pathname: '/(main)/settings',
+        })
+    }
+
+    const onLanding = () => {
+        router.replace('/(auth)/landing');
+    }
 
     return {
+        onLanding,
         onTrailPress,
         onBackPress,
         onDownloadPress,

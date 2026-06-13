@@ -32,6 +32,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     const id : string = i.id;
                     
                     const isRoot = section === 'root';
+                    const elementKey = `${section}_${id}`;
 
                     if(type === 'text' || type === 'numerical'){
                         const rawVal = isRoot ? object[id] : object[section][id];
@@ -49,7 +50,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         }
 
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <CustomTextInput
                                     label={`${label}${required ? ' *' : ''}`}
                                     placeholder={label}
@@ -73,20 +74,22 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     if(type === 'multi-select'){
                         const key = i.options;
                         
-                        if(!optionSet) return <Text>Options Unavailable for {label}</Text>
+                        if(!optionSet) return <Text key={elementKey}>Options Unavailable for {label}</Text>
                         
                         const options = optionSet[key as any];
                         
                         const val: string[] | null = isRoot ? object[id] : object[section][id] || null;
                         
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <Text>{label} { required ? '*' : ''}</Text>
                                 {
                                     options.length > 0
                                         ? options.map(o => {
+                                            const optionKey = typeof o === 'string' ? o : JSON.stringify(o);
                                             return(
                                                 <Pressable 
+                                                    key={optionKey}
                                                     style={(val === o || (Array.isArray(val) && val?.find(v => v === o))) ? styles.true : styles.false} 
                                                     onPress={() => onEditProperty({section, id, value: o})}
                                                     key={o}
@@ -95,7 +98,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                                                 </Pressable>
                                             )
                                         })
-                                        : <Text>No available options</Text>
+                                        : <Text key="no-options">No available options</Text>
                                 }
                             </View>
                         )
@@ -104,14 +107,14 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     if(type === 'single-select'){
                         const key = i.options;
                         
-                        if(!optionSet) return <Text>Options Unavailable for {label}</Text>
+                        if(!optionSet) return <Text key={elementKey}>Options Unavailable for {label}</Text>
                         
                         const options: [] = optionSet[key as any] as []; 
                         
                         const val: string[] | null = isRoot ? object[id] : object[section][id] || null;
                         
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <CustomDropdown
                                     label={`${label}${required ? ' *' : ''}`}
                                     placeholder={`Select ${label}`}
@@ -125,7 +128,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     if(type === 'file'){
                         const val: string | null = isRoot ? object[id] : object[section][id] || null;
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <CustomTextInput
                                     placeholder={label}
                                     label={`${label} ${required ? '*' : ''}`}
@@ -148,19 +151,21 @@ const WriteComponent = (props: IWriteComponentParams) => {
                     if(type === 'object-select'){
                         const key = i.key;
 
-                        if(!optionSet) return <Text>Options unavailable for {label}</Text>
+                        if(!optionSet) return <Text key={elementKey}>Options unavailable for {label}</Text>
 
                         const options: [] = optionSet[key as any] as [];
 
                         const val: any | null = isRoot ? object[id] : object[section][id] || null
 
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <Text>{label} { required ? '*' : ''}</Text>
                                 {
                                     options && options.map(o => {
+                                        const optionKey = typeof o === 'string' ? o : (o.id || o.name || JSON.stringify(o));
                                         return(
                                             <Pressable 
+                                                key={optionKey}
                                                 style={(val === o || val?.name === o) ? styles.true : styles.false} 
                                                 onPress={() => onEditProperty({section, id, value: o})}>
                                                 <Text>{o}</Text>
@@ -176,7 +181,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         const val: boolean = isRoot ? object[id] : object[section][id];
 
                         return(
-                            <View key={label}>
+                            <View key={elementKey}>
                                 <Text>{label} { required ? '*' : ''}</Text>
                                 <Pressable 
                                     style={!val ? styles.false : (val ? styles.true : styles.false)} 
@@ -193,6 +198,7 @@ const WriteComponent = (props: IWriteComponentParams) => {
                         
                         return(
                             <CustomTextInput
+                                key={elementKey}
                                 label={`${label} ${required ? '*' : ''}`}
                                 placeholder="DD/MM/YYYY"
                                 value={formatDate(val)}

@@ -32,7 +32,21 @@ class AuthRepositoryImpl {
             if(unavailable.length > 0) 
                 throw new Error(`${unavailable.join(', ')} already in use`);
         } catch (err) { 
-            console.error(err);
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    }
+    
+    async checkEmail(email: string): Promise<boolean> {
+        const checkCredentials = httpsCallable(functions, 'checkEmail');
+        try {
+            const response = await checkCredentials({email, username: 'checkExistingEmailOnly'});
+
+            if((response as CredentialResponse).data.emailAvailable) return false;
+
+            return true;
+        } catch (err) { 
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -58,7 +72,7 @@ class AuthRepositoryImpl {
         
             return user;
         } catch (err){
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -102,7 +116,7 @@ class AuthRepositoryImpl {
                 {merge: true}
             );
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -144,7 +158,7 @@ class AuthRepositoryImpl {
             );
         
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
@@ -157,7 +171,7 @@ class AuthRepositoryImpl {
                 data.password
             );
         } catch (err) {
-            console.error(err);
+            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }

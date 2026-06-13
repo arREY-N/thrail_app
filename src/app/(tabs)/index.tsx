@@ -1,11 +1,10 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import EmergencyNotification from '@/src/components/EmergencyNotification';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
-import useTrailDomain from '@/src/core/hook/trail/useTrailDomain';
+import useTrailView from '@/src/core/hook/trail/useTrailView';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 /**
@@ -17,8 +16,7 @@ const home = () => {
         trails, 
         onViewTrail,
         isLoading,
-        fetchAllTrails
-    } = useTrailDomain();
+    } = useTrailView();
 
     const {
         onDownloadPress, 
@@ -31,14 +29,6 @@ const home = () => {
     const {
         getItemRating,
     } = useReview();
-
-    useFocusEffect(
-        useCallback(() => {
-            if (trails.length === 0) {
-                fetchAllTrails();
-            }
-        }, [trails.length, fetchAllTrails])
-    );
 
     return (
         <View style={{ flex: 1 }}>

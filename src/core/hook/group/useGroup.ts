@@ -44,8 +44,7 @@ export const useGroup = (groupId: string) => {
                         status: 'paid',
                         trail: currentGroup.trail,
                         business: currentGroup.business,
-                        user: UserLogic.toSummary(profile) as any,
-    
+                        user: UserLogic.toBookingSummary(profile),
                     }));
                     return;
                 }

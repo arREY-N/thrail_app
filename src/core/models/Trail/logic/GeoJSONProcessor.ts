@@ -2,6 +2,7 @@ import { ICoordinate, ITrailStats } from "@/src/core/models/Trail/Trail.types";
 import computeTotalLength, { geoJSONToCoordinate } from "./TrailComputation";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
+import { Platform } from "react-native";
 
 // --- Types for raw GeoJSON structure ---
 interface GeoJSONFeature {
@@ -52,10 +53,17 @@ function quickHaversine(lat1: number, lon1: number, lat2: number, lon2: number):
 }
 
 /**
- * Reads the GeoJSON asset from the device filesystem.
+ * Reads the GeoJSON asset from the device filesystem or fetches it on web.
  */
 async function loadGeoJSON(): Promise<GeoJSONCollection> {
     const asset = Asset.fromModule(rawGeoJSONAsset);
+    
+    if (Platform.OS === 'web') {
+        const response = await fetch(asset.uri);
+        if (!response.ok) throw new Error(`Failed to fetch GeoJSON asset on web: ${response.statusText}`);
+        return await response.json() as GeoJSONCollection;
+    }
+
     await asset.downloadAsync();
     if (!asset.localUri) throw new Error("GeoJSON asset has no localUri after download");
     const jsonString = await FileSystem.readAsStringAsync(asset.localUri);

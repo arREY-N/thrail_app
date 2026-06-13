@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    Platform,
     StyleSheet,
     View
 } from 'react-native';
@@ -17,6 +16,21 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
 
+/**
+ * Dashboard screen component for Business/Org Admin users.
+ * Renders business profile details, admin staff details, and quick action buttons 
+ * (including trail management/mapping actions).
+ * 
+ * @param {object} props - Component properties.
+ * @param {object} props.businessAccount - The business profile information.
+ * @param {function} props.onManageAdminsPress - Callback to navigate to admin staff management.
+ * @param {function} props.onManageOffersPress - Callback to navigate to business offers management.
+ * @param {function} props.onManageTrailsPress - Callback to navigate to trail management list.
+ * @param {object} props.adminProfile - Profile information of the logged-in admin.
+ * @param {string|null} props.error - Optional error message to display.
+ * @param {function} props.onBackPress - Callback for the back navigation button.
+ * @returns {React.ReactElement} The rendered admin dashboard screen.
+ */
 export interface DashboardScreenProps {
     businessAccount?: any; 
     onManageAdminsPress: () => void; 
@@ -33,6 +47,7 @@ const DashboardScreen = ({
     businessAccount, 
     onManageAdminsPress, 
     onManageOffersPress,
+    onManageTrailsPress,
     adminProfile, 
     error,
     onBackPress 
@@ -189,9 +204,15 @@ const DashboardScreen = ({
                     
                     <View style={styles.actionContainer}>
                         <CustomButton 
+                            title="Manage Trails & Maps"
+                            onPress={onManageTrailsPress}
+                            variant="primary"
+                        />
+
+                        <CustomButton 
                             title="Manage Offers"
                             onPress={onManageOffersPress}
-                            variant="primary"
+                            variant="outline"
                         />
 
                         <CustomButton 

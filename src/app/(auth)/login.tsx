@@ -8,7 +8,7 @@ import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
 export default function Login() {
     const { 
-        onBackPress, 
+        onLanding,
         onSignUpPress 
     } = useAppNavigation();
     
@@ -34,7 +34,7 @@ export default function Login() {
                 onSignUpPress={onSignUpPress as any} 
                 error={error} 
                 onForgotPasswordPress={onForgotPassword}
-                onBackPress={onBackPress}
+                onBackPress={onLanding}
                 onRememberMePress={onRememberMePress}
                 remember={remember}
                 onGmailLogIn={onGmailLogIn}

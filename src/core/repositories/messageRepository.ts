@@ -39,6 +39,8 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
 
         return onSnapshot(q, (snapshot) => {
             onUpdate(snapshot.docs.map(doc => doc.data()));
+        }, (error) => {
+            console.error('Error in listenToUserGroups: ', error);
         });
     }
 
@@ -51,6 +53,8 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
 
         return onSnapshot(q, (snapshot) => {
             onUpdate(snapshot.docs.map(doc => doc.data()));
+        }, (error) => {
+            console.error('Error in listenToMessages: ', error);    
         });
     }
 

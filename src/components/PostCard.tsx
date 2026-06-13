@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Image,
     ImageSourcePropType,
@@ -53,6 +53,8 @@ const PostCard: React.FC<PostCardProps> = ({
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
     if (!review) return null;
+
+    const liked = useMemo(() => isLiked(review), [review, isLiked]);
 
     const fallbackImage = require('@/src/assets/images/Mt.Tagapo.jpg');
     const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
@@ -174,17 +176,17 @@ const PostCard: React.FC<PostCardProps> = ({
 
                     <Pressable 
                         onPress={onLike} 
-                        style={[styles.headerLikeBadge, isLiked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive]}
+                        style={[styles.headerLikeBadge, liked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive]}
                     >
                         <CustomIcon 
-                            library={isLiked ? "Ionicons" : "Feather"} 
-                            name={isLiked ? "heart" : "heart"} 
+                            library={liked ? "Ionicons" : "Feather"} 
+                            name={liked ? "heart" : "heart"} 
                             size={14} 
-                            color={isLiked ? Colors.ERROR : Colors.TEXT_SECONDARY} 
+                            color={liked ? Colors.ERROR : Colors.TEXT_SECONDARY} 
                         />
                         <CustomText 
                             variant="label" 
-                            style={isLiked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
+                            style={liked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
                         >
                             {review.likes?.length || review.likes || 0}
                         </CustomText>

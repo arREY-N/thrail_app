@@ -12,6 +12,8 @@ import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 import LoadingScreen from "@/src/app/loading";
+import { MaintenanceScreen } from "@/src/app/maintenance";
+import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
@@ -19,10 +21,10 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
+	const { checked, isMaintenance } = useMaintenance();
 
 	const {
 		initialize,
-		isLoading
 	} = useAuthHook();
 
 	SplashScreen.preventAutoHideAsync();
@@ -50,8 +52,11 @@ export default function RootLayout() {
 		}
 	}, [fontsLoaded, fontError]);
 
-	if(isLoading) return <LoadingScreen/>
+	if(!checked) return <LoadingScreen/>;
 
+	if (checked && isMaintenance) {
+		return <MaintenanceScreen/>
+	}
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<Stack screenOptions={{ headerShown: false }} />

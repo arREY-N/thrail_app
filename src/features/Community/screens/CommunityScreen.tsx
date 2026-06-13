@@ -108,8 +108,8 @@ const CommunityScreen = ({
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
-            isLiked={Boolean(isLiked(item))}
-            onEdit={() => onWriteReviewPress(item.id)}
+            isLiked={isLiked}
+            onEdit={() => onWriteReviewPress(item)}
         />
     ), [likeReview, isLiked, onWriteReviewPress]);
 

@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Map Snapshot Template</title>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <link
+      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 800px;
+        height: 600px;
+        overflow: hidden;
+      }
+      #map {
+        width: 800px;
+        height: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      window.mapReady = false;
+
+      function renderTrail(geoJsonString, maptilerKey) {
+        console.log("JavaScript renderTrail starting...");
+        const geojson = JSON.parse(geoJsonString);
+        console.log("Features count passed to render:", geojson.features ? geojson.features.length : 0);
+
+        const styleUrl = maptilerKey
+          ? `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${maptilerKey}`
+          : "https://tiles.openfreemap.org/styles/liberty";
+
+        const map = new maplibregl.Map({
+          container: "map",
+          style: styleUrl,
+          center: [121.0, 14.0],
+          zoom: 12,
+          interactive: false,
+          attributionControl: false,
+          preserveDrawingBuffer: true,
+        });
+
+        let boundsFitted = false;
+
+        map.on("load", () => {
+          console.log("Map load event fired successfully.");
+          
+          // Add trail geometries
+          map.addSource("trail-source", {
+            type: "geojson",
+            data: geojson,
+          });
+
+          map.addLayer({
+            id: "trail-layer",
+            type: "line",
+            source: "trail-source",
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": "#16a34a",
+              "line-width": 6,
+            },
+          });
+
+          // Fit map camera bounds to trail
+          const coordinates = getCoordinates(geojson);
+          console.log("Extracted coordinates count:", coordinates.length);
+          
+          if (coordinates.length > 0) {
+            console.log("Fitting camera to bounds. First coordinate:", coordinates[0]);
+            const bounds = coordinates.reduce(
+              (acc, coord) => {
+                return acc.extend(coord);
+              },
+              new maplibregl.LngLatBounds(coordinates[0], coordinates[0]),
+            );
+
+            map.fitBounds(bounds, {
+              padding: 80,
+              animate: false,
+              maxZoom: 14.5
+            });
+            console.log("Camera fitBounds completed.");
+          } else {
+            console.warn("No coordinates extracted! Camera will not move.");
+          }
+
+          boundsFitted = true;
+
+          // If the map is already fully loaded and idle after fitBounds, trigger readiness
+          if (map.loaded()) {
+            console.log("Map is already fully loaded on load event completion. Setting ready.");
+            setTimeout(() => {
+              window.mapReady = true;
+            }, 1000);
+          }
+        });
+
+        map.on("error", (e) => {
+          console.error("MapLibre error occurred:", e.error ? e.error.message : e);
+        });
+
+        // Set global flag on idle, but only after load event has completed bounds fitting
+        map.on("idle", () => {
+          console.log("Map idle event fired. boundsFitted =", boundsFitted);
+          if (boundsFitted) {
+            window.mapReady = true;
+          }
+        });
+      }
+
+      function getCoordinates(geojson) {
+        const coords = [];
+        const extract = (geom) => {
+          if (!geom) return;
+          if (geom.type === "Point") coords.push(geom.coordinates);
+          else if (geom.type === "LineString") coords.push(...geom.coordinates);
+          else if (geom.type === "Polygon")
+            geom.coordinates.forEach((r) => coords.push(...r));
+          else if (geom.type === "MultiLineString")
+            geom.coordinates.forEach((l) => coords.push(...l));
+          else if (geom.type === "MultiPolygon")
+            geom.coordinates.forEach((p) =>
+              p.forEach((r) => coords.push(...r)),
+            );
+        };
+
+        if (geojson.type === "FeatureCollection") {
+          geojson.features.forEach((f) => extract(f.geometry));
+        } else if (geojson.type === "Feature") {
+          extract(geojson.geometry);
+        } else {
+          extract(geojson);
+        }
+        return coords;
+      }
+    </script>
+  </body>
+</html>

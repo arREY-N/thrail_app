@@ -9,28 +9,37 @@ export interface NotificationState {
     notifications: Notification[];
     isLoading: boolean;
 
-    subscribeToNotifications: () => Unsubscribe;
+    subscribeToNotifications: () => Unsubscribe | null;
     readNotification: (notificationId: string) => Promise<void>;
-
+    unsubscribe: Unsubscribe | null;
 }
 
 export const useNotificationsStore = create<NotificationState>()(
     immer((set, get) => ({
         notifications: [],
         isLoading: false,
-        
+        unsubscribe: null,
+
         subscribeToNotifications: () => {
-            const { profile } = useAuthStore.getState();
+            try {
+                const { profile } = useAuthStore.getState();
+    
+                if(!profile)
+                    throw new Error('User not found');
+    
+                const unsub = NotificationRepository.listenToNotifications(
+                    profile.id,
+                    (notifications) => set({
+                        notifications
+                    })
+                )
 
-            if(!profile)
-                throw new Error('User not found');
-
-            return NotificationRepository.listenToNotifications(
-                profile.id,
-                (notifications) => set({
-                    notifications
-                })
-            )
+                set({ unsubscribe: unsub });
+                return unsub;
+            } catch (error) {
+                console.error("Failed to subscribe to notifications:", error);
+                return null;
+            }
         },
 
         readNotification: async (notificationId: string) =>  {

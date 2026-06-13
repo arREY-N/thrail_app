@@ -3,6 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
+    match /deployment/{deploymentId} {
+        allow read: if true;
+    }
+
     match /users/{userId}{
         allow read: if request.auth != null;
       allow create: 
@@ -215,7 +219,7 @@ service cloud.firestore {
     	allow read: if request.auth != null;
       allow create, update, delete:
       	if request.auth != null
-        && request.auth.token.role == 'superadmin'
+        && (request.auth.token.role == 'superadmin' || request.auth.token.role == 'admin')
     }
 
     match /receipts/{receiptId}{

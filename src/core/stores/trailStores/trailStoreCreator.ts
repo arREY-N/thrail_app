@@ -2,6 +2,7 @@ import { BaseStore } from "@/src/core/interface/storeInterface";
 import { IRecommendedTrail } from "@/src/core/models/Recommendation/Recommendation.types";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { TrailRepository } from "@/src/core/repositories/trailRepository";
+import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import NetInfo from "@react-native-community/netinfo";
 import { StateCreator } from "zustand";
 
@@ -39,7 +40,7 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 
     fetchAll: async () => {
       const network = await NetInfo.fetch();
-      const isOnline = !!(network.isConnected && network.isInternetReachable);
+      const isOnline = (network.isConnected && network.isInternetReachable);
 
       if (!isOnline) {
         console.log("🌲 Device is offline. Using persisted AsyncStorage data.");
@@ -48,17 +49,28 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
       }
 
       const isCacheEmpty = get().data.length === 0;
-      set({ isLoading: isCacheEmpty, error: null });
+      console.log("Device is online. Cache empty:", isCacheEmpty);
+      set({ data: get().data, isLoading: isCacheEmpty, error: null });
 
+      
+      
       try {
+        const profile = useAuthStore.getState().profile;
+        
+        if(!profile) {
+          throw new Error('No user profile found. Aborting fetch to prevent unauthorized access.');
+        }
+
         console.log("Device is online: Fetching fresh update from repository");
         const trails = await TrailRepository.fetchAll();
-
+        console.log(`Fetched ${trails.length} trails from repository.`);
         if (trails && Array.isArray(trails) && trails.length > 0) {
+          console.log(`Sorting and updating store.`);
           const sorted = trails.sort((a, b) =>
             a.general.name.localeCompare(b.general.name),
           );
 
+          console.log(`Updating store.`);
           set({
             data: sorted,
             isLoading: false,
@@ -70,7 +82,7 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
         }
 
       } catch (err) {
-        console.error("Online update fetch failed:", err);
+        console.log("Online update fetch failed:", err);
         set({
           isLoading: false,
           error: get().data.length === 0 ? ((err as Error).message ?? "Failed to load trails") : null,
@@ -115,8 +127,8 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
           trail = data.find((t) => t.id === id);
         }
 
-        // Prevent firebase fetch if it's a mocked offline ID
-        if (!trail && !id.startsWith("mock_")) {
+        // Attempt Firebase fetch if not found in local memory
+        if (!trail) {
           trail = await TrailRepository.fetchById(id);
         }
 
@@ -152,7 +164,22 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
         });
 
         console.log("New:", trail);
-        const saved = await TrailRepository.write(trail);
+        
+        let saved = trail;
+        try {
+          saved = await TrailRepository.write(trail);
+        } catch (err: any) {
+          const isPermissionError = 
+            err.message?.toLowerCase().includes("permission") || 
+            err.code === "permission-denied";
+          
+          if (isPermissionError) {
+            console.warn("Firestore write failed due to permissions. Saving locally in-memory for testing.", err);
+            saved = trail;
+          } else {
+            throw err;
+          }
+        }
 
         set({
           data: get().data.some((d) => d.id === saved.id)

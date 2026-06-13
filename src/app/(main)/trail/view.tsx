@@ -56,10 +56,10 @@ export default function viewTrail(){
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
                 isLoading={isLoading}
-                likeReview={likeReview as any}
-                onWriteReviewPress={onWriteReviewPress as any}
-                isOwned={isOwned as any}
-                isLiked={isLiked as any}
+                likeReview={likeReview}
+                onWriteReviewPress={onWriteReviewPress}
+                isOwned={isOwned}
+                isLiked={() => isLiked()}
             />
         </View>
     )

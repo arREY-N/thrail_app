@@ -1,4 +1,6 @@
+import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 
 export function useAuthHook(){
@@ -11,7 +13,7 @@ export function useAuthHook(){
     const remember = useAuthStore(s => s.remember);
     const initialize = useAuthStore(s => s.initialize);
     const reset = useAuthStore(s => s.reset);
-    const onLogIn = useAuthStore(s => s.logIn);
+    const logIn = useAuthStore(s => s.logIn);
     const onRememberMePress = useAuthStore(s => s.rememberMe)
     const password = useAuthStore(s => s.forgotPassword);
     const signOut = useAuthStore(s => s.signOut);
@@ -20,8 +22,17 @@ export function useAuthHook(){
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
 
-    const onSignOutPress = () => {
-        signOut(); 
+    const { stopBackgroundTracking } = useHikerGPS();
+    
+    const onSignOutPress = async () => {
+        try {
+            await signOut(); 
+            stopBackgroundTracking();
+            useTrailsStore.getState().reset();
+            router.replace('/(auth)/landing');
+        } catch (error) {
+            console.log("Sign out error:", error);
+        }
     }
 
     const onForgotPassword = () => {
@@ -37,7 +48,26 @@ export function useAuthHook(){
             console.error("Forgot password error:", error);
         }
     }
+
+    const onGmailLogIn = () => {
+        try {
+            console.log("Attempting Gmail login...");
+            gmailSignUp();
+            router.push("/(tabs)");
+        } catch (error) {
+            console.log("Gmail login error:", error);
+        }
+    }
    
+    const onLogIn = async (email: string, password: string) => {
+        try {
+            console.log("Attempting login...");
+            await logIn(email, password);
+            router.push("/(tabs)");
+        } catch (error) {
+            console.log("Login error:", error);
+        }
+    }
     return {
         role,
         isSuperadmin,
@@ -55,6 +85,6 @@ export function useAuthHook(){
         onForgotPassword,
         forgotPassword,
         onSignOutPress,
-        onGmailLogIn: gmailSignUp,
+        onGmailLogIn,
     }
 }
