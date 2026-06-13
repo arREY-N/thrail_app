@@ -4,16 +4,36 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { ITrail } from '@/src/core/models/Trail/Trail.types';
 import { STAT_GLOSSARY, getFeatureIcon } from '@/src/features/Trail/utils/TrailDetailsHelpers';
+import { IconLibrary } from '@/src/types/ui.types';
 
-export const SectionHeader = ({ iconLib, iconName, title, color = Colors.PRIMARY }) => (
+export interface SectionHeaderProps {
+    iconLib: IconLibrary;
+    iconName: string;
+    title: string;
+    color?: string;
+}
+
+export const SectionHeader: React.FC<SectionHeaderProps> = ({ iconLib, iconName, title, color = Colors.PRIMARY }) => (
     <View style={styles.sectionHeader}>
         <CustomIcon library={iconLib} name={iconName} size={20} color={color} />
         <CustomText variant="h3" style={styles.sectionTitle}>{title}</CustomText>
     </View>
 );
 
-export const StatItem = ({ id, iconLib, icon, label, value, color, isActive, onPress }) => (
+export interface StatItemProps {
+    id: string;
+    iconLib: IconLibrary;
+    icon: string;
+    label: string;
+    value: string | number;
+    color: string;
+    isActive: boolean;
+    onPress: (id: string) => void;
+}
+
+export const StatItem: React.FC<StatItemProps> = ({ id, iconLib, icon, label, value, color, isActive, onPress }) => (
     <TouchableOpacity 
         style={[styles.statItem, isActive && styles.statItemActive]} 
         onPress={() => onPress(id)}
@@ -27,16 +47,21 @@ export const StatItem = ({ id, iconLib, icon, label, value, color, isActive, onP
     </TouchableOpacity>
 );
 
-export const GlossaryTooltip = ({ activeStat, trail }) => {
+export interface GlossaryTooltipProps {
+    activeStat: string | null;
+    trail?: ITrail | null;
+}
+
+export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({ activeStat, trail }) => {
     if (!activeStat) return null;
     
-    let pointerPosition = { left: '50%', marginLeft: -8 }; 
+    let pointerPosition: import('react-native').ViewStyle = { left: '50%', marginLeft: -8 }; 
     const baseData = STAT_GLOSSARY[activeStat];
     
     if (baseData.col === 0) pointerPosition = { left: '16.6%', marginLeft: -8 };
     if (baseData.col === 2) pointerPosition = { left: '83.3%', marginLeft: -8 };
 
-    let descriptionText = null;
+    let descriptionText: string | null = null;
     if (activeStat === 'class' && trail?.description?.classificationDescription) {
         descriptionText = trail.description.classificationDescription;
     } else if (activeStat === 'difficulty' && trail?.description?.lascoRatingDescription) {
@@ -64,12 +89,16 @@ export const GlossaryTooltip = ({ activeStat, trail }) => {
     );
 };
 
-export const Tag = ({ label }) => {
+export interface TagProps {
+    label: string;
+}
+
+export const Tag: React.FC<TagProps> = ({ label }) => {
     const iconData = getFeatureIcon(label);
     return (
         <View style={styles.tag}>
             <View style={styles.tagIcon}>
-                <CustomIcon library={iconData.library} name={iconData.name} size={14} color={Colors.TRAIL_TAG_TEXT} />
+                <CustomIcon library={iconData.library as IconLibrary} name={iconData.name} size={14} color={Colors.TRAIL_TAG_TEXT} />
             </View>
             <CustomText variant="caption" style={styles.tagText}>
                 {label}
@@ -78,7 +107,13 @@ export const Tag = ({ label }) => {
     );
 };
 
-export const StyledListItem = ({ text, index, type }) => {
+export interface StyledListItemProps {
+    text: string;
+    index: number;
+    type: 'safety' | 'lgu' | 'guide';
+}
+
+export const StyledListItem: React.FC<StyledListItemProps> = ({ text, index, type }) => {
     let bgStyle, borderStyle, bulletBg, bulletText;
 
     if (type === 'safety') {

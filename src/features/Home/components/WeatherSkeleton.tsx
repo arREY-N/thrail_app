@@ -5,9 +5,21 @@ import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-const WeatherSkeleton = ({ onBackPress }) => {
+/**
+ * Props for the WeatherSkeleton component.
+ */
+export interface WeatherSkeletonProps {
+    /** Callback fired when the back button is pressed */
+    onBackPress?: () => void;
+}
+
+/**
+ * Skeleton loading screen for the full Weather feature.
+ */
+const WeatherSkeleton = ({ onBackPress }: WeatherSkeletonProps) => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
@@ -116,6 +128,9 @@ const WeatherSkeleton = ({ onBackPress }) => {
     );
 };
 
+/**
+ * Skeleton loading view for the smaller Weather Widget component.
+ */
 export const WeatherWidgetSkeleton = () => {
     return (
         <View style={styles.widgetContainer}>
@@ -179,20 +194,7 @@ export const WeatherWidgetSkeleton = () => {
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 4 }, 
-        shadowOpacity: 0.06, 
-        shadowRadius: 10 
-    },
-    android: { 
-        elevation: 3 
-    },
-    web: { 
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.06)' 
-    }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     scrollContent: { 

@@ -4,17 +4,42 @@ import {
     Platform,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { ProcessedWeatherData } from '@/src/core/types/weather';
 import { formatWeatherDisplay } from '@/src/core/utility/weatherHelpers';
 import { useLocation } from '@/src/hooks/useLocation';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) => {
+/**
+ * Props for the WeatherSection component.
+ */
+export interface WeatherSectionProps {
+    /** The processed weather data to display */
+    weatherData: ProcessedWeatherData | null | undefined;
+    /** Whether the weather data is currently loading */
+    loading: boolean;
+    /** The fallback location name to display if geocoding is unavailable */
+    locationName?: string;
+    /** Any error that occurred during weather fetching */
+    error?: Error | string | null;
+    /** Callback fired when the weather section is pressed */
+    onPress: () => void;
+}
+
+/**
+ * A UI section that displays current local weather and coordinates it with
+ * device location tracking.
+ *
+ * @param {WeatherSectionProps} props - The component props
+ */
+const WeatherSection = ({ weatherData, loading, locationName, error, onPress }: WeatherSectionProps) => {
 
     const display = formatWeatherDisplay(weatherData);
     const { geocodedName } = useLocation({ propLocationName: locationName });
@@ -76,7 +101,7 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
 
                 <View style={styles.rightColumn}>
                     <CustomIcon 
-                        library={display.library} 
+                        library={display.library as IconLibrary} 
                         name={display.hasData ? display.icon : "partly-sunny-outline"}
                         size={52} 
                         color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
@@ -94,6 +119,8 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }) 
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: {
         marginHorizontal: 16, 
@@ -106,13 +133,13 @@ const styles = StyleSheet.create({
         
         ...Platform.select({
             ios: {
-                shadowColor: Colors.SHADOW,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.08,
-                shadowRadius: 12,
+                
+                
+                
+                
             },
             android: {
-                elevation: 4,
+                ...dropShadow,
             },
             web: {
                 boxShadow: '0px 6px 16px rgba(0, 0, 0, 0.06)',
