@@ -50,10 +50,10 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const { pickDocument } = useFileUpload();
 
     const imagesList: string[] = Array.isArray(isUploaded) 
-        ? isUploaded.filter((url): url is string => typeof url === 'string') 
-        : (typeof isUploaded === 'string' ? [isUploaded] : []);
+        ? isUploaded.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) 
+        : (typeof isUploaded === 'string' && isUploaded.trim().length > 0 ? [isUploaded] : []);
         
-    const isComplete = imagesList.length > 0 && !isRejected;
+    const isComplete = (imagesList.length > 0 || isUploaded === true) && !isRejected;
 
     const handleUploadPress = async () => {
         setIsUploading(true);
