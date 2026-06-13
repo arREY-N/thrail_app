@@ -1,4 +1,4 @@
-import * as Clipboard from 'expo-clipboard'; // NEW: For copying coordinates
+import * as Clipboard from 'expo-clipboard';
 import React, { useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,16 +8,55 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatDate } from '@/src/core/utility/date';
 
-const getInitials = (firstName, lastName) => {
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IHike } from '@/src/core/models/Hike/Hike.types';
+import { ILocation } from '@/src/core/models/Location/Location.types';
+import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
+
+export type UserLocation = ILocation & { id: string };
+
+/**
+ * Props for the LocationScreen component.
+ */
+export interface LocationScreenProps {
+    group: GroupWithLegacyName | null;
+    booking: IBooking | null;
+    onStartSharingLocation: () => void;
+    onStopSharingLocation: () => void;
+    onStartHike: (group: GroupWithLegacyName, booking: IBooking) => void;
+    onPauseHike: () => void;
+    onResumeHike: () => void;
+    onCompleteHike: () => void;
+    onEmergencyPress: () => void;
+    onSendPicture: () => void;
+    error: string | null;
+    isLive: boolean;
+    currentHike: IHike | null;
+    location: UserLocation[] | null;
+    onBackPress: () => void;
+}
+
+/**
+ * Extracts initials from first and last name.
+ * 
+ * @param firstName The user's first name
+ * @param lastName The user's last name
+ * @returns The capitalized initials of the user, or '?'
+ */
+const getInitials = (firstName?: string, lastName?: string): string => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     if (firstName) return firstName.charAt(0).toUpperCase();
     if (lastName) return lastName.charAt(0).toUpperCase();
     return '?';
 };
 
-const LocationScreen = ({
+/**
+ * Screen displaying the active group location, hiker statuses, and mission control.
+ */
+const LocationScreen: React.FC<LocationScreenProps> = ({
     group,
     booking,
     onStartSharingLocation,
@@ -49,7 +88,6 @@ const LocationScreen = ({
 
     const headerTitle = group.trail?.name || group.GroupName;
     
-    // FIX: Sort hikers so "Offline/Inactive" hikers appear at the top for safety monitoring!
     const sortedMembers = useMemo(() => {
         const allMembers = [...(group.admins || []), ...(group.members || [])];
         
@@ -60,14 +98,13 @@ const LocationScreen = ({
             const isInactiveA = locA ? (Date.now() - new Date(locA.timestamp).getTime() > (5 * 1000)) : true;
             const isInactiveB = locB ? (Date.now() - new Date(locB.timestamp).getTime() > (5 * 1000)) : true;
             
-            // Offline hikers go first
             if (isInactiveA && !isInactiveB) return -1;
             if (!isInactiveA && isInactiveB) return 1;
             return 0;
         });
     }, [group, location]);
 
-    const copyCoordinates = async (lat, long) => {
+    const copyCoordinates = async (lat: number, long: number) => {
         const coords = `${lat}, ${long}`;
         await Clipboard.setStringAsync(coords);
         alert('Coordinates copied to clipboard!');
@@ -93,7 +130,6 @@ const LocationScreen = ({
                     </View>
                 )}
 
-                {/* MISSION CONTROL - Cleaned up Grid */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <CustomIcon library="Feather" name="activity" size={20} color={Colors.PRIMARY} />
@@ -150,7 +186,6 @@ const LocationScreen = ({
                     </View>
                 </View>
 
-                {/* HIKER STATUS DASHBOARD */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <CustomIcon library="Feather" name="users" size={20} color={Colors.PRIMARY} />
@@ -173,7 +208,7 @@ const LocationScreen = ({
                                     <View style={styles.memberInfo}>
                                         <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
                                         <CustomText variant="caption" style={styles.lastUpdateText}>
-                                            {locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}
+                                            {locData ? `Updated: ${formatDate(locData.timestamp as Parameters<typeof formatDate>[0])}` : 'Waiting for signal...'}
                                         </CustomText>
                                     </View>
 
@@ -185,7 +220,6 @@ const LocationScreen = ({
                                     </View>
                                 </View>
 
-                                {/* Coordinates Box with Tap to Copy */}
                                 {locData && (
                                     <View style={styles.coordinatesContainer}>
                                         <View style={styles.coordinatesData}>
@@ -224,11 +258,7 @@ const LocationScreen = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
-    android: { elevation: 2 },
-    web: { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.06)' }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },

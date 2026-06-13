@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import {
+import { Platform, 
     FlatList,
+    ListRenderItemInfo,
     StyleSheet,
     TouchableOpacity,
     View,
-} from 'react-native';
+ } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -12,19 +13,48 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatDate } from '@/src/core/utility/date';
 
-export const formatGroupName = (group, currentUser) => {
-    if(group?.type === 'chat') {
+import { IGroup } from '@/src/core/models/Group/Group.types';
+import { IUser } from '@/src/core/models/User/User.types';
+
+/**
+ * Extended IGroup to support legacy GroupName if it exists dynamically.
+ */
+export type GroupWithLegacyName = IGroup & { GroupName?: string };
+
+/**
+ * Props for the ListScreen component.
+ */
+export interface ListScreenProps {
+    groups: GroupWithLegacyName[];
+    currentUser: IUser | null;
+    onEnterRoom: (id: string) => void;
+    onBackPress: () => void;
+}
+
+/**
+ * Formats the display name for a group based on its type and members.
+ * 
+ * @param group The group object containing trail, business, or member data
+ * @param currentUser The current logged-in user
+ * @returns A formatted string representing the group name
+ */
+export const formatGroupName = (group: GroupWithLegacyName, currentUser?: IUser | null): string => {
+    if (group?.type === 'chat') {
         const participants = group.members || [];
         const otherUser = participants.find(p => p.id !== currentUser?.id) || participants[0];
         
-        return `${otherUser?.firstname} ${otherUser?.lastname}`;
+        return otherUser ? `${otherUser.firstname} ${otherUser.lastname}` : 'Unknown User';
     }
 
     if (group?.trail?.name && group?.offer?.date) {
         try {
-            const dateObj = group.offer.date.toDate ? group.offer.date.toDate() : new Date(group.offer.date);
+            const offerDate = group.offer.date as unknown as { toDate?: () => Date };
+            const dateObj = typeof offerDate.toDate === 'function' 
+                ? offerDate.toDate() 
+                : new Date(group.offer.date as unknown as string | number);
             
             const formattedDate = dateObj.toLocaleDateString('en-US', { 
                 month: 'short', 
@@ -44,28 +74,37 @@ export const formatGroupName = (group, currentUser) => {
     return group?.GroupName || "Unnamed Group";
 };
 
-const getInitials = (name) => {
+/**
+ * Extracts initials from a given name string.
+ * 
+ * @param name The name to extract initials from
+ * @returns The first two letters capitalized, or '?'
+ */
+const getInitials = (name?: string): string => {
     if (!name) return '?';
     return name.substring(0, 2).toUpperCase();
 };
 
-const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
+/**
+ * Screen displaying a user's active group chats and conversations.
+ */
+const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
     
     const sortedGroups = useMemo(() => {
         if (!groups) return [];
         return [...groups].sort((a, b) => {
-            const timeA = a.lastMessage?.timesent ? new Date(a.lastMessage.timesent).getTime() : 0;
-            const timeB = b.lastMessage?.timesent ? new Date(b.lastMessage.timesent).getTime() : 0;
+            const timeA = a.lastMessage?.timesent ? new Date(a.lastMessage.timesent as unknown as string | number).getTime() : 0;
+            const timeB = b.lastMessage?.timesent ? new Date(b.lastMessage.timesent as unknown as string | number).getTime() : 0;
             return timeB - timeA;
         });
     }, [groups]);
 
-    const renderGroupCard = useCallback(({ item }) => {
+    const renderGroupCard = useCallback(({ item }: ListRenderItemInfo<GroupWithLegacyName>) => {
         const lastMsg = item.lastMessage;
-        const timeString = lastMsg?.timesent ? formatDate(lastMsg.timesent) : '';
+        const timeString = lastMsg?.timesent ? formatDate(lastMsg.timesent as Parameters<typeof formatDate>[0]) : '';
         
-        const isUnread = lastMsg && 
-                         currentUser && 
+        const isUnread = !!lastMsg && 
+                         !!currentUser && 
                          lastMsg.senderId !== currentUser.id && 
                          !(lastMsg.readBy || []).some(u => u.id === currentUser.id);
 
@@ -138,7 +177,7 @@ const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
                 onBackPress={onBackPress}
             />
             <View style={styles.container}>
-                <FlatList
+                <FlatList<GroupWithLegacyName>
                     data={sortedGroups}
                     keyExtractor={(item) => item.id}
                     renderItem={renderGroupCard}
@@ -157,6 +196,8 @@ const ListScreen = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
         </ScreenWrapper>
     );
 };
+
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     container: {
@@ -178,11 +219,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        
+        
+        
+        
+        ...dropShadow,
     },
     avatarContainer: {
         width: 48,

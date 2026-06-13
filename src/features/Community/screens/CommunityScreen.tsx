@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
+    ListRenderItemInfo,
     RefreshControl,
     StyleSheet,
     TouchableOpacity,
@@ -17,6 +18,35 @@ import PostCard from '@/src/components/PostCard';
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+/**
+ * Props for the CommunityScreen component.
+ */
+export interface CommunityScreenProps {
+    /** Array of review/post data */
+    reviews: any[];
+    /** Indicates if feed is currently loading/refreshing */
+    isLoading: boolean;
+    /** Callback to pull-to-refresh the feed */
+    onRefresh: () => void;
+    /** Callback to navigate to the leaderboard */
+    onLeaderboardPress: () => void;
+    /** Callback to toggle like on a review */
+    likeReview: (review: any) => void;
+    /** Helper to check if current user liked a review */
+    isLiked: (review: any) => boolean | Boolean;
+    /** Callback to edit/write a review */
+    onWriteReviewPress: (id?: string) => void;
+    /** Callback for floating action button */
+    onGroupPress: () => void;
+    /** Callback to open notifications */
+    onNotificationPress: () => void;
+    /** Callback to open bookings */
+    onBookingPress: () => void;
+}
+
+/**
+ * Main Community Screen displaying user reviews, posts, and activities.
+ */
 const CommunityScreen = ({ 
     reviews, 
     isLoading, 
@@ -25,11 +55,10 @@ const CommunityScreen = ({
     likeReview,
     isLiked,
     onWriteReviewPress,
-    isOwned,
     onGroupPress,
     onNotificationPress,
     onBookingPress,
-}) => {
+}: CommunityScreenProps) => {
     
     const [activeTab, setActiveTab] = useState('Latest');
     const [searchQuery, setSearchQuery] = useState('');
@@ -46,9 +75,9 @@ const CommunityScreen = ({
             
             filtered = filtered.filter(r => {
                 const reviewText = String(r.review || '').toLowerCase();
-                const userText = String(r.userName || '').toLowerCase();
-                const mountainText = String(r.mountainName || r.trailName || '').toLowerCase();
-                const locationText = String(r.location || '').toLowerCase();
+                const userText = String((r as any).userName || '').toLowerCase();
+                const mountainText = String((r as any).mountainName || (r as any).trailName || '').toLowerCase();
+                const locationText = String((r as any).location || '').toLowerCase();
 
                 return reviewText.includes(query) || 
                        userText.includes(query) || 
@@ -65,8 +94,8 @@ const CommunityScreen = ({
             });
         } else if (activeTab === 'Latest') {
             filtered.sort((a, b) => {
-                const dateA = new Date(a.rawReview?.createdAt || a.rawReview?.hikeDate || a.date).getTime();
-                const dateB = new Date(b.rawReview?.createdAt || b.rawReview?.hikeDate || b.date).getTime();
+                const dateA = new Date((a as any).rawReview?.createdAt || (a as any).rawReview?.hikeDate || (a as any).date).getTime();
+                const dateB = new Date((b as any).rawReview?.createdAt || (b as any).rawReview?.hikeDate || (b as any).date).getTime();
                 return (dateB || 0) - (dateA || 0); 
             });
         }
@@ -74,16 +103,15 @@ const CommunityScreen = ({
         return filtered;
     }, [reviews, activeTab, searchQuery]);
 
-    const renderPostCard = useCallback(({ item }) => (
+    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<any>) => (
         <PostCard 
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
-            isLiked={isLiked(item)}
-            onEdit={() => onWriteReviewPress(item)}
-            isOwned={isOwned(item)}
+            isLiked={Boolean(isLiked(item))}
+            onEdit={() => onWriteReviewPress(item.id)}
         />
-    ), [likeReview, isLiked, onWriteReviewPress, isOwned]);
+    ), [likeReview, isLiked, onWriteReviewPress]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>

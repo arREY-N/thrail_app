@@ -1,32 +1,70 @@
 import React, { useCallback, useState } from 'react';
-import {
+import { Platform, 
     FlatList,
+    ListRenderItemInfo,
     StyleSheet,
     TouchableOpacity,
     View,
-} from 'react-native';
+ } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
-const getInitials = (name) => name ? name.substring(0, 2).toUpperCase() : '?';
+/**
+ * Helper to extract 2-letter initials from a username.
+ * 
+ * @param {string} name - The user's name
+ * @returns {string} The initials
+ */
+const getInitials = (name?: string): string => name ? name.substring(0, 2).toUpperCase() : '?';
 
-const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress }) => {
-    const [activeTab, setActiveTab] = useState('monthly');
+/**
+ * Interface representing a user's leaderboard standings.
+ */
+export interface LeaderboardUser {
+    id: string;
+    username?: string;
+    score: number;
+    rank: number;
+    trend?: 'up' | 'down' | 'flat';
+}
+
+/**
+ * Props for the LeaderboardScreen component.
+ */
+export interface LeaderboardScreenProps {
+    /** The leaderboard list sorted by score/rank */
+    leaderboardData?: LeaderboardUser[];
+    /** The authenticated user's current rank and score */
+    currentUserData?: LeaderboardUser;
+    /** Callback to navigate back */
+    onBackPress: () => void;
+}
+
+/**
+ * Screen displaying the top community users based on hike points/activity.
+ */
+const LeaderboardScreen = ({ 
+    leaderboardData = [], 
+    currentUserData, 
+    onBackPress 
+}: LeaderboardScreenProps) => {
+    const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'all_time'>('monthly');
 
     const topThree = leaderboardData.slice(0, 3);
     const restOfList = leaderboardData.slice(3);
 
-    const renderTrendIcon = (trend) => {
+    const renderTrendIcon = (trend?: 'up' | 'down' | 'flat') => {
         if (trend === 'up') return <CustomIcon library="Feather" name="trending-up" size={14} color={Colors.SUCCESS} />;
         if (trend === 'down') return <CustomIcon library="Feather" name="trending-down" size={14} color={Colors.ERROR} />;
         return <CustomIcon library="Feather" name="minus" size={14} color={Colors.GRAY_MEDIUM} />;
     };
 
-    const renderPodiumItem = (user, position) => {
+    const renderPodiumItem = (user: LeaderboardUser | undefined, position: number) => {
         const isFirst = position === 1;
         const badgeColor = isFirst ? '#FFD700' : position === 2 ? '#C0C0C0' : '#CD7F32';
         const sizeMultiplier = isFirst ? 1.2 : 1;
@@ -56,7 +94,7 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
         );
     };
 
-    const renderListItem = useCallback(({ item }) => (
+    const renderListItem = useCallback(({ item }: ListRenderItemInfo<LeaderboardUser>) => (
         <View style={styles.listRow}>
             <View style={styles.rankContainer}>
                 <CustomText variant="label" style={styles.rankText}>{item.rank}</CustomText>
@@ -90,7 +128,7 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
             />
 
             <View style={styles.tabContainer}>
-                {['weekly', 'monthly', 'all_time'].map((tab) => (
+                {(['weekly', 'monthly', 'all_time'] as const).map((tab) => (
                     <TouchableOpacity 
                         key={tab}
                         style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
@@ -153,6 +191,8 @@ const LeaderboardScreen = ({ leaderboardData = [], currentUserData, onBackPress 
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     container: { flex: 1 },
     tabContainer: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: Colors.BACKGROUND, gap: 8 },
@@ -179,7 +219,7 @@ const styles = StyleSheet.create({
     listInfo: { flex: 1 },
     listName: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
     listScore: { color: Colors.TEXT_PRIMARY },
-    currentUserFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_LIGHT, paddingBottom: 24, paddingTop: 8, shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 10 },
+    currentUserFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_LIGHT, paddingBottom: 24, paddingTop: 8,     ...dropShadow, },
 });
 
 export default LeaderboardScreen;

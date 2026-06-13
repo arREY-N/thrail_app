@@ -1,8 +1,11 @@
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Platform, StyleSheet } from 'react-native';
 
-export const BUBBLE_H_PAD = 11;
-export const BUBBLE_V_PAD = 7;
+export const BUBBLE_H_PAD: number = 11;
+export const BUBBLE_V_PAD: number = 7;
+
+export const dropShadow = GlobalStyles.dropShadow(3);
 
 export const styles = StyleSheet.create({
     container: { 
@@ -73,11 +76,11 @@ export const styles = StyleSheet.create({
         borderBottomRightRadius: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 1 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 2, 
-        elevation: 1, 
+         
+         
+         
+         
+        ...dropShadow, 
         alignSelf: 'flex-start', 
         overflow: 'hidden', 
         marginLeft: 0 

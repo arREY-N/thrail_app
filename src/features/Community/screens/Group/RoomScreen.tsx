@@ -7,17 +7,26 @@ import {
     Linking,
     Platform,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 import {
     Bubble,
+    BubbleProps,
     Composer,
+    ComposerProps,
     Day,
+    DayProps,
     GiftedChat,
+    IMessage as IGiftedMessage,
     InputToolbar,
-    LoadEarlier,
+    InputToolbarProps,
+    MessageImageProps,
     MessageText,
-    Time
+    MessageTextProps,
+    SendProps,
+    Time,
+    TimeProps
 } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,7 +40,26 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
 
-const ImageWithSpinner = ({ currentMessage, dynamicWidth, dynamicHeight, onPress }) => {
+import { IMessageBase } from '@/src/core/models/Message/Message.types';
+import { IUser } from '@/src/core/models/User/User.types';
+import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
+
+export interface CustomMessage extends IGiftedMessage {
+    readBy?: { id: string; username?: string; firstname?: string }[];
+    isDocument?: boolean;
+    fileUrl?: string;
+    isEmergency?: boolean;
+    isError?: boolean;
+}
+
+interface ImageWithSpinnerProps {
+    currentMessage: CustomMessage;
+    dynamicWidth: number;
+    dynamicHeight: number;
+    onPress: () => void;
+}
+
+const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dynamicWidth, dynamicHeight, onPress }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false); 
 
@@ -39,7 +67,7 @@ const ImageWithSpinner = ({ currentMessage, dynamicWidth, dynamicHeight, onPress
         <View style={styles.imageWrapperContainer}>
             <TouchableOpacity 
                 activeOpacity={0.8} 
-                onPress={hasError ? null : onPress} 
+                onPress={hasError ? undefined : onPress} 
                 style={styles.imageTouchable}
             >
                 {isLoading && !hasError && (
@@ -72,21 +100,21 @@ const ImageWithSpinner = ({ currentMessage, dynamicWidth, dynamicHeight, onPress
     );
 };
 
-const CustomComposer = (props) => {
+const CustomComposer: React.FC<ComposerProps> = (props) => {
     const [isFocused, setIsFocused] = useState(false);
     const currentHeight = !props.text ? 44 : props.composerHeight;
     return (
         <Composer
             {...props}
-            placeholderTextColor={Colors.TEXT_PLACEHOLDER}
             textInputProps={{
                 ...props.textInputProps,
+                placeholderTextColor: Colors.TEXT_PLACEHOLDER,
                 onFocus: () => setIsFocused(true),
                 onBlur: () => setIsFocused(false),
                 style: [
                     styles.composerTextInput,
                     isFocused && styles.composerTextInputFocused,
-                    Platform.OS === 'web' && { outlineStyle: 'none' },
+                    Platform.OS === 'web' && { outlineStyle: 'none' } as any,
                     { height: currentHeight, textAlignVertical: 'top' }
                 ]
             }}
@@ -94,9 +122,23 @@ const CustomComposer = (props) => {
     );
 };
 
-const isImageUrl = (url) => url && (url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media'));
+const isImageUrl = (url?: string): boolean => !!url && (url.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) != null || url.includes('alt=media'));
 
-const RoomScreen = ({ 
+export interface RoomScreenProps {
+    messages: IMessageBase<any>[] | null;
+    currentGroup: GroupWithLegacyName | null;
+    currentUser: IUser | null;
+    sendMessage: (text: string) => Promise<void>;
+    markAsRead: (msg: IMessageBase<any>) => void;
+    loadMoreMessages: () => void;
+    headerTitle: string;
+    onBackPress: () => void;
+    onAttachPress: () => void;
+    onLocationPress: () => void;
+    isUploading: boolean;
+}
+
+const RoomScreen: React.FC<RoomScreenProps> = ({ 
     messages, 
     currentGroup,
     currentUser, 
@@ -111,14 +153,14 @@ const RoomScreen = ({
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, width: screenWidth } = useBreakpoints();
-    const [previewImage, setPreviewImage] = useState(null);
+    const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
     const MAX_WEB_WIDTH = 800;
     const currentContainerWidth = isDesktop ? Math.min(screenWidth, MAX_WEB_WIDTH) : screenWidth;
     const maxBubbleWidth = currentContainerWidth * 0.72;
 
-    const [pendingMessages, setPendingMessages] = useState([]);
+    const [pendingMessages, setPendingMessages] = useState<CustomMessage[]>([]);
 
     const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
     const [hasReachedEnd, setHasReachedEnd] = useState(false);
@@ -144,10 +186,10 @@ const RoomScreen = ({
         if (!messages) return [];
         return messages.map(m => {
             let text = m.content;
-            let image = undefined;
+            let image: string | undefined = undefined;
             let isDocument = false;
-            let fileUrl = undefined;
-            let isEmergency = text && text.includes('Send help!');
+            let fileUrl: string | undefined = undefined;
+            let isEmergency = !!text && text.includes('Send help!');
 
             if (text && text.startsWith('[Attachment]:')) {
                 const url = text.replace('[Attachment]:', '').trim();
@@ -155,18 +197,22 @@ const RoomScreen = ({
                 else { isDocument = true; fileUrl = url; text = ''; }
             } else if (isImageUrl(text)) { image = text.trim(); text = ''; }
 
+            const timeSent = typeof m.timesent === 'object' && m.timesent !== null && 'toDate' in m.timesent
+                ? (m.timesent as any).toDate()
+                : new Date(m.timesent as string | number);
+
             return {
                 _id: m.id,
                 text: text,
-                createdAt: m.timesent,
+                createdAt: timeSent,
                 user: { _id: m.senderId, name: m.senderName },
                 readBy: m.readBy || [],
                 image: image,
                 isDocument: isDocument,
                 fileUrl: fileUrl,
                 isEmergency: isEmergency 
-            };
-        }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } as CustomMessage;
+        }).sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
     }, [messages]);
 
     useEffect(() => {
@@ -188,20 +234,21 @@ const RoomScreen = ({
                 return !isNowInFirebase;
             }));
         }
-    }, [formattedFirebaseMessages]);
+    }, [formattedFirebaseMessages, pendingMessages.length]);
 
     const displayMessages = useMemo(() => {
-        const combined = [...pendingMessages, ...formattedFirebaseMessages].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const combined = [...pendingMessages, ...formattedFirebaseMessages].sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
         
         if (hasReachedEnd && combined.length > 0) {
             if (!combined.some(m => m._id === 'system-beginning-of-chat')) {
-                const oldestMessageDate = combined[combined.length - 1].createdAt;
+                const oldestMessageDate = combined[combined.length - 1].createdAt as Date;
 
                 combined.push({
                     _id: 'system-beginning-of-chat',
                     text: '— Beginning of conversation —',
                     createdAt: new Date(new Date(oldestMessageDate).getTime() - 1), 
                     system: true,
+                    user: { _id: 'system' }
                 });
             }
         }
@@ -214,12 +261,12 @@ const RoomScreen = ({
         if (loadMoreMessages) loadMoreMessages();
     }, [hasReachedEnd, isLoadingEarlier, loadMoreMessages]);
 
-    const onSend = useCallback(async (newMessages = []) => {
+    const onSend = useCallback(async (newMessages: CustomMessage[] = []) => {
         if (newMessages.length > 0) {
             const msgToSend = newMessages[0];
             const pendingId = `pending-${Date.now()}`;
             
-            const pendingMsg = {
+            const pendingMsg: CustomMessage = {
                 ...msgToSend,
                 _id: pendingId,
                 pending: true,
@@ -229,30 +276,20 @@ const RoomScreen = ({
 
             try {
                 await sendMessage(msgToSend.text);
-            } catch (error) {
+            } catch {
                 setPendingMessages(prev => prev.map(m => m._id === pendingId ? { ...m, isError: true } : m));
             }
         }
     }, [sendMessage]);
 
-    const retrySend = useCallback(async (failedMsg) => {
+    const retrySend = useCallback(async (failedMsg: CustomMessage) => {
         setPendingMessages(prev => prev.map(m => m._id === failedMsg._id ? { ...m, isError: false } : m));
         try {
             await sendMessage(failedMsg.text);
-        } catch (error) {
+        } catch {
             setPendingMessages(prev => prev.map(m => m._id === failedMsg._id ? { ...m, isError: true } : m));
         }
     }, [sendMessage]);
-
-    const renderLoadEarlier = useCallback((props) => {
-        return (
-            <LoadEarlier 
-                {...props} 
-                label="Load older messages" 
-                textStyle={{ color: Colors.PRIMARY, fontWeight: 'bold' }} 
-            />
-        );
-    }, []);
 
     const listViewProps = useMemo(() => ({
         showsVerticalScrollIndicator: false,
@@ -262,26 +299,26 @@ const RoomScreen = ({
         removeClippedSubviews: Platform.OS === 'android',
     }), []);
 
-    const renderBubble = useCallback((props) => {
+    const renderBubble = useCallback((props: BubbleProps<CustomMessage>) => {
         const isLeft = props.position === 'left';
         const isRight = props.position === 'right';
-        const senderId = props.currentMessage.user._id;
-        const senderName = props.currentMessage.user.name;
+        const senderId = props.currentMessage?.user?._id;
+        const senderName = props.currentMessage?.user?.name;
         
-        const isPending = props.currentMessage.pending;
-        const isError = props.currentMessage.isError;
+        const isPending = props.currentMessage?.pending;
+        const isError = props.currentMessage?.isError;
         
         const isSameAsPrevious = props.previousMessage && props.previousMessage.user && props.previousMessage.user._id === senderId;
         const isLastInCluster = !props.nextMessage || !props.nextMessage.user || props.nextMessage.user._id !== senderId;
         const showNameHeader = isLeft && !isSameAsPrevious;
         const isAdmin = currentGroup?.admins?.some(admin => admin.id === senderId);
 
-        const readByUsers = (props.currentMessage.readBy || []).filter(u => u.id !== currentUser?.id);
+        const readByUsers = (props.currentMessage?.readBy || []).filter(u => u.id !== currentUser?.id);
         const hasReadReceipts = isRight && isLastInCluster && readByUsers.length > 0 && !isPending && !isError;
         const readByNames = readByUsers.map(u => u.username || u.firstname).join(', ');
 
-        const rightBubbleStyle = props.currentMessage.isEmergency ? [styles.bubbleRight, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleRight, { maxWidth: maxBubbleWidth }];
-        const leftBubbleStyle = props.currentMessage.isEmergency ? [styles.bubbleLeft, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleLeft, { maxWidth: maxBubbleWidth }];
+        const rightBubbleStyle: ViewStyle[] = props.currentMessage?.isEmergency ? [styles.bubbleRight, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleRight, { maxWidth: maxBubbleWidth }];
+        const leftBubbleStyle: ViewStyle[] = props.currentMessage?.isEmergency ? [styles.bubbleLeft, styles.emergencyBubble, { maxWidth: maxBubbleWidth }] : [styles.bubbleLeft, { maxWidth: maxBubbleWidth }];
 
         if (isPending && !isError) rightBubbleStyle.push({ opacity: 0.7 });
         if (isError) rightBubbleStyle.push({ borderWidth: 1, borderColor: Colors.ERROR }); 
@@ -300,13 +337,13 @@ const RoomScreen = ({
                     {...props}
                     wrapperStyle={{ right: rightBubbleStyle, left: leftBubbleStyle }}
                     textStyle={{
-                        right: props.currentMessage.isEmergency ? styles.emergencyText : styles.textRight,
-                        left: props.currentMessage.isEmergency ? styles.emergencyText : styles.textLeft,
+                        right: props.currentMessage?.isEmergency ? styles.emergencyText : styles.textRight,
+                        left: props.currentMessage?.isEmergency ? styles.emergencyText : styles.textLeft,
                     }}
                 />
 
-                {isError && isRight ? (
-                    <TouchableOpacity onPress={() => retrySend(props.currentMessage)} style={styles.readReceiptContainer}>
+                {isError && isRight && props.currentMessage ? (
+                    <TouchableOpacity onPress={() => retrySend(props.currentMessage!)} style={styles.readReceiptContainer}>
                         <CustomIcon library="Feather" name="alert-circle" size={14} color={Colors.ERROR} />
                         <CustomText variant="caption" style={[styles.readReceiptText, { color: Colors.ERROR, fontWeight: 'bold' }]}>
                             Failed to send. Tap to retry.
@@ -331,8 +368,8 @@ const RoomScreen = ({
         );
     }, [currentGroup, currentUser, maxBubbleWidth, retrySend]);
 
-    const renderMessageText = useCallback((props) => {
-        const isEmergency = props.currentMessage.isEmergency;
+    const renderMessageText = useCallback((props: MessageTextProps<CustomMessage>) => {
+        const isEmergency = props.currentMessage?.isEmergency;
         return (
             <MessageText
                 {...props}
@@ -347,28 +384,31 @@ const RoomScreen = ({
         );
     }, []);
 
-    const renderMessageImage = useCallback((props) => {
+    const renderMessageImage = useCallback((props: MessageImageProps<CustomMessage>) => {
         const absoluteMaxImgWidth = isDesktop ? 350 : 260;
         const dynamicImageWidth = Math.min(currentContainerWidth * 0.65, absoluteMaxImgWidth, maxBubbleWidth - (BUBBLE_H_PAD * 2));
         const dynamicImageHeight = dynamicImageWidth * 0.75; 
+        
+        if (!props.currentMessage) return null;
+
         return (
             <ImageWithSpinner 
-                currentMessage={props.currentMessage}
+                currentMessage={props.currentMessage as CustomMessage}
                 dynamicWidth={dynamicImageWidth}
                 dynamicHeight={dynamicImageHeight}
-                onPress={() => setPreviewImage(props.currentMessage.image)}
+                onPress={() => setPreviewImage(props.currentMessage?.image)}
             />
         );
     }, [currentContainerWidth, isDesktop, maxBubbleWidth]);
 
-    const renderCustomView = useCallback((props) => {
+    const renderCustomView = useCallback((props: BubbleProps<CustomMessage>) => {
         const { currentMessage, position } = props;
-        if (currentMessage.isDocument && currentMessage.fileUrl) {
+        if (currentMessage?.isDocument && currentMessage.fileUrl) {
             const isRight = position === 'right';
             return (
                 <TouchableOpacity 
                     style={styles.attachmentContainer}
-                    onPress={() => Platform.OS === 'web' ? window.open(currentMessage.fileUrl, '_blank') : Linking.openURL(currentMessage.fileUrl)}
+                    onPress={() => Platform.OS === 'web' ? window.open(currentMessage.fileUrl, '_blank') : Linking.openURL(currentMessage.fileUrl!)}
                     activeOpacity={0.8}
                 >
                     <View style={[
@@ -405,15 +445,15 @@ const RoomScreen = ({
         return null;
     }, []);
 
-    const renderDay = useCallback((props) => 
+    const renderDay = useCallback((props: DayProps) => 
         <Day 
             {...props} 
             wrapperStyle={styles.dayWrapper} 
-            textStyle={styles.dayText} 
+            textProps={{ style: styles.dayText }} 
         />, []);
 
-    const renderTime = useCallback((props) => {
-        const isEmergency = props.currentMessage.isEmergency;
+    const renderTime = useCallback((props: TimeProps<CustomMessage>) => {
+        const isEmergency = props.currentMessage?.isEmergency;
         return (
             <Time 
                 {...props} 
@@ -423,7 +463,7 @@ const RoomScreen = ({
         );
     }, []);
 
-    const renderInputToolbar = useCallback((props) => 
+    const renderInputToolbar = useCallback((props: InputToolbarProps<CustomMessage>) => 
         <InputToolbar 
             {...props} 
             containerStyle={[styles.inputToolbar, { width: '100%' }]} 
@@ -447,14 +487,14 @@ const RoomScreen = ({
         </View>
     ), [onAttachPress]);
 
-    const renderComposer = useCallback((props) => <CustomComposer {...props} />, []);
+    const renderComposer = useCallback((props: ComposerProps) => <CustomComposer {...props} />, []);
 
-    const renderSend = useCallback((props) => {
+    const renderSend = useCallback((props: SendProps<CustomMessage>) => {
         const hasText = props.text && props.text.trim().length > 0;
         return (
             <TouchableOpacity 
                 style={styles.sendContainer} disabled={!hasText} activeOpacity={0.7}
-                onPress={() => hasText && props.onSend && props.onSend({ text: props.text.trim() }, true)}
+                onPress={() => hasText && props.onSend && props.onSend({ text: props.text!.trim() }, true)}
             >
                 <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
                     <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
@@ -469,16 +509,11 @@ const RoomScreen = ({
                 title={headerTitle?.length > 28 ? `${headerTitle.substring(0, 28)}...` : headerTitle}
                 centerTitle={true}
                 onBackPress={onBackPress} 
-                // rightActions={
-                //     <TouchableOpacity style={styles.headerActionIcon} onPress={onLocationPress} activeOpacity={0.7}>
-                //         <CustomIcon library="FontAwesome6" name="map-location-dot" size={24} color={Colors.PRIMARY} />
-                //     </TouchableOpacity>
-                // }
             />
             
             <View style={[styles.container, { paddingBottom: Platform.OS === 'android' && !isKeyboardVisible ? insets.bottom : 0, alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
-                    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+                    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
                         <GiftedChat
                             messages={displayMessages} 
                             onSend={messages => onSend(messages)}
@@ -494,6 +529,7 @@ const RoomScreen = ({
                             renderDay={renderDay}
                             renderTime={renderTime}
                             renderFooter={renderFooter}
+                            // @ts-expect-error: GiftedChat types missing renderAvatarOnTop
                             renderAvatarOnTop={true}
                             renderUsernameOnMessage={false} 
                             showAvatarForEveryMessage={false}
@@ -501,7 +537,13 @@ const RoomScreen = ({
                             loadEarlier={!hasReachedEnd}
                             onLoadEarlier={handleLoadEarlier}
                             isLoadingEarlier={isLoadingEarlier}
-                            renderLoadEarlier={renderLoadEarlier}
+                            renderLoadEarlier={(props) => (
+                                <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={(props as unknown as { onLoadEarlier?: () => void }).onLoadEarlier} activeOpacity={0.7}>
+                                    <CustomText variant="caption" style={{ color: Colors.PRIMARY, fontWeight: 'bold' }}>
+                                        Load older messages
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
                             infiniteScroll={true}
                             
                             bottomOffset={Platform.OS === 'ios' ? insets.bottom : 0} 
@@ -514,9 +556,9 @@ const RoomScreen = ({
             </View>
 
             <ImagePreviewModal 
-                visible={previewImage !== null}
+                visible={previewImage !== undefined}
                 imageUrl={previewImage}
-                onClose={() => setPreviewImage(null)}
+                onClose={() => setPreviewImage(undefined)}
             />
         </ScreenWrapper>
     );
