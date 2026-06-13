@@ -6,7 +6,7 @@ const UnauthorizedScreen = () => {
     return (
         <View>
             <Text>You do not have the proper authorization to access this page</Text>
-            <Pressable onPress={() => router.replace('/')}>
+            <Pressable onPress={() => router.replace('/' as any)}>
                 <Text> GO BACK </Text>
             </Pressable>
         </View>

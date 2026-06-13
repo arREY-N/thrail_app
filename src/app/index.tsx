@@ -18,9 +18,9 @@ export default function index() {
 		if (!profile) return <LoadingScreen />;
 
 		if (profile && profile.onBoardingComplete)
-			return <Redirect href={"/(tabs)"} />;
+			return <Redirect href={"/(tabs)" as any} />;
 		else 
-			return <Redirect href={"/(auth)/preference"} />;
+			return <Redirect href={"/(auth)/preference" as any} />;
 	}
 
 	if(isLoading) return <LoadingScreen/>

@@ -20,7 +20,7 @@ export default function PaymentResult() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace('/hike');
+            router.replace('/hike' as any);
         }
     }, [router]);
 
