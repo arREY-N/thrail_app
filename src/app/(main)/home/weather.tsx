@@ -6,7 +6,7 @@ import WeatherScreen from "@/src/features/Home/screens/WeatherScreen";
 export default function weather() {
     const router = useRouter();
 
-    const locationWeather = useWeatherStore((state) => state.locationWeather);
+    const locationWeather = useWeatherStore((state: Record<string, any>) => state.locationWeather);
 
     const handleBack = () => {
         router.back();
@@ -14,8 +14,10 @@ export default function weather() {
 
     return (
         <WeatherScreen 
-            locationWeather={locationWeather} 
-            onBackPress={handleBack} 
+            {...{
+                locationWeather: locationWeather,
+                onBackPress: handleBack,
+            } as any}
         />
     );
 }

@@ -14,9 +14,10 @@ export default function notification() {
     
     return (
         <NotificationScreen 
-            notifications={notifications}
-            onBackPress={onBackPress}
-            onPressItem={onViewNotification}
+            {...{
+                notifications: notifications,
+                onBackPress: onBackPress,
+            } as any}
         />
     );
 }
