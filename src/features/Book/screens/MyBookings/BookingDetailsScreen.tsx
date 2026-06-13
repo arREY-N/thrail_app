@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Booking } from "@/src/core/models/Booking/Booking";
+import { BookingStatus, IBooking } from "@/src/core/models/Booking/Booking.types";
+import { IOffer, ISchedule, IActivity } from "@/src/core/models/Offer/Offer.types";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
@@ -18,8 +20,8 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { formatTime } from '@/src/utils/dateFormatter';
 
-import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem.jsx';
-import BookingStatus from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
+import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
+import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
@@ -27,7 +29,12 @@ import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/Qui
 import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 
-const getStrictDocKey = (docName) => {
+/**
+ * Maps document names to strict keys for the upload card.
+ * @param {string} docName - The name of the document
+ * @returns {string} The strict document key
+ */
+const getStrictDocKey = (docName: string): string => {
     if (!docName) return 'validId';
     const lower = docName.toLowerCase();
     if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
@@ -37,6 +44,35 @@ const getStrictDocKey = (docName) => {
     return 'validId';
 };
 
+export interface BookingDetailsScreenProps {
+    /** The booking data */
+    booking: IBooking;
+    /** Function to fetch full offer details */
+    getBookOffer: (id: string) => Promise<IOffer>;
+    /** Callback for back button press */
+    onBackPress: () => void;
+    /** Callback when user proceeds to payment */
+    onProceedToPayment: (booking: IBooking) => void;
+    /** Callback for reschedule confirmation */
+    onReschedule?: (booking: IBooking, offerData: unknown) => void;
+    /** Callback to view receipt */
+    onViewReceipt: (booking: IBooking) => void;
+    /** Callback for cancellation confirmation */
+    onCancelConfirm: (booking: IBooking, reason: string) => void;
+    /** Callback for refund confirmation */
+    onRefundConfirm: (booking: IBooking, reason: string) => void;
+    /** Optional callback for update press */
+    onUpdatePress?: () => void;
+    /** Available future offers for rescheduling */
+    availableFutureOffers?: IOffer[];
+}
+
+/**
+ * Screen component displaying the full details of a user's booking.
+ * Handles document uploads, payments, rescheduling, and cancellation.
+ * 
+ * @param {BookingDetailsScreenProps} props - Component props
+ */
 const BookingDetailsScreen = ({ 
     booking, 
     getBookOffer,
@@ -48,16 +84,16 @@ const BookingDetailsScreen = ({
     onRefundConfirm,
     onUpdatePress,
     availableFutureOffers = [] 
-}) => {
-    const [showActionMenu, setShowActionMenu] = useState(false);
-    const [activeReasonModal, setActiveReasonModal] = useState(null); 
-    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+}: BookingDetailsScreenProps) => {
+    const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
+    const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null); 
+    const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
     
-    const [fullOffer, setFullOffer] = useState(null);
-    const [isLoadingOffer, setIsLoadingOffer] = useState(true);
+    const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
+    const [isLoadingOffer, setIsLoadingOffer] = useState<boolean>(true);
     
-    const [localDocs, setLocalDocs] = useState([]);
-    const [localStatus, setLocalStatus] = useState(booking?.status);
+    const [localDocs, setLocalDocs] = useState<any>([]);
+    const [localStatus, setLocalStatus] = useState<BookingStatus | string | undefined>(booking?.status);
 
     const updateBookingInStore = useBookingsStore(s => s.create);
 
@@ -68,8 +104,9 @@ const BookingDetailsScreen = ({
 
     useEffect(() => {
         const fetchOfferDetails = async () => {
-            if (booking?.offer && booking.offer.schedule && booking.offer.schedule.length > 0) {
-                setFullOffer(booking.offer);
+            const offerToUse = booking?.offer as unknown as IOffer;
+            if (offerToUse && offerToUse.schedule && offerToUse.schedule.length > 0) {
+                setFullOffer(offerToUse);
                 setIsLoadingOffer(false);
                 return;
             }
@@ -95,7 +132,7 @@ const BookingDetailsScreen = ({
     let displayStatus = localStatus;
     if (localStatus === 'cancelled' || localStatus === 'for-cancellation') {
         const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded' || p.status === 'refund');
+        const hasRefund = payments.some(p => p.status === 'refunded' || (p.status as string) === 'refund');
         if (hasRefund) {
             displayStatus = 'refunded';
         }
@@ -112,15 +149,15 @@ const BookingDetailsScreen = ({
     const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
 
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(displayStatus);
-    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus);
+    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(displayStatus as string);
+    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus as string);
     
-    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus);
+    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus as string);
     const canRefund = isConfirmed;
-    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus);
+    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus as string);
     
     const showMenuIcon = !isCancelled && (canCancel || canRefund || canReschedule);
-    const hasHistoricalPayments = booking?.payment?.length > 0;
+    const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
 
     const inclusions = fullOffer?.inclusions || [];
     const thingsToBring = fullOffer?.thingsToBring || [];
@@ -130,7 +167,7 @@ const BookingDetailsScreen = ({
     const trails = useTrailsStore(s => s.data);
     const fullTrail = trails.find(t => t.id === booking?.trail?.id);
 
-    const enhancedBooking = {
+    const enhancedBooking: unknown = {
         ...booking,
         status: displayStatus,
         offer: {
@@ -149,7 +186,7 @@ const BookingDetailsScreen = ({
             return {
                 primaryButton: { 
                     title: "Reschedule", 
-                    variant: "primary", 
+                    variant: "primary" as const, 
                     style: { borderRadius: 12 },
                     onPress: () => setShowRescheduleModal(true) 
                 }
@@ -160,7 +197,7 @@ const BookingDetailsScreen = ({
             return {
                 primaryButton: { 
                     title: "Complete Payment", 
-                    variant: "primary", 
+                    variant: "primary" as const, 
                     style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
                     onPress: () => onProceedToPayment(booking) 
                 }
@@ -171,14 +208,14 @@ const BookingDetailsScreen = ({
             return {
                 secondaryButton: { 
                     title: "View Receipt", 
-                    variant: "outline", 
+                    variant: "outline" as const, 
                     style: { borderColor: Colors.PRIMARY, borderRadius: 12 },
                     textStyle: { color: Colors.PRIMARY },
                     onPress: () => onViewReceipt(booking) 
                 },
                 primaryButton: { 
                     title: "Pay Balance", 
-                    variant: "primary", 
+                    variant: "primary" as const, 
                     style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
                     onPress: () => onProceedToPayment(booking) 
                 }
@@ -189,7 +226,7 @@ const BookingDetailsScreen = ({
             return {
                 primaryButton: { 
                     title: "View Receipt", 
-                    variant: "primary", 
+                    variant: "primary" as const, 
                     style: { borderRadius: 12 },
                     onPress: () => onViewReceipt(booking) 
                 }
@@ -199,7 +236,7 @@ const BookingDetailsScreen = ({
         return null; 
     };
 
-    const renderDocumentRow = (docObj, idx) => {
+    const renderDocumentRow = (docObj: any, idx: number) => {
         const docName = docObj.name || Object.keys(docObj)[0] || 'Document';
         const rawValid = docObj.valid !== undefined ? docObj.valid : Object.values(docObj)[0];
         
@@ -218,10 +255,9 @@ const BookingDetailsScreen = ({
                         docKey={getStrictDocKey(docName)}
                         isUploaded={docObj.file}
                         isRejected={true}
-                        onUploadSuccess={async (url) => {
+                        onUploadSuccess={async (url: string) => {
                             const updatedDocs = [...localDocs];
                             updatedDocs[idx] = {
-                                ...updatedDocs[idx],
                                 file: url,
                                 valid: 'pending'
                             };
@@ -233,7 +269,7 @@ const BookingDetailsScreen = ({
                                     ...booking,
                                     status: 'pending-docs', 
                                     documents: updatedDocs
-                                });
+                                } as unknown as Partial<IBooking>);
                                 await updateBookingInStore(updatedBookingData, false);
                             } catch (e) {
                                 console.error("Failed to save re-uploaded doc to DB", e);
@@ -292,7 +328,7 @@ const BookingDetailsScreen = ({
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
                             <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.TEXT_PRIMARY} />
                         </TouchableOpacity>
-                    ) : null
+                    ) : undefined
                 }
             />
 
@@ -307,7 +343,7 @@ const BookingDetailsScreen = ({
 
                     <QuickInfoCard booking={enhancedBooking} />
 
-                    <BookingStatus status={displayStatus} reason={cancellationReason} />
+                    <BookingStatusComponent status={displayStatus} reason={cancellationReason} />
 
                     {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
@@ -320,14 +356,14 @@ const BookingDetailsScreen = ({
                         </View>
                     )}
 
-                    {((Array.isArray(localDocs) && localDocs.length > 0) || Object.keys(localDocs).length > 0) && (
+                    {((Array.isArray(localDocs) && localDocs.length > 0) || (localDocs && !Array.isArray(localDocs) && Object.keys(localDocs).length > 0)) && (
                         <AccordionItem 
                             title="Required Documents" 
                             icon="file-text"
                             defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
                         >
                             {Array.isArray(localDocs) 
-                                ? localDocs.map((doc, idx) => renderDocumentRow(doc, idx))
+                                ? localDocs.map((doc: unknown, idx: number) => renderDocumentRow(doc, idx))
                                 : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({name: key, valid: val}, idx))
                             }
                         </AccordionItem>
@@ -355,7 +391,7 @@ const BookingDetailsScreen = ({
 
                     {inclusions.length > 0 && (
                         <AccordionItem title="Inclusions" icon="archive" defaultOpen={false}>
-                            {inclusions.map((item, idx) => (
+                            {inclusions.map((item: string, idx: number) => (
                                 <View key={idx} style={styles.bulletRow}>
                                     <View style={styles.tinyDot} />
                                     <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
@@ -366,7 +402,7 @@ const BookingDetailsScreen = ({
 
                     {thingsToBring.length > 0 && (
                         <AccordionItem title="Things to Bring" icon="briefcase" defaultOpen={isConfirmed}>
-                            {thingsToBring.map((item, idx) => (
+                            {thingsToBring.map((item: string, idx: number) => (
                                 <View key={idx} style={styles.bulletRow}>
                                     <View style={styles.tinyDot} />
                                     <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
@@ -378,10 +414,10 @@ const BookingDetailsScreen = ({
                     {schedule.length > 0 && (
                         <AccordionItem title="Itinerary" icon="map" defaultOpen={isConfirmed}>
                             <View style={styles.timelineContainer}>
-                                {schedule.map((dayData, dayIdx) => (
+                                {schedule.map((dayData: ISchedule<Date>, dayIdx: number) => (
                                     <View key={dayIdx} style={styles.timelineDay}>
                                         <CustomText variant="label" style={styles.dayLabelText}>Day {dayData.day}</CustomText>
-                                        {dayData.activities?.map((act, actIdx) => (
+                                        {dayData.activities?.map((act: IActivity<Date>, actIdx: number) => (
                                             <View key={actIdx} style={styles.timelineRow}>
                                                 <View style={styles.timelineDot} />
                                                 <View style={styles.timelineContent}>
@@ -405,7 +441,7 @@ const BookingDetailsScreen = ({
                     {reminders.length > 0 && (
                         <AccordionItem title="Important Reminders" icon="alert-circle" defaultOpen={!isCancelled}>
                             {Array.isArray(reminders) ? (
-                                reminders.map((item, idx) => (
+                                reminders.map((item: string, idx: number) => (
                                     <View key={idx} style={styles.bulletRow}>
                                         <View style={styles.tinyDot} />
                                         <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
@@ -442,7 +478,7 @@ const BookingDetailsScreen = ({
                 visible={!!activeReasonModal}
                 actionType={activeReasonModal}
                 onClose={() => setActiveReasonModal(null)}
-                onConfirm={(reason) => {
+                onConfirm={(reason: string) => {
                     if (activeReasonModal === 'cancel') {
                         onCancelConfirm(booking, reason);
                     } else if (activeReasonModal === 'refund') {
@@ -455,11 +491,11 @@ const BookingDetailsScreen = ({
                 visible={showRescheduleModal} 
                 onClose={() => setShowRescheduleModal(false)} 
                 availableFutureOffers={availableFutureOffers} 
-                onConfirm={(selectedOffer) => {
+                onConfirm={(selectedOffer: any) => {
                     setShowRescheduleModal(false);
                     setTimeout(() => {
                         if (selectedOffer === 'explore') {
-                            router.replace('/explore');
+                            router.replace('/explore' as any);
                         } else if (onReschedule) {
                             onReschedule(booking, selectedOffer.originalData);
                         }

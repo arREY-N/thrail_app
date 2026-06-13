@@ -19,9 +19,49 @@ import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/Booking
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IOffer } from '@/src/core/models/Offer/Offer.types';
+
+export interface MyBookingsScreenProps {
+    /** Array of user's bookings */
+    userBookings: IBooking[];
+    /** Error message, if any */
+    error?: string | null;
+    /** Loading state */
+    isLoading?: boolean;
+    /** Back button handler */
+    onBackPress: () => void;
+    /** Callback when cancel is pressed */
+    onCancelBookingPress: (booking: IBooking, reason: string) => void;
+    /** Callback when refund is pressed */
+    onRefundBookingPress?: (booking: IBooking, reason: string) => void;
+    /** Callback to reschedule */
+    onRescheduleBooking?: (booking: IBooking, newOffer: unknown) => void;
+    /** Callback to pay */
+    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<any>;
+    /** Function to fetch full offer */
+    getBookOffer: (id: string) => Promise<IOffer>;
+    /** Available future offers for rescheduling */
+    availableFutureOffers?: IOffer[];
+    /** Initial booking ID to open */
+    initialBookingId?: string | null;
+    /** Initial view mode */
+    initialView?: 'list' | 'overview' | 'payment' | 'receipt';
+    /** Callback for Terms of Service */
+    onTermsPress: () => void;
+    /** Callback for Privacy Policy */
+    onPrivacyPress: () => void;
+}
+
+/**
+ * Main container screen for a user's bookings list and details views.
+ * 
+ * @param {MyBookingsScreenProps} props - Component props
+ */
 const MyBookingsScreen = ({
     userBookings,
     error,
+    isLoading,
     onBackPress,
     onCancelBookingPress,
     onRefundBookingPress,
@@ -30,11 +70,13 @@ const MyBookingsScreen = ({
     getBookOffer,
     availableFutureOffers,
     initialBookingId,
-    initialView
-}) => {
-    const [currentView, setCurrentView] = useState(initialView || 'list'); 
-    const [selectedBookingId, setSelectedBookingId] = useState(initialBookingId || null);
-    const [showFilterModal, setShowFilterModal] = useState(false);
+    initialView,
+    onTermsPress,
+    onPrivacyPress
+}: MyBookingsScreenProps) => {
+    const [currentView, setCurrentView] = useState<'list' | 'overview' | 'payment' | 'receipt'>(initialView || 'list'); 
+    const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId || null);
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
 
     React.useEffect(() => {
         if (initialView && initialBookingId) {
@@ -54,7 +96,7 @@ const MyBookingsScreen = ({
         setSortBy,
         filterBy,
         setFilterBy
-    } = useBookingFilters(userBookings);
+    } = useBookingFilters(userBookings); // Handle internal mismatches
 
     const onHeaderBackPress = () => {
         if (currentView === 'overview') {
@@ -67,7 +109,7 @@ const MyBookingsScreen = ({
         }
     };
 
-    const onBookingSelectPress = (booking) => {
+    const onBookingSelectPress = (booking: IBooking) => {
         setSelectedBookingId(booking.id);
         setCurrentView('overview'); 
     };
@@ -80,7 +122,7 @@ const MyBookingsScreen = ({
         {
             id: 'sortBy',
             title: 'Sort By',
-            type: 'radio',
+            type: 'radio' as const,
             options: [
                 { label: 'Hike Date', value: 'hike-date' },
                 { label: 'Date Booked', value: 'booked-date' },
@@ -90,7 +132,7 @@ const MyBookingsScreen = ({
         {
             id: 'filterBy',
             title: 'Filter By',
-            type: 'pill',
+            type: 'pill' as const,
             multiSelect: false,
             options: [
                 { label: 'Show All', value: 'all' },
@@ -121,7 +163,7 @@ const MyBookingsScreen = ({
                     <BookTabs 
                         tabs={tabs}
                         activeTab={activeTab}
-                        onTabChange={setActiveTab}
+                        onTabChange={(id: string) => setActiveTab(id as import('@/src/features/Book/hooks/useBookingFilters').TabId)}
                     />
                 </View>
 
@@ -139,7 +181,7 @@ const MyBookingsScreen = ({
                         )}
 
                         {filteredBookings.length > 0 ? (
-                            filteredBookings.map((booking) => (
+                            filteredBookings.map((booking: IBooking) => (
                                 <BookingCard 
                                     key={booking.id} 
                                     booking={booking} 
@@ -164,7 +206,7 @@ const MyBookingsScreen = ({
                     sections={filterSections}
                     initialValues={{ sortBy, filterBy }}
                     defaultValues={{ sortBy: 'hike-date', filterBy: 'all' }}
-                    onApply={(values) => {
+                    onApply={(values: any) => {
                         setSortBy(values.sortBy);
                         setFilterBy(values.filterBy);
                     }}
@@ -219,6 +261,8 @@ const MyBookingsScreen = ({
                 onContinue={() => setCurrentView('overview')}
                 onBackPress={onHeaderBackPress}
                 onPayOffer={onPayOffer}
+                onTermsPress={onTermsPress}
+                onPrivacyPress={onPrivacyPress}
             />
         );
     }
