@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import CustomButton from "@/src/components/CustomButton";
 import CustomHeader from "@/src/components/CustomHeader";
@@ -8,11 +8,25 @@ import CustomText from "@/src/components/CustomText";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
+import { IUser } from "@/src/core/models/User/User.types";
 import { formatDate } from "@/src/core/utility/date";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
-export const InfoRow = ({ icon, label, value }) => (
+/**
+ * Props for the InfoRow component
+ */
+interface InfoRowProps {
+    icon: string;
+    label: string;
+    value?: string | null;
+}
+
+/**
+ * Component to display a simple key-value info pair with an icon
+ */
+export const InfoRow = ({ icon, label, value }: InfoRowProps) => (
     <View style={styles.infoRow}>
         <View style={styles.iconCircle}>
             <CustomIcon library="Feather" name={icon} size={20} color={Colors.PRIMARY} />
@@ -26,13 +40,35 @@ export const InfoRow = ({ icon, label, value }) => (
     </View>
 );
 
-const PreferencePill = ({ label }) => (
+/**
+ * Props for the PreferencePill component
+ */
+interface PreferencePillProps {
+    label: string;
+}
+
+/**
+ * Component to display a small selected preference tag
+ */
+const PreferencePill = ({ label }: PreferencePillProps) => (
     <View style={styles.pill}>
         <CustomText style={styles.pillText}>{label}</CustomText>
     </View>
 );
 
-const PreferenceRow = ({ icon, label, items }) => (
+/**
+ * Props for the PreferenceRow component
+ */
+interface PreferenceRowProps {
+    icon: string;
+    label: string;
+    items?: string[];
+}
+
+/**
+ * Component to display an array of preferences using pills
+ */
+const PreferenceRow = ({ icon, label, items }: PreferenceRowProps) => (
     <View style={styles.infoRow}>
         <View style={styles.iconCircle}>
             <CustomIcon library="Feather" name={icon} size={20} color={Colors.PRIMARY} />
@@ -40,7 +76,7 @@ const PreferenceRow = ({ icon, label, items }) => (
         <View style={styles.textContainer}>
             <CustomText variant="caption" style={styles.rowLabel}>{label}</CustomText>
             <View style={styles.pillContainer}>
-                {items?.length > 0 ? (
+                {items && items.length > 0 ? (
                     items.map((item, idx) => <PreferencePill key={idx} label={item} />)
                 ) : (
                     <CustomText variant="body" style={styles.emptyText}>None selected</CustomText>
@@ -50,12 +86,29 @@ const PreferenceRow = ({ icon, label, items }) => (
     </View>
 );
 
+/**
+ * Props for the ProfileInfoScreen component
+ */
+export interface ProfileInfoScreenProps {
+    /** The authenticated user's profile data */
+    user: IUser;
+    /** Callback to navigate back */
+    onBackPress: () => void;
+    /** Callback to edit account details */
+    onEditPress: () => void;
+    /** Callback to delete account */
+    onDeletePress: () => void;
+}
+
+/**
+ * Screen displaying the user's detailed personal information and preferences.
+ */
 const ProfileInfoScreen = ({ 
     user, 
     onBackPress, 
     onEditPress, 
     onDeletePress 
-}) => {
+}: ProfileInfoScreenProps) => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
@@ -88,7 +141,7 @@ const ProfileInfoScreen = ({
                         <InfoRow icon="at-sign" label="Username" value={`@${user.username}`} />
                         <InfoRow icon="mail" label="Email" value={user.email} />
                         <InfoRow icon="phone" label="Phone Number" value={user.phoneNumber} />
-                        <InfoRow icon="calendar" label="Birthday" value={user.birthday ? formatDate(user.birthday) : null} />
+                        <InfoRow icon="calendar" label="Birthday" value={user.birthday ? formatDate(user.birthday as Date) : null} />
                         <InfoRow icon="map-pin" label="Address" value={user.address} />
                     </View>
                 </View>
@@ -153,13 +206,7 @@ const ProfileInfoScreen = ({
     );
 };
 
-const dropShadow = {
-    elevation: 3,
-    shadowColor: Colors.SHADOW,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-};
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     contentArea: {

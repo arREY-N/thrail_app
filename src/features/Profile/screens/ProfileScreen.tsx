@@ -14,19 +14,64 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Review } from '@/src/core/models/Review/Review';
+import { IUser, Role } from '@/src/core/models/User/User.types';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import HikeLogTab from '@/src/features/Profile/screens/components/HikeLogTab';
-import MilestonesTab from '@/src/features/Profile/screens/components/MilestonesTab';
+import HikeLogTab from '@/src/features/Profile/tabs/HikeLogTab';
+import MilestonesTab from '@/src/features/Profile/tabs/MilestonesTab';
 
-const getInitials = (firstName, lastName) => {
+/**
+ * Helper function to extract initials from a user's first and last name.
+ * 
+ * @param {string} firstName - The user's first name
+ * @param {string} lastName - The user's last name
+ * @returns {string} The extracted initials (1 or 2 characters)
+ */
+const getInitials = (firstName?: string, lastName?: string): string => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     if (firstName) return firstName.charAt(0).toUpperCase();
     if (lastName) return lastName.charAt(0).toUpperCase();
     return '?';
 };
 
+/**
+ * Props for the ProfileScreen component.
+ */
+export interface ProfileScreenProps {
+    /** The authenticated user's profile data */
+    profile?: IUser;
+    /** The active role of the current user */
+    role?: Role | null;
+    /** Statistical milestones for the user */
+    stats?: import('@/src/features/Profile/tabs/MilestonesTab').MilestonesTabProps['stats']; 
+    /** An array of reviews/hikes the user has logged */
+    hikeLog?: Review[];
+    /** Callback for the settings gear icon */
+    onSettingsPress: () => void;
+    /** Callback when a review is liked */
+    onLikeReview: (review: Review) => void;
+    /** Helper to check if a review is liked by current user */
+    isLiked: (review: Review) => boolean;
+    /** Callback to edit a review */
+    onEditReview: (id?: string) => void;
+    /** Callback for FAB action */
+    onGroupPress: () => void;
+    /** Callback to view admin */
+    onAdminPress?: () => void;
+    /** Callback to view superadmin */
+    onSuperadminPress?: () => void;
+    /** Callback to apply for business */
+    onApplyPress?: () => void;
+    /** Callback to sign out */
+    onSignOutPress?: () => void;
+}
+
+/**
+ * Main Profile Screen displaying user information, milestones, and hike logs.
+ */
 const ProfileScreen = ({
     profile,
     role,
@@ -36,14 +81,18 @@ const ProfileScreen = ({
     onLikeReview,
     isLiked,
     onEditReview,
-    onGroupPress
-}) => {
+    onGroupPress,
+    onAdminPress,
+    onSuperadminPress,
+    onApplyPress,
+    onSignOutPress
+}: ProfileScreenProps) => {
 
-    const [activeTab, setActiveTab] = useState('Milestones');
+    const [activeTab, setActiveTab] = useState<'Milestones' | 'Hike Log'>('Milestones');
     
     const { isDesktop, isTablet } = useBreakpoints();
-    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
-    const responsiveAlignStyle = { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' };
+    const contentMaxWidth: number | `${number}%` = isDesktop ? 800 : (isTablet ? 650 : '100%');
+    const responsiveAlignStyle = { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' as const };
 
     const userName = profile?.firstname 
         ? `${profile.firstname} ${profile.lastname}` 
@@ -56,10 +105,12 @@ const ProfileScreen = ({
     let createdDate = 'Mar 2026';
     if (profile?.createdAt) {
         try {
-            const dateObj = typeof profile.createdAt?.toDate === 'function' 
-                ? profile.createdAt.toDate() 
-                : new Date(profile.createdAt);
-            
+            // IUser.createdAt is always a Date after fromFirestore() conversion.
+            // At runtime, a raw Firestore Timestamp may appear if Zustand rehydrates
+            // a cached snapshot before the converter runs. We guard for that here.
+            const rawDate: unknown = profile.createdAt;
+            const dateObj = (rawDate as { toDate?: () => Date }).toDate?.() ?? new Date(rawDate as string | number | Date);
+
             if (!isNaN(dateObj.getTime())) {
                 createdDate = formatDate(dateObj);
             }
@@ -167,8 +218,8 @@ const ProfileScreen = ({
                         <HikeLogTab 
                             hikeLog={hikeLog} 
                             onLikeReview={onLikeReview}
-                            isLiked={isLiked}
-                            onEditReview={onEditReview}
+                            isLiked={(review) => Boolean(isLiked(review))}
+                            onEditReview={(id: string) => onEditReview(id)}
                         />
                     )}
                 </View>
@@ -184,12 +235,12 @@ const ProfileScreen = ({
 const tabShadow = Platform.select({
     ios: {
         shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 8
     },
     android: {
-        elevation: 3,
+...GlobalStyles.dropShadow(4),
     },
     web: {
         boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
@@ -200,7 +251,6 @@ const styles = StyleSheet.create({
     transparentHeader: {
         backgroundColor: 'transparent',
         borderBottomWidth: 0,
-        elevation: 0,
     },
     scrollContent: {
         paddingHorizontal: 16,

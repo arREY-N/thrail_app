@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import {
+import { Platform, 
     StyleSheet,
     View
-} from 'react-native';
+ } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
@@ -17,7 +17,62 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import SelectionOption from '@/src/features/Auth/components/SelectionOption';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
+/**
+ * Interface defining the payload structure for the partnership application.
+ */
+export interface PartnerApplicationForm {
+    name?: string;
+    establishedOn?: string | Date | null;
+    address?: string;
+    servicedLocation?: string[] | string[][];
+    owner?: {
+        name?: string;
+        email?: string;
+        validIdFront?: string;
+        validIdBack?: string;
+    };
+    permits?: {
+        bir?: string;
+        dti?: string;
+        denr?: string;
+        [key: string]: string | undefined;
+    };
+}
+
+/**
+ * Interface for application update event payload.
+ */
+export interface UpdatePayload {
+    section: 'root' | 'owner' | 'permits';
+    id: string;
+    value: string | string[] | null;
+}
+
+/**
+ * Props for the ApplyScreen component.
+ */
+export interface ApplyScreenProps {
+    /** System feedback or error messages */
+    system?: string;
+    /** Options used to populate dropdowns or selectors */
+    options?: {
+        provinces?: string[];
+    };
+    /** Current state of the application form */
+    application?: PartnerApplicationForm;
+    /** Callback triggered when a form field is updated */
+    onUpdatePress: (payload: UpdatePayload) => void;
+    /** Callback triggered to submit the entire application */
+    onSubmitPress: () => void;
+    /** Callback to navigate back */
+    onBackPress: () => void;
+}
+
+/**
+ * Form screen enabling users to submit their business application for review.
+ */
 const ApplyScreen = ({
     system,
     options,
@@ -25,7 +80,7 @@ const ApplyScreen = ({
     onUpdatePress,
     onSubmitPress,
     onBackPress
-}) => {
+}: ApplyScreenProps) => {
     const [showConfirm, setShowConfirm] = useState(false);
 
     const isSuccess = system && (system.toLowerCase().includes('sent') || system.toLowerCase().includes('success'));
@@ -56,12 +111,12 @@ const ApplyScreen = ({
         onSubmitPress();
     };
 
-    const handleLocationSelect = (location) => {
+    const handleLocationSelect = (location: string) => {
         const currentLocations = Array.isArray(application?.servicedLocation) 
-            ? application.servicedLocation.flat(Infinity) 
+            ? application.servicedLocation.flat(Infinity) as string[]
             : [];
             
-        let newLocations;
+        let newLocations: string[];
         
         if (currentLocations.includes(location)) {
             newLocations = currentLocations.filter(loc => loc !== location);
@@ -73,7 +128,7 @@ const ApplyScreen = ({
     };
 
     const safeLocations = Array.isArray(application?.servicedLocation) 
-        ? application.servicedLocation.flat(Infinity) 
+        ? application.servicedLocation.flat(Infinity) as string[]
         : [];
 
     const permitsList = [
@@ -141,7 +196,7 @@ const ApplyScreen = ({
                                 type="calendar"
                                 label="Date of Establishment *"
                                 placeholder="MM / DD / YYYY"
-                                value={application?.establishedOn || null}
+                                value={(application?.establishedOn as string) || null}
                                 onChangeText={(val) => onUpdatePress({ section: 'root', id: 'establishedOn', value: val })}
                                 showTodayButton={true}
                                 allowFutureDates={false}
@@ -170,6 +225,7 @@ const ApplyScreen = ({
                                             selected={safeLocations.includes(province)}
                                             onPress={() => handleLocationSelect(province)}
                                             style={styles.compactSelection}
+                                            children={undefined}
                                         />
                                     );
                                 })}
@@ -266,6 +322,8 @@ const ApplyScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     scrollContent: { 
         paddingTop: 8, 
@@ -321,11 +379,11 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         paddingVertical: 24, 
         paddingHorizontal: 16,
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05,
-        shadowRadius: 8, 
-        elevation: 2, 
+         
+         
+        
+         
+        ...dropShadow, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT,
     },

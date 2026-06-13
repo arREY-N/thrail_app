@@ -14,14 +14,39 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
-const SectionHeader = ({ title }) => (
+/**
+ * Props for SectionHeader component
+ */
+interface SectionHeaderProps {
+    title: string;
+}
+
+/**
+ * A header component for settings sections
+ */
+const SectionHeader = ({ title }: SectionHeaderProps) => (
     <CustomText variant="h3" style={styles.sectionHeader}>
         {title}
     </CustomText>
 );
 
-const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive }) => (
+/**
+ * Props for SettingsItem component
+ */
+interface SettingsItemProps {
+    icon: string;
+    library?: IconLibrary;
+    title: string;
+    onPress: () => void;
+    isDestructive?: boolean;
+}
+
+/**
+ * A selectable item row within the settings list
+ */
+const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive }: SettingsItemProps) => (
     <TouchableOpacity 
         style={styles.itemContainer} 
         onPress={onPress}
@@ -53,6 +78,33 @@ const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive
 );
 
 
+/**
+ * Props for the SettingsScreen component
+ */
+export interface SettingsScreenProps {
+    /** The active role of the current user */
+    role?: string;
+    /** Callback to navigate back */
+    onBackPress: () => void;
+    /** Callback for initiating user sign out */
+    onSignOutPress: () => void;
+    /** Callback to navigate to admin dashboard */
+    onAdminPress: () => void;
+    /** Callback to navigate to superadmin dashboard */
+    onSuperadminPress: () => void;
+    /** Callback to navigate to business application form */
+    onApplyPress: () => void;
+    /** Callback to navigate to profile information screen */
+    onProfileInfoPress: () => void;
+    /** Callback to navigate to Terms & Conditions */
+    onTerms: () => void;
+    /** Callback to navigate to Privacy Policy */
+    onPrivacy: () => void;
+}
+
+/**
+ * Main Settings screen where users can configure app preferences, account details, and view info.
+ */
 const SettingsScreen = ({
     role,
     onBackPress,
@@ -63,9 +115,9 @@ const SettingsScreen = ({
     onProfileInfoPress,
     onTerms,
     onPrivacy
-}) => {
+}: SettingsScreenProps) => {
 
-    const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [showSignOutModal, setShowSignOutModal] = useState<boolean>(false);
 
     const handleConfirmSignOut = () => {
         setShowSignOutModal(false);
@@ -187,7 +239,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     iconCircleDestructive: {
-        backgroundColor: Colors.ERROR_BG || 'rgba(255, 0, 0, 0.1)',
+        backgroundColor: Colors.ERROR_BG,
     },
     itemTitle: {
         fontWeight: 'bold',
