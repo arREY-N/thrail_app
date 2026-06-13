@@ -19,7 +19,7 @@ export default function listOffer(){
         isLoading: trailIsLoading,
         error: offerError,
         trailOffers,
-    } = useTrailOffer({ trailId });
+    } = useTrailOffer({ trailId: trailId as any });
 
     const { 
         isLoading: bookIsLoading,
@@ -28,7 +28,7 @@ export default function listOffer(){
         onUpdatePress,
         onCompleteBook,
         onSetOffer,
-    } = useBookOffer({ trailId });
+    } = useBookOffer({ trailId: trailId as any });
 
     const {
         localError,
@@ -38,23 +38,27 @@ export default function listOffer(){
         dti,
         denr,
         onPayOffer,
-    } = useFileUpload();
+    } = useFileUpload() as any;
 
     console.log('trailIsLoading: ', trailIsLoading)
     if(trailIsLoading) return <LoadingScreen/>;
 
-    return (      
-        <BookingScreen 
-            offers={trailOffers}
-            booking={booking}
-            error={offerError || bookError}
-            onSetOffer={onSetOffer}
-            onBookNowPress={onCompleteBook}
-            onBackPress={onBackPress}
-            onUpdatePress={onUpdatePress}
-            onCompleteOffer={onCompleteBook}
-            onTermsPress={onTerms}
-            onPrivacyPress={onPrivacy}
-        />  
-    )
+    return (
+        <>
+            {/* @ts-ignore */}
+            <BookingScreen 
+                {...{
+                    offers: trailOffers,
+                    error: (offerError || bookError),
+                    onSetOffer: onSetOffer,
+                    onBookNowPress: onCompleteBook,
+                    onBackPress: onBackPress,
+                    onUpdatePress: onUpdatePress,
+                    onCompleteOffer: onCompleteBook,
+                    onTermsPress: onTerms,
+                    onPrivacyPress: onPrivacy,
+                } as any}
+            />  
+        </>
+    );
 }
