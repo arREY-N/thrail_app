@@ -116,13 +116,13 @@ export class Group implements IGroup {
                 thingsToBring: this.offer.thingsToBring,
                 reminders: this.offer.reminders,
                 description: this.offer.description,
-                date: Timestamp.fromDate(this.offer.date),
-                endDate: isNew ? serverTimestamp() : Timestamp.fromDate(this.offer.endDate),
+                date: Timestamp.fromDate(this.offer.date || new Date()),
+                endDate: isNew ? serverTimestamp() : Timestamp.fromDate(this.offer.endDate || new Date()),
                 schedule: this.offer.schedule.map(s => ({
                     day: s.day,
                     activities: s.activities.map(a => ({
                         event: a.event,
-                        time: Timestamp.fromDate(a.time)
+                        time: Timestamp.fromDate(a.time || new Date())
                     }))
                 }))
             },
@@ -133,7 +133,7 @@ export class Group implements IGroup {
                 senderName: this.lastMessage.senderName,
                 status: this.lastMessage.status,
                 readBy: this.lastMessage.readBy,
-                timesent: Timestamp.fromDate(this.lastMessage.timesent)
+                timesent: Timestamp.fromDate(this.lastMessage.timesent || new Date())
             },
             status: this.status,
             image: this.image
