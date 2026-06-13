@@ -45,7 +45,26 @@ const FAVORED_FACTORS = [
     'Wildlife', 'Summit Marker'
 ];
 
-const WriteReviewScreen = ({ 
+export interface DraftReview {
+    overallRating: number;
+    perceivedDifficulty?: string;
+    trailMaintenance?: string;
+    difficultyFactors?: string[];
+    favoredFactors?: string[];
+    review?: string;
+    image?: string[];
+    trail?: { name?: string };
+}
+
+export interface WriteReviewScreenProps {
+    review: DraftReview;
+    isLoading: boolean;
+    error: string | null;
+    onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
+    onSaveReview: () => void;
+}
+
+const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({ 
     review, 
     isLoading, 
     error, 
@@ -64,8 +83,8 @@ const WriteReviewScreen = ({
     if (currentStep === 'ratings') {
         hasAnswer = 
             review.overallRating > 0 && 
-            (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') &&
-            (review.trailMaintenance && review.trailMaintenance !== 'undefined') &&
+            (!!review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') &&
+            (!!review.trailMaintenance && review.trailMaintenance !== 'undefined') &&
             touchedMaintenance; 
     } else if (currentStep === 'factors') {
         hasAnswer = true;
@@ -88,12 +107,12 @@ const WriteReviewScreen = ({
         }
     };
 
-    const updateReview = (field, value) => {
+    const updateReview = (field: string, value: unknown) => {
         onUpdatePress({ section: 'root', id: field, value });
     };
 
-    const toggleArrayItem = (field, item) => {
-        const currentArray = review[field] || [];
+    const toggleArrayItem = (field: keyof DraftReview, item: string) => {
+        const currentArray = (review[field] as string[]) || [];
         const newArray = currentArray.includes(item) 
             ? currentArray.filter(i => i !== item)
             : [...currentArray, item];
@@ -104,7 +123,7 @@ const WriteReviewScreen = ({
         switch (currentStep) {
             case 'ratings':
                 const showDifficulty = review.overallRating > 0;
-                const showMaintenance = showDifficulty && (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined');
+                const showMaintenance = showDifficulty && (!!review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined');
 
                 return (
                     <View>
@@ -236,7 +255,7 @@ const WriteReviewScreen = ({
                             </CustomText>
                             <CustomFeedbackInput 
                                 placeholder="Type your review here..."
-                                value={review.review}
+                                value={review.review || ''}
                                 onChangeText={(val) => updateReview('review', val)}
                             />
                             

@@ -8,6 +8,7 @@ import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
@@ -30,7 +31,7 @@ interface HikeRecordingScreenProps {
     hike: Hike;
     booking: Booking | null;
     currentGroup: Group | null;
-    hikerLocations: any[];
+    hikerLocations: { id: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number }[];
     error: string | null;
     fullOffer?: Offer | null;
     
@@ -400,12 +401,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                     {(fullOffer?.schedule && fullOffer.schedule.length > 0) && (
                                         <View style={styles.infoSection}>
                                             <CustomText style={styles.infoTitle}>Itinerary</CustomText>
-                                            {fullOffer.schedule.map((day: any, idx: number) => (
+                                            {fullOffer.schedule.map((day: { day: number; activities: { time: string | Date; event: string }[] }, idx: number) => (
                                                 <View key={idx} style={{ marginBottom: 12 }}>
                                                     <CustomText style={styles.infoSubTitle}>Day {day.day}</CustomText>
-                                                    {day.activities.map((act: any, i: number) => (
+                                                    {day.activities.map((act: { time: string | Date; event: string }, i: number) => (
                                                         <View key={i} style={styles.activityRow}>
-                                                            <CustomText style={styles.activityTime}>{formatTime(act.time)}</CustomText>
+                                                            <CustomText style={styles.activityTime}>{formatTime(act.time as any)}</CustomText>
                                                             <CustomText style={styles.activityEvent}>{act.event}</CustomText>
                                                         </View>
                                                     ))}
@@ -417,7 +418,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                     {(fullOffer?.thingsToBring && fullOffer.thingsToBring.length > 0) && (
                                         <View style={styles.infoSection}>
                                             <CustomText style={styles.infoTitle}>Things to Bring</CustomText>
-                                            {fullOffer.thingsToBring.map((item: any, idx: number) => (
+                                            {fullOffer.thingsToBring.map((item: string, idx: number) => (
                                                 <CustomText key={idx} style={styles.infoText}>• {item}</CustomText>
                                             ))}
                                         </View>
@@ -470,7 +471,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         </View>
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
-                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp as any)}` : 'Waiting for signal...'}</CustomText>
                                             { locData && (
                                                 <Text onPress={() => handlePress(locationLink)}>View in Google Maps</Text>
                                             )}
@@ -490,7 +491,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     );
 };
 
-const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 }, android: { elevation: 6 } });
+const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 }, android: {...GlobalStyles.dropShadow(),} });
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },

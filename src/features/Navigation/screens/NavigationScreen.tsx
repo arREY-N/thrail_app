@@ -10,17 +10,20 @@ import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
+import { IBooking } from "@/src/core/models/Booking/Booking.types";
+import { Group } from "@/src/core/models/Group/Group";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 
 interface NavigationScreenProps {
-    upcomingBookings: any[]; 
-    groups: any[];
+    upcomingBookings: IBooking[]; 
+    groups: Group[];
     currentUserId?: string;
     
     searchQuery: string;
@@ -33,26 +36,26 @@ interface NavigationScreenProps {
     onTrailSelect: (trail: Trail) => void;
     onGroupChatPress: () => void;
     onBookingPress: () => void;
-    onStartTracking: (bookingContext?: any) => void;
-    onDeveloperBypass?: (bookingContext: any) => void;
+    onStartTracking: (bookingContext?: IBooking | null) => void;
+    onDeveloperBypass?: (bookingContext: IBooking | null) => void;
 }
 
-const getElevation = (trail: any) => {
+const getElevation = (trail: Trail) => {
     const elev = trail?.difficulty?.elevation || trail?.geography?.masl || trail?.masl;
     return elev && elev > 0 ? elev : '--';
 };
 
-const getLocation = (trail: any) => {
+const getLocation = (trail: Trail) => {
     const prov = trail?.general?.province;
     if (Array.isArray(prov) && prov.length > 0) return prov.join(', ');
     if (typeof prov === 'string') return prov;
     return trail?.general?.address || 'Unknown';
 };
 
-const getDisplayData = (item: any) => {
+const getDisplayData = (item: Trail) => {
     const dist = item?.difficulty?.length ? `${item.difficulty.length} km` : "--";
     const elev = getElevation(item);
-    const route = item?.difficulty?.circularity === "Out and Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
+    const route = item?.difficulty?.circularity === "Out-and-Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
     return { dist, elev: `${elev} masl`, route };
 };
 
@@ -103,8 +106,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         );
     };
 
-    const navigateToGroupChat = (booking: any) => {
-        const targetGroup = groups?.find(g => g.members?.some((m: any) => m.id === currentUserId && m.bookingId === booking.id));
+    const navigateToGroupChat = (booking: IBooking) => {
+        const targetGroup = groups?.find(g => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
@@ -330,7 +333,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     onClose={() => setUpcomingModalVisible(false)}
                     bookings={upcomingBookings}
                     activeBooking={activeBooking}
-                    onSelectBooking={(booking: any) => {
+                    onSelectBooking={(booking: IBooking) => {
                         setActiveBooking(booking);
                         setUpcomingModalVisible(false);
                     }}
@@ -343,7 +346,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
 const dropShadow = Platform.select({
     ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
-    android: { elevation: 6 },
+    android: {...GlobalStyles.dropShadow(),},
     web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)' } as any,
 });
 
