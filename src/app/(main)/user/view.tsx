@@ -44,7 +44,7 @@ export default function viewUser(){
                 user={user}
                 onBackPress={onBackPress}
                 onEditPress={onEditPress}
-                onDeletePress={onDeleteAccountPress}
+                onDeletePress={() => onDeleteAccountPress(userId)}
             />
             {/* <TESTUSER
                 user={user}
