@@ -1,19 +1,37 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform,  StyleSheet, View  } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
+export interface OfferStatusDetails {
+    label: string;
+    bg: string;
+    color: string;
+}
+
+export interface OfferCardProps {
+    offer: any;
+    statusDetails: OfferStatusDetails;
+    actionableCount: number;
+    onViewBookings: (offerId: string) => void;
+    onEditPress: (offerId: string) => void;
+}
+
+/**
+ * OfferCard — Displays an offer's high-level information and its actionable bookings count.
+ */
 const OfferCard = ({ 
     offer, 
     statusDetails, 
     actionableCount, 
     onViewBookings, 
     onEditPress 
-}) => {
+}: OfferCardProps) => {
     return (
         <View style={styles.offerCard}>
             
@@ -124,6 +142,8 @@ const OfferCard = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     offerCard: { 
         backgroundColor: Colors.WHITE, 
@@ -131,11 +151,11 @@ const styles = StyleSheet.create({
         padding: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 6, 
-        elevation: 2 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     cardHeader: { 
         flexDirection: 'row', 

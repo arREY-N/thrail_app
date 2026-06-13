@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
@@ -18,11 +19,17 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatTime, parseTimeToDate } from '@/src/utils/dateFormatter';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const AMPMToggle = ({ value, onChange }) => (
+interface AMPMToggleProps {
+    value: string;
+    onChange: (val: string) => void;
+}
+
+const AMPMToggle = ({ value, onChange }: AMPMToggleProps) => (
     <View style={styles.toggleContainer}>
         <TouchableOpacity 
             style={[
@@ -62,19 +69,30 @@ const AMPMToggle = ({ value, onChange }) => (
     </View>
 );
 
+export interface ScheduleBuilderModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onSave: (schedule: any[]) => void;
+    initialSchedule?: any[];
+    offerDays?: number | string;
+}
+
+/**
+ * ScheduleBuilderModal — A bottom sheet/modal for admins to build a day-by-day itinerary.
+ */
 const ScheduleBuilderModal = ({ 
     visible, 
     onClose, 
     onSave, 
     initialSchedule = [], 
     offerDays = 0 
-}) => {
+}: ScheduleBuilderModalProps) => {
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const isDesktop = width >= 768;
 
-    const [schedule, setSchedule] = useState([]);
-    const [focusedField, setFocusedField] = useState(null);
+    const [schedule, setSchedule] = useState<any[]>([]);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
 
     const [renderModal, setRenderModal] = useState(visible);
     const animValue = useRef(new Animated.Value(0)).current;
@@ -98,13 +116,13 @@ const ScheduleBuilderModal = ({
 
     useEffect(() => {
         if (visible) {
-            const targetDays = parseInt(offerDays, 10) || 0;
-            let formattedSchedule = [];
+            const targetDays = typeof offerDays === 'string' ? parseInt(offerDays, 10) : (offerDays || 0);
+            let formattedSchedule: any[] = [];
 
             if (initialSchedule && initialSchedule.length > 0) {
-                formattedSchedule = initialSchedule.map(day => ({
+                formattedSchedule = initialSchedule.map((day: any) => ({
                     day: day.day,
-                    activities: day.activities.map(act => {
+                    activities: day.activities.map((act: any) => {
                         const fullTimeStr = formatTime(act.time); 
                         const [timePart, period] = fullTimeStr.split(' ');
                         const [h, m] = timePart ? timePart.split(':') : ['', ''];
@@ -162,14 +180,14 @@ const ScheduleBuilderModal = ({
         ]);
     };
 
-    const handleRemoveDay = (dayIndexToRemove) => {
+    const handleRemoveDay = (dayIndexToRemove: number) => {
         const newSchedule = schedule
             .filter((_, idx) => idx !== dayIndexToRemove)
             .map((d, idx) => ({ ...d, day: idx + 1 }));
         setSchedule(newSchedule);
     };
 
-    const handleAddActivity = (dayIndex) => {
+    const handleAddActivity = (dayIndex: number) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].activities.push({ 
             hourVal: '', 
@@ -180,15 +198,15 @@ const ScheduleBuilderModal = ({
         setSchedule(newSchedule);
     };
 
-    const handleRemoveActivity = (dayIndex, actIndex) => {
+    const handleRemoveActivity = (dayIndex: number, actIndex: number) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].activities = newSchedule[dayIndex].activities.filter(
-            (_, idx) => idx !== actIndex
+            (_: any, idx: number) => idx !== actIndex
         );
         setSchedule(newSchedule);
     };
 
-    const handleUpdateActivity = (dayIndex, actIndex, field, value) => {
+    const handleUpdateActivity = (dayIndex: number, actIndex: number, field: string, value: string) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].activities[actIndex][field] = value;
         setSchedule(newSchedule);
@@ -197,7 +215,7 @@ const ScheduleBuilderModal = ({
     const handleSave = () => {
         const finalizedSchedule = schedule.map(d => ({
             day: d.day,
-            activities: d.activities.map(act => ({
+            activities: d.activities.map((act: any) => ({
                 time: parseTimeToDate(`${act.hourVal}:${act.minuteVal} ${act.periodVal}`), 
                 event: act.event
             }))
@@ -214,7 +232,10 @@ const ScheduleBuilderModal = ({
             transparent={true}
             onRequestClose={onClose}
         >
-            <View style={styles.modalContainer}>
+            <KeyboardAvoidingView 
+                style={styles.modalContainer}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
                 
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
                     <TouchableOpacity 
@@ -308,7 +329,7 @@ const ScheduleBuilderModal = ({
                                             </TouchableOpacity>
                                         </View>
 
-                                        {dayItem.activities.map((activity, actIndex) => {
+                                        {dayItem.activities.map((activity: any, actIndex: number) => {
                                             const isHourFocused = focusedField === `${dayIndex}-${actIndex}-hour`;
                                             const isMinFocused = focusedField === `${dayIndex}-${actIndex}-min`;
 
@@ -386,7 +407,7 @@ const ScheduleBuilderModal = ({
                                                         <CustomTextInput 
                                                             placeholder="Event description (e.g. Meet up at parking)"
                                                             value={activity.event}
-                                                            onChangeText={(val) => handleUpdateActivity(dayIndex, actIndex, 'event', val)}
+                                                            onChangeText={(val: string) => handleUpdateActivity(dayIndex, actIndex, 'event', val)}
                                                             style={styles.noMargin}
                                                         />
                                                     </View>
@@ -444,28 +465,12 @@ const ScheduleBuilderModal = ({
                     </View>
 
                 </Animated.View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: -4 
-        }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 12 
-    },
-    android: { 
-        elevation: 10 
-    },
-    web: { 
-        boxShadow: '0px -4px 20px rgba(0, 0, 0, 0.08)' 
-    }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     modalContainer: {
@@ -483,7 +488,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
         width: '100%',
         maxHeight: '90%',
-        ...dropShadow
+        ...(dropShadow as any)
     },
     contentMobile: {
         borderTopLeftRadius: 24,
@@ -572,14 +577,11 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 2 
-        }, 
-        shadowOpacity: 0.04, 
-        shadowRadius: 4, 
-        elevation: 1 
+         
+         
+         
+         
+        ...dropShadow, 
     },
     dayHeader: { 
         flexDirection: 'row', 
@@ -629,7 +631,9 @@ const styles = StyleSheet.create({
         width: '100%', 
         padding: 0, 
         margin: 0, 
-        outlineStyle: 'none' 
+        ...Platform.select({
+            web: { outlineStyle: 'none' } as any
+        })
     },
     timeColon: { 
         fontSize: 18, 

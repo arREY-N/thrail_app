@@ -6,7 +6,15 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { formatDate } from '@/src/core/utility/date';
 
-const OfferSummaryCard = ({ offer, trailName }) => {
+export interface OfferSummaryCardProps {
+    offer: any;
+    trailName: string;
+}
+
+/**
+ * OfferSummaryCard — Displays a quick overview of an offer's details.
+ */
+const OfferSummaryCard = ({ offer, trailName }: OfferSummaryCardProps) => {
     if (!offer) return null;
 
     return (

@@ -8,12 +8,21 @@ import { Colors } from '@/src/constants/colors';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
+export interface AdminBookingCardProps {
+    booking: any;
+    offerId: string;
+    onViewBooking: (bookingId: string, offerId: string) => void;
+}
+
+/**
+ * AdminBookingCard — Displays an individual booking entry within an offer's detail view.
+ */
 const AdminBookingCard = ({ 
     booking, 
     offerId, 
     onViewBooking 
-}) => {
-    const hasRefundedPayment = booking?.payment?.some(p => p.status === 'refunded');
+}: AdminBookingCardProps) => {
+    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
     const displayStatus = hasRefundedPayment ? 'refunded' : booking.status;
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
