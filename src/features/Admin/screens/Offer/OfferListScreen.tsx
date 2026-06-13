@@ -16,11 +16,26 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
 import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
 
+export interface OfferListScreenProps {
+    offers: Record<string, unknown>[];
+    bookingByOffer: Record<string, IBooking[]>;
+    isLoading: boolean;
+    error?: string;
+    onAddOffer: () => void;
+    onEditOffer: (offerId: string) => void;
+    onViewOfferBookings: (offerId: string) => void;
+    onBackPress: () => void;
+}
+
+/**
+ * OfferListScreen — Admin screen displaying a list of created offers and basic booking stats.
+ */
 const OfferListScreen = ({ 
     offers,
     bookingByOffer, 
@@ -30,7 +45,7 @@ const OfferListScreen = ({
     onEditOffer,
     onViewOfferBookings,
     onBackPress 
-}) => {
+}: OfferListScreenProps) => {
     
     const { 
         searchQuery, 
@@ -41,9 +56,9 @@ const OfferListScreen = ({
     } = useOfferFilters(offers);
     
     const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedEditId, setSelectedEditId] = useState(null);
+    const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
 
-    const handleEditPress = (offerId) => {
+    const handleEditPress = (offerId: string) => {
         setSelectedEditId(offerId);
         setShowEditModal(true);
     };
@@ -73,8 +88,8 @@ const OfferListScreen = ({
         </TouchableOpacity>
     );
 
-    const getOfferStatusDetails = (offer) => {
-        const status = (offer.status || '').toLowerCase();
+    const getOfferStatusDetails = (offer: Record<string, unknown>) => {
+        const status = (offer.status || '').toString().toLowerCase();
         const offerDate = safeParseDateString(offer.date || offer.hikeDate);
         offerDate.setHours(0, 0, 0, 0);
         
@@ -109,11 +124,11 @@ const OfferListScreen = ({
         };
     };
 
-    const getActionableBookingsCount = (offerId) => {
+    const getActionableBookingsCount = (offerId: string) => {
         if (!bookingByOffer || !bookingByOffer[offerId]) return 0;
         
         return bookingByOffer[offerId].filter(b => {
-            const status = b.status || '';
+            const status = (b.status as string) || '';
             return status === 'pending-docs' || 
                    status === 'for-reservation' || 
                    status === 'paid' || 
@@ -191,12 +206,12 @@ const OfferListScreen = ({
 
                     {!isLoading && filteredAndSortedOffers.length > 0 && (
                         <View style={styles.listContainer}>
-                            {filteredAndSortedOffers.map(offer => (
+                            {filteredAndSortedOffers.map((offer: Record<string, unknown>) => (
                                 <OfferCard 
-                                    key={offer.id}
+                                    key={offer.id as string}
                                     offer={offer}
                                     statusDetails={getOfferStatusDetails(offer)}
-                                    actionableCount={getActionableBookingsCount(offer.id)}
+                                    actionableCount={getActionableBookingsCount(offer.id as string)}
                                     onViewBookings={onViewOfferBookings}
                                     onEditPress={handleEditPress}
                                 />

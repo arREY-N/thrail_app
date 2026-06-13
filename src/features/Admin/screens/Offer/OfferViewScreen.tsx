@@ -15,10 +15,24 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
 import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';
 
+export interface OfferViewScreenProps {
+    offerId: string;
+    offer: IOffer;
+    bookings: IBooking[];
+    onViewBooking: (bookingId: string, offerId: string) => void;
+    onBackPress: () => void;
+    error?: string;
+}
+
+/**
+ * OfferViewScreen — Displays an offer's summary and a list of related bookings that can be filtered.
+ */
 const OfferViewScreen = ({ 
     offerId,
     offer, 
@@ -26,7 +40,7 @@ const OfferViewScreen = ({
     onViewBooking, 
     onBackPress, 
     error 
-}) => {
+}: OfferViewScreenProps) => {
 
     const { 
         activeFilter, 
@@ -68,7 +82,7 @@ const OfferViewScreen = ({
                             style={styles.filterScroll}
                             contentContainerStyle={styles.filterContainer}
                         >
-                            {FILTER_OPTIONS.map(filter => {
+                            {FILTER_OPTIONS.map((filter: string) => {
                                 const isActive = activeFilter === filter;
                                 return (
                                     <TouchableOpacity 
@@ -101,7 +115,7 @@ const OfferViewScreen = ({
                     )}
 
                     {filteredBookings && filteredBookings.length > 0 ? (
-                        filteredBookings.map(b => (
+                        filteredBookings.map((b: IBooking) => (
                             <AdminBookingCard 
                                 key={b.id} 
                                 booking={b} 

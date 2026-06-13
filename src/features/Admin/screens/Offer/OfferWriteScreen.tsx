@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -20,6 +21,7 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
 
@@ -27,6 +29,20 @@ const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];
 const PRESET_BRING = ["Water (2L+)", "Trail Snacks", "Extra Clothes", "First-aid kit", "Headlamp", "Tent"];
 
+export interface OfferWriteScreenProps {
+    offer: any;
+    trails: any[];
+    isLoading: boolean;
+    error?: string;
+    onSubmitOffer: () => void;
+    onDeleteOffer: (offerId: string) => void;
+    onUpdateOffer: (params: { section: string; id: string; value: any }) => void;
+    onBackPress: () => void;
+}
+
+/**
+ * OfferWriteScreen — Admin screen to create or edit a trail offer.
+ */
 const OfferWriteScreen = ({
     offer,
     trails,
@@ -36,7 +52,7 @@ const OfferWriteScreen = ({
     onDeleteOffer,
     onUpdateOffer,
     onBackPress
-}) => {
+}: OfferWriteScreenProps) => {
     const isEditing = Boolean(offer?.id && offer.id !== '');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -52,7 +68,7 @@ const OfferWriteScreen = ({
 
     const [days, setDays] = useState('');
     const [nights, setNights] = useState('');
-    const [focusedField, setFocusedField] = useState(null);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
 
     const prevStartDate = useRef(offer?.date);
     const prevEndDate = useRef(offer?.endDate);
@@ -62,9 +78,10 @@ const OfferWriteScreen = ({
             onUpdateOffer({ section: 'root', id: 'date', value: null });
             onUpdateOffer({ section: 'root', id: 'endDate', value: null });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleUpdate = (params) => {
+    const handleUpdate = (params: { section: string, id: string, value: any }) => {
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
     };
@@ -126,7 +143,7 @@ const OfferWriteScreen = ({
 
     }, [offer?.date, offer?.endDate, offer?.schedule?.length]);
 
-    const handleStartDateChange = (val) => {
+    const handleStartDateChange = (val: any) => {
         handleUpdate({ section: 'root', id: 'date', value: val });
         
         const scheduleLength = offer?.schedule?.length || 0;
@@ -138,7 +155,7 @@ const OfferWriteScreen = ({
         }
     };
 
-    const handleEndDateChange = (val) => {
+    const handleEndDateChange = (val: any) => {
         handleUpdate({ section: 'root', id: 'endDate', value: val });
 
         if (offer?.date && val) {
@@ -170,7 +187,7 @@ const OfferWriteScreen = ({
         }
     };
 
-    const handleAddToArray = (field, currentArray, value) => {
+    const handleAddToArray = (field: string, currentArray: string[], value: string) => {
         if (!value.trim()) return;
         const arr = Array.isArray(currentArray) ? currentArray : [];
         if (arr.includes(value.trim())) return;
@@ -178,13 +195,13 @@ const OfferWriteScreen = ({
         handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
-    const handleRemoveFromArray = (field, currentArray, valueToRemove) => {
+    const handleRemoveFromArray = (field: string, currentArray: string[], valueToRemove: string) => {
         const arr = Array.isArray(currentArray) ? currentArray : [];
         const newArray = arr.filter((item) => item !== valueToRemove);
         handleUpdate({ section: 'root', id: field, value: newArray });
     };
 
-    const handleTogglePreset = (field, currentArray, presetValue) => {
+    const handleTogglePreset = (field: string, currentArray: string[], presetValue: string) => {
         const arr = Array.isArray(currentArray) ? currentArray : [];
         if (arr.includes(presetValue)) {
             handleUpdate({ section: 'root', id: field, value: arr.filter(i => i !== presetValue) });
@@ -202,15 +219,20 @@ const OfferWriteScreen = ({
         const hasDuration = Boolean(offer?.duration && offer.duration.trim() !== '');
         const hasMinPax = Boolean(offer?.minPax && Number(offer.minPax) > 0);
         const hasMaxPax = Boolean(offer?.maxPax && Number(offer.maxPax) >= Number(offer.minPax));
+        const hasSchedule = Array.isArray(offer?.schedule) && offer.schedule.length > 0;
+        const hasDocs = (Array.isArray(offer?.documents) && offer.documents.length > 0) || docInput.trim() !== '';
 
-        return hasTrail && hasDesc && hasPrice && hasDate && hasEndDate && hasDuration && hasMinPax && hasMaxPax;
+        return hasTrail && hasDesc && hasPrice && hasDate && hasEndDate && hasDuration && hasMinPax && hasMaxPax && hasSchedule && hasDocs;
     };
 
     const isReadyToSubmit = isFormValid() && !isLoading;
 
     const totalDays = Number(days) || 0;
-    const totalActivities = offer?.schedule?.reduce((acc, curr) => {
-        const validActivies = curr.activities?.reduce(act => act.event.trim() !== '') || [];
+    const totalActivities = offer?.schedule?.reduce((acc: number, curr: any) => {
+        const validActivies = curr.activities?.reduce((actAcc: any[], act: any) => {
+            if (act.event.trim() !== '') actAcc.push(act);
+            return actAcc;
+        }, []) || [];
         return acc + validActivies.length;
     }, 0) || 0;
 
@@ -240,8 +262,8 @@ const OfferWriteScreen = ({
 
         if (Array.isArray(offer.reminders)) {
             const cleanedReminders = offer.reminders
-                .map(line => line.replace(/^[•\-*]\s*/, '').trim())
-                .filter(line => line !== '');
+                .map((line: string) => line.replace(/^[•\-*]\s*/, '').trim())
+                .filter((line: string) => line !== '');
             
             handleUpdate({ section: 'root', id: 'reminders', value: cleanedReminders });
         }
@@ -302,7 +324,7 @@ const OfferWriteScreen = ({
                             label="Description *" 
                             placeholder="Type the full description here..."
                             value={offer.description}
-                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'description', value: text })}
+                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'description', value: text })}
                             multiline={true} 
                             numberOfLines={5}
                             style={styles.noMarginBottom} 
@@ -315,7 +337,7 @@ const OfferWriteScreen = ({
                             prefix="₱" 
                             value={offer.price ? String(offer.price) : ''}
                             keyboardType="numeric"
-                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
+                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
                             style={styles.noMarginBottom}
                         />
 
@@ -514,7 +536,7 @@ const OfferWriteScreen = ({
                             helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
                             placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
                             value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
-                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
+                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
                             suggestions={[
                                 "Strictly Non-refundable",
                                 "Arrive 30 mins before call time",
@@ -555,7 +577,7 @@ const OfferWriteScreen = ({
                 title="Select Trail"
                 options={trailOptions}
                 selectedValue={offer?.trail?.id}
-                onSelect={(selected) => {
+                onSelect={(selected: any) => {
                     handleUpdate({ 
                         section: 'root', 
                         id: 'trail', 
@@ -570,7 +592,7 @@ const OfferWriteScreen = ({
                 onClose={() => setShowScheduleModal(false)}
                 initialSchedule={offer.schedule}
                 offerDays={Number(days) || 0}
-                onSave={(newSchedule) => {
+                onSave={(newSchedule: any[]) => {
                     handleUpdate({ section: 'root', id: 'schedule', value: newSchedule });
                     setShowScheduleModal(false);
 
@@ -631,6 +653,8 @@ const OfferWriteScreen = ({
     );
 };
 
+const dropShadow = GlobalStyles.dropShadow(3);
+
 const styles = StyleSheet.create({
     scrollContent: { 
         paddingVertical: 24, 
@@ -647,11 +671,11 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         paddingVertical: 24, 
         paddingHorizontal: 16, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 8, 
-        elevation: 2, 
+         
+         
+         
+         
+        ...dropShadow, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT,
         gap: 24,
@@ -754,7 +778,9 @@ const styles = StyleSheet.create({
         fontSize: 16, 
         color: Colors.TEXT_PRIMARY, 
         textAlign: 'center', 
-        outlineStyle: 'none' 
+        ...Platform.select({
+            web: { outlineStyle: 'none' } as any
+        })
     },
     verticalDivider: { 
         width: 1, 
