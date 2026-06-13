@@ -25,12 +25,29 @@ import { Layout } from '@/src/constants/layout';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
-import AdminDocumentTab from '@/src/features/Admin/screens/Booking/components/AdminDocumentTab';
+import AdminDocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/components/AdminDocumentTab';
 import AdminPaymentTab from '@/src/features/Admin/screens/Booking/components/AdminPaymentTab';
-import AdminRefundModal from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
+import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
 import ReviewStatusBanner from '@/src/features/Admin/screens/Booking/components/ReviewStatusBanner';
 
+export interface ReviewScreenProps {
+    isLoading: boolean;
+    booking: any;
+    offers: any[];
+    onBackPress: () => void;
+    onApprove: (docStates: DocState[]) => Promise<void>;
+    onConfirmPayment: () => Promise<void>;
+    onReject: (reason: string, docStates: DocState[]) => Promise<void>;
+    onReschedule: (offerData: any) => Promise<void>;
+    onRefund: (refundType: RefundType) => Promise<void>;
+    onCancelUnpaid?: () => Promise<void>;
+    error?: string;
+}
+
+/**
+ * ReviewScreen — Admin booking review screen that consolidates the document and payment workflows.
+ */
 const ReviewScreen = ({ 
     isLoading, 
     booking, 
@@ -43,7 +60,7 @@ const ReviewScreen = ({
     onRefund, 
     onCancelUnpaid,
     error 
-}) => {
+}: ReviewScreenProps) => {
     
     const {
         activeTab, setActiveTab,
@@ -64,23 +81,23 @@ const ReviewScreen = ({
         displayCancellationReason
     } = useReviewLogic(booking, offers);
 
-    const [previewImageUrl, setPreviewImageUrl] = useState(null);
+    const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
     const [isConfirmPaymentVisible, setIsConfirmPaymentVisible] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-    const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState(null);
+    const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<any>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
     
     const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-    const totalAmountPaid = booking?.payment?.reduce((sum, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const totalAmountPaid = booking?.payment?.reduce((sum: number, p: any) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
 
-    const handleViewFile = async (url, index) => {
+    const handleViewFile = async (url: string, index: number) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
         
-        setViewedDocs(prev => ({ ...prev, [index]: true }));
+        setViewedDocs((prev: Record<number, boolean>) => ({ ...prev, [index]: true }));
 
         if (url.toLowerCase().includes('.pdf')) {
             if (await Linking.canOpenURL(url)) {
@@ -93,7 +110,7 @@ const ReviewScreen = ({
 
     const handleFinalDecision = async () => {
         setIsConfirmVisible(false);
-        const allApproved = docStates.every(d => d.valid === 'approved');
+        const allApproved = docStates.every((d: DocState) => d.valid === 'approved');
         
         setIsProcessingAction(true);
         try {
@@ -196,7 +213,7 @@ const ReviewScreen = ({
                         <AdminDocumentTab 
                             booking={booking}
                             docStates={docStates}
-                            setDocStates={setDocStates}
+                            setDocStates={setDocStates as unknown as React.Dispatch<React.SetStateAction<DocState[]>>}
                             viewedDocs={viewedDocs}
                             isReviewComplete={isReviewComplete}
                             isRejectedStatus={isRejectedStatus}
@@ -293,7 +310,7 @@ const ReviewScreen = ({
                 title="Select New Offer" 
                 options={availableOffers} 
                 selectedValue={selectedRescheduleOffer?.id} 
-                onSelect={(selected) => {
+                onSelect={(selected: any) => {
                     setSelectedRescheduleOffer(selected);
                     setShowRescheduleModal(false);
                     setTimeout(async () => {
@@ -313,7 +330,7 @@ const ReviewScreen = ({
                 visible={showRefundModal}
                 amountPaid={totalAmountPaid}
                 onClose={() => setShowRefundModal(false)}
-                onSelect={(refundType) => {
+                onSelect={(refundType: RefundType) => {
                     setShowRefundModal(false);
                     setTimeout(async () => {
                         if (onRefund) {
@@ -330,7 +347,7 @@ const ReviewScreen = ({
 
             <ImagePreviewModal 
                 visible={!!previewImageUrl} 
-                imageUrl={previewImageUrl} 
+                imageUrl={previewImageUrl || undefined} 
                 onClose={() => setPreviewImageUrl(null)} 
             />
 

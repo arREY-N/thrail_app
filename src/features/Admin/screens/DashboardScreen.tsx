@@ -13,9 +13,22 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
 
+export interface DashboardScreenProps {
+    businessAccount?: any; 
+    onManageAdminsPress: () => void; 
+    onManageOffersPress: () => void;
+    adminProfile?: any; 
+    error?: string;
+    onBackPress: () => void; 
+}
+
+/**
+ * DashboardScreen — Main admin dashboard displaying business profile, admin info, and quick actions.
+ */
 const DashboardScreen = ({ 
     businessAccount, 
     onManageAdminsPress, 
@@ -23,9 +36,9 @@ const DashboardScreen = ({
     adminProfile, 
     error,
     onBackPress 
-}) => {
+}: DashboardScreenProps) => {
     
-    const InfoRow = ({ icon, label, value }) => (
+    const InfoRow = ({ icon, label, value }: { icon: string, label: string, value: string | undefined | null }) => (
         <View style={styles.infoRow}>
             <View style={styles.iconCircle}>
                 <CustomIcon 
@@ -52,7 +65,7 @@ const DashboardScreen = ({
         return fullName.length > 0 ? fullName : 'N/A';
     };
 
-    const formatLocation = (locationData) => {
+    const formatLocation = (locationData: string | string[]) => {
         if (!locationData) return 'N/A';
         if (Array.isArray(locationData)) {
             return locationData.join(', ');
@@ -193,20 +206,7 @@ const DashboardScreen = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.04, 
-        shadowRadius: 6 
-    },
-    android: { 
-        elevation: 2 
-    },
-    web: { 
-        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' 
-    }
-});
+const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     scrollContent: { 
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
         marginBottom: 16,
-        ...dropShadow 
+        ...(dropShadow as any)
     },
     cardHeader: { 
         flexDirection: 'row', 
