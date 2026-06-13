@@ -24,7 +24,7 @@ export default function personnel(){
             <Stack.Screen options={{ headerShown: false }} />
 
             <PersonnelWriteScreen 
-                {...controller} 
+                {...(controller as any)} 
                 onBackPress={onBackPress} 
             />  
         </>  

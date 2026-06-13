@@ -37,7 +37,7 @@ export default function personnelList(){
 
             <PersonnelListScreen
                 businessId={businessId}
-                businessAdmins={businessAdmins}
+                businessAdmins={businessAdmins as any}
                 onReloadPress={onReloadPress}
                 onAddAdminPress={onAddAdminPress}
                 onBackPress={onBackPress} 
