@@ -11,6 +11,7 @@ import { View } from "react-native";
 
 export default function viewTrail(){
     const { trailId } = useLocalSearchParams();
+    const tId = (Array.isArray(trailId) ? trailId[0] : trailId) as string;
     
     const { onBackPress, onDownloadPress } = useAppNavigation();
 
@@ -20,7 +21,7 @@ export default function viewTrail(){
         trail,
         onHikePress,
         onWriteTrail, 
-    } = useTrailDomain({ trailId });
+    } = useTrailDomain({ trailId: tId } as any);
 
     const {
         reviews,
@@ -34,7 +35,7 @@ export default function viewTrail(){
 
     const {
         onSeeTrailOffers
-    } = useOfferDomain({});
+    } = useOfferDomain({} as any);
     
     if(!trail) return <LoadingScreen/>;
 
@@ -47,18 +48,18 @@ export default function viewTrail(){
             <TrailScreen 
                 trail={trail} 
                 onBackPress={onBackPress} 
-                onDownloadPress={onDownloadPress} 
-                onHikePress={onHikePress}
-                onBookPress={onSeeTrailOffers}
-                onEditPress={() => onWriteTrail(trailId)}
+                onDownloadPress={onDownloadPress as any} 
+                onHikePress={onHikePress as any}
+                onBookPress={onSeeTrailOffers as any}
+                onEditPress={() => onWriteTrail(tId)}
                 isSuperadmin={isSuperadmin}
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
                 isLoading={isLoading}
-                likeReview={likeReview}
-                onWriteReviewPress={onWriteReviewPress}
-                isOwned={isOwned}
-                isLiked={isLiked}
+                likeReview={likeReview as any}
+                onWriteReviewPress={onWriteReviewPress as any}
+                isOwned={isOwned as any}
+                isLiked={isLiked as any}
             />
         </View>
     )
