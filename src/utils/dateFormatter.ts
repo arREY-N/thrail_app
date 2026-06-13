@@ -1,5 +1,11 @@
-// --- 1. CORE PARSER (Android/Hermes Safe) ---
-export const safeParseDateString = (dateInput) => {
+/**
+ * Safely parses various date input formats into a valid JavaScript Date object.
+ * Falls back to current date if parsing fails completely.
+ * 
+ * @param {any} dateInput - The date to parse (Date, Firebase Timestamp, String, etc.)
+ * @returns {Date} A valid JavaScript Date object
+ */
+export const safeParseDateString = (dateInput: any): Date => {
     // 1. Empty fallback
     if (!dateInput) return new Date();
     
@@ -43,7 +49,13 @@ export const safeParseDateString = (dateInput) => {
 
 // --- 2. DISPLAY FORMATTERS ---
 
-export const formatDateToStandard = (dateObj) => {
+/**
+ * Formats a date object or string into standard string format: "MMM DD, YYYY"
+ * 
+ * @param {any} dateObj - The date to format
+ * @returns {string} Formatted string or empty string
+ */
+export const formatDateToStandard = (dateObj: any): string => {
     if (!dateObj) return '';
     // Ultra-safe parse guarantees 'd' is a valid date
     const d = safeParseDateString(dateObj); 
@@ -52,7 +64,15 @@ export const formatDateToStandard = (dateObj) => {
     return `${shortMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 };
 
-export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = false) => {
+/**
+ * Formats a single date or a date range for a booking.
+ * 
+ * @param {any} startDateObj - The starting date of the booking
+ * @param {any} [endDateObj=null] - The ending date of the booking (optional)
+ * @param {boolean} [shortMonth=false] - Whether to use abbreviated month names
+ * @returns {string} Formatted date range or "TBA"
+ */
+export const formatBookingDate = (startDateObj: any, endDateObj: any = null, shortMonth: boolean = false): string => {
     if (!startDateObj) return 'TBA';
 
     const start = safeParseDateString(startDateObj);
@@ -62,7 +82,7 @@ export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = 
     const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const months = shortMonth ? shortMonths : fullMonths;
     
-    const formatSingleDate = (d) => {
+    const formatSingleDate = (d: Date) => {
         let hours = d.getHours();
         const minutes = d.getMinutes().toString().padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -70,7 +90,7 @@ export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = 
         return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} • ${hours}:${minutes} ${ampm}`;
     };
 
-    const formatShortDate = (d) => {
+    const formatShortDate = (d: Date) => {
         return `${months[d.getMonth()]} ${d.getDate()}`;
     };
 
@@ -81,7 +101,13 @@ export const formatBookingDate = (startDateObj, endDateObj = null, shortMonth = 
     return `${formatShortDate(start)} - ${formatShortDate(end)}, ${start.getFullYear()}`;
 };
 
-export const formatTime = (dateInput) => {
+/**
+ * Extracts and formats the time portion of a date as "HH:MM AM/PM"
+ * 
+ * @param {any} dateInput - The date to extract time from
+ * @returns {string} Formatted time string
+ */
+export const formatTime = (dateInput: any): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     return d.toLocaleTimeString('en-US', {
@@ -92,16 +118,22 @@ export const formatTime = (dateInput) => {
 };
 
 // --- TIME PARSER ---
-export const parseTimeToDate = (timeString) => {
+/**
+ * Parses a string like "02:30 PM" into a Date object (date is set to today).
+ * 
+ * @param {string} timeString - The time string to parse
+ * @returns {Date} Date object with the specified time
+ */
+export const parseTimeToDate = (timeString: string): Date => {
     const d = new Date();
     d.setHours(0, 0, 0, 0); 
     
     try {
         const [timePart, period] = timeString.split(' ');
-        let [hours, minutes] = timePart ? timePart.split(':') : ['', ''];
+        let [hoursStr, minutesStr] = timePart ? timePart.split(':') : ['', ''];
         
-        hours = parseInt(hours, 10);
-        minutes = parseInt(minutes, 10) || 0;
+        let hours = parseInt(hoursStr, 10);
+        const minutes = parseInt(minutesStr, 10) || 0;
 
         if (isNaN(hours)) hours = 0; 
 
@@ -115,7 +147,13 @@ export const parseTimeToDate = (timeString) => {
 };
 
 // --- 3. INPUT FORMATTERS (MM/DD/YYYY & MM/DD/YY) ---
-export const formatToMMDDYYYY = (dateInput) => {
+/**
+ * Formats a date into "MM/DD/YYYY" format.
+ * 
+ * @param {any} dateInput - The date to format
+ * @returns {string} Formatted string
+ */
+export const formatToMMDDYYYY = (dateInput: any): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -124,7 +162,13 @@ export const formatToMMDDYYYY = (dateInput) => {
     return `${mm}/${dd}/${yyyy}`;
 };
 
-export const formatToMMDDYY = (dateInput) => {
+/**
+ * Formats a date into "MM/DD/YY" format.
+ * 
+ * @param {any} dateInput - The date to format
+ * @returns {string} Formatted string
+ */
+export const formatToMMDDYY = (dateInput: any): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -134,7 +178,13 @@ export const formatToMMDDYY = (dateInput) => {
 };
 
 // --- Check if Minor ---
-export const checkIfMinor = (dateInput) => {
+/**
+ * Checks if the provided birthdate indicates the person is a minor (under 18).
+ * 
+ * @param {any} dateInput - The birthdate to check
+ * @returns {boolean} True if the person is under 18
+ */
+export const checkIfMinor = (dateInput: any): boolean => {
     if (!dateInput) return false;
     
     const bday = safeParseDateString(dateInput);
@@ -152,13 +202,21 @@ export const checkIfMinor = (dateInput) => {
 };
 
 // --- Notification Update ---
-export const getRecentUpdateText = (updatedAt, createdAt) => {
+/**
+ * Generates a human-readable text for recent updates (e.g. "Updated 5m ago").
+ * Only returns text if the update was within the last 24 hours.
+ * 
+ * @param {any} updatedAt - The date of the last update
+ * @param {any} createdAt - Fallback date if updatedAt is null
+ * @returns {string | null} Formatted relative time string or null
+ */
+export const getRecentUpdateText = (updatedAt: any, createdAt: any): string | null => {
     const timestamp = updatedAt || createdAt;
     if (!timestamp) return null;
 
     const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
-    const diffMs = now - date;
+    const diffMs = now.getTime() - date.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffMins = diffMs / (1000 * 60);
 
