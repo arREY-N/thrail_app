@@ -12,9 +12,9 @@ export interface IReviewDomain {
     error: string | null;
 
     onWriteReviewPress: (id?: string) => void;
-    isOwned: (review: Review) => Boolean;
+    isOwned: (review: Review) => boolean;
     likeReview: (review: Review) => void;
-    isLiked: (review: Review) => Boolean;
+    isLiked: (review: Review) => boolean;
     refreshFeed: () => void;    
     getItemRating: (itemId: string) => number;
 }
@@ -46,8 +46,8 @@ export default function useReview(): IReviewDomain {
         }
     }
 
-    const isOwned = (review: Review): Boolean => {
-        return review.user.id === profile?.id
+    const isOwned = (review: Review): boolean => {
+        return review.user.id === profile?.id;
     }
 
     const likeReview = (review: Review) => {
@@ -67,9 +67,9 @@ export default function useReview(): IReviewDomain {
         }
     }
 
-    const isLiked = (review: Review): Boolean => {
+    const isLiked = (review: Review): boolean => {
         try {
-            if(!profile) return false
+            if(!profile) return false;
                 
 
             return review.likes.some(r => r.id === profile?.id);
