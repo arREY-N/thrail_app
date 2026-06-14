@@ -4,6 +4,7 @@ import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Review } from "@/src/core/models/Review/Review";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -56,10 +57,10 @@ export default function viewTrail(){
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
                 isLoading={isLoading}
-                likeReview={likeReview}
-                onWriteReviewPress={onWriteReviewPress}
-                isOwned={isOwned}
-                isLiked={() => isLiked()}
+                likeReview={(review) => likeReview(new Review(review))}
+                onWriteReviewPress={(review) => onWriteReviewPress(review.id)}
+                isOwned={(review) => isOwned(new Review(review))}
+                isLiked={(review) => isLiked(new Review(review))}
             />
         </View>
     )

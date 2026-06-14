@@ -37,7 +37,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
-            isLiked={isLiked(item)}
+            isLiked={isLiked}
             onEdit={() => onWriteReviewPress(item)}
         />
     ), [likeReview, isLiked, onWriteReviewPress, isOwned]);

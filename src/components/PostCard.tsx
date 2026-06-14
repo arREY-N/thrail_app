@@ -140,6 +140,10 @@ const PostCard: React.FC<PostCardProps> = ({
     const visibleTags = isExpanded ? allTags : allTags.slice(0, 2);
     const hiddenTagsCount = allTags.length - visibleTags.length;
     const hasTags = allTags.length > 0;
+
+    const likeCount = Array.isArray(review.likes)
+        ? review.likes.length
+        : Number(review.likes) || 0;
     
     const reviewText = review?.review || review?.content || "No review text provided for this hike.";
     const maxLength = 90; 
@@ -189,7 +193,7 @@ const PostCard: React.FC<PostCardProps> = ({
                             variant="label" 
                             style={liked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
                         >
-                            {review.likes?.length || review.likes || 0}
+                            {likeCount}
                         </CustomText>
                     </Pressable>
 
