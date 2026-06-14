@@ -35,8 +35,9 @@ export interface DashboardScreenProps {
     businessAccount?: any; 
     onManageAdminsPress: () => void; 
     onManageOffersPress: () => void;
+    onManageTrailsPress: () => void;
     adminProfile?: any; 
-    error?: string;
+    error?: string | null;
     onBackPress: () => void; 
 }
 
@@ -204,21 +205,21 @@ const DashboardScreen = ({
                     
                     <View style={styles.actionContainer}>
                         <CustomButton 
-                            title="Manage Trails & Maps"
-                            onPress={onManageTrailsPress}
-                            variant="primary"
-                        />
-
-                        <CustomButton 
                             title="Manage Offers"
                             onPress={onManageOffersPress}
-                            variant="outline"
+                            variant="primary"
+                            />
+
+                        <CustomButton 
+                            title="Manage Trails & Maps"
+                            onPress={onManageTrailsPress}
+                            variant="secondary"
                         />
 
                         <CustomButton 
                             title="Manage Personnel"
                             onPress={onManageAdminsPress}
-                            variant="outline" 
+                            variant="secondary" 
                         />
                     </View>
                 </View>
