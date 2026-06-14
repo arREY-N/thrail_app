@@ -36,7 +36,7 @@ export default function writeOffer() {
                 offer={offer}
                 trails={trails}
                 isLoading={isLoading}
-                error={error as string || undefined}
+                error={error as string || null}
                 onSubmitOffer={onSubmitPress}
                 onDeleteOffer={onRemovePress}
                 onUpdateOffer={onUpdatePress}

@@ -33,7 +33,7 @@ export interface OfferWriteScreenProps {
     offer: any;
     trails: any[];
     isLoading: boolean;
-    error?: string;
+    error?: string | null;
     onSubmitOffer: () => void;
     onDeleteOffer: (offerId: string) => void;
     onUpdateOffer: (params: { section: string; id: string; value: any }) => void;
@@ -78,7 +78,6 @@ const OfferWriteScreen = ({
             onUpdateOffer({ section: 'root', id: 'date', value: null });
             onUpdateOffer({ section: 'root', id: 'endDate', value: null });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleUpdate = (params: { section: string, id: string, value: any }) => {
