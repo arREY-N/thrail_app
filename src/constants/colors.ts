@@ -74,6 +74,23 @@ export const Colors = {
     TEXT_SECONDARY:   Palette.Neutral500, 
     TEXT_INVERSE:     Palette.White, 
     TEXT_PLACEHOLDER: Palette.Neutral400,
+    
+    // Button Colors
+    BUTTON_PRIMARY_TEXT:     Palette.White,
+    BUTTON_PRIMARY_BG:       Palette.Green700,
+    BUTTON_PRIMARY_BORDER:   Palette.Green700,
+    BUTTON_SECONDARY_TEXT:   Palette.Neutral900,
+    BUTTON_SECONDARY_BG:     Palette.White,
+    BUTTON_SECONDARY_BORDER: Palette.White,
+    BUTTON_OUTLINE_TEXT:     Palette.Green700,
+    BUTTON_OUTLINE_BG:       Palette.Green50,
+    BUTTON_OUTLINE_BORDER:   Palette.Green200,
+    BUTTON_DESTRUCTIVE_TEXT:   Palette.White,
+    BUTTON_DESTRUCTIVE_BG:     Palette.Red700,
+    BUTTON_DESTRUCTIVE_BORDER: Palette.Red700,
+    BUTTON_DISABLED_TEXT:    Palette.Neutral400,
+    BUTTON_DISABLED_BG:      Palette.Neutral200,
+    BUTTON_DISABLED_BORDER: Palette.Neutral200,
 
     // UI Elements
     YELLOW:           Palette.Yellow600,
