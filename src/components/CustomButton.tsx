@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     secondary: {
         backgroundColor: Colors.WHITE, 
         borderWidth: 1.5,
-        borderColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
     },
     textSecondary: {
         color: Colors.TEXT_PRIMARY, 
