@@ -2,10 +2,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import {
-    Image,
     ImageSourcePropType,
     Platform,
     Pressable,
+    ScrollView,
     StyleProp,
     StyleSheet,
     TouchableOpacity,
@@ -14,8 +14,12 @@ import {
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
+import { formatDuration } from "@/src/utils/dateFormatter";
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -57,7 +61,18 @@ const PostCard: React.FC<PostCardProps> = ({
 
     const liked = useMemo(() => isLiked ? isLiked(review) : false, [review, isLiked]);
 
-    const fallbackImage = require('@/src/assets/images/Mt.Tagapo.jpg');
+    const trails = useTrailsStore(s => s.data);
+    const trailData = useMemo(() => {
+        const legacyTrailId = review?.trail?.id || (review as any)?.trailId || (review as any)?.mountainId;
+        const legacyTrailName = review?.trail?.name || (review as any)?.trailName || (review as any)?.mountainName;
+
+        return trails.find(t => 
+            (legacyTrailId && t.id === legacyTrailId) || 
+            (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
+        );
+    }, [trails, review]);
+
+    const fallbackImage = getHeroImageSource(trailData);
     const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
     const displayImage = imagesList[0];
 
@@ -89,11 +104,7 @@ const PostCard: React.FC<PostCardProps> = ({
         }
         
         if (type === 'duration') {
-            const totalMins = Math.floor(numVal / 60000);
-            if (totalMins < 1) return '< 1m';
-            const hours = Math.floor(totalMins / 60);
-            const mins = totalMins % 60;
-            return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+            return formatDuration(numVal);
         }
 
         return String(val);
@@ -145,10 +156,11 @@ const PostCard: React.FC<PostCardProps> = ({
         ? review.likes.length
         : Number(review.likes) || 0;
     
-    const reviewText = review?.review || review?.content || "No review text provided for this hike.";
-    const maxLength = 90; 
+    const reviewText = review?.review || review?.content || "";
+    const maxLength = 110; 
     const isLong = reviewText.length > maxLength;
-    const displayText = isExpanded ? reviewText : (isLong ? `${reviewText.substring(0, maxLength).trim()}...` : reviewText);
+    const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
+    const displayText = isExpanded ? reviewText : truncatedText;
 
     return (
         <View style={styles.card}>
@@ -184,8 +196,8 @@ const PostCard: React.FC<PostCardProps> = ({
                         style={[styles.headerLikeBadge, liked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive]}
                     >
                         <CustomIcon 
-                            library={liked ? "Ionicons" : "Feather"} 
-                            name={liked ? "heart" : "heart"} 
+                            library="Ionicons"
+                            name={liked ? "heart" : "heart-outline"} 
                             size={14} 
                             color={liked ? Colors.ERROR : Colors.TEXT_SECONDARY} 
                         />
@@ -210,7 +222,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 activeOpacity={0.9}
                 onPress={() => setIsPreviewVisible(true)}
             >
-                <Image source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
+                <CustomImage source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
                 
                 <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
@@ -221,7 +233,7 @@ const PostCard: React.FC<PostCardProps> = ({
                         <View style={styles.locationRow}>
                             <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
                             <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
-                                {review.location || "Philippines"}
+                                {review.trail?.location || review.location || "Philippines"}
                             </CustomText>
                         </View>
                     </View>
@@ -260,12 +272,16 @@ const PostCard: React.FC<PostCardProps> = ({
                 />
             </View>
 
-            <View style={styles.horizontalDivider} />
+            {(hasTags || !!reviewText) && <View style={styles.horizontalDivider} />}
 
             {hasTags && (
-                <View style={styles.tagsWrapper}>
-                    <View style={styles.tagsContainer}>
-                        {visibleTags.map(tag => {
+                <View style={[styles.tagsWrapper, !reviewText && { marginBottom: 0 }]}>
+                    <ScrollView 
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.tagsContainer}
+                    >
+                        {allTags.map(tag => {
                             if (tag.type === 'difficulty') {
                                 return (
                                     <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
@@ -298,32 +314,34 @@ const PostCard: React.FC<PostCardProps> = ({
                             }
                             return null;
                         })}
-
-                        {!isExpanded && hiddenTagsCount > 0 && (
-                            <View style={styles.moreTagsChip}>
-                                <CustomText style={styles.moreTagsText}>+{hiddenTagsCount} more</CustomText>
-                            </View>
-                        )}
-                    </View>
+                    </ScrollView>
+                    <LinearGradient 
+                        colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE]} 
+                        start={{ x: 0, y: 0 }} 
+                        end={{ x: 1, y: 0 }} 
+                        style={styles.tagsFadeRight} 
+                        pointerEvents="none" 
+                    />
                 </View>
             )}
 
-            <View style={styles.textBody}>
-                <CustomText variant="body" style={styles.reviewContent}>
-                    {displayText}
-                </CustomText>
-                
-                {((isLong) || hiddenTagsCount > 0) && !isExpanded && (
-                    <TouchableOpacity onPress={() => setIsExpanded(true)} style={{ marginTop: 6 }}>
-                        <CustomText style={styles.showMoreAction}>Show More</CustomText>
-                    </TouchableOpacity>
-                )}
-                {isExpanded && ((isLong) || allTags.length > 2) && (
-                    <TouchableOpacity onPress={() => setIsExpanded(false)} style={{ marginTop: 6 }}>
-                        <CustomText style={styles.showMoreAction}>Show Less</CustomText>
-                    </TouchableOpacity>
-                )}
-            </View>
+            {!!reviewText && (
+                <View style={styles.textBody}>
+                    <CustomText variant="body" style={styles.reviewContent}>
+                        {displayText}
+                        {isLong && !isExpanded && (
+                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(true)}>
+                                {" "}Show More
+                            </CustomText>
+                        )}
+                        {isExpanded && isLong && (
+                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(false)}>
+                                {" "}Show Less
+                            </CustomText>
+                        )}
+                    </CustomText>
+                </View>
+            )}
 
             <ImagePreviewModal visible={isPreviewVisible} images={imagesList} onClose={() => setIsPreviewVisible(false)} />
         </View>
@@ -371,11 +389,12 @@ const styles = StyleSheet.create({
         shadowRadius: 8, 
 ...GlobalStyles.dropShadow(3), 
         overflow: 'hidden',
+        padding: 16,
         ...Platform.select({
             web: { boxShadow: `0px 4px 8px ${Colors.SHADOW}0D` }
         })
     },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
     headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 12 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     avatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.PRIMARY, justifyContent: 'center', alignItems: 'center' },
@@ -395,7 +414,7 @@ const styles = StyleSheet.create({
 
     editIconButton: { padding: 4, marginLeft: 4 },
     
-    imageWrapper: { position: 'relative', height: 200, width: 'auto', marginHorizontal: 16, borderRadius: 16, marginBottom: 16, backgroundColor: Colors.GRAY_ULTRALIGHT, overflow: 'hidden' },
+    imageWrapper: { position: 'relative', height: 200, width: '100%', borderRadius: 16, marginBottom: 16, backgroundColor: Colors.GRAY_ULTRALIGHT, overflow: 'hidden' },
     postImage: { width: '100%', height: '100%' },
     gradientOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
     headerTextColumn: { flex: 1, paddingRight: 16 },
@@ -405,7 +424,7 @@ const styles = StyleSheet.create({
     imageCountBadge: { backgroundColor: `${Colors.BLACK}A6`, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
     imageCountText: { color: Colors.TEXT_INVERSE, marginTop: -2 },
     
-    statsContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 },
+    statsContainer: { flexDirection: 'row', alignItems: 'center', paddingBottom: 16 },
     statBox: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
     statTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
     statValue: { fontWeight: '900', color: Colors.TEXT_PRIMARY },
@@ -413,10 +432,11 @@ const styles = StyleSheet.create({
     
     verticalDivider: { width: 1, height: 24, backgroundColor: Colors.GRAY_LIGHT, flex: 0, marginHorizontal: 4 },
     threeColStat: { flex: 1 },
-    horizontalDivider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginHorizontal: 16, marginBottom: 12 },
+    horizontalDivider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, width: '100%', marginBottom: 12 },
 
-    tagsWrapper: { marginBottom: 12, paddingHorizontal: 16 },
-    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    tagsWrapper: { marginBottom: 12, position: 'relative' },
+    tagsContainer: { flexDirection: 'row', gap: 8, paddingRight: 24 },
+    tagsFadeRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 24 },
     statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, gap: 6 },
     statusPillText: { fontSize: 11, fontWeight: 'bold' },
     
@@ -428,9 +448,16 @@ const styles = StyleSheet.create({
     moreTagsChip: { backgroundColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
     moreTagsText: { fontSize: 11, color: Colors.TEXT_SECONDARY, fontWeight: '600', fontStyle: 'italic' },
 
-    textBody: { paddingHorizontal: 16, paddingBottom: 16, width: '100%' },
+    textBody: { paddingBottom: 0, width: '100%' },
     reviewContent: { fontSize: 12, lineHeight: 22, color: Colors.TEXT_SECONDARY, flexShrink: 1 },
-    showMoreAction: { fontSize: 12, fontWeight: 'bold', textDecorationLine: 'underline', color: Colors.PRIMARY },
+    showMoreActionInline: { fontSize: 12, fontWeight: 'bold', textDecorationLine: 'underline', color: Colors.PRIMARY },
 });
 
-export default PostCard;
+export default React.memo(PostCard, (prevProps, nextProps) => {
+    const prevLiked = prevProps.isLiked ? prevProps.isLiked(prevProps.review) : false;
+    const nextLiked = nextProps.isLiked ? nextProps.isLiked(nextProps.review) : false;
+
+    return prevProps.review === nextProps.review && 
+           prevProps.variant === nextProps.variant &&
+           prevLiked === nextLiked;
+});
