@@ -117,6 +117,32 @@ export const formatTime = (dateInput: any): string => {
     });
 };
 
+/**
+ * Formats a duration (in milliseconds) into a readable string (e.g., "1h 15m", "45m", "10s").
+ * 
+ * @param {any} durationMs - The duration in milliseconds
+ * @returns {string} Formatted duration string
+ */
+export const formatDuration = (durationMs: any): string => {
+    const numVal = Number(durationMs);
+    if (isNaN(numVal) || numVal < 0) return '--';
+
+    const totalSeconds = Math.round(numVal / 1000);
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    
+    const paddedMins = mins.toString().padStart(2, '0');
+    const paddedSecs = secs.toString().padStart(2, '0');
+
+    if (hours > 0) {
+        return `${hours}:${paddedMins}:${paddedSecs}`;
+    }
+    return `${mins}:${paddedSecs}`;
+};
+
 // --- TIME PARSER ---
 /**
  * Parses a string like "02:30 PM" into a Date object (date is set to today).
