@@ -3,6 +3,7 @@ import React from "react";
 import { Image, Platform, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 
 import CustomIcon from "@/src/components/CustomIcon";
+import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -115,7 +116,7 @@ const MountainCard: React.FC<MountainCardProps> = ({
             onPress={onPress}
         >
             <View style={styles.imageContainer}>
-                <Image source={heroImage} style={styles.cardImage} resizeMode="cover" />
+                <CustomImage source={heroImage} style={styles.cardImage} resizeMode="cover" />
                 
                 {/* Automatically darkens map images so the white text stays readable */}
                 {isMapFallback && <View style={styles.mapDarkenOverlay} />}

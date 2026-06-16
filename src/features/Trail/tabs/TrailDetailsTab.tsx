@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
@@ -212,7 +213,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                 <SectionHeader iconLib="Feather" iconName="map" title="Trail Route Map" />
                 <View style={styles.mapCard}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.85} onPress={() => setIsMapPreviewVisible(true)}>
-                        <Image 
+                        <CustomImage 
                             source={routeMapImageSource} 
                             style={styles.mapImage}
                             resizeMode="cover"

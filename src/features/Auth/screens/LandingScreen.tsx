@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from "@/src/components/CustomButton";
+import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 
 import { Colors } from '@/src/constants/colors';
@@ -35,7 +36,7 @@ const LandingScreen = ({
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             
             <View style={styles.imageWrapper}>
-                <Image 
+                <CustomImage 
                     source={require('@/src/assets/images/Mt.Tagapo.jpg')}
                     style={styles.heroImage}
                     resizeMode="cover"

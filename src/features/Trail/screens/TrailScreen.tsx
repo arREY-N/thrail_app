@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
+import CustomImage from '@/src/components/CustomImage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -115,7 +116,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 style={[styles.container, { marginTop: -insets.top }]}
             >
                 <View style={styles.imageContainer}>
-                    <Image 
+                    <CustomImage 
                         source={heroImage} 
                         style={styles.headerImage}
                         resizeMode="cover"
