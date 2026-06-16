@@ -11,11 +11,21 @@ export class Review implements IReview {
     [immerable] = true
     createdAt: Date = new Date();
     updatedAt: Date = new Date();
-    user: IUserSummary = { id: "", username: "", firstname: "", lastname: "", email: "" };
+    user: IUserSummary = { 
+        id: "", 
+        username: "", 
+        firstname: "", 
+        lastname: "", 
+        email: "" 
+    };
     likes: IUserSummary[] = [];
     id: string = '';
     hikeDate: Date = new Date();
-    trail: ITrailSummary = { id: "", name: "" };
+    trail: ITrailSummary = { 
+        id: "", 
+        name: "", 
+        location: "" 
+    };
     overallRating: number = 0;
     trailMaintenance: DifficultyRating = 'Easy';
     difficultyFactors: DifficultyFactors[] = [];

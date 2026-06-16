@@ -37,7 +37,8 @@ export class Booking implements IBooking {
     };
     trail: ITrailSummary = {
         id: "",
-        name: ""
+        name: "",
+        location: ""
     };
     emergencyContact: IEmergencyContact = {
         name: "",

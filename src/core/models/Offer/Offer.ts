@@ -29,7 +29,8 @@ export class Offer implements IOffer {
     };
     trail: ITrailSummary = {
         id: "",
-        name: ""
+        name: "",
+        location: ""
     };
     schedule: ISchedule<Date>[] = [];
 

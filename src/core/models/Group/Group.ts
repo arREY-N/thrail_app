@@ -26,6 +26,7 @@ export class Group implements IGroup {
     trail: ITrailSummary = {
         id: '',
         name: '',
+        location: ''
     };
     offer: Omit<IOfferBase<Date>, 'business' | 'trail' | 'createdAt' | 'updatedAt'> = {
         id: "",
