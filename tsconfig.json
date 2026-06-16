@@ -5,7 +5,8 @@
     "forceConsistentCasingInFileNames": false,
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["jest"]
   },
   "include": [
     "**/*.ts",
