@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Image, ImageSourcePropType, Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { ActivityIndicator, Image, ImageSourcePropType, Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import ImageZoom from 'react-native-image-pan-zoom';
 
 const TypedImageZoom = ImageZoom as unknown as React.FC<any>;
@@ -36,6 +36,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     onDelete 
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isImageLoading, setIsImageLoading] = useState(true);
 
     const imageList = images && images.length > 0 ? images : (imageUrl ? [imageUrl] : []);
 
@@ -80,6 +81,11 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     };
 
     const currentImage = imageList[currentIndex];
+    const memoizedSource = useMemo(() => getSource(currentImage), [currentImage]);
+
+    useEffect(() => {
+        setIsImageLoading(true);
+    }, [memoizedSource]);
 
     return (
         <Modal
@@ -120,6 +126,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 
                 {currentImage && (
                     <View style={styles.zoomWrapper}>
+                        {isImageLoading && (
+                            <ActivityIndicator 
+                                size="large" 
+                                color={Colors.WHITE} 
+                                style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -18 }, { translateY: -18 }], zIndex: 10 }} 
+                            />
+                        )}
                         <TypedImageZoom 
                             cropWidth={windowWidth}
                             cropHeight={cropHeight}
@@ -127,9 +140,11 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             imageHeight={cropHeight}
                         >
                             <Image 
-                                source={getSource(currentImage) as any} 
-                                style={{ width: windowWidth, height: cropHeight }} 
+                                source={memoizedSource as any} 
+                                style={{ width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 }} 
                                 resizeMode="contain" 
+                                onLoadEnd={() => setIsImageLoading(false)}
+                                onError={() => setIsImageLoading(false)}
                             />
                         </TypedImageZoom>
                     </View>
