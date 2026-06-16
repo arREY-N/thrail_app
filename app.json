@@ -61,7 +61,8 @@
       ],
       "@maplibre/maplibre-react-native",
       "@react-native-google-signin/google-signin/app.plugin.js",
-      "@react-native-firebase/app/app.plugin.js"
+      "@react-native-firebase/app/app.plugin.js",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
