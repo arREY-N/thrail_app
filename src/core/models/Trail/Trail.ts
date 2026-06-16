@@ -59,7 +59,6 @@ export class Trail implements ITrail {
         viewpoint: [],
         network_connection: false
     };
-    offlinePoints: IOfflinePoint[] = [];
     
     constructor(init?: Partial<ITrail>){
         Object.assign(this, init);
@@ -82,7 +81,6 @@ export class Trail implements ITrail {
                 endLat: data.geography?.end?.latitude ?? 0,
                 endLong: data.geography?.end?.longitude ?? 0,
             },
-            offlinePoints: data.offlinePoints || [],
         }
 
         return new Trail(mappped);
@@ -107,7 +105,6 @@ export class Trail implements ITrail {
                 start: new GeoPoint(this.geography?.startLat ?? 0, this.geography?.startLong ?? 0),
                 end: new GeoPoint(this.geography?.endLat ?? 0, this.geography?.endLong ?? 0)
             },
-            offlinePoints: this.offlinePoints || [],
         }
 
         return mapped;
