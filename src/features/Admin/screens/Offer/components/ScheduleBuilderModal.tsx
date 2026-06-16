@@ -25,6 +25,11 @@ import { formatTime, parseTimeToDate } from '@/src/utils/dateFormatter';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+/**
+ * Props for the AMPMToggle component.
+ * @param {string} value - The currently active value ('AM' or 'PM').
+ * @param {(val: string) => void} onChange - Callback triggered when an option is selected.
+ */
 export interface AMPMToggleProps {
     value: string;
     onChange: (val: string) => void;
@@ -32,10 +37,10 @@ export interface AMPMToggleProps {
 
 /**
  * AMPMToggle
- * * A simple, reusable two-option toggle specifically for AM/PM time selection.
- * * @param {AMPMToggleProps} props
+ * A simple, reusable two-option toggle specifically for AM/PM time selection.
+ * @param {AMPMToggleProps} props - The props for the component.
  * @param {string} props.value - The currently active value ('AM' or 'PM').
- * @param {Function} props.onChange - Callback triggered when an option is selected.
+ * @param {(val: string) => void} props.onChange - Callback triggered when an option is selected.
  */
 const AMPMToggle = ({ value, onChange }: AMPMToggleProps) => (
     <View style={styles.toggleContainer}>
@@ -77,6 +82,14 @@ const AMPMToggle = ({ value, onChange }: AMPMToggleProps) => (
     </View>
 );
 
+/**
+ * Props for the ScheduleBuilderModal component.
+ * @param {boolean} visible - Controls the visibility of the modal.
+ * @param {() => void} onClose - Callback triggered to close the modal.
+ * @param {(schedule: any[]) => void} onSave - Callback triggered when the itinerary is saved.
+ * @param {any[]} [initialSchedule] - Existing schedule data to pre-populate the builder.
+ * @param {number | string} [offerDays] - The target number of days this offer spans, used to pad empty days.
+ */
 export interface ScheduleBuilderModalProps {
     visible: boolean;
     onClose: () => void;
@@ -87,13 +100,13 @@ export interface ScheduleBuilderModalProps {
 
 /**
  * ScheduleBuilderModal
- * * A comprehensive modal interface allowing admins/guides to dynamically build 
+ * A comprehensive modal interface allowing admins/guides to dynamically build 
  * a multi-day itinerary. It supports adding/removing days, adding/removing activities 
  * within those days, and setting specific times and events.
- * * @param {ScheduleBuilderModalProps} props
+ * @param {ScheduleBuilderModalProps} props - The props for the component.
  * @param {boolean} props.visible - Controls the visibility of the modal.
- * @param {Function} props.onClose - Callback triggered to close the modal.
- * @param {Function} props.onSave - Callback triggered when the itinerary is saved. Passes the finalized schedule array.
+ * @param {() => void} props.onClose - Callback triggered to close the modal.
+ * @param {(schedule: any[]) => void} props.onSave - Callback triggered when the itinerary is saved. Passes the finalized schedule array.
  * @param {any[]} [props.initialSchedule=[]] - Existing schedule data to pre-populate the builder.
  * @param {number|string} [props.offerDays=0] - The target number of days this offer spans, used to pad empty days.
  */
@@ -210,7 +223,7 @@ const ScheduleBuilderModal = ({
 
     /**
      * Removes a specific day from the schedule and recalculates the day numbers.
-     * * @param {number} dayIndexToRemove - The array index of the day to delete.
+     * @param {number} dayIndexToRemove - The array index of the day to delete.
      */
     const handleRemoveDay = (dayIndexToRemove: number) => {
         setSchedule(
@@ -222,7 +235,7 @@ const ScheduleBuilderModal = ({
 
     /**
      * Adds an empty activity slot to a specific day.
-     * * @param {number} dayIndex - The array index of the day to append the activity to.
+     * @param {number} dayIndex - The array index of the day to append the activity to.
      */
     const handleAddActivity = (dayIndex: number) => {
         const newSchedule = [...schedule];
@@ -237,7 +250,7 @@ const ScheduleBuilderModal = ({
 
     /**
      * Removes a specific activity slot from a specific day.
-     * * @param {number} dayIndex - The array index of the day.
+     * @param {number} dayIndex - The array index of the day.
      * @param {number} actIndex - The array index of the activity to remove.
      */
     const handleRemoveActivity = (dayIndex: number, actIndex: number) => {
@@ -250,7 +263,7 @@ const ScheduleBuilderModal = ({
 
     /**
      * Updates a specific field within an activity.
-     * * @param {number} dayIndex - The array index of the day.
+     * @param {number} dayIndex - The array index of the day.
      * @param {number} actIndex - The array index of the activity to update.
      * @param {string} field - The object key to update (e.g., 'hourVal', 'event').
      * @param {string} value - The new value to set.
