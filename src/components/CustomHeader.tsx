@@ -91,7 +91,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                         ) : (
                             !centerTitle && (
                                 children ? children : (
-                                    <CustomText variant='title' style={styles.headline}>
+                                    <CustomText variant='title' style={styles.headline} numberOfLines={1}>
                                         {title}
                                     </CustomText>
                                 )
