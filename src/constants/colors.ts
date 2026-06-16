@@ -52,6 +52,7 @@ export const Palette = {
 
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
+    WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
 };
 
@@ -64,6 +65,7 @@ export const Colors = {
     // Core Neutrals
     BLACK:            Palette.Neutral900,
     WHITE:            Palette.White,
+    WHITE_TRANSPARENT:Palette.WhiteAlpha0,
     GRAY:             Palette.Neutral500,
     GRAY_MEDIUM:      Palette.Neutral400, 
     GRAY_LIGHT:       Palette.Neutral200,
