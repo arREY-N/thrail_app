@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     FlatList,
     ListRenderItemInfo,
@@ -15,9 +15,11 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import PostCard from '@/src/components/PostCard';
+import PostCardSkeleton from '@/src/components/PostCardSkeleton';
 import { Colors } from '@/src/constants/colors';
 import { Review } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useCommunity } from '../hooks/useCommunity';
 
 /**
  * Props for the CommunityScreen component.
@@ -60,49 +62,18 @@ const CommunityScreen = ({
     onNotificationPress,
     onBookingPress,
 }: CommunityScreenProps) => {
-    
-    const [activeTab, setActiveTab] = useState('Latest');
-    const [searchQuery, setSearchQuery] = useState('');
+    const { 
+        searchQuery, 
+        setSearchQuery, 
+        activeTab, 
+        setActiveTab, 
+        sortOrder, 
+        toggleSortOrder, 
+        filteredReviews 
+    } = useCommunity(reviews);
     
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
-
-    const sortedAndFilteredReviews = useMemo(() => {
-        if (!reviews) return [];
-        let filtered = [...reviews];
-
-        if (searchQuery.trim().length > 0) {
-            const query = searchQuery.trim().toLowerCase();
-            
-            filtered = filtered.filter(r => {
-                const reviewText = String(r.review || '').toLowerCase();
-                const userText = String((r as any).userName || '').toLowerCase();
-                const mountainText = String((r as any).mountainName || (r as any).trailName || '').toLowerCase();
-                const locationText = String((r as any).location || '').toLowerCase();
-
-                return reviewText.includes(query) || 
-                       userText.includes(query) || 
-                       mountainText.includes(query) || 
-                       locationText.includes(query);
-            });
-        }
-        
-        if (activeTab === 'Popular') {
-            filtered.sort((a, b) => {
-                const aLikes = Array.isArray(a.likes) ? a.likes.length : (Number(a.likes) || 0);
-                const bLikes = Array.isArray(b.likes) ? b.likes.length : (Number(b.likes) || 0);
-                return bLikes - aLikes;
-            });
-        } else if (activeTab === 'Latest') {
-            filtered.sort((a, b) => {
-                const dateA = new Date((a as any).rawReview?.createdAt || (a as any).rawReview?.hikeDate || (a as any).date).getTime();
-                const dateB = new Date((b as any).rawReview?.createdAt || (b as any).rawReview?.hikeDate || (b as any).date).getTime();
-                return (dateB || 0) - (dateA || 0); 
-            });
-        }
-
-        return filtered;
-    }, [reviews, activeTab, searchQuery]);
 
     const renderPostCard = useCallback(({ item }: ListRenderItemInfo<any>) => (
         <PostCard 
@@ -128,14 +99,22 @@ const CommunityScreen = ({
                         onSearchChange: setSearchQuery,
                         onChangeText: setSearchQuery,
                         rightIconLibrary: "MaterialCommunityIcons",
-                        rightIconName: "podium",
-                        onRightButtonPress: onLeaderboardPress,
-                        tabs: ['Latest', 'Popular'],
+                        rightIconName: sortOrder === 'desc' ? "sort-descending" : "sort-ascending",
+                        onRightButtonPress: toggleSortOrder,
+                        tabs: ['Latest', 'Popular', 'Rating'],
                         activeTab: activeTab,
                         onTabSelect: setActiveTab
                     }}
                     rightActions={
                         <>
+                            <TouchableOpacity 
+                                style={styles.headerActionIcon} 
+                                onPress={onLeaderboardPress}
+                                activeOpacity={0.7}
+                            >
+                                <CustomIcon library="MaterialCommunityIcons" name="podium" size={24} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+
                             <TouchableOpacity 
                                 style={styles.headerActionIcon} 
                                 onPress={onNotificationPress}
@@ -157,7 +136,7 @@ const CommunityScreen = ({
 
                 <View style={styles.feedWrapper}>
                     <FlatList
-                        data={sortedAndFilteredReviews}
+                        data={isLoading ? [] : filteredReviews}
                         keyExtractor={(item) => item.id}
                         contentContainerStyle={[
                             styles.scrollContent,
@@ -169,14 +148,20 @@ const CommunityScreen = ({
                         }
                         renderItem={renderPostCard}
                         ListEmptyComponent={
-                            !isLoading ? (
+                            isLoading ? (
+                                <View style={{ gap: 16 }}>
+                                    <PostCardSkeleton />
+                                    <PostCardSkeleton />
+                                    <PostCardSkeleton />
+                                </View>
+                            ) : (
                                 <View style={styles.emptyStateContainer}>
                                     <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
                                     <CustomText variant="caption" style={styles.emptyStateText}>
                                         {searchQuery ? "No posts found matching search." : "No community posts found."}
                                     </CustomText>
                                 </View>
-                            ) : null
+                            )
                         }
                     />
                 </View>
