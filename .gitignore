@@ -55,7 +55,6 @@ firebase-debug.*.log
 
 eas.json
 desktop.ini
-.cursorrules
 
 /google-services.json
 firebase-messaging-sw.js
