@@ -27,6 +27,7 @@ interface CustomSearchBarProps {
     tabs?: string[];
     activeTab?: string;
     onTabSelect?: (tab: string) => void;
+    sortOrder?: 'asc' | 'desc';
 }
 
 const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ 
@@ -38,7 +39,8 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     onRightButtonPress,
     tabs = [],
     activeTab,
-    onTabSelect
+    onTabSelect,
+    sortOrder
 }) => {
     return (
         <View style={styles.container}>
@@ -89,6 +91,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     >
                         {tabs.map((tab: string) => {
                             const isActive = activeTab === tab;
+                            const isRatingTab = tab === 'Rating';
                             return (
                                 <TouchableOpacity 
                                     key={tab} 
@@ -99,12 +102,25 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                                     ]}
                                     activeOpacity={0.8}
                                 >
-                                    <CustomText style={[
-                                        styles.chipText,
-                                        isActive && styles.activeChipText
-                                    ]}>
-                                        {tab}
-                                    </CustomText>
+                                    <View style={styles.chipContent}>
+                                        <CustomText 
+                                            style={[
+                                                styles.chipText,
+                                                isActive && styles.activeChipText
+                                            ]}
+                                        >
+                                            {tab}
+                                        </CustomText>
+                                        {isRatingTab && isActive && sortOrder && (
+                                            <CustomIcon 
+                                                library="Feather" 
+                                                name={sortOrder === 'desc' ? "arrow-up" : "arrow-down"} 
+                                                size={14} 
+                                                color={isActive ? Colors.TEXT_INVERSE : Colors.TEXT_PRIMARY} 
+                                                style={styles.ratingIcon}
+                                            />
+                                        )}
+                                    </View>
                                 </TouchableOpacity>
                             );
                         })}
@@ -179,6 +195,14 @@ const styles = StyleSheet.create({
     activeChipText: {
         color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
+    },
+    chipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    ratingIcon: {
+        marginLeft: 2,
     },
 });
 
