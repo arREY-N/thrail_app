@@ -47,18 +47,18 @@ export const useCommunity = (reviews: Review[]) => {
             });
         }
         
-        // 2. SORTING/FILTERING
+        // 2. SORTING/FILTERING (Defaulting to descending order: Latest first, Popular first, highest Rating first)
         if (activeTab === 'Popular') {
             filtered.sort((a, b) => {
                 const aLikes = Array.isArray(a.likes) ? a.likes.length : (Number(a.likes) || 0);
                 const bLikes = Array.isArray(b.likes) ? b.likes.length : (Number(b.likes) || 0);
-                return sortOrder === 'desc' ? bLikes - aLikes : aLikes - bLikes;
+                return bLikes - aLikes;
             });
         } else if (activeTab === 'Latest') {
             filtered.sort((a, b) => {
                 const dateA = new Date(a.createdAt || a.hikeDate).getTime();
                 const dateB = new Date(b.createdAt || b.hikeDate).getTime();
-                return sortOrder === 'desc' ? (dateB || 0) - (dateA || 0) : (dateA || 0) - (dateB || 0); 
+                return (dateB || 0) - (dateA || 0); 
             });
         } else if (activeTab === 'Rating') {
             filtered.sort((a, b) => {
@@ -69,15 +69,7 @@ export const useCommunity = (reviews: Review[]) => {
         }
 
         return filtered;
-    }, [reviews, activeTab, searchQuery, sortOrder]);
-
-    /**
-     * Toggles the global sort order between ascending and descending.
-     * This affects the Latest, Popular, and Rating tabs.
-     */
-    const toggleSortOrder = () => {
-        setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
-    };
+    }, [reviews, activeTab, debouncedQuery, sortOrder]);
 
     return {
         searchQuery,
@@ -85,7 +77,7 @@ export const useCommunity = (reviews: Review[]) => {
         activeTab,
         setActiveTab,
         sortOrder,
-        toggleSortOrder,
+        setSortOrder,
         filteredReviews: sortedAndFilteredReviews
     };
 };
