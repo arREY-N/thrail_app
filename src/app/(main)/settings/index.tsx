@@ -1,21 +1,28 @@
-import { router } from 'expo-router';
+/**
+ * @file index.tsx
+ * @description Controller for the main settings page.
+ */
 import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import SettingsScreen from '@/src/features/Profile/screens/SettingsScreen';
+import SettingsScreen from '@/src/features/Settings/screens/SettingsScreen';
 
+/**
+ * SettingsPage coordinates navigation options, sign out triggers, and role-based actions.
+ */
 export default function settings() {
     const { profile } = useAuthHook();
 
-    const { onBackPress } = useAppNavigation();
-
     const { 
-            onPrivacy,
-            onTerms
-        } = useLandingNavigation();
+        onBackPress,
+        onSecuritySettingsPress,
+        onNotificationSettingsPress,
+        onPrivacySettingsPress,
+        onAboutSettingsPress,
+        onUserViewPress
+    } = useAppNavigation();
 
     const { 
         role, 
@@ -28,21 +35,23 @@ export default function settings() {
         onApplyPress,
     } = useProfileNavigation();
 
-    const onProfileInfoPress = () => {
-        router.push(`/(main)/user/view?userId=${profile?.id}` as any);
-    };
-
     return (
         <SettingsScreen
-            role={role as any}
+            role={role as string}
             onBackPress={onBackPress}
-            onProfileInfoPress={onProfileInfoPress}
-            onSignOutPress={onSignOutPress}
+            
+            onProfileInfoPress={() => onUserViewPress(profile?.id)}
+            onSecurityPress={onSecuritySettingsPress}
             onAdminPress={onAdminPress}
             onSuperadminPress={onSuperadminPress}
             onApplyPress={onApplyPress}
-            onTerms={onTerms}
-            onPrivacy={onPrivacy}
+            
+            onPrivacySettingsPress={onPrivacySettingsPress}
+            onNotificationsPress={onNotificationSettingsPress}
+            
+            onAboutPress={onAboutSettingsPress}
+            
+            onSignOutPress={onSignOutPress}
         />
     );
-}
+}
