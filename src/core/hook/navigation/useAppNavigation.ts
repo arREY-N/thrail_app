@@ -14,6 +14,14 @@ export function useAppNavigation() {
         router.back();
     };
 
+    const onUserViewPress = (id?: string) => {
+        if (!id) return;
+        router.push({
+            pathname: '/(main)/user/view',
+            params: { userId: id }
+        });
+    };
+
     const onDownloadPress = (id: string) => {
         console.log('Downloading: ', id);
     }
@@ -74,6 +82,30 @@ export function useAppNavigation() {
         router.replace('/(auth)/landing');
     }
 
+    const onSecuritySettingsPress = () => {
+        router.push('/(main)/settings/security');
+    }
+
+    const onNotificationSettingsPress = () => {
+        router.push('/(main)/settings/notifications');
+    }
+
+    const onPrivacySettingsPress = () => {
+        router.push('/(main)/settings/privacy');
+    }
+
+    const onAboutSettingsPress = () => {
+        router.push('/(main)/settings/about');
+    }
+
+    const onHelpSettingsPress = () => {
+        router.push('/(main)/settings/help');
+    }
+
+    const onHikingPreferencesPress = () => {
+        router.push('/(main)/settings/preferences');
+    }
+
     return {
         onLanding,
         onTrailPress,
@@ -88,6 +120,13 @@ export function useAppNavigation() {
         onViewAllDiscoverPress,
         onGroupPress,
         onLeaderBoardPress,
-        onSettingsPress
+        onSettingsPress,
+        onSecuritySettingsPress,
+        onNotificationSettingsPress,
+        onPrivacySettingsPress,
+        onAboutSettingsPress,
+        onHelpSettingsPress,
+        onHikingPreferencesPress,
+        onUserViewPress
     }
 }
