@@ -6,9 +6,9 @@ export const finishOnboarding = async (
     uid: string, 
     data: { preferences: IPreference; medicalProfile: IMedicalProfile }
 ) => {
-    const ref = doc(db, 'users', uid);
-
     if(!uid || !data) throw new Error('Missing UID or data object');
+    
+    const ref = doc(db, 'users', uid);
     
     await setDoc(
         ref, 
