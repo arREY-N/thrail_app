@@ -235,6 +235,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 error: (err as Error).message || "Failed signing up",
                 isLoading: false,
             });
+            throw new Error((err as Error).message || "Failed signing up");
         }
     },
 
