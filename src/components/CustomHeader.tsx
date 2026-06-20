@@ -31,6 +31,7 @@ import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 interface CustomHeaderProps {
     title?: string;
     onBackPress?: () => void;
+    leftAction?: ReactNode;
     rightActions?: ReactNode;
     showDefaultIcons?: boolean;
     centerTitle?: boolean;
@@ -43,6 +44,7 @@ interface CustomHeaderProps {
 const CustomHeader: React.FC<CustomHeaderProps> = ({ 
     title, 
     onBackPress, 
+    leftAction,
     rightActions, 
     showDefaultIcons = false,
     centerTitle = false,
@@ -74,7 +76,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                     
                     {/* === LEFT SECTION === */}
                     <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard} pointerEvents="box-none">
-                        {onBackPress ? (
+                        {leftAction ? leftAction : (onBackPress ? (
                             <TouchableOpacity 
                                 onPress={onBackPress} 
                                 style={styles.backButton}
@@ -96,7 +98,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                                     </CustomText>
                                 )
                             )
-                        )}
+                        ))}
                     </View>
 
                     {/* === CENTER SECTION === */}
@@ -126,7 +128,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                                             color={Colors.PRIMARY} 
                                         />
                                     </TouchableOpacity>
-
+ 
                                     <TouchableOpacity
                                         style={styles.actionIcon}
                                         onPress={onBookingPress}
