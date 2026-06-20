@@ -39,6 +39,7 @@ interface CustomCalendarInputProps {
     defaultMode?: 'date' | 'month' | 'year';
     maximumDate?: Date | null;
     dateFormat?: string;
+    iconPosition?: 'left' | 'right';
 }
 
 const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({ 
@@ -51,7 +52,8 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
     allowFutureDates = false,
     defaultMode = 'date',
     maximumDate,
-    dateFormat = 'MM/DD/YYYY'
+    dateFormat = 'MM/DD/YYYY',
+    iconPosition = 'right'
 }) => {
 
     const [showPicker, setShowPicker] = useState<boolean>(false);
@@ -288,6 +290,15 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
                 ]} 
                 onPress={handleOpen}
             >
+                {iconPosition === 'left' && (
+                    <CustomIcon 
+                        library="Feather" 
+                        name="calendar" 
+                        size={20} 
+                        color={showPicker ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                        style={{ marginRight: 12 }}
+                    />
+                )}
                 <View 
                     style={[
                         styles.textInputWrapper, 
@@ -303,12 +314,14 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
                     />
                 </View>
 
-                <CustomIcon 
-                    library="Feather" 
-                    name="calendar" 
-                    size={20} 
-                    color={showPicker ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
-                />
+                {iconPosition === 'right' && (
+                    <CustomIcon 
+                        library="Feather" 
+                        name="calendar" 
+                        size={20} 
+                        color={showPicker ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                    />
+                )}
             </Pressable>
 
             <Modal
