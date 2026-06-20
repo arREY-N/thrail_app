@@ -72,7 +72,6 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     label?: string;
     placeholder?: string;
     value?: string | Date | null | number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onChangeText?: (text: any) => void;
     secureTextEntry?: boolean;
     keyboardType?: TextInputProps['keyboardType'];
@@ -91,6 +90,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     multiline?: boolean;
     maximumDate?: Date | null;
     dateFormat?: string;
+    iconPosition?: 'left' | 'right';
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -115,6 +115,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     multiline,
     maximumDate,
     dateFormat = 'MM/DD/YYYY',
+    iconPosition,
     ...props
 }) => {
 
@@ -171,7 +172,6 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         return (
             <CustomDateInput 
                 value={value as Date | null | undefined} 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChangeText={onChangeText as any}
                 label={label}
             > 
@@ -183,9 +183,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     if (type === 'calendar') {
         return (
             <CustomCalendarInput 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 value={value as any} 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChangeText={onChangeText as any}
                 label={label}
                 placeholder={placeholder}
@@ -195,6 +193,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 maximumDate={maximumDate}
                 dateFormat={dateFormat}
                 style={style}
+                iconPosition={iconPosition}
             />
         );
     }
