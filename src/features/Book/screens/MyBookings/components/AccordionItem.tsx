@@ -2,10 +2,12 @@ import React, { ReactNode, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
     UIManager,
-    View
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -32,6 +34,8 @@ export interface AccordionItemProps {
     children: ReactNode;
     /** Initial open state */
     defaultOpen?: boolean;
+    /** Optional container styles */
+    style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -45,7 +49,8 @@ const AccordionItem = ({
     icon, 
     library = "Feather", 
     children, 
-    defaultOpen = false 
+    defaultOpen = false,
+    style
 }: AccordionItemProps) => {
     const [isOpen, setIsOpen] = useState<boolean>(defaultOpen);
 
@@ -55,7 +60,7 @@ const AccordionItem = ({
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             <TouchableOpacity 
                 style={styles.header} 
                 onPress={toggleAccordion}
