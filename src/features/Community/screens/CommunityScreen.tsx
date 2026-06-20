@@ -67,10 +67,23 @@ const CommunityScreen = ({
         setSearchQuery, 
         activeTab, 
         setActiveTab, 
-        sortOrder, 
-        toggleSortOrder, 
+        sortOrder,
+        setSortOrder,
         filteredReviews 
     } = useCommunity(reviews);
+
+    const handleTabSelect = (tab: string) => {
+        if (tab === 'Rating') {
+            if (activeTab === 'Rating') {
+                setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+            } else {
+                setActiveTab('Rating');
+                setSortOrder('desc');
+            }
+        } else {
+            setActiveTab(tab);
+        }
+    };
     
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
@@ -99,28 +112,30 @@ const CommunityScreen = ({
                         onSearchChange: setSearchQuery,
                         onChangeText: setSearchQuery,
                         rightIconLibrary: "MaterialCommunityIcons",
-                        rightIconName: sortOrder === 'desc' ? "sort-descending" : "sort-ascending",
-                        onRightButtonPress: toggleSortOrder,
-                        tabs: ['Latest', 'Popular', 'Rating'],
+                        rightIconName: "podium",
+                        onRightButtonPress: onLeaderboardPress,
+                        tabs: [
+                            'Latest', 
+                            'Popular', 
+                            'Rating'
+                        ],
                         activeTab: activeTab,
-                        onTabSelect: setActiveTab
+                        onTabSelect: handleTabSelect,
+                        sortOrder: sortOrder
                     }}
                     rightActions={
                         <>
                             <TouchableOpacity 
                                 style={styles.headerActionIcon} 
-                                onPress={onLeaderboardPress}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon library="MaterialCommunityIcons" name="podium" size={24} color={Colors.PRIMARY} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={styles.headerActionIcon} 
                                 onPress={onNotificationPress}
                                 activeOpacity={0.7}
                             >
-                                <CustomIcon library="Ionicons" name="notifications" size={24} color={Colors.PRIMARY} />
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="notifications" 
+                                    size={24} 
+                                    color={Colors.PRIMARY} 
+                                />
                             </TouchableOpacity>
 
                             <TouchableOpacity 
@@ -128,7 +143,12 @@ const CommunityScreen = ({
                                 onPress={onBookingPress}
                                 activeOpacity={0.7}
                             >
-                                <CustomIcon library="Ionicons" name="calendar-clear" size={24} color={Colors.PRIMARY} />
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="calendar-clear" 
+                                    size={24} 
+                                    color={Colors.PRIMARY} 
+                                />
                             </TouchableOpacity>
                         </>
                     }
