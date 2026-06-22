@@ -44,7 +44,7 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }: 
     const display = formatWeatherDisplay(weatherData);
     const { geocodedName } = useLocation({ propLocationName: locationName });
 
-    if (loading) {
+    if (loading && !weatherData) {
         return (
             <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.container, styles.centerAll]}>
                 <ActivityIndicator size="large" color={Colors.PRIMARY} />
@@ -55,7 +55,7 @@ const WeatherSection = ({ weatherData, loading, locationName, error, onPress }: 
         );
     }
 
-    if (error) {
+    if (error && !weatherData) {
         return (
             <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[styles.container, styles.centerAll]}>
                 <CustomIcon library="Ionicons" name="cloud-offline-outline" size={36} color={Colors.ERROR} />
