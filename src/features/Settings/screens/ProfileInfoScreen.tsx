@@ -440,6 +440,33 @@ const ProfileInfoScreen = ({
                             </View>
                         </View>
 
+                        {user.emergencyContact && (
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.PRIMARY} />
+                                    <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Emergency Contact</CustomText>
+                                </View>
+                                <View style={styles.cardBody}>
+                                    {isEditing ? (
+                                        <View style={styles.editForm}>
+                                            <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, name: text }))} icon="user" />
+                                            <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" icon="phone" />
+                                            <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, email: text }))} icon="mail" style={styles.noMarginBottom} />
+                                        </View>
+                                    ) : (
+                                        <View>
+                                            <InfoRow label="Contact Name" value={user.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
+                                            <InfoRow label="Contact Number" value={user.emergencyContact.contactNumber} forceStack={emergencyContactRequiresStack} />
+                                            <InfoRow label="Email Address" value={user.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* RIGHT COLUMN */}
+                    <View style={[styles.column, isWideScreen && styles.columnWide]}>
                         {(showMedicalProfile || isEditing) && (
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
@@ -504,10 +531,7 @@ const ProfileInfoScreen = ({
                                 </View>
                             </View>
                         )}
-                    </View>
 
-                    {/* RIGHT COLUMN */}
-                    <View style={[styles.column, isWideScreen && styles.columnWide]}>
                         {user.onBoardingComplete && user.preferences && (
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
@@ -642,30 +666,6 @@ const ProfileInfoScreen = ({
                                                 <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Preferred Provinces</CustomText>
                                                 {renderGamifiedChips(user.preferences.province, "navigation")}
                                             </View>
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-                        )}
-
-                        {user.emergencyContact && (
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.PRIMARY} />
-                                    <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Emergency Contact</CustomText>
-                                </View>
-                                <View style={styles.cardBody}>
-                                    {isEditing ? (
-                                        <View style={styles.editForm}>
-                                            <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, name: text }))} icon="user" />
-                                            <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" icon="phone" />
-                                            <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, email: text }))} icon="mail" style={styles.noMarginBottom} />
-                                        </View>
-                                    ) : (
-                                        <View>
-                                            <InfoRow label="Contact Name" value={user.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
-                                            <InfoRow label="Contact Number" value={user.emergencyContact.contactNumber} forceStack={emergencyContactRequiresStack} />
-                                            <InfoRow label="Email Address" value={user.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
                                         </View>
                                     )}
                                 </View>
