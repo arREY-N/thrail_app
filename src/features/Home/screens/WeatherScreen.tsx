@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import {
-    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -71,7 +70,8 @@ const WeatherScreen = ({
         latitude: activeLat, 
         longitude: activeLon, 
         locationName: displayName, 
-        geocodedName 
+        geocodedName,
+        isLocating
     } = useLocation({ 
         propLatitude: latitude, 
         propLongitude: longitude, 
@@ -95,14 +95,14 @@ const WeatherScreen = ({
     }, [onRefreshPress, refetch]);
 
     const display = formatWeatherDisplay(weatherData);
-    const hasData = display.hasData && !error;
+    const hasData = display.hasData;
 
     // Raw numeric values kept only for alert-level color thresholds
     const windRaw = weatherData?.windSpeed;
     const precipRaw = weatherData?.precipitationProbability;
     const uvRaw = weatherData?.uvIndex;
 
-    if ((loading && !weatherData) || refreshing) {
+    if (((loading || isLocating) && !weatherData) || refreshing) {
         return <WeatherSkeleton onBackPress={onBackPress} />;
     }
 
@@ -115,7 +115,7 @@ const WeatherScreen = ({
                 contentContainerStyle={[
                     styles.scrollContent, 
                     isWideScreen && styles.scrollContentWide,
-                    { paddingBottom: Math.max(insets.bottom + 24, 40) }
+                    { paddingBottom: insets.bottom + 48 }
                 ]}
                 refreshControl={
                     <RefreshControl 
@@ -125,75 +125,7 @@ const WeatherScreen = ({
                     />
                 }
             >
-                <View style={styles.heroSection}>
-                    <View style={styles.heroTop}>
-                        <View style={styles.hiLoContainer}>
-                            <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.WEATHER_SUN} />
-                            <CustomText variant="label" style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
-                            
-                            <View style={styles.dotSeparator} />
-                            
-                            <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.WEATHER_MOON} />
-                            <CustomText variant="label" style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
-                        </View>
-                    </View>
-
-                    <View style={styles.mainWeatherRow}>
-                        <View style={styles.tempBlock}>
-                            <View style={styles.tempContainer}>
-                                <CustomText style={styles.mainTemp}>{display.temperature}°</CustomText>
-                                <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
-                            </View>
-                            {display.feelsLike != null && (
-                                <CustomText variant="caption" style={styles.feelsLikeHero}>
-                                    Feels like {display.feelsLike}°C
-                                </CustomText>
-                            )}
-                        </View>
-
-                        <View style={styles.iconBlock}>
-                            <CustomIcon 
-                                library={display.library as IconLibrary} 
-                                name={hasData ? display.icon : "cloud-offline-outline"} 
-                                size={80} 
-                                color={Colors.PRIMARY} 
-                            />
-                            <CustomText variant="label" style={styles.conditionText}>
-                                {hasData ? display.condition : "Loading"}
-                            </CustomText>
-                        </View>
-                    </View>
-                    
-                    <View style={styles.heroDivider} />
-                    
-                    <View style={styles.metadataRow}>
-                        <View style={styles.locationWrapper}>
-                            <View style={styles.locationRow}>
-                                <CustomIcon 
-                                    library="FontAwesome6" 
-                                    name="location-dot"  
-                                    size={14} 
-                                    color={Colors.PRIMARY} 
-                                />
-                                <CustomText variant="label" style={styles.locationLabel} numberOfLines={1}>
-                                    {displayName}
-                                </CustomText>
-                            </View>
-                            {geocodedName !== displayName && (
-                                <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
-                                    {geocodedName || "Fetching exact location..."}
-                                </CustomText>
-                            )}
-                        </View>
-                        {lastUpdatedLabel && (
-                            <CustomText variant="caption" style={styles.lastUpdatedLabel}>
-                                Updated {lastUpdatedLabel}
-                            </CustomText>
-                        )}
-                    </View>
-                </View>
-
-                {error ? (
+                {error && !weatherData ? (
                     <View style={styles.errorContainer}>
                         <CustomIcon library="Ionicons" name="warning-outline" size={48} color={Colors.ERROR} />
                         <CustomText variant="body" style={styles.errorText}>
@@ -205,6 +137,73 @@ const WeatherScreen = ({
                     </View>
                 ) : (
                     <>
+                        <View style={styles.heroSection}>
+                            <View style={styles.heroTop}>
+                                <View style={styles.hiLoContainer}>
+                                    <CustomIcon library="Ionicons" name="sunny" size={14} color={Colors.WEATHER_SUN} />
+                                    <CustomText variant="label" style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
+                                    
+                                    <View style={styles.dotSeparator} />
+                                    
+                                    <CustomIcon library="Ionicons" name="moon" size={14} color={Colors.WEATHER_MOON} />
+                                    <CustomText variant="label" style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
+                                </View>
+                            </View>
+
+                            <View style={styles.mainWeatherRow}>
+                                <View style={styles.tempBlock}>
+                                    <View style={styles.tempContainer}>
+                                        <CustomText style={styles.mainTemp}>{display.temperature}°</CustomText>
+                                        <CustomText variant="h2" style={styles.tempUnit}>C</CustomText>
+                                    </View>
+                                    {display.feelsLike != null && (
+                                        <CustomText variant="caption" style={styles.feelsLikeHero}>
+                                            Feels like {display.feelsLike}°C
+                                        </CustomText>
+                                    )}
+                                </View>
+
+                                <View style={styles.iconBlock}>
+                                    <CustomIcon 
+                                        library={display.library as IconLibrary} 
+                                        name={hasData ? display.icon : "cloud-offline-outline"} 
+                                        size={80} 
+                                        color={Colors.PRIMARY} 
+                                    />
+                                    <CustomText variant="label" style={styles.conditionText}>
+                                        {hasData ? display.condition : "Loading"}
+                                    </CustomText>
+                                </View>
+                            </View>
+                            
+                            <View style={styles.heroDivider} />
+                            
+                            <View style={styles.metadataRow}>
+                                <View style={styles.locationWrapper}>
+                                    <View style={styles.locationRow}>
+                                        <CustomIcon 
+                                            library="FontAwesome6" 
+                                            name="location-dot"  
+                                            size={14} 
+                                            color={Colors.PRIMARY} 
+                                        />
+                                        <CustomText variant="label" style={styles.locationLabel} numberOfLines={1}>
+                                            {displayName}
+                                        </CustomText>
+                                    </View>
+                                    {geocodedName !== displayName && (
+                                        <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
+                                            {geocodedName || "Fetching exact location..."}
+                                        </CustomText>
+                                    )}
+                                </View>
+                                {lastUpdatedLabel && (
+                                    <CustomText variant="caption" style={styles.lastUpdatedLabel}>
+                                        Updated {lastUpdatedLabel}
+                                    </CustomText>
+                                )}
+                            </View>
+                        </View>
                         <View style={styles.fullWidthCard}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
@@ -403,10 +402,10 @@ const dropShadow = GlobalStyles.dropShadow(3);
 
 const styles = StyleSheet.create({
     container: { 
-        flex: 1 
+        flex: 1,
     },
     scrollContent: { 
-        padding: 16, 
+        paddingHorizontal: 16,
         gap: 16, 
     },
 
