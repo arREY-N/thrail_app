@@ -6,12 +6,14 @@ import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import PrivacyPermissionsScreen from '@/src/features/Settings/screens/PrivacyPermissionsScreen';
+import useDevicePermissions from '@/src/core/hook/user/useDevicePermissions';
 
 /**
  * PrivacyPage coordinates user profile privacy and hardware permissions settings.
  */
 export default function privacy() {
     const { onBackPress } = useAppNavigation();
+    const { statuses, requestPermission } = useDevicePermissions();
     
     // TODO: [Backend] Retrieve initial privacy preferences from user profile
     const publicProfile = true;
@@ -42,6 +44,8 @@ export default function privacy() {
             onTogglePublicProfile={handleTogglePublicProfile}
             onToggleShareStats={handleToggleShareStats}
             onToggleActivityStatus={handleToggleActivityStatus}
+            permissionStatuses={statuses}
+            onRequestPermission={requestPermission}
         />
     );
 }
