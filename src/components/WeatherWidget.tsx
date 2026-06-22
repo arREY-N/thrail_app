@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -32,28 +32,31 @@ interface SafetyTheme {
 }
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) => {
-    const { weatherData: data, loading, error, refetch } = useWeather(latitude, longitude);
+    const { weatherData: data, error, refetch } = useWeather(latitude, longitude);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const lastUpdatedLabel = useMemo(
         () => formatLastUpdatedLabel(data?.lastUpdated),
         [data?.lastUpdated]
     );
 
-    const handleRefresh = useCallback(() => {
-        refetch();
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await refetch();
+        setIsRefreshing(false);
     }, [refetch]);
 
-    if (loading) {
-        return <WeatherWidgetSkeleton />;
-    }
-
-    if (error || !data) {
+    if (error && !data) {
         return (
             <View style={styles.centerContent}>
                 <CustomIcon library="Ionicons" name="warning-outline" size={32} color={Colors.ERROR} />
                 <CustomText style={styles.errorText}>Unable to load weather data</CustomText>
             </View>
         );
+    }
+
+    if (isRefreshing || !data) {
+        return <WeatherWidgetSkeleton />;
     }
 
     const weatherData = data as ProcessedWeatherData;
