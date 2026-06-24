@@ -54,6 +54,8 @@ interface HikeRecordingScreenProps {
     onTriggerEmergencySOS?: () => void;
     onOpenSOSCamera?: () => void;
     emergencyContactNumber?: string;
+    shareLocationEnabled?: boolean;
+    setShareLocationEnabled?: (enabled: boolean) => Promise<void>;
 }
 
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
@@ -62,6 +64,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
+    shareLocationEnabled, setShareLocationEnabled,
 }) => {
     const insets = useSafeAreaInsets();
     const mapRef = useRef<any>(null);
@@ -75,6 +78,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showTeamStatus, setShowTeamStatus] = useState(false);
     const [showTrailInfo, setShowTrailInfo] = useState(false);
     const [showBackConfirm, setShowBackConfirm] = useState(false);
+    const [showOtherHikers, setShowOtherHikers] = useState(true);
+    const [showMapOptions, setShowMapOptions] = useState(false);
     
     const [liveTime, setLiveTime] = useState(baseElapsedTime);
 
@@ -197,7 +202,14 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     return (
         <View style={styles.container}>
-            <TrailMap ref={mapRef} initialLon={lon} initialLat={lat} bottomInset={210} />
+            <TrailMap 
+                ref={mapRef} 
+                initialLon={lon} 
+                initialLat={lat} 
+                bottomInset={210} 
+                hikerLocations={showOtherHikers ? hikerLocations : []}
+                currentUserId={profile?.id}
+            />
 
             <View style={[styles.floatingHeaderContainer, { top: insets.top + 10 }]}>
                 <TouchableOpacity onPress={handleSafeBackPress} style={styles.glassPillRound}>
@@ -234,6 +246,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 {isGuidedHike && currentGroup && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTeamStatus(true)}>
                         <CustomIcon library="Feather" name="users" size={20} color={Colors.PRIMARY} />
+                    </TouchableOpacity>
+                )}
+                {isGuidedHike && currentGroup && (
+                    <TouchableOpacity style={styles.fabBtn} onPress={() => setShowMapOptions(true)}>
+                        <CustomIcon library="Feather" name="settings" size={20} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.fabBtn} onPress={() => { setIsOfflineMode(!isOfflineMode); mapRef.current?.toggleOffline(); }}>
@@ -449,6 +466,49 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 cancelText="Skip"
                 iconName="camera" children={undefined}            />
 
+            <Modal visible={showMapOptions} transparent animationType="slide">
+                <View style={styles.modalOverlayBottom}>
+                    <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 24 }]}>
+                        <View style={styles.sheetHeaderRow}>
+                            <CustomText variant="h3">Map Options</CustomText>
+                            <TouchableOpacity onPress={() => setShowMapOptions(false)} style={styles.closeBtn}>
+                                <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.optionRow}>
+                            <View style={styles.optionInfo}>
+                                <CustomText style={styles.optionTitle}>Show Team on Map</CustomText>
+                                <CustomText variant="caption">View other hikers in your booking on the map</CustomText>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => setShowOtherHikers(!showOtherHikers)}
+                                style={[styles.toggleBtn, showOtherHikers ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                            >
+                                <CustomText style={showOtherHikers ? styles.toggleTextActive : styles.toggleTextInactive}>
+                                    {showOtherHikers ? "ON" : "OFF"}
+                                </CustomText>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[styles.optionRow, { marginTop: 16 }]}>
+                            <View style={styles.optionInfo}>
+                                <CustomText style={styles.optionTitle}>Share My Location</CustomText>
+                                <CustomText variant="caption">Allow other group members to see your live position</CustomText>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => setShareLocationEnabled?.(!shareLocationEnabled)}
+                                style={[styles.toggleBtn, shareLocationEnabled ? styles.toggleBtnActive : styles.toggleBtnInactive]}
+                            >
+                                <CustomText style={shareLocationEnabled ? styles.toggleTextActive : styles.toggleTextInactive}>
+                                    {shareLocationEnabled ? "ON" : "OFF"}
+                                </CustomText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <Modal visible={showTeamStatus} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
                     <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 24 }]}>
@@ -566,6 +626,15 @@ const styles = StyleSheet.create({
     activityRow: { flexDirection: 'row', marginBottom: 4 },
     activityTime: { width: 70, fontSize: 13, fontWeight: 'bold', color: Colors.PRIMARY },
     activityEvent: { flex: 1, fontSize: 13, color: Colors.TEXT_SECONDARY },
+
+    optionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+    optionInfo: { flex: 1, paddingRight: 16 },
+    optionTitle: { fontWeight: 'bold', fontSize: 16, color: Colors.TEXT_PRIMARY },
+    toggleBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1, minWidth: 60, alignItems: 'center' },
+    toggleBtnActive: { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY },
+    toggleBtnInactive: { backgroundColor: Colors.WHITE, borderColor: Colors.GRAY_LIGHT },
+    toggleTextActive: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
+    toggleTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 12 },
 });
 
 export default HikeRecordingScreen;

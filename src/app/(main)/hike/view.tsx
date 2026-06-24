@@ -38,6 +38,8 @@ export default function hikeView() {
         totalDistance,
         totalElevationGain,
         isLoading,
+        shareLocationEnabled,
+        setShareLocationEnabled,
 
         onStartHike,
         onAddReview,
@@ -107,6 +109,9 @@ export default function hikeView() {
                 isLoading={isLoading}
                 lon={paramLon}
                 lat={paramLat}
+                
+                shareLocationEnabled={shareLocationEnabled}
+                setShareLocationEnabled={setShareLocationEnabled}
                 
                 onStartHike={onStartHike}
                 onPauseHike={onPauseHike}

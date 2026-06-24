@@ -5,14 +5,16 @@ export interface Coordinates {
     longitude: number;
     altitude: number;
     timestamp: Date;
-    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST' 
+    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST';
+    hikerName?: string;
 }
 
 export interface CoordinatesDB {
     point: GeoPoint;
     altitude: number;
-    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST' 
+    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST';
     timestamp: Timestamp | FieldValue;
+    hikerName?: string;
 }
 
 export interface ILocationDB extends CoordinatesDB {}

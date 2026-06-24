@@ -114,6 +114,15 @@ class HikeRepositoryImpl implements BaseRepository<Hike>{
         }
     }
 
+    async deleteLocation(userId: string, groupId: string): Promise<void> {
+        try {
+            const locationRef = doc(collection(db, 'groups', groupId, 'liveLocations'), userId);
+            await deleteDoc(locationRef);
+        } catch (error) {
+            console.error('Error deleting group location: ', error);
+        }
+    }
+
     listenToLocations(groupId: string, onUpdate: (locations: Location[]) => void): Unsubscribe {
         try {
             const q = collection(db, 'groups', groupId, 'liveLocations')

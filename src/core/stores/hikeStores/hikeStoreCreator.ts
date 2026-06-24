@@ -35,6 +35,7 @@ export interface HikeState {
 
     locationByGroup: Record<string, Location[]>;
     activeListeners: Record<string, Unsubscribe>;
+    shareLocationEnabled: boolean;
 
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
@@ -50,6 +51,7 @@ export interface HikeState {
 
     startShareLocation: (groupId: string) => Promise<void>;
     stopShareLocation: (groupId: string) => void;
+    setShareLocationEnabled: (enabled: boolean) => Promise<void>;
 }
 
 export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]]> = (set, get) => ({
@@ -68,6 +70,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     locationByGroup: {},
     activeListeners: {},
     activeGroupId: null,
+    shareLocationEnabled: true,
 
     addCoordinate: async (coordinate: Location) => {
         try {
@@ -121,9 +124,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 set({ coordinates: [updatedCoordinates[updatedCoordinates.length - 1]] });
             }  
 
-            if(get().live){
+            if(get().live && get().shareLocationEnabled){
                 if(!activeGroupId) throw new Error('Cannot save live coordinates without active group ID');
-                await HikeRepository.shareLocation(profile.id, activeGroupId, coordinate);
+                const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                const coordinateWithHikerName = new Location({
+                    ...coordinate,
+                    hikerName: name
+                });
+                await HikeRepository.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
             }
         } catch (error) {
             console.error('Error adding coordinates: ', error);
@@ -141,10 +149,15 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const profile = useAuthStore.getState().profile;
             if(!profile) throw new Error("User profile not found.");
             
-            const lastCoordinate = get().getLastKnownCoordinate() || new Location();
-            //if(!lastCoordinate) throw new Error("No coordinates to share");
-
-            await HikeRepository.shareLocation(profile.id, groupId, lastCoordinate);
+            if (get().shareLocationEnabled) {
+                const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                const lastCoordinate = get().getLastKnownCoordinate() || new Location();
+                const coordinateWithHikerName = new Location({
+                    ...lastCoordinate,
+                    hikerName: name
+                });
+                await HikeRepository.shareLocation(profile.id, groupId, coordinateWithHikerName);
+            }
 
             const unsubscribe = HikeRepository.listenToLocations(
                 groupId, 
@@ -166,18 +179,49 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     stopShareLocation: (groupId: string) => {
         try {
+            const profile = useAuthStore.getState().profile;
+            if (profile?.id) {
+                HikeRepository.deleteLocation(profile.id, groupId).catch((error) => {
+                    console.error('Error deleting location on stopShareLocation: ', error);
+                });
+            }
+
             const unsubscribe = get().activeListeners[groupId];
             if(unsubscribe) {
                 unsubscribe();
                 set((state) => {
                     const newListeners = { ...state.activeListeners };
                     delete newListeners[groupId];
-                    return { ...state, activeListeners: newListeners, live: false }
+                    return { ...state, activeListeners: newListeners, live: false, activeGroupId: null }
                 })
             }
         } catch (error) {
             console.error('Error stopping location sharing: ', error);
             throw error;
+        }
+    },
+
+    setShareLocationEnabled: async (enabled: boolean) => {
+        set({ shareLocationEnabled: enabled });
+        
+        const activeGroupId = get().activeGroupId;
+        const profile = useAuthStore.getState().profile;
+        if (!profile?.id || !activeGroupId) return;
+
+        if (!enabled) {
+            // Immediately remove coordinate from DB
+            await HikeRepository.deleteLocation(profile.id, activeGroupId);
+        } else {
+            // Immediately publish last known location
+            const lastCoordinate = get().getLastKnownCoordinate();
+            if (lastCoordinate) {
+                const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                const coordinateWithHikerName = new Location({
+                    ...lastCoordinate,
+                    hikerName: name
+                });
+                await HikeRepository.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+            }
         }
     },
 
