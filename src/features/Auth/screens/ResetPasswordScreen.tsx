@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -14,7 +15,6 @@ import CustomTextInput from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
-import ConfirmationModal from '@/src/components/ConfirmationModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
@@ -197,8 +197,6 @@ const styles = StyleSheet.create({
     successCard: {
         flexDirection: 'row',
         alignItems: 'flex-start', 
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,    
         backgroundColor: Colors.STATUS_APPROVED_BG,
         padding: 16,
         borderRadius: 8,
