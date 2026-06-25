@@ -91,6 +91,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     maximumDate?: Date | null;
     dateFormat?: string;
     iconPosition?: 'left' | 'right';
+    rightElement?: ReactNode;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -116,6 +117,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     maximumDate,
     dateFormat = 'MM/DD/YYYY',
     iconPosition,
+    rightElement,
     ...props
 }) => {
 
@@ -201,9 +203,12 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     return (
         <View style={[styles.container, style]}>
             {label && (
-                <CustomText variant="label" style={styles.label}>
-                    {label}
-                </CustomText>
+                <View style={styles.labelRow}>
+                    <CustomText variant="label" style={styles.label}>
+                        {label}
+                    </CustomText>
+                    {rightElement}
+                </View>
             )}
             
             <View style={[
@@ -281,8 +286,14 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     label: {
-        marginBottom: 8,
         marginLeft: 2,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+        width: '100%',
     },
     inputContainer: {
         width: '100%',
