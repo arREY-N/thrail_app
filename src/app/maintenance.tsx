@@ -4,25 +4,22 @@
  */
 
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import ScreenWrapper from '@/src/components/ScreenWrapper';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
-import { Layout } from '@/src/constants/layout';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import useMaintenance from '@/src/core/hook/useMaintenance';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
  * Component representing the Maintenance Screen.
  */
 export const MaintenanceScreen = () => {
     const { url, handlePress } = useMaintenance();
-    const { isMobile } = useBreakpoints();
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -31,14 +28,14 @@ export const MaintenanceScreen = () => {
                 style={styles.container}
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={[styles.card, !isMobile && styles.desktopCard]}>
+                <View style={styles.card}>
                     <View style={styles.iconOuter}>
                         <View style={styles.iconInner}>
                             <CustomIcon
                                 library="Feather"
                                 name="tool"
                                 size={44}
-                                color={Colors.STATUS_WARNING_TEXT}
+                                color={Colors.STATUS_MAINTENANCE_TEXT}
                             />
                         </View>
                     </View>
@@ -72,7 +69,7 @@ export const MaintenanceScreen = () => {
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -87,17 +84,13 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 48,
-        paddingHorizontal: 24,
-    },
-    desktopCard: {
-        maxWidth: Layout.MAX_WIDTH,
+        maxWidth: 440,
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        paddingVertical: 48,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
         ...GlobalStyles.dropShadow(3),
         elevation: 3,
     },
@@ -105,7 +98,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: Colors.STATUS_WARNING_BG,
+        backgroundColor: Colors.STATUS_MAINTENANCE_BG,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 24,
@@ -141,6 +134,11 @@ const styles = StyleSheet.create({
     },
     watermarkContainer: {
         padding: 8,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     watermarkText: {
         color: Colors.TEXT_SECONDARY,
@@ -150,4 +148,4 @@ const styles = StyleSheet.create({
 });
 
 export default MaintenanceScreen;
-
+
