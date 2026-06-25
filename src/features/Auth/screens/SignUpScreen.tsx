@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+    ScrollView,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -15,13 +16,18 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export interface SignUpScreenProps {
     onLogInPress: () => void;
     onBackPress: () => void;
     onSignUpPress: (email?: string, password?: string, username?: string, confirmPassword?: string) => void;
     onGmailSignUp: () => void;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
     error?: string | null;
+    /** When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout. */
+    isSplitScreen?: boolean;
 }
 
 const SignUpScreen = ({ 
@@ -29,7 +35,10 @@ const SignUpScreen = ({
     onBackPress, 
     onSignUpPress, 
     onGmailSignUp, 
-    error 
+    onTermsPress,
+    onPrivacyPress,
+    error,
+    isSplitScreen,
 }: SignUpScreenProps) => {
 
     const [email, setEmail] = useState('');
@@ -63,127 +72,178 @@ const SignUpScreen = ({
         return Colors.STRENGTH_EMPTY; 
     };
 
+    const { isLargeScreen } = useBreakpoints();
+
+    // Shared form content — reused in both split-screen and mobile render paths.
+    const formContent = (
+        <View style={AuthStyles.formConstrainer}>
+            <CustomText
+                variant="title"
+                style={[
+                    AuthStyles.pageTitle,
+                    isSplitScreen && AuthStyles.splitScreenTitle,
+                ]}
+            >
+                Sign Up
+            </CustomText>
+
+            <CustomTextInput
+                label="Email Address *"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+            />
+
+            <CustomTextInput
+                label="Username *"
+                placeholder="Choose a username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+            />
+
+            <View>
+                <CustomTextInput
+                    label="Password *"
+                    placeholder="Type your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    isPasswordVisible={showPasswords}
+                    onTogglePassword={() => setShowPasswords(!showPasswords)}
+                    style={{ marginBottom: 0 }}
+                />
+
+                <View style={AuthStyles.strengthContainer}>
+                    {[1, 2, 3].map((level) => (
+                        <View
+                            key={level}
+                            style={[
+                                AuthStyles.strengthBar,
+                                {
+                                    backgroundColor: strength >= level
+                                        ? getStrengthColor()
+                                        : Colors.STRENGTH_EMPTY
+                                }
+                            ]}
+                        />
+                    ))}
+                </View>
+            </View>
+
+            <CustomTextInput
+                label="Confirm Password *"
+                placeholder="Retype your password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                isPasswordVisible={showPasswords}
+                onTogglePassword={() => setShowPasswords(!showPasswords)}
+            />
+
+            <ErrorMessage error={error} />
+
+            <View style={[AuthStyles.buttonContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
+                <CustomButton
+                    title="Continue with Email"
+                    onPress={() => onSignUpPress(email, password, username, confirmPassword)}
+                    variant="primary"
+                />
+            </View>
+
+            <View style={[AuthStyles.dividerContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
+                <View style={AuthStyles.line} />
+                <CustomText variant="caption" style={AuthStyles.dividerText}>
+                    or continue with
+                </CustomText>
+                <View style={AuthStyles.line} />
+            </View>
+
+            <TouchableOpacity
+                style={[AuthStyles.googleButton, isSplitScreen && AuthStyles.splitScreenSection]}
+                onPress={onGmailSignUp}
+                activeOpacity={0.8}
+            >
+                <Customicon
+                    library="AntDesign"
+                    name="google"
+                    size={20}
+                    color={Colors.BLACK}
+                />
+                <CustomText variant="body" style={AuthStyles.googleButtonText}>
+                    Continue with Google
+                </CustomText>
+            </TouchableOpacity>
+
+            <View style={AuthStyles.footerContainer}>
+                <CustomText variant="caption" style={AuthStyles.footerText}>
+                    {"Already have an account? "}
+                </CustomText>
+                <TouchableOpacity onPress={onLogInPress}>
+                    <CustomText variant="caption" style={AuthStyles.signUpLink}>
+                        Log In
+                    </CustomText>
+                </TouchableOpacity>
+            </View>
+
+            {isSplitScreen && (
+                <View style={[AuthStyles.termsContainer, AuthStyles.splitScreenSection]}>
+                    <CustomText variant="caption" style={AuthStyles.termsText}>
+                        By continuing, you agree to our{' '}
+                        <CustomText
+                            variant="caption"
+                            style={AuthStyles.termsLink}
+                            onPress={onTermsPress}
+                        >
+                            Terms of Service
+                        </CustomText>
+                        {' '}and{' '}
+                        <CustomText
+                            variant="caption"
+                            style={AuthStyles.termsLink}
+                            onPress={onPrivacyPress}
+                        >
+                            Privacy Policy
+                        </CustomText>
+                        .
+                    </CustomText>
+                </View>
+            )}
+        </View>
+    );
+
+    // ── Split-screen path: bare ScrollView, no ScreenWrapper overhead ──────────
+    if (isSplitScreen) {
+        return (
+            <ScrollView
+                style={AuthStyles.container}
+                contentContainerStyle={AuthStyles.splitScreenScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {formContent}
+            </ScrollView>
+        );
+    }
+
+    // ── Mobile path: unchanged ─────────────────────────────────────────────────
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <CustomHeader onBackPress={onBackPress} />
 
-            <ResponsiveScrollView 
-                minHeight={600} 
-                style={AuthStyles.container} 
-                contentContainerStyle={AuthStyles.scrollContent}
+            {!isLargeScreen && <CustomHeader onBackPress={onBackPress} />}
+
+            <ResponsiveScrollView
+                minHeight={isLargeScreen ? 0 : 600}
+                style={AuthStyles.container}
+                contentContainerStyle={[
+                    AuthStyles.scrollContent,
+                    isLargeScreen && { justifyContent: 'center' }
+                ]}
             >
-
                 <View style={AuthStyles.contentContainer}>
-                    <View style={AuthStyles.formConstrainer}>
-
-                        <CustomText variant="title" style={AuthStyles.pageTitle}>
-                            Sign Up
-                        </CustomText>
-
-                        <ErrorMessage error={error} />
-                        
-                        <CustomTextInput
-                            label="Email Address *"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-
-                        <CustomTextInput
-                            label="Username *"
-                            placeholder="Choose a username"
-                            value={username}
-                            onChangeText={setUsername}
-                            autoCapitalize="none"
-                        />
-
-                        <View>
-                            <CustomTextInput
-                                label="Password *"
-                                placeholder="Type your password"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                                isPasswordVisible={showPasswords}
-                                onTogglePassword={() => setShowPasswords(!showPasswords)}
-                                style={{ marginBottom: 0 }} 
-                            />
-
-                            <View style={AuthStyles.strengthContainer}>
-                                {[1, 2, 3].map((level) => (
-                                    <View 
-                                        key={level}
-                                        style={[
-                                            AuthStyles.strengthBar,
-                                            { 
-                                                backgroundColor: strength >= level 
-                                                    ? getStrengthColor() 
-                                                    : Colors.STRENGTH_EMPTY
-                                            }
-                                        ]} 
-                                    />
-                                ))}
-                            </View>
-                        </View>
-
-                        <CustomTextInput
-                            label="Confirm Password *"
-                            placeholder="Retype your password"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry
-                            isPasswordVisible={showPasswords}
-                            onTogglePassword={() => setShowPasswords(!showPasswords)}
-                        />
-
-                        <View style={AuthStyles.buttonContainer}>
-                            <CustomButton 
-                                title="Continue with Email" 
-                                onPress={() => onSignUpPress(email, password, username, confirmPassword)} 
-                                variant="primary" 
-                            />
-                        </View>
-
-                        <View style={AuthStyles.dividerContainer}>
-                            <View style={AuthStyles.line} />
-                            <CustomText variant="caption" style={AuthStyles.dividerText}>
-                                or continue with
-                            </CustomText>
-                            <View style={AuthStyles.line} />
-                        </View>
-
-                        <TouchableOpacity 
-                            style={AuthStyles.googleButton} 
-                            onPress={onGmailSignUp}
-                            activeOpacity={0.8}
-                        >
-                            <Customicon
-                                    library="AntDesign"
-                                    name="google"
-                                    size={20}
-                                    color={Colors.BLACK}
-                            />
-
-                            <CustomText variant="body" style={AuthStyles.googleButtonText}>
-                                Continue with Google
-                            </CustomText>
-                        </TouchableOpacity>
-
-                        <View style={AuthStyles.footerContainer}>
-                            <CustomText variant="caption" style={AuthStyles.footerText}>
-                                {"Already have an account? "}
-                            </CustomText>
-
-                            <TouchableOpacity onPress={onLogInPress}>
-                                <CustomText variant="caption" style={AuthStyles.signUpLink}>
-                                    Log In
-                                </CustomText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                    {formContent}
                 </View>
             </ResponsiveScrollView>
         </ScreenWrapper>
