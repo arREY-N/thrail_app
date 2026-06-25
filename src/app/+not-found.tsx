@@ -49,7 +49,7 @@ export default function notFound() {
                 style={styles.container}
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={[styles.card, !isMobile && styles.desktopCard]}>
+                <View style={styles.card}>
                     <View style={styles.iconOuter}>
                         <View style={styles.iconInner}>
                             <CustomIcon
@@ -96,17 +96,13 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 48,
-        paddingHorizontal: 24,
-    },
-    desktopCard: {
-        maxWidth: Layout.MAX_WIDTH,
+        maxWidth: 440,
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        paddingVertical: 48,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
         ...GlobalStyles.dropShadow(3),
         elevation: 3,
     },
