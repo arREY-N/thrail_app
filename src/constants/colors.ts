@@ -149,6 +149,9 @@ export const Colors = {
     STATUS_WAITING_USER_BG:    Palette.Neutral100,
     STATUS_WAITING_USER_TEXT:  Palette.Neutral500,
 
+    STATUS_MAINTENANCE_TEXT:   Palette.Blue600,
+    STATUS_MAINTENANCE_BG:     Palette.Blue50,
+
     STATUS_DOWNPAYMENT_BG:     Palette.Yellow50,
     STATUS_DOWNPAYMENT_TEXT:   Palette.Yellow700,
     STATUS_DOWNPAYMENT_BORDER: Palette.Yellow100,
