@@ -199,6 +199,21 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         );
     }
 
+    const enrichedHikerLocations = useMemo(() => {
+        if (!hikerLocations) return [];
+        return hikerLocations.map(hiker => {
+            if (hiker.hikerName) return hiker;
+            const member = sortedMembers?.find(m => m.id === hiker.id);
+            if (member) {
+                return {
+                    ...hiker,
+                    hikerName: `${member.firstname} ${member.lastname || ''}`.trim()
+                };
+            }
+            return hiker;
+        });
+    }, [hikerLocations, sortedMembers]);
+
     return (
         <View style={styles.container}>
             <TrailMap 
@@ -206,7 +221,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 initialLon={lon} 
                 initialLat={lat} 
                 bottomInset={210} 
-                hikerLocations={showOtherHikers ? hikerLocations : []}
+                hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
 
@@ -550,7 +565,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     );
 };
 
-const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 }, android: { elevation: 6 } });
+const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 }, android: { elevation: 3 } });
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
