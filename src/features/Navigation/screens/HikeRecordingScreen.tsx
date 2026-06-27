@@ -160,6 +160,35 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     };
 
+    const handleHikerLocationPress = (member: any, locData: any) => {
+        if (!locData || !locData.latitude || !locData.longitude) return;
+
+        Alert.alert(
+            "Track Hiker",
+            `Where would you like to view ${member.firstname}'s location?`,
+            [
+                {
+                    text: "Center on Trail Map",
+                    onPress: () => {
+                        setShowTeamStatus(false);
+                        mapRef.current?.centerOnCoordinate(locData.longitude, locData.latitude);
+                    }
+                },
+                {
+                    text: "Open in Google Maps",
+                    onPress: () => {
+                        const locationLink = `https://www.google.com/maps/search/?api=1&query=${locData.latitude},${locData.longitude}`;
+                        handlePress(locationLink);
+                    }
+                },
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                }
+            ]
+        );
+    };
+
     const sortedMembers = useMemo(() => {
         if (!currentGroup) return [];
         const seenIds = new Set<string>();
@@ -547,7 +576,13 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
                                             <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
                                             { locData && (
-                                                <Text onPress={() => handlePress(locationLink)}>View in Google Maps</Text>
+                                                <TouchableOpacity 
+                                                    style={styles.trackHikerBtn} 
+                                                    onPress={() => handleHikerLocationPress(member, locData)}
+                                                >
+                                                    <CustomIcon library="Feather" name="map-pin" size={11} color={Colors.PRIMARY} />
+                                                    <CustomText style={styles.trackHikerBtnText}>Track Hiker</CustomText>
+                                                </TouchableOpacity>
                                             )}
                                         </View>
                                         <View style={[styles.statusBadge, isInactive ? styles.badgeOffline : styles.badgeLive]}>
@@ -649,6 +684,23 @@ const styles = StyleSheet.create({
     toggleBtnInactive: { backgroundColor: Colors.WHITE, borderColor: Colors.GRAY_LIGHT },
     toggleTextActive: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
     toggleTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 12 },
+
+    trackHikerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        alignSelf: 'flex-start',
+    },
+    trackHikerBtnText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+    },
 });
 
 export default HikeRecordingScreen;

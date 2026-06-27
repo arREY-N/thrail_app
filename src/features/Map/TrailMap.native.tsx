@@ -134,6 +134,16 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
     setIsFollowing(true);
   };
 
+  const centerOnCoordinate = (lon: number, lat: number) => {
+    setIsFollowing(false);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [lon, lat],
+      zoomLevel: 17,
+      animationMode: "flyTo",
+      animationDuration: 800,
+    });
+  };
+
   const handleRegionWillChange = (event: any) => {
     if (!event.properties.isUserInteraction) return;
 
@@ -155,6 +165,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   // ✅ Expose these functions up to the HikeRecordingScreen
   useImperativeHandle(ref, () => ({
     centerOnUser,
+    centerOnCoordinate,
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
     startBackgroundTracking,
