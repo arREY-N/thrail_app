@@ -40,14 +40,14 @@ export interface ForgotPasswordScreenProps {
 /**
  * Screen component that renders the Forgot Password interface.
  */
-const ForgotPasswordScreen = ({ 
+const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ 
     onSendResetEmail, 
     error, 
     success, 
     onLogIn, 
     onBackPress,
     isSplitScreen
-}: ForgotPasswordScreenProps) => {
+}) => {
     const { isLargeScreen } = useBreakpoints();
     const [email, setEmail] = useState<string>('');
     const [submittedEmail, setSubmittedEmail] = useState<string>('');
@@ -228,6 +228,7 @@ const ForgotPasswordScreen = ({
 
             <ResponsiveScrollView 
                 minHeight={isLargeScreen ? 0 : 600}
+                contentHeightOffset={48}
                 style={AuthStyles.container}
                 contentContainerStyle={[
                     AuthStyles.scrollContent,
