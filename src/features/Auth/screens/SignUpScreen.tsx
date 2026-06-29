@@ -1,3 +1,8 @@
+/**
+ * @file SignUpScreen.tsx
+ * @description Pure-UI screen component for the user registration flow, handling email, username, password creation with a strength indicator, and Google OAuth signup.
+ */
+
 import { useState } from 'react';
 import {
     ScrollView,
@@ -18,6 +23,17 @@ import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+/**
+ * Props for the SignUpScreen component.
+ * @param onLogInPress - Callback to navigate back to the log-in page.
+ * @param onBackPress - Callback to navigate to the previous screen.
+ * @param onSignUpPress - Callback to handle email-based sign-up.
+ * @param onGmailSignUp - Callback to handle Google-based sign-up.
+ * @param onTermsPress - Callback when Terms of Service link is pressed.
+ * @param onPrivacyPress - Callback when Privacy Policy link is pressed.
+ * @param error - Error message to display, if any.
+ * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
+ */
 export interface SignUpScreenProps {
     onLogInPress: () => void;
     onBackPress: () => void;
@@ -26,11 +42,13 @@ export interface SignUpScreenProps {
     onTermsPress: () => void;
     onPrivacyPress: () => void;
     error?: string | null;
-    /** When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout. */
     isSplitScreen?: boolean;
 }
 
-const SignUpScreen = ({ 
+/**
+ * Screen component that renders the Sign Up interface.
+ */
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
     onLogInPress, 
     onBackPress, 
     onSignUpPress, 
@@ -39,7 +57,7 @@ const SignUpScreen = ({
     onPrivacyPress,
     error,
     isSplitScreen,
-}: SignUpScreenProps) => {
+}) => {
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -236,6 +254,7 @@ const SignUpScreen = ({
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}
+                contentHeightOffset={48}
                 style={AuthStyles.container}
                 contentContainerStyle={[
                     AuthStyles.scrollContent,
