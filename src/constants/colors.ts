@@ -55,6 +55,8 @@ export const Palette = {
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
     WhiteAlpha90: 'rgba(255, 255, 255, 0.9)',
+    WhiteAlpha80: 'rgba(255, 255, 255, 0.8)',
+    WhiteAlpha70: 'rgba(255, 255, 255, 0.7)',
     WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
 };
@@ -135,6 +137,9 @@ export const Colors = {
     CHAT_LINK_RIGHT_EMERGENCY: Palette.Red900,
     CHAT_LINK_LEFT_EMERGENCY:  Palette.Red900,
     CHAT_LINK_LEFT_NORMAL:     Palette.Green700,
+    CHAT_ATTACHMENT_SUBTITLE_RIGHT:  Palette.WhiteAlpha80,
+    CHAT_TIME_TEXT_RIGHT:      Palette.WhiteAlpha70,
+
 
     // Interactive Chips
     CHIP_INACTIVE:    Palette.Neutral100, 
