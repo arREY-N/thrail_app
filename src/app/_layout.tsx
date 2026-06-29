@@ -19,6 +19,7 @@ import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 export default function RootLayout() {
 	const { checked, isMaintenance } = useMaintenance();
@@ -59,7 +60,9 @@ export default function RootLayout() {
 	}
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<Stack screenOptions={{ headerShown: false }} />
+			<KeyboardProvider statusBarTranslucent>
+				<Stack screenOptions={{ headerShown: false }} />
+			</KeyboardProvider>
 		</GestureHandlerRootView>
 	);
 }
