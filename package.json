@@ -90,5 +90,8 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata)"
     ]
+  },
+  "overrides": {
+    "undici": "^6.27.0"
   }
 }
