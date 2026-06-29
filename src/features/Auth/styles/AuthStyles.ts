@@ -1,5 +1,10 @@
+/**
+ * @file AuthStyles.ts
+ * @description Standard layout, typography, form control, and responsive split-screen styles shared across all authentication screens.
+ */
+
 import { StyleSheet } from 'react-native';
-import { Colors } from '../../../constants/colors';
+import { Colors } from '@/src/constants/colors';
 
 export const AuthStyles = StyleSheet.create({
     container: {
@@ -11,7 +16,6 @@ export const AuthStyles = StyleSheet.create({
         width: '100%',
     },
     contentContainer: {
-        flex: 1,
         width: '100%',
         alignItems: 'center',
         paddingHorizontal: 16, 
