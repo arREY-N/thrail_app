@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import {
-    KeyboardAvoidingView,
     Platform,
     StatusBar,
     StyleProp,
@@ -9,6 +8,7 @@ import {
     ViewStyle
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -62,7 +62,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
 
             <KeyboardAvoidingView 
                 style={styles.keyboardContainer}
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                behavior="padding"
             >
                 <View 
                     style={[
