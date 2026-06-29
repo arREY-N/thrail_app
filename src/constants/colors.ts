@@ -22,6 +22,7 @@ export const Palette = {
     Green50:    '#E8F5E9',
     
     // Reds
+    Red900:     '#B71C1C',
     Red700:     '#D32F2F',
     Red650:     '#C62828',
     Red600:     '#E53935',
@@ -29,6 +30,7 @@ export const Palette = {
     Red400:     '#E57373',
     Red100:     '#FFCDD2',
     Red50:      '#FFEBEE',
+    Red25:      '#FFF5F5',
     
     // Blues
     Blue600:    '#1976D2',
@@ -52,6 +54,7 @@ export const Palette = {
 
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
+    WhiteAlpha90: 'rgba(255, 255, 255, 0.9)',
     WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
 };
@@ -121,6 +124,17 @@ export const Colors = {
     AVATAR_BG_Red:        Palette.Red650,
     AVATAR_BG_Indigo:     Palette.Indigo400,
     AVATAR_BG_Orange:     Palette.Orange800,
+
+    // Chat Room Specific
+    CHAT_BUBBLE_RIGHT_BG:      Palette.Green700,
+    CHAT_BUBBLE_LEFT_BG:       Palette.White,
+    CHAT_EMERGENCY_BG:         Palette.Red25,
+    CHAT_EMERGENCY_BORDER:     Palette.Red700,
+    CHAT_EMERGENCY_TEXT:       Palette.Red900,
+    CHAT_LINK_RIGHT_NORMAL:    Palette.WhiteAlpha90,
+    CHAT_LINK_RIGHT_EMERGENCY: Palette.Red900,
+    CHAT_LINK_LEFT_EMERGENCY:  Palette.Red900,
+    CHAT_LINK_LEFT_NORMAL:     Palette.Green700,
 
     // Interactive Chips
     CHIP_INACTIVE:    Palette.Neutral100, 
