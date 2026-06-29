@@ -34,6 +34,15 @@ import ForgotPasswordScreen from '@/src/features/Auth/screens/ForgotPasswordScre
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
+/**
+ * Props for the LandingScreen component.
+ * @param onLogInPress - Callback when Log In button is pressed.
+ * @param onSignUpPress - Callback when Sign Up button is pressed.
+ * @param onTermsPress - Callback when Terms of Service is pressed.
+ * @param onPrivacyPress - Callback when Privacy Policy is pressed.
+ * @param initialMode - Initial auth form mode ('login' | 'signup' | 'forgot').
+ * @param onModeChange - Callback when auth mode updates.
+ */
 export interface LandingScreenProps {
     onLogInPress: () => void;
     onSignUpPress: () => void;
@@ -43,14 +52,18 @@ export interface LandingScreenProps {
     onModeChange?: (mode: 'login' | 'signup' | 'forgot') => void;
 }
 
-const LandingScreen = ({ 
+/**
+ * Screen component that renders the Landing page with options to Log In or Sign Up,
+ * or handles split-screen desktop authentication.
+ */
+const LandingScreen: React.FC<LandingScreenProps> = ({ 
     onLogInPress, 
     onSignUpPress, 
     onTermsPress, 
     onPrivacyPress,
     initialMode,
     onModeChange
-}: LandingScreenProps) => {
+}) => {
     const { isLargeScreen } = useBreakpoints();
     const insets = useSafeAreaInsets();
     const { height: screenHeight } = useWindowDimensions();
@@ -156,16 +169,13 @@ const LandingScreen = ({
         );
     }
 
-    return (
-        <ScrollView 
-            style={styles.container}
-            contentContainerStyle={styles.scrollContainer}
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-        >
+    const isLandscapeMode = screenHeight < 500;
+
+    const content = (
+        <>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             
-            <View style={[styles.imageWrapper, { height: heroImageHeight }]}>
+            <View style={[styles.imageWrapper, isLandscapeMode && { height: heroImageHeight }]}>
                 <CustomImage 
                     source={require('@/src/assets/images/Mt.Tagapo.jpg')}
                     style={styles.heroImage}
@@ -177,14 +187,14 @@ const LandingScreen = ({
                 styles.cardSection, 
                 { 
                     paddingBottom: Math.max(insets.bottom + 16, 32),
-                    paddingTop: screenHeight < 500 ? 48 : 32,
+                    paddingTop: isLandscapeMode ? 48 : 32,
                 }
             ]}>
                 <View style={styles.contentConstrainer}>
                     
                     <View style={[
                         styles.headerContainer,
-                        { marginBottom: screenHeight < 500 ? 16 : 24 }
+                        { marginBottom: isLandscapeMode ? 16 : 24 }
                     ]}>
                         <CustomText variant="label" style={styles.welcomeText}>
                             WELCOME TO THRAIL
@@ -195,8 +205,8 @@ const LandingScreen = ({
                             style={[
                                 styles.titleText,
                                 { 
-                                    fontSize: screenHeight < 500 ? 28 : 32,
-                                    lineHeight: screenHeight < 500 ? 36 : 40 
+                                    fontSize: isLandscapeMode ? 28 : 32,
+                                    lineHeight: isLandscapeMode ? 36 : 40 
                                 }
                             ]}
                         >
@@ -207,8 +217,8 @@ const LandingScreen = ({
                             style={[
                                 styles.titleText,
                                 { 
-                                    fontSize: screenHeight < 500 ? 28 : 32,
-                                    lineHeight: screenHeight < 500 ? 36 : 40 
+                                    fontSize: isLandscapeMode ? 28 : 32,
+                                    lineHeight: isLandscapeMode ? 36 : 40 
                                 }
                             ]}
                         >
@@ -220,8 +230,8 @@ const LandingScreen = ({
                             style={[
                                 styles.subtitleText,
                                 { 
-                                    marginTop: screenHeight < 500 ? 10 : 16,
-                                    fontSize: screenHeight < 500 ? 14 : 15 
+                                    marginTop: isLandscapeMode ? 10 : 16,
+                                    fontSize: isLandscapeMode ? 14 : 15 
                                 }
                             ]}
                         >
@@ -232,8 +242,8 @@ const LandingScreen = ({
                     <View style={[
                         styles.buttonContainer,
                         { 
-                            gap: screenHeight < 500 ? 12 : 16,
-                            marginBottom: screenHeight < 500 ? 24 : 32 
+                            gap: isLandscapeMode ? 12 : 16,
+                            marginBottom: isLandscapeMode ? 24 : 32 
                         }
                     ]}>
                         <CustomButton 
@@ -269,8 +279,26 @@ const LandingScreen = ({
                     </CustomText>
                 </View>
             </View>
+        </>
+    );
 
-        </ScrollView>
+    if (isLandscapeMode) {
+        return (
+            <ScrollView 
+                style={styles.container}
+                contentContainerStyle={styles.scrollContainer}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+            >
+                {content}
+            </ScrollView>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            {content}
+        </View>
     );
 };
 
