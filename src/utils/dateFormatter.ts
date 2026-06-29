@@ -254,3 +254,53 @@ export const getRecentUpdateText = (updatedAt: any, createdAt: any): string | nu
     }
     return null;
 };
+
+/**
+ * Calculates a short human-readable string for elapsed time (e.g., "1m", "2h", "3d").
+ * 
+ * @param {string | number | Date} dateInput - The timestamp to compare against now
+ * @returns {string} The formatted shorthand elapsed time string
+ */
+export const getShortTimeElapsed = (dateInput: string | number | Date): string => {
+    const date = new Date(dateInput);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+
+    if (diffMins < 1) return 'now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHrs < 24) return `${diffHrs}h`;
+    return `${diffDays}d`;
+};
+
+/**
+ * Extracts initials from a given name string.
+ * - If there are multiple words, returns the first letter of the first word and the first letter of the second word.
+ * - If there is only one word, returns the first two letters of that word.
+ * - Returns "?" if the name is invalid or empty.
+ * 
+ * @param {string} [name] - The name to extract initials from
+ * @returns {string} The computed initials in uppercase
+ */
+export const getInitials = (name?: string): string => {
+    if (!name) return '?';
+    const trimmed = name.trim();
+    if (!trimmed) return '?';
+
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+        const firstInitial = words[0].charAt(0);
+        const secondInitial = words[1].charAt(0);
+        return (firstInitial + secondInitial).toUpperCase();
+    }
+
+    const word = words[0];
+    if (word.length >= 2) {
+        return word.substring(0, 2).toUpperCase();
+    }
+    return word.toUpperCase();
+};
+
+
