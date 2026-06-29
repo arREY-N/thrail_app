@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
         textTransform: 'uppercase' 
     },
     bubbleRight: { 
-        backgroundColor: Colors.PRIMARY, 
+        backgroundColor: Colors.CHAT_BUBBLE_RIGHT_BG, 
         borderTopLeftRadius: 16, 
         borderTopRightRadius: 16, 
         borderBottomLeftRadius: 16, 
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
         marginRight: 0 
     },
     bubbleLeft: { 
-        backgroundColor: Colors.WHITE, 
+        backgroundColor: Colors.CHAT_BUBBLE_LEFT_BG, 
         borderTopLeftRadius: 16, 
         borderTopRightRadius: 16, 
         borderBottomLeftRadius: 4, 
@@ -86,12 +86,12 @@ export const styles = StyleSheet.create({
         marginLeft: 0 
     },
     emergencyBubble: { 
-        backgroundColor: '#FFF5F5', 
+        backgroundColor: Colors.CHAT_EMERGENCY_BG, 
         borderWidth: 2, 
-        borderColor: '#D32F2F' 
+        borderColor: Colors.CHAT_EMERGENCY_BORDER 
     },
     emergencyText: { 
-        color: '#B71C1C', 
+        color: Colors.CHAT_EMERGENCY_TEXT, 
         fontSize: 15, 
         fontWeight: '600', 
         lineHeight: 22 
@@ -176,7 +176,7 @@ export const styles = StyleSheet.create({
         marginTop: 2 
     },
     attachmentSubtitleRight: { 
-        color: 'rgba(255,255,255,0.8)' 
+        color: Colors.CHAT_ATTACHMENT_SUBTITLE_RIGHT 
     },
     attachmentSubtitleLeft: { 
         color: Colors.TEXT_SECONDARY 
@@ -192,7 +192,7 @@ export const styles = StyleSheet.create({
         marginBottom: 8 
     },
     timeTextRight: { 
-        color: 'rgba(255, 255, 255, 0.7)', 
+        color: Colors.CHAT_TIME_TEXT_RIGHT, 
         fontSize: 10 
     },
     timeTextLeft: { 
@@ -293,5 +293,65 @@ export const styles = StyleSheet.create({
     },
     sendIcon: { 
         marginLeft: 2 
-    }
+    },
+    mediaIconButton: {
+        width: 36,
+        height: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 4,
+    },
+    headerTitleContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+    },
+    headerMainTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        textAlign: 'center',
+    },
+    headerSubtitle: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        marginTop: 2,
+    },
+    systemMessageContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 16,
+        paddingHorizontal: 24,
+    },
+    systemMessageDivider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    systemMessageWrapper: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginHorizontal: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    systemMessageText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        textAlign: 'center',
+    },
+    systemMessageDate: {
+        fontSize: 10,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
 });
