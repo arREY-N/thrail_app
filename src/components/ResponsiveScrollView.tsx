@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
     ScrollView,
     ScrollViewProps,
@@ -15,29 +15,44 @@ interface ResponsiveScrollViewProps extends ScrollViewProps {
     children?: ReactNode;
     minHeight?: number;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    contentHeightOffset?: number;
 }
 
 const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({ 
     children, 
     minHeight = 600, 
     contentContainerStyle, 
+    bounces = false,
+    overScrollMode = 'never',
+    scrollEnabled,
+    contentHeightOffset = 0,
     ...props 
 }) => {
     
     const { height } = useWindowDimensions();
+    const [contentHeight, setContentHeight] = useState(0);
+    const [layoutHeight, setLayoutHeight] = useState(0);
     
     const isShortScreen: boolean = height < minHeight;
+    
+    const isScrollNeeded = (contentHeight - contentHeightOffset) > layoutHeight + 2 || contentHeight === 0 || layoutHeight === 0;
+    const finalScrollEnabled = scrollEnabled !== undefined ? scrollEnabled : isScrollNeeded;
 
     return (
         <ScrollView
             style={styles.container}
             contentContainerStyle={[
                 styles.scrollContent,
-                { minHeight: isShortScreen ? minHeight : '100%' },
+                isShortScreen && { minHeight },
                 contentContainerStyle
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bounces={bounces}
+            overScrollMode={overScrollMode}
+            scrollEnabled={finalScrollEnabled}
+            onContentSizeChange={(w, h) => setContentHeight(h)}
+            onLayout={(e) => setLayoutHeight(e.nativeEvent.layout.height)}
             {...props} 
         >
             {children}
