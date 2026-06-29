@@ -1,3 +1,8 @@
+/**
+ * @file LogInScreen.tsx
+ * @description Pure-UI screen component for the login flow, handling email/password inputs, Google authentication, and links to registration and password reset.
+ */
+
 import { useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 
@@ -14,6 +19,20 @@ import { Colors } from '@/src/constants/colors';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+/**
+ * Props for the LogInScreen component.
+ * @param onLogInPress - Callback to handle email and password login.
+ * @param onSignUpPress - Callback to navigate to the sign-up page.
+ * @param onBackPress - Callback to navigate back to the previous screen.
+ * @param onForgotPasswordPress - Callback to navigate to the forgot password page.
+ * @param onRememberMePress - Callback to toggle the remember me checkbox.
+ * @param onGmailLogIn - Callback to handle Google OAuth sign-in.
+ * @param onTermsPress - Callback when Terms of Service is pressed.
+ * @param onPrivacyPress - Callback when Privacy Policy is pressed.
+ * @param error - Error message to display, if any.
+ * @param remember - Current state of the remember me checkbox.
+ * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
+ */
 export interface LogInScreenProps {
     onLogInPress: (email?: string, password?: string) => void;
     onSignUpPress: () => void;
@@ -25,11 +44,13 @@ export interface LogInScreenProps {
     onPrivacyPress: () => void;
     error?: string | null;
     remember?: boolean;
-    /** When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout. */
     isSplitScreen?: boolean;
 }
 
-const LogInScreen = ({ 
+/**
+ * Screen component that renders the Log In interface.
+ */
+const LogInScreen: React.FC<LogInScreenProps> = ({ 
     onLogInPress, 
     onSignUpPress, 
     onBackPress, 
@@ -41,7 +62,7 @@ const LogInScreen = ({
     error,
     remember,
     isSplitScreen,
-}: LogInScreenProps) => {
+}) => {
     const { isLargeScreen } = useBreakpoints();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -176,6 +197,7 @@ const LogInScreen = ({
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}
+                contentHeightOffset={48}
                 style={AuthStyles.container}
                 contentContainerStyle={[
                     AuthStyles.scrollContent,
