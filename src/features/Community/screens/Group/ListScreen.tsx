@@ -1,11 +1,17 @@
-import React, { useCallback, useMemo } from 'react';
-import { Platform, 
+/**
+ * @file ListScreen.tsx
+ * @description Screen displaying a list of active group chats and conversations.
+ */
+
+import React, { useCallback } from 'react';
+import {
     FlatList,
     ListRenderItemInfo,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
- } from 'react-native';
+} from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -14,10 +20,12 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { formatDate } from '@/src/core/utility/date';
+import { Layout } from '@/src/constants/layout';
+import { getInitials, getShortTimeElapsed } from '@/src/utils/dateFormatter';
 
 import { IGroup } from '@/src/core/models/Group/Group.types';
 import { IUser } from '@/src/core/models/User/User.types';
+import { useListScreen } from './hooks/useListScreen';
 
 /**
  * Extended IGroup to support legacy GroupName if it exists dynamically.
@@ -26,6 +34,11 @@ export type GroupWithLegacyName = IGroup & { GroupName?: string };
 
 /**
  * Props for the ListScreen component.
+ * 
+ * @param groups - The list of active groups to display
+ * @param currentUser - The currently logged-in user profile
+ * @param onEnterRoom - Callback function when entering a group room
+ * @param onBackPress - Callback function for going back to the previous screen
  */
 export interface ListScreenProps {
     groups: GroupWithLegacyName[];
@@ -37,8 +50,8 @@ export interface ListScreenProps {
 /**
  * Formats the display name for a group based on its type and members.
  * 
- * @param group The group object containing trail, business, or member data
- * @param currentUser The current logged-in user
+ * @param group - The group object containing trail, business, or member data
+ * @param currentUser - The current logged-in user
  * @returns A formatted string representing the group name
  */
 export const formatGroupName = (group: GroupWithLegacyName, currentUser?: IUser | null): string => {
@@ -75,33 +88,25 @@ export const formatGroupName = (group: GroupWithLegacyName, currentUser?: IUser 
 };
 
 /**
- * Extracts initials from a given name string.
- * 
- * @param name The name to extract initials from
- * @returns The first two letters capitalized, or '?'
- */
-const getInitials = (name?: string): string => {
-    if (!name) return '?';
-    return name.substring(0, 2).toUpperCase();
-};
-
-/**
  * Screen displaying a user's active group chats and conversations.
  */
-const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoom, onBackPress }) => {
+const ListScreen = ({ 
+    groups, 
+    currentUser, 
+    onEnterRoom, 
+    onBackPress 
+}: ListScreenProps) => {
     
-    const sortedGroups = useMemo(() => {
-        if (!groups) return [];
-        return [...groups].sort((a, b) => {
-            const timeA = a.lastMessage?.timesent ? new Date(a.lastMessage.timesent as unknown as string | number).getTime() : 0;
-            const timeB = b.lastMessage?.timesent ? new Date(b.lastMessage.timesent as unknown as string | number).getTime() : 0;
-            return timeB - timeA;
-        });
-    }, [groups]);
+    const { sortedGroups } = useListScreen({ groups });
 
+    /**
+     * Renders a single group chat card with avatar, name/date, and last message snippet.
+     * 
+     * @param item - The group item to render
+     */
     const renderGroupCard = useCallback(({ item }: ListRenderItemInfo<GroupWithLegacyName>) => {
         const lastMsg = item.lastMessage;
-        const timeString = lastMsg?.timesent ? formatDate(lastMsg.timesent as Parameters<typeof formatDate>[0]) : '';
+        const timeString = lastMsg?.timesent ? getShortTimeElapsed(lastMsg.timesent as string | number | Date) : '';
         
         const isUnread = !!lastMsg && 
                          !!currentUser && 
@@ -120,6 +125,17 @@ const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoo
             initials = getInitials(item.trail?.name || item.GroupName);
         }
 
+        const fullGroupName = formatGroupName(item, currentUser);
+        const lastIndex = fullGroupName.lastIndexOf(' • ');
+        let mainName = fullGroupName;
+        let dateSub = '';
+        if (lastIndex !== -1) {
+            mainName = fullGroupName.substring(0, lastIndex);
+            dateSub = fullGroupName.substring(lastIndex); // includes " • "
+        }
+
+        const messagePrefix = lastMsg?.content ? `${lastMsg.senderName}: ${lastMsg.content}` : "No messages yet.";
+
         return (
             <TouchableOpacity 
                 style={styles.card} 
@@ -134,26 +150,29 @@ const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoo
                 
                 <View style={styles.textContainer}>
                     <View style={styles.headerRow}>
-                        <CustomText numberOfLines={1} style={styles.groupName} variant="label">
-                            {formatGroupName(item, currentUser)}
+                        <CustomText numberOfLines={1} style={[styles.groupName, { flexShrink: 1 }]} variant="label">
+                            {mainName}
                         </CustomText>
+                        {dateSub ? (
+                            <CustomText numberOfLines={1} style={[styles.groupName, { flexShrink: 0 }]} variant="label">
+                                {dateSub}
+                            </CustomText>
+                        ) : null}
                     </View>
                     
                     <View style={styles.messageRow}>
                         <CustomText 
                             variant="caption" 
-                            style={[styles.lastMessage, isUnread && styles.unreadText]} 
+                            style={[styles.lastMessage, isUnread && { fontWeight: 'bold', color: Colors.TEXT_PRIMARY }]} 
                             numberOfLines={1}
                         >
-                            {lastMsg?.content 
-                                ? `${lastMsg.senderName}: ${lastMsg.content}` 
-                                : "No messages yet."}
+                            {messagePrefix}
                         </CustomText>
-                        
-                        {timeString ? (
+                        {lastMsg?.content && timeString ? (
                             <CustomText 
                                 variant="caption" 
-                                style={[styles.timeText, isUnread && styles.unreadTimeText]}
+                                style={[styles.timeText, isUnread && { fontWeight: 'bold', color: Colors.TEXT_PRIMARY }, { flexShrink: 0 }]} 
+                                numberOfLines={1}
                             >
                                 {timeString}
                             </CustomText>
@@ -163,7 +182,6 @@ const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoo
 
                 <View style={styles.rightActionContainer}>
                     {isUnread && <View style={styles.unreadDot} />}
-                    <CustomIcon library="Feather" name="chevron-right" size={18} color={Colors.GRAY_MEDIUM} />
                 </View>
             </TouchableOpacity>
         );
@@ -197,8 +215,6 @@ const ListScreen: React.FC<ListScreenProps> = ({ groups, currentUser, onEnterRoo
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -208,6 +224,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 40,
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
     },
     card: {
         flexDirection: 'row',
@@ -215,21 +234,20 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         padding: 12,
         marginBottom: 12,
-        borderRadius: 16,
+        borderRadius: 24,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        
-        
-        
-        
-        
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     avatarContainer: {
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -248,6 +266,7 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-start',
         marginBottom: 4,
     },
     groupName: {
