@@ -16,6 +16,7 @@ import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
 import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
+import useDevicePermissions from "@/src/core/hook/user/useDevicePermissions";
 
 /**
  * GroupRoom screen component container.
@@ -28,6 +29,7 @@ export default function groupRoom() {
     const { profile } = useAuthHook();
     const { onBackPress } = useAppNavigation();
     const [isUploading, setIsUploading] = useState<boolean>(false);
+    const { statuses: permissionStatuses, requestPermission: onRequestPermission } = useDevicePermissions();
 
     const {  
         currentGroup,
@@ -132,6 +134,8 @@ export default function groupRoom() {
                 loadMoreMessages={() => loadMoreMessages(roomId)}
                 hasReachedEnd={hasReachedEnd}
                 isUploading={isUploading} 
+                permissionStatuses={permissionStatuses}
+                onRequestPermission={onRequestPermission}
             />
         </>
     );
