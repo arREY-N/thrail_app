@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import EmergencyNotification from '@/src/components/EmergencyNotification';
+
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailView from '@/src/core/hook/trail/useTrailView';
@@ -44,8 +44,6 @@ const home = () => {
                 getItemRating={getItemRating}
                 isLoading={isLoading}
             />
-
-            <EmergencyNotification />
         </View>
     );
 };
