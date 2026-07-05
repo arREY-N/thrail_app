@@ -3,7 +3,7 @@
  * @description Pure UI layout screen displaying active conversation messages inside a group chat room.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -50,6 +50,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { IMessage } from '@/src/core/models/Message/Message.types';
 import { IUser } from '@/src/core/models/User/User.types';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
+import { PermissionKey, PermissionStatus, IPermissionState } from '@/src/core/models/Permission/Permission.types';
 import { useRoomScreen } from './hooks/useRoomScreen';
 
 /**
@@ -193,6 +194,8 @@ export interface RoomScreenProps {
     onAttachPhotoPress: () => void;
     onCapturePhotoPress: () => void;
     isUploading: boolean;
+    permissionStatuses?: Record<PermissionKey, PermissionStatus>;
+    onRequestPermission?: (key: PermissionKey) => Promise<IPermissionState>;
 }
 
 /**
@@ -210,11 +213,57 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     onBackPress,
     onAttachPhotoPress,
     onCapturePhotoPress,
-    isUploading
+    isUploading,
+    permissionStatuses,
+    onRequestPermission
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, width: screenWidth } = useBreakpoints();
     const MAX_WEB_WIDTH = 800;
+
+    const handleAttachPhotoClick = useCallback(async () => {
+        if (Platform.OS === 'web') {
+            onAttachPhotoPress();
+            return;
+        }
+
+        const status = permissionStatuses?.photos ?? 'undetermined';
+        if (status === 'granted' || status === 'while-using') {
+            onAttachPhotoPress();
+            return;
+        }
+
+        if (onRequestPermission) {
+            const result = await onRequestPermission('photos');
+            if (result.status === 'granted' || result.status === 'while-using') {
+                onAttachPhotoPress();
+            }
+        } else {
+            onAttachPhotoPress();
+        }
+    }, [onAttachPhotoPress, permissionStatuses, onRequestPermission]);
+
+    const handleCapturePhotoClick = useCallback(async () => {
+        if (Platform.OS === 'web') {
+            onCapturePhotoPress();
+            return;
+        }
+
+        const status = permissionStatuses?.camera ?? 'undetermined';
+        if (status === 'granted' || status === 'while-using') {
+            onCapturePhotoPress();
+            return;
+        }
+
+        if (onRequestPermission) {
+            const result = await onRequestPermission('camera');
+            if (result.status === 'granted' || result.status === 'while-using') {
+                onCapturePhotoPress();
+            }
+        } else {
+            onCapturePhotoPress();
+        }
+    }, [onCapturePhotoPress, permissionStatuses, onRequestPermission]);
 
     const {
         previewImage,
@@ -428,18 +477,18 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         return (
             <View style={styles.actionButtonContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
+                    <TouchableOpacity onPress={handleAttachPhotoClick} style={styles.mediaIconButton}>
                         <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                     {Platform.OS !== 'web' && (
-                        <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
+                        <TouchableOpacity onPress={handleCapturePhotoClick} style={styles.mediaIconButton}>
                             <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
         );
-    }, [onAttachPhotoPress, onCapturePhotoPress]);
+    }, [handleAttachPhotoClick, handleCapturePhotoClick]);
 
     const renderComposer = useCallback((props: ComposerProps) => (
         <CustomComposer 
