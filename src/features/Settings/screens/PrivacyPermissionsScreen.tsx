@@ -13,7 +13,7 @@ import { Layout } from '@/src/constants/layout';
 import { IPermissionState, PermissionKey, PermissionStatus } from '@/src/core/models/Permission/Permission.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import React, { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Switch, TouchableOpacity, View, Platform } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 /**
  * Props for the PrivacyPermissionsScreen component
@@ -452,7 +452,7 @@ const PrivacyPermissionsScreen = ({
 
 const styles = StyleSheet.create({
     content: {
-        padding: 20,
+        padding: 16,
         paddingBottom: 48,
         gap: 24,
     },
@@ -471,11 +471,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: Colors.WHITE,
-        padding: 20,
+        padding: 16,
         borderRadius: 24,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        gap: 16,
+        gap: 12,
         ...GlobalStyles.dropShadow(2),
     },
     rowHovered: Platform.select({
