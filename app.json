@@ -65,7 +65,14 @@
       "@maplibre/maplibre-react-native",
       "@react-native-google-signin/google-signin/app.plugin.js",
       "@react-native-firebase/app/app.plugin.js",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Thrail to access your photos to share in the group chat.",
+          "cameraPermission": "Allow Thrail to access your camera to capture photos to share in the group chat."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
