@@ -69,11 +69,20 @@ export const useRoomScreen = ({
      */
     const { mainTitle, subtitle } = useMemo(() => {
         const parts = headerTitle ? headerTitle.split('•') : [];
+        let finalSubtitle = parts[1]?.trim() || '';
+
+        if (currentGroup?.type === 'chat' && currentUser?.emergencyContact?.userId) {
+            const otherUser = currentGroup.members?.find(m => m.id !== currentUser.id);
+            if (otherUser && otherUser.id === currentUser.emergencyContact.userId) {
+                finalSubtitle = 'Emergency Contact';
+            }
+        }
+
         return {
             mainTitle: parts[0]?.trim() || 'Chat Room',
-            subtitle: parts[1]?.trim() || '',
+            subtitle: finalSubtitle,
         };
-    }, [headerTitle]);
+    }, [headerTitle, currentGroup, currentUser]);
 
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
