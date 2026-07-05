@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import { GroupWithLegacyName } from '../ListScreen';
+import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 
 export interface UseListScreenProps {
     groups: GroupWithLegacyName[];
