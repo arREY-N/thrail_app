@@ -3,7 +3,7 @@
  * @description Pure UI layout screen displaying active conversation messages inside a group chat room.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -50,7 +50,6 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { IMessage } from '@/src/core/models/Message/Message.types';
 import { IUser } from '@/src/core/models/User/User.types';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
-import { PermissionKey, PermissionStatus, IPermissionState } from '@/src/core/models/Permission/Permission.types';
 import { useRoomScreen } from './hooks/useRoomScreen';
 
 /**
@@ -194,8 +193,6 @@ export interface RoomScreenProps {
     onAttachPhotoPress: () => void;
     onCapturePhotoPress: () => void;
     isUploading: boolean;
-    permissionStatuses?: Record<PermissionKey, PermissionStatus>;
-    onRequestPermission?: (key: PermissionKey) => Promise<IPermissionState>;
 }
 
 /**
@@ -213,57 +210,11 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     onBackPress,
     onAttachPhotoPress,
     onCapturePhotoPress,
-    isUploading,
-    permissionStatuses,
-    onRequestPermission
+    isUploading
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, width: screenWidth } = useBreakpoints();
     const MAX_WEB_WIDTH = 800;
-
-    const handleAttachPhotoClick = useCallback(async () => {
-        if (Platform.OS === 'web') {
-            onAttachPhotoPress();
-            return;
-        }
-
-        const status = permissionStatuses?.photos ?? 'undetermined';
-        if (status === 'granted' || status === 'while-using') {
-            onAttachPhotoPress();
-            return;
-        }
-
-        if (onRequestPermission) {
-            const result = await onRequestPermission('photos');
-            if (result.status === 'granted' || result.status === 'while-using') {
-                onAttachPhotoPress();
-            }
-        } else {
-            onAttachPhotoPress();
-        }
-    }, [onAttachPhotoPress, permissionStatuses, onRequestPermission]);
-
-    const handleCapturePhotoClick = useCallback(async () => {
-        if (Platform.OS === 'web') {
-            onCapturePhotoPress();
-            return;
-        }
-
-        const status = permissionStatuses?.camera ?? 'undetermined';
-        if (status === 'granted' || status === 'while-using') {
-            onCapturePhotoPress();
-            return;
-        }
-
-        if (onRequestPermission) {
-            const result = await onRequestPermission('camera');
-            if (result.status === 'granted' || result.status === 'while-using') {
-                onCapturePhotoPress();
-            }
-        } else {
-            onCapturePhotoPress();
-        }
-    }, [onCapturePhotoPress, permissionStatuses, onRequestPermission]);
 
     const {
         previewImage,
@@ -477,18 +428,18 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         return (
             <View style={styles.actionButtonContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={handleAttachPhotoClick} style={styles.mediaIconButton}>
+                    <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
                         <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                     {Platform.OS !== 'web' && (
-                        <TouchableOpacity onPress={handleCapturePhotoClick} style={styles.mediaIconButton}>
+                        <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
                             <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
         );
-    }, [handleAttachPhotoClick, handleCapturePhotoClick]);
+    }, [onAttachPhotoPress, onCapturePhotoPress]);
 
     const renderComposer = useCallback((props: ComposerProps) => (
         <CustomComposer 
@@ -511,7 +462,48 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         );
     }, []);
 
+    const renderChatEmpty = useCallback(() => {
+        return (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] }}>
+                <CustomIcon library="Ionicons" name="chatbubbles-outline" size={64} color={Colors.GRAY_MEDIUM} />
+                <CustomText variant="body" style={{ color: Colors.TEXT_SECONDARY, marginTop: 16, textAlign: 'center' }}>
+                    No messages yet.{"\n"}Send a message to start the conversation!
+                </CustomText>
+            </View>
+        );
+    }, []);
+
+    const renderBeginningOfChat = useCallback(() => {
+        if (!currentGroup) return null;
+        let dateString = '';
+        let timeString = '';
+        if (currentGroup.createdAt) {
+            const d = typeof currentGroup.createdAt === 'object' && 'toDate' in currentGroup.createdAt 
+                ? (currentGroup.createdAt as any).toDate() 
+                : new Date(currentGroup.createdAt as any);
+            dateString = d.toLocaleDateString();
+            timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        return (
+            <View style={{ alignItems: 'center', marginVertical: 32 }}>
+                <View style={{ backgroundColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16 }}>
+                    <CustomText variant="caption" style={{ color: Colors.PRIMARY, fontWeight: 'bold' }}>
+                        Beginning of conversation
+                    </CustomText>
+                </View>
+                <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginTop: 8 }} dataDetectorType="none">
+                    Created on {dateString} at {timeString}
+                </CustomText>
+            </View>
+        );
+    }, [currentGroup]);
+
     const renderSystemMessage = useCallback((props: SystemMessageProps<CustomMessage>) => {
+        if (props.currentMessage?._id === 'system-beginning-of-chat') {
+            return renderBeginningOfChat();
+        }
+
         return (
             <SystemMessage
                 {...props}
@@ -528,7 +520,9 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                 }}
             />
         );
-    }, []);
+    }, [renderBeginningOfChat]);
+
+
 
 
     const renderLoading = useCallback(() => (
@@ -584,6 +578,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         renderFooter={renderFooter}
                         renderSystemMessage={renderSystemMessage}
                         renderLoading={renderLoading}
+                        renderChatEmpty={renderChatEmpty}
                         loadEarlierMessagesProps={{
                             isAvailable: !hasReachedEnd,
                             isLoading: isLoadingEarlier,
@@ -594,7 +589,10 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                             textStyle: { color: Colors.WHITE, fontWeight: '600', fontSize: 13 },
                             containerStyle: { marginVertical: 8 },
                         }}
-                        listProps={listViewProps}
+                        listProps={{
+                            ...listViewProps,
+                            contentContainerStyle: { flexGrow: 1 }
+                        }}
                     />
                 </View>
             </View>
