@@ -1,3 +1,4 @@
+import EmergencyNotification from '@/src/components/EmergencyNotification';
 import useHike from '@/src/core/hook/hike/useHike';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
@@ -8,6 +9,7 @@ import useEditProfile from '@/src/core/hook/user/useEditProfile';
 import { Hike } from '@/src/core/models/Hike/Hike';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import React from 'react';
+import { View } from 'react-native';
 
 /**
  * Controller component for the Profile tab.
@@ -99,20 +101,24 @@ export default function profile() {
     };
 
     return (
-        <ProfileScreen
-            onSignOutPress={onSignOutPress}
-            onApplyPress={onApplyPress}
-            onAdminPress={onAdminPress}
-            onSettingsPress={onSettingsPress}
-            onSuperadminPress={onSuperadminPress}
-            stats={computedStats}
-            hikeLog={myReviews}
-            profile={profile ?? undefined}
-            role={role ?? undefined}
-            onLikeReview={likeReview}
-            isLiked={(review) => Boolean(isLiked(review))}
-            onEditReview={onWriteReviewPress}
-            onGroupPress={onGroupPress}
-        />
+        <View style={{ flex: 1 }}>
+            <ProfileScreen
+                onSignOutPress={onSignOutPress}
+                onApplyPress={onApplyPress}
+                onAdminPress={onAdminPress}
+                onSettingsPress={onSettingsPress}
+                onSuperadminPress={onSuperadminPress}
+                stats={computedStats}
+                hikeLog={myReviews}
+                profile={profile ?? undefined}
+                role={role ?? undefined}
+                onLikeReview={likeReview}
+                isLiked={(review) => Boolean(isLiked(review))}
+                onEditReview={onWriteReviewPress}
+                onGroupPress={onGroupPress}
+            />
+
+            <EmergencyNotification />
+        </View>
     );
 }
