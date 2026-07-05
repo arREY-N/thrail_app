@@ -3,7 +3,7 @@
  * @description Type definitions for the device permissions domain.
  */
 
-export type PermissionKey = 'location' | 'camera' | 'notifications';
+export type PermissionKey = 'location' | 'camera' | 'notifications' | 'photos';
 
 export type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'while-using';
 
