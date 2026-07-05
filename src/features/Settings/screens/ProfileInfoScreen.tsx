@@ -4,8 +4,8 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React from "react";
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomFeedbackInput from "@/src/components/CustomFeedbackInput";
@@ -18,13 +18,15 @@ import ErrorMessage from "@/src/components/ErrorMessage";
 import ImagePreviewModal from "@/src/components/ImagePreviewModal";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
+import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
-import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User.types";
+import { IUser } from "@/src/core/models/User/User.types";
 import { formatDate } from "@/src/core/utility/date";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";
+import { useProfileForm } from "@/src/features/Settings/hooks/useProfileForm";
+import { styles } from "@/src/features/Settings/styles/ProfileInfoStyles";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { IconLibrary } from "@/src/types/ui.types";
 
@@ -94,6 +96,20 @@ export const InfoRow = ({ label, value, noMargin, forceStack = false }: InfoRowP
     );
 };
 
+export const formatPhoneWithPrefix = (phone?: string) => {
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('63')) {
+        cleaned = cleaned.substring(2);
+    } else if (cleaned.startsWith('0')) {
+        cleaned = cleaned.substring(1);
+    }
+    if (cleaned.length === 10) {
+        return `+63 ${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    }
+    return `+63 ${cleaned}`;
+};
+
 /**
  * Props for the ProfileInfoScreen component.
  * @param user - The user object containing profile details.
@@ -141,6 +157,11 @@ const ProfileInfoScreen = ({
         });
     };
 
+    const emergencyContactFields = [
+        { label: "Contact Name", value: user.emergencyContact?.name },
+        { label: "Contact Number", value: user.emergencyContact?.contactNumber },
+        { label: "Email Address", value: user.emergencyContact?.email }
+    ];
     const personalDetailsFields = [
         { label: "Username", value: user.username ? `@${user.username}` : '' },
         { label: "Phone Number", value: user.phoneNumber },
@@ -148,101 +169,54 @@ const ProfileInfoScreen = ({
         { label: "Email Address", value: user.email },
         { label: "Address", value: user.address }
     ];
-    const personalDetailsRequiresStack = checkSectionRequiresStack(personalDetailsFields);
 
-    const emergencyContactFields = [
-        { label: "Contact Name", value: user.emergencyContact?.name },
-        { label: "Contact Number", value: user.emergencyContact?.contactNumber },
-        { label: "Email Address", value: user.emergencyContact?.email }
-    ];
-    const emergencyContactRequiresStack = checkSectionRequiresStack(emergencyContactFields);
 
-    const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
-    const [isSaveModalVisible, setIsSaveModalVisible] = useState<boolean>(false);
-    const [isCancelModalVisible, setIsCancelModalVisible] = useState<boolean>(false);
-    const [isImageModalVisible, setIsImageModalVisible] = useState<boolean>(false);
+    const personalDetailsRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(personalDetailsFields) : false);
+    const emergencyContactRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(emergencyContactFields) : false);
 
-    const [username, setUsername] = useState<string>(user.username || '');
-    const [phoneNumber, setPhoneNumber] = useState<string>(user.phoneNumber || '');
-    const [birthday, setBirthday] = useState<Date | null>(user.birthday ? new Date(user.birthday) : null);
-    const [address, setAddress] = useState<string>(user.address || '');
-    const [medicalProfile, setMedicalProfile] = useState<IMedicalProfile>(user.medicalProfile || { hasCondition: false, details: '', clearanceUri: '' });
-    const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
-    const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
+    const {
+        isEditModalVisible,
+        setIsEditModalVisible,
+        isSaveModalVisible,
+        setIsSaveModalVisible,
+        isCancelModalVisible,
+        setIsCancelModalVisible,
+        isImageModalVisible,
+        setIsImageModalVisible,
+        isEmergencyModalVisible,
+        setIsEmergencyModalVisible,
+        username,
+        setUsername,
+        phoneNumber,
+        setPhoneNumber,
+        birthday,
+        setBirthday,
+        address,
+        setAddress,
+        medicalProfile,
+        setMedicalProfile,
+        emergencyContact,
+        setEmergencyContact,
+        preferences,
+        setPreferences,
+        searchEmail,
+        setSearchEmail,
+        isSearching,
+        searchError,
+        searchSuccess,
+        searchInfo,
+        formError,
+        isDirty,
+        handleConfirmEdit,
+        handleEmergencySearch,
+        handleCancelPress,
+        handleSavePress,
+        handleSave,
+    } = useProfileForm({ user, isEditing, onSavePress, onCancelPress, onEditPress });
 
-    const [formError, setFormError] = useState<string | null>(null);
-
-    const clearanceImages = user.medicalProfile?.clearanceUri 
-        ? user.medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean) 
+    const clearanceImages = medicalProfile?.clearanceUri 
+        ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean) 
         : [];
-
-    useEffect(() => {
-        if (!isEditing) {
-            setUsername(user.username || '');
-            setPhoneNumber(user.phoneNumber || '');
-            setBirthday(user.birthday ? new Date(user.birthday) : null);
-            setAddress(user.address || '');
-            setMedicalProfile(user.medicalProfile || { hasCondition: false, details: '', clearanceUri: '' });
-            setEmergencyContact(user.emergencyContact || { name: '', contactNumber: '', email: '' });
-            setPreferences(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
-            setFormError(null);
-        }
-    }, [isEditing, user]);
-
-    const isDirty = 
-        username !== (user.username || '') ||
-        phoneNumber !== (user.phoneNumber || '') ||
-        (birthday?.getTime() !== (user.birthday ? new Date(user.birthday).getTime() : undefined)) ||
-        address !== (user.address || '') ||
-        JSON.stringify(medicalProfile) !== JSON.stringify(user.medicalProfile || { hasCondition: false, details: '', clearanceUri: '' }) ||
-        JSON.stringify(emergencyContact) !== JSON.stringify(user.emergencyContact || { name: '', contactNumber: '', email: '' }) ||
-        JSON.stringify(preferences) !== JSON.stringify(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
-
-    const handleConfirmEdit = (): void => {
-        setIsEditModalVisible(false);
-        onEditPress();
-    };
-
-    const handleCancelPress = () => {
-        if (isDirty) {
-            setIsCancelModalVisible(true);
-        } else {
-            if (onCancelPress) onCancelPress();
-        }
-    };
-
-    const handleSavePress = () => {
-        if (!username.trim()) {
-            setFormError("Username is required.");
-            return;
-        }
-        if (medicalProfile.hasCondition && !medicalProfile.details.trim()) {
-            setFormError("Please specify your medical condition(s).");
-            return;
-        }
-
-        setFormError(null);
-
-        if (isDirty) {
-            setIsSaveModalVisible(true);
-        } else {
-            handleSave();
-        }
-    };
-
-    const handleSave = (): void => {
-        if (onSavePress) {
-            onSavePress({
-                username,
-                phoneNumber,
-                birthday: birthday ?? undefined,
-                address,
-                medicalProfile,
-                emergencyContact,
-                preferences,
-            });
-        }
-    };
 
     const getRoleDisplayName = (role: string) => {
         if (role === 'superadmin') return 'System Admin';
@@ -260,24 +234,24 @@ const ProfileInfoScreen = ({
         const level = exp?.toLowerCase() || '';
         if (level.includes('begin') || level.includes('novice')) {
             return {
-                bg: Colors.STATUS_PENDING_BG,
-                text: Colors.STATUS_PENDING_TEXT,
+                bg: Colors.EXP_BEGINNER_BG,
+                text: Colors.EXP_BEGINNER_TEXT,
                 icon: 'trail-sign',
                 library: 'Ionicons' as IconLibrary,
             };
         }
         if (level.includes('regular') || level.includes('intermed')) {
             return {
-                bg: Colors.STATUS_APPROVED_BG,
-                text: Colors.STATUS_APPROVED_TEXT,
+                bg: Colors.EXP_REGULAR_BG,
+                text: Colors.EXP_REGULAR_TEXT,
                 icon: 'compass',
                 library: 'Ionicons' as IconLibrary,
             };
         }
         if (level.includes('exper') || level.includes('adv')) {
             return {
-                bg: Colors.STATUS_WARNING_BG,
-                text: Colors.STATUS_WARNING_TEXT,
+                bg: Colors.EXP_EXPERIENCED_BG,
+                text: Colors.EXP_EXPERIENCED_TEXT,
                 icon: 'trophy',
                 library: 'Ionicons' as IconLibrary,
             };
@@ -288,6 +262,14 @@ const ProfileInfoScreen = ({
             icon: 'help-circle',
             library: 'Feather' as IconLibrary,
         };
+    };
+
+    const getExperienceActiveColor = (exp?: string | null) => {
+        const level = exp?.toLowerCase() || '';
+        if (level.includes('begin') || level.includes('novice')) return Colors.SECONDARY;
+        if (level.includes('regular') || level.includes('intermed')) return Colors.EXP_REGULAR_BG;
+        if (level.includes('exper') || level.includes('adv')) return Colors.EXP_EXPERIENCED_BG;
+        return Colors.PRIMARY;
     };
 
     // Render clean gamified chips without gray borders
@@ -318,7 +300,109 @@ const ProfileInfoScreen = ({
     };
 
     const expStyles = getExperienceStyles(user.preferences?.experience);
+    const activeColor = getExperienceActiveColor(user.preferences?.experience);
     const showMedicalProfile = user.medicalProfile && (user.medicalProfile.hasCondition || user.medicalProfile.clearanceUri);
+    
+    /**
+     * Dynamic Layout Logic:
+     * If user's list of favorite destinations is long (> 4 items), the Hiking Preferences card 
+     * becomes very tall. In this case, we shift the Medical Profile card to the left column 
+     * to balance column heights on web dashboards.
+     */
+    const isPreferencesLong = (user.preferences?.location?.length || 0) > 4;
+
+    const renderMedicalProfile = () => {
+        if (!(showMedicalProfile || isEditing)) return null;
+        return (
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <CustomIcon library="Feather" name="activity" size={18} color={Colors.PRIMARY} />
+                    <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Medical Profile</CustomText>
+                </View>
+                <View style={styles.cardBody}>
+                    {isEditing ? (
+                        <View style={styles.editForm}>
+                            <CustomText variant="caption" style={styles.inputLabel}>Do you have any pre-existing medical conditions?</CustomText>
+                            <View style={styles.medicalToggleContainer}>
+                                <SelectionOption label="Yes" selected={medicalProfile.hasCondition === true} onPress={() => setMedicalProfile(prev => ({ ...prev, hasCondition: true }))} style={styles.medicalToggleOption} />
+                                <SelectionOption label="No" selected={medicalProfile.hasCondition === false} onPress={() => setMedicalProfile(prev => ({ ...prev, hasCondition: false }))} style={styles.medicalToggleOption} />
+                            </View>
+                            {medicalProfile.hasCondition && (
+                                <>
+                                    <CustomFeedbackInput label="Specify your condition(s)" placeholder="e.g. Asthma, Hypertension, Allergies..." value={medicalProfile.details.join('\n')} onChangeText={(text) => setMedicalProfile(prev => ({ ...prev, details: text.split('\n').filter(Boolean) }))} suggestions={["Asthma", "Allergies", "Hypertension", "Heart Condition", "Diabetes"]} />
+                                    <View style={{ marginTop: 16 }}>
+                                        <DocumentUploadCard docName="Medical Clearance" docKey="medicalClearance" isUploaded={medicalProfile.clearanceUri || false} onUploadSuccess={(url) => setMedicalProfile(prev => ({ ...prev, clearanceUri: url }))} onDelete={() => setMedicalProfile(prev => ({ ...prev, clearanceUri: '' }))} />
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                    ) : (
+                        <View>
+                            {user.medicalProfile?.hasCondition && (
+                                <View style={[styles.stackedRow, { marginBottom: 8 }]}>
+                                    <CustomText style={styles.inlineLabel}>Medical Condition</CustomText>
+                                    <View style={{ marginTop: 8 }}>
+                                        {renderGamifiedChips(
+                                            user.medicalProfile.details || [],
+                                            undefined,
+                                            true
+                                        )}
+                                    </View>
+                                </View>
+                            )}
+
+                            {clearanceImages.length > 0 ? (
+                                <View style={{ marginTop: user.medicalProfile?.hasCondition ? 8 : 0 }}>
+                                    <CustomText style={[styles.inlineLabel, { marginBottom: 12 }]}>Medical Document</CustomText>
+                                    <TouchableOpacity style={styles.largeImageWrapper} activeOpacity={0.9} onPress={() => setIsImageModalVisible(true)}>
+                                        <Image source={{ uri: clearanceImages[0] }} style={styles.largeImage} resizeMode="cover" />
+                                        <LinearGradient colors={['transparent', `${Colors.BLACK}99`]} style={styles.largeImageGradient}>
+                                            <View style={{ flex: 1 }} />
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                {clearanceImages.length > 1 && (
+                                                    <View style={styles.imageCountBadge}>
+                                                        <CustomText style={styles.imageCountText}>{`+${clearanceImages.length - 1}`}</CustomText>
+                                                    </View>
+                                                )}
+                                                <View style={styles.imageMaximizeBadge}>
+                                                    <CustomIcon library="Feather" name="maximize-2" size={14} color={Colors.WHITE} />
+                                                </View>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : null}
+                        </View>
+                    )}
+                </View>
+            </View>
+        );
+    };
+
+    const renderProfileHeader = () => (
+        <View style={styles.profileHeaderBanner}>
+            <View style={styles.avatarContainer}>
+                <View style={styles.avatarCircle}>
+                    <CustomText style={styles.avatarInitial} numberOfLines={1} adjustsFontSizeToFit>
+                        {getInitials(user.firstname, user.lastname)}
+                    </CustomText>
+                </View>
+                <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
+                    <CustomText style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit>{getRoleDisplayName(user.role)}</CustomText>
+                </View>
+            </View>
+            <View style={styles.nameContainer}>
+                <CustomText variant="h2" style={styles.profileName} numberOfLines={1} adjustsFontSizeToFit>
+                    {user.firstname} {user.lastname}
+                </CustomText>
+                {user.createdAt && (
+                    <CustomText variant="caption" style={styles.memberSinceText} numberOfLines={1} adjustsFontSizeToFit>
+                        Member since {formatDate(user.createdAt, 'full')}
+                    </CustomText>
+                )}
+            </View>
+        </View>
+    );
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -375,7 +459,7 @@ const ProfileInfoScreen = ({
                 }
             />
 
-            <ScrollView 
+             <ScrollView 
                 style={styles.contentArea}
                 contentContainerStyle={[
                     styles.scrollContent,
@@ -384,28 +468,7 @@ const ProfileInfoScreen = ({
                 showsVerticalScrollIndicator={false}
             >
 
-                <View style={styles.profileHeaderBanner}>
-                    <View style={styles.avatarContainer}>
-                        <View style={styles.avatarCircle}>
-                            <CustomText style={styles.avatarInitial} numberOfLines={1} adjustsFontSizeToFit>
-                                {getInitials(user.firstname, user.lastname)}
-                            </CustomText>
-                        </View>
-                        <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
-                            <CustomText style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit>{getRoleDisplayName(user.role)}</CustomText>
-                        </View>
-                    </View>
-                    <View style={styles.nameContainer}>
-                        <CustomText variant="h2" style={styles.profileName} numberOfLines={1} adjustsFontSizeToFit>
-                            {user.firstname} {user.lastname}
-                        </CustomText>
-                        {user.createdAt && (
-                            <CustomText variant="caption" style={styles.memberSinceText} numberOfLines={1} adjustsFontSizeToFit>
-                                Member since {formatDate(user.createdAt, 'full')}
-                            </CustomText>
-                        )}
-                    </View>
-                </View>
+                {renderProfileHeader()}
 
                 {isEditing && formError && (
                     <ErrorMessage error={formError} />
@@ -423,15 +486,15 @@ const ProfileInfoScreen = ({
                             <View style={styles.cardBody}>
                                 {isEditing ? (
                                     <View style={styles.editForm}>
-                                        <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} icon="at-sign" />
-                                        <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" icon="phone" />
-                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" icon="calendar" iconPosition="left" />
-                                        <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} icon="map-pin" style={styles.noMarginBottom} />
+                                        <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
+                                        <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
+                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" />
+                                        <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={styles.noMarginBottom} />
                                     </View>
                                 ) : (
                                     <View>
                                         <InfoRow label="Username" value={`@${user.username}`} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Phone Number" value={user.phoneNumber} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Phone Number" value={formatPhoneWithPrefix(user.phoneNumber)} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Birthday" value={user.birthday ? formatDate(user.birthday as Date) : null} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Email Address" value={user.email} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Address" value={user.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
@@ -440,97 +503,74 @@ const ProfileInfoScreen = ({
                             </View>
                         </View>
 
-                        {user.emergencyContact && (
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
+                        <View style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                                     <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.PRIMARY} />
                                     <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Emergency Contact</CustomText>
                                 </View>
-                                <View style={styles.cardBody}>
-                                    {isEditing ? (
-                                        <View style={styles.editForm}>
-                                            <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, name: text }))} icon="user" />
-                                            <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" icon="phone" />
-                                            <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, email: text }))} icon="mail" style={styles.noMarginBottom} />
-                                        </View>
-                                    ) : (
-                                        <View>
-                                            <InfoRow label="Contact Name" value={user.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
-                                            <InfoRow label="Contact Number" value={user.emergencyContact.contactNumber} forceStack={emergencyContactRequiresStack} />
-                                            <InfoRow label="Email Address" value={user.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
-                                        </View>
-                                    )}
-                                </View>
                             </View>
-                        )}
+                            <View style={styles.cardBody}>
+                                {isEditing ? (
+                                    <View style={styles.editForm}>
+                                        {/* Search Row */}
+                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+                                            <View style={{ flex: 1 }}>
+                                                <CustomTextInput label="Search by Email (Optional)" placeholder="friend@email.com" value={searchEmail} onChangeText={setSearchEmail} keyboardType="email-address" autoCapitalize="none" />
+                                            </View>
+                                            <TouchableOpacity onPress={handleEmergencySearch} disabled={isSearching} style={{ backgroundColor: Colors.PRIMARY, height: 54, width: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 28 }} activeOpacity={0.8}>
+                                                {isSearching ? (
+                                                    <ActivityIndicator color={Colors.WHITE} size="small" />
+                                                ) : (
+                                                    <CustomIcon library="Feather" name="search" size={20} color={Colors.WHITE} />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                        
+                                        {searchError && <ErrorMessage error={searchError} style={{ marginBottom: 12 }} />}
+                                        {searchSuccess && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_APPROVED_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
+                                                <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.PRIMARY} />
+                                                <CustomText style={{ color: Colors.PRIMARY, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchSuccess}</CustomText>
+                                            </View>
+                                        )}
+                                        {searchInfo && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_PENDING_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
+                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                                                <CustomText style={{ color: Colors.STATUS_PENDING_TEXT, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchInfo}</CustomText>
+                                            </View>
+                                        )}
+
+                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, name: text }))} />
+                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" prefix="+63" />
+                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, email: text }))} style={styles.noMarginBottom} />
+                                    </View>
+                                ) : user.emergencyContact?.name ? (
+                                    <View>
+                                        <InfoRow label="Contact Name" value={user.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
+                                        <InfoRow label="Contact Number" value={formatPhoneWithPrefix(user.emergencyContact.contactNumber)} forceStack={emergencyContactRequiresStack} />
+                                        <InfoRow label="Email Address" value={user.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
+                                    </View>
+                                ) : (
+                                    <View style={styles.emptyEmergencyContainer}>
+                                        <View style={styles.emptyEmergencyIconContainer}>
+                                            <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.WARNING} />
+                                        </View>
+                                        <CustomText style={styles.emptyEmergencyText}>No emergency contact set up. In case of emergencies, having a contact helps guides reach your family.</CustomText>
+                                        <TouchableOpacity onPress={() => setIsEmergencyModalVisible(true)} style={styles.setupEmergencyBtn} activeOpacity={0.8}>
+                                            <CustomText style={styles.setupEmergencyBtnText}>Set up Emergency Contact</CustomText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        {isWideScreen && isPreferencesLong && renderMedicalProfile()}
                     </View>
 
                     {/* RIGHT COLUMN */}
                     <View style={[styles.column, isWideScreen && styles.columnWide]}>
-                        {(showMedicalProfile || isEditing) && (
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <CustomIcon library="Feather" name="activity" size={18} color={Colors.PRIMARY} />
-                                    <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Medical Profile</CustomText>
-                                </View>
-                                <View style={styles.cardBody}>
-                                    {isEditing ? (
-                                        <View style={styles.editForm}>
-                                            <CustomText variant="caption" style={styles.inputLabel}>Do you have any pre-existing medical conditions?</CustomText>
-                                            <View style={styles.medicalToggleContainer}>
-                                                <SelectionOption label="Yes" selected={medicalProfile.hasCondition === true} onPress={() => setMedicalProfile(prev => ({ ...prev, hasCondition: true }))} style={styles.medicalToggleOption} />
-                                                <SelectionOption label="No" selected={medicalProfile.hasCondition === false} onPress={() => setMedicalProfile(prev => ({ ...prev, hasCondition: false }))} style={styles.medicalToggleOption} />
-                                            </View>
-                                            {medicalProfile.hasCondition && (
-                                                <>
-                                                    <CustomFeedbackInput label="Specify your condition(s)" placeholder="e.g. Asthma, Hypertension, Allergies..." value={medicalProfile.details} onChangeText={(text) => setMedicalProfile(prev => ({ ...prev, details: text }))} suggestions={["Asthma", "Allergies", "Hypertension", "Heart Condition", "Diabetes"]} />
-                                                    <View style={{ marginTop: 16 }}>
-                                                        <DocumentUploadCard docName="Medical Clearance" docKey="medicalClearance" isUploaded={medicalProfile.clearanceUri || false} onUploadSuccess={(url) => setMedicalProfile(prev => ({ ...prev, clearanceUri: url }))} onDelete={() => setMedicalProfile(prev => ({ ...prev, clearanceUri: '' }))} />
-                                                    </View>
-                                                </>
-                                            )}
-                                        </View>
-                                    ) : (
-                                        <View>
-                                            {user.medicalProfile?.hasCondition && (
-                                                <View style={[styles.stackedRow, { marginBottom: 8 }]}>
-                                                    <CustomText style={styles.inlineLabel}>Medical Condition</CustomText>
-                                                    <View style={{ marginTop: 8 }}>
-                                                        {renderGamifiedChips(
-                                                            user.medicalProfile.details ? user.medicalProfile.details.split(',').map(s => s.trim()).filter(Boolean) : [],
-                                                            undefined,
-                                                            true
-                                                        )}
-                                                    </View>
-                                                </View>
-                                            )}
-
-                                            {clearanceImages.length > 0 ? (
-                                                <View style={{ marginTop: user.medicalProfile?.hasCondition ? 8 : 0 }}>
-                                                    <CustomText style={[styles.inlineLabel, { marginBottom: 12 }]}>Medical Document</CustomText>
-                                                    <TouchableOpacity style={styles.largeImageWrapper} activeOpacity={0.9} onPress={() => setIsImageModalVisible(true)}>
-                                                        <Image source={{ uri: clearanceImages[0] }} style={styles.largeImage} resizeMode="cover" />
-                                                        <LinearGradient colors={['transparent', `${Colors.BLACK}99`]} style={styles.largeImageGradient}>
-                                                            <View style={{ flex: 1 }} />
-                                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                                                {clearanceImages.length > 1 && (
-                                                                    <View style={styles.imageCountBadge}>
-                                                                        <CustomText style={styles.imageCountText}>{`+${clearanceImages.length - 1}`}</CustomText>
-                                                                    </View>
-                                                                )}
-                                                                <View style={styles.imageMaximizeBadge}>
-                                                                    <CustomIcon library="Feather" name="maximize-2" size={14} color={Colors.WHITE} />
-                                                                </View>
-                                                            </View>
-                                                        </LinearGradient>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            ) : null}
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-                        )}
+                        {(!isWideScreen || !isPreferencesLong) && renderMedicalProfile()}
 
                         {user.onBoardingComplete && user.preferences && (
                             <View style={styles.card}>
@@ -611,7 +651,7 @@ const ProfileInfoScreen = ({
                                                         <View style={styles.expBarHeader}>
                                                             <View style={styles.expBarTextContainer}>
                                                                 <CustomText style={styles.expBarLabel} numberOfLines={1} adjustsFontSizeToFit>Hiking Experience</CustomText>
-                                                                <CustomText variant="h2" style={[styles.expBarValue, { color: expStyles.text }]} numberOfLines={1} adjustsFontSizeToFit>
+                                                                <CustomText variant="h2" style={[styles.expBarValue, { color: activeColor }]} numberOfLines={1} adjustsFontSizeToFit>
                                                                     {currentExp}
                                                                 </CustomText>
                                                             </View>
@@ -628,7 +668,7 @@ const ProfileInfoScreen = ({
                                                                     <View key={lvl} style={{ flex: 1, alignItems: 'center' }}>
                                                                         <View style={[
                                                                             styles.segment, 
-                                                                            isActive && { backgroundColor: expStyles.text },
+                                                                            isActive && { backgroundColor: activeColor },
                                                                             idx === 0 && styles.segmentFirst,
                                                                             idx === LEVELS.length - 1 && styles.segmentLast,
                                                                         ]} />
@@ -638,7 +678,7 @@ const ProfileInfoScreen = ({
                                                                             style={[
                                                                                 styles.segmentLabelText, 
                                                                                 isActive && { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
-                                                                                isCurrent && { color: expStyles.text }
+                                                                                isCurrent && { color: activeColor }
                                                                             ]}
                                                                         >
                                                                             {lvl}
@@ -686,423 +726,17 @@ const ProfileInfoScreen = ({
             {clearanceImages.length > 0 && (
                 <ImagePreviewModal visible={isImageModalVisible} images={clearanceImages} onClose={() => setIsImageModalVisible(false)} />
             )}
+
+            <EmergencyModal 
+                visible={isEmergencyModalVisible} 
+                onClose={() => setIsEmergencyModalVisible(false)} 
+                mode="emergency_only" 
+            />
             
         </ScreenWrapper>
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(2);
 
-const styles = StyleSheet.create({
-    contentArea: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 20,
-        gap: 20,
-    },
-    scrollContentWide: {
-        maxWidth: Layout.MAX_WIDTH,
-        width: '100%',
-        alignSelf: 'center',
-    },
-    headerActionButton: {
-        padding: 8,
-    },
-    desktopColumns: {
-        flexDirection: 'row',
-        gap: 20,
-    },
-    mobileStack: {
-        flexDirection: 'column',
-        gap: 20,
-    },
-    column: {
-        gap: 20,
-    },
-    columnWide: {
-        flex: 1,
-    },
-    profileHeaderBanner: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        gap: 12,
-    },
-    avatarContainer: {
-        alignItems: 'center',
-    },
-    nameContainer: {
-        alignItems: 'center',
-        gap: 2,
-    },
-    avatarCircle: {
-        width: 76,
-        height: 76,
-        borderRadius: 38,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: Colors.WHITE,
-        ...GlobalStyles.dropShadow(3),
-    },
-    avatarInitial: {
-        color: Colors.WHITE,
-        fontSize: 28,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-    profileName: {
-        fontWeight: 'bold',
-        color: Colors.BLACK,
-        marginBottom: 0,
-        fontSize: 20,
-        textAlign: 'center',
-    },
-    roleBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 16,
-        marginTop: -16,
-        borderWidth: 2,
-        borderColor: Colors.WHITE,
-        zIndex: 10,
-        ...GlobalStyles.dropShadow(2),
-    },
-    roleText: {
-        color: Colors.WHITE,
-        fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'capitalize',
-    },
-    memberSinceText: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    card: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 20,
-    },
-    cardTitle: {
-        marginBottom: 0,
-        color: Colors.BLACK,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    cardBody: {
-        flexDirection: 'column',
-    },
-    inlineRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        flexWrap: 'wrap',
-    },
-    inlineLabel: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 13,
-        fontWeight: '500',
-        flexShrink: 1,
-        marginRight: 16,
-    },
-    inlineValue: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 14,
-        fontWeight: '700',
-        flex: 1,
-        textAlign: 'right',
-    },
-    stackedRow: {
-        flexDirection: 'column',
-        paddingVertical: 12,
-        gap: 6,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-    },
-    stackedLabel: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    stackedValue: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    noMargin: {
-        marginBottom: 0,
-        paddingBottom: 0,
-        borderBottomWidth: 0,
-    },
-    largeImageWrapper: {
-        position: 'relative',
-        height: 180,
-        width: '100%',
-        borderRadius: 16,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        overflow: 'hidden',
-        ...GlobalStyles.dropShadow(2),
-    },
-    largeImage: {
-        width: '100%',
-        height: '100%',
-    },
-    largeImageGradient: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        top: 0,
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'flex-end',
-        padding: 12,
-    },
-    imageCountBadge: {
-        backgroundColor: `${Colors.BLACK}A6`,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    imageCountText: {
-        color: Colors.TEXT_INVERSE,
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
-    imageMaximizeBadge: {
-        backgroundColor: `${Colors.BLACK}A6`,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    expBarContainer: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        padding: 16,
-        marginBottom: 24,
-        ...GlobalStyles.dropShadow(1),
-    },
-    expBarHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    expBarTextContainer: {
-        flex: 1,
-        marginRight: 8,
-    },
-    expBarLabel: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 13,
-        fontWeight: '500',
-        flexShrink: 1,
-        marginRight: 16,
-        marginBottom: 6,
-    },
-    expBarTitle: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-        fontSize: 11,
-        letterSpacing: 0.5,
-        marginBottom: 6,
-    },
-    expBarValue: {
-        fontSize: 20,
-        marginBottom: 0,
-    },
-    expBarIconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    segmentsContainer: {
-        flexDirection: 'row',
-        gap: 6,
-        marginBottom: 8,
-    },
-    segment: {
-        width: '100%',
-        height: 10,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginBottom: 8,
-        borderRadius: 2,
-    },
-    segmentFirst: {
-        borderTopLeftRadius: 6,
-        borderBottomLeftRadius: 6,
-    },
-    segmentLast: {
-        borderTopRightRadius: 6,
-        borderBottomRightRadius: 6,
-    },
-    segmentLabelText: {
-        fontSize: 10,
-        color: Colors.TEXT_PLACEHOLDER,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        textAlign: 'center',
-    },
-    preferenceEditGroup: {
-        marginBottom: 20,
-    },
-    preferencesSection: {
-        marginBottom: 24,
-    },
-    gamifiedChipContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    gamifiedChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        flexShrink: 1,
-        maxWidth: '100%',
-    },
-    gamifiedChipIcon: {
-        marginRight: 6,
-    },
-    gamifiedChipText: {
-        color: Colors.STATUS_APPROVED_TEXT,
-        fontWeight: '700',
-        fontSize: 12,
-        flexShrink: 1,
-    },
-    emptyGamifiedChip: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
-    },
-    emptyGamifiedChipText: {
-        color: Colors.TEXT_SECONDARY,
-        fontStyle: 'italic',
-        fontSize: 12,
-    },
-    experienceBadge: {
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        alignSelf: 'flex-start',
-        marginTop: 4,
-    },
-    experienceBadgeText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    editForm: {
-        flexDirection: 'column',
-    },
-    noMarginBottom: {
-        marginBottom: 0,
-    },
-    headerCancelButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 8,
-    },
-    headerSaveButton: {
-        backgroundColor: Colors.PRIMARY,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-    },
-    headerSaveButtonDisabled: {
-        backgroundColor: Colors.GRAY_LIGHT,
-    },
-    cancelText: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    saveText: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    saveTextDisabled: {
-        color: Colors.GRAY_MEDIUM,
-    },
-    bottomSpacer: {
-        height: 40,
-    },
-    medicalToggleContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    medicalToggleOption: {
-        flex: 1,
-        marginBottom: 0,
-    },
-    inputLabel: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        marginBottom: 8,
-    },
-    toggleChipsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 8,
-    },
-    toggleChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.BACKGROUND,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        gap: 6,
-    },
-    toggleChipActive: {
-        borderColor: Colors.PRIMARY,
-        backgroundColor: Colors.WHITE,
-    },
-    toggleChipText: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500',
-    },
-    toggleChipTextActive: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-    },
-});
 
 export default ProfileInfoScreen;
