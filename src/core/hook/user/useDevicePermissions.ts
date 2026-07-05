@@ -31,23 +31,35 @@ export default function useDevicePermissions(): UseDevicePermissionsResult {
         location: 'undetermined',
         camera: 'undetermined',
         notifications: 'undetermined',
+        photos: 'undetermined',
     });
 
     const [canAskAgain, setCanAskAgain] = useState<Record<PermissionKey, boolean>>({
         location: true,
         camera: true,
         notifications: true,
+        photos: true,
     });
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const checkAllPermissions = useCallback(async (): Promise<void> => {
         try {
-            const [locFore, locBack, cam, notif] = await Promise.all([
-                Location.getForegroundPermissionsAsync(),
-                Location.getBackgroundPermissionsAsync(),
-                ImagePicker.getCameraPermissionsAsync(),
-                Notifications.getPermissionsAsync(),
+            const safeCheck = async (promise: Promise<any>) => {
+                try {
+                    return await promise;
+                } catch (e) {
+                    console.warn('Failed to check permission, falling back to undetermined:', e);
+                    return { status: 'undetermined', canAskAgain: true };
+                }
+            };
+
+            const [locFore, locBack, cam, notif, photos] = await Promise.all([
+                safeCheck(Location.getForegroundPermissionsAsync()),
+                safeCheck(Location.getBackgroundPermissionsAsync()),
+                safeCheck(ImagePicker.getCameraPermissionsAsync()),
+                safeCheck(Notifications.getPermissionsAsync()),
+                safeCheck(ImagePicker.getMediaLibraryPermissionsAsync()),
             ]);
 
             let locationStatus: PermissionStatus = 'undetermined';
@@ -65,12 +77,14 @@ export default function useDevicePermissions(): UseDevicePermissionsResult {
                 location: locationStatus,
                 camera: cam.status,
                 notifications: notif.status,
+                photos: photos.status,
             });
 
             setCanAskAgain({
                 location: locFore.canAskAgain || locBack.canAskAgain,
                 camera: cam.canAskAgain,
                 notifications: notif.canAskAgain,
+                photos: photos.canAskAgain,
             });
         } catch (error) {
             console.error('Error checking permissions:', error);
@@ -106,6 +120,10 @@ export default function useDevicePermissions(): UseDevicePermissionsResult {
                 askAgain = res.canAskAgain;
             } else if (key === 'notifications') {
                 const res = await Notifications.requestPermissionsAsync();
+                status = res.status;
+                askAgain = res.canAskAgain;
+            } else if (key === 'photos') {
+                const res = await ImagePicker.requestMediaLibraryPermissionsAsync();
                 status = res.status;
                 askAgain = res.canAskAgain;
             }
