@@ -11,12 +11,12 @@ import { useGroup } from "@/src/core/hook/group/useGroup";
 import useGroupRoom from "@/src/core/hook/group/useGroupRoom";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import useDevicePermissions from "@/src/core/hook/user/useDevicePermissions";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
 import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
-import useDevicePermissions from "@/src/core/hook/user/useDevicePermissions";
 
 /**
  * GroupRoom screen component container.
@@ -133,9 +133,7 @@ export default function groupRoom() {
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}
                 hasReachedEnd={hasReachedEnd}
-                isUploading={isUploading} 
-                permissionStatuses={permissionStatuses}
-                onRequestPermission={onRequestPermission}
+                isUploading={isUploading}
             />
         </>
     );
