@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
-    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -10,9 +9,11 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import EmergencyModal from '@/src/components/EmergencyModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 
 const dropShadow = GlobalStyles.dropShadow(3);
@@ -26,6 +27,8 @@ const EmergencyNotification: React.FC = () => {
     
     const [showNotifBanner, setShowNotifBanner] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
     const slideAnim = useRef(new Animated.Value(-150)).current;
 
     useEffect(() => {
@@ -65,6 +68,8 @@ const EmergencyNotification: React.FC = () => {
         const nextTime = Date.now() + (24 * 60 * 60 * 1000); 
         await AsyncStorage.setItem('skipEmergencyModal', nextTime.toString());
         */
+        setToastMessage("Setup skipped. We will remind you later.");
+        setToastVisible(true);
         hideBanner();
         setShowEmergencyModal(false);
     };
@@ -87,41 +92,43 @@ const EmergencyNotification: React.FC = () => {
                         }
                     ]}
                 >
-                    <View style={styles.notifHeader}>
-                        <View style={styles.iconBox}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="shield" 
-                                size={20} 
-                                color={Colors.WHITE} 
-                            />
+                    <View style={styles.notifBannerContent}>
+                        <View style={styles.notifHeader}>
+                            <View style={styles.iconBox}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="shield" 
+                                    size={20} 
+                                    color={Colors.WHITE} 
+                                />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                <CustomText style={styles.notifTitle}>
+                                    Action Required
+                                </CustomText>
+                                <CustomText style={styles.notifMessage}>
+                                    Please set up your Emergency Contact to unlock the SOS feature for your hikes.
+                                </CustomText>
+                            </View>
                         </View>
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                            <CustomText style={styles.notifTitle}>
-                                Action Required
-                            </CustomText>
-                            <CustomText style={styles.notifMessage}>
-                                Please set up your Emergency Contact to unlock the SOS feature for your hikes.
-                            </CustomText>
+                        <View style={styles.notifActions}>
+                            <TouchableOpacity 
+                                onPress={handleSkipEmergency} 
+                                style={styles.notifBtnOutline}
+                            >
+                                <CustomText style={styles.notifBtnTextOutline}>
+                                    Skip for Now
+                                </CustomText>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={handleFillUp} 
+                                style={styles.notifBtnPrimary}
+                            >
+                                <CustomText style={styles.notifBtnTextPrimary}>
+                                    Set Up
+                                </CustomText>
+                            </TouchableOpacity>
                         </View>
-                    </View>
-                    <View style={styles.notifActions}>
-                        <TouchableOpacity 
-                            onPress={handleSkipEmergency} 
-                            style={styles.notifBtnOutline}
-                        >
-                            <CustomText style={styles.notifBtnTextOutline}>
-                                Skip for Now
-                            </CustomText>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            onPress={handleFillUp} 
-                            style={styles.notifBtnPrimary}
-                        >
-                            <CustomText style={styles.notifBtnTextPrimary}>
-                                Set Up
-                            </CustomText>
-                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             )}
@@ -132,6 +139,13 @@ const EmergencyNotification: React.FC = () => {
                 onSkip={handleSkipEmergency}
                 mode="emergency_only"
             />
+
+            <CustomToast 
+                visible={toastVisible}
+                message={toastMessage}
+                onHide={() => setToastVisible(false)}
+                type="info"
+            />
         </>
     );
 };
@@ -140,13 +154,19 @@ const styles = StyleSheet.create({
     notifBanner: { 
         position: 'absolute', 
         top: 0, 
-        left: 16, 
-        right: 16, 
+        left: 0, 
+        right: 0, 
+        zIndex: 100, 
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    notifBannerContent: {
         backgroundColor: Colors.WHITE, 
         borderRadius: 20, 
         padding: 16, 
-        zIndex: 100, 
-        ...dropShadow 
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH - 32,
+        ...dropShadow,
     },
     notifHeader: { 
         flexDirection: 'row', 
