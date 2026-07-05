@@ -13,7 +13,7 @@ import { Layout } from '@/src/constants/layout';
 import { IPermissionState, PermissionKey, PermissionStatus } from '@/src/core/models/Permission/Permission.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import React, { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Switch, TouchableOpacity, View, Platform } from 'react-native';
 
 /**
  * Props for the PrivacyPermissionsScreen component
@@ -65,6 +65,12 @@ const PERMISSION_DETAILS: Record<PermissionKey, PermissionDetail> = {
         grantedMessage: "Camera Access is currently allowed, enabling you to document hazards and share photos in group chats.\n\nTo revoke or disable access, please open your device system settings.",
         iconName: "camera",
     },
+    photos: {
+        title: "Photos & Media",
+        consequences: "If denied, you cannot attach or send images from your gallery in group chats.\n\nIf allowed, you can share saved photos and files with other hikers.",
+        grantedMessage: "Photos & Media Access is currently allowed, enabling you to share saved photos and files in chats.\n\nTo manage permissions, please open your device system settings.",
+        iconName: "image",
+    },
     notifications: {
         title: "Push Notifications",
         consequences: "If denied, you may miss critical safety alerts and booking changes.\n\nIf allowed, you will stay fully informed before and during your hike.",
@@ -100,6 +106,12 @@ const PERMISSION_ROWS: PermissionRowConfig[] = [
         iconName: 'camera',
     },
     {
+        key: 'photos',
+        title: 'Photos & Media',
+        description: 'Required to share existing photos and files from your device library.',
+        iconName: 'image',
+    },
+    {
         key: 'notifications',
         title: 'Push Notifications',
         description: 'Required for real-time safety alerts and booking updates.',
@@ -124,6 +136,8 @@ const getPermissionStatus = (
             return statuses.camera;
         case 'notifications':
             return statuses.notifications;
+        case 'photos':
+            return statuses.photos;
         default:
             return 'undetermined';
     }
@@ -142,6 +156,8 @@ const getPermissionDetail = (key: PermissionKey): PermissionDetail => {
             return PERMISSION_DETAILS.camera;
         case 'notifications':
             return PERMISSION_DETAILS.notifications;
+        case 'photos':
+            return PERMISSION_DETAILS.photos;
     }
 };
 
@@ -163,6 +179,13 @@ interface PermissionRowProps {
     onPress: (key: PermissionKey) => void;
 }
 
+const TouchableOpacityWeb = TouchableOpacity as React.ComponentType<
+    React.ComponentProps<typeof TouchableOpacity> & {
+        onMouseEnter?: () => void;
+        onMouseLeave?: () => void;
+    }
+>;
+
 /**
  * Reusable permission card row component displaying permission details and its status.
  * @param props - Component props containing key, details, status, and press callback.
@@ -176,6 +199,8 @@ const PermissionRow = ({
     status,
     onPress,
 }: PermissionRowProps) => {
+    const [hovered, setHovered] = useState(false);
+
     const handlePress = (): void => {
         onPress(permissionKey);
     };
@@ -195,27 +220,32 @@ const PermissionRow = ({
     }
 
     return (
-        <TouchableOpacity
-            style={styles.row}
+        <TouchableOpacityWeb
+            style={[
+                styles.row,
+                hovered && styles.rowHovered
+            ]}
             onPress={handlePress}
             activeOpacity={0.7}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
         >
             <View style={styles.iconWrapper}>
                 <CustomIcon library="Feather" name={iconName} size={20} color={Colors.PRIMARY} />
             </View>
             <View style={styles.textBlock}>
-                <CustomText variant="body" style={styles.rowTitle}>{title}</CustomText>
+                <View style={styles.titleContainer}>
+                    <CustomText variant="body" style={styles.rowTitle}>{title}</CustomText>
+                    <View style={[styles.badge, badgeBgStyle]}>
+                        <CustomText style={[styles.badgeText, badgeTextStyle]}>
+                            {badgeText}
+                        </CustomText>
+                    </View>
+                </View>
                 <CustomText variant="caption" style={styles.rowDesc}>{description}</CustomText>
             </View>
-            <View style={styles.rightSection}>
-                <View style={[styles.badge, badgeBgStyle]}>
-                    <CustomText style={[styles.badgeText, badgeTextStyle]}>
-                        {badgeText}
-                    </CustomText>
-                </View>
-                <CustomIcon library="Feather" name="chevron-right" size={20} color={Colors.GRAY_MEDIUM} />
-            </View>
-        </TouchableOpacity>
+            <CustomIcon library="Feather" name="chevron-right" size={20} color={Colors.GRAY_MEDIUM} />
+        </TouchableOpacityWeb>
     );
 };
 
@@ -246,6 +276,36 @@ const PrivacyPermissionsScreen = ({
     const handleManagePress = async (key: PermissionKey): Promise<void> => {
         const status = getPermissionStatus(permissionStatuses, key);
         const detail = getPermissionDetail(key);
+
+        if (Platform.OS === 'web') {
+            if (status === 'granted') {
+                if (detail) {
+                    setSelectedPermission({
+                        ...detail,
+                        consequences: `${detail.title} is currently allowed.\n\nTo change or revoke this permission, please click the site settings/lock icon in your browser address bar and adjust the settings.`
+                    });
+                    setModalVisible(true);
+                }
+                return;
+            }
+
+            // Try requesting it
+            const result = await onRequestPermission(key);
+
+            if (result.status === 'granted') {
+                return;
+            }
+
+            // If denied on web, show instructions to enable it
+            if (detail) {
+                setSelectedPermission({
+                    ...detail,
+                    consequences: `${detail.title} access is required.\n\nTo enable it:\n1. Click the site settings/lock icon in your browser address bar.\n2. Change the permission for ${detail.title} to "Allow".\n3. Click "Reload Page" below to apply the change.`
+                });
+                setModalVisible(true);
+            }
+            return;
+        }
 
         if (status === 'granted') {
             // Already granted (Always Allow), show settings modal explaining how to revoke
@@ -279,8 +339,8 @@ const PrivacyPermissionsScreen = ({
             return;
         }
 
-        // If permission was denied and cannot ask again, show the confirmation/redirect modal
-        if (!result.canAskAgain) {
+        // If permission was denied, show the confirmation/redirect modal
+        if (result.status === 'denied') {
             if (detail) {
                 setSelectedPermission(detail);
                 setModalVisible(true);
@@ -293,13 +353,20 @@ const PrivacyPermissionsScreen = ({
      */
     const handleConfirmManage = (): void => {
         setModalVisible(false);
-        Linking.openSettings();
+        if (Platform.OS === 'web') {
+            window.location.reload();
+        } else {
+            Linking.openSettings();
+        }
     };
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader title="Privacy & Permissions" centerTitle onBackPress={onBackPress} />
-            <ScrollView contentContainerStyle={[styles.content, !isMobile && styles.desktopContent]}>
+            <ScrollView 
+                contentContainerStyle={[styles.content, !isMobile && styles.desktopContent]}
+                showsVerticalScrollIndicator={false}
+            >
 
                 <View style={styles.section}>
                     <CustomText variant="h3" style={styles.sectionTitle}>Privacy Settings</CustomText>
@@ -375,7 +442,7 @@ const PrivacyPermissionsScreen = ({
                 title={selectedPermission?.title}
                 message={selectedPermission?.consequences}
                 cancelText="Cancel"
-                confirmText="Open Settings"
+                confirmText={Platform.OS === 'web' ? "Reload Page" : "Open Settings"}
                 iconName={selectedPermission?.iconName}
                 iconLibrary="Feather"
             />
@@ -411,6 +478,14 @@ const styles = StyleSheet.create({
         gap: 16,
         ...GlobalStyles.dropShadow(2),
     },
+    rowHovered: Platform.select({
+        web: {
+            backgroundColor: Colors.GRAY_ULTRALIGHT,
+            cursor: 'pointer',
+            opacity: 0.85,
+        },
+        default: {},
+    }),
     iconWrapper: {
         width: 40,
         height: 40,
@@ -422,10 +497,16 @@ const styles = StyleSheet.create({
     textBlock: {
         flex: 1,
     },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 4,
+    },
     rowTitle: {
         fontWeight: 'bold',
         color: Colors.BLACK,
-        marginBottom: 4,
     },
     rowDesc: {
         color: Colors.TEXT_SECONDARY,
