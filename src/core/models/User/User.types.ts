@@ -25,7 +25,7 @@ export interface IEmergencyContact {
 
 export interface IMedicalProfile {  // New
     hasCondition: boolean;
-    details: string;
+    details: string[];
     clearanceUri?: string;
 }
 
