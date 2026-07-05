@@ -46,7 +46,7 @@ export default function viewUser(){
             setIsEditing(false);
     };
 
-    if(!user || isLoading) return <LoadingScreen/>
+    if(!user) return <LoadingScreen/>
 
     console.log(user);
 
