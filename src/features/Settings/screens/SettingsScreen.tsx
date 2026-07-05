@@ -275,9 +275,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logoutButton: {
-        borderWidth: 1.5,
+        // borderWidth: 1.5,
         borderColor: Colors.PRIMARY,
-        width: '60%',
+        width: 200,
         borderRadius: 24,
     },
 });
