@@ -224,6 +224,14 @@ export const Colors = {
     TRAIL_TOOLTIP_BG:       Palette.Slate50,
     TRAIL_TOOLTIP_BORDER:   Palette.Slate200,
     TRAIL_ACTIVE_STAT_BG:   Palette.Slate100,
+
+    // Hiking Experience Levels
+    EXP_BEGINNER_BG:        Palette.Green400,
+    EXP_BEGINNER_TEXT:      Palette.White,
+    EXP_REGULAR_BG:         Palette.Green700,
+    EXP_REGULAR_TEXT:       Palette.White,
+    EXP_EXPERIENCED_BG:     Palette.Blue600,
+    EXP_EXPERIENCED_TEXT:   Palette.White,
 };
 
 // Color Samples
