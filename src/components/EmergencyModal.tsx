@@ -20,6 +20,8 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -66,6 +68,10 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
     onSaveLocalPhone, 
     onSkip 
 }) => {
+    const insets = useSafeAreaInsets();
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
     const { profile } = useAuthStore();
     const { findUser, setEmergencyContact, localError } = useEmergencyContact();
 
@@ -267,20 +273,21 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                 <Animated.View 
                     style={[
                         styles.bottomSheet,
+                        isWideScreen ? styles.bottomSheetDesktop : styles.bottomSheetMobile,
+                        { paddingBottom: isWideScreen ? 32 : Math.max(insets.bottom + 24, 24) },
                         {
                             transform: [
                                 {
                                     translateY: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: [SCREEN_HEIGHT, 0]
+                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0]
                                     })
                                 }
-                            ]
+                            ],
+                            opacity: isWideScreen ? animValue : 1,
                         }
                     ]}
                 >
-                    <View style={styles.dragHandle} />
-                    
                     <View style={styles.headerRow}>
                         <CustomText variant="h2" style={styles.headerTitle}>
                             {mode === 'unified' ? "Edit Contacts" : "Emergency Setup"}
@@ -339,7 +346,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                                 Emergency Contact
                             </CustomText>
                             <CustomText style={styles.sectionSubtitle}>
-                                Link a Thrail user to unlock the automated SOS Group Chat.
+                                Link a Thrail account by email to enable automated SOS group chats, or enter their details manually below.
                             </CustomText>
                             
                             <View style={styles.searchRow}>
@@ -486,22 +493,24 @@ const styles = StyleSheet.create({
     },
     bottomSheet: { 
         backgroundColor: Colors.WHITE, 
+        paddingHorizontal: 24, 
+        paddingTop: 24, 
+        maxHeight: '90%', 
+        ...dropShadow,
+    },
+    bottomSheetMobile: {
+        width: '100%',
         borderTopLeftRadius: 32, 
         borderTopRightRadius: 32, 
-        paddingHorizontal: 24, 
-        paddingBottom: 32, 
-        paddingTop: 12, 
-        maxHeight: '90%', 
-        ...dropShadow 
     },
-    dragHandle: { 
-        width: 40, 
-        height: 5, 
-        borderRadius: 3, 
-        backgroundColor: Colors.GRAY_LIGHT, 
+    bottomSheetDesktop: {
         alignSelf: 'center', 
-        marginBottom: 16 
+        marginBottom: 'auto', 
+        marginTop: 'auto', 
+        width: 500, 
+        borderRadius: 24,
     },
+
     headerRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
