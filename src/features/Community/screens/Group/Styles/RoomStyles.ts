@@ -76,10 +76,6 @@ export const styles = StyleSheet.create({
         borderBottomRightRadius: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-         
-         
-         
-         
         ...dropShadow, 
         alignSelf: 'flex-start', 
         overflow: 'hidden', 
@@ -317,41 +313,5 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
         marginTop: 2,
-    },
-    systemMessageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 16,
-        paddingHorizontal: 24,
-    },
-    systemMessageDivider: {
-        flex: 1,
-        height: 1,
-        backgroundColor: Colors.GRAY_LIGHT,
-    },
-    systemMessageWrapper: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginHorizontal: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    systemMessageText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        textAlign: 'center',
-    },
-    systemMessageDate: {
-        fontSize: 10,
-        color: Colors.TEXT_SECONDARY,
-        textAlign: 'center',
-        marginTop: 4,
-        fontStyle: 'italic',
     },
 });
