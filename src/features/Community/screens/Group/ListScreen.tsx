@@ -106,7 +106,8 @@ const ListScreen = ({
      */
     const renderGroupCard = useCallback(({ item }: ListRenderItemInfo<GroupWithLegacyName>) => {
         const lastMsg = item.lastMessage;
-        const timeString = lastMsg?.timesent ? getShortTimeElapsed(lastMsg.timesent as string | number | Date) : '';
+        const timeReference = lastMsg?.timesent || item.createdAt;
+        const timeString = timeReference ? getShortTimeElapsed(timeReference as string | number | Date) : '';
         
         const isUnread = !!lastMsg && 
                          !!currentUser && 
@@ -168,7 +169,7 @@ const ListScreen = ({
                         >
                             {messagePrefix}
                         </CustomText>
-                        {lastMsg?.content && timeString ? (
+                        {timeString ? (
                             <CustomText 
                                 variant="caption" 
                                 style={[styles.timeText, isUnread && { fontWeight: 'bold', color: Colors.TEXT_PRIMARY }, { flexShrink: 0 }]} 
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     textContainer: {
         flex: 1,
         marginLeft: 12,
-        marginRight: 8,
+        marginRight: 12,
         justifyContent: 'center',
     },
     headerRow: {
@@ -277,10 +278,10 @@ const styles = StyleSheet.create({
     messageRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
     },
     lastMessage: {
-        flex: 1,
+        flexShrink: 1,
         fontSize: 13,
         color: Colors.TEXT_SECONDARY,
         marginRight: 8,
