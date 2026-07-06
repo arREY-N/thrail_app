@@ -1,3 +1,9 @@
+/**
+ * @file HomeScreen.tsx
+ * @description The main presentation screen for the Home tab, featuring weather, recommendations, discover feed, and active hike offers.
+ */
+
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -6,7 +12,9 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
+import Carousel from 'react-native-reanimated-carousel';
 
 import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -16,9 +24,11 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useLocation } from '@/src/hooks/useLocation';
 import { useWeather } from '@/src/hooks/useWeather';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 import MountainCard from '@/src/components/MountainCard';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
@@ -28,67 +38,79 @@ import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/w
 
 /**
  * Props for the HomeScreen component.
+ * 
+ * @param locationTemp - Unused legacy prop, maintained for signature consistency.
+ * @param onWeatherPress - Callback when the weather section is pressed.
+ * @param onSeeMoreRecommendationsPress - Callback to view all recommended trails.
+ * @param onViewAllTrendingPress - Callback to view all trending/discover trails.
+ * @param onSeeMoreDiscoverPress - Callback to view all discover trails.
+ * @param onSeeMoreOffersPress - Callback to view all trails with offers.
+ * @param recommendedTrails - Array of recommended trails.
+ * @param discoverTrails - Array of discover trails.
+ * @param trailsWithOffers - Array of trails that have upcoming offers.
+ * @param isOffersLoading - Loading state of offers list.
+ * @param onMountainPress - Callback when a specific mountain/trail is pressed.
+ * @param onDownloadPress - Callback to download a trail.
+ * @param onGroupPress - Callback when the group FAB is pressed.
+ * @param getItemRating - Function to retrieve the rating for a specific item.
+ * @param isLoading - Global loading state.
  */
 export interface HomeScreenProps {
-    /** Unused legacy prop, maintained for signature consistency */
     locationTemp?: Record<string, unknown>;
-    /** Callback when the weather section is pressed */
     onWeatherPress: () => void;
-    /** Callback to view all recommended trails */
-    onViewAllRecommendationPress: () => void;
-    /** Callback to view all trending/discover trails  (optional, as not always provided) */
+    onSeeMoreRecommendationsPress: () => void;
     onViewAllTrendingPress?: () => void;
-    /** Callback to view all discover trails */
-    onViewAllDiscoverPress: () => void;
-    /** Array of recommended trails */
+    onSeeMoreDiscoverPress: () => void;
+    onSeeMoreOffersPress: () => void;
     recommendedTrails?: ITrail[];
-    /** Array of discover trails */
     discoverTrails?: ITrail[];
-    /** Callback when a specific mountain/trail is pressed */
+    trailsWithOffers?: ITrail[];
+    isOffersLoading?: boolean;
     onMountainPress: (id: string) => void;
-    /** Callback to download a trail */
     onDownloadPress: (id: string) => void;
-    /** Callback when the group FAB is pressed */
     onGroupPress: () => void;
-    /** Function to retrieve the rating for a specific item */
     getItemRating: (id: string) => number;
-    /** Global loading state */
     isLoading: boolean;
+    offers?: any[];
 }
 
 /**
- * The main Home Screen displaying recommended trails, weather, and discover sections.
- * 
- * @param {HomeScreenProps} props - The properties for the HomeScreen component.
+ * HomeScreen — The main dashboard screen showing localized weather conditions,
+ * curated trail recommendations, discover lists, and interactive hike offers.
  */
-const HomeScreen = ({
+const HomeScreen: React.FC<HomeScreenProps> = ({
     locationTemp,
     onWeatherPress,
-    onViewAllRecommendationPress,
+    onSeeMoreRecommendationsPress,
     onViewAllTrendingPress,
-    onViewAllDiscoverPress,
+    onSeeMoreDiscoverPress,
+    onSeeMoreOffersPress,
     recommendedTrails = [], 
     discoverTrails = [],
+    trailsWithOffers = [],
+    isOffersLoading = false,
     onMountainPress,
     onDownloadPress,
     onGroupPress,
     getItemRating,
     isLoading,
-}: HomeScreenProps) => {
-    const { latitude, longitude } = useLocation();
-    const { weatherData, loading, error } = useWeather(latitude, longitude);
+    offers = [],
+}) => {
+    const { latitude, longitude, locationName, geocodedName, isLocating } = useLocation();
+    const { weatherData, loading, error, refetch } = useWeather(latitude, longitude);
     const [mountainWeatherMap, setMountainWeatherMap] = useState<Record<string, unknown>>({});
-    const { width, isDesktop, isTablet } = useBreakpoints();
+    const { width } = useWindowDimensions();
+    const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
     const MAX_CONTAINER_WIDTH = 860;
     const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
     const cardWidth = Math.min(width * 0.85, 360);
 
-    const hasAnyTrails = recommendedTrails.length > 0 || discoverTrails.length > 0;
+    const hasAnyTrails = recommendedTrails.length > 0 || discoverTrails.length > 0 || trailsWithOffers.length > 0;
 
     useEffect(() => {
-        const allVisibleTrails = [...recommendedTrails, ...discoverTrails];
+        const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
         if (allVisibleTrails.length === 0) return;
         
         const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
@@ -96,7 +118,13 @@ const HomeScreen = ({
             .filter((t): t is ITrail => t !== undefined);
 
         fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
-    }, [recommendedTrails, discoverTrails]);
+    }, [recommendedTrails, discoverTrails, trailsWithOffers]);
+
+    // Helper to calculate upcoming offers count for each card
+    const getTrailOffersCount = (trailId: string) => {
+        const now = new Date();
+        return offers.filter(o => o.trail?.id === trailId && o.date && new Date(o.date).getTime() > now.getTime()).length;
+    };
 
     /**
      * Props for the internal ListSection component.
@@ -111,10 +139,17 @@ const HomeScreen = ({
     /**
      * Renders a horizontal list section of MountainCards.
      * 
-     * @param {ListSectionProps} props - The properties for the ListSection.
+     * @param props - The properties for the ListSection.
      */
     const ListSection = ({ title, data, onViewAll, isSectionLoading }: ListSectionProps) => {
         const hasData = data && data.length > 0;
+        const scrollRef = React.useRef<ScrollView>(null);
+
+        const totalCardsWidth = data.length * (cardWidth + 16) - 16;
+        const shouldScroll = data.length > 1 && totalCardsWidth > (effectiveWidth - 32);
+
+        // Web drag-to-slide mouse scrolling hook for Web ScrollView
+        useWebDragScroll(scrollRef, hasData);
 
         return (
             <View style={styles.sectionContainer}>
@@ -125,7 +160,7 @@ const HomeScreen = ({
 
                     <TouchableOpacity onPress={onViewAll}>
                         <CustomText variant="caption" style={styles.viewAllText}>
-                            View All
+                            See more
                         </CustomText>
                     </TouchableOpacity>
                 </View>
@@ -135,31 +170,85 @@ const HomeScreen = ({
                         <ActivityIndicator size="small" color={Colors.PRIMARY} />
                     </View>
                 ) : hasData ? (
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={Platform.OS === 'web'} 
-                        contentContainerStyle={styles.horizontalList}
-                        style={styles.scrollViewStyle} 
-                    >
-                        {data.map((item, index) => {
-                            const isLast = index === data.length - 1;
+                    Platform.OS === 'web' ? (
+                        /* Web Platform uses standard ScrollView with drag-to-slide to prevent clipping cut-offs */
+                        <ScrollView 
+                            ref={scrollRef}
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={styles.horizontalList}
+                            style={styles.scrollViewStyle} 
+                        >
+                            {data.map((item, index) => {
+                                const isLast = index === data.length - 1;
 
-                            return (
-                                <MountainCard 
-                                    rating={getItemRating(item.id)}
-                                    key={`${title}-${item.id}`}
-                                    item={item}
-                                    onPress={() => onMountainPress(item.id)}
-                                    onDownload={() => onDownloadPress(item.id)}
-                                    style={{ 
-                                        width: cardWidth,
-                                        marginRight: isLast ? 0 : 16 
-                                    }}
-                                    weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
-                                />
-                            );
-                        })}
-                    </ScrollView>
+                                return (
+                                    <MountainCard 
+                                        rating={getItemRating(item.id)}
+                                        key={`${title}-${item.id}`}
+                                        item={item}
+                                        onPress={() => onMountainPress(item.id)}
+                                        onDownload={() => onDownloadPress(item.id)}
+                                        style={{ 
+                                            width: cardWidth,
+                                            marginRight: isLast ? 0 : 16 
+                                        }}
+                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
+                                        offersCount={getTrailOffersCount(item.id)}
+                                    />
+                                );
+                            })}
+                        </ScrollView>
+                    ) : (
+                        /* Native Mobile platforms use high-performance Carousel slider */
+                        shouldScroll ? (
+                            <Carousel
+                                loop={false}
+                                width={cardWidth + 16}
+                                height={260}
+                                style={{
+                                    width: effectiveWidth,
+                                    height: 260,
+                                    paddingLeft: 16,
+                                }}
+                                data={data}
+                                autoPlay={false}
+                                windowSize={Math.max(data.length, 5)}
+                                renderItem={({ item }) => (
+                                    <MountainCard 
+                                        rating={getItemRating(item.id)}
+                                        key={`${title}-${item.id}`}
+                                        item={item}
+                                        onPress={() => onMountainPress(item.id)}
+                                        onDownload={() => onDownloadPress(item.id)}
+                                        style={{ 
+                                            width: cardWidth,
+                                        }}
+                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
+                                        offersCount={getTrailOffersCount(item.id)}
+                                    />
+                                )}
+                            />
+                        ) : (
+                            <View style={{ flexDirection: 'row', paddingLeft: 16 }}>
+                                {data.map((item, index) => (
+                                    <MountainCard 
+                                        rating={getItemRating(item.id)}
+                                        key={`${title}-${item.id}`}
+                                        item={item}
+                                        onPress={() => onMountainPress(item.id)}
+                                        onDownload={() => onDownloadPress(item.id)}
+                                        style={{ 
+                                            width: cardWidth,
+                                            marginRight: index === data.length - 1 ? 0 : 16
+                                        }}
+                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
+                                        offersCount={getTrailOffersCount(item.id)}
+                                    />
+                                ))}
+                            </View>
+                        )
+                    )
                 ) : (
                     <View style={styles.emptyStateContainer}>
                         <CustomIcon 
@@ -172,6 +261,16 @@ const HomeScreen = ({
                         <CustomText variant="caption" style={styles.emptyStateText}>
                             No trails available yet.
                         </CustomText>
+
+                        <TouchableOpacity 
+                            style={styles.exploreButton}
+                            onPress={() => router.replace('/explore')}
+                            activeOpacity={0.7}
+                        >
+                            <CustomText style={styles.exploreButtonText}>
+                                Explore Trails
+                            </CustomText>
+                        </TouchableOpacity>
                     </View>
                 )}
             </View>
@@ -198,23 +297,35 @@ const HomeScreen = ({
             >
                 <WeatherSection 
                     weatherData={weatherData}
-                    loading={loading}
+                    loading={loading || isLocating}
                     error={error}
-                    onPress={onWeatherPress} locationName={undefined}                />
+                    onPress={onWeatherPress}
+                    onReload={refetch}
+                    locationName={geocodedName || locationName}
+                />
 
                 <ListSection 
                     title="Recommendations" 
                     data={recommendedTrails} 
-                    onViewAll={onViewAllRecommendationPress} 
+                    onViewAll={onSeeMoreRecommendationsPress} 
                     isSectionLoading={isLoading}
                 />
 
                 <ListSection 
                     title="Discover" 
                     data={discoverTrails}
-                    onViewAll={onViewAllDiscoverPress} 
+                    onViewAll={onSeeMoreDiscoverPress} 
                     isSectionLoading={isLoading}
                 />
+
+                {trailsWithOffers.length > 0 && (
+                    <ListSection 
+                        title="Upcoming Offers" 
+                        data={trailsWithOffers}
+                        onViewAll={onSeeMoreOffersPress} 
+                        isSectionLoading={isLoading || isOffersLoading}
+                    />
+                )}
             </ResponsiveScrollView>
 
             <CustomFAB onPress={onGroupPress} />
@@ -249,22 +360,21 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
+        marginBottom: 0,
     },
     viewAllText: {
-        textDecorationLine: 'underline',
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        marginTop: 6,
     },
     horizontalList: {
-        paddingBottom: 12,
-        ...Platform.select({
-            ios: { paddingHorizontal: 16 },
-            android: { paddingHorizontal: 16 },
-            web: { paddingHorizontal: 0 },
-        })
+        paddingBottom: 4,
+        paddingHorizontal: 16,
     },
     scrollViewStyle: {
+        width: '100%',
         ...Platform.select({
             web: {
-                marginHorizontal: 16, 
                 paddingBottom: 4, 
                 marginBottom: -4,
             }
@@ -278,7 +388,8 @@ const styles = StyleSheet.create({
     },
     emptyStateContainer: {
         width: '100%',
-        paddingVertical: 20,
+        paddingTop: 16,
+        paddingBottom: 0,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: Colors.BACKGROUND, 
@@ -288,7 +399,20 @@ const styles = StyleSheet.create({
     emptyStateText: {
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
-    }
+    },
+    exploreButton: {
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginTop: 8,
+        ...GlobalStyles.dropShadow(2),
+    },
+    exploreButtonText: {
+        color: Colors.WHITE,
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
 });
 
 export default HomeScreen;
