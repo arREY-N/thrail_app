@@ -1,8 +1,10 @@
-import React from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
+import { useOffersStore } from "@/src/core/stores/offersStore";
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 
 /**
@@ -10,12 +12,14 @@ import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
  * Responsible for fetching trail data and passing navigation callbacks.
  */
 export default function explore() {
+    const { filter } = useLocalSearchParams<{ filter?: string }>();
+
     const { 
         onViewTrail, 
         trails,
         isLoading,
         // fetchAllTrails
-    } = useTrailDomain() 
+    } = useTrailDomain();
 
     const {
         onGroupPress
@@ -25,14 +29,24 @@ export default function explore() {
         getItemRating,
     } = useReview();
 
-    // useFocusEffect(
-    //     useCallback(() => {
-    //         if (trails.length === 0 && !isLoading) {
-    //             fetchAllTrails();
-    //         }
-    //     }, [trails.length, isLoading, fetchAllTrails])
-    // );
-    
+    const offers = useOffersStore(s => s.data);
+    const fetchOffers = useOffersStore(s => s.fetchAll);
+
+    // Fetch offers in the controller context
+    useEffect(() => {
+        fetchOffers().catch(() => {});
+    }, [fetchOffers]);
+
+    // Map query parameter filters to actual Explore tab category labels
+    let initialCategory = "All";
+    if (filter === 'recommendations') {
+        initialCategory = "Recommended";
+    } else if (filter === 'trending') {
+        initialCategory = "Discover";
+    } else if (filter === 'offers') {
+        initialCategory = "Offers";
+    }
+
     return (
         <ExploreScreen
             getItemRating={getItemRating}
@@ -40,6 +54,8 @@ export default function explore() {
             onViewMountain={onViewTrail}
             onGroupPress={onGroupPress}
             isLoading={isLoading} 
+            initialCategory={initialCategory}
+            offers={offers}
         />
     );
 }
