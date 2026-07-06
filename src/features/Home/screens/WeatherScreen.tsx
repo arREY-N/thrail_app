@@ -1,3 +1,8 @@
+/**
+ * @file WeatherScreen.tsx
+ * @description A comprehensive weather dashboard displaying current conditions, 7-day forecast, and environmental metrics.
+ */
+
 import React, { useCallback, useState } from 'react';
 import {
     RefreshControl,
@@ -41,6 +46,21 @@ const getMetricAlertLevel = (type: 'wind' | 'precip' | 'uv', value: number | und
 };
 
 /**
+ * Helper to generate a supportive safety reminder based on the UV index value.
+ * 
+ * @param value - The numerical UV index value.
+ * @returns The safety description string.
+ */
+const getUVIndexReminder = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return "No UV data available";
+    if (value <= 2) return "Low risk.";
+    if (value <= 5) return "Moderate risk.";
+    if (value <= 7) return "High risk.";
+    if (value <= 10) return "Very high risk.";
+    return "Extreme risk.";
+};
+
+/**
  * Props for the main WeatherScreen component.
  */
 export interface WeatherScreenProps {
@@ -55,13 +75,13 @@ export interface WeatherScreenProps {
  * A comprehensive weather dashboard displaying current conditions, 
  * a 7-day forecast, and various environmental metrics (Wind, UV, etc.).
  */
-const WeatherScreen = ({ 
+const WeatherScreen: React.FC<WeatherScreenProps> = ({ 
     latitude, 
     longitude, 
     locationName, 
     onBackPress, 
     onRefreshPress 
-}: WeatherScreenProps) => {
+}) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
@@ -262,8 +282,9 @@ const WeatherScreen = ({
                             <BentoBox 
                                 title="UV Index" 
                                 value={display.uvIndex} 
+                                subValue={weatherData?.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : undefined}
                                 unit="" 
-                                desc={weatherData?.uvIndexMax ? `Real-time. Peak: ${Math.round(weatherData.uvIndexMax)}` : "Current level"}
+                                desc={getUVIndexReminder(uvRaw)}
                                 icon="thermometer-outline"  
                                 lib="Ionicons" 
                                 alertLevel={getMetricAlertLevel('uv', uvRaw)} 
@@ -367,9 +388,20 @@ interface BentoBoxProps {
     lib: IconLibrary;
     alertLevel?: AlertLevel;
     isDesktop: boolean;
+    subValue?: string;
 }
 
-const BentoBox = ({ title, value, unit, desc, icon, lib, alertLevel = 'normal', isDesktop }: BentoBoxProps) => {
+const BentoBox: React.FC<BentoBoxProps> = ({ 
+    title, 
+    value, 
+    unit, 
+    desc, 
+    icon, 
+    lib, 
+    alertLevel = 'normal', 
+    isDesktop, 
+    subValue 
+}) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
     const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
 
@@ -387,6 +419,11 @@ const BentoBox = ({ title, value, unit, desc, icon, lib, alertLevel = 'normal', 
                 {unit ? (
                     <CustomText style={[styles.bentoUnit, { color: valueColor }]}>
                         {unit}
+                    </CustomText>
+                ) : null}
+                {subValue ? (
+                    <CustomText style={styles.bentoSubValue}>
+                        {subValue}
                     </CustomText>
                 ) : null}
             </View>
@@ -637,6 +674,14 @@ const styles = StyleSheet.create({
         fontSize: 32, 
         fontWeight: '900', 
         includeFontPadding: false,
+    },
+    bentoSubValue: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginLeft: 6,
+        fontWeight: '700',
+        alignSelf: 'flex-end',
+        marginBottom: 4,
     },
     bentoUnit: {
         fontSize: 16,
