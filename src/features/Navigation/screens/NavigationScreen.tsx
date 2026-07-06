@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, FlatList, Keyboard, Platform, Pressable, Styl
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
+import CustomFAB from "@/src/components/CustomFAB";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
@@ -34,7 +35,7 @@ interface NavigationScreenProps {
     onSearchChange: (text: string) => void;
     onSearchSubmit: () => void;
     onTrailSelect: (trail: Trail) => void;
-    onGroupChatPress: () => void;
+    onGroupPress: () => void;
     onBookingPress: () => void;
     onStartTracking: (bookingContext?: IBooking | null) => void;
     onDeveloperBypass?: (bookingContext: IBooking | null) => void;
@@ -63,7 +64,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     upcomingBookings, groups, currentUserId,
     searchQuery, filteredTrails, selectedTrail, isLoading,
     onSearchChange, onSearchSubmit, onTrailSelect,
-    onGroupChatPress, onBookingPress, onStartTracking, onDeveloperBypass
+    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress
 }) => {
     const insets = useSafeAreaInsets();
     const searchTopPadding = Platform.OS === 'ios' ? insets.top : insets.top + 10;
@@ -111,7 +112,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
-            onGroupChatPress();
+            onGroupPress();
         }
     };
 
@@ -120,6 +121,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
             <View style={styles.container}>
                 <CustomHeader title="Hike" showDefaultIcons={true} onBackPress={undefined} rightActions={undefined} style={undefined} children={undefined} />
                 <TrailMap ref={mapRef} bottomInset={0} />
+                <CustomFAB onPress={onGroupPress} />
             </View>
         );
     }
@@ -222,7 +224,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
             </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupChatPress} activeOpacity={0.8}>
+                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupPress} activeOpacity={0.8}>
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>
 
