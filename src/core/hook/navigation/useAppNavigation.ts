@@ -46,17 +46,24 @@ export function useAppNavigation() {
         router.push('/(main)/home/weather')
     }
 
-    const onViewAllRecommendationPress = () => {
+    const onSeeMoreRecommendationsPress = () => {
         router.replace({
             pathname: '/explore',
             params: { filter: 'recommendations'}
         })
     }
     
-    const onViewAllDiscoverPress = () => {
+    const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
             params: { filter: 'trending'}
+        })
+    }
+
+    const onSeeMoreOffersPress = () => {
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'offers'}
         })
     }
 
@@ -116,8 +123,9 @@ export function useAppNavigation() {
         onBookingPress, 
         onNotificationPress,
         onWeatherPress,
-        onViewAllRecommendationPress,
-        onViewAllDiscoverPress,
+        onSeeMoreRecommendationsPress,
+        onSeeMoreDiscoverPress,
+        onSeeMoreOffersPress,
         onGroupPress,
         onLeaderBoardPress,
         onSettingsPress,
