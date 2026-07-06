@@ -1,10 +1,16 @@
-import React from 'react';
+/**
+ * @file CustomSearchBar.tsx
+ * @description A customizable search bar component with trailing actions and scroll-centered category tabs.
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -14,9 +20,19 @@ import { Colors } from '@/src/constants/colors';
 import { IconLibrary } from '@/src/types/ui.types';
 
 /**
- * A highly customizable search bar component with optional trailing icon and selection tabs.
+ * Props for the CustomSearchBar component.
+ * 
+ * @param searchPlaceholder - The placeholder text for the search input.
+ * @param searchValue - The current search query value.
+ * @param onSearchChange - Callback fired when the search text changes.
+ * @param rightIconLibrary - The icon library for the right action button.
+ * @param rightIconName - The icon name for the right action button.
+ * @param onRightButtonPress - Callback fired when the right action button is pressed.
+ * @param tabs - Array of category tab names to display.
+ * @param activeTab - The currently active category tab.
+ * @param onTabSelect - Callback fired when a tab is selected.
+ * @param sortOrder - The sort order for the rating/lists.
  */
-
 interface CustomSearchBarProps {
     searchPlaceholder?: string;
     searchValue?: string;
@@ -30,6 +46,10 @@ interface CustomSearchBarProps {
     sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * CustomSearchBar — A highly customizable search input bar that integrates
+ * horizontal category tabs with linear-fade transitions and scroll centering.
+ */
 const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ 
     searchPlaceholder = "Search...",
     searchValue,
@@ -42,6 +62,24 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     onTabSelect,
     sortOrder
 }) => {
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [viewportWidth, setViewportWidth] = useState<number>(0);
+    const [contentWidth, setContentWidth] = useState<number>(0);
+    const [scrollX, setScrollX] = useState<number>(0);
+    const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
+
+    // Auto-center the selected tab in the ScrollView viewport
+    useEffect(() => {
+        if (!activeTab || !tabLayouts[activeTab] || viewportWidth <= 0) return;
+        const { x, width: tabWidth } = tabLayouts[activeTab];
+        const scrollXTarget = x - (viewportWidth / 2) + (tabWidth / 2);
+        scrollViewRef.current?.scrollTo({ x: Math.max(0, scrollXTarget), animated: true });
+    }, [activeTab, tabLayouts, viewportWidth]);
+
+    // Determine when edge fades are needed based on active scrolling
+    const showLeftFade = scrollX > 5;
+    const showRightFade = scrollX < contentWidth - viewportWidth - 5 && contentWidth > viewportWidth;
+
     return (
         <View style={styles.container}>
             <View style={styles.searchRow}>
@@ -84,10 +122,24 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
 
             {tabs && tabs.length > 0 && (
                 <View style={styles.chipContainer}>
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.WHITE, 'rgba(255, 255, 255, 0.75)', 'rgba(255, 255, 255, 0)']} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
                     <ScrollView 
+                        ref={scrollViewRef}
                         horizontal 
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipScroll}
+                        onLayout={(e) => setViewportWidth(e.nativeEvent.layout.width)}
+                        onContentSizeChange={(w) => setContentWidth(w)}
+                        onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
+                        scrollEventThrottle={16}
                     >
                         {tabs.map((tab: string) => {
                             const isActive = activeTab === tab;
@@ -101,6 +153,10 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                                         isActive && styles.activeChip
                                     ]}
                                     activeOpacity={0.8}
+                                    onLayout={(e) => {
+                                        const { x, width: itemWidth } = e.nativeEvent.layout;
+                                        setTabLayouts(prev => ({ ...prev, [tab]: { x, width: itemWidth } }));
+                                    }}
                                 >
                                     <View style={styles.chipContent}>
                                         <CustomText 
@@ -125,6 +181,15 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                             );
                         })}
                     </ScrollView>
+                    {showRightFade && (
+                        <LinearGradient 
+                            colors={['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.75)', Colors.WHITE]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.rightFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
                 </View>
             )}
         </View>
@@ -154,7 +219,6 @@ const styles = StyleSheet.create({
     searchInput: {
         paddingRight: 16,
     },
-
     clearButton: {
         position: 'absolute',
         right: 12,
@@ -174,7 +238,9 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
     },
     chipContainer: {
+        position: 'relative',
         borderRadius: 12,
+        overflow: 'hidden',
     },
     chipScroll: {
         gap: 10,
@@ -203,6 +269,22 @@ const styles = StyleSheet.create({
     },
     ratingIcon: {
         marginLeft: 2,
+    },
+    leftFade: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
     },
 });
 
