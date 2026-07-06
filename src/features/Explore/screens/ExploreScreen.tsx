@@ -1,37 +1,49 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+/**
+ * @file ExploreScreen.tsx
+ * @description Pure presentation screen for the Explore tab. Displays search, dynamic filter selections, categories tabs, and a responsive grid of trails.
+ */
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, StyleSheet, View } from "react-native";
 
 import CustomFAB from "@/src/components/CustomFAB";
 import CustomFilterModal from "@/src/components/CustomFilterModal";
 import CustomHeader from "@/src/components/CustomHeader";
+import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
 import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
+import { Offer } from "@/src/core/models/Offer/Offer";
 import { ITrail } from "@/src/core/models/Trail/Trail.types";
 import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
-const CATEGORIES = ["All", "Recommended", "Nearby", "Discover", "Challenge"];
+const CATEGORIES = ["All", "Recommended", "Offers", "Nearby", "Discover", "Challenge"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
 /**
  * Props for the ExploreScreen component.
+ * 
+ * @param trails - The complete list of available trails.
+ * @param onViewMountain - Callback fired when a trail is selected.
+ * @param onGroupPress - Callback fired when the group/FAB action is pressed.
+ * @param getItemRating - Function to calculate or retrieve the rating for a specific trail.
+ * @param isLoading - Whether the trails list is currently loading.
+ * @param initialCategory - The initial category to select.
+ * @param offers - List of active offers passed from the controller.
  */
 export interface ExploreScreenProps {
-    /** The complete list of available trails */
     trails: ITrail[];
-    /** Callback fired when a trail is selected */
     onViewMountain: (id: string) => void;
-    /** Callback fired when the group/FAB action is pressed */
     onGroupPress: () => void;
-    /** Function to calculate or retrieve the rating for a specific trail */
     getItemRating: (id: string) => number | string;
-    /** Whether the trails list is currently loading */
     isLoading: boolean;
+    initialCategory?: string;
+    offers?: Offer[];
 }
 
 /**
@@ -43,18 +55,50 @@ interface ActiveFilters {
 }
 
 /**
- * Screen displaying the full exploration view, including search, categorisation,
- * filtering, and a responsive grid of trails.
+ * ExploreScreen — The primary discovery view containing category tabs, 
+ * Province/Elevation filters, search queries, and a responsive grid layout.
  */
-const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, isLoading }: ExploreScreenProps) => {
+const ExploreScreen: React.FC<ExploreScreenProps> = ({ 
+    trails, 
+    onViewMountain, 
+    onGroupPress, 
+    getItemRating, 
+    isLoading, 
+    initialCategory = "All", 
+    offers = [] 
+}) => {
     const [weatherMap, setWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
-    const [selectedCategory, setSelectedCategory] = useState<string>("All");
+    const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [isFilterModalVisible, setIsFilterModalVisible] = useState<boolean>(false);
     
     const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
         provinces: [],
         elevation: null,
+    });
+
+    // Header animated scroll visibility states
+    const [headerVisible, setHeaderVisible] = useState<boolean>(true);
+    const lastOffsetY = useRef<number>(0);
+    const animatedHeaderHeight = useRef(new Animated.Value(1)).current; // 1 = visible, 0 = hidden
+
+    useEffect(() => {
+        if (initialCategory) {
+            setSelectedCategory(initialCategory);
+        }
+    }, [initialCategory]);
+
+    useEffect(() => {
+        Animated.timing(animatedHeaderHeight, {
+            toValue: headerVisible ? 1 : 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    }, [headerVisible]);
+
+    const translateY = animatedHeaderHeight.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
 
     const { width, isDesktop, isTablet } = useBreakpoints();
@@ -79,7 +123,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
     }, [trails]);
 
     const filteredTrails = useMemo(() => {
-        let result = filterTrailsByCategory(trails, selectedCategory);
+        let result = filterTrailsByCategory(trails, selectedCategory, offers);
 
         if (searchQuery.trim().length > 0) {
             const query = searchQuery.toLowerCase();
@@ -114,9 +158,15 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
         }
 
         return result;
-    }, [selectedCategory, trails, searchQuery, activeFilters]);
+    }, [selectedCategory, trails, searchQuery, activeFilters, offers]);
 
     const shouldCenterGrid = filteredTrails.length > 0 && filteredTrails.length < numColumns;
+
+    // Retrieve active upcoming offers count for the trail card badge
+    const getTrailOffersCount = (trailId: string) => {
+        const now = new Date();
+        return offers.filter(o => o.trail?.id === trailId && o.date && new Date(o.date).getTime() > now.getTime()).length;
+    };
 
     const filterSections = [
         {
@@ -138,29 +188,56 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
-                <CustomHeader
-                    title="Explore"
-                    showDefaultIcons={true}
-                    hasSearch={true}
-                    searchProps={{
-                        searchPlaceholder: "Search mountains or locations...",
-                        searchValue: searchQuery,
-                        onSearchChange: setSearchQuery,
-                        rightIconLibrary: "Ionicons",
-                        rightIconName: "filter",
-                        onRightButtonPress: () => setIsFilterModalVisible(true),
-                        tabs: CATEGORIES,
-                        activeTab: selectedCategory,
-                        onTabSelect: setSelectedCategory,
-                    }}
-                />
+                <Animated.View style={[
+                    styles.headerAnimatedWrapper,
+                    { transform: [{ translateY }] }
+                ]}>
+                    <CustomHeader
+                        title="Explore"
+                        showDefaultIcons={true}
+                        hasSearch={true}
+                        searchProps={{
+                            searchPlaceholder: "Search mountains or locations...",
+                            searchValue: searchQuery,
+                            onSearchChange: setSearchQuery,
+                            rightIconLibrary: "Ionicons",
+                            rightIconName: "filter",
+                            onRightButtonPress: () => setIsFilterModalVisible(true),
+                            tabs: CATEGORIES,
+                            activeTab: selectedCategory,
+                            onTabSelect: setSelectedCategory,
+                        }}
+                    />
+                </Animated.View>
 
                 <ResponsiveScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
-                        isWideScreen && styles.scrollContentWide
+                        isWideScreen && styles.scrollContentWide,
+                        { paddingTop: 210 } // Content spacer offset to start below the absolute animated header
                     ]}
                     showsVerticalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    onScroll={Animated.event(
+                        [],
+                        {
+                            useNativeDriver: false,
+                            listener: (event: any) => {
+                                const currentOffsetY = event.nativeEvent.contentOffset.y;
+                                if (currentOffsetY <= 0) {
+                                    setHeaderVisible(true);
+                                    return;
+                                }
+                                const diff = currentOffsetY - lastOffsetY.current;
+                                if (diff > 15 && headerVisible) {
+                                    setHeaderVisible(false);
+                                } else if (diff < -15 && !headerVisible) {
+                                    setHeaderVisible(true);
+                                }
+                                lastOffsetY.current = currentOffsetY;
+                            }
+                        }
+                    )}
                 >
                     <View style={[
                         styles.listContainer, 
@@ -183,11 +260,18 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
                                     onLikePress={() => console.log("Like", t.general?.name)}
                                     style={{ width: cardWidth }}
                                     weatherBadge={weatherMap[t.id] ?? null}
+                                    offersCount={getTrailOffersCount(t.id)}
                                 />
                             ))
                         ) : (
                             <View style={styles.emptyState}>
-                                <CustomText style={{ color: Colors.TEXT_SECONDARY }}>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="trail-sign-outline" 
+                                    size={48} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                                <CustomText style={styles.emptyStateText}>
                                     {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
                                         ? "No trails match your current filters and search." 
                                         : `No trails found for "${selectedCategory}".`}
@@ -214,7 +298,7 @@ const ExploreScreen = ({ trails, onViewMountain, onGroupPress, getItemRating, is
     );
 };
 
-const filterTrailsByCategory = (trails: ITrail[], category: string): ITrail[] => {
+const filterTrailsByCategory = (trails: ITrail[], category: string, offers: Offer[] = []): ITrail[] => {
     if (!trails) return [];
 
     switch (category) {
@@ -236,6 +320,12 @@ const filterTrailsByCategory = (trails: ITrail[], category: string): ITrail[] =>
                 const len = Number(t.difficulty?.length || 0);
                 return elev > 600 || len > 10;
             });
+        case "Offers": {
+            const now = new Date();
+            const upcomingOffers = offers.filter(o => o.date && new Date(o.date).getTime() > now.getTime());
+            const ids = upcomingOffers.map(o => o.trail?.id).filter(Boolean);
+            return trails.filter((t: ITrail) => ids.includes(t.id));
+        }
         case "All":
         default:
             return trails;
@@ -246,10 +336,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,
+        position: 'relative',
+    },
+    headerAnimatedWrapper: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
-        paddingTop: 0,
-        paddingBottom: 40,
+        paddingBottom: 64,
         paddingHorizontal: 16,
     },
     scrollContentWide: {
@@ -269,9 +367,17 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     emptyState: {
-        paddingTop: 40,
-        alignItems: "center",
+        paddingVertical: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
         width: "100%",
+        opacity: 0.8,
+        gap: 8,
+    },
+    emptyStateText: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
 });
 
