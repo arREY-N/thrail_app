@@ -28,6 +28,9 @@ export class Hike implements IHike {
     image: string[] = [];
     predictedDifficulty: DifficultyRating = 'Easy';
     perceivedDifficulty: DifficultyRating = 'undefined';
+    distance?: number;
+    duration?: number
+    elevation?: number;
 
     constructor(init?: Partial<IHike>) {
         // 1. Perform the shallow copy first
