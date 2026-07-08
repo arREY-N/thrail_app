@@ -54,10 +54,11 @@ To launch the FastAPI server, ensure your virtual environment is active, then ru
 
 ```powershell
 # Make sure you are in the recommendation_engine directory
-python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload --no-use-colors
 ```
 
 *   The `--reload` flag enables auto-reloading whenever code changes are saved.
+*   The `--no-use-colors` flag disables raw ANSI color escape characters (like `←[32m`) which render incorrectly in standard Windows PowerShell consoles.
 *   The server will initialize the FAISS Index database using [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) on startup.
 
 ---
