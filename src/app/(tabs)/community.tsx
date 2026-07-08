@@ -1,10 +1,18 @@
-import React from 'react';
+/**
+ * @file community.tsx
+ * @description Expo Router tab controller page for the Community feed. Coordinates reviews state hooks, global navigation triggers, and scroll pagination/reload logic.
+ */
+
+import React, { useState } from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import CommunityScreen from '@/src/features/Community/screens/CommunityScreen';
 
-
+/**
+ * community tab router component - Arrowless layout composition matching Expo Router rules.
+ * Manages responsive pagination states and error callbacks for the community review feed.
+ */
 export default function community(){
     const {
         reviews,
@@ -23,9 +31,67 @@ export default function community(){
         onLeaderBoardPress
     } = useAppNavigation();
 
+    // TODO: Replace this mock pagination simulation with real backend API request logic:
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [displayedReviewsCount, setDisplayedReviewsCount] = useState(10);
+    const [isError, setIsError] = useState(false);
+    const [loadCount, setLoadCount] = useState(0);
+
+    /**
+     * handleLoadMore - Triggered when the user scrolls near the bottom of the feed list.
+     * 
+     * TODO: Replace this mock simulation with real backend API request:
+     * - Call repository query.
+     * - On success: append loaded reviews to the existing reviews list, and update lastVisibleDoc cursor.
+     * - On error: set `isError(true)` to prompt the Tap-to-Reload button UI in the footer.
+     */
+    const handleLoadMore = () => {
+        if (isFetchingMore || !hasMore || isError) return;
+
+        setIsFetchingMore(true);
+        // Simulate a 1.5s network delay to retrieve the next page of reviews
+        setTimeout(() => {
+            // Mock a failure on the 2nd pagination load to test the error/reload flow
+            if (loadCount === 1) {
+                setIsError(true);
+                setIsFetchingMore(false);
+                setLoadCount(prev => prev + 1);
+                return;
+            }
+
+            setDisplayedReviewsCount(prev => {
+                const nextCount = prev + 5;
+                if (nextCount >= reviews.length) {
+                    setHasMore(false);
+                }
+                return nextCount;
+            });
+            setLoadCount(prev => prev + 1);
+            setIsFetchingMore(false);
+        }, 1500);
+    };
+
+    /**
+     * handleReload - Triggered when reloading the feed after an error occurs.
+     * 
+     * TODO: Reset pagination cursors, set isError/isFetchingMore to false,
+     * and trigger a fresh Page 1 query refetch from the database.
+     */
+    const handleReload = () => {
+        setIsError(false);
+        setIsFetchingMore(false);
+        setHasMore(true);
+        setLoadCount(0);
+        setDisplayedReviewsCount(10);
+        refreshFeed();
+    };
+
+    const slicedReviews = reviews.slice(0, displayedReviewsCount);
+
     return (
         <CommunityScreen
-            reviews={reviews}
+            reviews={slicedReviews}
             isLoading={isLoading}
             onWriteReviewPress={onWriteReviewPress}
             likeReview={likeReview}
@@ -35,6 +101,11 @@ export default function community(){
             onGroupPress={onGroupPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}
+            onLoadMore={handleLoadMore}
+            isFetchingMore={isFetchingMore}
+            hasMore={hasMore}
+            isError={isError}
+            onReload={handleReload}
         />
-    )
+    );
 }
