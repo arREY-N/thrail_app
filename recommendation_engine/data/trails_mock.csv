@@ -1,0 +1,6 @@
+id,name,province,mountain,difficulty_lascoRating,difficulty_classification,difficulty_length,difficulty_gain,difficulty_slope,difficulty_obstacles,difficulty_hours,difficulty_circularity,tourism_shelter,tourism_resting,tourism_clean_water,tourism_river,tourism_lake,tourism_waterfall,tourism_network_connection,general_rating,general_reviewCount
+trail_001,Mt. Daraitan,Rizal,Mt. Daraitan,4,minor,8.0,600,15,50,4.5,loop,True,True,True,True,False,True,False,4.5,24
+trail_002,Mt. Batulao,Batangas,Mt. Batulao,3,minor,12.0,400,10,20,4.0,loop,True,True,False,False,False,False,True,4.2,42
+trail_003,Mt. Maculot,Batangas,Mt. Maculot,4,minor,6.0,500,20,60,3.5,out-and-back,True,True,False,False,False,False,True,4.0,18
+trail_004,Mt. Makiling,Laguna,Mt. Makiling,6,major,16.0,900,25,120,7.0,out-and-back,False,True,True,True,False,False,False,4.6,35
+trail_005,Mt. Pico de Loro,Cavite,Mt. Pico de Loro,3,minor,9.5,350,8,30,4.0,loop,True,True,False,False,False,False,True,4.4,29
