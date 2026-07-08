@@ -3,20 +3,23 @@
  * @description A customizable search bar component with trailing actions and scroll-centered category tabs.
  */
 
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 
 import { Colors } from '@/src/constants/colors';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
 
 /**
@@ -63,10 +66,34 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     sortOrder
 }) => {
     const scrollViewRef = useRef<ScrollView>(null);
-    const [viewportWidth, setViewportWidth] = useState<number>(0);
-    const [contentWidth, setContentWidth] = useState<number>(0);
-    const [scrollX, setScrollX] = useState<number>(0);
     const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
+    const [localQuery, setLocalQuery] = useState(searchValue || "");
+
+    const { 
+        showLeftFade,
+        showRightFade,
+        layoutWidth: viewportWidth,
+        scrollProps
+    } = useScrollFades();
+
+    // Keep local query in sync with incoming search value
+    useEffect(() => {
+        setLocalQuery(searchValue || "");
+    }, [searchValue]);
+
+    // Debounce query propagation to parent to optimize list updates
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (onSearchChange && localQuery !== (searchValue || "")) {
+                onSearchChange(localQuery);
+            }
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [localQuery, onSearchChange]);
+
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(scrollViewRef, tabs.length > 0);
 
     // Auto-center the selected tab in the ScrollView viewport
     useEffect(() => {
@@ -76,28 +103,27 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
         scrollViewRef.current?.scrollTo({ x: Math.max(0, scrollXTarget), animated: true });
     }, [activeTab, tabLayouts, viewportWidth]);
 
-    // Determine when edge fades are needed based on active scrolling
-    const showLeftFade = scrollX > 5;
-    const showRightFade = scrollX < contentWidth - viewportWidth - 5 && contentWidth > viewportWidth;
-
     return (
         <View style={styles.container}>
             <View style={styles.searchRow}>
                 <View style={styles.inputWrapper}>
                     <CustomTextInput
                         placeholder={searchPlaceholder}
-                        value={searchValue}
-                        onChangeText={onSearchChange as any}
+                        value={localQuery}
+                        onChangeText={setLocalQuery}
                         icon="search"
                         iconLibrary="Feather"
                         style={styles.searchInputContainer}
                         inputStyle={styles.searchInput}
                     />
                     
-                    {(searchValue?.length ?? 0) > 0 && (
+                    {(localQuery.length ?? 0) > 0 && (
                         <TouchableOpacity 
                             style={styles.clearButton} 
-                            onPress={() => onSearchChange?.('')}
+                            onPress={() => {
+                                setLocalQuery('');
+                                onSearchChange?.('');
+                            }}
                             activeOpacity={0.7}
                         >
                             <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.GRAY_MEDIUM} />
@@ -122,24 +148,12 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
 
             {tabs && tabs.length > 0 && (
                 <View style={styles.chipContainer}>
-                    {showLeftFade && (
-                        <LinearGradient 
-                            colors={[Colors.WHITE, 'rgba(255, 255, 255, 0.75)', 'rgba(255, 255, 255, 0)']} 
-                            start={{ x: 0, y: 0 }} 
-                            end={{ x: 1, y: 0 }} 
-                            style={styles.leftFade} 
-                            pointerEvents="none" 
-                        />
-                    )}
                     <ScrollView 
                         ref={scrollViewRef}
                         horizontal 
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipScroll}
-                        onLayout={(e) => setViewportWidth(e.nativeEvent.layout.width)}
-                        onContentSizeChange={(w) => setContentWidth(w)}
-                        onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
-                        scrollEventThrottle={16}
+                        {...scrollProps}
                     >
                         {tabs.map((tab: string) => {
                             const isActive = activeTab === tab;
@@ -181,9 +195,20 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                             );
                         })}
                     </ScrollView>
+
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+
                     {showRightFade && (
                         <LinearGradient 
-                            colors={['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.75)', Colors.WHITE]} 
+                            colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
                             start={{ x: 0, y: 0 }} 
                             end={{ x: 1, y: 0 }} 
                             style={styles.rightFade} 
@@ -241,6 +266,11 @@ const styles = StyleSheet.create({
         position: 'relative',
         borderRadius: 12,
         overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                isolation: 'isolate',
+            },
+        }),
     },
     chipScroll: {
         gap: 10,
@@ -272,7 +302,7 @@ const styles = StyleSheet.create({
     },
     leftFade: {
         position: 'absolute',
-        left: 0,
+        left: -2,
         top: 0,
         bottom: 0,
         width: 40,
@@ -280,7 +310,7 @@ const styles = StyleSheet.create({
     },
     rightFade: {
         position: 'absolute',
-        right: 0,
+        right: -2,
         top: 0,
         bottom: 0,
         width: 40,
