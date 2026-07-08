@@ -59,6 +59,8 @@ export const Palette = {
     WhiteAlpha70: 'rgba(255, 255, 255, 0.7)',
     WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
+    OffWhiteAlpha75: 'rgba(250, 252, 250, 0.75)',
+    OffWhiteAlpha0:  'rgba(250, 252, 250, 0)',
 };
 
 export const Colors = {
@@ -66,11 +68,14 @@ export const Colors = {
     PRIMARY:          Palette.Green700, 
     SECONDARY:        Palette.Green400,
     BACKGROUND:       Palette.OffWhite,
+    BACKGROUND_FADE:  Palette.OffWhiteAlpha75,
+    BACKGROUND_TRANSPARENT: Palette.OffWhiteAlpha0,
 
     // Core Neutrals
     BLACK:            Palette.Neutral900,
     WHITE:            Palette.White,
     WHITE_TRANSPARENT:Palette.WhiteAlpha0,
+    WHITE_FADE:       Palette.WhiteAlpha70,
     GRAY:             Palette.Neutral500,
     GRAY_MEDIUM:      Palette.Neutral400, 
     GRAY_LIGHT:       Palette.Neutral200,
