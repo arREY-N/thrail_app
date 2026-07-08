@@ -89,7 +89,11 @@
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata)"
-    ]
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata|firebase/.*|@firebase/.*|immer/.*)"
+  ],
+    "moduleNameMapper": {
+      "^firebase/(.*)$": "<rootDir>/node_modules/firebase/$1",
+      "^@firebase/(.*)$": "<rootDir>/node_modules/@firebase/$1"
+    }
   }
 }
