@@ -105,9 +105,6 @@ const ProfileScreen = ({
     let createdDate = 'Mar 2026';
     if (profile?.createdAt) {
         try {
-            // IUser.createdAt is always a Date after fromFirestore() conversion.
-            // At runtime, a raw Firestore Timestamp may appear if Zustand rehydrates
-            // a cached snapshot before the converter runs. We guard for that here.
             const rawDate: unknown = profile.createdAt;
             const dateObj = (rawDate as { toDate?: () => Date }).toDate?.() ?? new Date(rawDate as string | number | Date);
 
@@ -180,6 +177,13 @@ const ProfileScreen = ({
                             onPress={() => setActiveTab('Milestones')}
                             activeOpacity={0.9}
                         >
+                            <CustomIcon 
+                                library="Ionicons" 
+                                name="stats-chart" 
+                                size={activeTab === 'Milestones' ? 22 : 20} 
+                                color={activeTab === 'Milestones' ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                            />
+                                
                             <CustomText 
                                 style={[
                                     styles.tabText, 
@@ -198,6 +202,12 @@ const ProfileScreen = ({
                             onPress={() => setActiveTab('Hike Log')}
                             activeOpacity={0.9}
                         >
+                            <CustomIcon 
+                                library="Feather" 
+                                name="edit-3" 
+                                size={activeTab === 'Hike Log' ? 22 : 20} 
+                                color={activeTab === 'Hike Log' ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                            />
                             <CustomText 
                                 style={[
                                     styles.tabText, 
@@ -331,11 +341,14 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         flex: 1,
+        flexDirection: 'row',
         paddingVertical: 8,
+        paddingHorizontal: 16,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 16,
         backgroundColor: 'transparent',
+        gap: 8,
     },
     tabButtonActive: {
         backgroundColor: Colors.WHITE, 
@@ -343,8 +356,8 @@ const styles = StyleSheet.create({
     },
     tabText: {
         fontSize: 14, 
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY, 
+        fontWeight: '500',
+        color: Colors.TEXT_SECONDARY,
     },
     tabTextActive: {
         color: Colors.PRIMARY, 
