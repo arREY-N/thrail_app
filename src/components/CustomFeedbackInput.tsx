@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+/**
+ * @file CustomFeedbackInput.tsx
+ * @description A specialized input component designed for collecting user feedback.
+ * Features suggestion chips, a multiline text area, and status/helper text.
+ */
+
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef } from 'react';
 import {
-    LayoutChangeEvent,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
+    Platform,
     ScrollView,
     StyleProp,
     StyleSheet,
@@ -15,9 +20,19 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 /**
- * A component tailored for receiving user feedback, usually a multiline text area.
+ * Props for the CustomFeedbackInput component.
+ * 
+ * @param label - The label text displayed above the feedback input.
+ * @param helperText - The helper or info text displayed below the input.
+ * @param placeholder - The placeholder text inside the text input.
+ * @param value - The current text value of the feedback input.
+ * @param onChangeText - Callback fired when the text value changes.
+ * @param suggestions - List of pre-defined suggestion tags/chips.
+ * @param style - Additional style prop for the root container.
  */
 interface CustomFeedbackInputProps {
     label?: string;
@@ -29,6 +44,10 @@ interface CustomFeedbackInputProps {
     style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * CustomFeedbackInput — A specialized input component designed for collecting user feedback,
+ * usually containing a multiline text input with interactive suggestion chips.
+ */
 const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({ 
     label, 
     helperText, 
@@ -38,12 +57,16 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     suggestions = [], 
     style 
 }) => {
+    const scrollRef = useRef<ScrollView>(null);
 
-    const [contentWidth, setContentWidth] = useState<number>(0);
-    const [layoutWidth, setLayoutWidth] = useState<number>(0);
-    const [scrollX, setScrollX] = useState<number>(0);
+    const { 
+        showLeftFade,
+        showRightFade,
+        scrollProps
+    } = useScrollFades();
 
-    const showRightArrow: boolean = contentWidth > layoutWidth && scrollX < (contentWidth - layoutWidth - 10);
+    // Enable drag-to-scroll functionality on web platforms
+    useWebDragScroll(scrollRef, suggestions.length > 0);
 
     const handleSuggestionPress = (suggestion: string): void => {
         const currentText = value || '';
@@ -78,13 +101,11 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
             {suggestions.length > 0 && (
                 <View style={styles.scrollWrapper}>
                     <ScrollView 
+                        ref={scrollRef}
                         horizontal={true} 
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.chipScrollContent}
-                        scrollEventThrottle={16}
-                        onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => setScrollX(e.nativeEvent.contentOffset.x)}
-                        onContentSizeChange={(width: number) => setContentWidth(width)}
-                        onLayout={(e: LayoutChangeEvent) => setLayoutWidth(e.nativeEvent.layout.width)}
+                        {...scrollProps}
                     >
                         {suggestions.map((item: string, index: number) => {
                             const isActive = (value || '').includes(item);
@@ -112,15 +133,24 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                         })}
                     </ScrollView>
 
-                    {showRightArrow && (
-                        <View style={styles.arrowOverlay} pointerEvents="none">
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-right" 
-                                size={20} 
-                                color={Colors.TEXT_SECONDARY} 
-                            />
-                        </View>
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+
+                    {showRightFade && (
+                        <LinearGradient 
+                            colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.rightFade} 
+                            pointerEvents="none" 
+                        />
                     )}
                 </View>
             )}
@@ -154,65 +184,76 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        width: '100%' 
+    container: {
+        width: '100%',
     },
-    label: { 
-        marginBottom: 10, 
-        marginLeft: 2, 
-        color: Colors.TEXT_PRIMARY, 
-        fontWeight: 'bold' 
+    label: {
+        marginBottom: 10,
+        marginLeft: 2,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
     },
-    scrollWrapper: { 
-        position: 'relative', 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        marginBottom: 12 
+    scrollWrapper: {
+        position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        overflow: 'hidden',
     },
-    chipScrollContent: { 
-        gap: 8, 
-        paddingRight: 32 
+    chipScrollContent: {
+        gap: 8,
     },
-    arrowOverlay: { 
-        position: 'absolute', 
-        right: 0, 
-        height: '100%', 
-        width: 40, 
-        justifyContent: 'center', 
-        alignItems: 'flex-end', 
-        paddingRight: 4, 
-        backgroundColor: Colors.BACKGROUND, 
+    leftFade: {
+        position: 'absolute',
+        left: -1,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
     },
-    chip: { 
-        backgroundColor: Colors.WHITE, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_MEDIUM, 
-        paddingVertical: 6, 
-        paddingHorizontal: 12, 
-        borderRadius: 20 
+    rightFade: {
+        position: 'absolute',
+        right: -1,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
     },
-    chipActive: { 
-        backgroundColor: Colors.PRIMARY, 
-        borderColor: Colors.PRIMARY 
+    chip: {
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_MEDIUM,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
-    chipText: { 
-        fontSize: 12, 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: '600' 
+    chipActive: {
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
     },
-    chipTextActive: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
+    chipText: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
     },
-    textArea: { 
-        minHeight: 120, 
-        height: 'auto', 
-        textAlignVertical: 'top', 
-        paddingTop: 16, 
-        paddingBottom: 16 
+    chipTextActive: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
     },
-    noMarginBottom: { 
-        marginBottom: 0 
+    textArea: {
+        minHeight: 120,
+        height: 'auto',
+        textAlignVertical: 'top',
+        paddingTop: 16,
+        paddingBottom: 16,
+    },
+    noMarginBottom: {
+        marginBottom: 0,
     },
     helperRow: {
         flexDirection: 'row',
