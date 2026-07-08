@@ -1,6 +1,12 @@
 /* eslint-disable i18next/no-literal-string */
+/**
+ * @file PostCard.tsx
+ * @description A comprehensive card component used to display user reviews,
+ * photos, stats, and tags within the community feed or user profile.
+ */
+
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     ImageSourcePropType,
     Platform,
@@ -25,21 +31,24 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Review } from '@/src/core/models/Review/Review';
 import { formatDate } from '@/src/core/utility/date';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
 
 /**
  * Props for the PostCard component.
+ * 
+ * @param review - The review or post object containing data.
+ * @param onLike - Callback fired when the like button is pressed.
+ * @param isLiked - Helper function to check if the current user has liked the post.
+ * @param onEdit - Callback fired when the edit button is pressed (only visible in 'profile' variant).
+ * @param variant - The visual variant of the post card ('community' or 'profile').
  */
 interface PostCardProps {
-    /** The review or post object containing data */
     review: any;
-    /** Callback fired when the like button is pressed */
     onLike?: () => void;
-    /** Helper function to check if the current user has liked the post */
     isLiked?: (review: Review) => boolean;
-    /** Callback fired when the edit button is pressed (only visible in 'profile' variant) */
     onEdit?: () => void;
-    /** The visual variant of the post card */
     variant?: 'community' | 'profile';
 }
 
@@ -56,6 +65,13 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+    const scrollRef = useRef<ScrollView>(null);
+
+    const { 
+        showLeftFade,
+        showRightFade,
+        scrollProps
+    } = useScrollFades();
 
     if (!review) return null;
 
@@ -151,6 +167,9 @@ const PostCard: React.FC<PostCardProps> = ({
     const visibleTags = isExpanded ? allTags : allTags.slice(0, 2);
     const hiddenTagsCount = allTags.length - visibleTags.length;
     const hasTags = allTags.length > 0;
+
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(scrollRef, hasTags);
 
     const likeCount = Array.isArray(review.likes)
         ? review.likes.length
@@ -277,9 +296,11 @@ const PostCard: React.FC<PostCardProps> = ({
             {hasTags && (
                 <View style={[styles.tagsWrapper, !reviewText && { marginBottom: 0 }]}>
                     <ScrollView 
-                        horizontal
+                        ref={scrollRef}
+                        horizontal={true}
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.tagsContainer}
+                        {...scrollProps}
                     >
                         {allTags.map(tag => {
                             if (tag.type === 'difficulty') {
@@ -315,13 +336,26 @@ const PostCard: React.FC<PostCardProps> = ({
                             return null;
                         })}
                     </ScrollView>
-                    <LinearGradient 
-                        colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE]} 
-                        start={{ x: 0, y: 0 }} 
-                        end={{ x: 1, y: 0 }} 
-                        style={styles.tagsFadeRight} 
-                        pointerEvents="none" 
-                    />
+
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+
+                    {showRightFade && (
+                        <LinearGradient 
+                            colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.rightFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
                 </View>
             )}
 
@@ -377,80 +411,328 @@ const StatItem = ({
 );
 
 const styles = StyleSheet.create({
-    card: { 
-        backgroundColor: Colors.WHITE, 
-        marginBottom: 0, 
-        borderRadius: 24, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 4 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 8, 
-...GlobalStyles.dropShadow(3), 
+    card: {
+        backgroundColor: Colors.WHITE,
+        marginBottom: 0,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        shadowColor: Colors.SHADOW,
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        ...GlobalStyles.dropShadow(3),
         overflow: 'hidden',
         padding: 16,
         ...Platform.select({
-            web: { boxShadow: `0px 4px 8px ${Colors.SHADOW}0D` }
-        })
+            web: {
+                boxShadow: `0px 4px 8px ${Colors.SHADOW}0D`,
+            },
+        }),
     },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 12 },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    avatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.PRIMARY, justifyContent: 'center', alignItems: 'center' },
-    avatarText: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', fontSize: 16 },
-    userInfo: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-    userName: { marginBottom: -2, fontSize: 16, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
-    dateText: { color: Colors.TEXT_SECONDARY },
-    
-    headerRatingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_WARNING_BG, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
-    headerRatingText: { color: Colors.STATUS_WARNING_TEXT, fontWeight: 'bold', fontSize: 13 },
-
-    headerLikeBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
-    headerLikeBadgeActive: { backgroundColor: Colors.ERROR_BG },
-    headerLikeBadgeInactive: { backgroundColor: Colors.GRAY_ULTRALIGHT },
-    headerLikeTextActive: { color: Colors.ERROR, fontWeight: 'bold', fontSize: 13 },
-    headerLikeTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 13 },
-
-    editIconButton: { padding: 4, marginLeft: 4 },
-    
-    imageWrapper: { position: 'relative', height: 200, width: '100%', borderRadius: 16, marginBottom: 16, backgroundColor: Colors.GRAY_ULTRALIGHT, overflow: 'hidden' },
-    postImage: { width: '100%', height: '100%' },
-    gradientOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-    headerTextColumn: { flex: 1, paddingRight: 16 },
-    mountainTitleOverlay: { color: Colors.TEXT_INVERSE, fontWeight: 'bold', marginBottom: 2, textShadowColor: `${Colors.BLACK}BF`, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    locationRow: { flexDirection: "row", alignItems: "center", paddingVertical: 2, gap: 6 },
-    locationTextOverlay: { color: Colors.TEXT_INVERSE, fontWeight: "500", textShadowColor: `${Colors.BLACK}BF`, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-    imageCountBadge: { backgroundColor: `${Colors.BLACK}A6`, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-    imageCountText: { color: Colors.TEXT_INVERSE, marginTop: -2 },
-    
-    statsContainer: { flexDirection: 'row', alignItems: 'center', paddingBottom: 16 },
-    statBox: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-    statTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-    statValue: { fontWeight: '900', color: Colors.TEXT_PRIMARY },
-    statLabel: { fontSize: 10, color: Colors.TEXT_SECONDARY, textTransform: 'uppercase', fontWeight: '600', marginTop: 2 },
-    
-    verticalDivider: { width: 1, height: 24, backgroundColor: Colors.GRAY_LIGHT, flex: 0, marginHorizontal: 4 },
-    threeColStat: { flex: 1 },
-    horizontalDivider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, width: '100%', marginBottom: 12 },
-
-    tagsWrapper: { marginBottom: 12, position: 'relative' },
-    tagsContainer: { flexDirection: 'row', gap: 8, paddingRight: 24 },
-    tagsFadeRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 24 },
-    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, gap: 6 },
-    statusPillText: { fontSize: 11, fontWeight: 'bold' },
-    
-    difficultyChip: { backgroundColor: Colors.STATUS_WARNING_BG, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.STATUS_WARNING_BORDER },
-    difficultyChipText: { fontSize: 11, color: Colors.STATUS_WARNING_TEXT, fontWeight: '600' },
-    favoredChip: { backgroundColor: Colors.STATUS_APPROVED_BG, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.STATUS_APPROVED_BORDER },
-    favoredChipText: { fontSize: 11, color: Colors.STATUS_APPROVED_TEXT, fontWeight: '600' },
-
-    moreTagsChip: { backgroundColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
-    moreTagsText: { fontSize: 11, color: Colors.TEXT_SECONDARY, fontWeight: '600', fontStyle: 'italic' },
-
-    textBody: { paddingBottom: 0, width: '100%' },
-    reviewContent: { fontSize: 12, lineHeight: 22, color: Colors.TEXT_SECONDARY, flexShrink: 1 },
-    showMoreActionInline: { fontSize: 12, fontWeight: 'bold', textDecorationLine: 'underline', color: Colors.PRIMARY },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: 12,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        paddingRight: 12,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    avatarPlaceholder: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    userInfo: {
+        flex: 1,
+        marginLeft: 12,
+        justifyContent: 'center',
+    },
+    userName: {
+        marginBottom: -2,
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    dateText: {
+        color: Colors.TEXT_SECONDARY,
+    },
+    headerRatingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    headerRatingText: {
+        color: Colors.STATUS_WARNING_TEXT,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    headerLikeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    headerLikeBadgeActive: {
+        backgroundColor: Colors.ERROR_BG,
+    },
+    headerLikeBadgeInactive: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    headerLikeTextActive: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    headerLikeTextInactive: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    editIconButton: {
+        padding: 4,
+        marginLeft: 4,
+    },
+    imageWrapper: {
+        position: 'relative',
+        height: 200,
+        width: '100%',
+        borderRadius: 16,
+        marginBottom: 16,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        overflow: 'hidden',
+    },
+    postImage: {
+        width: '100%',
+        height: '100%',
+    },
+    gradientOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '50%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+    },
+    headerTextColumn: {
+        flex: 1,
+        paddingRight: 16,
+    },
+    mountainTitleOverlay: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: 'bold',
+        marginBottom: 2,
+        textShadowColor: `${Colors.BLACK}BF`,
+        textShadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        textShadowRadius: 4,
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 2,
+        gap: 6,
+    },
+    locationTextOverlay: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: '500',
+        textShadowColor: `${Colors.BLACK}BF`,
+        textShadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        textShadowRadius: 4,
+    },
+    imageCountBadge: {
+        backgroundColor: `${Colors.BLACK}A6`,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageCountText: {
+        color: Colors.TEXT_INVERSE,
+        marginTop: -2,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: 16,
+    },
+    statBox: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 4,
+    },
+    statTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    statValue: {
+        fontWeight: '900',
+        color: Colors.TEXT_PRIMARY,
+    },
+    statLabel: {
+        fontSize: 10,
+        color: Colors.TEXT_SECONDARY,
+        textTransform: 'uppercase',
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    verticalDivider: {
+        width: 1,
+        height: 24,
+        backgroundColor: Colors.GRAY_LIGHT,
+        flex: 0,
+        marginHorizontal: 4,
+    },
+    threeColStat: {
+        flex: 1,
+    },
+    horizontalDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        width: '100%',
+        marginBottom: 12,
+    },
+    tagsWrapper: {
+        marginBottom: 12,
+        position: 'relative',
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                isolation: 'isolate',
+            },
+        }),
+    },
+    tagsContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    leftFade: {
+        position: 'absolute',
+        left: -2,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: -2,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
+    },
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 6,
+    },
+    statusPillText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+    difficultyChip: {
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_WARNING_BORDER,
+    },
+    difficultyChipText: {
+        fontSize: 11,
+        color: Colors.STATUS_WARNING_TEXT,
+        fontWeight: '600',
+    },
+    favoredChip: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    favoredChipText: {
+        fontSize: 11,
+        color: Colors.STATUS_APPROVED_TEXT,
+        fontWeight: '600',
+    },
+    moreTagsChip: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    moreTagsText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+        fontStyle: 'italic',
+    },
+    textBody: {
+        paddingBottom: 0,
+        width: '100%',
+    },
+    reviewContent: {
+        fontSize: 12,
+        lineHeight: 22,
+        color: Colors.TEXT_SECONDARY,
+        flexShrink: 1,
+    },
+    showMoreActionInline: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+        color: Colors.PRIMARY,
+    },
 });
 
 export default React.memo(PostCard, (prevProps, nextProps) => {
