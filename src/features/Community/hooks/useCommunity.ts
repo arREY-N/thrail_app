@@ -1,28 +1,21 @@
+/**
+ * @file useCommunity.ts
+ * @description Hook managing community feed queries, filtering and sorting logic.
+ */
+
 import { Review } from '@/src/core/models/Review/Review';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 /**
  * Custom hook to manage the state and logic for the Community feed.
- * Handles debounced searching, tab selection, and sorting of reviews.
+ * Handles searching and tab selection (Latest or Popular) for reviews.
  * 
  * @param reviews - The raw array of reviews fetched from the store/database.
- * @returns An object containing the current state variables and the fully sorted/filtered review array.
+ * @returns An object containing the current state variables and the filtered/sorted reviews.
  */
 export const useCommunity = (reviews: Review[]) => {
     const [activeTab, setActiveTab] = useState('Latest');
     const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedQuery, setDebouncedQuery] = useState('');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-    // Debounce Logic for Search
-    // Waits 300ms after the user stops typing before setting the debouncedQuery.
-    // This prevents the heavy filtering logic from running on every single keystroke.
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedQuery(searchQuery);
-        }, 300);
-        return () => clearTimeout(handler);
-    }, [searchQuery]);
 
     // Filtering & Sorting Logic
     const sortedAndFilteredReviews = useMemo(() => {
@@ -30,9 +23,9 @@ export const useCommunity = (reviews: Review[]) => {
 
         let filtered = [...reviews];
 
-        // 1. SEARCHING
-        if (debouncedQuery.trim() !== '') {
-            const query = debouncedQuery.toLowerCase().trim();
+        // 1. SEARCHING (relying on CustomSearchBar's debounced searchQuery prop updates)
+        if (searchQuery.trim() !== '') {
+            const query = searchQuery.toLowerCase().trim();
             
             filtered = filtered.filter(r => {
                 const reviewText = String(r.review || r.content || '').toLowerCase();
@@ -47,7 +40,7 @@ export const useCommunity = (reviews: Review[]) => {
             });
         }
         
-        // 2. SORTING/FILTERING (Defaulting to descending order: Latest first, Popular first, highest Rating first)
+        // 2. SORTING/FILTERING (Defaulting to descending order: Latest first or Popular first)
         if (activeTab === 'Popular') {
             filtered.sort((a, b) => {
                 const aLikes = Array.isArray(a.likes) ? a.likes.length : (Number(a.likes) || 0);
@@ -64,20 +57,18 @@ export const useCommunity = (reviews: Review[]) => {
             filtered.sort((a, b) => {
                 const aRating = Number(a.overallRating) || 0;
                 const bRating = Number(b.overallRating) || 0;
-                return sortOrder === 'desc' ? bRating - aRating : aRating - bRating;
+                return bRating - aRating;
             });
         }
 
         return filtered;
-    }, [reviews, activeTab, debouncedQuery, sortOrder]);
+    }, [reviews, activeTab, searchQuery]);
 
     return {
         searchQuery,
         setSearchQuery,
         activeTab,
         setActiveTab,
-        sortOrder,
-        setSortOrder,
         filteredReviews: sortedAndFilteredReviews
     };
 };
