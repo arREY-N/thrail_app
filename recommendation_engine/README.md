@@ -101,3 +101,20 @@ The script will send a POST request with a mock payload containing experience se
 1.  **Authorization:** Requests require a valid `X-API-Key` header (defined as security dependency verification in [app.py](file:///d:/thrail_app/recommendation_engine/app.py)).
 2.  **Request Tracking:** Custom middleware adds an `X-Request-ID` to logging and header outputs, facilitating request correlation and traceability in log search systems.
 3.  **Fail-Safe Fallbacks:** If the FAISS search or user-item correlation fails, a global exception handler intercepts the failure and seamlessly returns safe onboarding defaults rather than returning HTTP 500 errors to the client.
+
+---
+
+## 6. Prototyping in the Jupyter Notebook
+
+The [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) file is a sandbox environment for testing custom mathematical formulas, user correlation models, and normalization logic.
+
+### How to use it in VS Code:
+1.  **Open the file:** Double-click on `recommendation_scratchpad.ipynb` inside your VS Code explorer.
+2.  **Select the Python Kernel:**
+    *   Click on **Select Kernel** in the top-right corner of the notebook editor window.
+    *   Choose **Python Environments...** and select your virtual environment path:
+        `recommendation_engine/venv/Scripts/python.exe`
+3.  **Execute the Cells:**
+    *   Hover over the left side of any code cell (box containing code) and click the **Play button** (or press `Shift + Enter` inside the cell).
+    *   Run the cells sequentially from top to bottom. Results and table representations will display directly underneath each cell.
+
