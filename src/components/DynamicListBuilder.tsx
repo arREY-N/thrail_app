@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
+/**
+ * @file DynamicListBuilder.tsx
+ * @description A component that allows users to select from a list of presets
+ * or dynamically add and remove their own custom string items.
+ */
+
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -10,28 +18,31 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 /**
  * Props for the DynamicListBuilder component.
+ * 
+ * @param label - The label for the input field.
+ * @param placeholder - Placeholder text for the input field.
+ * @param items - List of currently selected or added items.
+ * @param inputValue - The current value of the input field.
+ * @param setInputValue - Callback to update the input field value.
+ * @param onAddItem - Callback fired when a new custom item is added.
+ * @param onRemoveItem - Callback fired when an item is removed.
+ * @param presets - List of preset items that can be toggled on or off.
+ * @param onTogglePreset - Callback fired when a preset item is toggled.
  */
 interface DynamicListBuilderProps {
-    /** The label for the input field */
     label: string;
-    /** Placeholder text for the input field */
     placeholder?: string;
-    /** List of currently selected or added items */
     items?: string[];
-    /** The current value of the input field */
     inputValue: string;
-    /** Callback to update the input field value */
     setInputValue: (val: string) => void;
-    /** Callback fired when a new custom item is added */
     onAddItem: (val: string) => void;
-    /** Callback fired when an item is removed */
     onRemoveItem: (val: string) => void;
-    /** List of preset items that can be toggled on or off */
     presets?: string[];
-    /** Callback fired when a preset item is toggled */
     onTogglePreset: (val: string) => void;
 }
 
@@ -50,14 +61,19 @@ const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({
     presets = [],
     onTogglePreset
 }) => {
-    const [contentWidth, setContentWidth] = useState(0);
-    const [layoutWidth, setLayoutWidth] = useState(0);
-    const [scrollX, setScrollX] = useState(0);
+    const scrollRef = useRef<ScrollView>(null);
+
+    const { 
+        showLeftFade,
+        showRightFade,
+        scrollProps
+    } = useScrollFades();
 
     const customItems = items.filter(item => !presets.includes(item));
     const allChips = [...presets, ...customItems];
 
-    const showRightArrow = contentWidth > layoutWidth && scrollX < (contentWidth - layoutWidth - 10);
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(scrollRef, allChips.length > 0);
 
     return (
         <View style={styles.listBuilderContainer}>
@@ -72,13 +88,11 @@ const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({
             {allChips.length > 0 && (
                 <View style={styles.scrollWrapper}>
                     <ScrollView 
+                        ref={scrollRef}
                         horizontal={true}
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.presetScrollContent}
-                        scrollEventThrottle={16}
-                        onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
-                        onContentSizeChange={(width) => setContentWidth(width)}
-                        onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
+                        {...scrollProps}
                     >
                         {allChips.map(chip => {
                             const isSelected = items.includes(chip);
@@ -108,15 +122,24 @@ const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({
                         })}
                     </ScrollView>
 
-                    {showRightArrow && (
-                        <View style={styles.arrowOverlay} pointerEvents="none">
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-right" 
-                                size={20} 
-                                color={Colors.TEXT_SECONDARY} 
-                            />
-                        </View>
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+
+                    {showRightFade && (
+                        <LinearGradient 
+                            colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.rightFade} 
+                            pointerEvents="none" 
+                        />
                     )}
                 </View>
             )}
@@ -140,6 +163,7 @@ const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({
                 >
                     <CustomIcon 
                         library="Feather" 
+                        style={null as any}
                         name="plus" 
                         size={20} 
                         color={Colors.WHITE} 
@@ -152,34 +176,45 @@ const DynamicListBuilder: React.FC<DynamicListBuilderProps> = ({
 };
 
 const styles = StyleSheet.create({
-    listBuilderContainer: { 
-        marginBottom: 0 
+    listBuilderContainer: {
+        marginBottom: 0,
     },
-    inputLabel: { 
-        marginBottom: 8, 
-        marginLeft: 2, 
-        color: Colors.TEXT_PRIMARY, 
-        fontWeight: 'bold' 
+    inputLabel: {
+        marginBottom: 8,
+        marginLeft: 2,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
     },
     scrollWrapper: {
         position: 'relative',
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 12,
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                isolation: 'isolate',
+            },
+        }),
     },
     presetScrollContent: {
         gap: 8,
-        paddingRight: 32,
     },
-    arrowOverlay: {
+    leftFade: {
         position: 'absolute',
-        right: 0,
-        height: '100%',
+        left: -2,
+        top: 0,
+        bottom: 0,
         width: 40,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        paddingRight: 4,
-        backgroundColor: `${Colors.BACKGROUND}CC`,
+        zIndex: 2,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: -2,
+        top: 0,
+        bottom: 0,
+        width: 40,
+        zIndex: 2,
     },
     presetChip: {
         backgroundColor: Colors.WHITE,
@@ -188,29 +223,34 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 20,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     presetChipSelected: {
         backgroundColor: Colors.PRIMARY,
         borderColor: Colors.PRIMARY,
     },
-    presetChipText: { 
+    presetChipText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '600',
     },
-    presetChipTextSelected: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold' 
+    presetChipTextSelected: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
     },
-    listInputRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 8 
+    listInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
-    flexOne: { 
-        flex: 1 
+    flexOne: {
+        flex: 1,
     },
     noMarginBottom: {
-        marginBottom: 0
+        marginBottom: 0,
     },
     addButton: {
         backgroundColor: Colors.PRIMARY,
@@ -219,7 +259,12 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-    }
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
 });
 
 export default DynamicListBuilder;
