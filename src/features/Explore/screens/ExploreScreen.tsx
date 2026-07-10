@@ -3,8 +3,9 @@
  * @description Pure presentation screen for the Explore tab. Displays search, dynamic filter selections, categories tabs, and a responsive grid of trails.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, StyleSheet, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, FlatList, StyleSheet, View } from "react-native";
 
 import CustomFAB from "@/src/components/CustomFAB";
 import CustomFilterModal from "@/src/components/CustomFilterModal";
@@ -12,7 +13,6 @@ import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
-import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
@@ -100,6 +100,12 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
         inputRange: [0, 1],
         outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
+
+    useFocusEffect(
+        useCallback(() => {
+            setHeaderVisible(true);
+        }, [])
+    );
 
     const { width, isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
@@ -210,12 +216,18 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     />
                 </Animated.View>
 
-                <ResponsiveScrollView
+                <FlatList
+                    key={`explore-grid-${numColumns}`}
+                    data={filteredTrails}
+                    keyExtractor={(item) => item.id}
+                    numColumns={numColumns}
                     contentContainerStyle={[
                         styles.scrollContent,
                         isWideScreen && styles.scrollContentWide,
-                        { paddingTop: 210 } // Content spacer offset to start below the absolute animated header
+                        { paddingTop: 215 } // Matches CommunityScreen exact layout
                     ]}
+                    columnWrapperStyle={numColumns > 1 ? { gap } : undefined}
+                    ItemSeparatorComponent={() => <View style={{ height: gap }} />}
                     showsVerticalScrollIndicator={false}
                     scrollEventThrottle={16}
                     onScroll={Animated.event(
@@ -238,48 +250,41 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                             }
                         }
                     )}
-                >
-                    <View style={[
-                        styles.listContainer, 
-                        { 
-                            gap,
-                            justifyContent: shouldCenterGrid ? 'center' : 'flex-start'
-                        }
-                    ]}>
-                        {isLoading && filteredTrails.length === 0 ? (
-                            <View style={styles.loaderContainer}>
-                                <ActivityIndicator size="large" color={Colors.PRIMARY} />
-                            </View>
-                        ) : filteredTrails.length > 0 ? (
-                            filteredTrails.map((t) => (
-                                <MountainCard
-                                    rating={getItemRating(t.id)}
-                                    key={t.id}
-                                    item={t}
-                                    onPress={() => onViewMountain(t.id)}
-                                    onLikePress={() => console.log("Like", t.general?.name)}
-                                    style={{ width: cardWidth }}
-                                    weatherBadge={weatherMap[t.id] ?? null}
-                                    offersCount={getTrailOffersCount(t.id)}
-                                />
-                            ))
-                        ) : (
-                            <View style={styles.emptyState}>
-                                <CustomIcon 
-                                    library="Ionicons" 
-                                    name="trail-sign-outline" 
-                                    size={48} 
-                                    color={Colors.GRAY_MEDIUM} 
-                                />
-                                <CustomText style={styles.emptyStateText}>
-                                    {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
-                                        ? "No trails match your current filters and search." 
-                                        : `No trails found for "${selectedCategory}".`}
-                                </CustomText>
-                            </View>
-                        )}
-                    </View>
-                </ResponsiveScrollView>
+                    ListEmptyComponent={() => (
+                        <View style={[styles.listContainer, { justifyContent: 'center' }]}>
+                            {isLoading ? (
+                                <View style={styles.loaderContainer}>
+                                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                                </View>
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="trail-sign-outline" 
+                                        size={48} 
+                                        color={Colors.GRAY_MEDIUM} 
+                                    />
+                                    <CustomText style={styles.emptyStateText}>
+                                        {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
+                                            ? "No trails match your current filters and search." 
+                                            : `No trails found for "${selectedCategory}".`}
+                                    </CustomText>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                    renderItem={({ item: t }) => (
+                        <MountainCard
+                            rating={getItemRating(t.id)}
+                            item={t}
+                            onPress={() => onViewMountain(t.id)}
+                            onLikePress={() => console.log("Like", t.general?.name)}
+                            style={{ width: cardWidth }}
+                            weatherBadge={weatherMap[t.id] ?? null}
+                            offersCount={getTrailOffersCount(t.id)}
+                        />
+                    )}
+                />
 
                 <CustomFilterModal
                     visible={isFilterModalVisible}
@@ -344,7 +349,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 100,
-        backgroundColor: Colors.BACKGROUND,
     },
     scrollContent: {
         paddingBottom: 64,
