@@ -47,8 +47,9 @@ export default function community(){
      * - On error: set `isError(true)` to prompt the Tap-to-Reload button UI in the footer.
      */
     const handleLoadMore = () => {
-        if (isFetchingMore || !hasMore || isError) return;
+        if (isFetchingMore || !hasMore) return;
 
+        setIsError(false);
         setIsFetchingMore(true);
         // Simulate a 1.5s network delay to retrieve the next page of reviews
         setTimeout(() => {
@@ -60,6 +61,7 @@ export default function community(){
                 return;
             }
 
+            // Simulate successful pagination load
             setDisplayedReviewsCount(prev => {
                 const nextCount = prev + 5;
                 if (nextCount >= reviews.length) {
@@ -67,8 +69,8 @@ export default function community(){
                 }
                 return nextCount;
             });
-            setLoadCount(prev => prev + 1);
-            setIsFetchingMore(false);
+            setLoadCount(prev => prev + 1); // Increment load count to track pagination attempts
+            setIsFetchingMore(false); // Reset fetching state after the simulated load
         }, 1500);
     };
 
@@ -79,12 +81,12 @@ export default function community(){
      * and trigger a fresh Page 1 query refetch from the database.
      */
     const handleReload = () => {
-        setIsError(false);
-        setIsFetchingMore(false);
-        setHasMore(true);
-        setLoadCount(0);
-        setDisplayedReviewsCount(10);
-        refreshFeed();
+        setIsError(false); // Reset error state
+        setIsFetchingMore(false); // Reset fetching state
+        setHasMore(true); // Reset hasMore state to allow further pagination
+        setLoadCount(0); // Reset load count to start pagination from the beginning
+        setDisplayedReviewsCount(10); // Reset displayed reviews count to initial value
+        refreshFeed(); // Trigger a fresh refetch of the feed data from the database
     };
 
     const slicedReviews = reviews.slice(0, displayedReviewsCount);
