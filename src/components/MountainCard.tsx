@@ -5,16 +5,16 @@
 
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Image, Platform, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
+import { Platform, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import { formatRouteType, getHeroImageSource, isUsingMapFallback } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
-import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 
 /**
  * Props for the MountainCard component.
@@ -268,7 +268,8 @@ const styles = StyleSheet.create({
     },
     badgeText: { 
         color: Colors.WHITE, 
-        fontWeight: "bold" 
+        fontWeight: "bold",
+        marginTop: -3
     },
     topLeftPosition: { 
         position: "absolute", 
