@@ -15,6 +15,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 
 import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -138,6 +139,12 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         inputRange: [0, 1],
         outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
+
+    useFocusEffect(
+        useCallback(() => {
+            setHeaderVisible(true);
+        }, [])
+    );
 
     const flatListRef = useRef<FlatList>(null);
 
