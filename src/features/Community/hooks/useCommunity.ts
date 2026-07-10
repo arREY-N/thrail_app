@@ -49,9 +49,9 @@ export const useCommunity = (reviews: Review[]) => {
             });
         } else if (activeTab === 'Latest') {
             filtered.sort((a, b) => {
-                const dateA = new Date(a.createdAt || a.hikeDate).getTime();
-                const dateB = new Date(b.createdAt || b.hikeDate).getTime();
-                return (dateB || 0) - (dateA || 0); 
+                const dateA = new Date(a.createdAt || a.hikeDate).getTime() || 0;
+                const dateB = new Date(b.createdAt || b.hikeDate).getTime() || 0;
+                return dateB - dateA; 
             });
         } else if (activeTab === 'Rating') {
             filtered.sort((a, b) => {
