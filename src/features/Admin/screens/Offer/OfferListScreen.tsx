@@ -264,7 +264,8 @@ const styles = StyleSheet.create({
     headerAddText: { 
         color: Colors.WHITE, 
         fontWeight: 'bold', 
-        fontSize: 12 
+        fontSize: 12,
+        marginTop: -2
     },
     emptyState: { 
         alignItems: 'center', 

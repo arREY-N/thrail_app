@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
         gap: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...(dropShadow as any),
+        ...(dropShadow),
     },
     avatar: { 
         width: 44, 

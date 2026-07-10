@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Platform, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -10,8 +10,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IUser } from '@/src/core/models/User/User.types';
 import { Layout } from '@/src/constants/layout';
+import { IUser } from '@/src/core/models/User/User.types';
 
 export interface PersonnelListScreenProps {
     businessId: string;
@@ -173,7 +173,8 @@ const styles = StyleSheet.create({
     },
     headerAddBtnText: { 
         fontSize: 12, 
-        fontWeight: 'bold', 
+        fontWeight: 'bold',
+        marginTop: -2,
     },
     list: { 
         gap: 12, 
