@@ -11,8 +11,8 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
     useWindowDimensions,
+    View,
 } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 
@@ -54,6 +54,13 @@ import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/w
  * @param onGroupPress - Callback when the group FAB is pressed.
  * @param getItemRating - Function to retrieve the rating for a specific item.
  * @param isLoading - Global loading state.
+ * @param offers - Array of hiking offers.
+ * @param recommendationsError - Recommendations fetch error.
+ * @param isRecommendationsLoading - Recommendations loading state.
+ * @param isNewAccount - New account flag.
+ * @param onRetryRecommendations - Callback to retry recommendations.
+ * @param discoverError - Discover/trails fetch error.
+ * @param onRetryDiscover - Callback to retry discover trails.
  */
 export interface HomeScreenProps {
     locationTemp?: Record<string, unknown>;
@@ -62,16 +69,22 @@ export interface HomeScreenProps {
     onViewAllTrendingPress?: () => void;
     onSeeMoreDiscoverPress: () => void;
     onSeeMoreOffersPress: () => void;
-    recommendedTrails?: ITrail[];
-    discoverTrails?: ITrail[];
-    trailsWithOffers?: ITrail[];
-    isOffersLoading?: boolean;
+    recommendedTrails: ITrail[];
+    discoverTrails: ITrail[];
+    trailsWithOffers: ITrail[];
+    isOffersLoading: boolean;
     onMountainPress: (id: string) => void;
     onDownloadPress: (id: string) => void;
     onGroupPress: () => void;
     getItemRating: (id: string) => number;
     isLoading: boolean;
     offers?: any[];
+    recommendationsError?: string | null;
+    isRecommendationsLoading?: boolean;
+    isNewAccount?: boolean;
+    onRetryRecommendations?: () => void;
+    discoverError?: string | null;
+    onRetryDiscover?: () => void;
 }
 
 /**
@@ -95,6 +108,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     getItemRating,
     isLoading,
     offers = [],
+    recommendationsError = null,
+    isRecommendationsLoading = false,
+    isNewAccount = false,
+    onRetryRecommendations,
+    discoverError = null,
+    onRetryDiscover,
 }) => {
     const { latitude, longitude, locationName, geocodedName, isLocating } = useLocation();
     const { weatherData, loading, error, refetch } = useWeather(latitude, longitude);
@@ -134,6 +153,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         data: ITrail[];
         onViewAll: () => void;
         isSectionLoading: boolean;
+        error?: string | null;
+        onRetry?: () => void;
+        isNewAccountSection?: boolean;
     }
 
     /**
@@ -141,7 +163,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
      * 
      * @param props - The properties for the ListSection.
      */
-    const ListSection = ({ title, data, onViewAll, isSectionLoading }: ListSectionProps) => {
+    const ListSection = ({ 
+        title, 
+        data, 
+        onViewAll, 
+        isSectionLoading,
+        error = null,
+        onRetry,
+        isNewAccountSection = false,
+    }: ListSectionProps) => {
         const hasData = data && data.length > 0;
         const scrollRef = React.useRef<ScrollView>(null);
 
@@ -158,14 +188,43 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                         {title}
                     </CustomText>
 
-                    <TouchableOpacity onPress={onViewAll}>
-                        <CustomText variant="caption" style={styles.viewAllText}>
-                            See more
-                        </CustomText>
-                    </TouchableOpacity>
+                    {hasData && (
+                        <TouchableOpacity onPress={onViewAll}>
+                            <CustomText variant="caption" style={styles.viewAllText}>
+                                See more
+                            </CustomText>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                {isSectionLoading && !hasData ? (
+                {/* ERROR STATE: Renders if data fetching failed and no cached data exists */}
+                {error && !hasData ? (
+                    <View style={styles.emptyStateContainer}>
+                        <CustomIcon 
+                            library="Ionicons" 
+                            name="alert-circle-outline" 
+                            size={48} 
+                            color={Colors.RED} 
+                        />
+                        <CustomText variant="caption" style={styles.emptyStateText}>
+                            {/* Choose message based on section title */}
+                            {title === "Recommendations" 
+                                ? "Failed to load recommendations."
+                                : "Failed to load trails."}
+                        </CustomText>
+                        {onRetry && (
+                            <TouchableOpacity 
+                                style={styles.exploreButton}
+                                onPress={onRetry}
+                                activeOpacity={0.7}
+                            >
+                                <CustomText style={styles.exploreButtonText}>
+                                    Try Again
+                                </CustomText>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                ) : isSectionLoading && !hasData ? (
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator size="small" color={Colors.PRIMARY} />
                     </View>
@@ -251,16 +310,49 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     )
                 ) : (
                     <View style={styles.emptyStateContainer}>
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="trail-sign-outline" 
-                            size={48} 
-                            color={Colors.GRAY_MEDIUM} 
-                        />
-                        
-                        <CustomText variant="caption" style={styles.emptyStateText}>
-                            No trails available yet.
-                        </CustomText>
+                        {/* EMPTY STATE: Render custom labels and illustrations based on section and user status */}
+                        {title === "Recommendations" ? (
+                            /* New User (Cold Start): user profile has no logged hikes */
+                            isNewAccountSection ? (
+                                <>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="bulb-outline" 
+                                        size={48} 
+                                        color={Colors.GRAY_MEDIUM} 
+                                    />
+                                    <CustomText variant="caption" style={styles.emptyStateText}>
+                                        No recommendations yet. Start exploring!
+                                    </CustomText>
+                                </>
+                            ) : (
+                                /* Regular Empty Recommendations: user has logged hikes but no new recommendation matches */
+                                <>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="trail-sign-outline" 
+                                        size={48} 
+                                        color={Colors.GRAY_MEDIUM} 
+                                    />
+                                    <CustomText variant="caption" style={styles.emptyStateText}>
+                                        No matching recommendations found.
+                                    </CustomText>
+                                </>
+                            )
+                        ) : (
+                            /* Standard Empty State for all other trail lists*/
+                            <> 
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="trail-sign-outline" 
+                                    size={48} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                                <CustomText variant="caption" style={styles.emptyStateText}>
+                                    No trails available yet.
+                                </CustomText>
+                            </>
+                        )}
 
                         <TouchableOpacity 
                             style={styles.exploreButton}
@@ -308,7 +400,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     title="Recommendations" 
                     data={recommendedTrails} 
                     onViewAll={onSeeMoreRecommendationsPress} 
-                    isSectionLoading={isLoading}
+                    isSectionLoading={isLoading || isRecommendationsLoading}
+                    error={recommendationsError}
+                    onRetry={onRetryRecommendations}
+                    isNewAccountSection={isNewAccount}
                 />
 
                 <ListSection 
@@ -316,6 +411,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     data={discoverTrails}
                     onViewAll={onSeeMoreDiscoverPress} 
                     isSectionLoading={isLoading}
+                    error={discoverError}
+                    onRetry={onRetryDiscover}
                 />
 
                 {trailsWithOffers.length > 0 && (
@@ -360,7 +457,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        marginBottom: 0,
+        marginBottom: 8,
     },
     viewAllText: {
         color: Colors.PRIMARY,
@@ -399,6 +496,8 @@ const styles = StyleSheet.create({
     emptyStateText: {
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
+        textAlign: 'center',
+        paddingHorizontal: 24,
     },
     exploreButton: {
         backgroundColor: Colors.PRIMARY,
