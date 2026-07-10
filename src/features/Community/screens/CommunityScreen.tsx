@@ -32,16 +32,21 @@ import { useCommunity } from '../hooks/useCommunity';
 /**
  * Animated View component to handle smooth mounting fade-ins of feed list cards.
  */
-const FadeInView: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+const FadeInView: React.FC<{ children: React.ReactNode, itemId: string, animatedIds: Set<string> }> = ({ children, itemId, animatedIds }) => {
+    const hasAnimated = animatedIds.has(itemId);
+    const fadeAnim = useRef(new Animated.Value(hasAnimated ? 1 : 0)).current;
 
     useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 350,
-            useNativeDriver: true,
-        }).start();
-    }, [fadeAnim]);
+        if (!hasAnimated) {
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 350,
+                useNativeDriver: true,
+            }).start(() => {
+                animatedIds.add(itemId);
+            });
+        }
+    }, [fadeAnim, hasAnimated, itemId, animatedIds]);
 
     return (
         <Animated.View style={{ opacity: fadeAnim }}>
@@ -134,15 +139,24 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
 
+    const flatListRef = useRef<FlatList>(null);
+
     const handleTabSelect = (tab: string) => {
         setActiveTab(tab);
+        // If user is near the top (like, within 3000px), animate smoothly. 
+        // If they are deep in the list, snap instantly to prevent lag/crashes.
+        const shouldAnimate = lastOffsetY.current < 3000;
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: shouldAnimate });
     };
     
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
+    // Keep track of which items have already animated to prevent them from flashing when scrolling back up
+    const animatedIds = useRef(new Set<string>()).current;
+
     const renderPostCard = useCallback(({ item }: ListRenderItemInfo<any>) => (
-        <FadeInView>
+        <FadeInView itemId={item.id} animatedIds={animatedIds}>
             <PostCard 
                 review={item}
                 variant="community"
@@ -151,9 +165,9 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 onEdit={() => onWriteReviewPress(item)}
             />
         </FadeInView>
-    ), [likeReview, isLiked, onWriteReviewPress]);
+    ), [likeReview, isLiked, onWriteReviewPress, animatedIds]);
 
-    const renderFooter = () => {
+    const renderFooter = useCallback(() => {
         if (isFetchingMore) {
             return (
                 <View style={styles.footerLoaderContainer}>
@@ -166,24 +180,104 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 <View style={styles.footerLoaderContainer}>
                     <TouchableOpacity 
                         style={styles.retryButton} 
-                        onPress={onReload}
+                        onPress={onLoadMore}
                         activeOpacity={0.7}
                     >
                         <CustomText style={styles.retryButtonText}>
-                            Failed to load more. Tap to reload
+                            Failed to load more. Tap to retry
                         </CustomText>
                     </TouchableOpacity>
                 </View>
             );
         }
+        if (!hasMore && reviews.length > 0) {
+            return (
+                <View style={styles.footerLoaderContainer}>
+                    <CustomText style={styles.emptyStateText}>
+                        No more posts to show.
+                    </CustomText>
+                </View>
+            );
+        }
         return null;
-    };
+    }, [isFetchingMore, isError, hasMore, reviews.length, onLoadMore]);
 
-    const handleLoadMore = () => {
+    const renderEmptyComponent = useCallback(() => {
+        if (isLoading) {
+            return (
+                <View style={{ gap: 16 }}>
+                    <PostCardSkeleton />
+                    <PostCardSkeleton />
+                    <PostCardSkeleton />
+                </View>
+            );
+        }
+        if (isError) {
+            return (
+                <View style={styles.emptyStateContainer}>
+                    <CustomIcon library="Feather" name="alert-triangle" size={32} color={Colors.GRAY_MEDIUM} />
+                    <CustomText variant="caption" style={styles.emptyStateText}>
+                        Failed to load community reviews.
+                    </CustomText>
+                    <TouchableOpacity 
+                        style={styles.mainRetryButton} 
+                        onPress={onReload}
+                        activeOpacity={0.7}
+                    >
+                        <CustomText style={styles.mainRetryButtonText}>
+                            Reload Feed
+                        </CustomText>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyStateContainer}>
+                <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                <CustomText variant="caption" style={styles.emptyStateText}>
+                    {searchQuery ? "No posts found matching search." : "No community posts found."}
+                </CustomText>
+            </View>
+        );
+    }, [isLoading, isError, onReload, searchQuery]);
+
+    const handleScroll = useCallback(
+        Animated.event(
+            [],
+            {
+                useNativeDriver: false,
+                listener: (event: any) => {
+                    const currentOffsetY = event.nativeEvent.contentOffset.y;
+                    if (currentOffsetY <= 50) {
+                        setHeaderVisible(true);
+                        lastOffsetY.current = currentOffsetY;
+                        return;
+                    }
+                    const diff = currentOffsetY - lastOffsetY.current;
+                    
+                    // Ignore layout size reflow changes / jumps
+                    if (Math.abs(diff) > 100) {
+                        lastOffsetY.current = currentOffsetY;
+                        return;
+                    }
+
+                    if (diff > 15 && headerVisible) {
+                        setHeaderVisible(false);
+                    } else if (diff < -15 && !headerVisible) {
+                        setHeaderVisible(true);
+                    }
+                    lastOffsetY.current = currentOffsetY;
+                }
+            }
+        ),
+        [headerVisible]
+    );
+
+    const handleLoadMore = useCallback(() => {
         if (hasMore && !isFetchingMore && !isError && onLoadMore) {
             onLoadMore();
         }
-    };
+    }, [hasMore, isFetchingMore, isError, onLoadMore]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -247,8 +341,9 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
 
                 <View style={styles.feedWrapper}>
                     <FlatList
+                        ref={flatListRef}
                         data={filteredReviews}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item, index) => item.id || `post-${index}`}
                         contentContainerStyle={[
                             styles.scrollContent,
                             { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%', paddingTop: 215 }
@@ -259,34 +354,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                         }
                         renderItem={renderPostCard}
                         scrollEventThrottle={16}
-                        onScroll={Animated.event(
-                            [],
-                            {
-                                useNativeDriver: false,
-                                listener: (event: any) => {
-                                    const currentOffsetY = event.nativeEvent.contentOffset.y;
-                                    if (currentOffsetY <= 50) {
-                                        setHeaderVisible(true);
-                                        lastOffsetY.current = currentOffsetY;
-                                        return;
-                                    }
-                                    const diff = currentOffsetY - lastOffsetY.current;
-                                    
-                                    // Ignore layout size reflow changes / jumps
-                                    if (Math.abs(diff) > 100) {
-                                        lastOffsetY.current = currentOffsetY;
-                                        return;
-                                    }
-
-                                    if (diff > 15 && headerVisible) {
-                                        setHeaderVisible(false);
-                                    } else if (diff < -15 && !headerVisible) {
-                                        setHeaderVisible(true);
-                                    }
-                                    lastOffsetY.current = currentOffsetY;
-                                }
-                            }
-                        )}
+                        onScroll={handleScroll}
                         initialNumToRender={5}
                         maxToRenderPerBatch={5}
                         windowSize={5}
@@ -295,38 +363,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                         onEndReached={handleLoadMore}
                         onEndReachedThreshold={0.5}
                         ListFooterComponent={renderFooter}
-                        ListEmptyComponent={
-                            isLoading ? (
-                                <View style={{ gap: 16 }}>
-                                    <PostCardSkeleton />
-                                    <PostCardSkeleton />
-                                    <PostCardSkeleton />
-                                </View>
-                            ) : isError ? (
-                                <View style={styles.emptyStateContainer}>
-                                    <CustomIcon library="Feather" name="alert-triangle" size={32} color={Colors.GRAY_MEDIUM} />
-                                    <CustomText variant="caption" style={styles.emptyStateText}>
-                                        Failed to load community reviews.
-                                    </CustomText>
-                                    <TouchableOpacity 
-                                        style={styles.mainRetryButton} 
-                                        onPress={onReload}
-                                        activeOpacity={0.7}
-                                    >
-                                        <CustomText style={styles.mainRetryButtonText}>
-                                            Reload Feed
-                                        </CustomText>
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <View style={styles.emptyStateContainer}>
-                                    <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                                    <CustomText variant="caption" style={styles.emptyStateText}>
-                                        {searchQuery ? "No posts found matching search." : "No community posts found."}
-                                    </CustomText>
-                                </View>
-                            )
-                        }
+                        ListEmptyComponent={renderEmptyComponent}
                     />
                 </View>
 
