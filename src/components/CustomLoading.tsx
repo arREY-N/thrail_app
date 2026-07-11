@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 9999,
-        ...GlobalStyles.dropShadow(10),
     },
     container: {
         backgroundColor: Colors.WHITE,
