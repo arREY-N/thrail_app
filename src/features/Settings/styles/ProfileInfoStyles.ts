@@ -8,8 +8,6 @@ import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 
-const dropShadow = GlobalStyles.dropShadow(2);
-
 export const styles = StyleSheet.create({
     contentArea: {
         flex: 1,
@@ -106,7 +104,7 @@ export const styles = StyleSheet.create({
         padding: 24,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(2),
     },
     cardHeader: {
         flexDirection: 'row',

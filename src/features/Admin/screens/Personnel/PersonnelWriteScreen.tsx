@@ -174,8 +174,6 @@ const PersonnelWriteScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
@@ -232,7 +230,7 @@ const styles = StyleSheet.create({
         gap: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...(dropShadow),
+        ...GlobalStyles.dropShadow(3),
     },
     avatar: { 
         width: 44, 

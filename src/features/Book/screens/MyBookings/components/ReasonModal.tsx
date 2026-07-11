@@ -153,8 +153,6 @@ const ReasonModal = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     overlay: { 
         flex: 1, 
@@ -173,7 +171,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         maxHeight: '90%' 
     },
     header: { 

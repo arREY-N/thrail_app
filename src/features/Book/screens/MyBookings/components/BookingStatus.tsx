@@ -218,8 +218,6 @@ const BookingStatus = ({ status, reason }: BookingStatusProps) => {
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { 
         backgroundColor: Colors.WHITE, 
@@ -233,7 +231,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     headerRow: { 
         flexDirection: 'row', 

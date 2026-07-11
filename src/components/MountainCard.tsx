@@ -220,20 +220,7 @@ const styles = StyleSheet.create({
         overflow: "hidden", 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        ...Platform.select({ 
-            ios: { 
-                shadowColor: Colors.SHADOW, 
-                shadowOffset: { width: 0, height: 4 }, 
-                shadowOpacity: 0.1, 
-                shadowRadius: 6 
-            }, 
-            android: {
-                ...GlobalStyles.dropShadow(4),
-            }, 
-            web: { 
-                boxShadow: `0px 4px 6px ${Colors.SHADOW}1A` 
-            } 
-        }) 
+        ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 6 }), 
     },
     imageContainer: { 
         height: 180, 

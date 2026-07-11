@@ -25,8 +25,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 /**
  * Props for the EmergencyModal component.
  */
@@ -496,7 +494,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24, 
         paddingTop: 24, 
         maxHeight: '90%', 
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     bottomSheetMobile: {
         width: '100%',
@@ -566,7 +564,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_ULTRALIGHT, 
         marginBottom: 20, 
         overflow: 'hidden', 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
     dropdownItem: { 
         flexDirection: 'row', 

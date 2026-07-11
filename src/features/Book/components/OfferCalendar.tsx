@@ -197,8 +197,6 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { width: '100%', marginBottom: 0 },
     dropdownButton: {
@@ -206,7 +204,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, paddingHorizontal: 16, paddingVertical: 14,
         borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT,
          
-          ...dropShadow,
+          ...GlobalStyles.dropShadow(3),
     },
     dropdownActive: { borderColor: Colors.PRIMARY },
     dropdownText: { fontWeight: '600', color: Colors.TEXT_PRIMARY },
@@ -214,7 +212,7 @@ const styles = StyleSheet.create({
         marginTop: 8, backgroundColor: Colors.WHITE, borderRadius: 16,
         padding: 16, borderWidth: 1, borderColor: Colors.GRAY_LIGHT,
          
-          ...dropShadow,
+          ...GlobalStyles.dropShadow(3),
     },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     monthTitle: { fontWeight: 'bold', fontSize: 16 },

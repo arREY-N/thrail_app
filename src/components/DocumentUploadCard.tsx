@@ -189,11 +189,8 @@ const styles = StyleSheet.create({
         borderRadius: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 4, 
-...GlobalStyles.dropShadow(2),},
+        ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 4 }),
+    },
     uploadCardError: {
         borderColor: Colors.ERROR_BORDER,
         backgroundColor: Colors.ERROR_BG, 

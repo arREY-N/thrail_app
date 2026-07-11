@@ -417,21 +417,9 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        ...GlobalStyles.dropShadow(3),
+        ...GlobalStyles.dropShadow(3, 0.05, Colors.SHADOW, { radius: 8 }),
         overflow: 'hidden',
         padding: 16,
-        ...Platform.select({
-            web: {
-                boxShadow: `0px 4px 8px ${Colors.SHADOW}0D`,
-            },
-        }),
     },
     header: {
         flexDirection: 'row',

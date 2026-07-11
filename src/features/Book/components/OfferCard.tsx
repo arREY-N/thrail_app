@@ -309,8 +309,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     offerCard: {
         backgroundColor: Colors.WHITE,
@@ -323,7 +321,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     selectedOfferCard: {
         borderColor: Colors.PRIMARY,

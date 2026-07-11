@@ -191,8 +191,6 @@ const LeaderboardScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { flex: 1 },
     tabContainer: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: Colors.BACKGROUND, gap: 8 },
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
     listInfo: { flex: 1 },
     listName: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
     listScore: { color: Colors.TEXT_PRIMARY },
-    currentUserFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_LIGHT, paddingBottom: 24, paddingTop: 8,     ...dropShadow, },
+    currentUserFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_LIGHT, paddingBottom: 24, paddingTop: 8,     ...GlobalStyles.dropShadow(3), },
 });
 
 export default LeaderboardScreen;

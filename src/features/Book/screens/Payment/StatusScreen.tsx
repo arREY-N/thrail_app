@@ -77,8 +77,6 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCod
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     constrainer: {
         width: '100%',
@@ -105,7 +103,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         marginBottom: 20, 
 
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     title: { 
         marginBottom: 12, 
@@ -128,7 +126,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     summaryTitle: { 
         marginBottom: 16, 

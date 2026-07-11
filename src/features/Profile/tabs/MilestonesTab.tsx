@@ -169,8 +169,6 @@ const MilestonesTab = ({ stats }: MilestonesTabProps) => {
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: {
         gap: 16,
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     cardHeader: {
         flexDirection: 'row',
@@ -214,7 +212,7 @@ const styles = StyleSheet.create({
     badgeEarned: {
         backgroundColor: Colors.PRIMARY,
         borderColor: Colors.PRIMARY,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     badgeLocked: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
@@ -247,7 +245,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     bentoHeader: {
         flexDirection: 'row',

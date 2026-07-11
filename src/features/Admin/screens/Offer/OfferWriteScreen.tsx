@@ -652,8 +652,6 @@ const OfferWriteScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: { 
         paddingVertical: 24, 
@@ -674,7 +672,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT,
         gap: 24,

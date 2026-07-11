@@ -154,17 +154,6 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
     );
 };
 
-const dropShadow = {
-    shadowColor: Colors.SHADOW,
-    shadowOffset: { 
-        width: 0, 
-        height: -4 
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-...GlobalStyles.dropShadow(10),
-};
-
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
@@ -181,7 +170,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         width: '100%',
         maxHeight: '85%',
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(10, 0.08, Colors.SHADOW, {
+            offset: { width: 0, height: -4 },
+            radius: 20
+        }),
     },
     modalContentMobile: {
         borderTopLeftRadius: 24,

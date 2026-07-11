@@ -6,6 +6,7 @@ import CustomText from '@/src/components/CustomText';
 import { WeatherWidgetSkeleton } from '@/src/features/Home/components/WeatherSkeleton';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { ProcessedWeatherData } from '../core/types/weather';
 import { IconLibrary } from '@/src/types/ui.types';
 import {
@@ -226,11 +227,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
-    android: { elevation: 2 },
-    web: { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.06)' }
-});
+
 
 const styles = StyleSheet.create({
     container: {
@@ -374,7 +371,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }),
     },
     gridLabel: {
         color: Colors.TEXT_SECONDARY,
@@ -401,7 +398,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     sunItem: {
         flexDirection: 'row',

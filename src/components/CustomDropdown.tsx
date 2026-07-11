@@ -203,14 +203,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden', 
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-...GlobalStyles.dropShadow(5),
+        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 8 }),
         maxHeight: 200,
     },
     scrollList: {

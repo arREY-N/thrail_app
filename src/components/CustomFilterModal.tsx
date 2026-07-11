@@ -281,8 +281,6 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     modalContainer: { 
         flex: 1, 
@@ -299,7 +297,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         width: '100%', 
         maxHeight: '85%', 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3)
     },
     modalContentMobile: { 
         borderTopLeftRadius: 24, 

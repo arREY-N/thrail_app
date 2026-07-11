@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 9999,
-...GlobalStyles.dropShadow(10),
+        ...GlobalStyles.dropShadow(10),
     },
     container: {
         backgroundColor: Colors.WHITE,
@@ -59,14 +59,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 16,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-...GlobalStyles.dropShadow(5),
+        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 12 }),
         minWidth: 150,
     },
     text: {

@@ -363,8 +363,6 @@ const SecurityScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     content: {
         padding: 20,
@@ -397,7 +395,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_ULTRALIGHT,
     },
     shadow: {
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     cardHeader: {
         flexDirection: 'row',
@@ -462,7 +460,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         padding: 24,
         gap: 16,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     modalCardDesktop: {
         maxWidth: 500,

@@ -69,8 +69,6 @@ const QuickInfoCard = ({ booking }: QuickInfoCardProps) => {
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     cardContainer: {
         backgroundColor: Colors.WHITE,
@@ -88,7 +86,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     column: { 
         flex: 1, 

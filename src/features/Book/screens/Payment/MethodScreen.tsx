@@ -185,8 +185,6 @@ const MethodScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     constrainer: {
         width: '100%',
@@ -242,7 +240,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     toggleText: { 
         fontWeight: 'bold', 

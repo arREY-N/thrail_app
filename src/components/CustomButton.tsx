@@ -90,23 +90,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    shadows: Platform.select({
-        ios: {
-            shadowColor: Colors.SHADOW,
-            shadowOffset: { 
-                width: 0, 
-                height: 4 
-            },
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-        },
-        android: {
-...GlobalStyles.dropShadow(4),
-        },
-        web: {
-            boxShadow: `0px 4px 8px ${Colors.SHADOW}1F`, 
-        }
-    }) as any,
+    shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as any,
     baseText: {
         fontWeight: 'bold',
         fontSize: 16,

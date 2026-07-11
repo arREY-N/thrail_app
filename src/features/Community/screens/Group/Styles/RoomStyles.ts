@@ -5,8 +5,6 @@ import { Platform, StyleSheet } from 'react-native';
 export const BUBBLE_H_PAD: number = 11;
 export const BUBBLE_V_PAD: number = 7;
 
-export const dropShadow = GlobalStyles.dropShadow(3);
-
 export const styles = StyleSheet.create({
     container: { 
         flex: 1, 
@@ -76,7 +74,7 @@ export const styles = StyleSheet.create({
         borderBottomRightRadius: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         alignSelf: 'flex-start', 
         overflow: 'hidden', 
         marginLeft: 0 

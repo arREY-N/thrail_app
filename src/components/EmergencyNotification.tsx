@@ -16,8 +16,6 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 /**
  * EmergencyNotification — A component that displays a notification banner if the user
  * has not yet set up an emergency contact, prompting them to open the EmergencyModal.
@@ -166,7 +164,7 @@ const styles = StyleSheet.create({
         padding: 16, 
         width: '100%',
         maxWidth: Layout.MAX_WIDTH - 32,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     notifHeader: { 
         flexDirection: 'row', 

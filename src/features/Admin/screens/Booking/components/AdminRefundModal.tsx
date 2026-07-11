@@ -102,8 +102,6 @@ const AdminRefundModal = ({ visible, onClose, onSelect, amountPaid = 0 }: AdminR
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
@@ -152,7 +150,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     iconWrapper: {
         width: 44,

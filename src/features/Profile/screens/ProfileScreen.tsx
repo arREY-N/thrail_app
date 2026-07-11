@@ -242,21 +242,6 @@ const ProfileScreen = ({
     );
 };
 
-const tabShadow = Platform.select({
-    ios: {
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8
-    },
-    android: {
-...GlobalStyles.dropShadow(4),
-    },
-    web: {
-        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    }
-});
-
 const styles = StyleSheet.create({
     transparentHeader: {
         backgroundColor: 'transparent',
@@ -352,7 +337,7 @@ const styles = StyleSheet.create({
     },
     tabButtonActive: {
         backgroundColor: Colors.WHITE, 
-        ...tabShadow, 
+        ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 8 }), 
     },
     tabText: {
         fontSize: 14, 

@@ -62,8 +62,6 @@ const BookingOverviewCard = ({ booking }: BookingOverviewCardProps) => {
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     card: { 
         backgroundColor: Colors.WHITE, 
@@ -75,7 +73,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         marginBottom: 16,
     },
     trailName: { 

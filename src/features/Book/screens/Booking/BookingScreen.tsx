@@ -281,8 +281,6 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     progressOuterBounds: {
         width: '100%',
@@ -304,7 +302,7 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     progressContainer: {
         position: 'relative',

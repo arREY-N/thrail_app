@@ -163,8 +163,6 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: Mou
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: {
         width: '100%',
@@ -216,7 +214,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     listScroll: {
         maxHeight: 320, 

@@ -343,8 +343,6 @@ const PaymentScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     contentArea: { 
         flex: 1 
@@ -365,7 +363,7 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24, 
         zIndex: 10, 
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     progressContainer: { 
         position: 'relative',

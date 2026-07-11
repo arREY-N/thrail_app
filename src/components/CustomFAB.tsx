@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
+import {
     GestureResponderEvent,
     StyleProp,
-    StyleSheet, 
+    StyleSheet,
     TouchableOpacity,
     ViewStyle
 } from 'react-native';
@@ -64,14 +64,10 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-...GlobalStyles.dropShadow(6),
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        ...GlobalStyles.dropShadow(6, 0.3, Colors.SHADOW, {
+            offset: { width: 0, height: 4 },
+            radius: 6
+        }),
         zIndex: 1000,
     }
 });

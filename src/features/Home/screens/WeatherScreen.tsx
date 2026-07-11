@@ -435,8 +435,6 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { 
         flex: 1,
@@ -568,7 +566,7 @@ const styles = StyleSheet.create({
         gap: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
     cardHeader: { 
         flexDirection: 'row', 
@@ -649,7 +647,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
 
     bentoBoxDesktop: {

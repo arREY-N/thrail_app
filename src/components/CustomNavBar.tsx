@@ -182,22 +182,9 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
-        ...Platform.select({
-            ios: {
-                shadowColor: Colors.SHADOW, 
-                shadowOffset: { 
-                    width: 0, 
-                    height: -4 
-                },
-                shadowOpacity: 0.1,
-                shadowRadius: 6,
-            },
-            android: {
-...GlobalStyles.dropShadow(12),
-            },
-            web: {
-                boxShadow: `0px -4px 10px ${Colors.SHADOW}0D`,
-            },
+        ...GlobalStyles.dropShadow(12, 0.1, Colors.SHADOW, {
+            offset: { width: 0, height: -4 },
+            radius: 6
         }),
     } as any,
     tabItem: {

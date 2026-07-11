@@ -186,8 +186,6 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
     constrainer: { width: '100%', maxWidth: Layout.MAX_WIDTH, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 16 },
@@ -201,7 +199,7 @@ const styles = StyleSheet.create({
     headerActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6 },
     headerActionBtnText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 13 },
     
-    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT,     ...dropShadow, },
+    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT,     ...GlobalStyles.dropShadow(3), },
     infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
     iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     infoCol: { marginLeft: 16, flex: 1 },

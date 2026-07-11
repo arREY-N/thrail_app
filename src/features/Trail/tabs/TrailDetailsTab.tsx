@@ -12,8 +12,6 @@ import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail.types';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { ROUTE_GLOSSARY, getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 export interface TrailDetailsTabProps {
     stats: { distance: string | number; elevation: string | number };
     trailStats?: ITrailStats | null;
@@ -283,14 +281,14 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 const styles = StyleSheet.create({
     tabContent: { gap: 28, paddingBottom: 20, width: '100%', maxWidth: 860, alignSelf: 'center' },
     section: { marginBottom: 4 },
-    statsCard: { backgroundColor: Colors.WHITE, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, gap: 16, ...dropShadow },
+    statsCard: { backgroundColor: Colors.WHITE, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, gap: 16, ...GlobalStyles.dropShadow(3) },
     statsRow: { flexDirection: 'row', justifyContent: 'space-around', zIndex: 2 },
     divider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginHorizontal: 16, marginVertical: 4 },
-    aboutCard: { backgroundColor: Colors.WHITE, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...dropShadow },
+    aboutCard: { backgroundColor: Colors.WHITE, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3) },
     descriptionText: { color: Colors.TEXT_SECONDARY, lineHeight: 26, fontSize: 15, textAlign: 'justify', letterSpacing: 0.2 },
     readMoreButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.GRAY_ULTRALIGHT, gap: 4 },
     readMoreText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 14 },
-    difficultyDashboard: { backgroundColor: Colors.WHITE, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...dropShadow },
+    difficultyDashboard: { backgroundColor: Colors.WHITE, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3) },
     diffMetricsContainer: { flexDirection: 'row', padding: 20 },
     diffWidget: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
     diffIconWrapper: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
@@ -308,7 +306,7 @@ const styles = StyleSheet.create({
     criticalTitle: { fontWeight: 'bold', color: Colors.ERROR, marginBottom: 4 },
     criticalText: { color: Colors.TEXT_PRIMARY, fontSize: 14, lineHeight: 20 },
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    mapCard: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...dropShadow, backgroundColor: '#EFEFEF', position: 'relative' },
+    mapCard: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3), backgroundColor: '#EFEFEF', position: 'relative' },
     mapImage: { width: '100%', height: '100%' },
     mapDarkenOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)' },
     mapRouteLabel: { position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', zIndex: 2 },

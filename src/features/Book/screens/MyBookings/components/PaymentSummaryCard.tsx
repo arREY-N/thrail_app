@@ -88,8 +88,6 @@ const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payment
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: {
         backgroundColor: Colors.WHITE,
@@ -103,7 +101,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     title: {
         fontWeight: 'bold',

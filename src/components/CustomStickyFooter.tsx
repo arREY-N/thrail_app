@@ -86,18 +86,14 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         paddingHorizontal: 16,
         paddingTop: 16,
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: -4 
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
-...GlobalStyles.dropShadow(10), 
+        ...GlobalStyles.dropShadow(10, 0.1, Colors.SHADOW, {
+            offset: { width: 0, height: -4 },
+            radius: 4
+        }), 
     },
     buttonRow: { 
         flexDirection: 'row', 

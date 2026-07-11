@@ -139,8 +139,6 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }: Notific
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     listContent: {
         padding: 16,
@@ -158,7 +156,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     cardPressed: {
         opacity: 0.9,

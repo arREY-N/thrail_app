@@ -302,8 +302,6 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: {
         flex: 1, 
@@ -342,7 +340,7 @@ const styles = StyleSheet.create({
                 
             },
             android: {
-                ...dropShadow,
+                ...GlobalStyles.dropShadow(3),
             },
             web: {
                 boxShadow: '0px -8px 24px rgba(0, 0, 0, 0.12)'

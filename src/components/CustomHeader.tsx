@@ -164,21 +164,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
     },
     flatHeader: {
-...GlobalStyles.dropShadow(0),
-        shadowOpacity: 0,
+        ...GlobalStyles.dropShadow(0, 0),
         borderBottomWidth: 0,
     },
     withSearchShadowAndRadius: {
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-...GlobalStyles.dropShadow(4),
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 4 }),
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
     },

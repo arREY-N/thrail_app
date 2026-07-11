@@ -224,8 +224,6 @@ const TACScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
@@ -249,7 +247,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     modalCardLarge: {
         maxWidth: 900,
@@ -285,7 +283,7 @@ const styles = StyleSheet.create({
         
         
         
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     activeTabRead: {
         backgroundColor: Colors.PRIMARY,

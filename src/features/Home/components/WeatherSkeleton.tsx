@@ -194,8 +194,6 @@ export const WeatherWidgetSkeleton = () => {
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
@@ -305,7 +303,7 @@ const styles = StyleSheet.create({
         gap: 16,
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
     cardHeader: { 
         flexDirection: 'row', 
@@ -353,7 +351,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
     // Desktop Bento Box Constraint
     bentoBoxDesktop: {
@@ -494,7 +492,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'transparent',
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     gridIconSkeleton: {
         width: 22,
@@ -529,7 +527,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderWidth: 1, 
         borderColor: 'transparent', 
-        ...dropShadow
+        ...GlobalStyles.dropShadow(3)
     },
     widgetSunLabelSkeleton: {
         width: 50,

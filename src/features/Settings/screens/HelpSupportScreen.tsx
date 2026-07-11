@@ -168,8 +168,6 @@ const HelpSupportScreen = ({ faqs, onSubmitRequest, onBackPress }: HelpSupportSc
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     content: {
         padding: 20,
@@ -206,7 +204,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         gap: 16,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     contactDescription: {
         color: Colors.TEXT_SECONDARY,
@@ -226,7 +224,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         padding: 24,
         gap: 20,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     modalCardDesktop: {
         maxWidth: 500,

@@ -222,8 +222,6 @@ const BookingCard: React.FC<BookingCardProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     cardContainer: { 
         backgroundColor: Colors.WHITE, 
@@ -236,7 +234,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     topRow: { 
         flexDirection: 'row', 

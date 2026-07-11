@@ -330,14 +330,7 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 16,
         
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 10 
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 15,
-...GlobalStyles.dropShadow(10),
+        ...GlobalStyles.dropShadow(10, 0.25, Colors.SHADOW, { radius: 15 }),
         overflow: 'hidden',
     },
     modalHeader: {

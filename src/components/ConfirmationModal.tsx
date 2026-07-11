@@ -144,14 +144,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         width: '100%',
         maxWidth: 380, 
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { 
-            width: 0, 
-            height: 4 
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-...GlobalStyles.dropShadow(5),
+        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 12 }),
     },
     iconWrapper: {
         alignItems: 'center',

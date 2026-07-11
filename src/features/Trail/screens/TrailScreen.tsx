@@ -15,6 +15,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
 import { IReview } from '@/src/core/models/Review/Review.types';
 import { ITrail } from '@/src/core/models/Trail/Trail.types';
@@ -275,12 +276,12 @@ const styles = StyleSheet.create({
         paddingTop: 24,
         paddingHorizontal: 24,
 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
+        ...GlobalStyles.dropShadow(2, 0.1, Colors.SHADOW, {
+            offset: { width: 0, height: -2 },
+            radius: 4
+        }),
     },
     headerInfo: {
         marginBottom: 24,

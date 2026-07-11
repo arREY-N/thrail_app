@@ -477,14 +477,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         borderRadius: 20, 
         padding: 20, 
-        shadowColor: Colors.SHADOW, 
-        shadowOffset: { 
-            width: 0, 
-            height: 10, 
-        }, 
-        shadowOpacity: 0.15, 
-        shadowRadius: 20, 
-...GlobalStyles.dropShadow(10), 
+        ...GlobalStyles.dropShadow(10, 0.15, Colors.SHADOW, { radius: 20 }), 
     },
     calendarHeader: { 
         flexDirection: 'row', 

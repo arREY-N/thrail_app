@@ -551,14 +551,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     );
 };
 
-const dropShadow = Platform.select({ ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 }, android: {...GlobalStyles.dropShadow(),} });
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
     
     floatingHeaderContainer: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 50 },
-    glassPillRound: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', ...dropShadow },
-    glassPillCenter: { flexShrink: 1, minHeight: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, ...dropShadow },
+    glassPillRound: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    glassPillCenter: { flexShrink: 1, minHeight: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     
     headerTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
     liveStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
@@ -566,13 +564,13 @@ const styles = StyleSheet.create({
     statusDot: { width: 6, height: 6, borderRadius: 3 },
 
     mapControls: { position: 'absolute', right: 16, gap: 12, zIndex: 30 },
-    fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...dropShadow },
+    fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
     dashboardWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 40, alignItems: 'center' },
-    errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...dropShadow },
+    errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     errorLabel: { color: Colors.ERROR, fontWeight: "600", fontSize: 13, flex: 1 },
 
-    metricsCard: { backgroundColor: Colors.WHITE, borderRadius: 24, paddingVertical: 20, marginBottom: 12, width: '100%', maxWidth: Layout.MAX_WIDTH, ...dropShadow },
+    metricsCard: { backgroundColor: Colors.WHITE, borderRadius: 24, paddingVertical: 20, marginBottom: 12, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     metricsGrid: { flexDirection: 'row', paddingHorizontal: 8, alignItems: 'center' },
     metricItem: { flex: 1, alignItems: "center" },
     metricDivider: { width: 1, height: '80%', backgroundColor: Colors.GRAY_LIGHT },
@@ -581,13 +579,13 @@ const styles = StyleSheet.create({
     
     actionRow: { flexDirection: "row", gap: 12, width: '100%', maxWidth: Layout.MAX_WIDTH },
     
-    lightGreenBtn: { flex: 1, backgroundColor: Colors.STATUS_APPROVED_BG, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...dropShadow },
+    lightGreenBtn: { flex: 1, backgroundColor: Colors.STATUS_APPROVED_BG, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     lightGreenBtnText: { color: Colors.PRIMARY, fontWeight: "bold", fontSize: 16 },
     
-    pauseBtn: { flex: 1, backgroundColor: Colors.YELLOW, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...dropShadow },
+    pauseBtn: { flex: 1, backgroundColor: Colors.YELLOW, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     pauseBtnText: { color: Colors.WHITE, fontWeight: "bold", fontSize: 16 },
 
-    animatedFinishBtn: { height: 56, borderRadius: 16, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.ERROR, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, overflow: 'hidden', ...dropShadow },
+    animatedFinishBtn: { height: 56, borderRadius: 16, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.ERROR, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, overflow: 'hidden', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     progressFillFinish: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: Colors.ERROR_BG }, 
     btnContent: { zIndex: 2 },
     actionTextFinish: { color: Colors.ERROR, fontWeight: "bold", fontSize: 16 },

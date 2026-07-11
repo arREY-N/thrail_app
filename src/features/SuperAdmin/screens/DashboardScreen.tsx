@@ -277,8 +277,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
@@ -353,7 +351,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     iconWrapper: {
         width: 36,
@@ -387,7 +385,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden',
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(3),
     },
     navItem: {
         flexDirection: 'row',

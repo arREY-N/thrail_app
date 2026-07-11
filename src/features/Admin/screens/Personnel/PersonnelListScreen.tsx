@@ -147,8 +147,6 @@ const PersonnelListScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: { 
         padding: 16, 
@@ -186,7 +184,7 @@ const styles = StyleSheet.create({
         borderRadius: 16, 
         alignItems: 'flex-start', 
         gap: 16, 
-        ...(dropShadow as any), 
+        ...GlobalStyles.dropShadow(3),
     },
     avatar: { 
         width: 48, 

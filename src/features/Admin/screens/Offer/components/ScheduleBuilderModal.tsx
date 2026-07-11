@@ -593,8 +593,6 @@ const ScheduleBuilderModal = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     modalContainer: { 
         flex: 1, 
@@ -611,7 +609,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND, 
         width: '100%', 
         maxHeight: '90%', 
-        ...(dropShadow as any) 
+        ...GlobalStyles.dropShadow(3)
     },
     contentMobile: { 
         borderTopLeftRadius: 24, 
@@ -655,7 +653,7 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...dropShadow 
+        ...GlobalStyles.dropShadow(3) 
     },
     dayHeader: { 
         flexDirection: 'row', 

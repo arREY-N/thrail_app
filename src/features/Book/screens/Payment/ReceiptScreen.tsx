@@ -183,8 +183,6 @@ const ReceiptScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     constrainer: {
         width: '100%',
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     successTitle: { 
         color: Colors.TEXT_PRIMARY, 
@@ -233,7 +231,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         marginBottom: 24 
     },
     ticketHeader: { 

@@ -229,8 +229,6 @@ const StatusScreen: React.FC<StatusScreenProps> = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     container: { 
         flex: 1, 
@@ -259,7 +257,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center', 
         marginBottom: 20,
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     iconCircleError: { 
         backgroundColor: Colors.ERROR, 
@@ -302,7 +300,7 @@ const styles = StyleSheet.create({
          
          
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
     },
     summaryTitle: { 
         marginBottom: 16, 

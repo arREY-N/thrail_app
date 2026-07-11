@@ -322,8 +322,6 @@ const ApplyScreen = ({
     );
 };
 
-const dropShadow = GlobalStyles.dropShadow(3);
-
 const styles = StyleSheet.create({
     scrollContent: { 
         paddingTop: 8, 
@@ -383,7 +381,7 @@ const styles = StyleSheet.create({
          
         
          
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(3), 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT,
     },
