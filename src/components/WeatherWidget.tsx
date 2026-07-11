@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -7,8 +7,8 @@ import { WeatherWidgetSkeleton } from '@/src/features/Home/components/WeatherSke
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { ProcessedWeatherData } from '../core/types/weather';
 import { IconLibrary } from '@/src/types/ui.types';
+import { ProcessedWeatherData } from '../core/types/weather';
 import {
     formatForecastDay,
     formatLastUpdatedLabel,
@@ -226,8 +226,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
         </View>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     container: {
