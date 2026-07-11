@@ -1,5 +1,10 @@
-import React, { useCallback, useState } from 'react';
-import { RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+/**
+ * @file PersonnelListScreen.tsx
+ * @description Displays the list of admins for a business, allowing the business owner to add admins and refresh the list with visual indicators for the current user and roles.
+ */
+
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -11,11 +16,25 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IUser } from '@/src/core/models/User/User.types';
+import { IAdmin } from '@/src/core/models/Admin/Admin.types';
+import { getInitials } from '@/src/utils/dateFormatter';
 
+/**
+ * Interface representing the properties of the PersonnelListScreen component.
+ * 
+ * @param businessId - The associated business entity ID.
+ * @param businessAdmins - The array of current business admins.
+ * @param ownerId - The ID of the business owner.
+ * @param currentUserId - The ID of the currently logged-in administrator.
+ * @param onReloadPress - Callback handler to refresh/reload the admins list.
+ * @param onBackPress - Callback handler to navigate back.
+ * @param onAddAdminPress - Callback handler to navigate to the Add Admin screen.
+ */
 export interface PersonnelListScreenProps {
     businessId: string;
-    businessAdmins: IUser[];
+    businessAdmins: IAdmin[];
+    ownerId?: string;
+    currentUserId?: string;
     onReloadPress: (businessId: string) => Promise<void>;
     onBackPress: () => void;
     onAddAdminPress: () => void;
@@ -24,34 +43,90 @@ export interface PersonnelListScreenProps {
 /**
  * PersonnelListScreen — Displays the list of admins for the business.
  */
-const PersonnelListScreen = ({ 
+const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({ 
     businessId, 
     businessAdmins, 
+    ownerId,
+    currentUserId,
     onReloadPress, 
     onBackPress,
     onAddAdminPress
-}: PersonnelListScreenProps) => {
+}) => {
     
-    const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
+    const [isReloading, setIsReloading] = useState<boolean>(false);
+    const spinAnim = useRef<Animated.Value>(new Animated.Value(0)).current;
+
+    const sortedAdmins = useMemo(() => {
+        return [...businessAdmins].sort((a, b) => {
+            const aIsOwner = ownerId ? a.id === ownerId : false;
+            const bIsOwner = ownerId ? b.id === ownerId : false;
+
+            if (aIsOwner) return -1;
+            if (bIsOwner) return 1;
+
+            const aName = `${a.firstname || ''} ${a.lastname || ''}`.trim() || a.username || '';
+            const bName = `${b.firstname || ''} ${b.lastname || ''}`.trim() || b.username || '';
+
+            return aName.localeCompare(bName);
+        });
+    }, [businessAdmins, ownerId]);
+
+    const startSpin = () => {
+        spinAnim.setValue(0);
+        Animated.loop(
+            Animated.timing(spinAnim, {
+                toValue: 1,
+                duration: 1000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    };
+
+    const stopSpin = () => {
+        spinAnim.stopAnimation();
+        spinAnim.setValue(0);
+    };
+
+    const handleReload = async () => {
+        if (isReloading) return;
+        setIsReloading(true);
+        startSpin();
+        try {
+            await onReloadPress(businessId);
+        } finally {
+            stopSpin();
+            setIsReloading(false);
+        }
+    };
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await onReloadPress(businessId);
-        setRefreshing(false);
+        startSpin();
+        try {
+            await onReloadPress(businessId);
+        } finally {
+            stopSpin();
+            setRefreshing(false);
+        }
     }, [businessId, onReloadPress]);
 
-    const AdminCard = ({ admin }: { admin: IUser }) => {
-        const initials = `${admin.firstname?.charAt(0) || ''}${admin.lastname?.charAt(0) || ''}`.trim().toUpperCase();
-        
+    const AdminCard = ({ admin }: { admin: IAdmin }) => {
+        const isOwner = ownerId ? admin.id === ownerId : false;
+        const isMe = currentUserId ? admin.id === currentUserId : false;
+
         const fullName = (admin.firstname || admin.lastname) 
             ? `${admin.firstname || ''} ${admin.lastname || ''}`.trim() 
             : '--';
+            
+        const initials = getInitials(fullName !== '--' ? fullName : admin.username);
 
         return (
-            <View style={styles.card}>
-                <View style={styles.avatar}>
+            <View style={[styles.card, isMe && styles.cardHighlight]}>
+                <View style={[styles.avatar, isMe && styles.avatarHighlight]}>
                     <CustomText style={styles.avatarText}>
-                        {initials || '?'}
+                        {initials}
                     </CustomText>
                 </View>
                 
@@ -60,11 +135,11 @@ const PersonnelListScreen = ({
                         <CustomText variant="subtitle" style={styles.name} numberOfLines={1}>
                             {fullName}
                         </CustomText>
-                        <View style={styles.roleBadge}>
-                            <CustomText style={styles.roleText}>
-                                ADMIN
+                        {isMe && (
+                            <CustomText style={styles.meText}>
+                                (You)
                             </CustomText>
-                        </View>
+                        )}
                     </View>
 
                     <CustomText variant="caption" style={styles.subtext}>
@@ -74,9 +149,30 @@ const PersonnelListScreen = ({
                         {admin.email || '--'}
                     </CustomText>
                 </View>
+
+                <View style={styles.cardRight}>
+                    {isOwner ? (
+                        <View style={styles.ownerBadge}>
+                            <CustomText style={styles.ownerText}>
+                                OWNER
+                            </CustomText>
+                        </View>
+                    ) : (
+                        <View style={styles.roleBadge}>
+                            <CustomText style={styles.roleText}>
+                                ADMIN
+                            </CustomText>
+                        </View>
+                    )}
+                </View>
             </View>
         );
     };
+
+    const spin = spinAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -121,7 +217,7 @@ const PersonnelListScreen = ({
                         </View>
                     ) : (
                         <View style={styles.list}>
-                            {businessAdmins.map((admin) => (
+                            {sortedAdmins.map((admin) => (
                                 <AdminCard key={admin.id} admin={admin} />
                             ))}
                         </View>
@@ -129,16 +225,19 @@ const PersonnelListScreen = ({
 
                     <TouchableOpacity 
                         style={styles.reloadContainer} 
-                        onPress={() => onReloadPress(businessId)}
+                        onPress={handleReload}
+                        disabled={isReloading}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="refresh-cw" 
-                            size={14} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
+                        <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="refresh-cw" 
+                                size={14} 
+                                color={Colors.TEXT_SECONDARY} 
+                            />
+                        </Animated.View>
                         <CustomText style={styles.reloadText}>
-                            RELOAD ADMINS
+                            {isReloading ? "RELOADING..." : "RELOAD ADMINS"}
                         </CustomText>
                     </TouchableOpacity>
                 </View>
@@ -182,8 +281,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         padding: 16, 
         borderRadius: 16, 
-        alignItems: 'flex-start', 
+        alignItems: 'center', 
         gap: 16, 
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
         ...GlobalStyles.dropShadow(3),
     },
     avatar: { 
@@ -193,6 +294,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.PRIMARY, 
         justifyContent: 'center', 
         alignItems: 'center', 
+        borderWidth: 2,
+        borderColor: Colors.STATUS_APPROVED_BG,
     },
     avatarText: { 
         color: Colors.WHITE, 
@@ -208,30 +311,60 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 2,
     },
     name: { 
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY, 
         fontSize: 16, 
         flexShrink: 1,
+        marginBottom: 0,
     },
     subtext: { 
         color: Colors.TEXT_SECONDARY, 
         fontSize: 12, 
     },
+    cardHighlight: {
+        borderWidth: 2,
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
+    },
+    avatarHighlight: {
+        borderColor: Colors.PRIMARY,
+    },
+    meText: {
+        color: Colors.PRIMARY,
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginLeft: 4,
+    },
+    ownerBadge: {
+        backgroundColor: Colors.PRIMARY, 
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    ownerText: {
+        color: Colors.WHITE, 
+        fontSize: 10,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
     roleBadge: { 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         paddingHorizontal: 8, 
-        paddingVertical: 2, 
-        borderRadius: 6, 
-        marginTop: -12
+        paddingVertical: 3, 
+        borderRadius: 8,
     },
     roleText: { 
         color: Colors.STATUS_APPROVED_TEXT, 
         fontSize: 10, 
         fontWeight: 'bold', 
         textTransform: 'uppercase', 
+    },
+    cardRight: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingLeft: 8,
     },
     emptyState: { 
         alignItems: 'center', 
