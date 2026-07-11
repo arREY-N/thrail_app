@@ -1,3 +1,8 @@
+/**
+ * @file PersonnelWriteScreen.tsx
+ * @description Admin screen to search and add new personnel via email. Allows business owners to lookup registered users and grant them admin privileges.
+ */
+
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -8,64 +13,86 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import ErrorMessage from '@/src/components/ErrorMessage';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IUser } from '@/src/core/models/User/User.types';
+import { IAdmin } from '@/src/core/models/Admin/Admin.types';
+import { User } from '@/src/core/models/User/User';
+import { getInitials } from '@/src/utils/dateFormatter';
 
+/**
+ * Interface representing the properties of the PersonnelWriteScreen component.
+ * 
+ * @param businessAdmins - The array of current business admins.
+ * @param onFindUserPress - Callback handler to search for a user by email.
+ * @param searched - The array of search results matching the query.
+ * @param onMakeAdminPress - Callback handler to promote a user to business admin.
+ * @param isOwner - Flag indicating if the current user is the business owner.
+ * @param isLoading - Flag indicating if a search or action is in progress.
+ * @param onBackPress - Callback handler to navigate back.
+ */
 export interface PersonnelWriteScreenProps {
-    businessAdmins: IUser[];
+    businessAdmins: IAdmin[];
     onFindUserPress: (email: string) => void;
-    searched: IUser[];
-    onMakeAdminPress: (user: IUser) => void;
+    searched: User[];
+    onMakeAdminPress: (user: User) => void | Promise<void>;
     isOwner: boolean;
     isLoading: boolean;
+    error?: string;
+    success?: string;
     onBackPress: () => void;
 }
 
 /**
  * PersonnelWriteScreen — Admin screen to search and add new personnel via email.
  */
-const PersonnelWriteScreen = ({
+const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
     businessAdmins,
     onFindUserPress,
     searched,
     onMakeAdminPress,
     isOwner,
     isLoading,
+    error,
+    success,
     onBackPress 
-}: PersonnelWriteScreenProps) => {
-    const [email, setEmail] = useState('');
+}) => {
+    const [email, setEmail] = useState<string>('');
 
     const handleSearch = () => {
         if (email.trim()) onFindUserPress(email);
     };
 
-    const UserResultCard = ({ user }: { user: IUser }) => {
+    const UserResultCard = ({ user }: { user: User }) => {
         const isSystemAdmin = user.role === 'admin';
         const isBusinessAdmin = Array.isArray(businessAdmins) && businessAdmins.some((admin) => admin.id === user.id);
         const isAlreadyAdmin = isSystemAdmin || isBusinessAdmin;
+        
+        const fullName = (user.firstname || user.lastname) 
+            ? `${user.firstname || ''} ${user.lastname || ''}`.trim() 
+            : '--';
+        const initials = getInitials(fullName !== '--' ? fullName : user.username);
 
         return (
             <View style={styles.card}>
                 <View style={styles.avatar}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="user" 
-                        size={20} 
-                        color={Colors.WHITE} 
-                    />
+                    <CustomText style={styles.avatarText}>
+                        {initials}
+                    </CustomText>
                 </View>
                 
                 <View style={styles.adminInfo}>
-                    <CustomText variant="body" style={styles.username}>
+                    <CustomText variant="body" style={styles.username} numberOfLines={1}>
                         {user.username || '--'}
                     </CustomText>
-                    <CustomText variant="caption" style={styles.email}>
+                    <CustomText variant="caption" style={styles.email} numberOfLines={1}>
                         {user.email || '--'}
                     </CustomText>
-                    
+                </View>
+
+                <View style={styles.actionWrapper}>
                     {isAlreadyAdmin ? (
                         <View style={styles.disabledBadge}>
                             <CustomText style={styles.disabledText}>
@@ -73,18 +100,17 @@ const PersonnelWriteScreen = ({
                             </CustomText>
                         </View>
                     ) : (
-                        <View style={styles.buttonWrapper}>
-                            <CustomButton 
-                                title="Make Admin" 
-                                onPress={() => {
-                                    onMakeAdminPress(user);
-                                    setEmail('');
-                                }}
-                                variant="primary"
-                                style={styles.makeAdminBtn}
-                                textStyle={styles.makeAdminBtnText}
-                            />
-                        </View>
+                        <CustomButton 
+                            title={isLoading ? "Promoting..." : "Make Admin"} 
+                            onPress={() => {
+                                onMakeAdminPress(user);
+                                setEmail('');
+                            }}
+                            disabled={isLoading}
+                            variant="primary"
+                            style={styles.makeAdminBtn}
+                            textStyle={styles.makeAdminBtnText}
+                        />
                     )}
                 </View>
             </View>
@@ -120,6 +146,25 @@ const PersonnelWriteScreen = ({
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
                 
                 <View style={styles.constrainer}>
+                    <ErrorMessage error={error} />
+                    
+                    {success ? (
+                        <View style={styles.successContainer}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="check-circle" 
+                                size={18} 
+                                color={Colors.STATUS_APPROVED_TEXT} 
+                                style={styles.successIcon}
+                            />
+                            <View style={styles.successTextContainer}>
+                                <CustomText variant="caption" style={styles.successText}>
+                                    {success}
+                                </CustomText>
+                            </View>
+                        </View>
+                    ) : null}
+
                     <CustomText style={styles.subtitle}>
                         Search for a registered user by email to grant them admin privileges.
                     </CustomText>
@@ -161,6 +206,12 @@ const PersonnelWriteScreen = ({
                             searched.map((user) => <UserResultCard key={user.id} user={user} />)
                         ) : (
                             <View style={styles.emptyState}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name={email ? "user-x" : "mail"} 
+                                    size={40} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
                                 <CustomText style={styles.emptyText}>
                                     {email ? "No user found." : "Enter an email to search."}
                                 </CustomText>
@@ -225,8 +276,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         backgroundColor: Colors.WHITE, 
         padding: 16, 
-        borderRadius: 12, 
-        alignItems: 'flex-start', 
+        borderRadius: 16, 
+        alignItems: 'center', 
         gap: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
@@ -239,6 +290,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.PRIMARY, 
         justifyContent: 'center', 
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: Colors.STATUS_APPROVED_BG,
+    },
+    avatarText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+        fontSize: 16,
     },
     adminInfo: { 
         flex: 1, 
@@ -253,8 +311,9 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         marginBottom: 2,
     },
-    buttonWrapper: {
-        marginTop: 8,
+    actionWrapper: {
+        justifyContent: 'center',
+        alignItems: 'flex-end',
     },
     makeAdminBtn: { 
         height: 36, 
@@ -266,12 +325,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     disabledBadge: { 
-        alignSelf: 'flex-start', 
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         paddingHorizontal: 8, 
         paddingVertical: 4, 
         borderRadius: 4, 
-        marginTop: 6,
     },
     disabledText: { 
         color: Colors.STATUS_APPROVED_TEXT, 
@@ -282,6 +339,7 @@ const styles = StyleSheet.create({
     emptyState: { 
         paddingVertical: 40, 
         alignItems: 'center',
+        gap: 12,
     },
     emptyText: { 
         color: Colors.TEXT_PLACEHOLDER, 
@@ -292,6 +350,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center', 
         padding: 32,
+        paddingBottom: 80, 
     },
     unauthorizedTitle: {
         marginTop: 16,
@@ -300,7 +359,30 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         textAlign: 'center', 
         marginTop: 8,
-    }
+    },
+    successContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,    
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 20,
+        width: '100%',
+        gap: 8,
+    },
+    successIcon: {
+        marginTop: 2,
+    },
+    successTextContainer: {
+        flex: 1,
+    },
+    successText: {
+        color: Colors.STATUS_APPROVED_TEXT,
+        fontWeight: '500',
+        lineHeight: 20,
+    },
 });
 
 export default PersonnelWriteScreen;
