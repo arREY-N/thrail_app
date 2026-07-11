@@ -31,14 +31,32 @@ export const GlobalStyles = {
      * });
      * ```
      */
-    dropShadow: (elevation: number = 3) => Platform.select({
+    dropShadow: (
+        elevation: number = 3,
+        opacity: number = 0.1,
+        color: string = Colors.SHADOW,
+        options?: {
+            offset?: { width: number; height: number };
+            radius?: number;
+        }
+    ) => Platform.select({
         ios: {
-            shadowColor: Colors.SHADOW,
-            shadowOffset: { width: 0, height: elevation },
-            shadowOpacity: 0.1,
-            shadowRadius: elevation * 2
+            shadowColor: color,
+            shadowOffset: options?.offset ?? { width: 0, height: elevation },
+            shadowOpacity: opacity,
+            shadowRadius: options?.radius ?? elevation * 2,
         },
-        android: { elevation },
-        web: { boxShadow: `0px ${elevation}px ${elevation * 2}px ${Colors.SHADOW}1A` }
+        android: {
+            elevation,
+        },
+        web: {
+            boxShadow: `${options?.offset?.width ?? 0}px ${options?.offset?.height ?? elevation}px ${
+                options?.radius ?? elevation * 2
+            }px ${
+                color.startsWith('#') && color.length === 7
+                    ? `${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`
+                    : color
+            }`,
+        },
     }),
 };
