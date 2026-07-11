@@ -1,15 +1,22 @@
-import LoadingScreen from '@/src/app/loading';
+import { Stack } from 'expo-router';
+import React from 'react';
+
 import UnauthorizedScreen from '@/src/app/unauthorized';
 import { useAdmin } from '@/src/core/hook/admin/useAdmin';
 import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { Stack } from 'expo-router';
-
+import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { useBusinessesStore } from '@/src/core/stores/businessesStore';
+import { useOffersStore } from '@/src/core/stores/offersStore';
 import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
-
-export default function adminHome(){
+/**
+ * Controller component for the Admin Dashboard.
+ * Handles authentication checks, queries business configurations,
+ * maps navigation actions, and manages loading/error reload triggers.
+ */
+export default function adminHome() {
     const {
         businessId,
         profile,
@@ -20,15 +27,9 @@ export default function adminHome(){
 
     const {
         businessAccount,
-    } = useAdmin({ businessId })
+    } = useAdmin({ businessId });
 
     const { onBackPress } = useAppNavigation();
-    
-    if(isLoading || !businessAccount || !businessId || !profile || !role) 
-        return <LoadingScreen/> 
-
-    if(!isLoading && (!businessId || !profile || !role)) 
-        return <UnauthorizedScreen/>
 
     const {
         onManageAdminsPress,
@@ -36,9 +37,25 @@ export default function adminHome(){
         onManageTrailsPress,
     } = useAdminNavigation({ 
         userId: profile?.id,
-        businessId,
-        role,
+        businessId: businessId || undefined,
+        role: role || undefined,
     });
+
+    const showLoading = isLoading || !businessAccount || !profile;
+
+    // Handle retry press for loading and error states
+    const onRetryPress = () => {
+        useAuthStore.getState().initialize();
+        if (businessId) {
+            useBusinessesStore.getState().load(businessId);
+            useBusinessesStore.getState().loadBusinessAdmins(businessId);
+            useOffersStore.getState().fetchOfferByBusiness(businessId);
+        }
+    };
+
+    // Handle loading and error states
+    if (!isLoading && (!businessId || !profile || !role)) 
+        return <UnauthorizedScreen/>;
 
     return (
         <>
@@ -52,6 +69,8 @@ export default function adminHome(){
                 adminProfile={profile}
                 error={error as string | null}
                 onBackPress={onBackPress}
+                isLoading={showLoading}
+                onRetryPress={onRetryPress}
             />
         </>
     );
