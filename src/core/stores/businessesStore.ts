@@ -240,12 +240,14 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         try{
             const role = user.role as string;
 
-            if(role === 'admin') {
+            // checking if user is already an admin or system admin
+            if(role === 'admin' || get().businessAdmins.some(a => a.id === user.id)) {
+                const errMsg = 'User is already an admin of this business';
                 set({
-                    error: 'Already an admin',
+                    error: errMsg,
                     isLoading: false
                 })
-                return;
+                throw new Error(errMsg);
             }          
 
             const admin = await BusinessRepository.createBusinessAdmin(user, businessId);
@@ -262,6 +264,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
                 error: (err as Error).message ?? 'Store: Failed creating business admin',
                 isLoading: false,
             })
+            throw err;
         }
     },
 })));
