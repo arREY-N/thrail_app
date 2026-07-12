@@ -6,6 +6,9 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type BookingStatus = 
     'for-reservation' | 
+    'pending-docs' |
+    'approved-docs' |
+    'cancelled' |
     'for-payment' | 
     'paid' |
     'downpayment' |
