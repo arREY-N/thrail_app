@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, 
     StyleSheet,
     TouchableOpacity,
@@ -10,16 +10,8 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-
-const formatTime = (dateObj: any) => {
-    if (!dateObj) return '--:--';
-    try {
-        const d = typeof dateObj.toDate === 'function' ? dateObj.toDate() : new Date(dateObj);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-        return '--:--';
-    }
-};
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { formatActivityTime } from '@/src/utils/dateFormatter';
 
 export interface OfferData {
     business?: { name?: string };
@@ -28,7 +20,7 @@ export interface OfferData {
     minPax?: number;
     maxPax?: number;
     description?: string;
-    schedule?: Array<{ day: number; activities?: Array<{ time: any; event: string }> }>;
+    schedule?: Array<{ day: number; activities?: Array<{ time: unknown; event: string }> }>;
     inclusions?: string[];
     thingsToBring?: string[];
     reminders?: string[] | string;
@@ -46,6 +38,39 @@ const OfferCard: React.FC<OfferCardProps> = ({
     isSelected, 
     onSelect 
 }) => {
+    const { isMobile } = useBreakpoints();
+    const isWide = !isMobile;
+    const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 0: true });
+    const [expandedActivities, setExpandedActivities] = useState<Record<number, boolean>>({});
+
+    const totalDays = offer.schedule?.length ?? 0;
+    const allDaysExpanded = totalDays > 0 && Array.from({ length: totalDays }).every((_, i) => expandedDays[i]);
+
+    const toggleDay = (dayIdx: number) => {
+        setExpandedDays(prev => ({
+            ...prev,
+            [dayIdx]: !prev[dayIdx],
+        }));
+    };
+
+    const toggleActivities = (dayIdx: number) => {
+        setExpandedActivities(prev => ({
+            ...prev,
+            [dayIdx]: !prev[dayIdx],
+        }));
+    };
+
+    const toggleAllDays = () => {
+        if (allDaysExpanded) {
+            setExpandedDays({});
+        } else {
+            const nextExpanded: Record<number, boolean> = {};
+            offer.schedule?.forEach((_: any, i: number) => {
+                nextExpanded[i] = true;
+            });
+            setExpandedDays(nextExpanded);
+        }
+    };
     return (
         <TouchableOpacity 
             activeOpacity={0.9} 
@@ -132,7 +157,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                 variant="label" 
                                 style={styles.detailLabel}
                             >
-                                About this Package
+                                About this package
                             </CustomText>
                             <CustomText 
                                 variant="caption"
@@ -143,57 +168,132 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </View>
                     )}
 
-                    {offer.schedule && offer.schedule.length > 0 && (
+                     {offer.schedule && offer.schedule.length > 0 && (
                         <View style={styles.detailBlock}>
-                            <CustomText 
-                                variant="label" 
-                                style={styles.detailLabel}
-                            >
-                                Itinerary
-                            </CustomText>
-                            <View style={styles.timelineContainer}>
-                                {offer.schedule?.map((dayData, dayIdx) => (
-                                    <View 
-                                        key={dayIdx} 
-                                        style={styles.timelineDay}
-                                    >
-                                        <View style={styles.dayHeaderRow}>
-                                            <CustomIcon 
-                                                library="Feather" 
-                                                name="calendar" 
-                                                size={16} 
-                                                color={Colors.PRIMARY} 
-                                            />
-                                            <CustomText 
-                                                variant="label"
-                                                style={styles.dayLabelText}
+                            <View style={styles.itineraryHeaderRow}>
+                                <CustomText 
+                                    variant="label" 
+                                    style={styles.detailLabel}
+                                >
+                                    Itinerary
+                                </CustomText>
+                                {(offer.schedule?.length ?? 0) > 1 && (
+                                    <TouchableOpacity onPress={toggleAllDays} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                        <CustomText style={styles.expandAllText}>
+                                            {allDaysExpanded ? 'Collapse all' : 'Expand all'}
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                            <View style={isWide ? styles.itineraryGridContainer : styles.itineraryVerticalContainer}>
+                                {offer.schedule?.map((dayData, dayIdx) => {
+                                    const isDayExpanded = (offer.schedule?.length ?? 0) === 1 || !!expandedDays[dayIdx];
+                                    const activitiesList = dayData.activities || [];
+                                    const hasManyActivities = activitiesList.length > 4;
+                                    const isActivitiesExpanded = !!expandedActivities[dayIdx];
+                                    const visibleActivities = hasManyActivities && !isActivitiesExpanded 
+                                        ? activitiesList.slice(0, 4) 
+                                        : activitiesList;
+
+                                    return (
+                                        <View 
+                                            key={dayIdx} 
+                                            style={[
+                                                styles.dayContainer,
+                                                isWide && { width: '48.5%', minWidth: 320, marginBottom: 12, flexGrow: 1 }
+                                            ]}
+                                        >
+                                            <TouchableOpacity 
+                                                activeOpacity={0.7} 
+                                                onPress={() => (offer.schedule?.length ?? 0) > 1 && toggleDay(dayIdx)}
+                                                style={styles.dayHeaderRow}
+                                                disabled={(offer.schedule?.length ?? 0) <= 1}
                                             >
-                                                Day {dayData.day}
-                                            </CustomText>
+                                                <View style={styles.dayTitleGroup}>
+                                                    <CustomIcon 
+                                                        library="Feather" 
+                                                        name="calendar" 
+                                                        size={16} 
+                                                        color={Colors.PRIMARY} 
+                                                        style={styles.dayCalendarIcon}
+                                                    />
+                                                    <CustomText 
+                                                        variant="label"
+                                                        style={styles.dayLabelText}
+                                                    >
+                                                        Day {dayData.day || (dayIdx + 1)}
+                                                    </CustomText>
+                                                </View>
+                                                {(offer.schedule?.length ?? 0) > 1 && (
+                                                    <CustomIcon 
+                                                        library="Feather" 
+                                                        name={isDayExpanded ? "chevron-up" : "chevron-down"} 
+                                                        size={16} 
+                                                        color={Colors.TEXT_SECONDARY} 
+                                                    />
+                                                )}
+                                            </TouchableOpacity>
+                                            
+                                            {isDayExpanded && (
+                                                <>
+                                                    {activitiesList.length > 0 && <View style={styles.dayDivider} />}
+                                                    <View style={styles.activitiesList}>
+                                                        {visibleActivities.map((act, actIdx) => {
+                                                            const isLast = actIdx === visibleActivities.length - 1 && !hasManyActivities;
+                                                            return (
+                                                                <View 
+                                                                    key={actIdx} 
+                                                                    style={styles.activityRow}
+                                                                >
+                                                                    <View style={styles.timelineColumn}>
+                                                                        <View style={styles.timelineCircle} />
+                                                                        {!isLast && <View style={styles.timelineLine} />}
+                                                                    </View>
+                                                                    <CustomText 
+                                                                        variant="label"
+                                                                        style={styles.timelineTime}
+                                                                    >
+                                                                        {formatActivityTime(act.time)}
+                                                                    </CustomText>
+                                                                    <CustomText 
+                                                                        variant="caption"
+                                                                        style={styles.timelineEvent}
+                                                                    >
+                                                                        {act.event}
+                                                                    </CustomText>
+                                                                </View>
+                                                            );
+                                                        })}
+                                                        
+                                                        {hasManyActivities && (
+                                                            <TouchableOpacity 
+                                                                activeOpacity={0.7} 
+                                                                onPress={() => toggleActivities(dayIdx)}
+                                                                style={styles.showMoreRow}
+                                                            >
+                                                                <View style={styles.timelineColumn}>
+                                                                    <View style={styles.plusCircle}>
+                                                                        <CustomIcon 
+                                                                            library="Feather" 
+                                                                            name={isActivitiesExpanded ? "minus" : "plus"} 
+                                                                            size={10} 
+                                                                            color={Colors.WHITE} 
+                                                                        />
+                                                                    </View>
+                                                                </View>
+                                                                <CustomText style={styles.showMoreText}>
+                                                                    {isActivitiesExpanded 
+                                                                        ? 'Show less' 
+                                                                        : `Show ${activitiesList.length - 4} more activities`}
+                                                                </CustomText>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                </>
+                                            )}
                                         </View>
-                                        
-                                        {dayData.activities?.map((act, actIdx) => (
-                                            <View 
-                                                key={actIdx} 
-                                                style={styles.timelineRow}
-                                            >
-                                                <View style={styles.timelineDot} />
-                                                <CustomText 
-                                                    variant="label"
-                                                    style={styles.timelineTime}
-                                                >
-                                                    {formatTime(act.time)}
-                                                </CustomText>
-                                                <CustomText 
-                                                    variant="caption"
-                                                    style={styles.timelineEvent}
-                                                >
-                                                    {act.event}
-                                                </CustomText>
-                                            </View>
-                                        ))}
-                                    </View>
-                                ))}
+                                    );
+                                })}
                             </View>
                         </View>
                     )}
@@ -234,7 +334,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                 variant="label" 
                                 style={styles.detailLabel}
                             >
-                                Things to Bring
+                                Things to bring
                             </CustomText>
                             <View style={styles.gridContainer}>
                                 {offer.thingsToBring?.map((item, idx) => (
@@ -269,7 +369,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                     variant="label"
                                     style={styles.warningTitle}
                                 >
-                                    Important Reminders
+                                    Important reminders
                                 </CustomText>
                             </View>
                             
@@ -420,46 +520,121 @@ const styles = StyleSheet.create({
     },
     
     timelineContainer: { 
-        borderLeftWidth: 2, 
-        borderLeftColor: Colors.GRAY_LIGHT, 
         marginLeft: 8, 
-        paddingLeft: 16,
     },
-    timelineDay: { 
-        marginBottom: 20,
+    itineraryHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    expandAllText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
+    },
+    dayContainer: {
+        backgroundColor: '#F8F9FA',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#E9ECEF',
+    },
+    dayDivider: {
+        height: 1,
+        backgroundColor: '#E9ECEF',
+        marginVertical: 8,
     },
     dayHeaderRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
-        marginTop: 4,
+        paddingVertical: 2,
+    },
+    dayTitleGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 8,
+    },
+    dayCalendarIcon: {
+        marginTop: -1,
     },
     dayLabelText: { 
         fontWeight: 'bold', 
         color: Colors.PRIMARY, 
     },
-    timelineRow: { 
-        flexDirection: 'row', 
-        marginBottom: 12, 
+    activitiesList: {
+        marginBottom: 8,
+    },
+    activityRow: {
+        flexDirection: 'row',
+        paddingVertical: 4,
+        gap: 12,
+    },
+    timelineColumn: {
+        alignItems: 'center',
+        width: 16,
         position: 'relative',
     },
-    timelineDot: { 
-        position: 'absolute', 
-        left: -22, 
-        top: 6, 
-        width: 10, 
-        height: 10, 
-        borderRadius: 5, 
-        backgroundColor: Colors.PRIMARY, 
+    timelineCircle: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.PRIMARY,
+        zIndex: 2,
+        marginTop: 6,
+    },
+    timelineLine: {
+        position: 'absolute',
+        top: 12,
+        bottom: -20,
+        left: 7,
+        width: 2,
+        backgroundColor: Colors.GRAY_LIGHT,
+        zIndex: 1,
     },
     timelineTime: { 
-        width: 80, 
+        fontSize: 13,
+        lineHeight: 18,
         fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
     },
     timelineEvent: { 
         flex: 1, 
-        lineHeight: 20,
+        fontSize: 13,
+        lineHeight: 18,
+        color: Colors.TEXT_SECONDARY,
+    },
+    showMoreRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        gap: 12,
+    },
+    plusCircle: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2,
+        marginTop: 1,
+    },
+    showMoreText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
+        lineHeight: 18,
+    },
+    itineraryGridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    itineraryVerticalContainer: {
+        flexDirection: 'column',
     },
 
     gridContainer: { 
