@@ -303,4 +303,32 @@ export const getInitials = (name?: string): string => {
     return word.toUpperCase();
 };
 
+/**
+ * Helper to parse and format activity times robustly to a 12-hour string.
+ * 
+ * @param time - Raw time representation (Timestamp, Date, or string).
+ * @returns A formatted 12-hour time string.
+ */
+export const formatActivityTime = (time: unknown): string => {
+    if (!time) return '--:--';
+    let date: Date;
+    if (time && typeof time === 'object' && 'toDate' in time && typeof (time as { toDate: unknown }).toDate === 'function') {
+        date = (time as { toDate: () => Date }).toDate();
+    } else if (time instanceof Date) {
+        date = time;
+    } else {
+        const strVal = String(time);
+        if (strVal.includes(':') && (strVal.toLowerCase().includes('am') || strVal.toLowerCase().includes('pm'))) {
+            return strVal;
+        }
+        date = new Date(strVal);
+    }
+    
+    if (isNaN(date.getTime())) {
+        return String(time);
+    }
+    
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 
