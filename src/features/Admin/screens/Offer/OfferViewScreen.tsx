@@ -1,4 +1,10 @@
-import React from 'react';
+/**
+ * @file OfferViewScreen.tsx
+ * @description Admin screen displaying detailed information for an offer and its filtered, sortable recent bookings list.
+ */
+
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef } from 'react';
 import {
     Platform,
     ScrollView,
@@ -20,7 +26,19 @@ import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
 import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
+/**
+ * Props for the OfferViewScreen component.
+ * 
+ * @param offerId - The ID of the current offer.
+ * @param offer - The offer details data object.
+ * @param bookings - Array of all bookings associated with this offer.
+ * @param onViewBooking - Callback to view booking details page.
+ * @param onBackPress - Callback for the back navigation action.
+ * @param error - Optional error message text.
+ */
 export interface OfferViewScreenProps {
     offerId: string;
     offer: IOffer;
@@ -33,20 +51,32 @@ export interface OfferViewScreenProps {
 /**
  * OfferViewScreen — Displays an offer's summary and a list of related bookings that can be filtered.
  */
-const OfferViewScreen = ({ 
+const OfferViewScreen: React.FC<OfferViewScreenProps> = ({ 
     offerId,
     offer, 
     bookings, 
     onViewBooking, 
     onBackPress, 
     error 
-}: OfferViewScreenProps) => {
+}) => {
 
     const { 
         activeFilter, 
         setActiveFilter, 
+        sortOrder,
+        setSortOrder,
         filteredBookings 
     } = useBookingFilters(bookings);
+
+    const filterScrollRef = useRef<ScrollView>(null);
+    const { 
+        showLeftFade,
+        showRightFade,
+        scrollProps
+    } = useScrollFades();
+
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(filterScrollRef, bookings?.length > 0);
 
     if (!offer) return null;
     
@@ -71,41 +101,86 @@ const OfferViewScreen = ({
                         trailName={trailName} 
                     />
 
-                    <CustomText variant="h3" style={styles.sectionTitle}>
-                        Recent Bookings ({filteredBookings.length})
-                    </CustomText>
+                    <View style={styles.sectionHeaderRow}>
+                        <CustomText variant="h3" style={styles.sectionTitle}>
+                            Recent Bookings <CustomText style={styles.sectionTitleCounter}>({filteredBookings.length})</CustomText>
+                        </CustomText>
+                        
+                        {activeFilter !== 'All' && (
+                            <TouchableOpacity 
+                                style={styles.sortButton}
+                                onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                                activeOpacity={0.7}
+                            >
+                                <CustomText style={styles.sortButtonText}>
+                                    Date
+                                </CustomText>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name={sortOrder === 'desc' ? "arrow-down" : "arrow-up"} 
+                                    size={14} 
+                                    color={Colors.PRIMARY} 
+                                    style={styles.sortIcon}
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
 
                     {bookings && bookings.length > 0 && (
-                        <ScrollView 
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.filterScroll}
-                            contentContainerStyle={styles.filterContainer}
-                        >
-                            {FILTER_OPTIONS.map((filter: string) => {
-                                const isActive = activeFilter === filter;
-                                return (
-                                    <TouchableOpacity 
-                                        key={filter}
-                                        style={[
-                                            styles.filterChip, 
-                                            isActive && styles.filterChipActive
-                                        ]}
-                                        onPress={() => setActiveFilter(filter)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <CustomText 
+                        <View style={styles.filterScrollWrapper}>
+                            <ScrollView 
+                                ref={filterScrollRef}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.filterScroll}
+                                contentContainerStyle={styles.filterContainer}
+                                {...scrollProps}
+                            >
+                                {FILTER_OPTIONS.map((filter: string) => {
+                                    const isActive = activeFilter === filter;
+                                    return (
+                                        <TouchableOpacity 
+                                            key={filter}
                                             style={[
-                                                styles.filterChipText, 
-                                                isActive && styles.filterChipTextActive
+                                                styles.filterChip, 
+                                                isActive && styles.filterChipActive
                                             ]}
+                                            onPress={() => setActiveFilter(filter)}
+                                            activeOpacity={0.7}
                                         >
-                                            {filter}
-                                        </CustomText>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </ScrollView>
+                                            <CustomText 
+                                                style={[
+                                                    styles.filterChipText, 
+                                                    isActive && styles.filterChipTextActive
+                                                ]}
+                                            >
+                                                {filter}
+                                            </CustomText>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+
+                            {showLeftFade && (
+                                <LinearGradient 
+                                    colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
+                                    start={{ x: 0, y: 0 }} 
+                                    end={{ x: 1, y: 0 }} 
+                                    style={styles.leftFade} 
+                                    pointerEvents="none" 
+                                />
+                            )}
+
+                            {showRightFade && (
+                                <LinearGradient 
+                                    colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
+                                    start={{ x: 0, y: 0 }} 
+                                    end={{ x: 1, y: 0 }} 
+                                    style={styles.rightFade} 
+                                    pointerEvents="none" 
+                                />
+                            )}
+                        </View>
                     )}
 
                     {error && (
@@ -127,7 +202,7 @@ const OfferViewScreen = ({
                         <View style={styles.emptyState}>
                             <CustomIcon 
                                 library="Feather" 
-                                name={bookings?.length > 0 ? "filter" : "inbox"} 
+                                name="inbox" 
                                 size={40} 
                                 color={Colors.GRAY_MEDIUM} 
                             />
@@ -155,26 +230,75 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH, 
         alignSelf: 'center' 
     },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
     sectionTitle: { 
-        marginBottom: 12, 
         fontWeight: 'bold', 
-        marginLeft: 4 
+        marginLeft: 4,
+        marginBottom: 0,
+    },
+    sectionTitleCounter: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        fontSize: 20,
+    },
+    sortButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 4,
+        marginRight: 4,
+    },
+    sortButtonText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    filterScrollWrapper: {
+        position: 'relative',
+        width: '100%',
+        marginBottom: 16,
     },
     filterScroll: Platform.select({
         web: { 
-            marginBottom: 16, 
             overflowX: 'auto', 
             scrollbarWidth: 'none', 
             msOverflowStyle: 'none' 
         },
-        default: { 
-            marginBottom: 16 
-        }
+        default: {}
     }),
+    leftFade: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 30,
+        zIndex: 10,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 30,
+        zIndex: 10,
+    },
     filterContainer: { 
         gap: 10, 
         flexDirection: 'row', 
         alignItems: 'center' 
+    },
+    sortIcon: {
+        marginTop: 1,
     },
     filterChip: { 
         paddingHorizontal: 16, 
