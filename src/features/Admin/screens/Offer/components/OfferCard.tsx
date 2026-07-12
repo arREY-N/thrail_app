@@ -1,21 +1,42 @@
-import React from 'react';
-import { Platform,  StyleSheet, View  } from 'react-native';
+/**
+ * @file OfferCard.tsx
+ * @description Card component displaying high-level offer info, booking counts, actions, and status in the Admin screen.
+ */
+
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
+import SlotsCounter from './SlotsCounter';
 
 export interface OfferStatusDetails {
+    /** The status label string (e.g. 'Active', 'Expired') */
     label: string;
+    /** The status background color */
     bg: string;
+    /** The status text color */
     color: string;
 }
 
+/**
+ * Props for the OfferCard component.
+ * 
+ * @param offer - The offer data object containing price, trail info, etc.
+ * @param bookings - The bookings associated with this offer to measure reservation slots.
+ * @param statusDetails - Object detailing the visual attributes of the offer status badge.
+ * @param actionableCount - Count of active bookings that need admin action.
+ * @param onViewBookings - Callback function to view bookings for this offer.
+ * @param onEditPress - Callback function to edit the details of this offer.
+ */
 export interface OfferCardProps {
     offer: any;
+    bookings: IBooking[];
     statusDetails: OfferStatusDetails;
     actionableCount: number;
     onViewBookings: (offerId: string) => void;
@@ -23,18 +44,24 @@ export interface OfferCardProps {
 }
 
 /**
- * OfferCard — Displays an offer's high-level information and its actionable bookings count.
+ * OfferCard — Displays an offer's high-level information, slots utilization stats, 
+ * details and side-by-side action buttons.
  */
-const OfferCard = ({ 
+const OfferCard: React.FC<OfferCardProps> = ({ 
     offer, 
+    bookings = [],
     statusDetails, 
     actionableCount, 
     onViewBookings, 
     onEditPress 
-}: OfferCardProps) => {
+}) => {
+    const isDescLong = (offer.description || '').length > 100;
+    const [isExpanded, setIsExpanded] = useState(false);
+
     return (
         <View style={styles.offerCard}>
             
+            {/* 1. Header (Trail Name and Price) */}
             <View style={styles.cardHeader}>
                 <View style={styles.trailInfo}>
                     <View style={styles.labelRow}>
@@ -66,15 +93,45 @@ const OfferCard = ({
                 </View>
             </View>
 
+            {/* 2. Collapsible Description (Chevron click) */}
+            {offer.description ? (
+                <TouchableOpacity 
+                    activeOpacity={isDescLong ? 0.8 : 1}
+                    onPress={() => isDescLong && setIsExpanded(!isExpanded)}
+                    style={styles.descriptionWrapper}
+                >
+                    <CustomText 
+                        variant="caption" 
+                        style={styles.description} 
+                        numberOfLines={isExpanded ? undefined : 1}
+                    >
+                        {offer.description}
+                    </CustomText>
+                    {isDescLong && (
+                        <View style={styles.expandIconContainer}>
+                            <CustomIcon
+                                library="Feather"
+                                name={isExpanded ? "chevron-up" : "chevron-down"}
+                                size={14}
+                                color={Colors.PRIMARY}
+                            />
+                        </View>
+                    )}
+                </TouchableOpacity>
+            ) : null}
+
+            {/* 3. Divider */}
             <View style={styles.divider} />
 
+            {/* 4. Details Grid (Date, Duration, and Inline Document Badges) */}
             <View style={styles.detailsGrid}>
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, statusDetails.label === 'Expired' && { backgroundColor: Colors.GRAY_ULTRALIGHT, opacity: 0.8 }]}>
                     <CustomIcon 
                         library="Feather" 
                         name="calendar" 
                         size={14} 
                         color={Colors.TEXT_SECONDARY} 
+                        style={styles.badgeIcon}
                     />
                     <CustomText 
                         variant="caption" 
@@ -93,51 +150,68 @@ const OfferCard = ({
                         name="clock" 
                         size={14} 
                         color={Colors.TEXT_SECONDARY} 
+                        style={styles.badgeIcon}
                     />
                     <CustomText variant="caption" style={styles.detailText}>
                         {offer.duration || offer.hikeDuration || "1 Day"}
                     </CustomText>
                 </View>
 
-                <View style={styles.detailRow}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="users" 
-                        size={14} 
-                        color={Colors.TEXT_SECONDARY} 
-                    />
-                    <CustomText variant="caption" style={styles.detailText}>
-                        {offer.minPax} - {offer.maxPax} Pax
-                    </CustomText>
-                </View>
-            </View>
-
-            <CustomText variant="caption" style={styles.description} numberOfLines={2}>
-                {offer.description}
-            </CustomText>
-
-            <View style={styles.actionButtonWrapper}>
-                {actionableCount > 0 && (
-                    <View style={styles.buttonNotificationDot}>
-                        <CustomText style={styles.notificationText}>
-                            {actionableCount > 99 ? '99+' : actionableCount}
+                {/* Repositioned Required Documents chips in grid */}
+                {offer.documents && offer.documents.map((doc: string, idx: number) => (
+                    <View key={idx} style={[styles.detailRow, styles.docDetailRow]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="file-text" 
+                            size={12} 
+                            color={Colors.TEXT_SECONDARY}
+                            style={styles.badgeIcon}
+                        />
+                        <CustomText variant="caption" style={styles.docDetailText}>
+                            {doc}
                         </CustomText>
                     </View>
-                )}
-                <CustomButton 
-                    title="Manage Bookings"
-                    onPress={() => onViewBookings(offer.id)}
-                    variant="primary"
-                    style={styles.viewBookingsButton}
-                />
+                ))}
             </View>
 
-            <CustomButton 
-                title="Edit Offer"
-                onPress={() => onEditPress(offer.id)}
-                variant="outline"
-                style={styles.editButton}
+            {/* 5. Slots reservation counter */}
+            <SlotsCounter 
+                bookings={bookings} 
+                minPax={Number(offer.minPax) || 0} 
+                maxPax={Number(offer.maxPax) || 0} 
             />
+
+            {/* 6. Buttons Row */}
+            <View style={styles.buttonRow}>
+                <View style={styles.actionButtonWrapper}>
+                    {actionableCount > 0 && (
+                        <View style={styles.buttonNotificationDot}>
+                            <CustomText style={styles.notificationText}>
+                                {actionableCount > 99 ? '99+' : actionableCount}
+                            </CustomText>
+                        </View>
+                    )}
+                    <CustomButton 
+                        title="Manage Bookings"
+                        onPress={() => onViewBookings(offer.id)}
+                        variant="primary"
+                        icon="calendar-clear"
+                        iconLibrary="Ionicons"
+                        style={styles.viewBookingsButton}
+                    />
+                </View>
+
+                <View style={styles.editButtonWrapper}>
+                    <CustomButton 
+                        title="Edit"
+                        onPress={() => onEditPress(offer.id)}
+                        variant="outline"
+                        icon="edit"
+                        iconLibrary="Feather"
+                        style={styles.editButton}
+                    />
+                </View>
+            </View>
         </View>
     );
 };
@@ -145,14 +219,10 @@ const OfferCard = ({
 const styles = StyleSheet.create({
     offerCard: { 
         backgroundColor: Colors.WHITE, 
-        borderRadius: 20, 
+        borderRadius: 24, 
         padding: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-         
-         
-         
-         
         ...GlobalStyles.dropShadow(3), 
     },
     cardHeader: { 
@@ -189,7 +259,8 @@ const styles = StyleSheet.create({
     },
     trailName: { 
         fontSize: 18, 
-        color: Colors.TEXT_PRIMARY 
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 0
     },
     priceInfo: { 
         alignItems: 'flex-end', 
@@ -203,6 +274,21 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY, 
         marginTop: -4, 
         fontSize: 12 
+    },
+    descriptionWrapper: {
+        marginTop: 10,
+        marginBottom: 2,
+    },
+    description: { 
+        color: Colors.TEXT_SECONDARY, 
+        lineHeight: 18, 
+        marginBottom: 0 
+    },
+    expandIconContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 2,
+        marginTop: 2,
     },
     divider: { 
         height: 1, 
@@ -218,24 +304,42 @@ const styles = StyleSheet.create({
     detailRow: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        backgroundColor: Colors.BACKGROUND, 
+        backgroundColor: Colors.GRAY_ULTRALIGHT, 
         paddingHorizontal: 8, 
         paddingVertical: 4, 
         borderRadius: 6, 
         gap: 6 
     },
+    badgeIcon: {
+        marginTop: 3
+    },
     detailText: { 
         color: Colors.TEXT_PRIMARY, 
         fontWeight: '500' 
     },
-    description: { 
-        color: Colors.TEXT_SECONDARY, 
-        lineHeight: 18, 
-        marginBottom: 16 
+    docDetailRow: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 0,
+    },
+    docDetailText: {
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: '600',
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        gap: 12,
+        marginTop: 4,
+        width: '100%',
     },
     actionButtonWrapper: { 
+        flex: 1.5,
         position: 'relative', 
-        marginBottom: 8 
+        alignItems: 'stretch',
+    },
+    editButtonWrapper: {
+        flex: 1,
+        alignItems: 'stretch',
     },
     buttonNotificationDot: { 
         position: 'absolute', 
@@ -258,10 +362,14 @@ const styles = StyleSheet.create({
         fontSize: 11 
     },
     viewBookingsButton: { 
-        paddingVertical: 10 
+        paddingVertical: 10,
+        flex: 1,
+        height: '100%',
     },
     editButton: { 
-        paddingVertical: 10 
+        paddingVertical: 10,
+        flex: 1,
+        height: '100%',
     }
 });
 
