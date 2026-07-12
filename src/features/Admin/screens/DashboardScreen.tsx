@@ -184,23 +184,29 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.webActionContainer}>
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
-                        title="Manage Trails & Maps"
+                        title="Trails"
                         onPress={onManageTrailsPress}
                         variant="secondary"
+                        icon="map"
+                        iconLibrary="Feather"
                     />
                 </View>
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
-                        title="Manage Offers"
+                        title="Offers"
                         onPress={onManageOffersPress}
                         variant="primary"
+                        icon="pricetags"
+                        iconLibrary="Ionicons"
                     />
                 </View>
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
-                        title="Manage Personnel"
+                        title="Personnel"
                         onPress={onManageAdminsPress}
                         variant="secondary" 
+                        icon="users"
+                        iconLibrary="Feather"
                     />
                 </View>
             </View>
