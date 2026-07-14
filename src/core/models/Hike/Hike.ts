@@ -3,7 +3,7 @@ import { toNumerical, toTextual } from "@/src/core/models/Review/Logic/Review.co
 import { DifficultyFactors, DifficultyRating, FavoredFactors } from "@/src/core/models/Review/Review.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
+import { DocumentData, FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 
 export class Hike implements IHike {
@@ -121,4 +121,107 @@ export const hikeConverter: FirestoreDataConverter<Hike> = {
     fromFirestore: (snapshot: QueryDocumentSnapshot): Hike => {
         const data = snapshot.data() as IHikeDB;
         return Hike.fromFirestore(snapshot.id, data);    }
+}
+
+export const createInitialHike = (init?: Partial<IHike>): IHike => {
+    return {
+        id: '',
+        hikeDate: new Date(),
+        trail: {
+            id: '',
+            name: ''
+        },
+        overallRating: 0,
+        trailMaintenance: 'Easy',
+        difficultyFactors: [],
+        favoredFactors: [],
+        review: '',
+        image: [],
+        predictedDifficulty: 'Easy',
+        perceivedDifficulty: 'undefined',
+        distance: 0,
+        duration: 0,
+        elevation: 0,
+        status: 'unhiked',
+        mode: 'direct',
+        bookingId: undefined,
+        startTime: undefined,
+        endTime: undefined,
+        ...init
+    }
+}
+
+export const hikeFromDB = (id: string, data: DocumentData): IHike => {
+    return {
+        id,
+        hikeDate: toDate(data.hikeDate),
+        predictedDifficulty: toTextual(data.predictedDifficulty),
+        perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
+        startTime: data.startTime ? toDate(data.startTime) : undefined,
+        endTime: data.endTime ? toDate(data.endTime) : undefined,
+        trailMaintenance: toTextual(data.trailMaintenance),
+        distance: data.distance || 0,
+        duration: data.duration || 0,
+        elevation: data.elevation || 0,
+        status: data.status || "unhiked",
+        mode: data.mode || "direct",
+        overallRating: data.overallRating || 0,
+        difficultyFactors: data.difficultyFactors || [],
+        favoredFactors: data.favoredFactors || [],
+        review: data.review || "",
+        image: [],
+        trail: data.trail ? {
+            id: data.trail?.id || "",
+            name: data.trail?.name || ""
+        } : {
+            id: "",
+            name: ""
+        }
+    }
+}
+
+export const hikeToDB = (hike: IHike): IHikeDB => {
+    const mapped: IHikeDB = {
+        id: hike.id,
+        hikeDate: hike.hikeDate ? Timestamp.fromDate(hike.hikeDate) : Timestamp.fromDate(new Date()),
+        trail: hike.trail,
+        predictedDifficulty: toNumerical(hike.predictedDifficulty),
+        mode: hike.mode,
+        status: hike.status,
+        trailMaintenance: toNumerical(hike.trailMaintenance),
+        overallRating: hike.overallRating,
+        difficultyFactors: hike.difficultyFactors,
+        favoredFactors: hike.favoredFactors,
+        review: hike.review,
+        image: hike.image,
+        perceivedDifficulty: hike.perceivedDifficulty !== 'undefined' ? toNumerical(hike.perceivedDifficulty) : 0,
+
+        distance: hike.distance || 0,
+        duration: hike.duration || 0,
+        elevation: hike.elevation || 0,
+    }
+
+    if(hike.mode === 'booked' && hike.bookingId) {
+        mapped.bookingId = hike.bookingId;
+    }
+
+    if(hike.status !== 'unhiked' && hike.startTime){
+        try {
+            console.log('mapping startTime: ', hike.startTime);
+            mapped.startTime = Timestamp.fromDate(hike.startTime ?? new Date());
+        } catch (error){
+            console.log('in line 84: ', error);
+        }
+    }
+
+    if(hike.status === 'completed' && hike.endTime){
+        try {
+            console.log('mapping endTime: ', hike.endTime);
+            mapped.endTime = Timestamp.fromDate(hike.endTime ?? new Date());
+        } catch (error){
+            console.log('in line 92: ', error);
+        }
+    }
+
+    return mapped;
 }

@@ -1,5 +1,5 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
-import { createHikerRecord, HikerRecord } from "@/src/core/models/Leaderboard/Leaderboard";
+import { createHikerRecord, HikerRecord } from "@/src/core/models/Leaderboard/xLeaderboard";
 import { userConverter, userFromDB } from "@/src/core/models/User/User";
 import { collection, getDocs, query, where } from "firebase/firestore";
 

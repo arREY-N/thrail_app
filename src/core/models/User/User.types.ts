@@ -47,6 +47,7 @@ export interface IUserBase<T> extends IUserSummary{
     role: Role;
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;
+    profileImage: string;
 }
 
 export interface IUserDB extends IUserBase<Timestamp | FieldValue> {}

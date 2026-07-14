@@ -1,82 +1,62 @@
-import { Hike } from "@/src/core/models/Hike/Hike";
-import { User } from "@/src/core/models/User/User";
-import { IUser } from "@/src/core/models/User/User.types";
+import { HikeRepository } from "@/src/core/hook/repo/init";
+import { HikeSummaryInDB, HikeSummaryPreRankings } from "@/src/core/models/Leaderboard/interfaces/ILeaderboard";
+import { UserRepository } from "@/src/core/models/User/hooks/initalizeUserRepo";
 
-export interface LeaderboardEntry {
-    userId: string;
-    score: number;
-    totalLength: number;
-    numberOfHikes: number;
-    rank?: number;
-}
+export type LeaderboardRecords = Record<string, HikeSummaryInDB>;
 
-export interface Leaderboard {
-    id: string;
-    ranking: LeaderboardEntry[];
-    date: Date;
-}
+export const generateLeaderboard = async (): Promise<LeaderboardRecords> => {
+    const userHikingData = await collectUserHikingData();
 
-export interface HikerRecord {
-    userId: string;
-    hikes: Hike[];
-}
+    // sort
 
-export const createHikerRecord = (user: IUser, hikes: Hike[]): HikerRecord => {
-    if(!user) throw new Error("User is required to create a hiker record.");
- 
-    return {
-        userId: user.id,
-        hikes: hikes
-    };
-}
+    // rank
 
-export const onCreateMonthlyLeaderboard = (users: User[], hikes: Hike[]): Leaderboard => {
-    const scored = users.map(u => {
-        const userHikes = hikes.filter(h => h.userId === u.id);
-        return createLeaderboardEntry({user: u, hiking: userHikes});
-    });
+    // leaderboard repo
 
-    const ranked = rankEntries(scored);
 
-    return {
-        id: `${new Date().getFullYear()}-${new Date().getMonth() + 1}`,
-        date: new Date(),
-        ranking: ranked
-    };
-}
-
-export const createLeaderboardEntry = ({user, hiking}: {user: User, hiking: Hike[]}): LeaderboardEntry => {
-    if(!user) throw new Error("User is required to create a leaderboard entry.");
-    
-    let record = {
-        userId: user.id,
-        score: 0,
-        totalLength: 0,
-        numberOfHikes: 0 
-    }
-
-    const validHiking = hiking.filter(hike => 
-        (hike.status === "completed" && (hike.endTime && hike.endTime.getMonth() === new Date().getMonth()))
-    );
-
-    if(!validHiking || validHiking.length === 0) return record; 
-
-    record.totalLength = validHiking.reduce((total, hike) => total + (hike.distance || 0), 0);
-    record.numberOfHikes = validHiking.length;
-    record.score = record.totalLength / record.numberOfHikes;
-
-    return record; 
+    return {}; 
 };
 
-export const rankEntries = (entries: LeaderboardEntry[]): LeaderboardEntry[] => {
-    const ranked = entries.sort((a, b) => b.score - a.score);
-    let currentRank = 1;
-    for (let i = 0; i < ranked.length; i++) {
-        if (i > 0 && ranked[i].score < ranked[i - 1].score) {
-            currentRank += 1;
-        }
-        ranked[i].rank = currentRank;
+export const collectUserHikingData = async (): Promise<HikeSummaryPreRankings[]> => {
+    const users = await UserRepository.fetchAll();
+
+    const records: HikeSummaryPreRankings[] = [];
+
+    for (const user of users) {
+        const userHikes = await HikeRepository.fetchAllUserHike(user.id);
+        
+        const hikeRecords: { totalDistance: number; totalElevation: number; totalHikes: number } = userHikes
+            .filter(hike => 
+                hike.status === 'completed' && 
+                hike.distance !== undefined && 
+                hike.elevation !== undefined &&
+                hike.startTime && hike.startTime.getMonth() === new Date().getMonth() - 1 &&
+                hike.startTime.getFullYear() === new Date().getFullYear())    
+            .reduce((acc, hike) => {
+                const { distance, elevation } = hike;
+
+                acc.totalDistance += distance ? distance : 0;
+                acc.totalElevation += elevation ? elevation : 0;
+                acc.totalHikes += 1;
+
+                return acc;
+            }, { totalDistance: 0, totalElevation: 0, totalHikes: 0 }
+        )
+
+        if(hikeRecords.totalHikes === 0) continue;
+
+        records.push({ 
+            userId: user.id,
+            username: user.username,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            profileImage: user.profileImage ? user.profileImage : '',
+            totalDistance: hikeRecords.totalDistance,
+            totalElevation: hikeRecords.totalElevation,
+            totalHikes: hikeRecords.totalHikes,
+        });
     }
 
-    return ranked;
-}
+    return records;
+};

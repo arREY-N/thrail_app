@@ -20,6 +20,7 @@ export class User implements IUser{
     onBoardingComplete: boolean = false;
     phoneNumber: string = '';
     fcmTokens: NotificationToken<Date>[] = [];
+    profileImage: string = '';
     preferences: IPreference = {
         experience: '',
         hike_length: [],
@@ -93,6 +94,7 @@ export class User implements IUser{
             medicalProfile: this.medicalProfile, // New
             role: this.role,
             emergencyContact: this.emergencyContact,
+            profileImage: this.profileImage,
         }
 
         return mapped;
@@ -129,6 +131,7 @@ export const createInitialUser = (init?: Partial<User>): IUser => {
         onBoardingComplete: false,
         phoneNumber: '',
         fcmTokens: [],
+        profileImage: '',
         preferences: {
             experience: '',
             hike_length: [],
@@ -164,6 +167,7 @@ export const userFromDB = (id: string, data: DocumentData): IUser => {
         birthday: data.birthday ? toDate(data.birthday) : new Date(),
         onBoardingComplete: data.onBoardingComplete,
         phoneNumber: data.phoneNumber,
+        profileImage: data.profileImage || '',
         fcmTokens: (data.fcmTokens ?? []).map((token: any) => ({
             ...token,
             lastUpdated: token.lastUpdated ? toDate(token.lastUpdated) : new Date(),
@@ -197,6 +201,7 @@ export const userToDB = (user: IUser): IUserDB => {
         medicalProfile: user.medicalProfile,
         role: user.role,
         emergencyContact: user.emergencyContact,
+        profileImage: user.profileImage,
     }
 }
 
