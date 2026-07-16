@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ImageProps, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -29,33 +29,41 @@ const CustomImage: React.FC<CustomImageProps> = ({
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
 
-    const memoizedSource = useMemo(() => {
-        return source;
-    }, [
-        typeof source === 'object' && source !== null && 'uri' in source 
-            ? (source as any).uri 
-            : source
-    ]);
+    const sourceUri = typeof source === 'object' && source !== null && 'uri' in source 
+        ? (source as any).uri 
+        : source;
 
     useEffect(() => {
         setIsLoaded(false);
         setHasError(false);
-    }, [memoizedSource]);
+    }, [sourceUri]);
+
+    const flatStyle = StyleSheet.flatten(style) || {};
+    const { backgroundColor, ...layoutStyle } = flatStyle;
 
     return (
-        <View style={[styles.container, style as StyleProp<ViewStyle>, containerStyle]}>
+        <View style={[styles.container, layoutStyle as StyleProp<ViewStyle>, containerStyle]}>
+            {!isLoaded && !hasError && (
+                <View 
+                    style={[
+                        StyleSheet.absoluteFillObject, 
+                        { backgroundColor: backgroundColor || Colors.GRAY_ULTRALIGHT }
+                    ]} 
+                />
+            )}
+
             {hasError && (
                 <View style={styles.errorContainer}>
                     <CustomIcon library="Ionicons" name="image" size={32} color={Colors.GRAY} />
                 </View>
             )}
             <Image
-                source={memoizedSource}
+                source={source}
                 {...props}
                 style={[
-                    style, 
+                    layoutStyle, 
                     { 
-                        opacity: isLoaded ? 1 : 0, 
+                        opacity: isLoaded ? 1 : 0,
                         width: '100%', 
                         height: '100%',
                         margin: 0,
@@ -69,6 +77,10 @@ const CustomImage: React.FC<CustomImageProps> = ({
                 ]}
                 onLoadStart={() => {
                     if (onLoadStart) (onLoadStart as any)();
+                }}
+                onLoad={(e) => {
+                    setIsLoaded(true);
+                    if (props.onLoad) props.onLoad(e);
                 }}
                 onLoadEnd={() => {
                     setIsLoaded(true);
@@ -86,7 +98,6 @@ const CustomImage: React.FC<CustomImageProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
         overflow: 'hidden',
         position: 'relative',
         justifyContent: 'center',
@@ -96,6 +107,7 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
     }
 });
 
