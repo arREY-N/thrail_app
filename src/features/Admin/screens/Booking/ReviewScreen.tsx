@@ -6,6 +6,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from 'react-native';
 
@@ -24,31 +25,51 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
+import ActivityLog from '@/src/features/Admin/screens/Booking/components/ActivityLog';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
-import AdminDocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/components/AdminDocumentTab';
-import AdminPaymentTab from '@/src/features/Admin/screens/Booking/components/AdminPaymentTab';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
-import ReviewStatusBanner from '@/src/features/Admin/screens/Booking/components/ReviewStatusBanner';
+import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
+import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { Offer } from '@/src/core/models/Offer/Offer';
+import { User } from '@/src/core/models/User/User';
+
+/**
+ * Props for ReviewScreen component.
+ * @param isLoading - Flag indicating screen is in a loading state.
+ * @param booking - The booking details model.
+ * @param offers - List of rescheduling offers.
+ * @param onBackPress - Callback for back navigation.
+ * @param onApprove - Callback when approving the booking.
+ * @param onConfirmPayment - Callback when verifying payment.
+ * @param onReject - Callback when rejecting the booking.
+ * @param onReschedule - Callback when selecting a reschedule offer.
+ * @param onRefund - Callback when issuing a refund.
+ * @param onCancelUnpaid - Callback when cancelling an unpaid booking.
+ * @param error - Optional error message text.
+ * @param hikerProfile - The hiker profile details.
+ */
 export interface ReviewScreenProps {
     isLoading: boolean;
-    booking: any;
-    offers: any[];
+    booking: IBooking;
+    offers: Offer[];
     onBackPress: () => void;
-    onApprove: (docStates: DocState[]) => Promise<void>;
+    onApprove: (docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
     onConfirmPayment: () => Promise<void>;
-    onReject: (reason: string, docStates: DocState[]) => Promise<void>;
-    onReschedule: (offerData: any) => Promise<void>;
+    onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
+    onReschedule: (offerData: Offer) => void | Promise<void>;
     onRefund: (refundType: RefundType) => Promise<void>;
     onCancelUnpaid?: () => Promise<void>;
     error?: string;
+    hikerProfile?: User | null;
 }
 
 /**
  * ReviewScreen — Admin booking review screen that consolidates the document and payment workflows.
  */
-const ReviewScreen = ({ 
+const ReviewScreen: React.FC<ReviewScreenProps> = ({ 
     isLoading, 
     booking, 
     offers, 
@@ -59,16 +80,22 @@ const ReviewScreen = ({
     onReschedule, 
     onRefund, 
     onCancelUnpaid,
-    error 
-}: ReviewScreenProps) => {
-    
+    error,
+    hikerProfile
+}) => {
+    const { width } = useWindowDimensions();
+    const isWide = width >= 768;
+
     const {
         activeTab, setActiveTab,
         docStates, setDocStates,
         viewedDocs, setViewedDocs,
         rejectionReason, setRejectionReason,
-        personalVerified, setPersonalVerified,
-        emergencyVerified, setEmergencyVerified,
+        personalVerifiedAt,
+        emergencyVerifiedAt,
+        personalStatus, emergencyStatus,
+        personalMonthsRemaining, emergencyMonthsRemaining,
+        togglePersonalVerify, toggleEmergencyVerify,
         isMinor,
         currentStatus, 
         isApprovedStatus, 
@@ -115,15 +142,16 @@ const ReviewScreen = ({
         setIsProcessingAction(true);
         try {
             if (allApproved) {
-                await onApprove(docStates);
+                await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt);
                 setActiveTab('payment');
             } else {
-                await onReject(rejectionReason, docStates); 
+                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt); 
             }
         } finally {
             setIsProcessingAction(false);
         }
     };
+
 
     if (isLoading || !booking || !booking.user) {
         return (
@@ -165,76 +193,82 @@ const ReviewScreen = ({
                     {error && !error.includes('No payment found') && (
                         <ErrorMessage error={error} />
                     )}
-                    
-                    <ReviewStatusBanner 
-                        currentStatus={currentStatus}
-                        cancellationReason={displayCancellationReason}
-                        rejectionReason={rejectionReason}
-                    />
+                    <View style={isWide ? styles.splitLayoutContainer : styles.verticalLayoutContainer}>
+                        {/* Left Column: Hiker Profile */}
+                        <View style={isWide ? styles.leftColumn : styles.fullWidthContainer}>
+                            <HikerProfileCard 
+                                user={booking.user}
+                                emergencyContact={booking.emergencyContact}
+                                hikerProfile={hikerProfile}
+                                personalStatus={personalStatus}
+                                emergencyStatus={emergencyStatus}
+                                personalMonthsRemaining={personalMonthsRemaining}
+                                emergencyMonthsRemaining={emergencyMonthsRemaining}
+                                onTogglePersonalVerify={togglePersonalVerify}
+                                onToggleEmergencyVerify={toggleEmergencyVerify}
+                                statusText={adminStatusConfig.label}
+                                statusBgColor={adminStatusConfig.bgColor}
+                                statusTextColor={adminStatusConfig.textColor}
+                                isMinor={isMinor}
+                            />
+                        </View>
 
-                    <HikerProfileCard 
-                        user={booking.user}
-                        emergencyContact={booking.emergencyContact}
-                        personalVerified={personalVerified} 
-                        emergencyVerified={emergencyVerified}
-                        onTogglePersonalVerify={() => setPersonalVerified(!personalVerified)}
-                        onToggleEmergencyVerify={() => setEmergencyVerified(!emergencyVerified)}
-                        statusText={adminStatusConfig.label}
-                        statusBgColor={adminStatusConfig.bgColor}
-                        statusTextColor={adminStatusConfig.textColor}
-                        isMinor={isMinor}
-                    />
+                        {/* Right Column: Documents and Payment Verification */}
+                        <View style={isWide ? styles.rightColumn : styles.fullWidthContainer}>
+                            <View style={styles.tabContainer}>
+                                <TouchableOpacity 
+                                    style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]} 
+                                    onPress={() => setActiveTab('documents')} 
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomIcon library="Feather" name="file-text" size={16} color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
+                                    <CustomText style={[styles.tabText, activeTab === 'documents' && { color: Colors.WHITE }]}>
+                                        Documents
+                                    </CustomText>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                    style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]} 
+                                    onPress={() => setActiveTab('payment')} 
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomIcon library="Feather" name="credit-card" size={16} color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
+                                    <CustomText style={[styles.tabText, activeTab === 'payment' && { color: Colors.WHITE }]}>
+                                        Payment
+                                    </CustomText>
+                                </TouchableOpacity>
+                            </View>
 
-                    <View style={styles.tabContainer}>
-                        <TouchableOpacity 
-                            style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]} 
-                            onPress={() => setActiveTab('documents')} 
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon library="Feather" name="file-text" size={16} color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
-                            <CustomText style={[styles.tabText, activeTab === 'documents' && { color: Colors.WHITE }]}>
-                                Documents
-                            </CustomText>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]} 
-                            onPress={() => setActiveTab('payment')} 
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon library="Feather" name="credit-card" size={16} color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
-                            <CustomText style={[styles.tabText, activeTab === 'payment' && { color: Colors.WHITE }]}>
-                                Payment
-                            </CustomText>
-                        </TouchableOpacity>
+                            {activeTab === 'documents' && (
+                                <DocumentTab 
+                                    booking={booking}
+                                    docStates={docStates}
+                                    setDocStates={setDocStates as unknown as React.Dispatch<React.SetStateAction<DocState[]>>}
+                                    viewedDocs={viewedDocs}
+                                    isReviewComplete={isReviewComplete}
+                                    isRejectedStatus={isRejectedStatus}
+                                    isCancelledStatus={isCancelledStatus}
+                                    hasRejections={hasRejections}
+                                    rejectionReason={rejectionReason}
+                                    setRejectionReason={setRejectionReason}
+                                    onViewFile={handleViewFile}
+                                />
+                            )}
+
+                            {activeTab === 'payment' && (
+                                <PaymentTab 
+                                    booking={booking}
+                                    currentStatus={currentStatus}
+                                    isApprovedStatus={isApprovedStatus}
+                                    isRejectedStatus={isRejectedStatus}
+                                    isCancelledStatus={isCancelledStatus}
+                                    onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
+                                />
+                             )}
+
+                            <ActivityLog booking={booking} currentStatus={currentStatus} />
+                        </View>
                     </View>
-
-                    {activeTab === 'documents' && (
-                        <AdminDocumentTab 
-                            booking={booking}
-                            docStates={docStates}
-                            setDocStates={setDocStates as unknown as React.Dispatch<React.SetStateAction<DocState[]>>}
-                            viewedDocs={viewedDocs}
-                            isReviewComplete={isReviewComplete}
-                            isRejectedStatus={isRejectedStatus}
-                            isCancelledStatus={isCancelledStatus}
-                            hasRejections={hasRejections}
-                            rejectionReason={rejectionReason}
-                            setRejectionReason={setRejectionReason}
-                            onViewFile={handleViewFile}
-                        />
-                    )}
-
-                    {activeTab === 'payment' && (
-                        <AdminPaymentTab 
-                            booking={booking}
-                            currentStatus={currentStatus}
-                            isApprovedStatus={isApprovedStatus}
-                            isRejectedStatus={isRejectedStatus}
-                            isCancelledStatus={isCancelledStatus}
-                            onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
-                        />
-                    )}
                 </View>
             </ScrollView>
 
@@ -354,7 +388,7 @@ const ReviewScreen = ({
             <AdminActionMenu 
                 visible={showActionMenu}
                 onClose={() => setShowActionMenu(false)}
-                isCancelledStatus={isCancelledStatus}
+                isCancelledStatus={isCancelledStatus || currentStatus === 'completed'}
                 totalAmountPaid={totalAmountPaid}
                 onRescheduleClick={() => {
                     setShowActionMenu(false);
@@ -421,7 +455,35 @@ const styles = StyleSheet.create({
     footerWrapper: { 
         alignItems: 'center', 
         width: '100%' 
-    }
+    },
+
+    // Two-Column Grid Styles
+    splitLayoutContainer: {
+        flexDirection: 'row',
+        gap: 24,
+        alignItems: 'flex-start',
+        width: '100%',
+        marginTop: 16
+    },
+    verticalLayoutContainer: {
+        flexDirection: 'column',
+        width: '100%',
+        marginTop: 16,
+        gap: 20
+    },
+    leftColumn: {
+        flex: 1.2,
+        minWidth: 320
+    },
+    rightColumn: {
+        flex: 1.8,
+        minWidth: 380
+    },
+    fullWidthContainer: {
+        width: '100%'
+    },
+
+
 });
 
 export default ReviewScreen;
