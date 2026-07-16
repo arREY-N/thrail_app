@@ -75,20 +75,31 @@ export default function useOfferFilters(offers: any[]) {
         });
 
         return filtered.sort((a, b) => {
-            if (sortBy === 'price-asc') {
-                return (Number(a.price) || 0) - (Number(b.price) || 0);
-            }
-            if (sortBy === 'price-desc') {
-                return (Number(b.price) || 0) - (Number(a.price) || 0);
+            if (sortBy === 'price-asc' || sortBy === 'price-desc') {
+                const priceA = Number(a.price) || 0;
+                const priceB = Number(b.price) || 0;
+                
+                if (priceA !== priceB) {
+                    return sortBy === 'price-asc' ? priceA - priceB : priceB - priceA;
+                }
             }
 
             const dateA = safeParseDateString(a.date || a.hikeDate).getTime();
             const dateB = safeParseDateString(b.date || b.hikeDate).getTime();
 
-            if (sortBy === 'date-desc') {
-                return dateB - dateA;
+            const timeA = isNaN(dateA) ? 0 : dateA;
+            const timeB = isNaN(dateB) ? 0 : dateB;
+
+            if (timeA !== timeB) {
+                if (sortBy === 'date-desc') {
+                    return timeB - timeA;
+                }
+                return timeA - timeB;
             }
-            return dateA - dateB;
+
+            const nameA = a.trail?.name || '';
+            const nameB = b.trail?.name || '';
+            return nameA.localeCompare(nameB);
         });
     }, [offers, searchQuery, activeFilter, sortBy, filterTrailNames]);
 
