@@ -3,8 +3,9 @@
  * @description Card component displaying high-level offer info, booking counts, actions, and status in the Admin screen.
  */
 
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef, useState } from 'react';
+import { ScrollView, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -12,6 +13,9 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 import SlotsCounter from './SlotsCounter';
 
@@ -33,6 +37,7 @@ export interface OfferStatusDetails {
  * @param actionableCount - Count of active bookings that need admin action.
  * @param onViewBookings - Callback function to view bookings for this offer.
  * @param onEditPress - Callback function to edit the details of this offer.
+ * @param style - Optional style override prop.
  */
 export interface OfferCardProps {
     offer: any;
@@ -41,6 +46,7 @@ export interface OfferCardProps {
     actionableCount: number;
     onViewBookings: (offerId: string) => void;
     onEditPress: (offerId: string) => void;
+    style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -53,14 +59,20 @@ const OfferCard: React.FC<OfferCardProps> = ({
     statusDetails, 
     actionableCount, 
     onViewBookings, 
-    onEditPress 
+    onEditPress,
+    style
 }) => {
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWide = isDesktop || isTablet;
     const isDescLong = (offer.description || '').length > 100;
     const [isExpanded, setIsExpanded] = useState(false);
 
+    const badgeScrollRef = useRef<ScrollView>(null);
+    const { showLeftFade, showRightFade, scrollProps } = useScrollFades();
+    useWebDragScroll(badgeScrollRef, true);
+
     return (
-        <View style={styles.offerCard}>
-            
+        <View style={[styles.offerCard, style]}>
             {/* 1. Header (Trail Name and Price) */}
             <View style={styles.cardHeader}>
                 <View style={styles.trailInfo}>
@@ -96,18 +108,19 @@ const OfferCard: React.FC<OfferCardProps> = ({
             {/* 2. Collapsible Description (Chevron click) */}
             {offer.description ? (
                 <TouchableOpacity 
-                    activeOpacity={isDescLong ? 0.8 : 1}
-                    onPress={() => isDescLong && setIsExpanded(!isExpanded)}
+                    activeOpacity={isDescLong && !isWide ? 0.8 : 1}
+                    onPress={() => isDescLong && !isWide && setIsExpanded(!isExpanded)}
+                    disabled={isWide || !isDescLong}
                     style={styles.descriptionWrapper}
                 >
                     <CustomText 
                         variant="caption" 
                         style={styles.description} 
-                        numberOfLines={isExpanded ? undefined : 1}
+                        numberOfLines={isWide ? 1 : (isExpanded ? undefined : 1)}
                     >
                         {offer.description}
                     </CustomText>
-                    {isDescLong && (
+                    {isDescLong && !isWide && (
                         <View style={styles.expandIconContainer}>
                             <CustomIcon
                                 library="Feather"
@@ -123,94 +136,139 @@ const OfferCard: React.FC<OfferCardProps> = ({
             {/* 3. Divider */}
             <View style={styles.divider} />
 
-            {/* 4. Details Grid (Date, Duration, and Inline Document Badges) */}
-            <View style={styles.detailsGrid}>
-                <View style={[styles.detailRow, statusDetails.label === 'Expired' && { backgroundColor: Colors.GRAY_ULTRALIGHT, opacity: 0.8 }]}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="calendar" 
-                        size={14} 
-                        color={Colors.TEXT_SECONDARY} 
-                        style={styles.badgeIcon}
-                    />
-                    <CustomText 
-                        variant="caption" 
-                        style={[
-                            styles.detailText, 
-                            statusDetails.label === 'Expired' && { color: Colors.ERROR }
-                        ]}
-                    >
-                        {formatDateToStandard(offer.date || offer.hikeDate)}
-                    </CustomText>
-                </View>
-                
-                <View style={styles.detailRow}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="clock" 
-                        size={14} 
-                        color={Colors.TEXT_SECONDARY} 
-                        style={styles.badgeIcon}
-                    />
-                    <CustomText variant="caption" style={styles.detailText}>
-                        {offer.duration || offer.hikeDuration || "1 Day"}
-                    </CustomText>
-                </View>
-
-                {/* Repositioned Required Documents chips in grid */}
-                {offer.documents && offer.documents.map((doc: string, idx: number) => (
-                    <View key={idx} style={[styles.detailRow, styles.docDetailRow]}>
+            {/* 4. Details scroll track (Horizontal Scroll with Fades) */}
+            <View style={styles.badgeContainer}>
+                <ScrollView 
+                    ref={badgeScrollRef}
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.detailsGrid}
+                    {...scrollProps}
+                >
+                    <View style={[styles.detailRow, statusDetails.label === 'Expired' && { backgroundColor: Colors.GRAY_ULTRALIGHT, opacity: 0.8 }]}>
                         <CustomIcon 
                             library="Feather" 
-                            name="file-text" 
-                            size={12} 
-                            color={Colors.TEXT_SECONDARY}
+                            name="calendar" 
+                            size={14} 
+                            color={Colors.TEXT_SECONDARY} 
                             style={styles.badgeIcon}
                         />
-                        <CustomText variant="caption" style={styles.docDetailText}>
-                            {doc}
+                        <CustomText 
+                            variant="caption" 
+                            style={[
+                                styles.detailText, 
+                                statusDetails.label === 'Expired' && { color: Colors.ERROR }
+                            ]}
+                        >
+                            {formatDateToStandard(offer.date || offer.hikeDate)}
                         </CustomText>
                     </View>
-                ))}
+                    
+                    <View style={styles.detailRow}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name="clock" 
+                            size={14} 
+                            color={Colors.TEXT_SECONDARY} 
+                            style={styles.badgeIcon}
+                        />
+                        <CustomText variant="caption" style={styles.detailText}>
+                            {offer.duration || offer.hikeDuration || "1 Day"}
+                        </CustomText>
+                    </View>
+
+                    {/* Repositioned Required Documents chips in scroll track */}
+                    {offer.documents && offer.documents.map((doc: string, idx: number) => (
+                        <View key={idx} style={[styles.detailRow, styles.docDetailRow]}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="file-text" 
+                                size={12} 
+                                color={Colors.TEXT_SECONDARY}
+                                style={styles.badgeIcon}
+                            />
+                            <CustomText variant="caption" style={styles.docDetailText}>
+                                {doc}
+                            </CustomText>
+                        </View>
+                    ))}
+                </ScrollView>
+
+                {showLeftFade && (
+                    <LinearGradient 
+                        colors={[Colors.WHITE, Colors.WHITE_FADE_HALF, Colors.WHITE_TRANSPARENT]} 
+                        start={{ x: 0, y: 0 }} 
+                        end={{ x: 1, y: 0 }} 
+                        style={styles.leftFade} 
+                        pointerEvents="none" 
+                    />
+                )}
+
+                {showRightFade && (
+                    <LinearGradient 
+                        colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE_HALF, Colors.WHITE]} 
+                        start={{ x: 0, y: 0 }} 
+                        end={{ x: 1, y: 0 }} 
+                        style={styles.rightFade} 
+                        pointerEvents="none" 
+                    />
+                )}
             </View>
 
             {/* 5. Slots reservation counter */}
-            <SlotsCounter 
-                bookings={bookings} 
-                minPax={Number(offer.minPax) || 0} 
-                maxPax={Number(offer.maxPax) || 0} 
-            />
+            {statusDetails.label === 'Active' && (
+                <SlotsCounter 
+                    bookings={bookings} 
+                    minPax={Number(offer.minPax) || 0} 
+                    maxPax={Number(offer.maxPax) || 0} 
+                />
+            )}
 
             {/* 6. Buttons Row */}
             <View style={styles.buttonRow}>
-                <View style={styles.actionButtonWrapper}>
-                    {actionableCount > 0 && (
-                        <View style={styles.buttonNotificationDot}>
-                            <CustomText style={styles.notificationText}>
-                                {actionableCount > 99 ? '99+' : actionableCount}
-                            </CustomText>
+                {statusDetails.label === 'Active' ? (
+                    <>
+                        <View style={styles.actionButtonWrapper}>
+                            {actionableCount > 0 && (
+                                <View style={styles.buttonNotificationDot}>
+                                    <CustomText style={styles.notificationText}>
+                                        {actionableCount > 99 ? '99+' : actionableCount}
+                                    </CustomText>
+                                </View>
+                            )}
+                            <CustomButton 
+                                title="Manage Bookings"
+                                onPress={() => onViewBookings(offer.id)}
+                                variant="primary"
+                                icon="calendar-clear"
+                                iconLibrary="Ionicons"
+                                style={styles.viewBookingsButton}
+                            />
                         </View>
-                    )}
-                    <CustomButton 
-                        title="Manage Bookings"
-                        onPress={() => onViewBookings(offer.id)}
-                        variant="primary"
-                        icon="calendar-clear"
-                        iconLibrary="Ionicons"
-                        style={styles.viewBookingsButton}
-                    />
-                </View>
 
-                <View style={styles.editButtonWrapper}>
-                    <CustomButton 
-                        title="Edit"
-                        onPress={() => onEditPress(offer.id)}
-                        variant="outline"
-                        icon="edit"
-                        iconLibrary="Feather"
-                        style={styles.editButton}
-                    />
-                </View>
+                        <View style={styles.editButtonWrapper}>
+                            <CustomButton 
+                                title="Edit"
+                                onPress={() => onEditPress(offer.id)}
+                                variant="outline"
+                                icon="edit"
+                                iconLibrary="Feather"
+                                style={styles.editButton}
+                            />
+                        </View>
+                    </>
+                ) : (
+                    <View style={{ flex: 1 }}>
+                        <CustomButton 
+                           title="Manage Bookings"
+                           onPress={() => onViewBookings(offer.id)}
+                           variant="primary"
+                           icon="calendar-clear"
+                           iconLibrary="Ionicons"
+                           style={styles.viewBookingsButton}
+                        />
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -224,6 +282,17 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         ...GlobalStyles.dropShadow(3), 
+    },
+    offerCardWide: {
+        minHeight: 315,
+        justifyContent: 'space-between',
+    },
+    topGroup: {
+        width: '100%',
+    },
+    bottomGroup: {
+        width: '100%',
+        marginTop: 12,
     },
     cardHeader: { 
         flexDirection: 'row', 
@@ -295,11 +364,32 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         marginVertical: 12 
     },
+    badgeContainer: {
+        position: 'relative',
+        width: '100%',
+        marginBottom: 12,
+    },
     detailsGrid: { 
         flexDirection: 'row', 
-        flexWrap: 'wrap', 
-        gap: 12, 
-        marginBottom: 12 
+        alignItems: 'center',
+        gap: 12,
+        paddingRight: 24,
+    },
+    leftFade: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 24,
+        zIndex: 2,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 24,
+        zIndex: 2,
     },
     detailRow: { 
         flexDirection: 'row', 
@@ -370,6 +460,19 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         flex: 1,
         height: '100%',
+    },
+    expiredSlotsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 10,
+        borderRadius: 12,
+        gap: 6,
+        marginBottom: 12,
+    },
+    expiredSlotsText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
     }
 });
 
