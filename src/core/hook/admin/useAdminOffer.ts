@@ -14,6 +14,16 @@ export default function useAdminOffer() {
 
     const [localError, setLocalError] = useState<string | null>(null);
 
+    // Load business offers when the component mounts or when the businessId changes
+    useEffect(() => {
+        if (businessId && (!businessOffers || businessOffers.length === 0)) {
+            loadBusinessOffers(businessId).catch(err => {
+                console.error("Failed to load business offers: ", err);
+                setLocalError((err as Error).message || "Failed to load offers");
+            });
+        }
+    }, [businessId, loadBusinessOffers, businessOffers]);
+
     useEffect(() => {
         if (!businessOffers || businessOffers.length === 0) return;
 
