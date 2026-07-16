@@ -21,6 +21,7 @@ export interface IEmergencyContact {
     contactNumber: string;
     userId?: string;
     email?: string; 
+    phoneVerifiedAt?: Date | Timestamp | FieldValue | null;
 }
 
 export interface IMedicalProfile {  // New
