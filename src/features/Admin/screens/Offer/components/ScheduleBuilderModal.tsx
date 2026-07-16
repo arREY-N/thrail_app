@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
     },
     backdrop: { 
         ...StyleSheet.absoluteFillObject, 
-        backgroundColor: 'rgba(0, 0, 0, 0.4)' 
+        backgroundColor: Colors.MODAL_OVERLAY 
     },
     backdropTouch: { 
         flex: 1 
