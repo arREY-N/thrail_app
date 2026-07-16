@@ -33,8 +33,8 @@ export const STATUS_UI_CONFIG = {
         icon: 'credit-card'
     },
     'downpayment': {
-        userLabel: 'PARTIALLY PAID', userType: 'WARNING', 
-        adminLabel: 'PARTIALLY PAID', adminType: 'WARNING', 
+        userLabel: 'DOWNPAYMENT (50%)', userType: 'WARNING', 
+        adminLabel: 'DOWNPAYMENT (50%)', adminType: 'WARNING', 
         icon: 'pie-chart'
     },
     'paid': {
@@ -68,8 +68,8 @@ export const STATUS_UI_CONFIG = {
         icon: 'calendar'
     },
     'for-cancellation': {
-        userLabel: 'CANCELLATION PENDING', userType: 'INFO', 
-        adminLabel: 'REVIEW CANCELLATION', adminType: 'ACTION', 
+        userLabel: 'CANCELLATION PENDING', userType: 'ERROR', 
+        adminLabel: 'REVIEW CANCELLATION', adminType: 'ERROR', 
         icon: 'alert-triangle'
     },
     'cancellation-rejected': {
