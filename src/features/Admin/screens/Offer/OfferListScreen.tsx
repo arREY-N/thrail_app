@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -27,6 +27,7 @@ import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
 import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
  * Props for the OfferListScreen component.
@@ -82,6 +83,17 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
 
+    const { width } = useBreakpoints();
+    const gap = 16;
+    const padding = 16;
+    const maxConstrainedWidth = Layout.MAX_WIDTH;
+    const containerWidth = Math.min(width, maxConstrainedWidth) - (padding * 2);
+
+    let numColumns = 1;
+    if (containerWidth >= 1200) numColumns = 3;
+    else if (containerWidth >= 768) numColumns = 2;
+
+    const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
     const scrollViewRef = useRef<ScrollView>(null);
 
     const handleTabSelect = (tab: string) => {
@@ -157,9 +169,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     };
 
     const getActionableBookingsCount = (offerId: string) => {
-        if (!bookingByOffer || !bookingByOffer[offerId]) return 0;
+        if (!bookingByOffer || !Object.prototype.hasOwnProperty.call(bookingByOffer, offerId)) return 0;
         
-        return bookingByOffer[offerId].filter(b => {
+        const list = bookingByOffer[offerId] || [];
+        return list.filter(b => {
             const status = (b.status as string) || '';
             return status === 'pending-docs' || 
                    status === 'for-reservation' || 
@@ -276,11 +289,12 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                                         <OfferCard 
                                             key={offer.id as string}
                                             offer={offer}
-                                            bookings={bookingByOffer[offer.id as string] || []}
+                                            bookings={Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id as string) ? bookingByOffer[offer.id as string] : []}
                                             statusDetails={getOfferStatusDetails(offer)}
                                             actionableCount={getActionableBookingsCount(offer.id as string)}
                                             onViewBookings={onViewOfferBookings}
                                             onEditPress={handleEditPress}
+                                            style={{ width: cardWidth }}
                                         />
                                     ))}
                                 </View>
@@ -383,6 +397,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32 
     },
     listContainer: { 
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 16 
     },
     footerContainer: {
