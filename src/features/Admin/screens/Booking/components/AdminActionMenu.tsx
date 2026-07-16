@@ -1,3 +1,8 @@
+/**
+ * @file AdminActionMenu.tsx
+ * @description A bottom-sheet action menu for admin booking management.
+ */
+
 import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -29,7 +34,7 @@ interface AdminActionMenuProps {
  * AdminActionMenu — A bottom-sheet action menu for admin booking management.
  * Displays reschedule, refund, or cancel options depending on booking state.
  */
-const AdminActionMenu = ({ 
+const AdminActionMenu: React.FC<AdminActionMenuProps> = ({ 
     visible, 
     onClose, 
     isCancelledStatus, 
@@ -37,7 +42,7 @@ const AdminActionMenu = ({
     onRescheduleClick, 
     onRefundClick, 
     onCancelClick 
-}: AdminActionMenuProps) => {
+}) => {
     return (
         <Modal 
             transparent={true} 
@@ -116,7 +121,7 @@ const AdminActionMenu = ({
 const styles = StyleSheet.create({
     modalOverlay: { 
         flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
+        backgroundColor: Colors.MODAL_OVERLAY, 
         justifyContent: 'flex-end', 
         alignItems: 'center' 
     },
