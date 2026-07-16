@@ -43,12 +43,14 @@ export interface IPayment<T> {
     status: 'pending' | 'captured' | 'failed' | 'refunded';
     refundableUntil: T;
     amount: number;
+    refundedAmount?: number;
     createdAt: T;
 }
 
 export interface IUserBooking<T> extends IUserSummary {
     birthday: T;
     phoneNumber: string;
+    phoneVerifiedAt?: T | null;
 }
 
 export interface IBookingBase<T> {
