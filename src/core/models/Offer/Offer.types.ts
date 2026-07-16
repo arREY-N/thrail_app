@@ -34,6 +34,8 @@ export interface IOfferBase<T> extends IOfferInfo<T> {
     business: IBusinessSummary;
     trail: ITrailSummary;
     schedule: ISchedule<T>[];
+    status?: string;
+    hikeDate?: Date | Timestamp | FieldValue | null;
 }
 
 export interface IOfferDB extends IOfferBase<Timestamp | FieldValue> {}
