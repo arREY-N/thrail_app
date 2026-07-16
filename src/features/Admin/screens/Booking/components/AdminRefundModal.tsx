@@ -1,5 +1,10 @@
+/**
+ * @file AdminRefundModal.tsx
+ * @description A bottom-sheet modal allowing admins to select between 100% full refund and 10% partial refund options.
+ */
+
 import React from 'react';
-import { Platform,  Modal, StyleSheet, TouchableOpacity, View  } from 'react-native';
+import { Platform, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -9,6 +14,13 @@ import { Layout } from '@/src/constants/layout';
 
 export type RefundType = 'full' | 'partial';
 
+/**
+ * Props for AdminRefundModal component.
+ * @param visible - Controls visibility of the modal dialog.
+ * @param onClose - Callback invoked when closing the dialog.
+ * @param onSelect - Callback when a refund type selection is made.
+ * @param amountPaid - Total amount paid by the hiker to calculate refund percentages.
+ */
 export interface AdminRefundModalProps {
     visible: boolean;
     onClose: () => void;
@@ -19,7 +31,12 @@ export interface AdminRefundModalProps {
 /**
  * AdminRefundModal — A modal to select full or partial refund.
  */
-const AdminRefundModal = ({ visible, onClose, onSelect, amountPaid = 0 }: AdminRefundModalProps) => {
+const AdminRefundModal: React.FC<AdminRefundModalProps> = ({ 
+    visible, 
+    onClose, 
+    onSelect, 
+    amountPaid = 0 
+}) => {
     const fullRefundAmount = amountPaid;
     const partialRefundAmount = amountPaid * 0.10;
 
