@@ -12,6 +12,7 @@ export interface AdminBookingCardProps {
     booking: any;
     offerId: string;
     onViewBooking: (bookingId: string, offerId: string) => void;
+    isOfferLocked?: boolean;
 }
 
 /**
@@ -20,14 +21,15 @@ export interface AdminBookingCardProps {
 const AdminBookingCard = ({ 
     booking, 
     offerId, 
-    onViewBooking 
+    onViewBooking,
+    isOfferLocked = false
 }: AdminBookingCardProps) => {
     const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
     const displayStatus = hasRefundedPayment ? 'refunded' : booking.status;
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
     
-    const requiresAdminAction = ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(displayStatus);
+    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(displayStatus);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';
