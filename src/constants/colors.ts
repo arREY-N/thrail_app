@@ -38,8 +38,10 @@ export const Palette = {
     Blue50:     '#E3F2FD',
     Indigo400:  '#5C6BC0',
     Slate200:   '#E2E8F0',
+    Slate150:   '#E9ECEF',
     Slate100:   '#F1F5F9',
     Slate50:    '#F8F9FA',
+    Neutral30:  '#F9FAFB',
 
     // Yellows & Ambers & Oranges
     Yellow700:  '#F57F17',
@@ -57,6 +59,7 @@ export const Palette = {
     WhiteAlpha90: 'rgba(255, 255, 255, 0.9)',
     WhiteAlpha80: 'rgba(255, 255, 255, 0.8)',
     WhiteAlpha70: 'rgba(255, 255, 255, 0.7)',
+    WhiteAlpha50: 'rgba(255, 255, 255, 0.5)',
     WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
     OffWhiteAlpha75: 'rgba(250, 252, 250, 0.75)',
@@ -75,6 +78,7 @@ export const Colors = {
     BLACK:            Palette.Neutral900,
     WHITE:            Palette.White,
     WHITE_TRANSPARENT:Palette.WhiteAlpha0,
+    WHITE_FADE_HALF:  Palette.WhiteAlpha50,
     WHITE_FADE:       Palette.WhiteAlpha70,
     GRAY:             Palette.Neutral500,
     GRAY_MEDIUM:      Palette.Neutral400, 
@@ -184,6 +188,15 @@ export const Colors = {
     STATUS_FULLY_PAID_TEXT:    Palette.Green700,
     STATUS_FULLY_PAID_BORDER:  Palette.Green100,
 
+    // Medical Warning Banner & Expired Verification Alerts
+    MEDICAL_BADGE_BG:          Palette.Blue50,
+    MEDICAL_BADGE_TEXT:        Palette.Blue600,
+    MEDICAL_BADGE_BORDER:      Palette.Blue100,
+
+    VERIFICATION_EXPIRED_BG:   Palette.Red50,
+    VERIFICATION_EXPIRED_TEXT: Palette.Red700,
+    VERIFICATION_EXPIRED_BORDER: Palette.Red100,
+
     // Weather
     WEATHER_SAFE_MAIN:      Palette.Green700,
     WEATHER_SAFE_BG:        Palette.Green50,
@@ -237,6 +250,11 @@ export const Colors = {
     EXP_REGULAR_TEXT:       Palette.White,
     EXP_EXPERIENCED_BG:     Palette.Blue600,
     EXP_EXPERIENCED_TEXT:   Palette.White,
+
+    // Dynamic Badges & Summary Containers
+    DAY_CONTAINER_BG:       Palette.Slate50,
+    DAY_BORDER:             Palette.Slate150,
+    INFO_CHIP_BG:           Palette.Neutral30,
 };
 
 // Color Samples
