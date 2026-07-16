@@ -26,6 +26,7 @@ import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
 import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';
+import SlotsCounter from '@/src/features/Admin/screens/Offer/components/SlotsCounter';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
@@ -80,6 +81,13 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
 
     if (!offer) return null;
     
+    const offerDate = new Date(offer.date || offer.hikeDate || 0);
+    offerDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isOfferExpired = offerDate < today;
+    const isOfferLocked = isOfferExpired || (offer.status || '').toLowerCase() === 'cancelled' || (offer.status || '').toLowerCase() === 'rescheduled';
+
     const trailName = offer.trail?.name || 'Unnamed Trail';
 
     return (
@@ -99,6 +107,8 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     <OfferSummaryCard 
                         offer={offer} 
                         trailName={trailName} 
+                        bookings={bookings}
+                        isOfferLocked={isOfferLocked}
                     />
 
                     <View style={styles.sectionHeaderRow}>
@@ -196,6 +206,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                                 booking={b} 
                                 offerId={offerId} 
                                 onViewBooking={onViewBooking} 
+                                isOfferLocked={isOfferLocked}
                             />
                         ))
                     ) : (
