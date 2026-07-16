@@ -3,26 +3,36 @@
  * @description Card component displaying a summary of an offer's details with a collapsible section to show full package details.
  */
 
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { IOffer, IActivity, ISchedule } from '@/src/core/models/Offer/Offer.types';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { formatActivityTime } from '@/src/utils/dateFormatter';
+import SlotsCounter from './SlotsCounter';
 
 /**
  * Props for the OfferSummaryCard component.
  * 
  * @param offer - The offer data object containing price, schedule, inclusions, etc.
  * @param trailName - The display name of the trail related to the offer.
+ * @param bookings - List of bookings associated with this offer to measure reservation slots.
+ * @param isOfferLocked - Whether the offer is expired/cancelled/rescheduled.
  */
 export interface OfferSummaryCardProps {
-    offer: IOffer & { hikeDate?: Date; hikeDuration?: string };
+    offer: IOffer & { hikeDuration?: string };
     trailName: string;
+    bookings?: IBooking[];
+    isOfferLocked?: boolean;
 }
 
 
@@ -30,30 +40,44 @@ export interface OfferSummaryCardProps {
 /**
  * OfferSummaryCard — Displays a quick overview of an offer's details.
  */
-const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ offer, trailName }) => {
+const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ 
+    offer, 
+    trailName,
+    bookings = [],
+    isOfferLocked = false
+}) => {
     const { isMobile } = useBreakpoints();
     const isWide = !isMobile;
     const [isExpanded, setIsExpanded] = useState(false);
-    const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 0: true });
+    const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>(() => {
+        const hasSecondDay = isWide && offer?.schedule && offer.schedule.length > 1;
+        return (hasSecondDay ? { 0: true, 1: true } : { 0: true }) as Record<number, boolean>;
+    });
     const [expandedActivities, setExpandedActivities] = useState<Record<number, boolean>>({});
+
+    const badgeScrollRef = useRef<ScrollView>(null);
+    const { showLeftFade, showRightFade, scrollProps } = useScrollFades();
+    useWebDragScroll(badgeScrollRef, true);
 
     if (!offer) return null;
 
     const totalDays = offer.schedule?.length ?? 0;
-    const allDaysExpanded = totalDays > 0 && Array.from({ length: totalDays }).every((_, i) => expandedDays[i]);
+    const allDaysExpanded = totalDays > 0 && Array.from({ length: totalDays }).every((_, i) => Object.prototype.hasOwnProperty.call(expandedDays, i) ? expandedDays[i] : false);
 
     const toggleDay = (dayIdx: number) => {
-        setExpandedDays(prev => ({
-            ...prev,
-            [dayIdx]: !prev[dayIdx],
-        }));
+        setExpandedDays(prev => {
+            const next = { ...prev };
+            next[dayIdx] = !Object.prototype.hasOwnProperty.call(prev, dayIdx) ? true : !prev[dayIdx];
+            return next;
+        });
     };
 
     const toggleActivities = (dayIdx: number) => {
-        setExpandedActivities(prev => ({
-            ...prev,
-            [dayIdx]: !prev[dayIdx],
-        }));
+        setExpandedActivities(prev => {
+            const next = { ...prev };
+            next[dayIdx] = !Object.prototype.hasOwnProperty.call(prev, dayIdx) ? true : !prev[dayIdx];
+            return next;
+        });
     };
 
     const toggleAllDays = () => {
@@ -68,13 +92,43 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ offer, trailName })
         }
     };
 
+    const status = (offer.status || '').toString().toLowerCase();
+    const offerDate = new Date(offer.date || offer.hikeDate || 0);
+    offerDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isExpired = offerDate < today;
+
     return (
         <View style={styles.offerSummaryCard}>
             <View style={styles.headerRow}>
                 <View style={styles.headerTitleGroup}>
-                    <CustomText variant="label" style={styles.trailLabel}>
-                        TRAIL OFFER
-                    </CustomText>
+                    <View style={styles.labelRow}>
+                        <CustomText variant="label" style={styles.trailLabel}>
+                            TRAIL OFFER
+                        </CustomText>
+                        {status === 'cancelled' && (
+                            <View style={[styles.statusBadge, { backgroundColor: Colors.ERROR_BG }]}>
+                                <CustomText style={[styles.statusBadgeText, { color: Colors.ERROR }]}>
+                                    Cancelled
+                                </CustomText>
+                            </View>
+                        )}
+                        {status === 'rescheduled' && (
+                            <View style={[styles.statusBadge, { backgroundColor: Colors.STATUS_WARNING_BG }]}>
+                                <CustomText style={[styles.statusBadgeText, { color: Colors.WARNING }]}>
+                                    Rescheduled
+                                </CustomText>
+                            </View>
+                        )}
+                        {isExpired && status !== 'cancelled' && status !== 'rescheduled' && (
+                            <View style={[styles.statusBadge, { backgroundColor: Colors.GRAY_ULTRALIGHT }]}>
+                                <CustomText style={[styles.statusBadgeText, { color: Colors.TEXT_SECONDARY }]}>
+                                    Expired
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
                     <CustomText variant="h2" style={styles.trailName}>
                         {trailName}
                     </CustomText>
@@ -90,58 +144,146 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ offer, trailName })
                 </View>
             </View>
 
-            <View style={styles.chipRow}>
-                {(offer.date || offer.hikeDate) && (
-                    <View style={styles.infoChip}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="calendar" 
-                            size={14} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                        <CustomText style={styles.chipText}>
-                            {formatDate(offer.date || offer.hikeDate)}
-                        </CustomText>
-                    </View>
-                )}
-                
-                {(offer.duration || offer.hikeDuration) && (
-                    <View style={styles.infoChip}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="clock" 
-                            size={14} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                        <CustomText style={styles.chipText}>
-                            {offer.duration || offer.hikeDuration}
-                        </CustomText>
-                    </View>
-                )}
-
-                {(offer.minPax || offer.maxPax) && (
-                    <View style={styles.infoChip}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="users" 
-                            size={14} 
-                            color={Colors.TEXT_SECONDARY} 
-                        />
-                        <CustomText style={styles.chipText}>
-                            {offer.minPax || 0} - {offer.maxPax || 0} Pax
-                        </CustomText>
-                    </View>
-                )}
-            </View>
-
             {offer.description && !isExpanded && (
                 <CustomText 
                     variant="caption" 
-                    style={styles.descText} 
+                    style={[styles.descText, { marginBottom: 8 }]} 
                     numberOfLines={2}
                 >
                     {offer.description}
                 </CustomText>
+            )}
+
+            {isExpanded ? (
+                <View style={styles.chipRow}>
+                    {offer?.date || offer?.hikeDate ? (
+                        <View style={styles.infoChip}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="calendar" 
+                                size={14} 
+                                color={Colors.TEXT_SECONDARY} 
+                            />
+                            <CustomText style={styles.chipText}>
+                                {formatDate(offer.date || offer.hikeDate)}
+                            </CustomText>
+                        </View>
+                    ) : null}
+                    
+                    {offer?.duration || offer?.hikeDuration ? (
+                        <View style={styles.infoChip}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="clock" 
+                                size={14} 
+                                color={Colors.TEXT_SECONDARY} 
+                            />
+                            <CustomText style={styles.chipText}>
+                                {offer.duration || offer.hikeDuration}
+                            </CustomText>
+                        </View>
+                    ) : null}
+
+                    {offer?.documents && offer.documents.map((doc: string, idx: number) => {
+                        if (!doc) return null;
+                        return (
+                            <View key={idx} style={styles.infoChip}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="file-text" 
+                                    size={14} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText style={styles.chipText}>
+                                    {doc}
+                                </CustomText>
+                            </View>
+                        );
+                    })}
+                </View>
+            ) : (
+                <View style={styles.badgeContainer}>
+                    <ScrollView 
+                        ref={badgeScrollRef}
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.chipRowSummary}
+                        {...scrollProps}
+                    >
+                        {offer?.date || offer?.hikeDate ? (
+                            <View style={styles.infoChip}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="calendar" 
+                                    size={14} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText style={styles.chipText}>
+                                    {formatDate(offer.date || offer.hikeDate)}
+                                </CustomText>
+                            </View>
+                        ) : null}
+                        
+                        {offer?.duration || offer?.hikeDuration ? (
+                            <View style={styles.infoChip}>
+                                <CustomIcon 
+                                    library="Feather" 
+                                    name="clock" 
+                                    size={14} 
+                                    color={Colors.TEXT_SECONDARY} 
+                                />
+                                <CustomText style={styles.chipText}>
+                                    {offer.duration || offer.hikeDuration}
+                                </CustomText>
+                            </View>
+                        ) : null}
+
+                        {offer?.documents && offer.documents.map((doc: string, idx: number) => {
+                            if (!doc) return null;
+                            return (
+                                <View key={idx} style={styles.infoChip}>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="file-text" 
+                                        size={14} 
+                                        color={Colors.TEXT_SECONDARY} 
+                                    />
+                                    <CustomText style={styles.chipText}>
+                                        {doc}
+                                    </CustomText>
+                                </View>
+                            );
+                        })}
+                    </ScrollView>
+
+                    {showLeftFade && (
+                        <LinearGradient 
+                            colors={[Colors.WHITE, Colors.WHITE_FADE_HALF, Colors.WHITE_TRANSPARENT]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.leftFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+
+                    {showRightFade && (
+                        <LinearGradient 
+                            colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE_HALF, Colors.WHITE]} 
+                            start={{ x: 0, y: 0 }} 
+                            end={{ x: 1, y: 0 }} 
+                            style={styles.rightFade} 
+                            pointerEvents="none" 
+                        />
+                    )}
+                </View>
+            )}
+
+            {!isOfferLocked && bookings && (
+                <SlotsCounter 
+                    bookings={bookings} 
+                    minPax={Number(offer.minPax) || 0} 
+                    maxPax={Number(offer.maxPax) || 0} 
+                />
             )}
 
             {isExpanded && (
@@ -166,19 +308,29 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ offer, trailName })
                                     Itinerary
                                 </CustomText>
                                 {offer.schedule.length > 1 && (
-                                    <TouchableOpacity onPress={toggleAllDays} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                    <TouchableOpacity 
+                                        onPress={toggleAllDays} 
+                                        style={styles.expandAllButton}
+                                        activeOpacity={0.7}
+                                    >
                                         <CustomText style={styles.expandAllText}>
-                                            {allDaysExpanded ? 'Collapse all' : 'Expand all'}
+                                            {allDaysExpanded ? 'Collapse All' : 'Expand All'}
                                         </CustomText>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={allDaysExpanded ? "chevron-up" : "chevron-down"} 
+                                            size={12} 
+                                            color={Colors.PRIMARY} 
+                                        />
                                     </TouchableOpacity>
                                 )}
                             </View>
                             <View style={isWide ? styles.itineraryGridContainer : styles.itineraryVerticalContainer}>
                                 {offer.schedule.map((dayItem: any, dayIdx: number) => {
-                                    const isDayExpanded = offer.schedule.length === 1 || !!expandedDays[dayIdx];
+                                    const isDayExpanded = offer.schedule.length === 1 || (Object.prototype.hasOwnProperty.call(expandedDays, dayIdx) ? !!expandedDays[dayIdx] : false);
                                     const activitiesList = dayItem.activities || [];
                                     const hasManyActivities = activitiesList.length > 4;
-                                    const isActivitiesExpanded = !!expandedActivities[dayIdx];
+                                    const isActivitiesExpanded = Object.prototype.hasOwnProperty.call(expandedActivities, dayIdx) ? !!expandedActivities[dayIdx] : false;
                                     const visibleActivities = hasManyActivities && !isActivitiesExpanded 
                                         ? activitiesList.slice(0, 4) 
                                         : activitiesList;
@@ -343,7 +495,7 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({ offer, trailName })
             )}
 
             <TouchableOpacity 
-                style={[styles.expandButton, { marginTop: 16 }]} 
+                style={[styles.expandButton, { marginTop: isExpanded ? 16 : 0 }]} 
                 onPress={() => setIsExpanded(!isExpanded)}
                 activeOpacity={0.7}
             >
@@ -365,10 +517,11 @@ const styles = StyleSheet.create({
     offerSummaryCard: { 
         backgroundColor: Colors.WHITE, 
         padding: 20, 
-        borderRadius: 16, 
+        borderRadius: 24, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        marginBottom: 24 
+        marginBottom: 24,
+        ...GlobalStyles.dropShadow(3)
     },
     headerRow: { 
         flexDirection: 'row', 
@@ -388,7 +541,8 @@ const styles = StyleSheet.create({
     },
     trailName: { 
         fontWeight: 'bold', 
-        color: Colors.TEXT_PRIMARY 
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 0
     },
     priceGroup: { 
         alignItems: 'flex-end' 
@@ -402,16 +556,43 @@ const styles = StyleSheet.create({
         fontSize: 12, 
         color: Colors.TEXT_SECONDARY 
     },
+    badgeContainer: {
+        position: 'relative',
+        width: '100%',
+        marginBottom: 12,
+    },
+    chipRowSummary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingRight: 24,
+    },
+    leftFade: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 24,
+        zIndex: 2,
+    },
+    rightFade: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 24,
+        zIndex: 2,
+    },
     chipRow: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
         gap: 8, 
-        marginBottom: 16 
+        marginBottom: 12 
     },
     infoChip: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        backgroundColor: '#F9FAFB', 
+        backgroundColor: Colors.INFO_CHIP_BG, 
         paddingHorizontal: 10, 
         paddingVertical: 6, 
         borderRadius: 8, 
@@ -434,7 +615,8 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 16,
+        marginTop: 4,
+        marginBottom: 16,
     },
     detailSection: {
         marginBottom: 16,
@@ -451,9 +633,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 12,
     },
+    expandAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+        gap: 4,
+    },
     expandAllText: {
-        fontSize: 12,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: 'bold',
         color: Colors.PRIMARY,
     },
     detailDescText: {
@@ -462,16 +653,16 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     dayContainer: {
-        backgroundColor: '#F8F9FA',
+        backgroundColor: Colors.DAY_CONTAINER_BG,
         borderRadius: 12,
         padding: 12,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#E9ECEF',
+        borderColor: Colors.DAY_BORDER,
     },
     dayDivider: {
         height: 1,
-        backgroundColor: '#E9ECEF',
+        backgroundColor: Colors.DAY_BORDER,
         marginVertical: 8,
     },
     dayHeaderRow: {
@@ -642,6 +833,23 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+        minHeight: 20
+    },
+    statusBadge: { 
+        paddingHorizontal: 6, 
+        paddingVertical: 2, 
+        borderRadius: 8 
+    },
+    statusBadgeText: { 
+        fontSize: 10, 
+        fontWeight: 'bold', 
+        letterSpacing: 0.5 
     }
 });
 
