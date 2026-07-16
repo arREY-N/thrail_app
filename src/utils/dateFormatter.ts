@@ -227,6 +227,30 @@ export const checkIfMinor = (dateInput: any): boolean => {
     return age < 18;
 };
 
+// --- Calculate Age ---
+/**
+ * Calculates a person's age based on their birthdate.
+ * 
+ * @param {any} dateInput - The birthdate to check
+ * @returns {number} The calculated age, or 0 if invalid
+ */
+export const calculateAge = (dateInput: any): number => {
+    if (!dateInput) return 0;
+    
+    const bday = safeParseDateString(dateInput);
+    if (isNaN(bday.getTime())) return 0;
+
+    const today = new Date();
+    let age = today.getFullYear() - bday.getFullYear();
+    const m = today.getMonth() - bday.getMonth();
+    
+    if (m < 0 || (m === 0 && today.getDate() < bday.getDate())) {
+        age--;
+    }
+    
+    return age;
+};
+
 // --- Notification Update ---
 /**
  * Generates a human-readable text for recent updates (e.g. "Updated 5m ago").
