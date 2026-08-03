@@ -1,3 +1,4 @@
+import LoadingScreen from '@/src/app/loading';
 import useHike from '@/src/core/hook/hike/useHike';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
@@ -5,8 +6,10 @@ import useReview from '@/src/core/hook/review/useReview';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import useDeleteProfile from '@/src/core/hook/user/useDeleteProfile';
 import useEditProfile from '@/src/core/hook/user/useEditProfile';
+import { useLeaderboard } from '@/src/core/models/Leaderboard/hooks/useLeaderboard';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import React from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 export default function profile(){
     const {
@@ -39,6 +42,12 @@ export default function profile(){
         onDeleteProfile,
         isLoading,
     } = useDeleteProfile();
+
+    const {
+        isLoading: loadingLeaderboard,
+        leaderboard,
+        generateMonthlyLeaderboard, 
+    } = useLeaderboard();
 
     const {
         reviews,
@@ -94,21 +103,65 @@ export default function profile(){
         }
     };
 
+    if(loadingLeaderboard) return <LoadingScreen/>
+
     return (
-        <ProfileScreen
-            onSignOutPress={onSignOutPress}
-            onApplyPress={onApplyPress}
-            onAdminPress={onAdminPress}
-            onSettingsPress={onSettingsPress}
-            onSuperadminPress={onSuperadminPress}
-            stats={computedStats}
-            hikeLog={myReviews}
-            profile={profile}
-            role={role}
-            onLikeReview={likeReview}
-            isLiked={isLiked}
-            onEditReview={onWriteReviewPress}
-            onGroupPress={onGroupPress}
-        />
+        <>
+            <TESTLEADERBOARD 
+                generateMonthlyLeaderboard={generateMonthlyLeaderboard}
+                leaderboard={leaderboard}
+            />      
+
+            <ProfileScreen
+                onSignOutPress={onSignOutPress}
+                onApplyPress={onApplyPress}
+                onAdminPress={onAdminPress}
+                onSettingsPress={onSettingsPress}
+                onSuperadminPress={onSuperadminPress}
+                stats={computedStats}
+                hikeLog={myReviews}
+                profile={profile}
+                role={role}
+                onLikeReview={likeReview}
+                isLiked={isLiked}
+                onEditReview={onWriteReviewPress}
+                onGroupPress={onGroupPress}
+            />
+        </>
+    );
+}
+
+const TESTLEADERBOARD = ({
+    generateMonthlyLeaderboard,
+    leaderboard,
+}) => {
+    return (
+        <View>
+            <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-06-01'))}>
+                    <Text>Test Generator for June</Text>
+                </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-07-01'))}>
+                    <Text>Test Generator for July</Text>
+                </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-08-01'))}>
+                    <Text>Test Generator for Now</Text>
+                </Pressable>
+
+                { leaderboard && (
+                    <View style={{ marginTop: 20 }}>
+                        <Text>Leaderboard for {leaderboard.date.toLocaleDateString('en-US', { month: 'short'})}</Text>
+                        {leaderboard.userRankings.map((user, index) => (
+                            <View key={user.userId} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
+                                <Text>{index + 1}. {user.username}</Text>
+                                <Text>{user.totalDistance.toFixed(2)} m</Text>
+                            </View>
+                        ))}
+
+                    </View>
+                )}
+
+        </View>
     );
 }
