@@ -7,6 +7,10 @@ service cloud.firestore {
         allow read: if true;
     }
 
+    match /leaderboards/{leaderboardId} {
+        allow read, create, update, delete: if true;
+    }
+
     match /users/{userId}{
         allow read: if request.auth != null;
       allow create: 
