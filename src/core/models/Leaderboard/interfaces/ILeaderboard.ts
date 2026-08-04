@@ -12,7 +12,7 @@ export interface RankedUserInfo {
     firstname: string;
     lastname: string;
     email: string;
-    profileImage: string;
+    profileImage: string | null;
 }
 
 export interface UserHikingRecords<T> extends RankedUserInfo {
