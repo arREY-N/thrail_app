@@ -1,6 +1,6 @@
+import { OfferRepo as OfferRepository } from "@/src/core/init/repositories";
 import { BaseStore } from "@/src/core/interface/storeInterface";
-import { Offer } from "@/src/core/models/Offer/Offer";
-import { OfferRepository } from "@/src/core/repositories/offerRepository";
+import { createOffer, Offer } from "@/src/core/models/Offer/Offer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -224,7 +224,7 @@ export const useOffersStore = create<OfferState>()(
         
         if(!id) {
             set({ 
-                current: new Offer(), 
+                current: createOffer(), 
                 isLoading: false 
             }); 
             return;
