@@ -22,7 +22,7 @@ export async function generateLeaderboard(date: Date): Promise<Leaderboard<Date>
             firstname: user.firstname,
             lastname: user.lastname,
             email: user.email,
-            profileImage: user.profileImage
+            profileImage: user.profileImage || null,
         };
     
         const userHikingRecord = generateUserHikingRecord(userInfo, userHikes, date);
@@ -43,11 +43,8 @@ export async function generateLeaderboard(date: Date): Promise<Leaderboard<Date>
         userRankings: rankedUsers
     }
     
-    // create leaderboard 
-    
-    const leaderboardDB: Leaderboard<Timestamp> = leaderboardToDB(leaderboard);
-    
     console.log(`Leaderboard: for ${date.toISOString()}`, leaderboard);
+    
     return leaderboard;
 }
 
