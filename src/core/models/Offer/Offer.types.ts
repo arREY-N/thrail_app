@@ -43,3 +43,8 @@ export interface IOfferSummary<T> {
     date: T;
     price: number;
 }
+
+export type OfferParams = {
+    id: string,
+    businessId: string,
+}
