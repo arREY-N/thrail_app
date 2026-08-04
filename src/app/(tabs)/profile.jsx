@@ -46,7 +46,9 @@ export default function profile(){
     const {
         isLoading: loadingLeaderboard,
         leaderboard,
-        generateMonthlyLeaderboard, 
+        localError: leaderboardError,
+        generateMonthlyLeaderboard,
+        getMonthLeaderboard, 
     } = useLeaderboard();
 
     const {
@@ -110,6 +112,8 @@ export default function profile(){
             <TESTLEADERBOARD 
                 generateMonthlyLeaderboard={generateMonthlyLeaderboard}
                 leaderboard={leaderboard}
+                getMonthLeaderboard={getMonthLeaderboard}
+                error={leaderboardError}
             />      
 
             <ProfileScreen
@@ -134,6 +138,8 @@ export default function profile(){
 const TESTLEADERBOARD = ({
     generateMonthlyLeaderboard,
     leaderboard,
+    getMonthLeaderboard,
+    error,
 }) => {
     return (
         <View>
@@ -148,6 +154,12 @@ const TESTLEADERBOARD = ({
                 <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-08-01'))}>
                     <Text>Test Generator for Now</Text>
                 </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => getMonthLeaderboard()}>
+                    <Text>Fetch Current Leaderboard</Text>
+                </Pressable>
+
+                { error && <Text>{error}</Text>}
 
                 { leaderboard && (
                     <View style={{ marginTop: 20 }}>
