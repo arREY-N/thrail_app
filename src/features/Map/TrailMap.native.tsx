@@ -19,7 +19,7 @@ const MIN_PMTILES_SIZE_BYTES = 18_000_000;
 
 type LoadState = "loading" | "ready" | "error";
 
-const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280 }: any, ref) => {
+const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280, hikerLocations = [], currentUserId }: any, ref) => {
   const {
     userLocation,
     routeCoordinates,
@@ -134,6 +134,16 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
     setIsFollowing(true);
   };
 
+  const centerOnCoordinate = (lon: number, lat: number) => {
+    setIsFollowing(false);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [lon, lat],
+      zoomLevel: 17,
+      animationMode: "flyTo",
+      animationDuration: 800,
+    });
+  };
+
   const handleRegionWillChange = (event: any) => {
     if (!event.properties.isUserInteraction) return;
 
@@ -155,6 +165,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   // ✅ Expose these functions up to the HikeRecordingScreen
   useImperativeHandle(ref, () => ({
     centerOnUser,
+    centerOnCoordinate,
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
     startBackgroundTracking,
@@ -237,6 +248,38 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
             androidRenderMode="compass"
           />
         )}
+
+        {/* Render other group hikers on the map */}
+        {hikerLocations && hikerLocations.map((hiker: any) => {
+          // Skip if coordinate is invalid or is the current user
+          if (!hiker || !hiker.latitude || !hiker.longitude) return null;
+          if (currentUserId && hiker.id === currentUserId) return null;
+
+          const initials = hiker.hikerName 
+            ? hiker.hikerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
+            : '?';
+
+          return (
+            <MapLibreGL.PointAnnotation
+              key={`hiker-${hiker.id}`}
+              id={`hiker-${hiker.id}`}
+              coordinate={[hiker.longitude, hiker.latitude]}
+            >
+              <View style={styles.hikerMarkerContainer}>
+                <View style={styles.hikerMarkerCircle}>
+                  <Text style={styles.hikerMarkerInitials}>{initials}</Text>
+                </View>
+                {hiker.hikerName && (
+                  <View style={styles.hikerMarkerLabel}>
+                    <Text style={styles.hikerMarkerLabelText} numberOfLines={1}>
+                      {hiker.hikerName}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </MapLibreGL.PointAnnotation>
+          );
+        })}
       </MapLibreGL.MapView>
     </View>
   );
@@ -247,6 +290,52 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   errorText: { marginTop: 16, fontSize: 15, color: "#555", textAlign: "center", lineHeight: 22 },
+
+  hikerMarkerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hikerMarkerCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E65100', // Predefined Avatar BG color (Orange800)
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  hikerMarkerInitials: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  hikerMarkerLabel: {
+    marginTop: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)', // Sleek dark slate frosted-style pill
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  hikerMarkerLabelText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF', // High-contrast crisp white text
+    letterSpacing: 0.2,
+  },
 });
 
 const mapStyles = {

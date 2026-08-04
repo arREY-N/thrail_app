@@ -16,6 +16,8 @@ import useWriteHike from "@/src/core/hook/hike/useHikeWrite";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
+import { useGroupList } from "@/src/core/hook/group/useGroupList";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
 export default function hikeView() {
@@ -27,6 +29,8 @@ export default function hikeView() {
     const bookingId = getSearchParam(rawBooking); 
 
     const { onBackPress } = useAppNavigation();
+    const { profile } = useAuthHook();
+    const { groups } = useGroupList(profile?.id || "");
 
     const {
         hike,
@@ -38,6 +42,8 @@ export default function hikeView() {
         totalDistance,
         totalElevationGain,
         isLoading,
+        shareLocationEnabled,
+        setShareLocationEnabled,
 
         onStartHike,
         onAddReview,
@@ -47,13 +53,19 @@ export default function hikeView() {
         onResetHike,
     } = useWriteHike({ hikeId, trailId, bookingId, groupId }); 
 
-    const { currentGroup } = useGroup(groupId || '');
+    const resolvedBookingId = bookingId || (hike?.mode === 'booked' ? hike.bookingId : undefined);
+    
+    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g => 
+        g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+    )?.id) || undefined;
+
+    const { currentGroup } = useGroup(resolvedGroupId || '');
     const {
         location: groupLocations,
         onEmergencyPress,
         onSendPicture,
         error: groupError,
-    } = useGroupLocation(groupId || '');
+    } = useGroupLocation(resolvedGroupId || '');
 
     if (isLoading && !hike) {
         return (
@@ -107,6 +119,9 @@ export default function hikeView() {
                 isLoading={isLoading}
                 lon={paramLon}
                 lat={paramLat}
+                
+                shareLocationEnabled={shareLocationEnabled}
+                setShareLocationEnabled={setShareLocationEnabled}
                 
                 onStartHike={onStartHike}
                 onPauseHike={onPauseHike}

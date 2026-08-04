@@ -22,6 +22,7 @@ export interface IUseWriteHike {
     timerStartTime: number;
     totalDistance: number;
     totalElevationGain: number;
+    shareLocationEnabled: boolean;
 
     onStartHike: () => void;
     onPauseHike: () => void;
@@ -30,6 +31,7 @@ export interface IUseWriteHike {
     onResetHike: () => void;
     onEmergencyPress: () => void;
     onAddReview: (trailId: string) => void; 
+    setShareLocationEnabled: (enabled: boolean) => Promise<void>;
 }
 
 export type IUseWriteHikeParams = {
@@ -60,9 +62,11 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const totalDistance = useHikesStore(s => s.totalDistance);
     const totalElevationGain = useHikesStore(s => s.totalElevationGain);
     const active = useHikesStore(s => s.active);
+    const shareLocationEnabled = useHikesStore(s => s.shareLocationEnabled);
 
     const shareLocation = useHikesStore(s => s.startShareLocation);
     const stopSharingLocation = useHikesStore(s => s.stopShareLocation);
+    const setShareLocationEnabled = useHikesStore(s => s.setShareLocationEnabled);
 
     const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
     const updateHikeStore = useHikesStore(s => s.updateHikeStore);
@@ -70,6 +74,18 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const startHike = useHikesStore(s => s.startHike);
 
     const [booking, setBooking] = useState<Booking | null>(null);
+
+    // Resolve booking and offer when bookings list loads or active hike changes
+    useEffect(() => {
+        const targetBookingId = bookingId || (active && currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
+        if (targetBookingId && !booking) {
+            const b = bookings.find(b => b.id === targetBookingId);
+            if (b) {
+                setBooking(b);
+                fetchOffer(b.offer.id).then(o => setFullOffer(o));
+            }
+        }
+    }, [bookingId, active, currentHike?.bookingId, bookings, booking]);
 
     useEffect(() => {
         setLocalError(null); // Clear local error on parameter change
@@ -314,6 +330,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         timerStartTime,
         totalDistance,
         totalElevationGain,
+        shareLocationEnabled,
         
         onEmergencyPress,
         onStartHike,
@@ -322,6 +339,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         onResumeHike,
         onCompleteHike,
         onResetHike,
+        setShareLocationEnabled,
     }
 }
     
