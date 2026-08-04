@@ -1,23 +1,23 @@
 import { Leaderboard } from "@/src/core/models/Leaderboard/interfaces/ILeaderboard";
 import { LeaderboardConverter } from "@/src/core/models/Leaderboard/Leaderboard";
 import { generateLeaderboardId } from "@/src/core/models/Leaderboard/utils/Leaderboard.utils";
-import { doc, getDoc, setDoc, Timestamp, } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export const LeaderboardRepository = (db: any) => ({
-    async fetchLeaderboard(date: Date = new Date()): Promise<Leaderboard<Date>> {
+    async fetchLeaderboard(date: Date = new Date()): Promise<Leaderboard<Date> | null> {
         const leaderboardId = generateLeaderboardId(date);
 
         const docref = doc(db, 'leaderboards', leaderboardId).withConverter(LeaderboardConverter);
         const snap = await getDoc(docref);
 
         if (!snap.exists()) {
-            throw new Error(`Leaderboard for ${date.toISOString()} not found`);
+            return null;
         }
 
         return snap.data();
     },
 
-    async write(leaderboard: Leaderboard<Timestamp>): Promise<void> {
+    async write(leaderboard: Leaderboard<Date>): Promise<void> {
         try {
             const leaderboardId = leaderboard.id;
             const docref = doc(db, 'leaderboards', leaderboardId).withConverter(LeaderboardConverter);
