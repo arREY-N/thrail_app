@@ -124,6 +124,19 @@ service cloud.firestore {
                     request.auth.token.role == 'superadmin'
             ) 
     }
+
+    match /businesses/{businessId}/cancellations/{cancellationId} {
+        allow read, update: 
+            if request.auth != null
+            && (
+                request.auth.token.role == 'admin' 
+                || request.auth.uid == request.resource.data.userId
+            );
+        allow create: if request.auth != null;
+        allow delete: 
+            if request.auth != null
+            && request.auth.uid == request.resource.data.userId; 
+    }
     
     match /businesses/{businessId}/admins/{adminId} {
     	allow read: if request.auth != null;
