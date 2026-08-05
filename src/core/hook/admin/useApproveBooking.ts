@@ -1,8 +1,8 @@
 import { refundBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Booking";
 import { Requirements } from "@/src/core/models/Booking/Booking.types";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
+import { Booking, createBooking } from "@/src/core/models/Booking/Ref_Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
@@ -63,7 +63,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                             valid: value.valid || 'pending'
                         }));
                     }
-                    setBooking(new Booking({ ...b, documents: normalizedDocs }));
+                    setBooking(createBooking({ ...b, documents: normalizedDocs }));
                 } else {
                     setBooking(null);
                 }
@@ -78,7 +78,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         try {
             if(!booking) throw new Error('Booking not found');
 
-            const approvedBook = new Booking({
+            const approvedBook = createBooking({
                 ...booking,
                 documents: validatedDocuments, 
                 status: 'for-payment',
@@ -113,7 +113,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 throw new Error('Booking is not ready to be confirmed');
             }
 
-            const completedBook = new Booking({
+            const completedBook = createBooking({
                 ...booking,
                 status: 'completed'
             });
@@ -140,7 +140,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 return;
             }
 
-            const rejectedBook = new Booking({  
+            const rejectedBook = createBooking({  
                 ...booking,
                 documents: validatedDocuments, 
                 status: 'reservation-rejected',
@@ -175,7 +175,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 alert(`The new offer costs ${newOffer.price} while the old one is ${booking.offer.price}`)
             }
 
-            const rescheduledBook = new Booking({
+            const rescheduledBook = createBooking({
                 ...booking,
                 offer: {
                     date: newOffer.date,
