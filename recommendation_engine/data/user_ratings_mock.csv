@@ -1,0 +1,6 @@
+review_id,user_id,trail_id,overallRating,trailMaintenance,difficultyFactors,favoredFactors,predictedDifficulty,perceivedDifficulty,distance,duration,elevation
+rev_001,user_001,trail_001,5,4,d1,f1,4,4,8200,16200,610
+rev_002,user_001,trail_002,4,3,d2,f2,3,3,12100,14400,410
+rev_003,user_002,trail_001,4,4,d1,f1,4,3,8050,15800,595
+rev_004,user_003,trail_004,5,5,d3,f3,5,5,16500,27000,920
+rev_005,user_004,trail_003,3,2,d2,f1,3,4,6200,13000,510

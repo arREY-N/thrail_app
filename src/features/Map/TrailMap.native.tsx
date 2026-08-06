@@ -134,6 +134,16 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
     setIsFollowing(true);
   };
 
+  const centerOnCoordinate = (lon: number, lat: number) => {
+    setIsFollowing(false);
+    cameraRef.current?.setCamera({
+      centerCoordinate: [lon, lat],
+      zoomLevel: 17,
+      animationMode: "flyTo",
+      animationDuration: 800,
+    });
+  };
+
   const handleRegionWillChange = (event: any) => {
     if (!event.properties.isUserInteraction) return;
 
@@ -155,6 +165,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   // ✅ Expose these functions up to the HikeRecordingScreen
   useImperativeHandle(ref, () => ({
     centerOnUser,
+    centerOnCoordinate,
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
     startBackgroundTracking,
@@ -301,22 +312,29 @@ const styles = StyleSheet.create({
   },
   hikerMarkerInitials: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   hikerMarkerLabel: {
     marginTop: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)', // Sleek dark slate frosted-style pill
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   hikerMarkerLabelText: {
     fontSize: 9,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#FFFFFF', // High-contrast crisp white text
+    letterSpacing: 0.2,
   },
 });
 

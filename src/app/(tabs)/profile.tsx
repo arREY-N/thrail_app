@@ -1,4 +1,5 @@
 import EmergencyNotification from '@/src/components/EmergencyNotification';
+import LoadingScreen from '@/src/app/loading';
 import useHike from '@/src/core/hook/hike/useHike';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
@@ -7,6 +8,7 @@ import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import useDeleteProfile from '@/src/core/hook/user/useDeleteProfile';
 import useEditProfile from '@/src/core/hook/user/useEditProfile';
 import { Hike } from '@/src/core/models/Hike/Hike';
+import { useLeaderboard } from '@/src/core/models/Leaderboard/hooks/useLeaderboard';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import React from 'react';
 import { View } from 'react-native';
@@ -14,7 +16,8 @@ import { View } from 'react-native';
 /**
  * Controller component for the Profile tab.
  * Gathers user data, hike logs, reviews, and computes summary statistics.
- */
+ */import { Pressable, Text, View } from 'react-native';
+
 export default function profile() {
     const {
         onSettingsPress,
@@ -45,6 +48,14 @@ export default function profile() {
         onDeleteProfile,
         isLoading,
     } = useDeleteProfile();
+
+    const {
+        isLoading: loadingLeaderboard,
+        leaderboard,
+        localError: leaderboardError,
+        generateMonthlyLeaderboard,
+        getMonthLeaderboard, 
+    } = useLeaderboard();
 
     const {
         reviews,
@@ -100,25 +111,79 @@ export default function profile() {
         }
     };
 
+    if(loadingLeaderboard) return <LoadingScreen/>
+
     return (
         <View style={{ flex: 1 }}>
+            <>
+            <TESTLEADERBOARD 
+                generateMonthlyLeaderboard={generateMonthlyLeaderboard}
+                leaderboard={leaderboard}
+                getMonthLeaderboard={getMonthLeaderboard}
+                error={leaderboardError}
+            />      
+
             <ProfileScreen
-                onSignOutPress={onSignOutPress}
-                onApplyPress={onApplyPress}
-                onAdminPress={onAdminPress}
-                onSettingsPress={onSettingsPress}
-                onSuperadminPress={onSuperadminPress}
-                stats={computedStats}
-                hikeLog={myReviews}
-                profile={profile ?? undefined}
-                role={role ?? undefined}
-                onLikeReview={likeReview}
-                isLiked={(review) => Boolean(isLiked(review))}
-                onEditReview={onWriteReviewPress}
-                onGroupPress={onGroupPress}
-            />
+                    onSignOutPress={onSignOutPress}
+                    onApplyPress={onApplyPress}
+                    onAdminPress={onAdminPress}
+                    onSettingsPress={onSettingsPress}
+                    onSuperadminPress={onSuperadminPress}
+                    stats={computedStats}
+                    hikeLog={myReviews}
+                    profile={profile ?? undefined}
+                    role={role ?? undefined}
+                    onLikeReview={likeReview}
+                    isLiked={(review) => Boolean(isLiked(review))}
+                    onEditReview={onWriteReviewPress}
+                    onGroupPress={onGroupPress}
+                />
 
             <EmergencyNotification />
+        </View>
+        </>
+    );
+}
+
+const TESTLEADERBOARD = ({
+    generateMonthlyLeaderboard,
+    leaderboard,
+    getMonthLeaderboard,
+    error,
+}) => {
+    return (
+        <View>
+            <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-06-01'))}>
+                    <Text>Test Generator for June</Text>
+                </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-07-01'))}>
+                    <Text>Test Generator for July</Text>
+                </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-08-01'))}>
+                    <Text>Test Generator for Now</Text>
+                </Pressable>
+                <View style={{ height: 20 }} />
+                <Pressable onPress={() => getMonthLeaderboard()}>
+                    <Text>Fetch Current Leaderboard</Text>
+                </Pressable>
+
+                { error && <Text>{error}</Text>}
+
+                { leaderboard && (
+                    <View style={{ marginTop: 20 }}>
+                        <Text>Leaderboard for {leaderboard.date.toLocaleDateString('en-US', { month: 'short'})}</Text>
+                        {leaderboard.userRankings.map((user, index) => (
+                            <View key={user.userId} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
+                                <Text>{index + 1}. {user.username}</Text>
+                                <Text>{user.totalDistance.toFixed(2)} m</Text>
+                            </View>
+                        ))}
+
+                    </View>
+                )}
+
         </View>
     );
 }

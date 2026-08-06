@@ -87,12 +87,13 @@
   },
   "private": true,
   "jest": {
-    "preset": "jest-expo",
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata)"
-    ]
+  "preset": "jest-expo",
+  "moduleNameMapper": {
+    "postinstall\\.mjs$": "<rootDir>/src/core/test/firebase-postinstall-mock.js",
+    "^@react-native-async-storage/async-storage$": "<rootDir>/node_modules/@react-native-async-storage/async-storage/jest/async-storage-mock.js"
   },
-  "overrides": {
-    "undici": "^6.27.0"
-  }
+  "transformIgnorePatterns": [
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata|firebase|@?firebase/.*)"
+  ]
+}
 }

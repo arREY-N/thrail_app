@@ -4,6 +4,7 @@ import { Trail } from "@/src/core/models/Trail/Trail";
 import { TrailRepository } from "@/src/core/repositories/trailRepository";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import NetInfo from "@react-native-community/netinfo";
+import { Platform } from "react-native";
 import { StateCreator } from "zustand";
 
 export interface TrailState extends BaseStore<Trail> {
@@ -39,14 +40,21 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
     ...init,
 
     fetchAll: async () => {
-      const network = await NetInfo.fetch();
-      const isOnline = (network.isConnected && network.isInternetReachable);
+      const platform = Platform.OS;
 
-      if (!isOnline) {
-        console.log("🌲 Device is offline. Using persisted AsyncStorage data.");
-        set({ isLoading: false });
-        return;
+      if (platform !== 'web') {
+        const network = await NetInfo.fetch();
+        const isOnline = (network.isConnected && network.isInternetReachable);
+  
+        console.log('Network status:', network);
+        
+        if (!isOnline) {
+          console.log("🌲 Device is offline. Using persisted AsyncStorage data.");
+          set({ isLoading: false });
+          return;
+        }
       }
+
 
       const isCacheEmpty = get().data.length === 0;
       console.log("Device is online. Cache empty:", isCacheEmpty);

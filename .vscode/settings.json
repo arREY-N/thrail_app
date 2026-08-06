@@ -10,5 +10,9 @@
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "java.compile.nullAnalysis.mode": "disabled",
   "java.project.sourcePaths": [],
-  "java.import.exclusions": ["**/node_modules/**", "**/android/**"]
+  "java.import.exclusions": ["**/node_modules/**", "**/android/**"],
+  "python.defaultInterpreterPath": "${workspaceFolder}/recommendation_engine/venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/recommendation_engine"
+  ]
 }

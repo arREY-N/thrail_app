@@ -61,3 +61,21 @@ desktop.ini
 firebase-messaging-sw.js
 
 setSuperAdmin.js
+
+# Python virtual environment
+recommendation_engine/venv/
+venv/
+.venv/
+env/
+.env/
+
+# Python compiled files / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+

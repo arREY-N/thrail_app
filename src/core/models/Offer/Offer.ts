@@ -1,122 +1,107 @@
+import { IOffer, IOfferDB } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
-import { immerable } from "immer";
-import { toDate } from "../../utility/date";
-import { IBusinessSummary } from "../Business/Business.types";
-import { ITrailSummary } from "../Trail/Trail.types";
-import { IOffer, IOfferDB, ISchedule } from "./Offer.types";
 
-export class Offer implements IOffer {
-    [key: string]: any;
-    [immerable] = true
-    id: string =  '';
-    createdAt: Date = new Date();
-    updatedAt: Date = new Date();
-    date: Date = new Date();
-    endDate: Date = new Date(); // New
-    duration: string = ''; // New
-    description: string = '';
-    price: number = 0;
-    maxPax: number = 0;
-    minPax: number = 0;
-    reservedPax: number = 0;
-    documents: string[] = [];
-    inclusions: string[] = [];
-    thingsToBring: string[] = []; // New
-    reminders: string[] = []; // New
-    business: IBusinessSummary = {
-        id: "",
-        name: ""
+export interface Offer extends IOffer {}
+
+export const createOffer = (init?: Partial<IOffer>): IOffer => {
+    return {
+        id: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        date: new Date(),
+        endDate: new Date(),
+        duration: '',
+        description: '',
+        price: 0,
+        maxPax: 0,
+        minPax: 0,
+        reservedPax: 0,
+        documents: [],
+        inclusions: [],
+        thingsToBring: [],
+        reminders: [],
+        business: { id: "", name: "" },
+        trail: { id: "", name: "", location: "" },
+        schedule: [],
+        ...init,
     };
-    trail: ITrailSummary = {
-        id: "",
-        name: "",
-        location: ""
+};
+
+export const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
+    return {
+        id,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+        business: data.business,
+        trail: data.trail,
+        date: toDate(data.date),
+        endDate: toDate(data.endDate || data.date),
+        duration: data.duration || '',
+        price: data.price,
+        maxPax: data.maxPax,
+        minPax: data.minPax,
+        reservedPax: data.reservedPax,
+        documents: data.documents,
+        inclusions: data.inclusions,
+        thingsToBring: data.thingsToBring || [],
+        reminders: data.reminders || [],
+        description: data.description,
+        schedule: (data.schedule ?? []).map(sched => {
+            return {
+                day: sched.day,
+                activities: sched.activities.map(activity => {
+                    return {
+                        ...activity,
+                        time: toDate(activity.time),
+                    };
+                })
+            };
+        }),
     };
-    schedule: ISchedule<Date>[] = [];
+};
 
-    constructor(init?: Partial<IOffer>){
-        Object.assign(this, init);
-    }
-
-    static fromFirestore(id: string, data: IOfferDB): Offer {
-        const mapped: IOffer = {
-            id,
-            createdAt: toDate(data.createdAt),
-            updatedAt: toDate(data.updatedAt),
-            business: data.business,
-            trail: data.trail,
-            date: toDate(data.date),
-            endDate: toDate(data.endDate || data.date), // New
-            duration: data.duration || '', // New
-            price: data.price,
-            maxPax: data.maxPax,
-            minPax: data.minPax,
-            reservedPax: data.reservedPax,
-            documents: data.documents,
-            inclusions: data.inclusions,
-            thingsToBring: data.thingsToBring || [], // New
-            reminders: data.reminders || [], // New
-            description: data.description,
-            schedule: (data.schedule ?? []).map(sched => {
-                return {
-                    day: sched.day,
-                    activities: sched.activities.map(activity => {
-                        return {
-                            ...activity,
-                            time: toDate(activity.time),
-                        }
-                    })
-                }
-            }),
-        }
-
-        return new Offer(mapped);
-    }
-
-    toFirestore(): IOfferDB {
-        const isNew = this.id === '';
-
-        const mapped: IOfferDB = {
-            id: this.id,
-            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-            updatedAt: serverTimestamp(),
-            business: this.business,
-            trail: this.trail,
-            date: Timestamp.fromDate(this.date),
-            endDate: Timestamp.fromDate(this.endDate), // New
-            duration: this.duration, // New
-            price: this.price,
-            maxPax: this.maxPax,
-            minPax: this.minPax,
-            reservedPax: this.reservedPax,
-            documents: this.documents,
-            inclusions: this.inclusions,
-            thingsToBring: this.thingsToBring, // New
-            reminders: this.reminders, // New
-            description: this.description,
-            schedule: this.schedule.map(schedule => {
-                return {
-                    ...schedule,
-                    activities: schedule.activities.map(activity => {
-                        return {
-                            ...activity,
-                            time: Timestamp.fromDate(activity.time || new Date()),
-                        }
-                    })                    
-                }
-            })
-        } 
-
-        return mapped;
-    }
-}
+export const offerToFirestore = (offer: Offer): IOfferDB => {
+    const isNew = offer.id === '';
+    
+    return {
+        id: offer.id,
+        createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(offer.createdAt),
+        updatedAt: serverTimestamp(),
+        business: offer.business,
+        trail: offer.trail,
+        date: Timestamp.fromDate(offer.date),
+        endDate: Timestamp.fromDate(offer.endDate),
+        duration: offer.duration,
+        price: offer.price,
+        maxPax: offer.maxPax,
+        minPax: offer.minPax,
+        reservedPax: offer.reservedPax,
+        documents: offer.documents,
+        inclusions: offer.inclusions,
+        thingsToBring: offer.thingsToBring,
+        reminders: offer.reminders,
+        description: offer.description,
+        schedule: offer.schedule.map(schedule => {
+            return {
+                ...schedule,
+                activities: schedule.activities.map(activity => {
+                    return {
+                        ...activity,
+                        time: Timestamp.fromDate(activity.time),
+                    };
+                })                    
+            };
+        })
+    };
+};
 
 export const offerConverter: FirestoreDataConverter<Offer> = {
     toFirestore: (offer: Offer) => {
-        return offer.toFirestore();
+        return offerToFirestore(offer);
     },
     fromFirestore: (snapshot: QueryDocumentSnapshot): Offer => {
         const data = snapshot.data() as IOfferDB;
-        return Offer.fromFirestore(snapshot.id, data);
+        return offerFromFirestore(snapshot.id, data);
     }
-}
+};

@@ -75,6 +75,18 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
     const [booking, setBooking] = useState<Booking | null>(null);
 
+    // Resolve booking and offer when bookings list loads or active hike changes
+    useEffect(() => {
+        const targetBookingId = bookingId || (active && currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
+        if (targetBookingId && !booking) {
+            const b = bookings.find(b => b.id === targetBookingId);
+            if (b) {
+                setBooking(b);
+                fetchOffer(b.offer.id).then(o => setFullOffer(o));
+            }
+        }
+    }, [bookingId, active, currentHike?.bookingId, bookings, booking]);
+
     useEffect(() => {
         setLocalError(null); // Clear local error on parameter change
     },[]);
