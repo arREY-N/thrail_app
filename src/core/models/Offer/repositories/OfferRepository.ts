@@ -11,6 +11,10 @@ const createOffersGroupCollection = (db: any) => {
 } 
 
 export const OfferRepository = (db: any) => ({
+    /**
+     * Fetches all offers from the database.
+     * @returns 
+     */
     async fetchAll(): Promise<Offer[]> {
         try {
             const offerCollection = createOffersGroupCollection(db);
@@ -26,6 +30,11 @@ export const OfferRepository = (db: any) => ({
         }
     },
 
+    /**
+     * Fetches all offers associated with a specific business.
+     * @param businessId The ID of the business for which to fetch offers. 
+     * @returns 
+     */
     async fetchAllBusinessOffers(businessId: string): Promise<Offer[] | []> {
         try {
             const offerCollection = createOffersCollection(db, businessId);
@@ -41,6 +50,11 @@ export const OfferRepository = (db: any) => ({
         }
     },
 
+    /**
+     * Fetches all offers associated with a specific trail.
+     * @param trailId The ID of the trail for which to fetch offers.
+     * @returns 
+     */
     async fetchAllTrailOffers(trailId: string): Promise<Offer[] | []>{
         try {
             if(!trailId) throw new Error('Trail ID missing'); 
@@ -60,8 +74,12 @@ export const OfferRepository = (db: any) => ({
         }
     },
 
-    
-    async fetchById({id, businessId}: OfferParams): Promise<Offer | null> {
+    /**
+     * Fetches an offer by its ID and business ID.
+     * @param OfferParams An object containing the offer ID and business ID.
+     * @returns 
+     */
+    async fetchById({ id, businessId }: OfferParams): Promise<Offer | null> {
         try {
             const offerCollection = createOffersCollection(db, businessId);
             const ref = doc(offerCollection, id)
@@ -77,6 +95,11 @@ export const OfferRepository = (db: any) => ({
         }
     },
     
+    /**
+     * Fetches an offer by its ID.
+     * @param offerId The ID of the offer to fetch.
+     * @returns 
+     */
     async fetch(offerId: string): Promise<Offer | null> {
         try {
             const offerCollection = createOffersGroupCollection(db);
@@ -96,6 +119,11 @@ export const OfferRepository = (db: any) => ({
         }
     },
 
+    /**
+     * Writes an offer to the database. If the offer has an empty ID, it will create a new offer; otherwise, it will update the existing offer.
+     * @param data The offer data to write to the database.
+     * @returns 
+     */
     async write(data: Offer): Promise<Offer> {
         try {            
             let offer = createOffer(data);
@@ -124,6 +152,11 @@ export const OfferRepository = (db: any) => ({
         }
     },
 
+    /**
+     * Deletes an offer from the database.
+     * @param OfferParams An object containing the offer ID and business ID.
+     * @returns
+     */
     async delete({id, businessId}: OfferParams): Promise<void> {
         try {
             const offerCollection = createOffersCollection(db, businessId)
