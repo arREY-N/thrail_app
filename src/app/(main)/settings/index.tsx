@@ -16,7 +16,8 @@ export default function settings() {
     const { profile } = useAuthHook();
 
     const { 
-        onBackPress,
+        // onBackPress,
+        onProfilePress,
         onSecuritySettingsPress,
         onNotificationSettingsPress,
         onPrivacySettingsPress,
@@ -38,7 +39,7 @@ export default function settings() {
     return (
         <SettingsScreen
             role={role as string}
-            onBackPress={onBackPress}
+            onBackPress={onProfilePress}
             
             onProfileInfoPress={() => onUserViewPress(profile?.id)}
             onSecurityPress={onSecuritySettingsPress}
@@ -54,4 +55,4 @@ export default function settings() {
             onSignOutPress={onSignOutPress}
         />
     );
-}
+}
