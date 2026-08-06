@@ -5,6 +5,7 @@ import EmergencyNotification from '@/src/components/EmergencyNotification';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailView from '@/src/core/hook/trail/useTrailView';
+import useAdminCancellation from '@/src/core/models/Cancellation/hooks/useAdminCancellation';
 import useCancellation from '@/src/core/models/Cancellation/hooks/useCancellation';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
@@ -31,6 +32,12 @@ export default function home(){
         submitCancellationRequest,
     } = useCancellation();
 
+    const {
+        cancellationRequests,
+        processCancellationRequest,
+    } = useAdminCancellation();
+    
+    
     return (
         <View style={{ flex: 1 }}>
             <Pressable onPress={() => submitCancellationRequest({
@@ -41,15 +48,22 @@ export default function home(){
             })}>
                 <Text>Test Cancellation</Text>
             </Pressable>
-            <View style={{ height: 20 }} />
-            <Pressable onPress={() => submitCancellationRequest({
-                reason: 'Test cancellation request',
-                businessId: 'test-business-id',
-                bookingId: 'test-booking-id',
-            })}>
-                <Text>Test Cancellation Error No Offer ID</Text>
-            </Pressable>
-            <View style={{ height: 20 }} />
+        
+
+            <View style={{ height: 30 }} />
+
+            { cancellationRequests.length > 0 && cancellationRequests.map((request) => (
+                <View key={request.id} style={{ marginBottom: 10 }}>
+                    <Text>Request ID: {request.id}</Text>
+                    <Text>Reason: {request.reason}</Text>
+                    <Pressable onPress={() => processCancellationRequest(request, true, 'Approved by admin')}>
+                        <Text>Approve</Text>
+                    </Pressable>
+                    <Pressable onPress={() => processCancellationRequest(request, false, 'Rejected by admin')}>
+                        <Text>Reject</Text>
+                    </Pressable>
+                </View>
+            ))}
 
             <HomeScreen 
                 locationTemp={{}} 
