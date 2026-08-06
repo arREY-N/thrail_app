@@ -65,7 +65,7 @@ export interface IGeneral {
 
 export interface IDifficulty {
     lascoRating: number;
-    classification: 'minor' | 'major';
+    classification?: 'minor' | 'major' | string;
     length: Kilometers;
     gain: Meters;
     slope: Percentage;

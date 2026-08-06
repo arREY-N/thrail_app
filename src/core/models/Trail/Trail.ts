@@ -44,7 +44,7 @@ export class Trail implements ITrail {
         quality: [],
         difficulty_points: [],
         lascoRating: 0,
-        classification: 'major'
+        classification: undefined,
     };
     tourism: ITourism = {
         shelter: null,
