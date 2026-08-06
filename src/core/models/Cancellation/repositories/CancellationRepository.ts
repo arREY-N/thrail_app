@@ -1,6 +1,6 @@
 import { cancellationConverter } from "@/src/core/models/Cancellation/Cancellation";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 
 const createCancellationCollection = (db: any, businessId: string) => {
     return collection(db, 'businesses', businessId, 'cancellations').withConverter(cancellationConverter);
@@ -20,6 +20,7 @@ export const CancellationRepository = (db: any) => ({
                 id: docRef.id,
             }
 
+            console.log("Writing cancellation to Firestore: ", cancellationData);
             await setDoc(
                 docRef,
                 cancellationData,
@@ -84,6 +85,17 @@ export const CancellationRepository = (db: any) => ({
             return snapshot.empty ? [] : snapshot.docs.map(docsnap => docsnap.data());
         } catch(error) {
             console.error("Error fetching cancellations by offer ID from Firestore:", error);
+            throw error;
+        }
+    },
+
+    async fetchAll(): Promise<Cancellation[]> {
+        try {
+            const cancellationsRef = collectionGroup(db, 'cancellations').withConverter(cancellationConverter);
+            const snapshot = await getDocs(cancellationsRef);
+            return snapshot.empty ? [] : snapshot.docs.map(docsnap => docsnap.data());
+        } catch(error) {
+            console.error("Error fetching all cancellations from Firestore:", error);
             throw error;
         }
     }
