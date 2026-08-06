@@ -1,5 +1,5 @@
 import { createOffer, Offer, offerConverter } from "@/src/core/models/Offer/Offer";
-import { OfferParams } from "@/src/core/models/Offer/Offer.types";
+import { OfferParams } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 
 const createOffersCollection = (db: any, businessId: string) => {

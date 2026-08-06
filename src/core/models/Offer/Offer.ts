@@ -1,4 +1,4 @@
-import { IOffer, IOfferDB } from "@/src/core/models/Offer/Offer.types";
+import { IOffer, IOfferDB } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 

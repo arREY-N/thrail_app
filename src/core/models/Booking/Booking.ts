@@ -1,6 +1,6 @@
 import { BookingStatus, IBooking, IBookingDB, IPayment, IUserBooking, Requirements } from "@/src/core/models/Booking/Booking.types";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";

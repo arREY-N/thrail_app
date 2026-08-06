@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
-import { IBusinessSummary } from "../Business/Business.types";
-import { ITrailSummary } from "../Trail/Trail.types";
+import { IBusinessSummary } from "../../Business/Business.types";
+import { ITrailSummary } from "../../Trail/Trail.types";
 
 export interface IOfferInfo<T> {
     date: T,
