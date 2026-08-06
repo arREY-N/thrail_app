@@ -34,6 +34,7 @@ export const Palette = {
     
     // Blues
     Blue600:    '#1976D2',
+    Blue400:    '#42A5F5',
     Blue100:    '#BBDEFB',
     Blue50:     '#E3F2FD',
     Indigo400:  '#5C6BC0',
@@ -108,10 +109,12 @@ export const Colors = {
     BUTTON_DISABLED_BG:      Palette.Neutral200,
     BUTTON_DISABLED_BORDER: Palette.Neutral200,
 
-    // UI Elements
+    // UI Elements & Chart Accents
     YELLOW:           Palette.Yellow600,
     BLUE:             Palette.Blue600,
+    BLUE_LIGHT:       Palette.Blue400,
     RED:              Palette.Red700,
+    ORANGE:           Palette.Orange800,
     SHADOW:           Palette.TrueBlack,
     MODAL_OVERLAY:    Palette.BlackAlpha50,
     SEARCH_BAR_BG:    Palette.GrayAlpha25,
@@ -129,7 +132,7 @@ export const Colors = {
     STRENGTH_MEDIUM:  Palette.Amber500,
     STRENGTH_STRONG:  Palette.Green700,
 
-    //Group Avatars
+    // Group Avatars
     AVATAR_BG_Green:      Palette.Green700,
     AVATAR_BG_Blue:       Palette.Blue600,
     AVATAR_BG_Red:        Palette.Red650,
@@ -149,10 +152,39 @@ export const Colors = {
     CHAT_ATTACHMENT_SUBTITLE_RIGHT:  Palette.WhiteAlpha80,
     CHAT_TIME_TEXT_RIGHT:      Palette.WhiteAlpha70,
 
+    // Chart Design System Tokens
+    CHART_PRIMARY:        Palette.Green700,
+    CHART_SECONDARY:      Palette.Green600,
+    CHART_TERTIARY:       Palette.Red650,
+    CHART_ACCENT:         Palette.Indigo400,
+    CHART_BG_SURFACE:     Palette.Slate50,
+    CHART_BORDER:         Palette.Slate200,
+
+    // Chart Dual Wave Tokens
+    CHART_WAVE_REGISTERED_STROKE: Palette.Green400,
+    CHART_WAVE_REGISTERED_FILL:   Palette.Green200,
+    CHART_WAVE_ACTIVE_STROKE:     Palette.Green700,
+    CHART_WAVE_ACTIVE_FILL:       Palette.Green400,
 
     // Interactive Chips
     CHIP_INACTIVE:    Palette.Neutral100, 
     CHIP_ACTIVE:      Palette.Green700,
+
+    // Role Specific Semantic Color Tokens (Matching ProfileInfoScreen.tsx)
+    ROLE_SUPERADMIN_BG:     Palette.Red700,
+    ROLE_SUPERADMIN_TEXT:   Palette.White,
+    ROLE_SUPERADMIN_BORDER: Palette.Red700,
+
+    ROLE_ADMIN_BG:          Palette.Green700,
+    ROLE_ADMIN_TEXT:        Palette.White,
+    ROLE_ADMIN_BORDER:      Palette.Green700,
+
+    ROLE_HIKER_BG:          Palette.Green400,
+    ROLE_HIKER_TEXT:        Palette.White,
+    ROLE_HIKER_BORDER:      Palette.Green400,
+
+    ROLE_AVATAR_BG:         Palette.Green700,
+    ROLE_AVATAR_TEXT:       Palette.White,
 
     // Admin/Document Statuses
     STATUS_APPROVED_BG:     Palette.Green50,
@@ -187,6 +219,23 @@ export const Colors = {
     STATUS_FULLY_PAID_BG:      Palette.Green50,
     STATUS_FULLY_PAID_TEXT:    Palette.Green700,
     STATUS_FULLY_PAID_BORDER:  Palette.Green100,
+
+    // Trail Semantic Color Tokens
+    TRAIL_CLASSIFICATION_MAJOR_BG:     Palette.Red50,
+    TRAIL_CLASSIFICATION_MAJOR_TEXT:   Palette.Red700,
+    TRAIL_CLASSIFICATION_MAJOR_BORDER: Palette.Red100,
+
+    TRAIL_CLASSIFICATION_MINOR_BG:     Palette.Neutral100,
+    TRAIL_CLASSIFICATION_MINOR_TEXT:   Palette.Neutral900,
+    TRAIL_CLASSIFICATION_MINOR_BORDER: Palette.Neutral200,
+
+    TRAIL_STATUS_ACTIVE_BG:            Palette.Green50,
+    TRAIL_STATUS_ACTIVE_TEXT:          Palette.Green700,
+    TRAIL_STATUS_ACTIVE_BORDER:        Palette.Green100,
+
+    TRAIL_STATUS_INACTIVE_BG:          Palette.Red50,
+    TRAIL_STATUS_INACTIVE_TEXT:        Palette.Red700,
+    TRAIL_STATUS_INACTIVE_BORDER:      Palette.Red100,
 
     // Medical Warning Banner & Expired Verification Alerts
     MEDICAL_BADGE_BG:          Palette.Blue50,
