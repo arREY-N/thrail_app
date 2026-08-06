@@ -79,6 +79,12 @@ export function useAppNavigation() {
         })
     }
 
+    const onProfilePress = () => {
+        router.replace({
+            pathname: '/(tabs)/profile',
+        })
+    }
+
     const onSettingsPress = () => {
         router.push({
             pathname: '/(main)/settings',
@@ -128,6 +134,7 @@ export function useAppNavigation() {
         onSeeMoreOffersPress,
         onGroupPress,
         onLeaderBoardPress,
+        onProfilePress,
         onSettingsPress,
         onSecuritySettingsPress,
         onNotificationSettingsPress,
