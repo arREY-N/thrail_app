@@ -12,9 +12,10 @@ type AdminUI = {
 }
 
 export interface BusinessState extends BaseStore<Business>{
-    businessAdmins: Admin[], 
+    businessAdmins: Admin[];
+    lastFetchedAt: number;
 
-    createBusinessAdmin: (admin: AdminUI) => Promise<void>
+    createBusinessAdmin: (admin: AdminUI) => Promise<void>;
     loadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
     reloadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
 }
@@ -23,9 +24,10 @@ const init = {
     data: [],
     current: null,
     businessAdmins: [],
+    lastFetchedAt: 0,
     isLoading: true,
     error: null,
-}
+};
 
 export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
     ...init, 
@@ -36,55 +38,50 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         if(data.length > 0) return;
 
         try {
-            set({ isLoading: true, error: null})
+            set({ isLoading: true, error: null});
 
             const businesses = await BusinessRepository.fetchAll();
 
-            if(businesses.length === 0){
-                set({
-                    data: [],
-                    isLoading: false
-                })
-                return;
-            }
-
             set({
                 data: businesses,
+                lastFetchedAt: Date.now(),
                 isLoading: false
-            })
+            });
         } catch (err) {
             console.error((err as Error).message);
             set({
                 error: (err as Error).message,
                 isLoading: false,
-            })
+            });
         }
     },
     
     refresh: async () => {
+        const now = Date.now();
+        const lastFetchedAt = get().lastFetchedAt;
+        const COOLDOWN_MS = 2000; // 2-second throttle cooldown for Firebase cost optimization
+
+        if (now - lastFetchedAt < COOLDOWN_MS && get().data.length > 0) {
+            console.log('Throttled refresh: reusing in-memory cache to save Firestore reads.');
+            return;
+        }
+
         try {
-            set({ isLoading: true, error: null})
+            set({ isLoading: true, error: null});
 
             const businesses = await BusinessRepository.fetchAll();
 
-            if(businesses.length === 0){
-                set({
-                    data: [],
-                    isLoading: false
-                })
-                return;
-            }
-
             set({
                 data: businesses,
+                lastFetchedAt: now,
                 isLoading: false
-            })
+            });
         } catch (err) {
             console.error((err as Error).message);
             set({
                 error: (err as Error).message,
                 isLoading: false,
-            })
+            });
         }
     },
 
