@@ -1,5 +1,5 @@
-import EmergencyNotification from '@/src/components/EmergencyNotification';
 import LoadingScreen from '@/src/app/loading';
+import EmergencyNotification from '@/src/components/EmergencyNotification';
 import useHike from '@/src/core/hook/hike/useHike';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
@@ -11,12 +11,11 @@ import { Hike } from '@/src/core/models/Hike/Hike';
 import { useLeaderboard } from '@/src/core/models/Leaderboard/hooks/useLeaderboard';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import React from 'react';
-import { View } from 'react-native';
 
 /**
  * Controller component for the Profile tab.
  * Gathers user data, hike logs, reviews, and computes summary statistics.
- */import { Pressable, Text, View } from 'react-native';
+ */import { View } from 'react-native';
 
 export default function profile() {
     const {
@@ -115,13 +114,13 @@ export default function profile() {
 
     return (
         <View style={{ flex: 1 }}>
-            <>
+            {/* 
             <TESTLEADERBOARD 
                 generateMonthlyLeaderboard={generateMonthlyLeaderboard}
                 leaderboard={leaderboard}
                 getMonthLeaderboard={getMonthLeaderboard}
                 error={leaderboardError}
-            />      
+            /> */}     
 
             <ProfileScreen
                     onSignOutPress={onSignOutPress}
@@ -141,10 +140,10 @@ export default function profile() {
 
             <EmergencyNotification />
         </View>
-        </>
     );
 }
 
+/* 
 const TESTLEADERBOARD = ({
     generateMonthlyLeaderboard,
     leaderboard,
@@ -187,3 +186,4 @@ const TESTLEADERBOARD = ({
         </View>
     );
 }
+*/
