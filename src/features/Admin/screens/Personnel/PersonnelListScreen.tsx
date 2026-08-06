@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     headerAddBtnText: { 
         fontSize: 12, 
         fontWeight: 'bold',
-        marginTop: -2,
+        // marginTop: -2,
     },
     list: { 
         gap: 12, 
