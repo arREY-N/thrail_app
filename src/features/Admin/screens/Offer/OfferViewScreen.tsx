@@ -3,8 +3,7 @@
  * @description Admin screen displaying detailed information for an offer and its filtered, sortable recent bookings list.
  */
 
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useRef } from 'react';
+import React from 'react';
 import {
     Platform,
     ScrollView,
@@ -13,6 +12,7 @@ import {
     View
 } from 'react-native';
 
+import CustomFilterTabs from '@/src/components/CustomFilterTabs';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -26,9 +26,6 @@ import { IOffer } from '@/src/core/models/Offer/Offer.types';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
 import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';
-import SlotsCounter from '@/src/features/Admin/screens/Offer/components/SlotsCounter';
-import { useScrollFades } from '@/src/hooks/useScrollFades';
-import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 /**
  * Props for the OfferViewScreen component.
@@ -68,16 +65,6 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
         setSortOrder,
         filteredBookings 
     } = useBookingFilters(bookings);
-
-    const filterScrollRef = useRef<ScrollView>(null);
-    const { 
-        showLeftFade,
-        showRightFade,
-        scrollProps
-    } = useScrollFades();
-
-    // Enable drag-to-scroll functionality on Web platforms
-    useWebDragScroll(filterScrollRef, bookings?.length > 0);
 
     if (!offer) return null;
     
@@ -137,60 +124,13 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     </View>
 
                     {bookings && bookings.length > 0 && (
-                        <View style={styles.filterScrollWrapper}>
-                            <ScrollView 
-                                ref={filterScrollRef}
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                style={styles.filterScroll}
-                                contentContainerStyle={styles.filterContainer}
-                                {...scrollProps}
-                            >
-                                {FILTER_OPTIONS.map((filter: string) => {
-                                    const isActive = activeFilter === filter;
-                                    return (
-                                        <TouchableOpacity 
-                                            key={filter}
-                                            style={[
-                                                styles.filterChip, 
-                                                isActive && styles.filterChipActive
-                                            ]}
-                                            onPress={() => setActiveFilter(filter)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText 
-                                                style={[
-                                                    styles.filterChipText, 
-                                                    isActive && styles.filterChipTextActive
-                                                ]}
-                                            >
-                                                {filter}
-                                            </CustomText>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
-
-                            {showLeftFade && (
-                                <LinearGradient 
-                                    colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
-                                    start={{ x: 0, y: 0 }} 
-                                    end={{ x: 1, y: 0 }} 
-                                    style={styles.leftFade} 
-                                    pointerEvents="none" 
-                                />
-                            )}
-
-                            {showRightFade && (
-                                <LinearGradient 
-                                    colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
-                                    start={{ x: 0, y: 0 }} 
-                                    end={{ x: 1, y: 0 }} 
-                                    style={styles.rightFade} 
-                                    pointerEvents="none" 
-                                />
-                            )}
-                        </View>
+                        <CustomFilterTabs
+                            tabs={FILTER_OPTIONS}
+                            activeTab={activeFilter}
+                            onTabSelect={setActiveFilter}
+                            variant="pill"
+                            containerStyle={styles.filterScrollWrapper}
+                        />
                     )}
 
                     {error && (
