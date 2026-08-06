@@ -1,118 +1,30 @@
-import useApply from "@/src/core/hook/apply/useApply";
-import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
-import { IApplication } from "@/src/core/models/Application/Application.types";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { formatDate } from "@/src/core/utility/date";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+/**
+ * @file list.tsx
+ * @description Application list controller for Superadmin. Wrapped inside SuperadminShell for persistent sidebar navigation.
+ */
 
-import CustomHeader from "@/src/components/CustomHeader";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import React from 'react';
+import useApply from '@/src/core/hook/apply/useApply';
+import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
+import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import ApplicationListScreen from '@/src/features/SuperAdmin/screens/tabs/ApplicationListScreen';
 
-export default function listApplications(){
+export default function listApplications() {
     const { role } = useAuthHook();
     const { onViewApplicationPress } = useSuperadminDomain(null);
-
     const { applications } = useApply({ role } as any);
+    const { onTabPress, onBackToSettingsPress } = useSuperadminNavigation();
 
-    const { onBackPress } = useAppNavigation();
+    const pendingCount = applications.filter((a) => a.status === 'pending').length;
 
-    return(
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Applications" 
-                centerTitle={true} 
-                onBackPress={onBackPress}
-            />
-
-            <TESTAPPLICATIONLIST
-                applications={applications}
-                onViewApplicationPress={onViewApplicationPress}
-            />
-        </ScreenWrapper>
-    )
+    return (
+        <ApplicationListScreen
+            applications={applications}
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={onBackToSettingsPress}
+            onViewApplicationPress={onViewApplicationPress}
+        />
+    );
 }
-
-const TESTAPPLICATIONLIST = ({
-    applications,
-    onViewApplicationPress,  
-}: {
-    applications: IApplication[];
-    onViewApplicationPress: (id: string) => void;
-}) => {
-    const pendingApplication = applications.filter((a) => a.status === 'pending');
-    const approvedApplication = applications.filter((a) => a.status === 'approved');
-    const rejectedApplication = applications.filter((a) => a.status === 'rejected');
-
-    return(
-        <ScrollView>
-            <Text>APPLICATIONS</Text>
-
-            <Text>PENDING APPLICATIONS</Text>
-            { pendingApplication.length > 0 
-                ? pendingApplication.map((a) => {
-                    console.log(a);
-                    console.log(formatDate(a.createdAt));
-                    return(
-                        <View style={styles.group} key={a.id}>
-                            <Pressable onPress={() => onViewApplicationPress(a.id)}>
-                                <Text>Application ID: {a.id}</Text>
-                                <Text>Applicant: {a.name}</Text>
-                                <Text>Created At: {formatDate(a.createdAt)}</Text>
-                                <Text>View application</Text>
-                            </Pressable>
-                        </View>
-                    )
-                })
-                : <Text>No pending applications</Text>
-            }
-
-            <Text>APPROVED APPLICATIONS</Text>
-            { approvedApplication.length > 0 
-                ? approvedApplication.map((a) => {
-                    console.log(a);
-                    console.log(formatDate(a.createdAt));
-                    return(
-                        <View style={styles.group}>
-                            <Pressable onPress={() => onViewApplicationPress(a.id)}>
-                                <Text>Application ID: {a.id}</Text>
-                                <Text>Applicant: {a.name}</Text>
-                                <Text>Created At: {formatDate(a.createdAt)}</Text>
-                                <Text>View application</Text>
-                            </Pressable>
-                        </View>
-                    )
-                })
-                : <Text>No pending applications</Text>
-            }
-
-            <Text>REJECTED APPLICATIONS</Text>
-            { rejectedApplication.length > 0 
-                ? rejectedApplication.map((a) => {
-                    console.log(a);
-                    console.log(formatDate(a.createdAt));
-                    return(
-                        <View style={styles.group}>
-                            <Pressable onPress={() => onViewApplicationPress(a.id)}>
-                                <Text>Application ID: {a.id}</Text>
-                                <Text>Applicant: {a.name}</Text>
-                                <Text>Created At: {formatDate(a.createdAt)}</Text>
-                                <Text>View application</Text>
-                            </Pressable>
-                        </View>
-                    )
-                })
-                : <Text>No pending applications</Text>
-            }
-        </ScrollView>
-    )
-}
-
-const styles = StyleSheet.create({
-    group: {
-        padding: 10,
-        margin: 10,
-        borderWidth: 1,
-    }
-})
