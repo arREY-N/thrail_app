@@ -12,7 +12,7 @@ export type SuperadminParams = {
 
 export default function useSuperadmin(params: SuperadminParams | null){
     const loadBusinesses = useBusinessesStore(s => s.fetchAll);
-    const reloadBusinesses = useBusinessesStore(s => s.fetchAll);
+    const reloadBusinesses = useBusinessesStore(s => s.refresh);
     const businessLoading = useBusinessesStore(s => s.isLoading);
     const businesses = useBusinessesStore(s => s.data);
     const businessCount = businesses.length;
@@ -44,39 +44,33 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const approveApplication = useApplicationsStore(s => s.approveApplication);
     
     useEffect(() => {
-        console.log('in hook')
-        if(params && params.role === 'superadmin'){
-            console.log('load businesses');
+        // console.log('in hook')
+        if (params && params.role === 'superadmin') {
             loadBusinesses();
             loadAllTrails();
             loadAllUsers();
             loadAllMountains();
             loadAllApplications();
-        };
+        }
     }, [params?.role]);
 
-    
-    function onCheckApplication(
-        id: string
-    ){
+    useEffect(() => {
+        if (__DEV__ && users.length > 0) {
+            console.log(`[Superadmin] Initialized dashboard with ${users.length} users, ${businesses.length} businesses, ${mountains.length} mountains.`);
+        }
+    }, [users.length === 0, businesses.length === 0, mountains.length === 0]);
 
-    }
-
-    async function onApproveApplicationPress(
-        applicationData: any
-    ){
+    async function onApproveApplicationPress(applicationData: any) {
         await approveApplication(applicationData);
         // await addBusiness(applicationData);
         await reloadBusinesses();
     }
 
-    async function onDeleteBusinessPress(
-        id: string
-    ){
+    async function onDeleteBusinessPress(id: string) {
         await deleteBusiness(id);
     }
-    
-    console.log(users);
+
+    // console.log(users);
     return {
         role: params?.role,
         businesses,

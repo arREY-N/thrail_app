@@ -2,8 +2,9 @@ import { functions } from "@/src/core/config/Firebase";
 import { payBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { Booking } from "@/src/core/models/Booking/Booking";
+
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
+import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/Ref_Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
@@ -35,7 +36,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
 
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const [booking, setBooking] = useState<Booking>(new Booking());
+    const [booking, setBooking] = useState<Booking>(createNewBooking());
 
     const getBookOffer = async (offerId: string): Promise<Offer | null> => {
         try {
@@ -106,7 +107,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             const editedPhone = payload?.hikerDetails?.phone;
             const bookingPhone = editedPhone || profile.phoneNumber;
     
-            const finalBooking = new Booking({
+            const finalBooking = createNewBooking({
                 ...booking,
                 trail: offer.trail,
                 user: {
@@ -147,9 +148,12 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
                     if(!draft) return;
 
                     if(section === 'root'){
-                        draft[id] = value;
+                        (draft as Record<string, any>)[id] = value;
                     } else {
-                        draft[section][id] = value
+                        const nestedSection = section as keyof Booking;
+                        if(draft[nestedSection] && typeof draft[nestedSection] === 'object') {
+                            (draft[nestedSection] as Record<string, any>)[id] = value;
+                        }
                     }
                 })
             )

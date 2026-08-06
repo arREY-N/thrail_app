@@ -1,0 +1,229 @@
+
+import { Booking, bookingConverter } from "@/src/core/models/Booking/Ref_Booking";
+import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
+
+const createBookingCollection = (db: any, userId: string) => {
+    return collection(db, "users", userId, "bookings").withConverter(bookingConverter);
+};
+
+export const BookingRepository = (db: any) => ({
+    /**
+     * FOR USER USE.
+     * Fetches all booking for a specific user using their ID.
+     * @param id
+     * @returns Booking[]
+     */
+    async fetchUserBookings(id: string): Promise<Booking[]> {
+        try {
+            if (!id) throw new Error("User ID missing");
+
+            const bookingsRef = createBookingCollection(db, id);
+            const snapshot = await getDocs(bookingsRef);
+
+            if (snapshot.empty) return [];
+
+            console.log(`Fetched ${snapshot.docs.length} bookings for user ${id}`);
+            return snapshot.docs.filter((docsnap) => docsnap.id !== "init").map((docsnap) => docsnap.data());
+        } catch (err) {
+            if (err instanceof Error) throw err;
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * FOR BUSINESS USE.
+     * Fetches all bookings for a specific offer.
+     * @param offerId
+     * @returns Booking[]
+     */
+    async fetchOfferBookings(offerId: string): Promise<Booking[]> {
+        try {
+            if (!offerId) throw new Error("Offer ID missing");
+            const bookingsRef = collectionGroup(db, "bookings").withConverter(bookingConverter);
+            const snapshot = await getDocs(query(bookingsRef, where("offer.id", "==", offerId)));
+
+            console.log(`Querying bookings for offer ID: ${offerId}`);
+            if (snapshot.empty) return [];
+            console.log(`Fetched ${snapshot.docs.length} bookings for offer ${offerId}`);
+            return snapshot.docs.map((docsnap) => docsnap.data());
+        } catch (err) {
+            console.log("Error fetching offer bookings: ", err);
+            if (err instanceof Error) throw err;
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * FOR SUPERADMIN USE.
+     * Fetches all bookings across all users.
+     */
+    async fetchAll(): Promise<Booking[]> {
+        try {
+            const bookingsRef = collectionGroup(db, "bookings").withConverter(bookingConverter);
+            const snapshot = await getDocs(bookingsRef);
+
+            if (snapshot.empty) return [];
+            return snapshot.docs.map((docsnap) => docsnap.data());
+        } catch (error) {
+            if (error instanceof Error) throw error;
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * FOR BUSINESS USE.
+     * Fetches all bookings for a specific business using the business ID
+     * @param businessId
+     */
+    async fetchAllBusinessBookings(businessId: string): Promise<Booking[]> {
+        try {
+            if (!businessId) throw new Error("Business ID missing");
+
+            const bookingsRef = collectionGroup(db, "bookings").withConverter(bookingConverter);
+            const snapshot = await getDocs(query(bookingsRef, where("business.id", "==", businessId)));
+
+            if (snapshot.empty) return [];
+            return snapshot.docs.map((docsnap) => docsnap.data());
+        } catch (error) {
+            if (error instanceof Error) throw error;
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * FOR BUSINESS USE
+     * Subscribes to a listener for real-time updates on bookings for a specific offer.
+     * @param offerId
+     * @param callback
+     * @return Unsubscribe function
+     */
+    listenToBusinessBookings(offerId: string, businessId: string, onUpdate: (bookings: Booking[]) => void): () => void {
+        try {
+            if (!businessId) throw new Error("Business ID missing");
+            if (!offerId) throw new Error("Offer ID missing");
+            const q = query(
+                collectionGroup(db, "bookings").withConverter(bookingConverter),
+                where("business.id", "==", businessId),
+                where("offer.id", "==", offerId),
+            );
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map((docsnap) => docsnap.data()));
+                },
+                (error) => {
+                    console.error("Error in business bookings listener: ", error);
+                },
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error("Error setting up listener for business bookings: ", error);
+                throw error;
+            }
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * FOR USER USE
+     * Subscribes to a listener for real-time updates on bookings for a specific user.
+     * @param offerId
+     * @param callback
+     * @return Unsubscribe function
+     */
+    listenToUserBookings(userId: string, onUpdate: (bookings: Booking[]) => void): Unsubscribe {
+        try {
+            if (!userId) throw new Error("User ID missing");
+
+            const q = collection(db, "users", userId, "bookings").withConverter(bookingConverter);
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map((docsnap) => docsnap.data()));
+                },
+                (error) => {
+                    console.error("Error in user bookings listener: ", error);
+                },
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error("Error setting up listener for business bookings: ", error);
+                throw error;
+            }
+            throw new Error("An error occurred");
+        }
+    },
+
+    /**
+     * Fetches a booking using its ID. Uses collectionGroup to search
+     * across all users, proceed with caution when using to prevent unauthorized
+     * view of user bookings.
+     * @param bookingId
+     * @returns Booking | null
+     */
+    async fetchById(bookingId: string): Promise<Booking | null> {
+        try {
+            const docRef = collectionGroup(db, "bookings").withConverter(bookingConverter);
+            const snapshot = await getDocs(query(docRef, where("id", "==", bookingId)));
+
+            if (snapshot.empty) return null;
+
+            return snapshot.docs[0].data();
+        } catch (error) {
+            if (error instanceof Error) throw error;
+            throw new Error("An error occurred");
+        }
+    },
+
+    async cancelBooking(booking: Booking, businessId: string): Promise<void> {
+        try {
+            const approved = booking.status === "paid";
+
+            if (approved && !businessId) throw new Error("Only business owners can cancel approved or paid bookings");
+
+            const bookingRef = doc(createBookingCollection(db, booking.user.id), booking.id);
+
+            booking.cancelledBy = businessId;
+            booking.status = "refund";
+
+            await setDoc(bookingRef, booking, { merge: true });
+        } catch (err) {
+            if (err instanceof Error) throw err;
+            throw new Error("An error occurred");
+        }
+    },
+
+    async write(booking: Booking): Promise<Booking> {
+        try {
+            console.log("to create: ", booking);
+
+            const bookingRef = booking.id !== "" 
+                ? doc(createBookingCollection(db, booking.user.id), booking.id) 
+                : doc(createBookingCollection(db, booking.user.id));
+
+            if (booking.id === "") {
+                booking.id = bookingRef.id;
+            }
+
+            console.log("Final Writing booking: ", booking);
+            await setDoc(
+                bookingRef, 
+                booking, 
+                { merge: true }
+            );
+
+            console.log("Final booking: ", booking);
+            return booking;
+        } catch (err) {
+            console.log("Error writing booking: ", err);
+            if (err instanceof Error) throw err;
+            throw new Error("An error occurred");
+        }
+    },
+
+    async delete(id: string, ...args: any[]): Promise<void> {
+        throw new Error("Method not implemented.");
+    },
+});

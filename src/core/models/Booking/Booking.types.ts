@@ -1,11 +1,14 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type BookingStatus = 
     'for-reservation' | 
+    'pending-docs' |
+    'approved-docs' |
+    'cancelled' |
     'for-payment' | 
     'paid' |
     'downpayment' |
@@ -40,12 +43,14 @@ export interface IPayment<T> {
     status: 'pending' | 'captured' | 'failed' | 'refunded';
     refundableUntil: T;
     amount: number;
+    refundedAmount?: number;
     createdAt: T;
 }
 
 export interface IUserBooking<T> extends IUserSummary {
     birthday: T;
     phoneNumber: string;
+    phoneVerifiedAt?: T | null;
 }
 
 export interface IBookingBase<T> {

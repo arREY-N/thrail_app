@@ -1,7 +1,7 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
 import { IGroup, IGroupDB, IGroupMember } from "@/src/core/models/Group/Group.types";
 import { IMessageBase } from "@/src/core/models/Message/Message.types";
-import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
@@ -26,6 +26,7 @@ export class Group implements IGroup {
     trail: ITrailSummary = {
         id: '',
         name: '',
+        location: ''
     };
     offer: Omit<IOfferBase<Date>, 'business' | 'trail' | 'createdAt' | 'updatedAt'> = {
         id: "",
@@ -116,13 +117,13 @@ export class Group implements IGroup {
                 thingsToBring: this.offer.thingsToBring,
                 reminders: this.offer.reminders,
                 description: this.offer.description,
-                date: Timestamp.fromDate(this.offer.date),
-                endDate: isNew ? serverTimestamp() : Timestamp.fromDate(this.offer.endDate),
+                date: Timestamp.fromDate(this.offer.date || new Date()),
+                endDate: isNew ? serverTimestamp() : Timestamp.fromDate(this.offer.endDate || new Date()),
                 schedule: this.offer.schedule.map(s => ({
                     day: s.day,
                     activities: s.activities.map(a => ({
                         event: a.event,
-                        time: Timestamp.fromDate(a.time)
+                        time: Timestamp.fromDate(a.time || new Date())
                     }))
                 }))
             },
@@ -133,7 +134,7 @@ export class Group implements IGroup {
                 senderName: this.lastMessage.senderName,
                 status: this.lastMessage.status,
                 readBy: this.lastMessage.readBy,
-                timesent: Timestamp.fromDate(this.lastMessage.timesent)
+                timesent: Timestamp.fromDate(this.lastMessage.timesent || new Date())
             },
             status: this.status,
             image: this.image

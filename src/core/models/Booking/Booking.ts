@@ -1,6 +1,6 @@
 import { BookingStatus, IBooking, IBookingDB, IPayment, IUserBooking, Requirements } from "@/src/core/models/Booking/Booking.types";
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferBase } from "@/src/core/models/Offer/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact } from "@/src/core/models/User/User.types";
 import { toDate } from "@/src/core/utility/date";
@@ -37,7 +37,8 @@ export class Booking implements IBooking {
     };
     trail: ITrailSummary = {
         id: "",
-        name: ""
+        name: "",
+        location: ""
     };
     emergencyContact: IEmergencyContact = {
         name: "",
@@ -62,12 +63,20 @@ export class Booking implements IBooking {
             user: {
                 ...data.user,
                 birthday: toDate(data.user.birthday),
+                phoneVerifiedAt: data.user?.phoneVerifiedAt ? toDate(data.user.phoneVerifiedAt) : undefined,
             },
             payment: (data.payment || []).map(p => ({
                 ...p,
                 refundableUntil: toDate(p.refundableUntil),
                 createdAt: toDate(p.createdAt),
             })),
+            emergencyContact: data.emergencyContact ? {
+                ...data.emergencyContact,
+                phoneVerifiedAt: data.emergencyContact.phoneVerifiedAt ? toDate(data.emergencyContact.phoneVerifiedAt) : undefined,
+            } : {
+                name: "",
+                contactNumber: "",
+            },
             documents: data.documents || {}, // New
         }
 
@@ -96,6 +105,11 @@ export class Booking implements IBooking {
                 firstname: this.user.firstname,
                 lastname: this.user.lastname,
                 email: this.user.email,
+                phoneVerifiedAt: this.user.phoneVerifiedAt 
+                    ? (this.user.phoneVerifiedAt instanceof Date 
+                        ? Timestamp.fromDate(this.user.phoneVerifiedAt) 
+                        : this.user.phoneVerifiedAt)
+                    : null,
             },
             business: this.business,
             trail: this.trail,
@@ -105,7 +119,17 @@ export class Booking implements IBooking {
                 refundableUntil: p.refundableUntil ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
                 createdAt: p.createdAt ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
             })),
-            emergencyContact: this.emergencyContact,
+            emergencyContact: this.emergencyContact ? {
+                ...this.emergencyContact,
+                phoneVerifiedAt: this.emergencyContact.phoneVerifiedAt 
+                    ? (this.emergencyContact.phoneVerifiedAt instanceof Date 
+                        ? Timestamp.fromDate(this.emergencyContact.phoneVerifiedAt as Date) 
+                        : this.emergencyContact.phoneVerifiedAt)
+                    : null,
+            } : {
+                name: "",
+                contactNumber: "",
+            },
             documents: this.documents,
         }
 

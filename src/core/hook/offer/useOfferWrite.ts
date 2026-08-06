@@ -2,7 +2,7 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BusinessLogic } from "@/src/core/models/Business/logic/Business.logic";
 import { Group } from "@/src/core/models/Group/Group";
-import { Offer } from "@/src/core/models/Offer/Offer";
+import { createOffer, Offer } from "@/src/core/models/Offer/Offer";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
@@ -44,7 +44,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
         
         if(!businessAccount) {
             setLocalError('No business account');
-            return new Offer();
+            return createOffer();
         }
 
         const businessSummary = BusinessLogic.toSummary(businessAccount);
@@ -54,8 +54,8 @@ export function useOfferWrite(params: UseOfferParams = {}){
         }
 
         return existing
-            ? new Offer({ ...existing })
-            : new Offer({ business: businessSummary });
+            ? createOffer(existing)
+            : createOffer({ business: businessSummary });
     })
 
     const onUpdatePress = (params: TEdit<Offer>) => {
@@ -65,9 +65,12 @@ export function useOfferWrite(params: UseOfferParams = {}){
             setOffer(prev => 
                 produce(prev, (draft) => {
                     if(section === 'root'){
-                        draft[id] = value;
+                        (draft as Record<string, any>)[id] = value;
                     } else {
-                        draft[section][id] = value;
+                        const nestedSection = section as keyof Offer;
+                        if(draft[nestedSection] && typeof draft[nestedSection] === 'object') {
+                            (draft[nestedSection] as Record<string, any>)[id] = value;
+                        }
                     }
                 })
             )

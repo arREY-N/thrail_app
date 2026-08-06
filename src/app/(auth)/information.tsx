@@ -1,0 +1,21 @@
+import React from 'react';
+import useSignUp from "@/src/core/hook/auth/useSignUp";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
+
+export default function Information() {
+    const { onBackPress } = useAppNavigation();
+
+    const { 
+        error, 
+        onContinuePress 
+    } = useSignUp();
+
+    return (
+        <InformationScreen
+            onContinuePress={onContinuePress as any}
+            onBackPress={onBackPress}
+            error={error}
+        />
+    );
+}

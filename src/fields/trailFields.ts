@@ -42,6 +42,13 @@ export const TrailUIConfig: ITrailFormField[] = [
         type: 'text',
         required: false
     },
+    {
+        section: 'general',
+        id: 'active',
+        label: 'Active Status',
+        type: 'boolean',
+        required: false
+    },
     
 
     // --- GEOGRAPHY ---
@@ -82,6 +89,21 @@ export const TrailUIConfig: ITrailFormField[] = [
     },
 
     // --- DIFFICULTY ---
+    {
+        section: 'difficulty',
+        id: 'classification',
+        label: 'Classification',
+        type: 'single-select',
+        options: 'classification',
+        required: false
+    },
+    {
+        section: 'difficulty',
+        id: 'lascoRating',
+        label: 'LASCO Rating (1-9)',
+        type: 'numerical',
+        required: false
+    },
     { 
         section: 'difficulty', 
         id: 'length', 

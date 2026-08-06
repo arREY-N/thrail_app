@@ -1,71 +1,59 @@
-import LoadingScreen from "@/src/app/loading";
-import WriteComponent from "@/src/components/CustomWriteComponents";
-import useMountainWrite, { IUseMountainWrite } from "@/src/core/hook/mountain/useMountainWrite";
-import getSearchParam from "@/src/core/utility/getSearchParam";
+/**
+ * @file write.tsx
+ * @description Mountain write/edit page controller for Superadmin. Composes mountain write hook and app navigation to render MountainWriteScreen inside SuperadminShell.
+ */
 
-import { useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useLocalSearchParams } from 'expo-router';
+import React from 'react';
 
-import CustomHeader from "@/src/components/CustomHeader";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import LoadingScreen from '@/src/app/loading';
+import useMountainWrite from '@/src/core/hook/mountain/useMountainWrite';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
+import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import getSearchParam from '@/src/core/utility/getSearchParam';
+import MountainWriteScreen from '@/src/features/SuperAdmin/screens/tabs/MountainWriteScreen';
 
-export default function WriteMountain(){
+/**
+ * Superadmin mountain write/edit page controller component.
+ * 
+ * @returns {React.ReactElement} Rendered MountainWriteScreen presentation view or loading overlay.
+ */
+export default function writeMountain() {
     const { mountainId: rawId } = useLocalSearchParams();
-
     const mountainId = getSearchParam(rawId);
 
-    const controller = useMountainWrite({mountainId})
+    const controller = useMountainWrite({ mountainId });
 
-    if(controller.isLoading) return <LoadingScreen/>;
+    const {
+        onTabPress,
+        onBackToSettingsPress
+    } = useSuperadminNavigation();
 
-    const { onBackPress } = useAppNavigation();
+    const {
+        onBackPress
+    } = useAppNavigation();
 
-    return(
-        <ScreenWrapper 
-            backgroundColor={Colors.BACKGROUND} 
-            style={undefined}
-        >
-            <CustomHeader 
-                title="Applications"
-                centerTitle={true}
-                onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined}            />
+    const {
+        pendingApplication
+    } = useSuperadminDomain(null);
 
-            <TestWriteMountain {...controller}/>
-        </ScreenWrapper>
-    )
-}
+    const pendingCount = pendingApplication?.length || 0;
 
-const TestWriteMountain = (params: IUseMountainWrite) => {
-    const { 
-        error, 
-        information, 
-        object: mountain, 
-        options,
-        onUpdatePress,
-        onSubmitPress,
-        onRemovePress,
-    } = params;
-    return(
-        <ScrollView>
-            <View>
-                { error && <Text>{error}</Text>}
-                <Text>GENERAL INFORMATION</Text>
-                <WriteComponent
-                    informationSet={information}
-                    object={mountain}
-                    onEditProperty={onUpdatePress}
-                    optionSet={options}
-                />
-            </View>
+    if (controller.isLoading) return <LoadingScreen />;
 
-            <Pressable onPress={onSubmitPress}>
-                <Text>Submit</Text>
-            </Pressable>
-            <Pressable onPress={() => onRemovePress(mountain.id)}>
-                <Text>Delete</Text>
-            </Pressable>
-        </ScrollView>
-    )
+    return (
+        <MountainWriteScreen
+            mountain={controller.object}
+            error={controller.error}
+            isLoading={controller.isLoading}
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={onBackToSettingsPress}
+            onSubmitPress={controller.onSubmitPress}
+            onRemovePress={controller.onRemovePress}
+            onUpdatePress={controller.onUpdatePress}
+            onBackPress={onBackPress}
+        />
+    );
 }

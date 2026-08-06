@@ -18,7 +18,11 @@ import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen
 
 export default function hike() {
     const isFocused = useIsFocused();
-    const { onGroupPress, onBookingPress } = useAppNavigation();
+
+    const { 
+        onGroupPress, 
+        onBookingPress 
+    } = useAppNavigation();
     
     const { profile } = useAuthHook();
     
@@ -88,7 +92,7 @@ export default function hike() {
                 params: { 
                     trailId: bookingContext.trail.id, 
                     groupId: targetGroup?.id,
-                    bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+                    bookingId: bookingContext.id
                 } 
             });
         } else if (selectedTrail) {
@@ -111,7 +115,7 @@ export default function hike() {
             params: { 
                 trailId: bookingContext.trail.id, 
                 groupId: targetGroup?.id,
-                bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+                bookingId: bookingContext.id
             } 
         });
     };
@@ -137,7 +141,7 @@ export default function hike() {
                     onSearchSubmit={handleSearchSubmit}
                     onTrailSelect={handleTrailSelect}
                     
-                    onGroupChatPress={onGroupPress}
+                    onGroupPress={onGroupPress}
                     onBookingPress={onBookingPress}
                     onStartTracking={handleStartTracking}
                     onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}

@@ -1,129 +1,46 @@
 import LoadingScreen from "@/src/app/loading";
-import CustomButton from "@/src/components/CustomButton";
-import CustomTextInput from "@/src/components/CustomTextInput";
+import useApply from "@/src/core/hook/apply/useApply";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useSuperadminNavigation from "@/src/core/hook/navigation/useSuperadminNavigation";
 import useManageApplication from "@/src/core/hook/superadmin/useManageApplication";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Application } from "@/src/core/models/Application/Application";
-import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
+import ApplicationViewScreen from "@/src/features/SuperAdmin/screens/tabs/ApplicationViewScreen";
 import { useLocalSearchParams } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-
-import CustomHeader from "@/src/components/CustomHeader";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 
 export default function viewApplication(){
     const { applicationId } = useLocalSearchParams();
     const appId = getSearchParam(applicationId);
     
     const { role } = useAuthHook();
+    const { applications } = useApply({ role } as any);
+    const pendingCount = applications.filter((a: any) => a.status === 'pending').length;
 
     const controller = useManageApplication({ applicationId: appId, role });
 
     if(controller.isLoading) return <LoadingScreen/>
 
-    const { onBackPress } = useAppNavigation();
+    const {
+        onBackPress
+    } = useAppNavigation();
+    const {
+        onTabPress,
+        onBackToSettingsPress
+    } = useSuperadminNavigation();
 
     return(
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Applications"
-                centerTitle={true}
-                onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined}            />
-
-            <TESTAPPLICATION {...controller}/>
-        </ScreenWrapper>  
+        <ApplicationViewScreen 
+            application={controller.application as Application}
+            onApprove={controller.onApproveApplication}
+            onReject={controller.onRejectApplication}
+            rejectionReason={controller.application?.message || ''}
+            onRejectionReasonChange={controller.setRejectionLetter}
+            error={controller.error}
+            onBack={onBackPress}
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={onBackToSettingsPress}
+        />
     )
 }
-
-type ApplicationScreenParams = {
-    application: Application,
-    onApproveApplication: (id: string) => void,
-    onRejectApplication: (id: string) => void,
-    setRejectionLetter: (text: string) => void,
-    error: string | null,
-}
-
-const TESTAPPLICATION = (params: ApplicationScreenParams) => {
-    const { 
-        application,
-        onApproveApplication,
-        onRejectApplication,
-        setRejectionLetter,
-        error,
-    } = params;
-
-    return(
-        <View>
-            { error && <Text>{ error }</Text>}
-            <View style={styles.group}>
-                <Text>Application</Text>
-                <Text>Applied on: {formatDate(application.createdAt)}</Text>
-                <Text>Status: {application.status}</Text>
-            </View>
-            
-            <View style={styles.group}>
-                <Text>Applicant</Text>
-                <Text>Name: {application.owner.name}</Text>
-                <Text>ID: {application.owner.id}</Text>
-                <Text>Email: {application.owner.email}</Text>
-            </View>
-            
-            <View style={styles.group}>
-                <Text>Business</Text>
-                <Text>Name: {application.name}</Text>
-                <Text>Address: {application.address}</Text>
-                <Text>Established on: {formatDate(application.establishedOn)}</Text>
-                <Text>Locations: {application.servicedLocation.join(', ')}</Text>
-            </View>
-
-            <View style={styles.group}>
-                <Text>Permits</Text>
-                <Text>DENR: {application.permits.denr}</Text>
-                <Text>DTI: {application.permits.dti}</Text>
-                <Text>BIR: {application.permits.bir}</Text>
-            </View>
-
-            { application.status !== 'approved' &&
-                <View>
-                    <CustomButton
-                        title={'Approve'}
-                        onPress={() => onApproveApplication(application.id)}
-                        style={null}
-                        textStyle={null}
-                    />
-        
-                    <CustomButton
-                        title={'Reject'}
-                        onPress={() => onRejectApplication(application.id)}
-                        style={null}
-                        textStyle={null}
-                    />
-                    
-                    <CustomTextInput
-                        label={'Reason for rejection'}
-                        placeholder={'Missing/invalid requirements, incomplete information, etc.'}
-                        value={application.message}
-                        onChangeText={(text: string) => setRejectionLetter(text)}
-                        secureTextEntry={false}
-                        keyboardType={null}
-                        isPasswordVisible={true}
-                        onTogglePassword={null}
-                        style={null}
-                        icon={null}
-                    />
-                </View>
-            }
-        </View>
-    )
-}
-
-const styles = StyleSheet.create({
-    group: {
-        borderWidth: 1,
-        margin: 10,
-        padding: 10,
-    }
-})

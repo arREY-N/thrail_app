@@ -22,7 +22,8 @@ export class Admin implements IAdmin {
     static fromFirestore(id: string, data: IAdminDB): Admin {
         const mapped: IAdmin = {
             ...data,
-            id,
+            // id,
+            id: id === 'owner' ? (data.id || id) : id,
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
         }

@@ -28,10 +28,12 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
     unsubscribe: null,
 
     subscribeToReviews: () => {
+        set({ isLoading: true });
         try {
             const unsubscribe = ReviewRepository.listenToReviews(
                 (reviews) => set({
-                    reviews: reviews
+                    reviews: reviews,
+                    isLoading: false
                 })
             )
 
@@ -39,6 +41,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
             return unsubscribe;
         } catch (error) {
             console.error('Error subscribing to reviews: ', error)
+            set({ isLoading: false });
             throw error;
         }
     },
@@ -61,7 +64,7 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
         set({isLoading: true, error: null});
 
         try {
-            const reviews = await ReviewRepository.fetchAll();
+            const reviews = await ReviewRepository.fetchAll(true);
             set({reviews, isLoading: false});
         } catch (err) {
             console.error(err);

@@ -18,7 +18,8 @@ export class Hike implements IHike {
     hikeDate: Date = new Date();
     trail: ITrailSummary = {
         id: "",
-        name: ""
+        name: "",
+        location: ""
     };
     overallRating: number = 0;
     trailMaintenance: DifficultyRating = 'Easy';
