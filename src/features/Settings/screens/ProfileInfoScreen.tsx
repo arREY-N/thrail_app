@@ -225,9 +225,9 @@ const ProfileInfoScreen = ({
     };
 
     const getRoleColor = (role: string) => {
-        if (role === 'superadmin') return Colors.ERROR;
-        if (role === 'admin') return Colors.PRIMARY;
-        return Colors.SECONDARY;
+        if (role === 'superadmin') return Colors.ROLE_SUPERADMIN_BG;
+        if (role === 'admin') return Colors.ROLE_ADMIN_BG;
+        return Colors.ROLE_HIKER_BG;
     };
 
     const getExperienceStyles = (exp?: string | null) => {
