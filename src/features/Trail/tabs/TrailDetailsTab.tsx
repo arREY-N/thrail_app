@@ -66,7 +66,8 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const computedGain = trailStats ? `${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` : stats?.elevation || "--";
     const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
     const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
-    const classification = trail?.difficulty?.classification === 'minor' ? 'Minor' : 'Major';
+    const rawClass = trail?.difficulty?.classification?.toLowerCase();
+    const classification = rawClass === 'minor' ? 'Minor' : rawClass === 'major' ? 'Major' : '--';
     
     const status = trail?.general?.active ? 'Open' : 'Closed';
     const statusIcon = getStatusIconInfo(status);
