@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
 import { IBusinessSummary } from "../Business/Business.types";
-import { IOfferSummary } from "../Offer/Offer.types";
+import { IOfferSummary } from "../Offer/interfaces/Offer.types";
 import { IUserSummary } from "../User/User.types";
 
 export interface IReceipt<T>{

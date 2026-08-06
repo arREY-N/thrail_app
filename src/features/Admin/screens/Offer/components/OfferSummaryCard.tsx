@@ -12,7 +12,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IBooking } from '@/src/core/models/Booking/Booking.types';
-import { IOffer } from '@/src/core/models/Offer/Offer.types';
+import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useScrollFades } from '@/src/hooks/useScrollFades';

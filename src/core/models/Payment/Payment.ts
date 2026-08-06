@@ -2,7 +2,7 @@ import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timesta
 import { immerable } from "immer";
 import { toDate } from "../../utility/date";
 import { IBusinessSummary } from "../Business/Business.types";
-import { IOfferSummary } from "../Offer/Offer.types";
+import { IOfferSummary } from "../Offer/interfaces/Offer.types";
 import { IUserSummary } from "../User/User.types";
 import { IPayment, IPaymentDB, IReceipt } from "./Payment.types";
 

@@ -20,7 +20,7 @@ import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
 import { IBooking } from '@/src/core/models/Booking/Booking.types';
-import { IOffer } from '@/src/core/models/Offer/Offer.types';
+import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
 
 export interface MyBookingsScreenProps {
     /** Array of user's bookings */

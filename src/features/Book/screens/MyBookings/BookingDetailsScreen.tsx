@@ -4,7 +4,7 @@ import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-nat
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingStatus, IBooking } from "@/src/core/models/Booking/Booking.types";
-import { IOffer, ISchedule, IActivity } from "@/src/core/models/Offer/Offer.types";
+import { IOffer, ISchedule, IActivity } from "@/src/core/models/Offer/interfaces/Offer.types";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 

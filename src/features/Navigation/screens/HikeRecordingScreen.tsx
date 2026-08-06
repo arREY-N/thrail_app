@@ -31,7 +31,7 @@ interface HikeRecordingScreenProps {
     hike: Hike;
     booking: Booking | null;
     currentGroup: Group | null;
-    hikerLocations: { id: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number }[];
+    hikerLocations: { id: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string }[];
     error: string | null;
     fullOffer?: Offer | null;
     
