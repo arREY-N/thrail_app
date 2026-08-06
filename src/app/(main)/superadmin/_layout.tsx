@@ -21,7 +21,7 @@ export default function superadminLayout(){
 
     // Allow both superadmin and admin roles to access trail management routes.
     // Other superadmin panels remain restricted to superadmin only.
-    const isTrailRoute = segments.includes("trail");
+    const isTrailRoute = (segments as string[]).includes("trail");
 
     if (role === "superadmin") {
         return <Stack screenOptions={{ headerShown: false}}/>;
