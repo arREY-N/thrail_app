@@ -26,6 +26,8 @@ interface DocumentUploadCardProps {
     allowMultiple?: boolean;
     /** Callback fired when a document is deleted */
     onDelete?: (index: number) => void;
+    /** If true, the upload/change buttons will be hidden, allowing view-only access */
+    readOnly?: boolean;
 }
 
 /**
@@ -39,7 +41,8 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     isRejected = false, 
     onUploadSuccess,
     allowMultiple = false,
-    onDelete
+    onDelete,
+    readOnly = false
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
@@ -141,20 +144,22 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity 
-                        style={btnStyle}
-                        onPress={handleUploadPress} 
-                        activeOpacity={0.7}
-                        disabled={isUploading}
-                    >
-                        {isUploading ? (
-                            <ActivityIndicator size="small" color={spinnerColor} />
-                        ) : (
-                            <CustomText variant="caption" style={btnTextStyle}>
-                                {btnText}
-                            </CustomText>
-                        )}
-                    </TouchableOpacity>
+                    {!readOnly && (
+                        <TouchableOpacity 
+                            style={btnStyle}
+                            onPress={handleUploadPress} 
+                            activeOpacity={0.7}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? (
+                                <ActivityIndicator size="small" color={spinnerColor} />
+                            ) : (
+                                <CustomText variant="caption" style={btnTextStyle}>
+                                    {btnText}
+                                </CustomText>
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
