@@ -1,441 +1,199 @@
+/**
+ * @file DashboardScreen.tsx
+ * @description Superadmin Dashboard presentation screen embedded inside SuperadminShell with 2-column web grid layout, metric cards, pending alerts, and real-time database visual analytics charts.
+ */
+
 import React from 'react';
-import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    Platform
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import CustomHeader from '@/src/components/CustomHeader';
-import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import ScreenWrapper from '@/src/components/ScreenWrapper';
-
 import { Colors } from '@/src/constants/colors';
-import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IconLibrary } from '@/src/types/ui.types';
+import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
+import { Application } from '@/src/core/models/Application/Application';
+import { Business } from '@/src/core/models/Business/Business';
+import { Mountain } from '@/src/core/models/Mountain/Mountain';
+import { Trail } from '@/src/core/models/Trail/Trail';
+import { User } from '@/src/core/models/User/User';
+import AnalyticsChart from '@/src/features/SuperAdmin/components/AnalyticsChart';
+import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
+import PendingPanel from '@/src/features/SuperAdmin/components/PendingPanel';
+import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 
 /**
- * Props for the StatCard component
+ * Props for the DashboardScreen component.
+ * 
+ * @param businesses - Array of registered business objects.
+ * @param trails - Array of trail objects.
+ * @param superadmin - Array of superadmin user objects.
+ * @param admin - Array of business admin user objects.
+ * @param users - Array of hiker/standard user objects.
+ * @param mountains - Array of mountain objects.
+ * @param pendingApplication - Array of pending application objects.
+ * @param onManageBusinessPress - Callback to navigate to business management.
+ * @param onManageTrailsPress - Callback to navigate to trail management.
+ * @param onManageUsersPress - Callback to navigate to user management.
+ * @param onManageMountainPress - Callback to navigate to mountain management.
+ * @param onManageApplicationPress - Callback to navigate to applications list.
+ * @param onBackPress - Callback to navigate back to Settings/Profile screen.
  */
-export interface StatCardProps {
-    title: string;
-    count: number;
-    icon: string;
-    library: IconLibrary;
-    color?: string;
-    onPress: () => void;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ title, count, icon, library, color = Colors.PRIMARY, onPress }) => (
-    <TouchableOpacity 
-        style={styles.statCard} 
-        onPress={onPress}
-        activeOpacity={0.7}
-    >
-        <View style={[styles.iconWrapper, { backgroundColor: `${color}15` }]}>
-            <CustomIcon library={library} name={icon} size={20} color={color} />
-        </View>
-        <CustomText variant="h2" style={styles.statCount}>
-            {count}
-        </CustomText>
-        <CustomText variant="caption" style={styles.statTitle}>
-            {title}
-        </CustomText>
-    </TouchableOpacity>
-);
-
-/**
- * Props for the NavItem component
- */
-export interface NavItemProps {
-    title: string;
-    subtitle: string;
-    icon: string;
-    library?: IconLibrary;
-    onPress: () => void;
-    badgeCount?: number;
-    color?: string;
-}
-
-const NavItem: React.FC<NavItemProps> = ({ title, subtitle, icon, library = "Feather", onPress, badgeCount, color = Colors.PRIMARY }) => (
-    <TouchableOpacity 
-        style={styles.navItem} 
-        onPress={onPress} 
-        activeOpacity={0.7}
-    >
-        <View style={[styles.navIconWrapper, { backgroundColor: `${color}15` }]}>
-            <CustomIcon library={library} name={icon} size={20} color={color} />
-        </View>
-        <View style={styles.navTextWrapper}>
-            <CustomText variant="body" style={styles.navTitle}>
-                {title}
-            </CustomText>
-            <CustomText variant="caption" style={styles.navSubtitle}>
-                {subtitle}
-            </CustomText>
-        </View>
-        
-        {!!badgeCount && badgeCount > 0 && (
-            <View style={styles.badge}>
-                <CustomText variant="caption" style={styles.badgeText}>
-                    {badgeCount}
-                </CustomText>
-            </View>
-        )}
-        
-        <CustomIcon 
-            library="Feather" 
-            name="chevron-right" 
-            size={20} 
-            color={Colors.GRAY_MEDIUM} 
-        />
-    </TouchableOpacity>
-);
-
-/**
- * Props for the DashboardScreen component
- */
-export interface DashboardScreenProps {
-    businesses?: unknown[];
-    trails?: unknown[];
-    superadmin?: unknown[];
-    admin?: unknown[];
-    users?: unknown[];
-    mountains?: unknown[];
-    pendingApplication?: unknown[];
+interface Props {
+    businesses?: Business[];
+    trails?: Trail[];
+    superadmin?: User[];
+    admin?: User[];
+    users?: User[];
+    mountains?: Mountain[];
+    pendingApplication?: Application[];
     onManageBusinessPress: () => void;
     onManageTrailsPress: () => void;
     onManageUsersPress: () => void;
     onManageMountainPress: () => void;
     onManageApplicationPress: () => void;
-    onBackPress: () => void;
+    onBackPress?: () => void;
 }
 
-const DashboardScreen: React.FC<DashboardScreenProps> = ({
-    businesses,
-    trails,
-    superadmin,
-    admin,
-    users,
-    mountains,
-    pendingApplication,
+/**
+ * DashboardScreen presentation component rendering metrics, alert banner, and analytics charts.
+ * 
+ * @param props - Component properties.
+ * @returns {React.ReactElement} The rendered admin dashboard presentation screen.
+ */
+const DashboardScreen = ({
+    businesses = [],
+    trails = [],
+    superadmin = [],
+    admin = [],
+    users = [],
+    mountains = [],
+    pendingApplication = [],
     onManageBusinessPress,
     onManageTrailsPress,
     onManageUsersPress,
     onManageMountainPress,
     onManageApplicationPress,
-    onBackPress
-}) => {
-    
-    const totalUsers = (users?.length || 0) + (admin?.length || 0) + (superadmin?.length || 0);
-    const pendingCount = pendingApplication?.length || 0;
+}: Props): React.JSX.Element => {
+    const { onBackToSettingsPress, onTabPress } = useSuperadminNavigation();
+
+    const hikerCount = users.length;
+    const totalUsers = users.length + admin.length + superadmin.length;
+    const totalTrailsCount = trails.length;
+    const totalMountainsCount = mountains.length;
+    const pendingCount = pendingApplication.length;
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Superadmin Dashboard" 
-                centerTitle={true} 
-                onBackPress={onBackPress}
-            />
+        <SuperadminShell
+            activeTab="dashboard"
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={onBackToSettingsPress}
+        >
+            {/* Pending Application Alert Banner */}
+            <View style={styles.sectionContainer}>
+                <PendingPanel
+                    pendingCount={pendingCount}
+                    onReviewPress={onManageApplicationPress}
+                />
+            </View>
 
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
-                contentContainerStyle={styles.scrollContent}
-            >
-                {pendingCount > 0 ? (
-                    <TouchableOpacity 
-                        style={styles.alertBanner} 
-                        activeOpacity={0.8}
-                        onPress={onManageApplicationPress}
-                    >
-                        <View style={styles.alertIcon}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="bell" 
-                                size={20} 
-                                color={Colors.STATUS_PENDING_TEXT} 
-                            />
-                        </View>
-                        <View style={styles.alertTextWrapper}>
-                            <CustomText variant="label" style={styles.alertTitle}>
-                                Action Required
-                            </CustomText>
-                            <CustomText variant="caption" style={styles.alertSubtitle}>
-                                You have {pendingCount} pending {pendingCount === 1 ? 'application' : 'applications'} to review.
-                            </CustomText>
-                        </View>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="arrow-right" 
-                            size={18} 
-                            color={Colors.STATUS_PENDING_TEXT} 
-                        />
-                    </TouchableOpacity>
-                ) : (
-                    <View style={styles.successBanner}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="check-circle" 
-                            size={18} 
-                            color={Colors.SUCCESS} 
-                        />
-                        <CustomText variant="caption" style={styles.successText}>
-                            All caught up! No pending applications.
-                        </CustomText>
-                    </View>
-                )}
-
+            {/* Platform Metrics Section Header */}
+            <View style={styles.sectionContainer}>
                 <CustomText variant="h3" style={styles.sectionTitle}>
                     Platform Metrics
                 </CustomText>
-                
-                <View style={styles.statsGrid}>
-                    <StatCard 
-                        title="Total Users" 
-                        count={totalUsers} 
-                        icon="users" 
-                        library="Feather" 
-                        color={Colors.PRIMARY}
-                        onPress={onManageUsersPress}
-                    />
-                    <StatCard 
-                        title="Tour Guides" 
-                        count={businesses?.length || 0} 
-                        icon="briefcase" 
-                        library="Feather" 
-                        color="#0284C7" 
-                        onPress={onManageBusinessPress}
-                    />
-                    <StatCard 
-                        title="Active Trails" 
-                        count={trails?.length || 0} 
-                        icon="map" 
-                        library="Feather" 
-                        color="#D97706" 
-                        onPress={onManageTrailsPress}
-                    />
-                    <StatCard 
-                        title="Mountains" 
-                        count={mountains?.length || 0} 
-                        icon="mountain" 
-                        library="FontAwesome5" 
-                        color="#059669" 
-                        onPress={onManageMountainPress}
-                    />
-                </View>
 
-                <View style={styles.divider} />
+                {/* Unified SaaS Metric Bar Card */}
+                <MetricCard
+                    metrics={[
+                        {
+                            title: 'Total Users',
+                            count: totalUsers,
+                            icon: 'users',
+                            library: 'Feather',
+                            color: Colors.PRIMARY,
+                            subtitle: `${hikerCount} Hikers`,
+                            subIcon: 'user-check',
+                            subLibrary: 'Feather',
+                            onPress: onManageUsersPress,
+                        },
+                        {
+                            title: 'Tour Guides',
+                            count: businesses.length,
+                            icon: 'briefcase',
+                            library: 'Feather',
+                            color: Colors.BLUE,
+                            subtitle: `${businesses.length} Verified`,
+                            subIcon: 'check-circle',
+                            subLibrary: 'Feather',
+                            onPress: onManageBusinessPress,
+                        },
+                        {
+                            title: 'Active Trails',
+                            count: totalTrailsCount,
+                            icon: 'map',
+                            library: 'Feather',
+                            color: Colors.ORANGE,
+                            subtitle: `${totalTrailsCount} Routes`,
+                            subIcon: 'navigation',
+                            subLibrary: 'Feather',
+                            onPress: onManageTrailsPress,
+                        },
+                        {
+                            title: 'Mountains',
+                            count: totalMountainsCount,
+                            icon: 'mountain',
+                            library: 'FontAwesome5',
+                            color: Colors.PRIMARY,
+                            subtitle: `${totalMountainsCount} Peaks`,
+                            subIcon: 'flag',
+                            subLibrary: 'Feather',
+                            onPress: onManageMountainPress,
+                        },
+                    ]}
+                />
+            </View>
 
+            {/* Visual Analytics & Distribution Section */}
+            <View style={styles.sectionContainer}>
                 <CustomText variant="h3" style={styles.sectionTitle}>
-                    Management
+                    Analytics & Distribution
                 </CustomText>
-                
-                <View style={styles.navContainer}>
-                    <NavItem 
-                        title="Applications" 
-                        subtitle="Review guide and partnership requests"
-                        icon="file-text"
-                        color={pendingCount > 0 ? Colors.ERROR : Colors.PRIMARY}
-                        badgeCount={pendingCount}
-                        onPress={onManageApplicationPress}
-                    />
-                    <NavItem 
-                        title="Tour Businesses" 
-                        subtitle="Manage verified providers and guides"
-                        icon="briefcase"
-                        color="#0284C7"
-                        onPress={onManageBusinessPress}
-                    />
-                    <NavItem 
-                        title="Trails & Routes" 
-                        subtitle="Edit trail details, difficulty, and paths"
-                        icon="map"
-                        color="#D97706"
-                        onPress={onManageTrailsPress}
-                    />
-                    <NavItem 
-                        title="Mountains Database" 
-                        subtitle="Manage mountain peaks and locations"
-                        icon="mountain"
-                        library="FontAwesome5"
-                        color="#059669"
-                        onPress={onManageMountainPress}
-                    />
-                    <NavItem 
-                        title="User Accounts" 
-                        subtitle="Manage hikers, admins, and access levels"
-                        icon="users"
-                        color={Colors.PRIMARY}
-                        onPress={onManageUsersPress}
-                    />
-                </View>
-                
-            </ScrollView>
-        </ScreenWrapper>
+
+                <AnalyticsChart
+                    trails={trails}
+                    users={users}
+                    admin={admin}
+                    superadmin={superadmin}
+                    applications={pendingApplication}
+                    businesses={businesses}
+                />
+            </View>
+        </SuperadminShell>
     );
 };
 
 const styles = StyleSheet.create({
-    scrollContent: {
-        paddingHorizontal: 20,
-        paddingTop: 12,
-        paddingBottom: 40,
-    },
-    
-    // Alert Banners
-    alertBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.STATUS_PENDING_BG,
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_PENDING_BORDER,
-    },
-    alertIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.WHITE,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    alertTextWrapper: {
-        flex: 1,
-    },
-    alertTitle: {
-        color: Colors.STATUS_PENDING_TEXT,
-        marginBottom: 2,
-    },
-    alertSubtitle: {
-        color: Colors.TEXT_SECONDARY,
-    },
-    successBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-        gap: 8,
-    },
-    successText: {
-        color: Colors.STATUS_APPROVED_TEXT,
-        fontWeight: '500',
-    },
-
-    // Typography
-    sectionTitle: {
+    sectionContainer: {
         marginBottom: 16,
-        color: Colors.TEXT_PRIMARY,
     },
-
-    // Stats Grid
-    statsGrid: {
+    sectionTitle: {
+        marginBottom: 10,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
+    },
+    metricsGrid: {},
+    metricsGridDesktop: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    metricsGridMobile: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
         gap: 12,
-        marginBottom: 24,
     },
-    statCard: {
-        width: '48%', 
-        backgroundColor: Colors.WHITE,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        ...GlobalStyles.dropShadow(3),
-    },
-    iconWrapper: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    statCount: {
-        fontSize: 28,
-        marginBottom: 4,
-    },
-    statTitle: {
-        color: Colors.TEXT_SECONDARY,
-        textTransform: 'uppercase',
-        fontSize: 11,
-        letterSpacing: 0.5,
-    },
-
-    divider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginBottom: 24,
-    },
-
-    // Nav List
-    navContainer: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        overflow: 'hidden',
-        ...GlobalStyles.dropShadow(3),
-    },
-    navItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-    },
-    navIconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    navTextWrapper: {
+    metricCardWrapper: {
         flex: 1,
-        justifyContent: 'center',
+        minWidth: 140,
     },
-    navTitle: {
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    navSubtitle: {
-        color: Colors.TEXT_PLACEHOLDER,
-        fontSize: 12,
-        lineHeight: 16,
-        paddingRight: 8,
-    },
-    
-    // Fixed Badge Styling
-    badge: {
-        backgroundColor: Colors.ERROR,
-        minWidth: 24,
-        height: 24,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-        paddingHorizontal: 6,
-    },
-    badgeText: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
-        fontSize: 12,
-        textAlign: 'center',
-        includeFontPadding: false,
-        lineHeight: 16,
-    }
 });
 
 export default DashboardScreen;
