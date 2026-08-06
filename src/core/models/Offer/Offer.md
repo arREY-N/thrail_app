@@ -5,7 +5,7 @@ This document describes the components inside `src/core/models/Offer` and how th
 ## Folder Structure
 
 - `Offer.ts`
-- `Offer.types.ts`
+- `interfaces/Offer.types.ts`
 - `XOffer.ts`
 - `repositories/OfferRepository.ts`
 - `stores/offerStoreCreator.ts`
@@ -33,7 +33,7 @@ Primary offer model utilities:
   - serializes nested schedule activity times.
 - **`offerConverter`**: Firestore data converter for typed reads/writes.
 
-### `Offer.types.ts`
+### `interfaces/Offer.types.ts`
 Type contracts for offer data:
 
 - **`IOfferInfo<T>`**: offer content fields (pricing, pax, docs, reminders, etc.).
