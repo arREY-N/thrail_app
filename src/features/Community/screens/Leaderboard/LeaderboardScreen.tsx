@@ -1,223 +1,327 @@
+/**
+ * @file LeaderboardScreen.tsx
+ * @description Mountain-themed Leaderboard View component displaying Top 3 Mountain Peaks, Metric Filter Tabs, Ranking Cards (#4+), Top Hiker Detail Modal, and Sticky User Standing Footer.
+ */
+
 import React, { useCallback, useState } from 'react';
-import { Platform, 
+import {
     FlatList,
     ListRenderItemInfo,
     StyleSheet,
-    TouchableOpacity,
     View,
- } from 'react-native';
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
+import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Layout } from '@/src/constants/layout';
+import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
+import LeaderboardRankCard from '@/src/features/Community/screens/Leaderboard/components/LeaderboardRankCard';
+import MetricFilterTabs, { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
+import MountainPodium from '@/src/features/Community/screens/Leaderboard/components/MountainPodium';
+import TopUserDetailModal from '@/src/features/Community/screens/Leaderboard/components/TopUserDetailModal';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { getInitials } from '@/src/utils/dateFormatter';
 
 /**
- * Helper to extract 2-letter initials from a username.
+ * Interface representing the properties for LeaderboardScreen.
  * 
- * @param {string} name - The user's name
- * @returns {string} The initials
- */
-const getInitials = (name?: string): string => name ? name.substring(0, 2).toUpperCase() : '?';
-
-/**
- * Interface representing a user's leaderboard standings.
- */
-export interface LeaderboardUser {
-    id: string;
-    username?: string;
-    score: number;
-    rank: number;
-    trend?: 'up' | 'down' | 'flat';
-}
-
-/**
- * Props for the LeaderboardScreen component.
+ * @param userRankings - Sorted list of ranked users from backend Leaderboard<Date> model
+ * @param currentUserData - Standing of the currently logged-in user
+ * @param activeMetric - Selected metric filter ('distance' | 'elevation' | 'hikes')
+ * @param onMetricChange - Callback when switching metric filters
+ * @param onBackPress - Callback to navigate back
+ * @param isLoading - Optional flag indicating data loading state
  */
 export interface LeaderboardScreenProps {
-    /** The leaderboard list sorted by score/rank */
-    leaderboardData?: LeaderboardUser[];
-    /** The authenticated user's current rank and score */
-    currentUserData?: LeaderboardUser;
-    /** Callback to navigate back */
+    userRankings?: RankedUsers<Date>[];
+    currentUserData?: RankedUsers<Date>;
+    activeMetric: LeaderboardMetric;
+    onMetricChange: (metric: LeaderboardMetric) => void;
     onBackPress: () => void;
+    isLoading?: boolean;
 }
 
 /**
- * Screen displaying the top community users based on hike points/activity.
+ * Helper to format metric display for current user standing footer.
+ * 
+ * @param user - User standing data
+ * @param metric - Currently active metric
+ * @returns {string} Formatted string
  */
-const LeaderboardScreen = ({ 
-    leaderboardData = [], 
-    currentUserData, 
-    onBackPress 
-}: LeaderboardScreenProps) => {
-    const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'all_time'>('monthly');
+const formatMetricValue = (user: RankedUsers<Date>, metric: LeaderboardMetric): string => {
+    if (metric === 'distance') {
+        return `${user.totalDistance.toFixed(1)} km`;
+    }
+    if (metric === 'elevation') {
+        return `${user.totalElevation.toLocaleString()} m`;
+    }
+    return `${user.totalHikes} ${user.totalHikes === 1 ? 'hike' : 'hikes'}`;
+};
 
-    const topThree = leaderboardData.slice(0, 3);
-    const restOfList = leaderboardData.slice(3);
+/**
+ * LeaderboardScreen — Pure dumb UI view for community leaderboard.
+ * 
+ * @param props - LeaderboardScreenProps
+ * @returns {React.JSX.Element} The rendered leaderboard screen layout.
+ */
+const LeaderboardScreen = ({
+    userRankings = [],
+    currentUserData,
+    activeMetric,
+    onMetricChange,
+    onBackPress,
+    isLoading = false,
+}: LeaderboardScreenProps): React.JSX.Element => {
+    const { isDesktop } = useBreakpoints();
+    const insets = useSafeAreaInsets();
+    const safeBottomPadding = Math.max(insets.bottom, 16);
+    const [selectedTopUser, setSelectedTopUser] = useState<RankedUsers<Date> | null>(null);
 
-    const renderTrendIcon = (trend?: 'up' | 'down' | 'flat') => {
-        if (trend === 'up') return <CustomIcon library="Feather" name="trending-up" size={14} color={Colors.SUCCESS} />;
-        if (trend === 'down') return <CustomIcon library="Feather" name="trending-down" size={14} color={Colors.ERROR} />;
-        return <CustomIcon library="Feather" name="minus" size={14} color={Colors.GRAY_MEDIUM} />;
-    };
+    // Sort rankings by current active metric
+    const sortedRankings = [...userRankings].sort((a, b) => {
+        if (activeMetric === 'distance') return b.totalDistance - a.totalDistance;
+        if (activeMetric === 'elevation') return b.totalElevation - a.totalElevation;
+        return b.totalHikes - a.totalHikes;
+    });
 
-    const renderPodiumItem = (user: LeaderboardUser | undefined, position: number) => {
-        const isFirst = position === 1;
-        const badgeColor = isFirst ? '#FFD700' : position === 2 ? '#C0C0C0' : '#CD7F32';
-        const sizeMultiplier = isFirst ? 1.2 : 1;
+    // Re-assign ranks based on current metric sort
+    const rankedData = sortedRankings.map((user, idx) => ({
+        ...user,
+        rank: idx + 1,
+    }));
 
-        if (!user) return <View style={styles.podiumItem} />;
+    const topThree = rankedData.slice(0, 3);
+    const restOfList = rankedData.slice(3);
 
-        return (
-            <View style={[styles.podiumItem, isFirst && styles.podiumCenter]}>
-                <View style={styles.podiumAvatarContainer}>
-                    <View style={[styles.podiumAvatar, { borderColor: badgeColor, width: 60 * sizeMultiplier, height: 60 * sizeMultiplier, borderRadius: 30 * sizeMultiplier }]}>
-                        <CustomText variant="h2" style={styles.podiumInitials}>
-                            {getInitials(user.username)}
-                        </CustomText>
-                    </View>
-                    <View style={[styles.rankBadge, { backgroundColor: badgeColor }]}>
-                        <CustomText variant="caption" style={styles.rankBadgeText}>{position}</CustomText>
-                    </View>
-                </View>
-                
-                <CustomText variant="caption" style={styles.podiumName} numberOfLines={1}>
-                    {user.username}
-                </CustomText>
-                <CustomText variant="label" style={styles.podiumScore}>
-                    {user.score.toLocaleString()} pts
-                </CustomText>
-            </View>
-        );
-    };
-
-    const renderListItem = useCallback(({ item }: ListRenderItemInfo<LeaderboardUser>) => (
-        <View style={styles.listRow}>
-            <View style={styles.rankContainer}>
-                <CustomText variant="label" style={styles.rankText}>{item.rank}</CustomText>
-                {renderTrendIcon(item.trend)}
-            </View>
-
-            <View style={styles.listAvatar}>
-                <CustomText variant="caption" style={styles.listInitials}>
-                    {getInitials(item.username)}
-                </CustomText>
-            </View>
-
-            <View style={styles.listInfo}>
-                <CustomText variant="body" style={styles.listName} numberOfLines={1}>
-                    {item.username}
-                </CustomText>
-            </View>
-
-            <CustomText variant="label" style={styles.listScore}>
-                {item.score.toLocaleString()}
-            </CustomText>
-        </View>
-    ), []);
+    const renderListItem = useCallback(
+        ({ item }: ListRenderItemInfo<RankedUsers<Date>>) => (
+            <LeaderboardRankCard user={item} activeMetric={activeMetric} />
+        ),
+        [activeMetric]
+    );
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Leaderboard" 
+            <CustomHeader
+                title="Leaderboard"
                 centerTitle={true}
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
             />
 
-            <View style={styles.tabContainer}>
-                {(['weekly', 'monthly', 'all_time'] as const).map((tab) => (
-                    <TouchableOpacity 
-                        key={tab}
-                        style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
-                        onPress={() => setActiveTab(tab)}
-                    >
-                        <CustomText 
-                            variant="caption" 
-                            style={[styles.tabText, activeTab === tab && styles.tabTextActive]}
-                        >
-                            {tab.replace('_', ' ').toUpperCase()}
-                        </CustomText>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            <View style={styles.container}>
-                <FlatList
-                    data={restOfList}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderListItem}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
-                    ListHeaderComponent={
-                        <View style={styles.podiumContainer}>
-                            {renderPodiumItem(topThree[1], 2)}
-                            {renderPodiumItem(topThree[0], 1)}
-                            {renderPodiumItem(topThree[2], 3)}
-                        </View>
-                    }
+            <View style={[styles.mainContainer, isDesktop && styles.desktopContainer]}>
+                {/* Metric Selection Tabs */}
+                <MetricFilterTabs
+                    activeMetric={activeMetric}
+                    onMetricChange={onMetricChange}
                 />
+
+                {isLoading ? (
+                    <View style={styles.loadingBox}>
+                        <CustomLoading />
+                    </View>
+                ) : rankedData.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <CustomIcon
+                            library="MaterialCommunityIcons"
+                            name="image-filter-hdr"
+                            size={56}
+                            color={Colors.GRAY_MEDIUM}
+                        />
+                        <CustomText variant="h2" style={styles.emptyTitle}>
+                            No Monthly Rankings Yet
+                        </CustomText>
+                        <CustomText variant="caption" style={styles.emptySubtitle}>
+                            Complete a hike this month to earn your spot on the mountain podium!
+                        </CustomText>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={restOfList}
+                        keyExtractor={(item) => item.userId || item.username}
+                        renderItem={renderListItem}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.listContent}
+                        ListHeaderComponent={
+                            <View style={{ marginBottom: 16 }}>
+                                <MountainPodium
+                                    topThree={topThree}
+                                    activeMetric={activeMetric}
+                                    onSelectUser={setSelectedTopUser}
+                                />
+                            </View>
+                        }
+                    />
+                )}
             </View>
 
+            {/* Sticky Logged-In User Standing Footer */}
             {currentUserData && (
-                <View style={styles.currentUserFooter}>
-                    <View style={styles.listRow}>
-                        <View style={styles.rankContainer}>
-                            <CustomText variant="label" style={styles.rankText}>{currentUserData.rank}</CustomText>
-                            {renderTrendIcon(currentUserData.trend)}
-                        </View>
-
-                        <View style={[styles.listAvatar, { backgroundColor: Colors.PRIMARY }]}>
-                            <CustomText variant="caption" style={[styles.listInitials, { color: Colors.WHITE }]}>
-                                {getInitials(currentUserData.username)}
+                <View style={[styles.currentUserFooter, { paddingBottom: safeBottomPadding }]}>
+                    <View style={styles.footerRow}>
+                        <View style={styles.footerRankBox}>
+                            <CustomText variant="label" style={styles.footerRankText}>
+                                #{currentUserData.rank}
                             </CustomText>
                         </View>
 
-                        <View style={styles.listInfo}>
-                            <CustomText variant="body" style={styles.listName} numberOfLines={1}>
+                        <View style={styles.footerAvatarBox}>
+                            {currentUserData.profileImage ? (
+                                <CustomImage
+                                    source={{ uri: currentUserData.profileImage }}
+                                    style={styles.footerAvatarImage}
+                                />
+                            ) : (
+                                <View style={styles.footerInitialsBox}>
+                                    <CustomText variant="caption" style={styles.footerInitialsText}>
+                                        {getInitials(
+                                            `${currentUserData.firstname || ''} ${currentUserData.lastname || ''}`.trim() || currentUserData.username
+                                        )}
+                                    </CustomText>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.footerInfoBox}>
+                            <CustomText variant="body" style={styles.footerNameText} numberOfLines={1}>
                                 {currentUserData.username} (You)
                             </CustomText>
+                            <CustomText variant="caption" style={styles.footerSubtext}>
+                                Your Standing
+                            </CustomText>
                         </View>
 
-                        <CustomText variant="label" style={[styles.listScore, { color: Colors.PRIMARY }]}>
-                            {currentUserData.score.toLocaleString()}
+                        <CustomText variant="label" style={styles.footerScoreText}>
+                            {formatMetricValue(currentUserData, activeMetric)}
                         </CustomText>
                     </View>
                 </View>
             )}
+
+            {/* Interactive Detail Modal for Top 1-3 Hiker */}
+            <TopUserDetailModal
+                visible={!!selectedTopUser}
+                user={selectedTopUser}
+                onClose={() => setSelectedTopUser(null)}
+            />
         </ScreenWrapper>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    tabContainer: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: Colors.BACKGROUND, gap: 8 },
-    tabButton: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 20, backgroundColor: Colors.GRAY_ULTRALIGHT, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
-    tabButtonActive: { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY },
-    tabText: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold' },
-    tabTextActive: { color: Colors.WHITE },
-    podiumContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', paddingVertical: 24, paddingHorizontal: 16, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_LIGHT },
-    podiumItem: { alignItems: 'center', flex: 1 },
-    podiumCenter: { marginBottom: 20, zIndex: 10 },
-    podiumAvatarContainer: { position: 'relative', marginBottom: 8 },
-    podiumAvatar: { backgroundColor: Colors.GRAY_ULTRALIGHT, borderWidth: 3, justifyContent: 'center', alignItems: 'center' },
-    podiumInitials: { color: Colors.TEXT_SECONDARY, marginBottom: 0 },
-    rankBadge: { position: 'absolute', bottom: -4, alignSelf: 'center', width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.WHITE },
-    rankBadgeText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 10 },
-    podiumName: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY, marginBottom: 2 },
-    podiumScore: { color: Colors.PRIMARY },
-    listContent: { paddingBottom: 100 },
-    listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, backgroundColor: Colors.WHITE },
-    rankContainer: { width: 40, alignItems: 'center', marginRight: 8 },
-    rankText: { color: Colors.TEXT_SECONDARY, marginBottom: 2 },
-    listAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-    listInitials: { fontWeight: 'bold', color: Colors.TEXT_SECONDARY },
-    listInfo: { flex: 1 },
-    listName: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
-    listScore: { color: Colors.TEXT_PRIMARY },
-    currentUserFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_LIGHT, paddingBottom: 24, paddingTop: 8,     ...GlobalStyles.dropShadow(3), },
+    mainContainer: {
+        flex: 1,
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+    },
+    desktopContainer: {
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+    },
+    loadingBox: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 32,
+        paddingVertical: 60,
+    },
+    emptyTitle: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginTop: 12,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    emptySubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        fontSize: 13,
+    },
+    listContent: {
+        // paddingTop: 12,
+        paddingBottom: 110,
+    },
+    currentUserFooter: {
+        position: 'absolute',
+        bottom: 0,
+        alignSelf: 'center',
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        backgroundColor: Colors.WHITE,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        ...GlobalStyles.dropShadow(10, 0.1, Colors.SHADOW, {
+            offset: { width: 0, height: -4 },
+            radius: 4,
+        }),
+    },
+    footerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    footerRankBox: {
+        width: 36,
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    footerRankText: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    footerAvatarBox: {
+        marginRight: 12,
+    },
+    footerAvatarImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
+    footerInitialsBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    footerInitialsText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+    },
+    footerInfoBox: {
+        flex: 1,
+    },
+    footerNameText: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    footerSubtext: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+    },
+    footerScoreText: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        fontSize: 14,
+        marginRight: 8,
+    },
 });
 
 export default LeaderboardScreen;

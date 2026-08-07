@@ -124,7 +124,16 @@ export const Colors = {
     ERROR_BG:         Palette.Red50,
     ERROR_BORDER:     Palette.Red100,
     SUCCESS:          Palette.Green700,
-    WARNING:          Palette.Red700,  
+    WARNING:          Palette.Red700,
+
+    // Pills & Chips
+    CHIP_PRIMARY_BG:    Palette.Green50,
+    CHIP_PRIMARY_TEXT:  Palette.Green700,
+    CHIP_PRIMARY_BORDER:Palette.Green100,
+    CHIP_SECONDARY_BG:  Palette.White,
+    CHIP_SECONDARY_TEXT:Palette.Neutral500,
+    CHIP_SECONDARY_BORDER:Palette.Neutral200,
+
 
     // Password/Action Strength
     STRENGTH_EMPTY:   Palette.Neutral50,
@@ -304,6 +313,18 @@ export const Colors = {
     DAY_CONTAINER_BG:       Palette.Slate50,
     DAY_BORDER:             Palette.Slate150,
     INFO_CHIP_BG:           Palette.Neutral30,
+
+    // Leaderboard Semantic Tokens
+    LEADERBOARD_GOLD:          Palette.Yellow600,
+    LEADERBOARD_GOLD_BG:       Palette.Yellow50,
+    LEADERBOARD_GOLD_ACCENT:   Palette.Yellow700,
+    LEADERBOARD_SILVER:        Palette.Neutral400,
+    LEADERBOARD_SILVER_BG:     Palette.Neutral100,
+    LEADERBOARD_SILVER_ACCENT: Palette.Neutral500,
+    LEADERBOARD_BRONZE:        Palette.Orange800,
+    LEADERBOARD_BRONZE_BG:     Palette.Orange50,
+    LEADERBOARD_BRONZE_ACCENT: Palette.Amber500,
+    LEADERBOARD_PEAK_BASE:     Palette.Green700,
 };
 
 // Color Samples
