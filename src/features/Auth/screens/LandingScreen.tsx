@@ -106,7 +106,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                             Thrail
                         </CustomText>
                         <CustomText variant="h3" style={styles.brandingSlogan}>
-                            Your Next Trail Begins Here
+                            Find thrill in your trail
                         </CustomText>
                         <CustomText variant="body" style={styles.brandingSubtext}>
                             Discover breathtaking mountains, book local guides,{'\n'}and start your adventure today.
@@ -428,14 +428,14 @@ const styles = StyleSheet.create({
     },
     brandingTitle: {
         color: Colors.TEXT_INVERSE,
-        fontSize: 36,
+        fontSize: 64,
         lineHeight: 48,
         fontWeight: 'bold',
-        marginBottom: 6,
+        marginBottom: 12,
     },
     brandingSlogan: {
         color: Colors.TEXT_INVERSE,
-        fontSize: 24,
+        fontSize: 32,
         fontWeight: '600',
         marginBottom: 6,
     },
