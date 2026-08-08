@@ -21,7 +21,7 @@ export default function useCurrentHike(trailId: string){
     const startHike = useHikesStore(s => s.startHike);
     const create = useHikesStore(s => s.create);
 
-    const { onStartGps, onEndGps } = useHikerGPS();
+    const { startBackgroundTracking, stopBackgroundTracking } = useHikerGPS();
 
     const [lastKnownCoordinate, setLastKnownCoordinate] = useState<Location | null>(null);
     const coordinates = useHikesStore(s => s.coordinates);
@@ -115,7 +115,7 @@ export default function useCurrentHike(trailId: string){
             
             console.log('Starting hike with id: ', currentHike.id);
             await startHike(profile.id);
-            onStartGps();
+            startBackgroundTracking();
             console.log('current hike: ', currentHike);
         } catch(error){
             console.error("Error starting hike: ", error);
@@ -136,7 +136,7 @@ export default function useCurrentHike(trailId: string){
         });
         
         updateCurrentHike({ status: 'paused' });
-        onEndGps();
+        stopBackgroundTracking();
     }
 
     const onResumeHike = () => {
@@ -151,7 +151,7 @@ export default function useCurrentHike(trailId: string){
 
         const newStartTime = Date.now() - elapsedTime; 
         updateHikeStore({ timerStartTime: newStartTime, active: true });
-        onStartGps();
+        startBackgroundTracking();
     }
 
     const onCompleteHike = async() => {
@@ -160,7 +160,7 @@ export default function useCurrentHike(trailId: string){
             return;
         }
     
-        onEndGps();
+        stopBackgroundTracking();
 
         updateHikeStore({
             active: false,

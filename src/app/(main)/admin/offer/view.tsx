@@ -51,11 +51,11 @@ export default function viewOffer() {
 
             <OfferViewScreen
                 offerId={offerId}
-                offer={offer}
+                offer={offer as any}
                 bookings={offerBookings}
                 onViewBooking={onViewBooking}
                 onBackPress={onBackPress}
-                error={error} 
+                error={error as any} 
             />
         </>
 

@@ -5,6 +5,7 @@ import { FieldValue, GeoPoint, Timestamp } from "firebase/firestore";
 export interface ITrailSummary {
     id: string;
     name: string;
+    location: string;
 }
 
 export interface ITrailDB extends ITrailBase<Timestamp | FieldValue>{
@@ -26,16 +27,6 @@ export interface ITrailBase<T> {
     description: IDescription;
     createdAt: T;
     updatedAt: T;
-    offlinePoints?: IOfflinePoint[];
-}
-
-export interface IOfflinePoint {
-    id: string;
-    name: string;
-    type: string;
-    description: string;
-    x: number;
-    y: number;
 }
 
 export interface IDescription {
@@ -74,7 +65,7 @@ export interface IGeneral {
 
 export interface IDifficulty {
     lascoRating: number;
-    classification: 'minor' | 'major';
+    classification?: 'minor' | 'major' | string;
     length: Kilometers;
     gain: Meters;
     slope: Percentage;

@@ -17,6 +17,8 @@ export interface IUseAdminWrite {
     isOwner: boolean;
     isLoading: boolean;
     businessAdmins: Admin[];
+    error: string;
+    success: string;
 }
 
 export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWrite{
@@ -36,6 +38,7 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
     const [searched, setSearched] = useState<User[]>([]);
     const [isOwner, setIsOwner] = useState<boolean>(false)
     const [localError, setLocalError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
 
     useEffect(() => {
         console.log(userId, businessAccount?.owner.id);
@@ -51,6 +54,8 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
     }, [searchedStore])
 
     const onFindUserPress = async (email: string) => {
+        setLocalError('');
+        setSuccess('');
         const cached = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
         if(cached) {
             setSearched([cached]);
@@ -67,11 +72,14 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
     }
 
     const onMakeAdminPress = async (user: User) => {
+        setLocalError('');
+        setSuccess('');
         try {
             if(!businessAccount) throw new Error('Business account must be logged in to make new admins');
             
             await createBusinessAdmin({user, businessId: businessAccount.id})
             
+            setSuccess(`Successfully promoted ${user.firstname || user.username} to Admin!`);
             setSearched([]);
         } catch (error) {
             setLocalError((error as Error).message || 'Failed making admin')
@@ -87,5 +95,7 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
         isOwner,
         isLoading,
         businessAdmins,
+        error: localError,
+        success,
     }
 }

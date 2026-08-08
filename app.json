@@ -30,7 +30,10 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -61,7 +64,15 @@
       ],
       "@maplibre/maplibre-react-native",
       "@react-native-google-signin/google-signin/app.plugin.js",
-      "@react-native-firebase/app/app.plugin.js"
+      "@react-native-firebase/app/app.plugin.js",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Thrail to access your photos to share in the group chat.",
+          "cameraPermission": "Allow Thrail to access your camera to capture photos to share in the group chat."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

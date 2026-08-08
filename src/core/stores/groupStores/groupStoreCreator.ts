@@ -13,11 +13,14 @@ export interface GroupState {
 
     messagesByGroup: Record<string, Message[]>;
     activeListeners: Record<string, Unsubscribe>;
-    messageLimits: Record<string, number>; // Tracks pagination limit per group
+    messageLimits: Record<string, number>;       // Tracks pagination limit per group
+    messagePrevCounts: Record<string, number>;   // Tracks previous snapshot count to detect true end
+    hasReachedEndByGroup: Record<string, boolean>; // True when fetched count < limit (all loaded)
 
     subscribeToGroup: (groupId: string) => void;
     unsubscribeFromGroup: (groupId: string) => void;
-    loadMoreMessages: (groupId: string) => void; // Triggers pagination
+    loadMoreMessages: (groupId: string) => void;  // Triggers pagination
+    markGroupAsVisited: (groupId: string, userSummary: IUserSummary) => Promise<void>; // Marks the group as visited for the user
 
     setGroups: (groups: Group[]) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
@@ -36,6 +39,8 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     messagesByGroup: {},
     activeListeners: {},
     messageLimits: {},
+    messagePrevCounts: {},
+    hasReachedEndByGroup: {},
 
     subscribeToGroup: (groupId) => {
         // If already listening, do not duplicate
@@ -46,11 +51,20 @@ export const useGroupStore = create<GroupState>((set, get) => ({
 
         const unsubscribe = MessageRepository.listenToMessages(
             groupId,
-            limitCount, // Pass the limit to Firebase
-            (messages) => set((state) => ({
-                messagesByGroup: {...state.messagesByGroup, [groupId]: messages}
-            })
-        ));
+            limitCount,
+            (messages, fromCache) => set((state) => ({
+                messagesByGroup: { ...state.messagesByGroup, [groupId]: messages },
+                messagePrevCounts: { ...state.messagePrevCounts, [groupId]: messages.length },
+                // Reached end if snapshot returned fewer than what we asked for.
+                // Ignore cache snapshots to prevent premature true detection.
+                hasReachedEndByGroup: {
+                    ...state.hasReachedEndByGroup,
+                    [groupId]: fromCache 
+                        ? (state.hasReachedEndByGroup[groupId] ?? false)
+                        : messages.length < limitCount,
+                },
+            }))
+        );
         
         set((state) => ({
             activeListeners: { 
@@ -64,10 +78,14 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         }));
     },
 
-    // Function to paginate older messages
+    // Function to paginate older messages — safe: kills old listener before creating new one
     loadMoreMessages: (groupId) => {
         const currentLimit = get().messageLimits[groupId] || 30;
-        const newLimit = currentLimit + 30; // Increase by 30
+
+        // Do not fetch more if we already know we have everything
+        if (get().hasReachedEndByGroup[groupId]) return;
+
+        const newLimit = currentLimit + 30;
 
         // 1. Kill the old listener
         const oldUnsubscribe = get().activeListeners[groupId];
@@ -79,12 +97,25 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         const newUnsubscribe = MessageRepository.listenToMessages(
             groupId,
             newLimit,
-            (messages) => set((state) => ({
-                messagesByGroup: {...state.messagesByGroup, [groupId]: messages}
-            })
-        ));
+            (messages, fromCache) => {
+                // True end: Firestore returned fewer messages than we requested.
+                // Ignore cache snapshots to prevent premature true detection before server updates arrive.
+                const reachedEnd = fromCache
+                    ? (get().hasReachedEndByGroup[groupId] ?? false)
+                    : (messages.length < newLimit);
 
-        // 3. Update Zustand state
+                set((state) => ({
+                    messagesByGroup: { ...state.messagesByGroup, [groupId]: messages },
+                    messagePrevCounts: { ...state.messagePrevCounts, [groupId]: messages.length },
+                    hasReachedEndByGroup: {
+                        ...state.hasReachedEndByGroup,
+                        [groupId]: reachedEnd,
+                    },
+                }));
+            }
+        );
+
+        // 3. Update Zustand state with new listener and limit
         set((state) => ({
             messageLimits: {
                 ...state.messageLimits,
@@ -95,6 +126,11 @@ export const useGroupStore = create<GroupState>((set, get) => ({
                 [groupId]: newUnsubscribe
             }
         }));
+    },
+
+    // Marks the group as visited for the user
+    markGroupAsVisited: async (groupId, userSummary) => {
+        await MessageRepository.markGroupAsVisited(groupId, userSummary);
     },
 
     unsubscribeFromGroup: (groupId) => {

@@ -1,11 +1,9 @@
-import { useIsFocused } from "@react-navigation/native";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
-import { Keyboard, View } from "react-native";
-
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Trail } from "@/src/core/models/Trail/Trail";
+import { router, useFocusEffect } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useMemo, useState } from "react";
+import { Keyboard, View } from "react-native";
 
 import useBook from "@/src/core/hook/book/useBook";
 import useBookOffer from "@/src/core/hook/book/useBookOffer";
@@ -17,8 +15,19 @@ import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 
 export default function hike() {
-    const isFocused = useIsFocused();
-    const { onGroupPress, onBookingPress } = useAppNavigation();
+    const [isFocused, setIsFocused] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            setIsFocused(true);
+            return () => setIsFocused(false);
+        }, [])
+    );
+
+    const { 
+        onGroupPress, 
+        onBookingPress 
+    } = useAppNavigation();
     
     const { profile } = useAuthHook();
     
@@ -88,7 +97,7 @@ export default function hike() {
                 params: { 
                     trailId: bookingContext.trail.id, 
                     groupId: targetGroup?.id,
-                    bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+                    bookingId: bookingContext.id
                 } 
             });
         } else if (selectedTrail) {
@@ -111,7 +120,7 @@ export default function hike() {
             params: { 
                 trailId: bookingContext.trail.id, 
                 groupId: targetGroup?.id,
-                bookingId: bookingContext.id // ✅ FIXED: Passed to URL
+                bookingId: bookingContext.id
             } 
         });
     };
@@ -120,7 +129,9 @@ export default function hike() {
 
     return (
         <View style={{ flex: 1 }}>
-            <StatusBar style="dark" translucent backgroundColor="transparent" />
+            <StatusBar style="dark"/>
+            
+            {/* <StatusBar style="dark" translucent backgroundColor="transparent" /> */}
             
             {isFocused && (
                 <NavigationScreen
@@ -137,7 +148,7 @@ export default function hike() {
                     onSearchSubmit={handleSearchSubmit}
                     onTrailSelect={handleTrailSelect}
                     
-                    onGroupChatPress={onGroupPress}
+                    onGroupPress={onGroupPress}
                     onBookingPress={onBookingPress}
                     onStartTracking={handleStartTracking}
                     onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}

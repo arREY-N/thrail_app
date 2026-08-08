@@ -4,23 +4,27 @@ import { ActivityIndicator, Alert, FlatList, Keyboard, Platform, Pressable, Styl
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
+import CustomFAB from "@/src/components/CustomFAB";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
+import { IBooking } from "@/src/core/models/Booking/Booking.types";
+import { Group } from "@/src/core/models/Group/Group";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 
 interface NavigationScreenProps {
-    upcomingBookings: any[]; 
-    groups: any[];
+    upcomingBookings: IBooking[]; 
+    groups: Group[];
     currentUserId?: string;
     
     searchQuery: string;
@@ -31,28 +35,28 @@ interface NavigationScreenProps {
     onSearchChange: (text: string) => void;
     onSearchSubmit: () => void;
     onTrailSelect: (trail: Trail) => void;
-    onGroupChatPress: () => void;
+    onGroupPress: () => void;
     onBookingPress: () => void;
-    onStartTracking: (bookingContext?: any) => void;
-    onDeveloperBypass?: (bookingContext: any) => void;
+    onStartTracking: (bookingContext?: IBooking | null) => void;
+    onDeveloperBypass?: (bookingContext: IBooking | null) => void;
 }
 
-const getElevation = (trail: any) => {
+const getElevation = (trail: Trail) => {
     const elev = trail?.difficulty?.elevation || trail?.geography?.masl || trail?.masl;
     return elev && elev > 0 ? elev : '--';
 };
 
-const getLocation = (trail: any) => {
+const getLocation = (trail: Trail) => {
     const prov = trail?.general?.province;
     if (Array.isArray(prov) && prov.length > 0) return prov.join(', ');
     if (typeof prov === 'string') return prov;
     return trail?.general?.address || 'Unknown';
 };
 
-const getDisplayData = (item: any) => {
+const getDisplayData = (item: Trail) => {
     const dist = item?.difficulty?.length ? `${item.difficulty.length} km` : "--";
     const elev = getElevation(item);
-    const route = item?.difficulty?.circularity === "Out and Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
+    const route = item?.difficulty?.circularity === "Out-and-Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
     return { dist, elev: `${elev} masl`, route };
 };
 
@@ -60,7 +64,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     upcomingBookings, groups, currentUserId,
     searchQuery, filteredTrails, selectedTrail, isLoading,
     onSearchChange, onSearchSubmit, onTrailSelect,
-    onGroupChatPress, onBookingPress, onStartTracking, onDeveloperBypass
+    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress
 }) => {
     const insets = useSafeAreaInsets();
     const searchTopPadding = Platform.OS === 'ios' ? insets.top : insets.top + 10;
@@ -103,12 +107,12 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         );
     };
 
-    const navigateToGroupChat = (booking: any) => {
-        const targetGroup = groups?.find(g => g.members?.some((m: any) => m.id === currentUserId && m.bookingId === booking.id));
+    const navigateToGroupChat = (booking: IBooking) => {
+        const targetGroup = groups?.find(g => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
-            onGroupChatPress();
+            onGroupPress();
         }
     };
 
@@ -117,6 +121,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
             <View style={styles.container}>
                 <CustomHeader title="Hike" showDefaultIcons={true} onBackPress={undefined} rightActions={undefined} style={undefined} children={undefined} />
                 <TrailMap ref={mapRef} bottomInset={0} />
+                <CustomFAB onPress={onGroupPress} />
             </View>
         );
     }
@@ -219,7 +224,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
             </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupChatPress} activeOpacity={0.8}>
+                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupPress} activeOpacity={0.8}>
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>
 
@@ -330,7 +335,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     onClose={() => setUpcomingModalVisible(false)}
                     bookings={upcomingBookings}
                     activeBooking={activeBooking}
-                    onSelectBooking={(booking: any) => {
+                    onSelectBooking={(booking: IBooking) => {
                         setActiveBooking(booking);
                         setUpcomingModalVisible(false);
                     }}
@@ -341,21 +346,15 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     );
 };
 
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
-    android: { elevation: 6 },
-    web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)' } as any,
-});
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
     
     floatingSearchWrapper: { position: "absolute", zIndex: 50 }, 
     floatingControlsContainer: { position: "absolute", bottom: 24, zIndex: 40, paddingHorizontal: 16 },
 
-    floatingIconBtn: { position: "absolute", right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", zIndex: 45, ...dropShadow },
+    floatingIconBtn: { position: "absolute", right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", zIndex: 45, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
-    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...dropShadow },
+    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     dropdownList: { paddingVertical: 4 },
     dropdownItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 12 },
     dropdownIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.BACKGROUND, alignItems: 'center', justifyContent: 'center' },
@@ -366,7 +365,7 @@ const styles = StyleSheet.create({
     dropdownSubText: { color: Colors.TEXT_SECONDARY, marginTop: 2 },
 
     loaderCard: { backgroundColor: Colors.WHITE, padding: 32, borderRadius: 24, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT },
-    controlCard: { backgroundColor: Colors.WHITE, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...dropShadow },
+    controlCard: { backgroundColor: Colors.WHITE, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     
     cardHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
     headerTitleGroup: { flexDirection: "row", alignItems: "center", gap: 6 },

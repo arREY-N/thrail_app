@@ -243,6 +243,28 @@ export const useBookingsStore = create<BookState>()(immer((set, get) => ({
                         state.userBookings.push(data);
                     }
                 }
+
+                // Sync main data cache array
+                const dataIndex = state.data.findIndex(b => b.id === booking.id);
+                if (dataIndex !== -1) {
+                    state.data[dataIndex] = data;
+                } else {
+                    state.data.push(data);
+                }
+
+                // Sync bookingByOffer cache map
+                const offerId = booking.offer?.id;
+                if (offerId) {
+                    if (!state.bookingByOffer[offerId]) {
+                        state.bookingByOffer[offerId] = [];
+                    }
+                    const offerBookIdx = state.bookingByOffer[offerId].findIndex(b => b.id === booking.id);
+                    if (offerBookIdx !== -1) {
+                        state.bookingByOffer[offerId][offerBookIdx] = data;
+                    } else {
+                        state.bookingByOffer[offerId].push(data);
+                    }
+                }
                 
                 state.isLoading = false;
             })

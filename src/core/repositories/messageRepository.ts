@@ -6,10 +6,11 @@ import { arrayUnion, collection, doc, getDoc, limit, onSnapshot, orderBy, query,
 
 export interface ChatRepositoryInterface {
   listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe;
-  listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[]) => void): Unsubscribe; // add new props
+  listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[], fromCache: boolean) => void): Unsubscribe;
   sendMessage(groupId: string, message: Message): Promise<void>;
   writeGroup(group: Group): Promise<void>;
   markMessageAsRead(groupId: string, messageId: string, userSummary: IUserSummary): Promise<void>;
+  markGroupAsVisited(groupId: string, userSummary: IUserSummary): Promise<void>;
   fetchGroup(groupId: string): Promise<Group>;
 }
 
@@ -44,7 +45,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
         });
     }
 
-    listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[]) => void): Unsubscribe {
+    listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[], fromCache: boolean) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups', groupId, 'messages'),
             orderBy('timesent', 'desc'), // Flipped to desc to get the newest messages
@@ -52,7 +53,7 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
         ).withConverter(MessageConverter);
 
         return onSnapshot(q, (snapshot) => {
-            onUpdate(snapshot.docs.map(doc => doc.data()));
+            onUpdate(snapshot.docs.map(doc => doc.data()), snapshot.metadata.fromCache);
         }, (error) => {
             console.error('Error in listenToMessages: ', error);    
         });
@@ -121,6 +122,28 @@ class MessageRepositoryImpl implements ChatRepositoryInterface {
             
         } catch (error) {
             console.log('Failed to mark as read:', error);
+        }
+    }
+    async markGroupAsVisited(groupId: string, userSummary: IUserSummary): Promise<void> {
+        try {
+            const groupRef = doc(db, 'groups', groupId);
+
+            const visitedUser = {
+                id: userSummary.id,
+                username: userSummary.username,
+                firstname: userSummary.firstname,
+                lastname: userSummary.lastname,
+                email: userSummary.email,
+            };
+
+            // Merge visited user into the group-level lastMessage.readBy.
+            // This clears the unread indicator on the Group List without
+            // needing any message documents to exist.
+            await updateDoc(groupRef, {
+                'lastMessage.readBy': arrayUnion(visitedUser)
+            });
+        } catch {
+            // Non-critical — swallow silently if group has no lastMessage yet
         }
     }
 }

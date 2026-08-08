@@ -108,7 +108,7 @@ export default function hikeView() {
                 hike={hike} 
                 booking={booking || null}  
                 currentGroup={currentGroup || null}
-                hikerLocations={groupLocations || []}
+                hikerLocations={(groupLocations as any) || []}
                 error={hikeError || groupError}
                 
                 baseElapsedTime={elapsedTime} 

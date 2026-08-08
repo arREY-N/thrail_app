@@ -14,6 +14,7 @@ export interface ForgotPasswordController {
     onBackPress: () => void;
     onLogIn: () => void;
     oobCode?: string;
+    reset: () => void;
 }
 
 export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
@@ -87,6 +88,12 @@ export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
         }
     };
 
+    const reset = () => {
+        setLoading(false);
+        setError(null);
+        setSuccess(false);
+    };
+
     return { 
         onLanding,
         onSendResetEmail, 
@@ -95,6 +102,7 @@ export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
         onLogIn,
         loading, 
         error, 
-        success 
+        success,
+        reset
     };
 };

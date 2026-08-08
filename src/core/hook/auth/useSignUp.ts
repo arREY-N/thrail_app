@@ -4,9 +4,11 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 
 export default function useSignUp(isNew: boolean = false){
-    const error = useAuthStore(s => s.error)
-    const isLoading = useAuthStore(s => s.isChecking);
+    const error = useAuthStore(s => s.error);
+    const isChecking = useAuthStore(s => s.isChecking);
+    const isStoreLoading = useAuthStore(s => s.isLoading);
     const account = useAuthStore(s => s.account);
+    const isLoading = isChecking || isStoreLoading;
 
     const validateInfo = useAuthStore(s => s.validateInfo);
     const validateSignUp = useAuthStore(s => s.validateSignUp);
@@ -59,7 +61,12 @@ export default function useSignUp(isNew: boolean = false){
     }
 
     const onAcceptPress = async () => {
-        await signUp();
+        try {
+            await signUp();
+            router.replace('/(auth)/preference');
+        } catch (error) {
+            console.error("Sign up error:", error);
+        }
     }
 
     const onDeclinePress = async () => {

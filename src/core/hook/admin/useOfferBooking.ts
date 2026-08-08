@@ -39,13 +39,8 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
         const startListening = async () => {
             try {
                 subscribeToBusinessBookings(offerId);
-                if (isCancelled) {
-                    if(unsubscribe && offerId) 
-                        unsubscribe(offerId);
-                } else {
-                    if(unsubscribe && offerId) {
-                        unsubscribe(offerId);
-                    }
+                if (isCancelled && unsubscribe && offerId) {
+                    unsubscribe(offerId);
                 }
             } catch (err) {
                 console.error("Failed to start listener", err);
@@ -57,10 +52,11 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
 
         return () => {
             isCancelled = true;
-            if(unsubscribe) 
+            if (unsubscribe) {
                 unsubscribe(offerId);
+            }
         }
-    },[offerId, subscribeToBusinessBookings]);
+    }, [offerId, subscribeToBusinessBookings]);
 
     const onViewBooking = (bookingId: string, offerId: string) => {
         router.push({

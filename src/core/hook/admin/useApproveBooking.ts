@@ -4,6 +4,8 @@ import { Requirements } from "@/src/core/models/Booking/Booking.types";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Booking, createBooking } from "@/src/core/models/Booking/Ref_Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { User } from "@/src/core/models/User/User";
+import { UserRepository } from "@/src/core/repositories/userRepository";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
@@ -32,6 +34,24 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
     
     const [offer, setOffer] = useState<Offer | null>(null);
     const [booking, setBooking] = useState<Booking | null>(null);
+    const [hikerProfile, setHikerProfile] = useState<User | null>(null);
+
+    // Fetch the hiker profile when the booking's user ID changes
+    useEffect(() => {
+        const fetchHiker = async () => {
+            if (booking?.user?.id) {
+                try {
+                    const u = await UserRepository.fetchById(booking.user.id);
+                    if (u) setHikerProfile(new User(u));
+                } catch (e) {
+                    console.error('Error fetching hiker profile: ', e);
+                }
+            } else {
+                setHikerProfile(null);
+            }
+        };
+        fetchHiker();
+    }, [booking?.user?.id]);
 
     useEffect(() => {
         setLocalError(null);
@@ -74,12 +94,27 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }, [offers, bookings, offerId, bookingId]);
 
-    const onApproveBooking = async (validatedDocuments: Requirements[]) => {
+    const onApproveBooking = async (
+        validatedDocuments: Requirements[],
+        personalVerifiedAt?: Date | null,
+        emergencyVerifiedAt?: Date | null
+    ) => {
         try {
             if(!booking) throw new Error('Booking not found');
 
             const approvedBook = createBooking({
                 ...booking,
+                user: {
+                    ...booking.user,
+                    phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : booking.user.phoneVerifiedAt,
+                },
+                emergencyContact: booking.emergencyContact ? {
+                    ...booking.emergencyContact,
+                    phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : booking.emergencyContact.phoneVerifiedAt,
+                } : {
+                    name: "",
+                    contactNumber: "",
+                },
                 documents: validatedDocuments, 
                 status: 'for-payment',
             });
@@ -95,6 +130,34 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             if(!success){
                 setLocalError('Failed to approve booking');
                 return;
+            }
+
+            // Sync the hiker's profile and emergency contact profile if they exist
+            try {
+                if (hikerProfile) {
+                    const updatedHiker = new User({
+                        ...hikerProfile,
+                        phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : hikerProfile.phoneVerifiedAt,
+                        emergencyContact: hikerProfile.emergencyContact ? {
+                            ...hikerProfile.emergencyContact,
+                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : hikerProfile.emergencyContact.phoneVerifiedAt,
+                        } : undefined
+                    });
+                    await UserRepository.write(updatedHiker);
+                }
+                
+                if (booking.emergencyContact?.userId) {
+                    const emergencyProfile = await UserRepository.fetchById(booking.emergencyContact.userId);
+                    if (emergencyProfile) {
+                        const updatedEmergency = new User({
+                            ...emergencyProfile,
+                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : emergencyProfile.phoneVerifiedAt
+                        });
+                        await UserRepository.write(updatedEmergency);
+                    }
+                }
+            } catch (syncError) {
+                console.error('Failed to sync global profile verifications: ', syncError);
             }
         
             router.back();
@@ -131,7 +194,12 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         }
     }
 
-    const onRejectBooking = async (reason: string, validatedDocuments: Requirements[]) => {  
+    const onRejectBooking = async (
+        reason: string, 
+        validatedDocuments: Requirements[],
+        personalVerifiedAt?: Date | null,
+        emergencyVerifiedAt?: Date | null
+    ) => {  
         try {
             if(!reason) throw new Error('Rejection reason is required');
             if(!booking) throw new Error('Booking not found');
@@ -142,6 +210,17 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
             const rejectedBook = createBooking({  
                 ...booking,
+                user: {
+                    ...booking.user,
+                    phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : booking.user.phoneVerifiedAt,
+                },
+                emergencyContact: booking.emergencyContact ? {
+                    ...booking.emergencyContact,
+                    phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : booking.emergencyContact.phoneVerifiedAt,
+                } : {
+                    name: "",
+                    contactNumber: "",
+                },
                 documents: validatedDocuments, 
                 status: 'reservation-rejected',
                 cancellationReason: reason,
@@ -159,6 +238,34 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 return;
             }
 
+            // Sync the hiker's profile and emergency contact profile if they exist
+            try {
+                if (hikerProfile) {
+                    const updatedHiker = new User({
+                        ...hikerProfile,
+                        phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : hikerProfile.phoneVerifiedAt,
+                        emergencyContact: hikerProfile.emergencyContact ? {
+                            ...hikerProfile.emergencyContact,
+                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : hikerProfile.emergencyContact.phoneVerifiedAt,
+                        } : undefined
+                    });
+                    await UserRepository.write(updatedHiker);
+                }
+                
+                if (booking.emergencyContact?.userId) {
+                    const emergencyProfile = await UserRepository.fetchById(booking.emergencyContact.userId);
+                    if (emergencyProfile) {
+                        const updatedEmergency = new User({
+                            ...emergencyProfile,
+                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : emergencyProfile.phoneVerifiedAt
+                        });
+                        await UserRepository.write(updatedEmergency);
+                    }
+                }
+            } catch (syncError) {
+                console.error('Failed to sync global profile verifications: ', syncError);
+            }
+ 
             router.back();
         } catch (error) {
             console.error('Error rejecting booking: ', error);
@@ -240,6 +347,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         offer,
         offers,
         booking,
+        hikerProfile,
         onRefund,
         onApproveBooking,
         onConfirmPayment,

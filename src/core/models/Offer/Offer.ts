@@ -22,7 +22,7 @@ export const createOffer = (init?: Partial<IOffer>): IOffer => {
         thingsToBring: [],
         reminders: [],
         business: { id: "", name: "" },
-        trail: { id: "", name: "" },
+        trail: { id: "", name: "", location: "" },
         schedule: [],
         ...init,
     };
@@ -36,16 +36,16 @@ export const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
         business: data.business,
         trail: data.trail,
         date: toDate(data.date),
-        endDate: toDate(data.endDate || data.date), // New
-        duration: data.duration || '', // New
+        endDate: toDate(data.endDate || data.date),
+        duration: data.duration || '',
         price: data.price,
         maxPax: data.maxPax,
         minPax: data.minPax,
         reservedPax: data.reservedPax,
         documents: data.documents,
         inclusions: data.inclusions,
-        thingsToBring: data.thingsToBring || [], // New
-        reminders: data.reminders || [], // New
+        thingsToBring: data.thingsToBring || [],
+        reminders: data.reminders || [],
         description: data.description,
         schedule: (data.schedule ?? []).map(sched => {
             return {
@@ -54,12 +54,12 @@ export const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
                     return {
                         ...activity,
                         time: toDate(activity.time),
-                    }
+                    };
                 })
-            }
+            };
         }),
-    }
-}
+    };
+};
 
 export const offerToFirestore = (offer: Offer): IOfferDB => {
     const isNew = offer.id === '';
@@ -71,16 +71,16 @@ export const offerToFirestore = (offer: Offer): IOfferDB => {
         business: offer.business,
         trail: offer.trail,
         date: Timestamp.fromDate(offer.date),
-        endDate: Timestamp.fromDate(offer.endDate), // New
-        duration: offer.duration, // New
+        endDate: Timestamp.fromDate(offer.endDate),
+        duration: offer.duration,
         price: offer.price,
         maxPax: offer.maxPax,
         minPax: offer.minPax,
         reservedPax: offer.reservedPax,
         documents: offer.documents,
         inclusions: offer.inclusions,
-        thingsToBring: offer.thingsToBring, // New
-        reminders: offer.reminders, // New
+        thingsToBring: offer.thingsToBring,
+        reminders: offer.reminders,
         description: offer.description,
         schedule: offer.schedule.map(schedule => {
             return {
@@ -89,12 +89,12 @@ export const offerToFirestore = (offer: Offer): IOfferDB => {
                     return {
                         ...activity,
                         time: Timestamp.fromDate(activity.time),
-                    }
+                    };
                 })                    
-            }
+            };
         })
-    }
-}
+    };
+};
 
 export const offerConverter: FirestoreDataConverter<Offer> = {
     toFirestore: (offer: Offer) => {
@@ -104,4 +104,4 @@ export const offerConverter: FirestoreDataConverter<Offer> = {
         const data = snapshot.data() as IOfferDB;
         return offerFromFirestore(snapshot.id, data);
     }
-}
+};

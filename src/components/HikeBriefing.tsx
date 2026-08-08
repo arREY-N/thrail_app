@@ -1,3 +1,5 @@
+import { GlobalStyles } from "@/src/constants/globalStyles";
+import { ITrailStats } from "@/src/core/models/Trail/Trail.types";
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -6,7 +8,6 @@ import {
     Text,
     View,
 } from "react-native";
-import { ITrailStats } from "@/src/core/models/Trail/Trail.types";
 
 interface HikeBriefingProps {
     trailName: string;
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
         shadowRadius: 8,
-        elevation: 6,
+        ...GlobalStyles.dropShadow(),
         // Subtle border
         borderWidth: 1,
         borderColor: "rgba(74, 107, 42, 0.12)",

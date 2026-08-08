@@ -29,7 +29,7 @@ export class User implements IUser{
     };
     medicalProfile: IMedicalProfile = {  // New
         hasCondition: false,
-        details: '',
+        details: [],
     };
     emergencyContact: IEmergencyContact = {
         name: '',
@@ -65,6 +65,15 @@ export class User implements IUser{
             birthday: toDate(data.birthday),
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
+            medicalProfile: {
+                ...data.medicalProfile,
+                // Safely migrate legacy string data to an array, handling both commas and newlines
+                details: Array.isArray(data.medicalProfile?.details) 
+                    ? data.medicalProfile.details 
+                    : typeof data.medicalProfile?.details === 'string'
+                        ? (data.medicalProfile.details as string).split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
+                        : [],
+            },
         };
 
         return new User(mapped);
