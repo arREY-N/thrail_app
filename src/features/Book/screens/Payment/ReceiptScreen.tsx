@@ -38,8 +38,8 @@ const ReceiptScreen = ({
         ? capturedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) 
         : (isRefunded ? 0 : totalAmount);
         
-    const totalRefunded = refundedPayments.reduce((sum, p: any) => sum + (p.refundedAmount || 0), 0);
-    const hasUnrecordedRefund = refundedPayments.some((p: any) => p.refundedAmount === undefined || p.refundedAmount === null);
+    const totalRefunded = refundedPayments.reduce((sum, p: IPayment<Date>) => sum + (p.refundedAmount || 0), 0);
+    const hasUnrecordedRefund = refundedPayments.some((p: IPayment<Date>) => p.refundedAmount === undefined || p.refundedAmount === null);
 
     const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
