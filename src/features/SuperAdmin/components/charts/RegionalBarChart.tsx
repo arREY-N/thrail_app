@@ -8,8 +8,9 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { Trail } from '@/src/core/models/Trail/Trail';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Trail } from '@/src/core/models/Trail/Trail';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
  * Props for the RegionalBarChart component.
@@ -27,6 +28,7 @@ interface Props {
  * @returns {React.ReactElement} The rendered regional bar chart component.
  */
 const RegionalBarChart = ({ trails = [] }: Props): React.JSX.Element => {
+    const { isMobile } = useBreakpoints();
     const totalTrails = trails.length;
 
     // Calculate province counts for all 5 CALABARZON provinces
@@ -50,41 +52,45 @@ const RegionalBarChart = ({ trails = [] }: Props): React.JSX.Element => {
         });
     });
 
-    const maxRegionCount = Math.max(...Object.values(regionCounts), 1);
-    const entries = Object.entries(regionCounts);
+    const regions = [
+        { label: 'Rizal Province', count: regionCounts['Rizal Province'] },
+        { label: 'Batangas Province', count: regionCounts['Batangas Province'] },
+        { label: 'Laguna Province', count: regionCounts['Laguna Province'] },
+        { label: 'Cavite Province', count: regionCounts['Cavite Province'] },
+        { label: 'Quezon Province', count: regionCounts['Quezon Province'] },
+    ];
+
+    const maxCount = Math.max(...regions.map(r => r.count), 1);
 
     return (
-        <View style={styles.card}>
+        <View style={[styles.card, !isMobile && styles.cardDesktop]}>
             {/* Header */}
             <View style={styles.cardHeader}>
                 <CustomText variant="h3" style={styles.cardTitle}>
-                    Regional Trail Counts
+                    Trail Distribution
                 </CustomText>
                 <CustomText variant="caption" style={styles.cardSubtitle}>
-                    Registered trails per province ({totalTrails} Trails)
+                    Active routes by CALABARZON province ({totalTrails} Trails)
                 </CustomText>
             </View>
 
-            {/* Horizontal Bar Chart List */}
+            {/* Horizontal Progress Bars */}
             <View style={styles.barList}>
-                {entries.map(([region, count], idx) => {
-                    const barPct = Math.round((count / maxRegionCount) * 100);
-
+                {regions.map((region, idx) => {
+                    const percentage = maxCount > 0 ? (region.count / maxCount) * 100 : 0;
                     return (
                         <View key={idx} style={styles.barItem}>
                             <View style={styles.barLabelHeader}>
-                                <CustomText variant="body" style={styles.barName} numberOfLines={1}>
-                                    {region}
+                                <CustomText variant="caption" style={styles.barName}>
+                                    {region.label}
                                 </CustomText>
                             </View>
                             <View style={styles.barTrackRow}>
                                 <View style={styles.barTrack}>
-                                    <View style={[styles.barFill, { width: `${Math.max(barPct, 6)}%` }]} />
+                                    <View style={[styles.barFill, { width: `${percentage}%` }]} />
                                 </View>
-
-                                {/* Right-Aligned Numeric Count Badge */}
                                 <CustomText variant="caption" style={styles.barCountText}>
-                                    {count} {count === 1 ? 'Trail' : 'Trails'}
+                                    {region.count} route{region.count !== 1 ? 's' : ''}
                                 </CustomText>
                             </View>
                         </View>
@@ -102,10 +108,14 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        flex: 1,
+        width: '100%',
         minWidth: 280,
         justifyContent: 'space-between',
         ...GlobalStyles.dropShadow(2),
+    },
+    cardDesktop: {
+        flex: 1,
+        minWidth: 300,
     },
     cardHeader: {
         marginBottom: 8,
