@@ -431,9 +431,9 @@ const styles = StyleSheet.create({
     },
     buttonRow: {
         flexDirection: 'row',
-        alignItems: 'stretch',
+        alignItems: 'center',
         gap: 10,
-        marginTop: 4,
+        marginTop: 8,
         width: '100%',
     },
     actionButtonHalf: {
@@ -441,7 +441,6 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         paddingVertical: 8,
-        height: '100%',
     },
 });
 
