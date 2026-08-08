@@ -57,7 +57,7 @@ const PaymentScreen = ({
     const latestPayment = payments[payments.length - 1] as any; // Cast as any because some properties might not be in the strict type yet
 
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountPaidAlready = payments.reduce((sum, p: any) => {
+    const amountPaidAlready = payments.reduce((sum, p: IPayment<Date>) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0);
@@ -210,11 +210,11 @@ const PaymentScreen = ({
                         }
                     }
 
-                } catch (error: any) {
+                } catch (error: unknown) {
                     if (popup) popup.close();
                     console.error("Payment Error:", error);
                     setPaymentError(
-                        error.message || "Failed to initialize payment gateway. Please try again."
+                        (error as Error).message || "Failed to initialize payment gateway. Please try again."
                     );
                 } finally {
                     setIsSubmitting(false);
