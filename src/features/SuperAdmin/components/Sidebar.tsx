@@ -6,6 +6,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
@@ -89,11 +91,14 @@ const Sidebar = ({
     isMobileDrawer = false,
     onCloseMobileDrawer,
 }: Props): React.JSX.Element => {
+    const insets = useSafeAreaInsets();
     const [isCollapsed, setIsCollapsed] = useState<boolean>(globalSidebarCollapsed);
     const animatedWidth = useRef(new Animated.Value(globalSidebarCollapsed ? 68 : 240)).current;
     const isFirstRender = useRef(true);
 
     const effectiveCollapsed = isMobileDrawer ? false : isCollapsed;
+    const topInsetPadding = isMobileDrawer ? Math.max(insets.top, 16) : 16;
+    const bottomInsetPadding = isMobileDrawer ? Math.max(insets.bottom, 16) : 16;
 
     // Fetch real authenticated user profile & role
     const profile = useAuthStore(s => s.profile);
@@ -143,7 +148,7 @@ const Sidebar = ({
             style={[
                 styles.sidebar, 
                 isMobileDrawer 
-                    ? styles.sidebarMobile 
+                    ? [styles.sidebarMobile, { paddingTop: topInsetPadding, paddingBottom: 0 }] 
                     : { width: animatedWidth }
             ]}
         >
@@ -165,17 +170,6 @@ const Sidebar = ({
                         </View>
                     )}
                 </View>
-
-                {/* Close Button on Mobile Drawer */}
-                {isMobileDrawer && onCloseMobileDrawer ? (
-                    <TouchableOpacity
-                        style={styles.closeDrawerBtn}
-                        onPress={onCloseMobileDrawer}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="x" size={18} color={Colors.TEXT_PRIMARY} />
-                    </TouchableOpacity>
-                ) : null}
 
                 {/* Desktop Minimize Toggle Button (Combined in same header row when expanded) */}
                 {!isMobileDrawer && !effectiveCollapsed && (
@@ -243,9 +237,13 @@ const Sidebar = ({
                                         effectiveCollapsed && styles.navItemCollapsed,
                                     ]}
                                     onPress={() => {
-                                        onTabPress(item.id);
                                         if (isMobileDrawer && onCloseMobileDrawer) {
                                             onCloseMobileDrawer();
+                                            setTimeout(() => {
+                                                onTabPress(item.id);
+                                            }, 120);
+                                        } else {
+                                            onTabPress(item.id);
                                         }
                                     }}
                                     activeOpacity={0.7}
@@ -295,7 +293,7 @@ const Sidebar = ({
             </View>
 
             {/* Bottom Profile Footer */}
-            <View style={styles.profileFooter}>
+            <View style={[styles.profileFooter, isMobileDrawer && { paddingBottom: Math.max(insets.bottom, 16) }]}>
                 {isMobileDrawer ? (
                     /* Mobile Drawer Layout: Avatar + Name/Role on left, compact Settings icon on right */
                     <View style={styles.profileMobileRow}>
@@ -383,16 +381,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 16,
-        paddingHorizontal: 4,
+        paddingLeft: 12,
+        paddingRight: 20,
     },
     brandHeaderCollapsed: {
         justifyContent: 'center',
+        marginLeft: 6,
         marginBottom: 8,
     },
     logoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
+        flex: 1,
     },
     logoRowCollapsed: {
         justifyContent: 'center',
@@ -427,11 +428,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     minimizeBtn: {
-        padding: 6,
-        borderRadius: 6,
-        backgroundColor: Colors.BACKGROUND,
-    },
-    closeDrawerBtn: {
         padding: 6,
         borderRadius: 6,
         backgroundColor: Colors.BACKGROUND,
