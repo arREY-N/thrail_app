@@ -6,19 +6,31 @@ export interface CancellationState {
     data: Cancellation[];
     businessCancellations: Cancellation[];
     offerCancellations: Cancellation[];
+    userCancellations: Cancellation[];
+    
+    error: string | null;
+    isFetching: boolean;
+    isWriting: boolean;
+
     write: (businessId: string, cancellation: Cancellation) => Promise<void>;
     delete: (businessId: string, id: string) => Promise<void>;
     
-    fetchById: (businessId: string, id: string) => Promise<Cancellation | null>;
-    fetchByBusinessId: (businessId: string) => Promise<void>;
-    fetchByOfferId: (businessId: string, offerId: string) => Promise<Cancellation[]>;
-    fetchAll: () => Promise<void>;
+    fetchCancellation: (businessId: string, id: string) => Promise<Cancellation | null>;
+    fetchAllUserCancellations: (userId: string) => Promise<void>;
+    
+    fetchAllBusinessCancellations: (businessId: string) => Promise<void>;
+    fetchAllOfferCancellations: (businessId: string, offerId: string) => Promise<Cancellation[]>;
 }
 
 const init = {
     data: [],
     businessCancellations: [],
     offerCancellations: [],
+    userCancellations: [],
+
+    error: null,
+    isFetching: true,
+    isWriting: false,
 }
 
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
@@ -26,15 +38,21 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
 
     async write(businessId: string, cancellation: Cancellation): Promise<void> {
         try {
+
+            const cachedCancellation = get().data.find(c => c.id === cancellation.id);
+            set({ isWriting: true, error: null });
+
             const result = await CancellationRepo.write(businessId, cancellation);
 
             set({
-                data: [...get().data.filter(c => c.id !== result.id), result]
+                userCancellations: [
+                    ...get().userCancellations.filter(c => c.id !== result.id), 
+                    result
+                ]
             })
-
         } catch (error) {
             console.error("Error writing cancellation:", (error as Error).message);
-            throw error;
+            set({ error: (error as Error).message });
         }
     },
 
@@ -50,14 +68,15 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         }
     },
 
-    async fetchById(businessId: string, id: string): Promise<Cancellation | null> {
+
+    async fetchCancellation(businessId: string, id: string): Promise<Cancellation | null> {
         try {
             let cancellation: Cancellation | null;
 
             if(get().data.length > 0) {
                 cancellation = get().data.find(c => c.id === id) || null;
             } else {
-                cancellation = await CancellationRepo.fetchById(businessId, id);
+                cancellation = await CancellationRepo.fetchCancellation(businessId, id);
             }
 
             return cancellation;
@@ -66,15 +85,36 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             throw error;
         }
     },
+    
+    async fetchAllUserCancellations(userId: string): Promise<void> {
+        try {
+            if(get().userCancellations.length > 0 && get().userCancellations[0].userId === userId)
+                return;
+        
+            if(get().isFetching)
+                return;
+            
+            set({ isFetching: true, error: null });
 
-    async fetchByBusinessId(businessId: string): Promise<void> {
+            const userCancellations = await CancellationRepo.fetchAllUserCancellations(userId);
+            
+            set({ userCancellations });
+        } catch (error) {
+            console.error("Error fetching user cancellations:", (error as Error).message);
+            set({ error: (error as Error).message });
+        } finally {
+            set({ isFetching: false });
+        }
+    },
+
+    async fetchAllBusinessCancellations(businessId: string): Promise<void> {
         try {
             let cancellations: Cancellation[];
 
             if(get().data.length > 0) {
                 cancellations = get().data.filter(c => c.businessId === businessId);
             } else {
-                cancellations = await CancellationRepo.fetchByBusinessId(businessId);
+                cancellations = await CancellationRepo.fetchAllBusinessCancellations(businessId);
             }
 
             set({
@@ -87,14 +127,14 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         }
     },
 
-    async fetchByOfferId(businessId: string, offerId: string): Promise<Cancellation[]> {
+    async fetchAllOfferCancellations(businessId: string, offerId: string): Promise<Cancellation[]> {
         try {
             let cancellations: Cancellation[];
 
             if(get().data.length > 0) {
                 cancellations = get().data.filter(c => c.businessId === businessId && c.offerId === offerId);
             } else {
-                cancellations = await CancellationRepo.fetchByOfferId(businessId, offerId);
+                cancellations = await CancellationRepo.fetchAllOfferCancellations(businessId, offerId);
             }
 
             return cancellations;
@@ -103,30 +143,4 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             throw error;
         }   
     },
-
-    async fetchAll(): Promise<void> {
-        try {
-
-            if(get().data.length > 0) {
-                return;
-            }
-
-            const cancellations = await CancellationRepo.fetchAll();
-            
-            set({ data: cancellations });
-        } catch (error) {
-            console.error("Error fetching all cancellations:", (error as Error).message);
-            throw error;
-        }
-    },
-
-    async refresh(): Promise<void> {
-        try {
-            const cancellations = await CancellationRepo.fetchAll();   
-            set({ data: cancellations });
-        } catch (error) {
-            console.error("Error refreshing cancellations:", (error as Error).message);
-            throw error;
-        }
-    }
 });
