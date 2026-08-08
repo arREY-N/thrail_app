@@ -1,7 +1,7 @@
+import { TEdit } from '@/src/core/interface/domainHookInterface';
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { Recommendation } from '@/src/core/models/Recommendation/Recommendation';
 import { RecommendationRepository } from '@/src/core/repositories/recommendationRepository';
-import { Property } from '@/src/core/types/Property';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
@@ -64,7 +64,7 @@ export const useRecommendationsStore = create<RecommendationState>()(immer((set,
 
     },
 
-    edit: (property: Property) => {
+    edit: (property: TEdit<Recommendation>) => {
 
     }
 })))
