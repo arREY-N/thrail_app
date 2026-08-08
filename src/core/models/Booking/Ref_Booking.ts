@@ -55,6 +55,7 @@ export const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
         user: {
             ...data.user,
             birthday: toDate(data.user.birthday),
+            phoneVerifiedAt: data.user.phoneVerifiedAt ? toDate(data.user.phoneVerifiedAt) : null,
         },
         payment: data.payment.map(p => ({
             ...p,
