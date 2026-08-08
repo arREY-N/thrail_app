@@ -12,6 +12,8 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
 /**
  * Props for the UserRolesDonutChart component.
  * 
@@ -75,6 +77,7 @@ const UserRolesDonutChart = ({
     adminCount,
     superadminCount,
 }: Props): React.JSX.Element => {
+    const { isMobile } = useBreakpoints();
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const total = hikerCount + adminCount + superadminCount;
 
@@ -106,7 +109,7 @@ const UserRolesDonutChart = ({
     };
 
     return (
-        <View style={styles.card}>
+        <View style={[styles.card, !isMobile && styles.cardDesktop]}>
             {/* Header */}
             <View style={styles.cardHeader}>
                 <CustomText variant="h3" style={styles.cardTitle}>
@@ -247,11 +250,15 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        flex: 1,
+        width: '100%',
         minWidth: 280,
         justifyContent: 'space-between',
         alignItems: 'stretch',
         ...GlobalStyles.dropShadow(2),
+    },
+    cardDesktop: {
+        flex: 1,
+        minWidth: 300,
     },
     cardHeader: {
         marginBottom: 8,
