@@ -1,3 +1,4 @@
+import { ImageSourcePropType } from 'react-native';
 import { Colors } from '@/src/constants/colors';
 import { ITrail } from '@/src/core/models/Trail/Trail.types';
 
@@ -111,7 +112,7 @@ export const getFeatureIcon = (label: string): { library: string; name: string }
     return { library: 'Feather', name: 'check-circle' }; 
 };
 
-export const getHeroImageSource = (item?: Partial<ITrail> | null): { uri: string } | any => {
+export const getHeroImageSource = (item?: Partial<ITrail> | null): ImageSourcePropType => {
     if (item?.coverImage) return { uri: item.coverImage };
     if (item?.routeMapImage) return { uri: item.routeMapImage };
     return require('@/src/assets/images/Mt.Tagapo.jpg'); 
