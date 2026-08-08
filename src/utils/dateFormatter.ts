@@ -1,11 +1,15 @@
+import { Timestamp } from 'firebase/firestore';
+
+export type DateInput = Date | Timestamp | string | number | { toDate?: () => Date; seconds?: number } | null | undefined;
+
 /**
  * Safely parses various date input formats into a valid JavaScript Date object.
  * Falls back to current date if parsing fails completely.
  * 
- * @param {any} dateInput - The date to parse (Date, Firebase Timestamp, String, etc.)
+ * @param {DateInput} dateInput - The date to parse (Date, Firebase Timestamp, String, etc.)
  * @returns {Date} A valid JavaScript Date object
  */
-export const safeParseDateString = (dateInput: any): Date => {
+export const safeParseDateString = (dateInput: DateInput): Date => {
     // 1. Empty fallback
     if (!dateInput) return new Date();
     
@@ -15,10 +19,10 @@ export const safeParseDateString = (dateInput: any): Date => {
     }
 
     // 3. Firebase Timestamp fallback
-    if (dateInput.toDate && typeof dateInput.toDate === 'function') {
+    if (typeof dateInput === 'object' && 'toDate' in dateInput && typeof dateInput.toDate === 'function') {
         return dateInput.toDate();
     }
-    if (dateInput.seconds) {
+    if (typeof dateInput === 'object' && 'seconds' in dateInput && typeof dateInput.seconds === 'number') {
         return new Date(dateInput.seconds * 1000);
     }
 
@@ -55,7 +59,7 @@ export const safeParseDateString = (dateInput: any): Date => {
  * @param {any} dateObj - The date to format
  * @returns {string} Formatted string or empty string
  */
-export const formatDateToStandard = (dateObj: any): string => {
+export const formatDateToStandard = (dateObj: DateInput): string => {
     if (!dateObj) return '';
     // Ultra-safe parse guarantees 'd' is a valid date
     const d = safeParseDateString(dateObj); 
@@ -67,12 +71,12 @@ export const formatDateToStandard = (dateObj: any): string => {
 /**
  * Formats a single date or a date range for a booking.
  * 
- * @param {any} startDateObj - The starting date of the booking
- * @param {any} [endDateObj=null] - The ending date of the booking (optional)
+ * @param {DateInput} startDateObj - The starting date of the booking
+ * @param {DateInput} [endDateObj=null] - The ending date of the booking (optional)
  * @param {boolean} [shortMonth=false] - Whether to use abbreviated month names
  * @returns {string} Formatted date range or "TBA"
  */
-export const formatBookingDate = (startDateObj: any, endDateObj: any = null, shortMonth: boolean = false): string => {
+export const formatBookingDate = (startDateObj: DateInput, endDateObj: DateInput = null, shortMonth: boolean = false): string => {
     if (!startDateObj) return 'TBA';
 
     const start = safeParseDateString(startDateObj);
@@ -104,10 +108,10 @@ export const formatBookingDate = (startDateObj: any, endDateObj: any = null, sho
 /**
  * Extracts and formats the time portion of a date as "HH:MM AM/PM"
  * 
- * @param {any} dateInput - The date to extract time from
+ * @param {DateInput} dateInput - The date to extract time from
  * @returns {string} Formatted time string
  */
-export const formatTime = (dateInput: any): string => {
+export const formatTime = (dateInput: DateInput): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     return d.toLocaleTimeString('en-US', {
@@ -120,10 +124,10 @@ export const formatTime = (dateInput: any): string => {
 /**
  * Formats a duration (in milliseconds) into a readable string (e.g., "1h 15m", "45m", "10s").
  * 
- * @param {any} durationMs - The duration in milliseconds
+ * @param {number | string | null | undefined} durationMs - The duration in milliseconds
  * @returns {string} Formatted duration string
  */
-export const formatDuration = (durationMs: any): string => {
+export const formatDuration = (durationMs: number | string | null | undefined): string => {
     const numVal = Number(durationMs);
     if (isNaN(numVal) || numVal < 0) return '--';
 
@@ -176,10 +180,10 @@ export const parseTimeToDate = (timeString: string): Date => {
 /**
  * Formats a date into "MM/DD/YYYY" format.
  * 
- * @param {any} dateInput - The date to format
+ * @param {DateInput} dateInput - The date to format
  * @returns {string} Formatted string
  */
-export const formatToMMDDYYYY = (dateInput: any): string => {
+export const formatToMMDDYYYY = (dateInput: DateInput): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -191,10 +195,10 @@ export const formatToMMDDYYYY = (dateInput: any): string => {
 /**
  * Formats a date into "MM/DD/YY" format.
  * 
- * @param {any} dateInput - The date to format
+ * @param {DateInput} dateInput - The date to format
  * @returns {string} Formatted string
  */
-export const formatToMMDDYY = (dateInput: any): string => {
+export const formatToMMDDYY = (dateInput: DateInput): string => {
     if (!dateInput) return '';
     const d = safeParseDateString(dateInput);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -207,10 +211,10 @@ export const formatToMMDDYY = (dateInput: any): string => {
 /**
  * Checks if the provided birthdate indicates the person is a minor (under 18).
  * 
- * @param {any} dateInput - The birthdate to check
+ * @param {DateInput} dateInput - The birthdate to check
  * @returns {boolean} True if the person is under 18
  */
-export const checkIfMinor = (dateInput: any): boolean => {
+export const checkIfMinor = (dateInput: DateInput): boolean => {
     if (!dateInput) return false;
     
     const bday = safeParseDateString(dateInput);
@@ -231,10 +235,10 @@ export const checkIfMinor = (dateInput: any): boolean => {
 /**
  * Calculates a person's age based on their birthdate.
  * 
- * @param {any} dateInput - The birthdate to check
+ * @param {DateInput} dateInput - The birthdate to check
  * @returns {number} The calculated age, or 0 if invalid
  */
-export const calculateAge = (dateInput: any): number => {
+export const calculateAge = (dateInput: DateInput): number => {
     if (!dateInput) return 0;
     
     const bday = safeParseDateString(dateInput);
@@ -256,15 +260,15 @@ export const calculateAge = (dateInput: any): number => {
  * Generates a human-readable text for recent updates (e.g. "Updated 5m ago").
  * Only returns text if the update was within the last 24 hours.
  * 
- * @param {any} updatedAt - The date of the last update
- * @param {any} createdAt - Fallback date if updatedAt is null
+ * @param {DateInput} updatedAt - The date of the last update
+ * @param {DateInput} createdAt - Fallback date if updatedAt is null
  * @returns {string | null} Formatted relative time string or null
  */
-export const getRecentUpdateText = (updatedAt: any, createdAt: any): string | null => {
+export const getRecentUpdateText = (updatedAt: DateInput, createdAt?: DateInput): string | null => {
     const timestamp = updatedAt || createdAt;
     if (!timestamp) return null;
 
-    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = safeParseDateString(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
