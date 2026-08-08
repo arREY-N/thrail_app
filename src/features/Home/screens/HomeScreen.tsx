@@ -229,85 +229,33 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                         <ActivityIndicator size="small" color={Colors.PRIMARY} />
                     </View>
                 ) : hasData ? (
-                    Platform.OS === 'web' ? (
-                        /* Web Platform uses standard ScrollView with drag-to-slide to prevent clipping cut-offs */
-                        <ScrollView 
-                            ref={scrollRef}
-                            horizontal 
-                            showsHorizontalScrollIndicator={false} 
-                            contentContainerStyle={styles.horizontalList}
-                            style={styles.scrollViewStyle} 
-                        >
-                            {data.map((item, index) => {
-                                const isLast = index === data.length - 1;
+                    <ScrollView 
+                        ref={scrollRef}
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.horizontalList}
+                        style={styles.scrollViewStyle} 
+                    >
+                        {data.map((item, index) => {
+                            const isLast = index === data.length - 1;
 
-                                return (
-                                    <MountainCard 
-                                        rating={getItemRating(item.id)}
-                                        key={`${title}-${item.id}`}
-                                        item={item}
-                                        onPress={() => onMountainPress(item.id)}
-                                        onDownload={() => onDownloadPress(item.id)}
-                                        style={{ 
-                                            width: cardWidth,
-                                            marginRight: isLast ? 0 : 16 
-                                        }}
-                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
-                                        offersCount={getTrailOffersCount(item.id)}
-                                    />
-                                );
-                            })}
-                        </ScrollView>
-                    ) : (
-                        /* Native Mobile platforms use high-performance Carousel slider */
-                        shouldScroll ? (
-                            <Carousel
-                                loop={false}
-                                width={cardWidth + 16}
-                                height={260}
-                                style={{
-                                    width: effectiveWidth,
-                                    height: 260,
-                                    paddingLeft: 16,
-                                }}
-                                data={data}
-                                autoPlay={false}
-                                windowSize={Math.max(data.length, 5)}
-                                renderItem={({ item }) => (
-                                    <MountainCard 
-                                        rating={getItemRating(item.id)}
-                                        key={`${title}-${item.id}`}
-                                        item={item}
-                                        onPress={() => onMountainPress(item.id)}
-                                        onDownload={() => onDownloadPress(item.id)}
-                                        style={{ 
-                                            width: cardWidth,
-                                        }}
-                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
-                                        offersCount={getTrailOffersCount(item.id)}
-                                    />
-                                )}
-                            />
-                        ) : (
-                            <View style={{ flexDirection: 'row', paddingLeft: 16 }}>
-                                {data.map((item, index) => (
-                                    <MountainCard 
-                                        rating={getItemRating(item.id)}
-                                        key={`${title}-${item.id}`}
-                                        item={item}
-                                        onPress={() => onMountainPress(item.id)}
-                                        onDownload={() => onDownloadPress(item.id)}
-                                        style={{ 
-                                            width: cardWidth,
-                                            marginRight: index === data.length - 1 ? 0 : 16
-                                        }}
-                                        weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
-                                        offersCount={getTrailOffersCount(item.id)}
-                                    />
-                                ))}
-                            </View>
-                        )
-                    )
+                            return (
+                                <MountainCard 
+                                    rating={getItemRating(item.id)}
+                                    key={`${title}-${item.id}`}
+                                    item={item}
+                                    onPress={() => onMountainPress(item.id)}
+                                    onDownload={() => onDownloadPress(item.id)}
+                                    style={{ 
+                                        width: cardWidth,
+                                        marginRight: isLast ? 16 : 16 
+                                    }}
+                                    weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
+                                    offersCount={getTrailOffersCount(item.id)}
+                                />
+                            );
+                        })}
+                    </ScrollView>
                 ) : (
                     <View style={styles.emptyStateContainer}>
                         {/* EMPTY STATE: Render custom labels and illustrations based on section and user status */}
