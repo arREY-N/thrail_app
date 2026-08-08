@@ -139,7 +139,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
         }
 
         return (
-            <View style={dashboardStyles.container}>
+            <View style={[dashboardStyles.container, isMobile && dashboardStyles.containerMobile]}>
                 <View style={dashboardStyles.leftSection}>
                     {leftAction ? (
                         leftAction
@@ -482,6 +482,11 @@ const dashboardStyles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
         gap: 12,
+    },
+    containerMobile: {
+        backgroundColor: Colors.WHITE,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_LIGHT,
     },
     containerMobileSearch: {
         justifyContent: 'flex-start',
