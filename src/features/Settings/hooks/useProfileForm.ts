@@ -10,7 +10,7 @@ import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
 export interface UseProfileFormParams {
     user: IUser;
     isEditing: boolean;
-    onSavePress?: (updatedFields: any) => void;
+    onSavePress?: (updatedFields: Partial<IUser>) => void;
     onCancelPress?: () => void;
     onEditPress: () => void;
 }
