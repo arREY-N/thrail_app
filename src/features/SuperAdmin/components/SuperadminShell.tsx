@@ -3,21 +3,24 @@
  * @description Persistent layout shell wrapper component where BOTH Header Bar and Content Canvas are enclosed inside ONE unified card container on web/desktop, while stripping double card borders on mobile.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    Animated,
+    Easing,
     RefreshControlProps,
     ScrollView,
     StyleSheet,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import Drawer from '@/src/features/SuperAdmin/components/Drawer';
 import CustomHeader from '@/src/components/CustomHeader';
+import Drawer from '@/src/features/SuperAdmin/components/Drawer';
 import Sidebar, { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 
 /**
@@ -80,7 +83,34 @@ const SuperadminShell = ({
     refreshControl,
 }: Props): React.JSX.Element => {
     const { isTablet, isMobile } = useBreakpoints();
+    const insets = useSafeAreaInsets();
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+
+    const scrollRef = useRef<ScrollView>(null);
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+    const translateYAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        fadeAnim.setValue(0);
+        translateYAnim.setValue(6);
+
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 160,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(translateYAnim, {
+                toValue: 0,
+                duration: 160,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, [activeTab, fadeAnim, translateYAnim]);
 
     const handleTabSelect = (tab: SuperadminTab) => {
         setIsDrawerOpen(false);
@@ -88,7 +118,10 @@ const SuperadminShell = ({
     };
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+        <ScreenWrapper 
+            backgroundColor={Colors.BACKGROUND}
+            statusBarBackgroundColor={isMobile ? Colors.WHITE : Colors.BACKGROUND}
+        >
             <View style={styles.shellOuter}>
                 {/* Desktop / Tablet Persistent Left Sidebar */}
                 {!isMobile && (
@@ -143,15 +176,29 @@ const SuperadminShell = ({
 
                         {/* Scrollable Body Content */}
                         <ScrollView
+                            ref={scrollRef}
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={[
                                 styles.scrollContent,
-                                isMobile && styles.scrollContentMobile
+                                isMobile && [
+                                    styles.scrollContentMobile,
+                                    { paddingBottom: 32 + insets.bottom }
+                                ]
                             ]}
                             keyboardShouldPersistTaps="handled"
                             refreshControl={refreshControl}
                         >
-                            {children}
+                            <Animated.View 
+                                style={[
+                                    styles.animatedContent,
+                                    { 
+                                        opacity: fadeAnim, 
+                                        transform: [{ translateY: translateYAnim }] 
+                                    }
+                                ]}
+                            >
+                                {children}
+                            </Animated.View>
                         </ScrollView>
                     </View>
                 </View>
@@ -196,6 +243,10 @@ const styles = StyleSheet.create({
     },
     scrollContentMobile: {
         padding: 16,
+    },
+    animatedContent: {
+        flex: 1,
+        width: '100%',
     },
 });
 
