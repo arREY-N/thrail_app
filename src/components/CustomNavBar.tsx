@@ -1,13 +1,12 @@
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { ReactNode } from 'react';
 import {
     Platform,
-    Pressable,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
