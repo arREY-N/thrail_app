@@ -7,12 +7,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
+    Easing,
     Modal,
     Pressable,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
@@ -43,6 +47,7 @@ const Drawer = ({
     onClose,
     children,
 }: Props): React.JSX.Element | null => {
+    const insets = useSafeAreaInsets();
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -53,12 +58,14 @@ const Drawer = ({
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: 0,
-                    duration: 250,
+                    duration: 220,
+                    easing: Easing.out(Easing.poly(4)),
                     useNativeDriver: true,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 1,
-                    duration: 250,
+                    duration: 220,
+                    easing: Easing.out(Easing.quad),
                     useNativeDriver: true,
                 }),
             ]).start();
@@ -66,12 +73,14 @@ const Drawer = ({
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: -DRAWER_WIDTH,
-                    duration: 220,
+                    duration: 200,
+                    easing: Easing.out(Easing.poly(4)),
                     useNativeDriver: true,
                 }),
                 Animated.timing(fadeAnim, {
                     toValue: 0,
-                    duration: 220,
+                    duration: 200,
+                    easing: Easing.out(Easing.quad),
                     useNativeDriver: true,
                 }),
             ]).start(() => {
@@ -106,6 +115,15 @@ const Drawer = ({
                     ]}
                 >
                     {children}
+
+                    {/* Seamless Extended Rounded Pull Tab Handle (<) at Vertical Center */}
+                    <TouchableOpacity
+                        style={styles.extendedPullTabBtn}
+                        onPress={onClose}
+                        activeOpacity={0.85}
+                    >
+                        <CustomIcon library="Feather" name="chevron-left" size={18} color={Colors.PRIMARY} />
+                    </TouchableOpacity>
                 </Animated.View>
             </View>
         </Modal>
@@ -127,9 +145,24 @@ const styles = StyleSheet.create({
     drawerPanel: {
         height: '100%',
         backgroundColor: Colors.WHITE,
+        position: 'relative',
         ...GlobalStyles.dropShadow(5),
         elevation: 5,
         zIndex: 100,
+    },
+    extendedPullTabBtn: {
+        position: 'absolute',
+        top: '50%',
+        marginTop: -24,
+        right: -24,
+        width: 24,
+        height: 48,
+        borderTopRightRadius: 24,
+        borderBottomRightRadius: 24,
+        backgroundColor: Colors.WHITE,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 200,
     },
 });
 
