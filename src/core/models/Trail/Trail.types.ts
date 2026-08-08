@@ -5,7 +5,7 @@ import { FieldValue, GeoPoint, Timestamp } from "firebase/firestore";
 export interface ITrailSummary {
     id: string;
     name: string;
-    location: string;
+    location?: string;
 }
 
 export interface ITrailDB extends ITrailBase<Timestamp | FieldValue>{
