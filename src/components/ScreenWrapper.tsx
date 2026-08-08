@@ -1,14 +1,13 @@
 import React, { ReactNode } from 'react';
 import {
-    Platform,
     StatusBar,
     StyleProp,
     StyleSheet,
     View,
     ViewStyle
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/src/constants/colors';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -20,12 +19,14 @@ interface ScreenWrapperProps {
     children?: ReactNode;
     style?: StyleProp<ViewStyle>;
     backgroundColor?: string;
+    statusBarBackgroundColor?: string;
 }
 
 const ScreenWrapper: React.FC<ScreenWrapperProps> = ({ 
     children, 
     style, 
-    backgroundColor = Colors.BACKGROUND 
+    backgroundColor = Colors.BACKGROUND,
+    statusBarBackgroundColor,
 }) => {
     
     const { isMobile } = useBreakpoints();
@@ -44,12 +45,14 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         }; 
     }
 
+    const topInsetBg = statusBarBackgroundColor || backgroundColor;
+
     return (
         <View 
             style={[
                 styles.container, 
                 { 
-                    backgroundColor, 
+                    backgroundColor: topInsetBg, 
                     paddingTop: insets.top 
                 }
             ]}
@@ -61,7 +64,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
             />
 
             <KeyboardAvoidingView 
-                style={styles.keyboardContainer}
+                style={[styles.keyboardContainer, { backgroundColor }]}
                 behavior="padding"
             >
                 <View 
