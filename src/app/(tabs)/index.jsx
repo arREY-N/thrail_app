@@ -5,8 +5,8 @@ import EmergencyNotification from '@/src/components/EmergencyNotification';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailView from '@/src/core/hook/trail/useTrailView';
-import useAdminCancellation from '@/src/core/models/Cancellation/hooks/useAdminCancellation';
-import useCancellation from '@/src/core/models/Cancellation/hooks/useCancellation';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useCancellationAdmin, useCancellationUser, useCancellationUserList } from '@/src/core/models/Cancellation/Cancellation';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 export default function home(){
@@ -30,13 +30,20 @@ export default function home(){
 
     const {
         submitCancellationRequest,
-    } = useCancellation();
+    } = useCancellationUser();
+    
+    const {
+        userCancellations,
+    } = useCancellationUserList();
 
     const {
         cancellationRequests,
         processCancellationRequest,
-    } = useAdminCancellation();
-    
+    } = useCancellationAdmin();
+
+    const {
+        profile 
+    } = useAuthHook();
     
     return (
         <View style={{ flex: 1 }}>
@@ -49,8 +56,17 @@ export default function home(){
                 <Text>Test Cancellation</Text>
             </Pressable>
         
-
+            <Pressable onPress={() => getAllUserRequests(profile?.id || '')}>
+                <Text>Fetch User Cancellations</Text>
+            </Pressable>
             <View style={{ height: 30 }} />
+
+            { userCancellations && userCancellations.length > 0 && userCancellations.map((request) => (
+                <View key={request.id} style={{ marginBottom: 10 }}>
+                    <Text>Request ID: {request.id}</Text>
+                    <Text>Reason: {request.reason}</Text>
+                </View>
+            ))}
 
             { cancellationRequests.length > 0 && cancellationRequests.map((request) => (
                 <View key={request.id} style={{ marginBottom: 10 }}>
