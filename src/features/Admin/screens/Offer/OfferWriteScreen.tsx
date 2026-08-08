@@ -25,6 +25,9 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
 
+import { TEdit } from '@/src/core/interface/domainHookInterface';
+import { Offer } from '@/src/core/models/Offer/Offer';
+
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];
 const PRESET_BRING = ["Water (2L+)", "Trail Snacks", "Extra Clothes", "First-aid kit", "Headlamp", "Tent"];
@@ -36,7 +39,7 @@ export interface OfferWriteScreenProps {
     error?: string | null;
     onSubmitOffer: () => void;
     onDeleteOffer: (offerId: string) => void;
-    onUpdateOffer: (params: { section: string; id: string; value: any }) => void;
+    onUpdateOffer: (params: TEdit<Offer>) => void;
     onBackPress: () => void;
 }
 
@@ -80,7 +83,7 @@ const OfferWriteScreen = ({
         }
     }, []);
 
-    const handleUpdate = (params: { section: string, id: string, value: any }) => {
+    const handleUpdate = (params: TEdit<Offer>) => {
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
     };
