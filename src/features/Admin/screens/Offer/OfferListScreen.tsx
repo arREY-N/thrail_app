@@ -23,6 +23,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { Offer } from '@/src/core/models/Offer/Offer';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
@@ -42,7 +43,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param onBackPress - Callback for the back navigation action.
  */
 export interface OfferListScreenProps {
-    offers: Record<string, unknown>[];
+    offers: Offer[];
     bookingByOffer: Record<string, IBooking[]>;
     isLoading: boolean;
     error?: string;
@@ -134,7 +135,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const getOfferStatusDetails = (offer: Record<string, unknown>) => {
         const status = (offer.status || '').toString().toLowerCase();
-        const offerDate = safeParseDateString(offer.date || offer.hikeDate);
+        const offerDate = safeParseDateString((offer.date || offer.hikeDate) as any);
         offerDate.setHours(0, 0, 0, 0);
         
         const today = new Date();
