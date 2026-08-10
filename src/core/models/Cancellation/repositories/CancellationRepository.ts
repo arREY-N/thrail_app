@@ -24,15 +24,18 @@ export const CancellationRepository = (db: Firestore) => ({
                 ? doc(cancellationsRef)
                 : doc(cancellationsRef, cancellation.id);
 
-            if(isNew) cancellation.id = docRef.id;
+            const updated: Cancellation = {
+                ...cancellation,
+                id: isNew ? docRef.id : cancellation.id,
+            }
 
             await setDoc(
                 docRef,
-                cancellation,
+                updated,
                 { merge: true }
             )
 
-            return cancellation;
+            return updated;
         } catch(error) {
             console.error("Error writing cancellation to Firestore:", error);
             throw error;
