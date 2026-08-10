@@ -31,7 +31,9 @@ export function useCancellationUserList() {
         }
 
         setLocalError(null);
-        useCancellationStore.getState().fetchAllUserCancellations(profile.id)
+        useCancellationStore.getState().fetchAllUserCancellations(profile.id).catch(err => {
+            setLocalError(`Error fetching cancellations: ${(err as Error).message}`);
+        });
         
     },[profile?.id, profile?.role]);
 
