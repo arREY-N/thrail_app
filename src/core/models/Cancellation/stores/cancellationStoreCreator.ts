@@ -194,8 +194,10 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         try {
             let cancellations: Cancellation[];
 
-            if(get().offerCancellations[offerId].length > 0) {
-                cancellations = get().offerCancellations[offerId].filter(c => c.businessId === businessId && c.offerId === offerId);
+            const offerCancellations = get().offerCancellations[offerId];
+
+            if(offerCancellations && offerCancellations.length > 0) {
+                cancellations = offerCancellations.filter(c => c.businessId === businessId && c.offerId === offerId);
             } else {
                 cancellations = await CancellationRepo.fetchAllOfferCancellations(businessId, offerId);
             }
