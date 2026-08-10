@@ -32,11 +32,24 @@ export function useCancellationUserList() {
 
         setLocalError(null);
         useCancellationStore.getState().fetchAllUserCancellations(profile.id)
+        
     },[profile?.id, profile?.role]);
+
+    const refreshUserCancellations = async () => {
+        try {
+            if(!profile || !profile.id) {
+                throw new Error("User profile is not available. Cannot refresh cancellations.");
+            }
+            await useCancellationStore.getState().fetchAllUserCancellations(profile.id, true);
+        } catch (error) {
+            setLocalError(`Error refreshing cancellations: ${(error as Error).message}`);
+        }
+    }
 
     return {
         userCancellations,
         error: localError || storeError,
         isFetching: storeFetching,
+        refreshUserCancellations
     }
 }
