@@ -25,6 +25,7 @@ interface TopUserDetailModalProps {
     visible: boolean;
     user: RankedUsers<Date> | null;
     onClose: () => void;
+    currentUserId?: string;
 }
 
 /**
@@ -37,17 +38,27 @@ const TopUserDetailModal = ({
     visible,
     user,
     onClose,
+    currentUserId,
 }: TopUserDetailModalProps): React.JSX.Element => {
     if (!user) return <Modal visible={false} transparent animationType="fade" />;
 
     const fullName = `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.username;
+    const isCurrentUser = currentUserId ? user.userId === currentUserId : false;
 
     const rankBadgeColor =
         user.rank === 1
             ? Colors.LEADERBOARD_GOLD
             : user.rank === 2
             ? Colors.LEADERBOARD_SILVER
-            : Colors.LEADERBOARD_BRONZE;
+            : user.rank === 3
+            ? Colors.LEADERBOARD_BRONZE
+            : Colors.PRIMARY;
+
+    const getRankTitle = () => {
+        if (user.rank > 0 && user.rank <= 3) return `Peak #${user.rank} Champion`;
+        if (user.rank > 3) return `Rank #${user.rank} Hiker`;
+        return 'Unranked Hiker';
+    };
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -59,7 +70,7 @@ const TopUserDetailModal = ({
                     <View style={styles.headerRow}>
                         <View style={[styles.rankBadgeHeader, { backgroundColor: rankBadgeColor }]}>
                             <CustomText variant="caption" style={styles.rankBadgeHeaderText}>
-                                Peak #{user.rank} Champion
+                                {getRankTitle()}
                             </CustomText>
                         </View>
 
@@ -84,11 +95,13 @@ const TopUserDetailModal = ({
                             </View>
 
                             <CustomText variant="h2" style={styles.nameText} numberOfLines={1}>
-                                {fullName}
+                                {fullName} {isCurrentUser && '(You)'}
                             </CustomText>
-                            <CustomText variant="caption" style={styles.usernameText}>
-                                @{user.username}
-                            </CustomText>
+                            {fullName !== user.username && (
+                                <CustomText variant="caption" style={styles.usernameText}>
+                                    @{user.username}
+                                </CustomText>
+                            )}
                         </View>
 
                         {/* 3 Key Stats Grid */}
@@ -173,7 +186,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
     },
     modalContent: {
         width: '100%',
@@ -229,7 +242,7 @@ const styles = StyleSheet.create({
         width: 70,
         height: 70,
         borderRadius: 35,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.WHITE,
         justifyContent: 'center',
         alignItems: 'center',
     },
