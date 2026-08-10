@@ -29,7 +29,7 @@ export function useCancellationUserItem(cancellationId: string, businessId?: str
             return;
         }
 
-        useCancellationStore.getState().fetchUserCancellationById(profile?.id , cancellationId);
+        useCancellationStore.getState().fetchUserCancellation(profile?.id , cancellationId);
     },[cancellationId]);
 
     return {
