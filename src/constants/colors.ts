@@ -55,6 +55,17 @@ export const Palette = {
     Orange800:  '#E65100',
     Orange50:   '#FFF3E0',
 
+    // Metals (Gold/Silver/Bronze)
+    Gold700:   '#D97706',
+    Gold500:   '#F59E0B',
+    Gold100:   '#FEF3C7',
+    Silver700: '#475569',
+    Silver500: '#64748B',
+    Silver100: '#F1F5F9',
+    Bronze700: '#92400E',
+    Bronze500: '#D97706',
+    Bronze100: '#FFEDD5',
+
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
     WhiteAlpha90: 'rgba(255, 255, 255, 0.9)',
@@ -315,15 +326,15 @@ export const Colors = {
     INFO_CHIP_BG:           Palette.Neutral30,
 
     // Leaderboard Semantic Tokens
-    LEADERBOARD_GOLD:          Palette.Yellow600,
-    LEADERBOARD_GOLD_BG:       Palette.Yellow50,
-    LEADERBOARD_GOLD_ACCENT:   Palette.Yellow700,
-    LEADERBOARD_SILVER:        Palette.Neutral400,
-    LEADERBOARD_SILVER_BG:     Palette.Neutral100,
-    LEADERBOARD_SILVER_ACCENT: Palette.Neutral500,
-    LEADERBOARD_BRONZE:        Palette.Orange800,
-    LEADERBOARD_BRONZE_BG:     Palette.Orange50,
-    LEADERBOARD_BRONZE_ACCENT: Palette.Amber500,
+    LEADERBOARD_GOLD:          Palette.Gold500,
+    LEADERBOARD_GOLD_BG:       Palette.Gold100,
+    LEADERBOARD_GOLD_ACCENT:   Palette.Gold700,
+    LEADERBOARD_SILVER:        Palette.Silver500,
+    LEADERBOARD_SILVER_BG:     Palette.Silver100,
+    LEADERBOARD_SILVER_ACCENT: Palette.Silver700,
+    LEADERBOARD_BRONZE:        Palette.Bronze500,
+    LEADERBOARD_BRONZE_BG:     Palette.Bronze100,
+    LEADERBOARD_BRONZE_ACCENT: Palette.Bronze700,
     LEADERBOARD_PEAK_BASE:     Palette.Green700,
 };
 
