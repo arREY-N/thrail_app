@@ -33,10 +33,10 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 1. ~~Users must be able to create new requests.~~
 2. ~~Users must be able to update requests, as long as it's not approved.~~
 3. ~~Users must be able to appeal for rejected requests.~~
-4. Users must not be able to create requests for expired offers.
+4. ~~Users must not be able to create requests for expired offers.~~
 
 > Dont's
-1. Users must not be able to send requests to expired offers.
+1. ~~Users must not be able to send requests to expired offers.~~
 2. ~~Users must not be able to update approved requests.~~
 
 
@@ -45,15 +45,15 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 1. ~~Users must be able to see all of their requests and its details.~~ 
 
 > Dont's
-1. Users must not be able to see other user's requests.
+1. ~~Users must not be able to see other user's requests.~~
 2. Users must not be able to check group chat messages upon approval of cancellation request.
 
 #### Delete
 > Do's
-1. Users must be able to delete pending requests.
+1. ~~Users must be able to delete pending requests.~~
 
 > Dont's
-1. Users must not be able to delete processed requests.
+1. ~~Users must not be able to delete processed requests.~~
 
 ### Admin
 #### Create/Update
@@ -73,7 +73,7 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 1. ~~Admins must be able to see all business and offer cancellation requests made by users.~~
 
 > Dont's
-1. Admins must not be able to see other requests aside those that are under their business and offers.
+1. ~~Admins must not be able to see other requests aside those that are under their business and offers.~~
 
 #### Delete
 > Dont's
