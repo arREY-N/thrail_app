@@ -4,7 +4,6 @@ import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 
 export interface CancellationState {
-    // data: Cancellation[];
     businessCancellations: Cancellation[];
     offerCancellations: Record<string, Cancellation[]>;
     userCancellations: Cancellation[];
@@ -24,7 +23,6 @@ export interface CancellationState {
 }
 
 const init = {
-    data: [],
     businessCancellations: [],
     offerCancellations: {},
     userCancellations: [],
