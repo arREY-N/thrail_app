@@ -15,10 +15,11 @@ export interface BookingState {
     refresh: (userId?: string | null) => Promise<void>;
     subscribeToBusinessBookings: (offerId: string) => Promise<void>;
     unsubscribeFromBusinessBookings: (offerId: string) => void;
-    subscribeToUserBookings: () => Unsubscribe | null;
+    subscribeToUserBookings: (userId: string) => Unsubscribe;
     createBooking: (booking: Booking) => Promise<void>;
 
     data: Booking[];
+    subscriptionError: string | null;
     error: string | null;
     isLoading: boolean;
     userBookings: Booking[];
@@ -27,7 +28,6 @@ export interface BookingState {
 
     bookingByOffer: Record<string, Booking[]>;
     activeListeners: Record<string, Unsubscribe>;
-    unsubscribe: Unsubscribe | null;
 }
 
 const init = {
@@ -36,10 +36,10 @@ const init = {
     businessBookings: [],
     offerBookings: [],
     error: null,
+    subscriptionError: null,
     isLoading: false,
     bookingByOffer: {},
     activeListeners: {},
-    unsubscribe: null,
 };
 
 export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", never]]> = (set, get) => ({
@@ -47,25 +47,17 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
     reset: () => set(init),
 
-    subscribeToUserBookings: () => {
+    subscribeToUserBookings: (userId: string): Unsubscribe => {
         try {
-            const { profile } = useAuthStore.getState();
-
-            if (!profile) {
-                throw new Error("User not found");
-            }
-
-            const unsubscribe = BookingRepo.listenToUserBookings(profile.id, (bookings) =>
+            return BookingRepo.listenToUserBookings(userId, (bookings) =>
                 set({
                     userBookings: bookings,
                 }),
             );
-
-            set({ unsubscribe });
-            return unsubscribe;
         } catch (error) {
             console.error("Error subscribing to user bookings: ", error);
-            return null;
+            set({ subscriptionError: "Failed to subscribe to user bookings" });
+            throw error;
         }
     },
 
