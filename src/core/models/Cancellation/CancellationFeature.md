@@ -6,16 +6,16 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 ## Use Cases
 
 ### Users
-- Create and submit cancellation requests for reserved/booked hikes.   
+- Create and submit cancellation requests for reserved/booked hikes. [Done]   
 - Receive refunds for approved cancellation requests.
-- Appeal for rejected cancellation requests.
+- Appeal for rejected cancellation requests. [Done]
 
 ### Admin
-- Process cancellation requests.
-- Process appeals for rejected requests.
-- Cancel user bookings.
-- Send cancellation of booking notice to users.
-- Cancel hiking offers.
+- Process cancellation requests. [Done]
+- Process appeals for rejected requests. [Done]
+- Cancel user bookings without requests.  
+- Send cancellation of booking notice to users. 
+- Cancel hiking offers. 
 - Schedule refund to users for cancelled bookings.
 - Update offer information.
 - Update booking group chat members.
@@ -54,6 +54,11 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 
 > Dont's
 1. ~~Users must not be able to delete processed requests.~~
+
+#### Others
+> Do's
+1. Users must be able to receive refund on approved cancellation requests.
+2. Users must be removed from the group chat once cancellation request is approved. 
 
 ### Admin
 #### Create/Update
