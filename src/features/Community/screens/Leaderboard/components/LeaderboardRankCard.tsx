@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
@@ -23,6 +23,8 @@ import { getInitials } from '@/src/utils/dateFormatter';
 interface LeaderboardRankCardProps {
     user: RankedUsers<Date>;
     activeMetric: LeaderboardMetric;
+    onSelectUser?: (user: RankedUsers<Date>) => void;
+    currentUserId?: string;
 }
 
 /**
@@ -51,14 +53,21 @@ const formatMetricValue = (user: RankedUsers<Date>, metric: LeaderboardMetric): 
 const LeaderboardRankCard = ({
     user,
     activeMetric,
+    onSelectUser,
+    currentUserId,
 }: LeaderboardRankCardProps): React.JSX.Element => {
     const fullName = `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.username;
+    const isCurrentUser = currentUserId ? user.userId === currentUserId : false;
 
     return (
-        <View style={styles.card}>
+        <TouchableOpacity 
+            style={[styles.card, isCurrentUser && styles.cardActive]}
+            activeOpacity={onSelectUser ? 0.7 : 1}
+            onPress={() => onSelectUser?.(user)}
+        >
             {/* Rank Number Badge */}
             <View style={styles.rankBox}>
-                <CustomText variant="label" style={styles.rankText}>
+                <CustomText variant="label" style={[styles.rankText, isCurrentUser && styles.rankTextActive]}>
                     #{user.rank}
                 </CustomText>
             </View>
@@ -68,11 +77,11 @@ const LeaderboardRankCard = ({
                 {user.profileImage ? (
                     <CustomImage
                         source={{ uri: user.profileImage }}
-                        style={styles.avatarImage}
+                        style={[styles.avatarImage, isCurrentUser && styles.avatarImageActive]}
                     />
                 ) : (
-                    <View style={styles.avatarInitialsBox}>
-                        <CustomText variant="caption" style={styles.avatarInitialsText}>
+                    <View style={[styles.avatarInitialsBox, isCurrentUser && styles.avatarInitialsActive]}>
+                        <CustomText variant="caption" style={[styles.avatarInitialsText, isCurrentUser && styles.avatarInitialsTextActive]}>
                             {getInitials(fullName)}
                         </CustomText>
                     </View>
@@ -97,7 +106,7 @@ const LeaderboardRankCard = ({
                     {formatMetricValue(user, activeMetric)}
                 </CustomText>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
@@ -115,6 +124,16 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
         ...GlobalStyles.dropShadow(2),
     },
+    cardActive: {
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
+        borderWidth: 2,
+        shadowColor: Colors.PRIMARY,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+    },
     rankBox: {
         width: 36,
         alignItems: 'center',
@@ -126,6 +145,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
+    rankTextActive: {
+        color: Colors.PRIMARY,
+        fontSize: 15,
+    },
     avatarBox: {
         marginRight: 12,
     },
@@ -133,6 +156,10 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 21,
+    },
+    avatarImageActive: {
+        borderWidth: 2,
+        borderColor: Colors.PRIMARY,
     },
     avatarInitialsBox: {
         width: 42,
@@ -144,9 +171,16 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
     },
+    avatarInitialsActive: {
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
+    },
     avatarInitialsText: {
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
+    },
+    avatarInitialsTextActive: {
+        color: Colors.WHITE,
     },
     infoBox: {
         flex: 1,
