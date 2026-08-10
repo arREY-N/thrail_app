@@ -263,7 +263,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
         set({ isLoading: true, error: null });
 
         try {
-            if (get().userBookings.some((u) => u.offer.id === id || u.offer.id === id)) {
+            if (get().userBookings.some((u) => u.offer.id === id)) {
                 throw new Error("Already booked this offer");
             }
 

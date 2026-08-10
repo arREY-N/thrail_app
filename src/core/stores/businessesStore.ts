@@ -125,7 +125,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
             }
 
             set((state) => {
-                const updated = state.data.map(u => u.id !== id);
+                const updated = state.data.filter(u => u.id !== id);
 
                 return {
                     current: business,

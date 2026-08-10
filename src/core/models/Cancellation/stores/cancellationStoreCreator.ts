@@ -123,7 +123,7 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         try {
             let cancellation: Cancellation | null;
 
-            if(get().userCancellations.length > 0) {
+            if(get().userCancellations.length > 0 && get().userCancellations.some(c => c.id === id)) {
                 cancellation = get().userCancellations.find(c => c.id === id) || null;
             } else {
                 cancellation = await CancellationRepo.fetchCancellation(businessId, id);
