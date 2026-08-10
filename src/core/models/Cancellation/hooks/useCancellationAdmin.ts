@@ -8,7 +8,7 @@ import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Ca
 import { Offer } from "@/src/core/models/Offer/Offer"
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore"
 import { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/Offer.utils"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 type CancellationRequest = Required<Pick<Cancellation, 'reason' | 'offerId' | 'businessId' | 'bookingId'>>
 
@@ -27,33 +27,6 @@ export function useCancellationAdmin() {
 
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const fetchBooking = useBookingsStore(s => s.loadById);
-    const fetchCancellationByBusiness = useCancellationStore(s => s.fetchByBusinessId);
-
-    useEffect(() => {
-        try {
-            setIsLoading(true);
-            setLocalError(null);
-
-            if(!profile || !profile.id) {
-                throw new Error("User profile is not available.");
-            }
-
-            if(profile.role !== "admin") {
-                throw new Error("Only admins can fetch cancellation requests.");
-            }
-
-            if(!businessId) {
-                throw new Error("Business ID is not available.");
-            }
-            
-            fetchCancellationByBusiness(businessId);
-        } catch (error) {
-            console.error("Error fetching cancellation requests:", (error as Error).message);
-        } finally {
-            setIsLoading(false);
-        }
-    },[businessId])
-
 
     const processCancellationRequest = async (request: Cancellation, approved: boolean, adminNote?: string) => {
         try {
@@ -98,30 +71,37 @@ export function useCancellationAdmin() {
                 // }
                 
                 // send updated data to db
-                console.log("Old booking:", booking);
-                console.log("Updated Booking:", updatedBooking);
-                console.log("Old Offer:", offer);
-                console.log("Updated Offer:", updatedOffer);
+                console.log("[Cancellation] Old booking:", booking);
+                console.log("[Cancellation] Updated Booking:", updatedBooking);
+                console.log("[Cancellation] Old Offer:", offer);
+                console.log("[Cancellation] Updated Offer:", updatedOffer);
 
-                await createBooking(updatedBooking);
-                await createOffer(updatedOffer);
+                // await createBooking(updatedBooking);
+                // await createOffer(updatedOffer);
+            } else {
+                if(!adminNote || adminNote.trim() === "") {
+                    throw new Error("Admin note is required when rejecting a cancellation request.");
+                }
             }
 
             // update cancellation request status
             const updated: Cancellation = flagCancellationRequest(request, approved, adminNote);
             
-            await createCancellation(updated.businessId, updated);
+            await createCancellation({
+                cancellation: updated,
+                oldCancellation: request,
+                isAdmin: true
+            });
             
             // notify user
             const notificationMessage = approved 
                 ? "Your cancellation request has been approved." 
                 : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided.");
 
-            console.log("Old Cancellation Request:", request);
-            console.log("Updated Cancellation Request:", updated);
+            console.log("[Cancellation] Old Cancellation Request:", request);
+            console.log("[Cancellation] Updated Cancellation Request:", updated);
 
         } catch (error) {
-            console.error("Error processing cancellation request:", (error as Error).message);
             setLocalError((error as Error).message || "An unexpected error occurred.");
         } finally {
             setIsLoading(false);
