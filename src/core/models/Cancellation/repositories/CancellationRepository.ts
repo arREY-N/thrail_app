@@ -85,6 +85,7 @@ export const CancellationRepository = (db: Firestore) => ({
      */
     async delete(businessId: string, id: string): Promise<void> {
         try {
+            console.log(`businesses/${businessId}/cancellations/${id}`);
             const cancellationsRef = createCancellationCollection(db, businessId);
             const docRef = doc(cancellationsRef, id);
             await deleteDoc(docRef);
