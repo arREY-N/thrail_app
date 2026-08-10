@@ -1,4 +1,3 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { useEffect, useState } from "react";
 
@@ -7,9 +6,8 @@ import { useEffect, useState } from "react";
  * @param cancellationId 
  * @param businessId 
  */
-export function useCancellationUserItem(cancellationId: string, businessId?: string) {
+export function useCancellationUserItem(cancellationId: string, businessId: string) {
     const [localError, setLocalError] = useState<string | null>(null);
-    const { profile } = useAuthHook();
 
     const cancellationItem = useCancellationStore(
         s => s.userCancellations.find(c => c.id === cancellationId) ?? null
@@ -24,13 +22,13 @@ export function useCancellationUserItem(cancellationId: string, businessId?: str
             return;
         }
 
-        if(!profile || !profile.id) {
-            setLocalError("User profile is not available.");
+        if(!businessId) {
+            setLocalError("Business ID is not provided.");
             return;
         }
 
-        useCancellationStore.getState().fetchUserCancellation(profile?.id , cancellationId);
-    },[cancellationId]);
+        useCancellationStore.getState().fetchUserCancellation(businessId, cancellationId);
+    },[cancellationId, businessId]);
 
     return {
         cancellationItem,
