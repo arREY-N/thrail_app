@@ -24,7 +24,7 @@ export const createCancellationRequest = (
         throw new Error("Offer ID is required to create a cancellation request.");
     }
 
-    if(!required.reason) {
+    if(!required.reason || required.reason.trim() === "") {
         throw new Error("Reason is required to create a cancellation request.");
     }
 
