@@ -6,6 +6,15 @@ import { BusinessRepository } from "@/src/core/repositories/businessRepository";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+/**
+ * 
+ * Currently refactoring
+ * Still used by old code
+ * New store can be found in
+ * @src/core/models/Booking/stores/bookingStoreCreator.ts
+ * 
+ */
+
 type AdminUI = {
     user: User,
     businessId: string,
