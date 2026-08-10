@@ -16,13 +16,9 @@ export function useCancellationAdmin() {
     const { profile, businessId } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
     const [request, setRequest] = useState<CancellationRequest | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
     const cancellationRequests = useCancellationStore(s => s.businessCancellations);
+    const isWriting = useCancellationStore(s => s.isWriting);
 
-    const write = useCancellationStore(s => s.write);
-
-    const createBooking = useBookingsStore(s => s.createBooking);
-    const createOffer = useOfferStore(s => s.createOffer);
     const createCancellation = useCancellationStore(s => s.write);
 
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
@@ -30,7 +26,6 @@ export function useCancellationAdmin() {
 
     const processCancellationRequest = async (request: Cancellation, approved: boolean, adminNote?: string) => {
         try {
-            setIsLoading(true);
             setLocalError(null);
 
             if(!profile || profile.role !== "admin") {
@@ -103,12 +98,11 @@ export function useCancellationAdmin() {
 
         } catch (error) {
             setLocalError((error as Error).message || "An unexpected error occurred.");
-        } finally {
-            setIsLoading(false);
         }
     }
     
     return {
+        isWriting,
         localError,
         cancellationRequests,
         processCancellationRequest,
