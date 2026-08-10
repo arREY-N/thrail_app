@@ -13,9 +13,8 @@ import { useState } from "react"
 type CancellationRequest = Required<Pick<Cancellation, 'reason' | 'offerId' | 'businessId' | 'bookingId'>>
 
 export function useCancellationAdmin() {
-    const { profile, businessId } = useAuthHook();
+    const { profile } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
-    const [request, setRequest] = useState<CancellationRequest | null>(null);
     const cancellationRequests = useCancellationStore(s => s.businessCancellations);
     const isWriting = useCancellationStore(s => s.isWriting);
 
