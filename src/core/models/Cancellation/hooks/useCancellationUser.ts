@@ -14,11 +14,11 @@ export function useCancellationUser() {
     const [writingError, setWritingError] = useState<string | null>(null);
     
     const isWriting = useCancellationStore(s => s.isWriting);
-
+    
     const write = useCancellationStore(s => s.write);
     const deleteCancellation = useCancellationStore(s => s.delete);
 
-    const newCancellationRequest = async (request: CancellationRequest) => {
+    const newCancellationRequest = async (request: CancellationRequest, offerDate: Date) => {
         try {
             setWritingError(null);
             if(!profile || !profile.id) {
@@ -29,6 +29,10 @@ export function useCancellationUser() {
                 throw new Error("Only users can submit cancellation requests.");
             }
     
+            if(offerDate <= new Date()) {
+                throw new Error("Cannot cancel an expired offer.");
+            }
+
             const cancellationRequest = createCancellationRequest(
                 { 
                     ...request, 
