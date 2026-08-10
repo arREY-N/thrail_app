@@ -164,12 +164,15 @@ const UserCancellation = () => {
                     <Text>Booking ID: {b.id}</Text>
                     <Text>Trail: {b.trail.name}</Text>
                     <Text>On: {b.offer.date.toLocaleDateString()}</Text>
-                    <Pressable onPress={() => newCancellationRequest({
-                        businessId: b.business.id,
-                        bookingId: b.id,
-                        offerId: b.offer.id,
-                        reason: reason,
-                    })}>
+                    <Pressable onPress={() => {
+                        const request = {
+                            businessId: b.business.id,
+                            bookingId: b.id,
+                            offerId: b.offer.id,
+                            reason: reason,
+                        };
+                        newCancellationRequest(request, b.offer.date);
+                    }}>
                         <Text>Submit Cancellation Request</Text>
                     </Pressable>
                 </View>
