@@ -23,7 +23,7 @@ export function useCancellationAdminList() {
             if(!businessId) 
                 throw new Error("Business ID is not available. Cannot refresh cancellations.");
 
-            fetchAllBusinessCancellations(businessId, true);
+            await fetchAllBusinessCancellations(businessId, true);
         } catch (error) {
             setLocalError(`Error refreshing cancellations: ${(error as Error).message}`);
         }
