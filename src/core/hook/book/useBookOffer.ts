@@ -6,10 +6,10 @@ import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/Ref_Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { router } from "expo-router";
 import { httpsCallable } from "firebase/functions";
@@ -26,7 +26,7 @@ export type UseBookOfferParams = {
 export default function useBookOffer(params: UseBookOfferParams = {}) {
     const { profile } = useAuthHook();
     const bookings = useBookingsStore(s => s.userBookings);
-    const fetchOffer = useOffersStore(s => s.fetchOfferById);
+    const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
     const createBooking = useBookingsStore(s => s.create);

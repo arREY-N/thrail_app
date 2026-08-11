@@ -1,14 +1,14 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export default function useAdminOffer() {
     const { businessId } = useAuthHook();
 
-    const loadBusinessOffers = useOffersStore(s => s.fetchOfferByBusiness);
-    const businessOffers = useOffersStore(s => s.businessOffers); 
+    const loadBusinessOffers = useOfferStore(s => s.fetchOfferByBusiness);
+    const businessOffers = useOfferStore(s => s.businessOffers); 
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
@@ -61,8 +61,8 @@ export default function useAdminOffer() {
     }
 
     return {
-        isLoading: useOffersStore(s => s.isLoading),
-        error: useOffersStore(s => s.error) || localError,
+        isLoading: useOfferStore(s => s.isLoading),
+        error: useOfferStore(s => s.error) || localError,
         businessOffers, 
         onViewOfferBookings
     }

@@ -1,14 +1,13 @@
 import { Stack } from 'expo-router';
-import React from 'react';
 
 import UnauthorizedScreen from '@/src/app/unauthorized';
 import { useAdmin } from '@/src/core/hook/admin/useAdmin';
 import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
-import { useOffersStore } from '@/src/core/stores/offersStore';
 import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
 /**
@@ -49,7 +48,7 @@ export default function adminHome() {
         if (businessId) {
             useBusinessesStore.getState().load(businessId);
             useBusinessesStore.getState().loadBusinessAdmins(businessId);
-            useOffersStore.getState().fetchOfferByBusiness(businessId);
+            useOfferStore.getState().fetchOfferByBusiness(businessId);
         }
     };
 

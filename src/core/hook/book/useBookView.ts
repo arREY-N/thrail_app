@@ -1,6 +1,6 @@
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
 import { useEffect, useState } from "react";
 
@@ -11,14 +11,14 @@ export type BookParams = {
 export function useBookView(params: BookParams){
     const { offerId } = params;
 
-    const systemOffers = useOffersStore(s => s.error);
+    const systemOffers = useOfferStore(s => s.error);
     const systemPayments = usePaymentsStore(s => s.error);
     const systemBookings = useBookingsStore(s => s.error);
 
     const profile = useAuthStore(s => s.profile);
 
-    const loadOffer = useOffersStore(s => s.load);
-    const offer = useOffersStore(s => s.current);
+    const loadOffer = useOfferStore(s => s.fetchOfferById);
+    const offer = useOfferStore(s => s.current);
 
     const paymentIsLoading = usePaymentsStore(s => s.isLoading);
     
@@ -32,7 +32,8 @@ export function useBookView(params: BookParams){
     
     useEffect(() => {
         console.log('loading: ', offerId);
-        loadOffer({ id: offerId })
+        if(!offerId) return;
+        loadOffer(offerId);
     }, [offerId]);
 
     return {

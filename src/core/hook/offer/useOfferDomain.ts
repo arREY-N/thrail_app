@@ -1,5 +1,5 @@
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { useOffersStore } from "@/src/core/stores/offersStore";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -13,16 +13,16 @@ export type UseOfferParams = {
 export function useOfferDomain(params: UseOfferParams){
     const { offerId, trailId, mode } = params;
 
-    const fetchOffer = useOffersStore(s => s.load);
-    const fetchTrailOffers = useOffersStore(s => s.fetchOfferByTrail)
-    const fetchOffers = useOffersStore(s => s.fetchAll);
+    const fetchOffer = useOfferStore(s => s.fetchOfferById);
+    const fetchTrailOffers = useOfferStore(s => s.fetchOfferByTrail);
+    const fetchOffers = useOfferStore(s => s.fetchAll);
     
-    const offers = useOffersStore(s => s.data);
-    const offer = useOffersStore(s => s.current);
-    const trailOffers = useOffersStore(s => s.trailOffers);
-    const businessOffers = useOffersStore(s => s.businessOffers);
-    const error = useOffersStore(s => s.error);
-    const isLoading = useOffersStore(s => s.isLoading);
+    const offers = useOfferStore(s => s.data);
+    const offer = useOfferStore(s => s.current);
+    const trailOffers = useOfferStore(s => s.trailOffers);
+    const businessOffers = useOfferStore(s => s.businessOffers);
+    const error = useOfferStore(s => s.error);
+    const isLoading = useOfferStore(s => s.isLoading);
     
     const [list, setList] = useState<Offer[]>([]);
     

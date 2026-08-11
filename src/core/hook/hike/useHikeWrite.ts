@@ -2,11 +2,11 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { BookingRepository } from "@/src/core/repositories/bookingRepository";
 import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -53,7 +53,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const trails = useTrailsStore(s => s.data);
     const hikes = useHikesStore(s => s.hikes);
 
-    const fetchOffer = useOffersStore(s => s.fetchOfferById);
+    const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const [fullOffer, setFullOffer] = useState<Offer | null>(null);
 
     const currentHike = useHikesStore(s => s.currentHike);
@@ -113,7 +113,11 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         if (hikeId === 'new_diy_session') {
             console.log('starting new DIY hike session');
             found = new Hike({
-                trail: { id: "diy", name: "Free Roam (DIY)" },
+                trail: { 
+                    id: "diy", 
+                    name: "Free Roam (DIY)",
+                    location: "Unknown" 
+                },
                 status: 'unhiked',
                 mode: 'direct',
                 startTime: new Date(),
