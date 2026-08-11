@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { BookingStatus, IBooking } from "@/src/core/models/Booking/Booking.types";
-import { IOffer, ISchedule, IActivity } from "@/src/core/models/Offer/interfaces/Offer.types";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
+import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/interfaces/Offer.types";
+
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -26,6 +26,7 @@ import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHe
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
 
+import { useBookingsStore } from '@/src/core/models/Booking/stores/bookingStore';
 import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 

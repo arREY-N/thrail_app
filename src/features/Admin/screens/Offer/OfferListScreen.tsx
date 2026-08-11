@@ -25,6 +25,7 @@ import { Layout } from '@/src/constants/layout';
 import { IBooking } from '@/src/core/models/Booking/Booking.types';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
+import { Offer } from '@/src/core/models/Offer/Offer';
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
 import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -42,10 +43,10 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param onBackPress - Callback for the back navigation action.
  */
 export interface OfferListScreenProps {
-    offers: Record<string, unknown>[];
+    offers: Offer[];
     bookingByOffer: Record<string, IBooking[]>;
     isLoading: boolean;
-    error?: string;
+    error: string | null;
     onAddOffer: () => void;
     onEditOffer: (offerId: string) => void;
     onViewOfferBookings: (offerId: string) => void;

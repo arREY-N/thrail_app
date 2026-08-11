@@ -1,6 +1,6 @@
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { usePaymentsStore } from "@/src/core/stores/paymentsStore";
 import { useEffect, useState } from "react";
 

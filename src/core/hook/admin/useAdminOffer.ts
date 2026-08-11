@@ -1,6 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 

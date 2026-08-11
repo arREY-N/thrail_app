@@ -1,4 +1,4 @@
-import useBookingsStore from "@/src/core/stores/bookingsStore";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useEffect } from "react";
 
 export type UseBookParams = {

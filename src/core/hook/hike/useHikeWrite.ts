@@ -1,11 +1,10 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Booking";
+import { Booking } from "@/src/core/models/Booking/Ref_Booking";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
-import { BookingRepository } from "@/src/core/repositories/bookingRepository";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
@@ -73,6 +72,8 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const create = useHikesStore(s => s.create);
     const startHike = useHikesStore(s => s.startHike);
 
+    const createBooking = useBookingsStore(s => s.create);
+
     const [booking, setBooking] = useState<Booking | null>(null);
 
     // Resolve booking and offer when bookings list loads or active hike changes
@@ -82,7 +83,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             const b = bookings.find(b => b.id === targetBookingId);
             if (b) {
                 setBooking(b);
-                fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                fetchOffer(b.offer.id).then(() => {
+                    const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                    setFullOffer(offer);
+                });
             }
         }
     }, [bookingId, active, currentHike?.bookingId, bookings, booking]);
@@ -133,7 +137,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                     const b = bookings.find(b => b.id === exist.bookingId);
                     if (b) {
                         setBooking(b);
-                        fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                        fetchOffer(b.offer.id).then(() => {
+                            const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                            setFullOffer(offer);
+                        });
                     }
                 }
             }
@@ -155,7 +162,10 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                     const b = bookings.find(b => b.id === bookingId);
                     if (b) {
                         setBooking(b);
-                        fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                        fetchOffer(b.offer.id).then(() => {
+                            const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                            setFullOffer(offer);
+                        });
                     }
                 }
 
@@ -291,8 +301,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         await create(profile.id, completedHike);
         
         if (completedHike.mode === 'booked' && booking) {
-            const finishedBooking = new Booking({ ...booking, status: 'finished' });
-            await BookingRepository.write(finishedBooking);
+            await createBooking({ ...booking, status: 'finished' });
         }
         
         if(groupId){

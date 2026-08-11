@@ -3,11 +3,11 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Requirements } from "@/src/core/models/Booking/Booking.types";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { Booking, createBooking } from "@/src/core/models/Booking/Ref_Booking";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import { User } from "@/src/core/models/User/User";
 import { UserRepository } from "@/src/core/repositories/userRepository";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
@@ -22,17 +22,17 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
     const { profile, role } = useAuthHook();
     
     const bookingIsLoading = useBookingsStore(s => s.isLoading);
-    const offerIsLoading = useOffersStore(s => s.isLoading);
-    const offerError = useOffersStore(s => s.error);
+    const offerIsLoading = useOfferStore(s => s.isLoading);
+    const offerError = useOfferStore(s => s.error);
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const offers = useOffersStore(s => s.businessOffers);
+    const offers = useOfferStore(s => s.businessOffers);
     const bookings = useBookingsStore(s => s.bookingByOffer[offerId] || []);
-    const loadOffer = useOffersStore(s => s.loadOffer);
+    const loadOffer = useOfferStore(s => s.fetchOfferById);
     const loadBooking = useBookingsStore(s => s.loadById);
     const create = useBookingsStore(s => s.create);
     
-    const [offer, setOffer] = useState<Offer | null>(null);
+    const [offer, setOffer] = useState<Offer | null>(offers.find(o => o.id === offerId) || null);
     const [booking, setBooking] = useState<Booking | null>(null);
     const [hikerProfile, setHikerProfile] = useState<User | null>(null);
 
@@ -50,12 +50,15 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 setHikerProfile(null);
             }
         };
+
+        console.log('running line 54');
         fetchHiker();
     }, [booking?.user?.id]);
 
     useEffect(() => {
         setLocalError(null);
         try{
+            console.log('running line 61');
             if(offerId && bookingId) {
                 loadOffer(offerId);
                 loadBooking(bookingId);
@@ -68,6 +71,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
     useEffect(() => {
         try {
+            console.log('running line 74');
             if(offerId){
                 setOffer(offers.find(o => o.id === offerId) || null);
             }
@@ -92,7 +96,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             console.error('Error setting offer or booking: ', error);
             setLocalError((error as Error).message || 'Failed to set offer or booking');
         }
-    }, [offers, bookings, offerId, bookingId]);
+    }, [offerId, bookingId]);
 
     const onApproveBooking = async (
         validatedDocuments: Requirements[],
@@ -119,6 +123,8 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 status: 'for-payment',
             });
             
+            console.log('Attempting to approve booking: ', approvedBook);
+
             if(!BookingLogic.checkDocuments(approvedBook)){
                 setLocalError('Cannot approve booking with pending documents. Please validate all documents first.');
                 return;
@@ -133,32 +139,10 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             }
 
             // Sync the hiker's profile and emergency contact profile if they exist
-            try {
-                if (hikerProfile) {
-                    const updatedHiker = new User({
-                        ...hikerProfile,
-                        phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : hikerProfile.phoneVerifiedAt,
-                        emergencyContact: hikerProfile.emergencyContact ? {
-                            ...hikerProfile.emergencyContact,
-                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : hikerProfile.emergencyContact.phoneVerifiedAt,
-                        } : undefined
-                    });
-                    await UserRepository.write(updatedHiker);
-                }
-                
-                if (booking.emergencyContact?.userId) {
-                    const emergencyProfile = await UserRepository.fetchById(booking.emergencyContact.userId);
-                    if (emergencyProfile) {
-                        const updatedEmergency = new User({
-                            ...emergencyProfile,
-                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : emergencyProfile.phoneVerifiedAt
-                        });
-                        await UserRepository.write(updatedEmergency);
-                    }
-                }
-            } catch (syncError) {
-                console.error('Failed to sync global profile verifications: ', syncError);
-            }
+            // WRONG USE CASE
+            // 
+            // Sync upon submission of reservation not in approval
+            // Admins do not have permissions to edit users' profiles.
         
             router.back();
 
@@ -356,3 +340,30 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
         onCancelUnpaid
     }
 }
+
+// try {
+//     if (hikerProfile) {
+//         const updatedHiker = new User({
+//             ...hikerProfile,
+//             phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : hikerProfile.phoneVerifiedAt,
+//             emergencyContact: hikerProfile.emergencyContact ? {
+//                 ...hikerProfile.emergencyContact,
+//                 phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : hikerProfile.emergencyContact.phoneVerifiedAt,
+//             } : undefined
+//         });
+//         await UserRepository.write(updatedHiker);
+//     }
+
+//     if (booking.emergencyContact?.userId) {
+//         const emergencyProfile = await UserRepository.fetchById(booking.emergencyContact.userId);
+//         if (emergencyProfile) {
+//             const updatedEmergency = new User({
+//                 ...emergencyProfile,
+//                 phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : emergencyProfile.phoneVerifiedAt
+//             });
+//             await UserRepository.write(updatedEmergency);
+//         }
+//     }
+// } catch (syncError) {
+//     console.error('Failed to sync global profile verifications: ', syncError);
+// }
