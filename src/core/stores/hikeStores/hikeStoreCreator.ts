@@ -81,7 +81,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             // console.log('Adding coordinate: ', coordinate);
             if(!active || (currentHike && currentHike.status === 'paused')) {
-                console.log('not active');
+                // console.log('not active');
                 set({
                     coordinates: [coordinate]
                 })
