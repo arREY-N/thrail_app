@@ -122,3 +122,5 @@ export const editUser = ({user, updates}: {user: User, updates: Partial<User>}) 
     console.log("Editing user with updates:", updates);
     return new User({...user, ...updates});
 }
+
+export * from "@/src/core/models/User/User.types";
