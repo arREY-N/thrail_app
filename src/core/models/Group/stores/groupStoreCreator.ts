@@ -1,9 +1,10 @@
 import { newGroup } from "@/src/core/models/Group/GroupFactory";
-import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/Group.types";
+import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/IGroup";
 
 import { GroupRepo } from "@/src/core/init/repositories";
 import { Message } from "@/src/core/models/Message/Message";
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IUserSummary } from "@/src/core/models/User/User";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -11,6 +12,7 @@ export interface GroupState {
     groups: Group[];
     isLoading: boolean;
     error: string | null;
+    isFetching: boolean;
 
     messagesByGroup: Record<string, Message[]>;
     activeListeners: Record<string, Unsubscribe>;
@@ -23,12 +25,14 @@ export interface GroupState {
     loadMoreMessages: (groupId: string) => void;  // Triggers pagination
     markGroupAsVisited: (groupId: string, userSummary: IUserSummary) => Promise<void>; // Marks the group as visited for the user
 
+    fetchGroupById: (groupId: string) => Promise<void>;
+
     setGroups: (groups: Group[]) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
 
     sendMessage: (groupId: string, message: Message) => void;
     markAsRead: (groupId: string, message: Message, userSummary: IUserSummary) => void;
-    createGroup: (group: Group) => void;
+    createGroup: (group: Group) => Promise<void>;
     joinGroup: (group: Group, member: IGroupMember) => Promise<void>;
     checkGroupExists: (groupId: string) => Promise<Group | null>;
 }
@@ -36,12 +40,28 @@ export interface GroupState {
 export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", never]]> = ((set, get) => ({
     groups: [],
     isLoading: false,
+    isFetching: false,
     error: null,
     messagesByGroup: {},
     activeListeners: {},
     messageLimits: {},
     messagePrevCounts: {},
     hasReachedEndByGroup: {},
+
+    fetchGroupById: async (groupId: string): Promise<void> => {
+        try {
+            set({ isFetching: true, error: null });
+            
+            const group = await GroupRepo.fetchGroup(groupId);
+            
+            set({ 
+                isFetching: false,
+                groups: upsertItem(get().groups, group)
+            });
+        } catch (error) {
+            throw error;
+        }
+    },
 
     subscribeToGroup: (groupId) => {
         // If already listening, do not duplicate
@@ -151,6 +171,7 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     },
 
     setGroups: (groups) => set({ groups }),
+
     setMessagesByGroup: (groupId, messages) => set((state) => {
         const current = state.messagesByGroup[groupId];
         if(current === messages) {
@@ -177,7 +198,6 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         try {
             await GroupRepo.writeGroup(group);
         } catch (error) {
-            console.log("Failed to create group:", error);
             throw error;
         }
     },

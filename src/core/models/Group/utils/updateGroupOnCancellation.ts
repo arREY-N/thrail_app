@@ -8,5 +8,9 @@ export const updateGroupOnCancellation = (group: Group, removeId: string) => {
         members: group.members.filter(member => member.id !== removeId),
         admins: group.admins.filter(admin => admin.id !== removeId),
         updatedAt: new Date(),
+        offer: {
+            ...group.offer,
+            reservedPax: group.offer.reservedPax > 0 ? group.offer.reservedPax - 1 : 0,
+        }
     })
 }

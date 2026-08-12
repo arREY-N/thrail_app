@@ -1,4 +1,4 @@
-import { Group, IGroup, IGroupDB } from "@/src/core/models/Group/interfaces/Group.types";
+import { Group, IGroup, IGroupDB } from "@/src/core/models/Group/interfaces/IGroup";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 

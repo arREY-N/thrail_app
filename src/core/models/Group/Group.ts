@@ -1,8 +1,8 @@
-// REFACTORING
-// "@/src/core/models/Group/Group";
+import { Group } from "@/src/core/models/Group/interfaces/IGroup";
+import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 
 // TYPES
-export * from "@/src/core/models/Group/interfaces/Group.types";
+export * from "@/src/core/models/Group/interfaces/IGroup";
 
 // FACTORY
 export { GroupConverter, newGroup } from "@/src/core/models/Group/GroupFactory";
@@ -13,163 +13,13 @@ export { GroupRepo } from "@/src/core/init/repositories";
 // STORE ACCESS
 export { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 
+export const getGroupItem = async (groupId: string): Promise<Group | null> => {
+    await useGroupStore.getState().fetchGroupById(groupId);
+    return useGroupStore.getState().groups.find(group => group.id === groupId) || null;
+}
+
 // HOOKS
 
 
-
-// import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-// import { IGroup, IGroupDB, IGroupMember } from "@/src/core/models/Group/Group.types";
-// import { IMessageBase } from "@/src/core/models/Message/Message.types";
-// import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
-// import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
-// import { IUserSummary } from "@/src/core/models/User/User.types";
-// import { toDate } from "@/src/core/utility/date";
-// import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
-// import { immerable } from "immer";
-
-
-// export class XGroup implements IGroup {
-//     [key: string]: any;
-//     [immerable] = true;
-
-//     id: string = '';
-//     type: 'group' | 'chat' = 'group';
-//     createdAt: Date = new Date();
-//     updatedAt: Date = new Date();
-//     participantsIds: string[] = [];
-//     members: IGroupMember[] = [];
-//     admins: IUserSummary[] = [];
-//     business: IBusinessSummary = {
-//         id: '',
-//         name: '',
-//     };
-//     trail: ITrailSummary = {
-//         id: '',
-//         name: '',
-//         location: ''
-//     };
-//     offer: Omit<IOfferBase<Date>, 'business' | 'trail' | 'createdAt' | 'updatedAt'> = {
-//         id: "",
-//         schedule: [],
-//         date: new Date(),
-//         endDate: new Date(),
-//         duration: "",
-//         price: 0,
-//         maxPax: 0,
-//         minPax: 0,
-//         reservedPax: 0,
-//         documents: [],
-//         inclusions: [],
-//         thingsToBring: [],
-//         reminders: [],
-//         description: ""
-//     };
-//     status: "active" | "archived" = "active";
-//     lastMessage: IMessageBase<Date> = {
-//         id: '',
-//         content: '',
-//         senderId: '',
-//         senderName: '',
-//         timesent: new Date(),
-//         status: 'sent',
-//         readBy: []
-//     };
-//     image: string = '';
-
-//     get GroupName(): string {
-//         return `${this.trail.name}_${this.business.name}_${this.offer.date.toISOString().split('T')[0]}`;
-//     }   
-
-//     constructor(init?: Partial<IGroup>) {
-//         Object.assign(this, init);
-//     }
-
-//     static fromFirestore(id: string, data: IGroupDB): Group {
-//         const mapped: IGroup = {
-//             ...data,
-//             id,
-//             createdAt: toDate(data.createdAt),
-//             updatedAt: toDate(data.updatedAt),
-//             offer: {
-//                 ...data.offer,
-//                 date: toDate(data.offer.date),
-//                 endDate: toDate(data.offer.endDate),
-//                 schedule: (data.offer?.schedule ?? []).map(s => ({
-//                     ...s,
-//                     activities: (s.activities ?? []).map(a => ({
-//                         ...a,
-//                         time: toDate(a.time)
-//                     }))
-//                 }))
-//             },
-//             lastMessage: data.lastMessage ? {
-//                 ...data.lastMessage,
-//                 timesent: toDate(data.lastMessage.timesent)
-//             } : null,
-//             participantsIds: data.participantsIds ?? []
-//         };
-        
-//         return new Group(mapped);
-//     }
-
-//     toFirestore(): IGroupDB {
-//         const isNew = this.id === '';
-
-//         const mapped: IGroupDB = {
-//             id: this.id,
-//             createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-//             updatedAt: serverTimestamp(),
-//             type: this.type,
-//             members: this.members,
-//             participantsIds: this.participantsIds,
-//             admins: this.admins,
-//             business: this.business,
-//             trail: this.trail,
-//             offer: {
-//                 id: this.offer.id,
-//                 duration: this.offer.duration,
-//                 price: this.offer.price,
-//                 maxPax: this.offer.maxPax,
-//                 minPax: this.offer.minPax,
-//                 reservedPax: this.offer.reservedPax,
-//                 documents: this.offer.documents,
-//                 inclusions: this.offer.inclusions,
-//                 thingsToBring: this.offer.thingsToBring,
-//                 reminders: this.offer.reminders,
-//                 description: this.offer.description,
-//                 date: Timestamp.fromDate(this.offer.date || new Date()),
-//                 endDate: isNew ? serverTimestamp() : Timestamp.fromDate(this.offer.endDate || new Date()),
-//                 schedule: this.offer.schedule.map(s => ({
-//                     day: s.day,
-//                     activities: s.activities.map(a => ({
-//                         event: a.event,
-//                         time: Timestamp.fromDate(a.time || new Date())
-//                     }))
-//                 }))
-//             },
-//             lastMessage: {
-//                 id: this.lastMessage.id,
-//                 content: this.lastMessage.content,
-//                 senderId: this.lastMessage.senderId,
-//                 senderName: this.lastMessage.senderName,
-//                 status: this.lastMessage.status,
-//                 readBy: this.lastMessage.readBy,
-//                 timesent: Timestamp.fromDate(this.lastMessage.timesent || new Date())
-//             },
-//             status: this.status,
-//             image: this.image
-//         };
-
-//         return mapped;
-//     }
-// }
-
-// export const GroupConverter: FirestoreDataConverter<Group> = {
-//     toFirestore: (group: Group) => {
-//         return group.toFirestore();
-//     },
-//     fromFirestore: (snapshot: QueryDocumentSnapshot): Group => {
-//         const data = snapshot.data() as IGroupDB;
-//         return Group.fromFirestore(snapshot.id, data);
-//     }
-// }
+// UTILITIES
+export { updateGroupOnCancellation } from "@/src/core/models/Group/utils/updateGroupOnCancellation";

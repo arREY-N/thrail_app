@@ -1,8 +1,23 @@
 import { GroupConverter } from "@/src/core/models/Group/GroupFactory";
-import { Group } from "@/src/core/models/Group/interfaces/Group.types";
+import { Group } from "@/src/core/models/Group/interfaces/IGroup";
 import { Message, MessageConverter } from "@/src/core/models/Message/Message";
-import { IUserSummary } from "@/src/core/models/User/User.types";
-import { arrayUnion, collection, doc, Firestore, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc, where } from "firebase/firestore";
+import { IUserSummary } from "@/src/core/models/User/User";
+import {
+    arrayUnion,
+    collection,
+    doc,
+    Firestore,
+    getDoc,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Unsubscribe,
+    updateDoc,
+    where
+} from "firebase/firestore";
 
 export const GroupRepository = (db: Firestore) => ({
     async fetchGroup(groupId: string): Promise<Group> {
@@ -56,11 +71,8 @@ export const GroupRepository = (db: Firestore) => ({
                 ? doc(collection(db, 'groups')).withConverter(GroupConverter)
                 : doc(collection(db, 'groups'), group.id).withConverter(GroupConverter);
             
-            console.log(ref.path);
-
             await setDoc(ref, group, {merge: true});
         } catch (error) {
-            console.log('MessageRepository Error:', error);
             throw error;
         }
     },
