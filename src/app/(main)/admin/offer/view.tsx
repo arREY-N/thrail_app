@@ -1,10 +1,8 @@
-import useOfferBooking from "@/src/core/hook/admin/useOfferBooking";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { formatDate } from "@/src/core/utility/date";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen";
@@ -12,6 +10,8 @@ import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen"
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
+import { useBookingAdminList } from "@/src/core/models/Offer/hooks/useBookingAdminList";
+import { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
 
 export default function viewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
@@ -20,15 +20,18 @@ export default function viewOffer() {
 
     const { onBackPress } = useAppNavigation();
 
-    const { 
-        offerBookings,
-        offer,
-        onViewBooking,
+    
+    const {
         error,
-        isLoading
-    } = useOfferBooking({ offerId });
+        onViewBooking,
+        offerBookings,
+    } = useBookingAdminList(offerId);
+    
+    const {
+        offer 
+    } = useOfferItem(offerId);
 
-    if(!offerBookings || (isLoading && !offer)) {
+    if(!offerBookings || (!offer)) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={undefined}>
                 <Stack.Screen options={{ headerShown: false }} />
@@ -44,6 +47,7 @@ export default function viewOffer() {
             </ScreenWrapper>
         )
     }
+    console.log('reached admin/offer/view');
 
     return (
         <>
@@ -51,21 +55,13 @@ export default function viewOffer() {
 
             <OfferViewScreen
                 offerId={offerId}
-                offer={offer as any}
+                offer={offer as Offer}
                 bookings={offerBookings}
                 onViewBooking={onViewBooking}
                 onBackPress={onBackPress}
-                error={error as any} 
+                error={error as string} 
             />
         </>
-
-        // <TestOfferView
-        //     offerId={offerId}
-        //     offer={offer}
-        //     bookings={offerBookings}
-        //     onViewBooking={onViewBooking}
-        //     error={error} 
-        // />
     )
 }
 
@@ -75,31 +71,4 @@ export type ViewOfferParams = {
     bookings: Booking[];
     onViewBooking: (bookingId: string, offerId: string) => void;
     error: string | null;
-}
-
-const TestOfferView = (params: ViewOfferParams) => {
-    if(!params.offer) return <Text>Offer not found</Text>;
-    
-    const offer = params.offer;
-
-    return(
-        <ScrollView>
-            { params.error && <Text>{params.error}</Text>}
-            <Text>{offer.name}</Text>
-            <Text>{offer.description}</Text>
-            <Text>{offer.price}</Text>
-
-            {params.bookings.length > 0 &&
-                params.bookings.map(b => {
-                    return (
-                        <Pressable onPress={() => params.onViewBooking(b.id, offer.id)} key={b.id} style={{ padding: 10, borderBottomWidth: 1, borderColor: '#ccc' }}>
-                            <Text>{b.user.username}</Text>
-                            <Text>{formatDate(b.createdAt)}</Text>
-                            <Text>{b.status}</Text>
-                        </Pressable>
-                    )
-                })
-            }
-        </ScrollView>
-    )
 }
