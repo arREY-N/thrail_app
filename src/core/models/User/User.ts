@@ -124,3 +124,5 @@ export const editUser = ({user, updates}: {user: User, updates: Partial<User>}) 
 }
 
 export * from "@/src/core/models/User/User.types";
+
+export { UserLogic } from "@/src/core/models/User/logic/User.logic";
