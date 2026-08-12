@@ -1,148 +1,118 @@
-import { BookingStatus, IBooking, IBookingDB, IPayment, IUserBooking, Requirements } from "@/src/core/models/Booking/Booking.types";
-import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
-import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
-import { IEmergencyContact } from "@/src/core/models/User/User.types";
+import { IBooking, IBookingDB } from "@/src/core/models/Booking/Booking.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
-import { immerable } from "immer";
 
-export class Booking implements IBooking {
-    [key: string]: any;
-    [immerable] = true
-    id: string = '';
-    createdAt: Date = new Date();
-    updatedAt: Date = new Date();
-    status: BookingStatus = 'for-reservation';
-    payment: IPayment<Date>[] = [];
-    cancellationReason?: string = '';
-    cancelledBy?: string = '';
-    offer: Pick<IOfferBase<Date>, "date" | "price" | "id"> = {
-        date: new Date(),
-        price: 0,
-        id: ""
+export interface Booking extends IBooking {}
+
+export const createBooking = (init?: Partial<Booking>): Booking => {
+    return {
+        id: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: 'for-reservation',
+        payment: [],
+        offer: {
+            date: new Date(),
+            price: 0,
+            id: ""
+        },
+        user: {
+            id: "",
+            username: "",
+            firstname: "",
+            lastname: "",
+            email: "",
+            phoneNumber: "",
+            birthday: new Date(),
+            phoneVerifiedAt: null,
+        },
+        business: {
+            id: "",
+            name: ""
+        },
+        trail: {
+            id: "",
+            name: "",
+            location: ""
+        },
+        emergencyContact: {
+            name: "",
+            contactNumber: "",
+        },
+        documents: [],
+        ...init
     };
-    user: IUserBooking<Date> = {
-        id: "",
-        username: "",
-        firstname: "",
-        lastname: "",
-        email: "",
-        phoneNumber: "",
-        birthday: new Date(),
-    };
-    business: IBusinessSummary = {
-        id: "",
-        name: ""
-    };
-    trail: ITrailSummary = {
-        id: "",
-        name: "",
-        location: ""
-    };
-    emergencyContact: IEmergencyContact = {
-        name: "",
-        contactNumber: "",
-    }
-    documents: Requirements[] = [];
-
-    constructor(init?: Partial<Booking>){
-        Object.assign(this, init)
-    }
-
-    static fromFirestore(id: string, data: IBookingDB): Booking {
-        const mapped: IBooking = {
-            ...data,
-            createdAt: toDate(data.createdAt),
-            updatedAt: toDate(data.updatedAt), 
-            id,
-            offer: {
-                ...data.offer,
-                date: toDate(data.offer.date),
-            },
-            user: {
-                ...data.user,
-                birthday: toDate(data.user.birthday),
-                phoneVerifiedAt: data.user?.phoneVerifiedAt ? toDate(data.user.phoneVerifiedAt) : undefined,
-            },
-            payment: (data.payment || []).map(p => ({
-                ...p,
-                refundableUntil: toDate(p.refundableUntil),
-                createdAt: toDate(p.createdAt),
-            })),
-            emergencyContact: data.emergencyContact ? {
-                ...data.emergencyContact,
-                phoneVerifiedAt: data.emergencyContact.phoneVerifiedAt ? toDate(data.emergencyContact.phoneVerifiedAt) : undefined,
-            } : {
-                name: "",
-                contactNumber: "",
-            },
-            documents: data.documents || {}, // New
-        }
-
-        return new Booking(mapped);
-    }
-
-    toFirestore(): IBookingDB {
-        const isNew = this.id === '';
-
-        const mapped: IBookingDB = {
-            id: this.id,
-            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-            updatedAt: serverTimestamp(),
-            status: this.status,
-            cancelledBy: this.cancelledBy,
-            cancellationReason: this.cancellationReason,
-            offer: {
-                ...this.offer,
-                date: Timestamp.fromDate(this.offer.date),
-            },
-            user: {
-                birthday: Timestamp.fromDate(this.user.birthday),
-                phoneNumber: this.user.phoneNumber,
-                id: this.user.id,
-                username: this.user.username,
-                firstname: this.user.firstname,
-                lastname: this.user.lastname,
-                email: this.user.email,
-                phoneVerifiedAt: this.user.phoneVerifiedAt 
-                    ? (this.user.phoneVerifiedAt instanceof Date 
-                        ? Timestamp.fromDate(this.user.phoneVerifiedAt) 
-                        : this.user.phoneVerifiedAt)
-                    : null,
-            },
-            business: this.business,
-            trail: this.trail,
-            payment: (this.payment || []).map(p => ({
-                ...p,
-                // Fix 1 & 2: Reference 'p' instead of 'this', and use Timestamp.now() instead of serverTimestamp()
-                refundableUntil: p.refundableUntil ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
-                createdAt: p.createdAt ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
-            })),
-            emergencyContact: this.emergencyContact ? {
-                ...this.emergencyContact,
-                phoneVerifiedAt: this.emergencyContact.phoneVerifiedAt 
-                    ? (this.emergencyContact.phoneVerifiedAt instanceof Date 
-                        ? Timestamp.fromDate(this.emergencyContact.phoneVerifiedAt as Date) 
-                        : this.emergencyContact.phoneVerifiedAt)
-                    : null,
-            } : {
-                name: "",
-                contactNumber: "",
-            },
-            documents: this.documents,
-        }
-
-        return mapped;
-    }
 }
 
+export const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
+    return {
+        ...data,
+        id,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+        offer: {
+            ...data.offer,
+            date: toDate(data.offer.date),
+        },
+        user: {
+            ...data.user,
+            birthday: toDate(data.user.birthday),
+            phoneVerifiedAt: data.user.phoneVerifiedAt ? toDate(data.user.phoneVerifiedAt) : null,
+        },
+        payment: data.payment.map(p => ({
+            ...p,
+            refundableUntil: toDate(p.refundableUntil),
+            createdAt: toDate(p.createdAt),
+        })),
+        documents: data.documents || [],
+    };
+}
+
+export const bookingToFirestore = (booking: Booking): IBookingDB => {
+    const isNew = booking.id === ''; 
+
+    const data: IBookingDB = {
+        id: booking.id,
+        createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(booking.createdAt),
+        updatedAt: serverTimestamp(),
+        status: booking.status,
+        offer: {
+            ...booking.offer,
+            date: booking.offer.date ? Timestamp.fromDate(booking.offer.date) : Timestamp.now(),
+        },
+        user: {
+            birthday: booking.user.birthday ? Timestamp.fromDate(booking.user.birthday) : Timestamp.now(),
+            phoneNumber: booking.user.phoneNumber,
+            id: booking.user.id,
+            username: booking.user.username,
+            firstname: booking.user.firstname,
+            lastname: booking.user.lastname,
+            email: booking.user.email,
+        },
+        business: booking.business,
+        trail: booking.trail,
+        payment: (booking.payment || []).map(p => ({
+            ...p,
+            refundableUntil: p.refundableUntil ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
+            createdAt: p.createdAt ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
+        })),
+        emergencyContact: booking.emergencyContact,
+        documents: booking.documents,
+    }
+
+    if(booking.cancelledBy && booking.cancellationReason) {
+        data.cancellationReason = booking.cancellationReason;
+        data.cancelledBy = booking.cancelledBy;
+    }
+
+    return data;
+}
 export const bookingConverter: FirestoreDataConverter<Booking> = {
     toFirestore: (booking: Booking) => {
-        return booking.toFirestore();
+        return bookingToFirestore(booking);
     },
     fromFirestore: (snapshot: QueryDocumentSnapshot): Booking => {
         const data = snapshot.data() as IBookingDB;
-        return Booking.fromFirestore(snapshot.id, data);
+        return bookingFromFirestore(snapshot.id, data);
     }
 }
