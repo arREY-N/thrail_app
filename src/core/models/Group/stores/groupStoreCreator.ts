@@ -1,10 +1,11 @@
-import { Group } from "@/src/core/models/Group/Group";
-import { IGroupMember } from "@/src/core/models/Group/Group.types";
+import { newGroup } from "@/src/core/models/Group/GroupFactory";
+import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/Group.types";
+
+import { GroupRepo } from "@/src/core/init/repositories";
 import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User.types";
-import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { Unsubscribe } from "firebase/auth";
-import { create } from "zustand";
+import { StateCreator } from "zustand";
 
 export interface GroupState {
     groups: Group[];
@@ -32,7 +33,7 @@ export interface GroupState {
     checkGroupExists: (groupId: string) => Promise<Group | null>;
 }
 
-export const useGroupStore = create<GroupState>((set, get) => ({
+export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", never]]> = ((set, get) => ({
     groups: [],
     isLoading: false,
     error: null,
@@ -49,7 +50,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         // Default to loading the 30 most recent messages
         const limitCount = get().messageLimits[groupId] || 30;
 
-        const unsubscribe = MessageRepository.listenToMessages(
+        const unsubscribe = GroupRepo.listenToMessages(
             groupId,
             limitCount,
             (messages, fromCache) => set((state) => ({
@@ -94,7 +95,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         }
 
         // 2. Start a new listener with the expanded limit
-        const newUnsubscribe = MessageRepository.listenToMessages(
+        const newUnsubscribe = GroupRepo.listenToMessages(
             groupId,
             newLimit,
             (messages, fromCache) => {
@@ -130,7 +131,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
 
     // Marks the group as visited for the user
     markGroupAsVisited: async (groupId, userSummary) => {
-        await MessageRepository.markGroupAsVisited(groupId, userSummary);
+        await GroupRepo.markGroupAsVisited(groupId, userSummary);
     },
 
     unsubscribeFromGroup: (groupId) => {
@@ -165,16 +166,16 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     }),
 
     sendMessage: async (groupId, message) => {
-        await MessageRepository.sendMessage(groupId, message);
+        await GroupRepo.sendMessage(groupId, message);
     },
 
     markAsRead: async (groupId: string, message: Message, userSummary: IUserSummary) => {
-        await MessageRepository.markMessageAsRead(groupId, message.id, userSummary);
+        await GroupRepo.markMessageAsRead(groupId, message.id, userSummary);
     },
 
     createGroup: async (group: Group) => {
         try {
-            await MessageRepository.writeGroup(group);
+            await GroupRepo.writeGroup(group);
         } catch (error) {
             console.log("Failed to create group:", error);
             throw error;
@@ -183,7 +184,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
 
     checkGroupExists: async (groupId: string): Promise<Group | null> => {
         try {
-            const group = await MessageRepository.fetchGroup(groupId);  
+            const group = await GroupRepo.fetchGroup(groupId);  
             return group;
         } catch (error) {
             console.log("Failed to check group existence:", error);
@@ -193,13 +194,13 @@ export const useGroupStore = create<GroupState>((set, get) => ({
 
     joinGroup: async (group: Group, member: IGroupMember): Promise<void> => {
         try {
-            const newGroup = new Group({
+            const created = newGroup({
                 ...group,
                 members: [...(group.members || []), member],
                 participantsIds: [...(group.participantsIds || []), member.id],
             })
 
-            await MessageRepository.writeGroup(newGroup);
+            await GroupRepo.writeGroup(created);
 
         } catch (error) {
             console.log("Failed to join group:", error);

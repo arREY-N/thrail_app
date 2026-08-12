@@ -28,3 +28,4 @@ export interface IGroupBase<T> {
 
 export interface IGroupDB extends IGroupBase<Timestamp | FieldValue> {}
 export interface IGroup extends IGroupBase<Date>{}
+export interface Group extends IGroup {}

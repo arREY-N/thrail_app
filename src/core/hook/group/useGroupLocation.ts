@@ -1,9 +1,8 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking } from "@/src/core/models/Booking/Booking";
-import { Group } from "@/src/core/models/Group/Group";
+import { Group, GroupRepo } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Message } from "@/src/core/models/Message/Message";
-import { MessageRepository } from "@/src/core/repositories/messageRepository";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
 import { useState } from "react";
@@ -76,7 +75,7 @@ export default function useGroupLocation(groupId: string) {
                 timesent: new Date(),
             })
             
-            MessageRepository.sendMessage(groupId, newMessage);
+            GroupRepo.sendMessage(groupId, newMessage);
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sending picture.");
@@ -103,7 +102,7 @@ export default function useGroupLocation(groupId: string) {
             timesent: new Date(),
         })
 
-        MessageRepository.sendMessage(groupId, newMessage);
+        GroupRepo.sendMessage(groupId, newMessage);
     }
 
     const onStartHike = async (group: Group, booking: Booking) => {

@@ -1,9 +1,9 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking, createBooking } from "@/src/core/models/Booking/Ref_Booking";
+import { Booking, createBooking } from "@/src/core/models/Booking/Booking";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
-import { Group } from "@/src/core/models/Group/Group";
+import { Group, useGroupStore } from "@/src/core/models/Group/Group";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
+
 import { useEffect, useState } from "react";
 
 export const useGroup = (groupId: string) => {
