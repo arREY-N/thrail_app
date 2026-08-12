@@ -78,6 +78,7 @@
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.4",
+    "dotenv": "^17.4.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~57.0.1",
     "jest-expo": "^57.0.3",
@@ -87,12 +88,16 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/node_modules/@react-native-async-storage/async-storage/jest/async-storage-mock",
+      "<rootDir>/jest.setup.js"
+    ],
     "moduleNameMapper": {
       "postinstall\\.mjs$": "<rootDir>/src/core/test/firebase-postinstall-mock.js",
       "^@react-native-async-storage/async-storage$": "<rootDir>/node_modules/@react-native-async-storage/async-storage/jest/async-storage-mock.js"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata|firebase|@?firebase/.*)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|gaxios|uuid|google-auth-library|gcp-metadata|firebase|@?firebase/.*|immer)"
     ]
   }
 }
