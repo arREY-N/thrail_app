@@ -1,28 +1,45 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook"
-import { Booking } from "@/src/core/models/Booking/Ref_Booking"
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore"
-import { updateBookingOnCancellation } from "@/src/core/models/Booking/utils/Booking.utils"
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation"
-import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore"
-import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils"
-import { Offer } from "@/src/core/models/Offer/Offer"
-import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore"
-import { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/Offer.utils"
-import { useState } from "react"
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
+import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils";
+import { catchError } from "@/src/core/utility/errorFormatter";
+import { useState } from "react";
 
-type CancellationRequest = Required<Pick<Cancellation, 'reason' | 'offerId' | 'businessId' | 'bookingId'>>
+import {
+    Booking,
+    getUserBookingItem,
+    updateBookingOnCancellation,
+    useBookingsStore
+} from "@/src/core/models/Booking/Booking";
+
+import {
+    getGroupItem,
+    Group,
+    updateGroupOnCancellation,
+    useGroupStore
+} from "@/src/core/models/Group/Group";
+
+import {
+    getBusinessOfferItem,
+    Offer,
+    updateOfferOnCancellation,
+    useOfferStore
+} from "@/src/core/models/Offer/Offer";
+
 
 export function useCancellationAdmin() {
     const { profile } = useAuthHook();
+    
     const [localError, setLocalError] = useState<string | null>(null);
+
     const cancellationRequests = useCancellationStore(s => s.businessCancellations);
     const isWriting = useCancellationStore(s => s.isWriting);
 
     const createCancellation = useCancellationStore(s => s.write);
-
-    const fetchOffer = useOfferStore(s => s.fetchOfferById);
-    const fetchBooking = useBookingsStore(s => s.loadById);
-
+    const createOffer = useOfferStore(s => s.createOffer);
+    const createBooking = useBookingsStore(s => s.create);
+    const createGroup = useGroupStore(s => s.createGroup);
+    
     const processCancellationRequest = async (request: Cancellation, approved: boolean, adminNote?: string) => {
         try {
             setLocalError(null);
@@ -33,52 +50,43 @@ export function useCancellationAdmin() {
 
             if(approved) {
                 const { bookingId, offerId } = request;
-                console.log("Request: ", request);
-                const offer: Offer | null = await fetchOffer(offerId);
-                
+         
+                const offer: Offer | null = await getBusinessOfferItem(offerId);
+
                 if(!offer) 
                     throw new Error("Offer not found for the provided offer ID.");
 
-                const booking: Booking | null = await fetchBooking(bookingId);
+                const booking: Booking | null = await getUserBookingItem(bookingId);
 
                 if(!booking) 
                     throw new Error("Booking not found for the provided booking ID.");
 
-                // fetch group chat
-                // pending; wait for changes in the group chat structure from Emman
+                const group: Group | null = await getGroupItem(booking.offer.id);
 
+                if(!group)
+                    throw new Error("Group chat not found for the provided offer ID.");
+                
+                const updatedOffer: Offer = updateOfferOnCancellation(offer, booking);
 
-                // update offer data
-                const updatedOffer: Offer = updateOfferOnCancellation(offer);
-
-                // update booking data
                 const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
 
-                // update group chat data
-                // pending; wait for changes in the group chat structure from Emman
-
+                const updatedGroup: Group = updateGroupOnCancellation(group, booking.user.id);
                 
                 // check if payments were recorded
-                // handled on cloud; ask Raven
+                // handle on cloud; ask Raven
                 // if(booking.payment && booking.payment.length > 0) {
                 //     // if payments were recorded, refund user
                 // }
-                
-                // send updated data to db
-                console.log("[Cancellation] Old booking:", booking);
-                console.log("[Cancellation] Updated Booking:", updatedBooking);
-                console.log("[Cancellation] Old Offer:", offer);
-                console.log("[Cancellation] Updated Offer:", updatedOffer);
-
-                // await createBooking(updatedBooking);
-                // await createOffer(updatedOffer);
+                                
+                await createBooking(updatedBooking);
+                await createOffer(updatedOffer);
+                await createGroup(updatedGroup);
             } else {
                 if(!adminNote || adminNote.trim() === "") {
                     throw new Error("Admin note is required when rejecting a cancellation request.");
                 }
             }
 
-            // update cancellation request status
             const updated: Cancellation = flagCancellationRequest(request, approved, adminNote);
             
             await createCancellation({
@@ -91,11 +99,8 @@ export function useCancellationAdmin() {
             const notificationMessage = approved 
                 ? "Your cancellation request has been approved." 
                 : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided.");
-
-            console.log("[Cancellation] Old Cancellation Request:", request);
-            console.log("[Cancellation] Updated Cancellation Request:", updated);
-
         } catch (error) {
+            catchError(error as Error, 'localError', 'useCancellationAdmin()');
             setLocalError((error as Error).message || "An unexpected error occurred.");
         }
     }
