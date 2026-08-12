@@ -71,3 +71,4 @@ export interface IBookingBase<T> {
 
 export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}
 export interface IBooking extends IBookingBase<Date>{}
+export interface Booking extends IBooking {}

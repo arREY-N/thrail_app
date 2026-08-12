@@ -27,6 +27,7 @@ Allow users to reserve and book hiking offers from businesses and for admins to 
 5. Users must be able to submit all the documents required by the business and the application before proceeding with the reservation.
 6. Users must be able to add or update any of the documents they have submitted for the reservation during creation of request.
 7. Users must be able to agree to the terms and conditions of the business and the application before submitting a reservation.
+8. `Users must be able to update booking reserved pax upon reservation.`
 
 > Dont's
 1. Users must not be able to create reservations on expired offers.

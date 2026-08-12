@@ -1,5 +1,4 @@
-
-import { Booking, bookingConverter } from "@/src/core/models/Booking/Booking";
+import { Booking, bookingConverter } from "@/src/core/models/Booking/BookingFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
 
 const createBookingCollection = (db: any, userId: string) => {

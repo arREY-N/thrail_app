@@ -1,7 +1,6 @@
 import { refundBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking, createBooking } from "@/src/core/models/Booking/Booking";
-import { Requirements } from "@/src/core/models/Booking/Booking.types";
+import { Booking, createBooking, Requirements } from "@/src/core/models/Booking/Booking";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Offer } from "@/src/core/models/Offer/Offer";

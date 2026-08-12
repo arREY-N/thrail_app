@@ -1,0 +1,128 @@
+import { TEdit } from "@/src/core/interface/domainHookInterface";
+import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/BookingFactory";
+import { useState } from "react";
+
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useGroupStore } from "@/src/core/models/Group/Group";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
+import { UserLogic } from "@/src/core/models/User/User";
+import { catchError } from "@/src/core/utility/errorFormatter";
+import { produce } from "immer";
+
+export function useBookingUser() {
+    const [booking, setBooking] = useState<Booking>(createNewBooking());
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const { profile } = useAuthHook();
+
+    const fetchOffer = useOfferStore(s => s.fetchOfferById);
+    const checkGroupExists = useGroupStore(s => s.checkGroupExists);
+    const createBooking = useBookingsStore(s => s.create);    
+    const joinGroup = useGroupStore(s => s.joinGroup);
+    const error = useBookingsStore(s => s.error);
+    const userBookings = useBookingsStore(s => s.userBookings);
+    
+    const onUpdatePress = (params: TEdit<Booking>) => {
+        const { section, id, value } = params;
+        try {
+            setBooking(prev => 
+                produce(prev, (draft) => { 
+                    if(!draft) return;
+
+                    if(section === 'root'){
+                        (draft as Record<string, any>)[id] = value;
+                    } else {
+                        const nestedSection = section as keyof Booking;
+                        if(draft[nestedSection] && typeof draft[nestedSection] === 'object') {
+                            (draft[nestedSection] as Record<string, any>)[id] = value;
+                        }
+                    }
+                })
+            )
+        } catch (error) {
+            catchError(error as Error, 'error', 'useBookingUser()');
+            setLocalError(`Failed updating ${String(section)} : ${id}`)
+        }
+    }
+
+    const onCompleteBook = async (payload?: { hikerDetails?: { phone?: string } | null }): Promise<boolean> => {
+        try {
+            if(!profile)
+                throw new Error('No user found');
+    
+            if(!booking)
+                throw new Error('No booking found');
+
+            await fetchOffer(booking.offer.id);
+
+            const offers = useOfferStore.getState().data;
+            const offer = offers.find(o => o.id === booking.offer.id) || null;
+
+            if(!offer) 
+                throw new Error('Offer not found for booking');
+
+            const editedPhone = payload?.hikerDetails?.phone;
+            const bookingPhone = editedPhone || profile.phoneNumber;
+    
+            const finalBooking = createNewBooking({
+                ...booking,
+                trail: offer.trail,
+                user: {
+                    ...UserLogic.toBookingSummary(profile),
+                    phoneNumber: bookingPhone,
+                },
+            })
+            
+            const group = await checkGroupExists(offer.id);
+
+            if(!group) 
+                throw new Error('Cannot continue with booking as group has not been set yet.');
+
+            const created = await createBooking(finalBooking)
+
+            const member = {
+                ...UserLogic.toSummary(profile),
+                bookingId: created.id,
+            }
+
+            await joinGroup(group, member);
+            setBooking(createNewBooking());
+            setLocalError(null);
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'error', 'useBookingUser()');
+            setLocalError((error as Error).message || 'Failed completing booking')      
+            return false;
+        }
+    }
+
+    const onSetOffer = (offer: Offer) => {
+        try {
+            
+            const existingBooking = userBookings.find(b => b.offer.id === offer.id);
+
+            if(existingBooking && existingBooking.status !== 'reservation-rejected') {
+                throw new Error("You have already booked this offer and is currently in progress.");
+            }
+
+            setBooking(prev => 
+                produce(prev, (draft) => {
+                    if(!draft) return;
+                    BookingLogic.setOffer(draft, offer);
+                })
+            );
+        } catch (error) {
+            catchError(error as Error, 'error', 'useBookingUser()');
+            setLocalError((error as Error).message || 'Failed setting offer')
+        }
+    }
+
+    return {
+        error: localError || error,
+        onUpdatePress,
+        onCompleteBook,
+        onSetOffer,
+    }
+}

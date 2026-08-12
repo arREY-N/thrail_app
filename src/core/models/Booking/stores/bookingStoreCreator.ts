@@ -1,5 +1,5 @@
 import { BookingRepo } from "@/src/core/init/repositories";
-import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
+import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";

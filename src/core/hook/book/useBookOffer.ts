@@ -1,19 +1,14 @@
 import { functions } from "@/src/core/config/Firebase";
 import { payBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { TEdit } from "@/src/core/interface/domainHookInterface";
 
-import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
-import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/Ref_Booking";
+import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/Booking";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { router } from "expo-router";
 import { httpsCallable } from "firebase/functions";
-import { produce } from "immer";
 import { useState } from "react";
 import { Alert, Platform } from "react-native";
 
@@ -29,10 +24,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
-    const createBooking = useBookingsStore(s => s.create);
-    const joinGroup = useGroupStore(s => s.joinGroup);
-    const checkGroupExists = useGroupStore(s => s.checkGroupExists);
-
+    
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -43,8 +35,10 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             if(!offerId) 
                 throw new Error('No offer ID found for booking');
             
-            const offer = await fetchOffer(offerId);
+            await fetchOffer(offerId);
             
+            const offer = useOfferStore.getState().businessOffers.find(o => o.id === offerId) || null;
+
             if(!offer)
                 throw new Error ('Failed to fetch offer for booking');
             
@@ -53,19 +47,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
             setLocalError((error as Error).message || 'Failed to fetch offer for booking');
         }
         return null;
-    }
-
-    const onSetOffer = (offer: Offer) => {
-        try {
-            setBooking(prev => 
-                produce(prev, (draft) => {
-                    if(!draft) return;
-                    BookingLogic.setOffer(draft, offer);
-                })
-            );
-        } catch (error) {
-            setLocalError((error as Error).message || 'Failed setting offer')
-        }
     }
 
     const onPayOffer = async (amount: number, bookingId: string, type: string, returnUrl: string) => {
@@ -87,78 +68,6 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         } catch (error) {
             setLocalError((error as Error).message || 'Failed setting payment');
             throw error;
-        }
-    }
-
-    const onCompleteBook = async (payload?: { hikerDetails?: { phone?: string } | null }): Promise<boolean> => {
-        try {
-            
-            if(!profile)
-                throw new Error('No user found');
-    
-            if(!booking)
-                throw new Error('No booking found');
-
-            const offer = await fetchOffer(booking.offer.id);
-    
-            if(!offer) 
-                throw new Error('Offer not found for booking');
-
-            const editedPhone = payload?.hikerDetails?.phone;
-            const bookingPhone = editedPhone || profile.phoneNumber;
-    
-            const finalBooking = createNewBooking({
-                ...booking,
-                trail: offer.trail,
-                user: {
-                    ...UserLogic.toBookingSummary(profile),
-                    phoneNumber: bookingPhone,
-                },
-            })
-            
-            const group = await checkGroupExists(offer.id);
-
-            if(!group) 
-                throw new Error('Cannot continue with booking as group has not been set yet.');
-
-            const created = await createBooking(finalBooking)
-
-            const member = {
-                ...UserLogic.toSummary(profile),
-                bookingId: created.id,
-            }
-
-            await joinGroup(group, member);
-            
-            return true;
-        } catch (error) {
-            console.error('Error completing booking: ', error);
-            setLocalError((error as Error).message || 'Failed completing booking')      
-            return false;
-        }
-    }
-
-    const onUpdatePress = (params: TEdit<Booking>) => {
-        const { section, id, value } = params;
-
-        console.log(params);
-        try {
-            setBooking(prev => 
-                produce(prev, (draft) => { 
-                    if(!draft) return;
-
-                    if(section === 'root'){
-                        (draft as Record<string, any>)[id] = value;
-                    } else {
-                        const nestedSection = section as keyof Booking;
-                        if(draft[nestedSection] && typeof draft[nestedSection] === 'object') {
-                            (draft[nestedSection] as Record<string, any>)[id] = value;
-                        }
-                    }
-                })
-            )
-        } catch (error) {
-            setLocalError(`Failed updating ${String(section)} : ${id}`)
         }
     }
 
@@ -246,10 +155,7 @@ export default function useBookOffer(params: UseBookOfferParams = {}) {
         bookings,
         error: localError || error,
         isLoading,
-        onSetOffer,
         onPayOffer,
-        onUpdatePress,
-        onCompleteBook,
         onCancelBookingPress,
         onRefundBookingPress,
         onRescheduleBooking,

@@ -1,4 +1,4 @@
-import { IBooking, IBookingDB } from "@/src/core/models/Booking/Booking.types";
+import { IBooking, IBookingDB } from "@/src/core/models/Booking/interfaces/IBooking";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 

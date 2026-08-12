@@ -2,4 +2,6 @@ import { BookingState, bookingStoreCreator } from "@/src/core/models/Booking/sto
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-export const useBookingsStore = create<BookingState>()(immer(bookingStoreCreator));
+export const useBookingsStore = create<BookingState>()(
+    immer(bookingStoreCreator)
+);
