@@ -1,5 +1,6 @@
 import { OfferRepo } from "@/src/core/init/repositories";
-import { createOffer, Offer } from "@/src/core/models/Offer/Offer";
+import { createOffer, Offer } from "@/src/core/models/Offer/OfferFactory";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 
 type OfferParams = {
@@ -14,12 +15,13 @@ export interface OfferState {
     trailOffers: Offer[];
     businessOffers: Offer[];
     current: Offer | null;
-    delete: (params: OfferParams) => Promise<void>;
 
+    delete: (params: OfferParams) => Promise<void>;
+    reset: () => void;
+    fetchAll: () => Promise<void>;
     fetchOfferByBusiness: (id: string) => Promise<void>;
     fetchOfferByTrail: (id: string) => Promise<void>;
-    loadOffer: (offerId: string) => Promise<void>;  
-    fetchOfferById: (id: string) => Promise<Offer>;
+    fetchOfferById: (id: string) => Promise<void>;
     createOffer: (offer: Offer) => Promise<Offer | null>;
 }
 
@@ -107,7 +109,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         }
     },
 
-    fetchOfferById: async (id: string): Promise<Offer> => {
+    fetchOfferById: async (id: string): Promise<void> => {
         try {
             set({ isLoading: true, error: null });
 
@@ -134,12 +136,10 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
             }
 
             set({
-                data: [...get().data.filter(o => o.id !== offer.id), offer], 
+                data: upsertItem(get().data, offer), 
                 isLoading: false, 
                 error: null 
             });
-
-            return offer;
         } catch (error) {
             set({ isLoading: false })
             throw error
@@ -182,41 +182,6 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         } catch (err) {
             set({
                 error: (err as Error).message || 'Failed writing offer',
-                isLoading: false
-            });
-            throw err;
-        }
-    },
-
-    loadOffer: async (offerId: string) => {
-        set({ isLoading: true, error: null })
-        try {
-            if(!offerId)
-                throw new Error('No offer ID provided');
-
-
-            let offer = null;
-
-            if(get().data.length > 0){
-                offer = get().data.find(o => o.id === offerId);
-            }
-
-            if(!offer){
-                offer = await OfferRepo.fetch(offerId)
-            }
-
-            if(!offer)
-                throw new Error('Offer not found in loadoffer');
-            
-            set((state) => {
-                state.current = offer;
-                state.isLoading = false;
-                state.error = null;
-                state.data = [...state.data.filter(o => o.id !== offer.id), offer]
-            })
-        } catch (err) {
-            console.error((err as Error).message);
-            set({
                 isLoading: false
             });
             throw err;
