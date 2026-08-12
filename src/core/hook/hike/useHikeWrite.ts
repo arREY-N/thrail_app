@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Ref_Booking";
+import { Booking } from "@/src/core/models/Booking/Booking";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
