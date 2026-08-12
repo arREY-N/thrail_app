@@ -45,6 +45,7 @@ const AdminCancellation = () => {
     } = useCancellationAdminList();
     
     const {
+        isWriting,
         localError,
         processCancellationRequest
     } = useCancellationAdmin();
@@ -53,6 +54,9 @@ const AdminCancellation = () => {
         return <CustomLoading message="Fetching cancellations..." />
     }
 
+    if(isWriting) {
+        return <CustomLoading message="Processing cancellation request..." />
+    }
 
     return (
         <View>
