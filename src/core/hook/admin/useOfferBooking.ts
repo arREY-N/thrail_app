@@ -1,3 +1,4 @@
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,6 +13,8 @@ export type UseOfferBookingParams = {
 
 export default function useOfferBooking(params: UseOfferBookingParams) {
     const { offerId } = params;
+
+    const { businessId } = useAuthHook();
 
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
@@ -30,7 +33,10 @@ export default function useOfferBooking(params: UseOfferBookingParams) {
 
         const startListening = async () => {
             try {
-                subscribeToBusinessBookings(offerId);
+                if(!businessId) 
+                    throw new Error("Business ID is required for subscribing to business bookings");
+                
+                subscribeToBusinessBookings(offerId, businessId);
                 if (isCancelled && unsubscribe && offerId) {
                     unsubscribe(offerId);
                 }
