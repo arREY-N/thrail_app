@@ -18,7 +18,7 @@ import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
-import { IBooking } from "@/src/core/models/Booking/Booking.types";
+import { IBooking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 

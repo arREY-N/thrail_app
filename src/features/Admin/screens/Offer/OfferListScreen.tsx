@@ -22,7 +22,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { Offer } from '@/src/core/models/Offer/Offer';

@@ -2,9 +2,8 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { Booking } from "@/src/core/models/Booking/Booking";
-import { BookingStatus, IBooking } from "@/src/core/models/Booking/Booking.types";
-import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { BookingStatus, createBooking, IBooking } from "@/src/core/models/Booking/Booking";
+import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
@@ -266,7 +265,7 @@ const BookingDetailsScreen = ({
                             setLocalStatus('pending-docs'); 
                             
                             try {
-                                const updatedBookingData = new Booking({
+                                const updatedBookingData = createBooking({
                                     ...booking,
                                     status: 'pending-docs', 
                                     documents: updatedDocs
