@@ -1,6 +1,6 @@
 
-import { Booking, bookingConverter } from "@/src/core/models/Booking/Ref_Booking";
-import { collection, collectionGroup, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
+import { Booking, bookingConverter } from "@/src/core/models/Booking/Booking";
+import { collection, collectionGroup, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
 
 const createBookingCollection = (db: any, userId: string) => {
     return collection(db, "users", userId, "bookings").withConverter(bookingConverter);
@@ -223,7 +223,14 @@ export const BookingRepository = (db: any) => ({
         }
     },
 
-    async delete(id: string, ...args: any[]): Promise<void> {
-        throw new Error("Method not implemented.");
+    async delete(id: string, userId: string): Promise<void> {
+        try {
+            const bookingRef = doc(createBookingCollection(db, userId), id);
+            await deleteDoc(bookingRef);
+        } catch (err) {
+            console.log("Error deleting booking: ", err);
+            if (err instanceof Error) throw err;
+            throw new Error("An error occurred");
+        }
     },
 });
