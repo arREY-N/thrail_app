@@ -1,7 +1,6 @@
 import { BookingRepo } from "@/src/core/init/repositories";
-import { Booking } from "@/src/core/models/Booking/Booking";
+import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { upsertItem } from "@/src/core/models/utils/upsert";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -10,11 +9,11 @@ export interface BookingState {
     checkBookings: (id: string) => boolean;
     reset: () => void;
     fetchOfferBookings: (offerId: string, role: string) => Promise<void>;
-    loadById: (bookingId: string) => Promise<Booking | null>;
+    loadById: (bookingId: string) => Promise<void>;
     loadAll: (role: string) => Promise<void>;
     load: (userId: string) => Promise<void>;
     refresh: (userId?: string | null) => Promise<void>;
-    subscribeToBusinessBookings: (offerId: string) => Promise<void>;
+    subscribeToBusinessBookings: (offerId: string, businessId: string) => Promise<void>;
     unsubscribeFromBusinessBookings: (offerId: string) => void;
     subscribeToUserBookings: (userId: string) => Unsubscribe;
     deleteBooking: (bookingId: string) => Promise<void>;
@@ -64,13 +63,11 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
         }
     },
 
-    subscribeToBusinessBookings: async (offerId: string) => {
+    subscribeToBusinessBookings: async (offerId: string, businessId: string) => {
         try {
             if (get().activeListeners[offerId]) {
                 return;
             }
-
-            const { businessId } = useAuthStore.getState();
 
             if (!businessId) {
                 throw new Error("Business ID is required for subscribing to business bookings");
@@ -223,19 +220,25 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             let booking = null;
 
             if (get().data.length > 0) {
+                console.log('[bookingStore] Searching for booking in store data...');
                 booking = get().data.find((b) => b.id === bookingId) ?? null;
             }
 
             if (!booking) {
+                console.log('[bookingStore] Booking not found in store data. Fetching from repository...');
                 booking = await BookingRepo.fetchById(bookingId);
             }
 
-            set((state) => {
-                state.data = booking ? [...state.data.filter((b) => b.id !== booking.id), booking] : state.data;
-                state.isLoading = false;
-            });
+            if(!booking) {
+                console.log('[bookingStore] Booking not found in repository.');
+                throw new Error("Booking not found");
+            }
 
-            return booking;
+            console.log('loaded booking:', upsertItem(get().data, booking));
+            set({
+                isLoading: false,
+                data: upsertItem(get().data, booking),
+            })
         } catch (error) {
             set({ isLoading: false });
             throw error;
