@@ -17,8 +17,10 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 - Send cancellation of booking notice to users. 
 - Cancel hiking offers. 
 - Schedule refund to users for cancelled bookings.
-- Update offer information.
-- Update booking group chat members.
+- Update offer information on user cancellation.
+- Update offer information on admin cancellation.
+- Update booking group chat information on user cancellation. [Done]
+- Update booking group chat information on admin cancellation. 
 
 ### System
 - Notify users for updated on cancellation requests.
