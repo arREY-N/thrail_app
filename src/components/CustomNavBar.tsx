@@ -1,4 +1,3 @@
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { ReactNode } from 'react';
 import {
     Platform,
@@ -93,7 +92,23 @@ const getTabConfig = (routeName: string, isFocused: boolean): TabConfig => {
     }
 };
 
-interface CustomNavBarProps extends BottomTabBarProps {}
+interface CustomNavBarProps {
+    state: {
+        index: number;
+        routes: Array<{ key: string; name: string }>;
+    };
+    descriptors: Record<string, {
+        options: {
+            tabBarAccessibilityLabel?: string;
+            tabBarButtonTestID?: string;
+            [key: string]: unknown;
+        };
+    }>;
+    navigation: {
+        navigate: (name: string) => void;
+        emit: (options: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented: boolean };
+    };
+}
 
 const CustomNavBar: React.FC<CustomNavBarProps> = ({ 
     state, 
@@ -115,7 +130,7 @@ const CustomNavBar: React.FC<CustomNavBarProps> = ({
                 } 
             ]}
         >
-            {state.routes.map((route: any, index: number) => {
+            {state.routes.map((route, index: number) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
                 
