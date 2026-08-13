@@ -44,7 +44,7 @@ export default function viewTrail(){
 
     return(
         <View style={{ flex: 1 }}>
-            <StatusBar style="light" translucent backgroundColor="transparent" />
+            <StatusBar style="light" />
 
             <TrailScreen 
                 trail={trail} 
