@@ -10,9 +10,13 @@
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "java.compile.nullAnalysis.mode": "disabled",
   "java.project.sourcePaths": [],
-  "java.import.exclusions": ["**/node_modules/**", "**/android/**"],
+  "java.import.exclusions": ["**/node_modules/**", "**/android/**", "**/android_old/**"],
+  "java.project.resourceFilters": ["node_modules", ".git"],
+  "java.import.gradle.enabled": false,
+  "java.autobuild.enabled": false,
   "python.defaultInterpreterPath": "${workspaceFolder}/recommendation_engine/venv/Scripts/python.exe",
   "python.analysis.extraPaths": [
     "${workspaceFolder}/recommendation_engine"
-  ]
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
 }
