@@ -7,3 +7,7 @@
 export const catchError = (error: Error, errorState: string = 'error state', hook: string = 'Unknown Access'): void => {
     console.error(`Error caught; access \`${errorState}\` via \`${hook}\` \n\n${error}`);
 }
+
+export const logger = (location: string, message: string, object?: any) => {
+    console.log(`[${location}] ${message}`, object ?? ``);
+}
