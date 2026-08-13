@@ -133,7 +133,7 @@ const UserRolesDonutChart = ({
                         strokeWidth={STROKE_W}
                     />
 
-                    {/* Solid arc segments with web mouse hover & mobile tap handlers */}
+                    {/* Solid arc segments with mobile & web segment selection handler */}
                     {arcs.map((arc, idx) => {
                         const isHovered = hoveredIndex === idx;
                         const isDimmed = hoveredIndex !== null && !isHovered;
@@ -141,10 +141,6 @@ const UserRolesDonutChart = ({
                             <G
                                 key={idx}
                                 onPress={() => handleSelectSegment(idx)}
-                                {...({
-                                    onMouseEnter: () => Platform.OS === 'web' && setHoveredIndex(idx),
-                                    onMouseLeave: () => Platform.OS === 'web' && setHoveredIndex(null),
-                                })}
                             >
                                 <Path
                                     d={describeArc(CX, CY, RADIUS, arc.startAngle, arc.endAngle)}
