@@ -36,6 +36,15 @@ const CustomImage: React.FC<CustomImageProps> = ({
     useEffect(() => {
         setIsLoaded(false);
         setHasError(false);
+
+        if (typeof source === 'object' && source !== null && 'uri' in source) {
+            const uriVal = (source as any).uri;
+            if (!uriVal || (typeof uriVal === 'string' && !uriVal.trim())) {
+                setHasError(true);
+            }
+        } else if (!source) {
+            setHasError(true);
+        }
     }, [sourceUri]);
 
     const flatStyle = StyleSheet.flatten(style) || {};
@@ -46,7 +55,7 @@ const CustomImage: React.FC<CustomImageProps> = ({
             {!isLoaded && !hasError && (
                 <View 
                     style={[
-                        StyleSheet.absoluteFillObject, 
+                        StyleSheet.absoluteFill, 
                         { backgroundColor: backgroundColor || Colors.GRAY_ULTRALIGHT }
                     ]} 
                 />
@@ -54,7 +63,7 @@ const CustomImage: React.FC<CustomImageProps> = ({
 
             {hasError && (
                 <View style={styles.errorContainer}>
-                    <CustomIcon library="Ionicons" name="image" size={32} color={Colors.GRAY} />
+                    <CustomIcon library="Ionicons" name="image-outline" size={36} color={Colors.GRAY} />
                 </View>
             )}
             <Image
@@ -63,7 +72,7 @@ const CustomImage: React.FC<CustomImageProps> = ({
                 style={[
                     layoutStyle, 
                     { 
-                        opacity: isLoaded ? 1 : 0,
+                        opacity: (isLoaded && !hasError) ? 1 : 0,
                         width: '100%', 
                         height: '100%',
                         margin: 0,
@@ -104,10 +113,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     errorContainer: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
+        zIndex: 2,
     }
 });
 
