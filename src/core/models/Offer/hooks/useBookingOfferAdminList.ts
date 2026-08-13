@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 
 
-export function useBookingAdminList(offerId: string) {
+export function useBookingOfferAdminList(offerId: string) {
     const offerBookings = useBookingsStore(s => s.bookingByOffer[offerId]);
     const error = useBookingsStore(s => s.error);
     const { businessId } = useAuthHook();
