@@ -19,6 +19,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 // import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -94,6 +95,7 @@ const LeaderboardScreen = ({
     const insets = useSafeAreaInsets();
     const safeBottomPadding = Math.max(insets.bottom, 16);
     const [selectedTopUser, setSelectedTopUser] = useState<RankedUsers<Date> | null>(null);
+    const [showResetToast, setShowResetToast] = useState(false);
 
     const renderListItem = useCallback(
         ({ item }: ListRenderItemInfo<RankedUsers<Date>>) => (
@@ -110,22 +112,32 @@ const LeaderboardScreen = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader
-                title="Leaderboard"
                 centerTitle={true}
                 onBackPress={onBackPress}
-            />
-
-            <View style={[styles.mainContainer, isDesktop && styles.desktopContainer]}>
-                {/* Monthly Header Banner */}
-                <View style={styles.bannerBox}>
-                    <CustomText variant="h2" style={styles.bannerTitle}>
+                rightActions={
+                    <TouchableOpacity 
+                        style={styles.resetBadge}
+                        activeOpacity={0.7}
+                        onPress={() => setShowResetToast(true)}
+                    >
+                        <CustomIcon library="MaterialCommunityIcons" name="timer-outline" size={12} color={Colors.PRIMARY} />
+                        <CustomText variant="caption" style={styles.resetBadgeText}>
+                            {nextMonthStr.split(',')[0]}
+                        </CustomText>
+                    </TouchableOpacity>
+                }
+            >
+                <View style={styles.headerContentBox}>
+                    <CustomText variant="h3" style={styles.headerTitle}>
+                        Leaderboard
+                    </CustomText>
+                    <CustomText variant="caption" style={styles.headerSubtitle}>
                         {currentMonthStr} Rankings
                     </CustomText>
-                    <CustomText variant="caption" style={styles.bannerSubtitle}>
-                        Resets {nextMonthStr} • Updated Monthly
-                    </CustomText>
                 </View>
+            </CustomHeader>
 
+            <View style={[styles.mainContainer, isDesktop && styles.desktopContainer]}>
                 {/* Metric Selection Tabs */}
                 <MetricFilterTabs
                     activeMetric={activeMetric}
@@ -147,11 +159,11 @@ const LeaderboardScreen = ({
                             size={56}
                             color={Colors.GRAY_MEDIUM}
                         />
-                        <CustomText variant="h2" style={styles.emptyTitle}>
-                            No Monthly Rankings Yet
+                        <CustomText variant="h3" style={styles.emptyTitle}>
+                            No Rankings Yet
                         </CustomText>
                         <CustomText variant="caption" style={styles.emptySubtitle}>
-                            Complete a hike this month to earn your spot on the mountain podium!
+                            Be the first! Complete a hike this month to claim the #1 spot on the podium.
                         </CustomText>
                     </View>
                 ) : (
@@ -228,6 +240,13 @@ const LeaderboardScreen = ({
                 onClose={() => setSelectedTopUser(null)}
                 currentUserId={currentUserData?.userId}
             />
+
+            <CustomToast
+                message={`Rankings reset on ${nextMonthStr}.`}
+                visible={showResetToast}
+                onHide={() => setShowResetToast(false)}
+                type="info"
+            />
         </ScreenWrapper>
     );
 };
@@ -265,19 +284,32 @@ const styles = StyleSheet.create({
     listContent: {
         // paddingTop: 12,
     },
-    bannerBox: {
-        paddingHorizontal: 20,
-        paddingTop: 8,
-        paddingBottom: 16,
+    headerContentBox: {
         alignItems: 'center',
+        justifyContent: 'center',
     },
-    bannerTitle: {
+    headerTitle: {
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
-        marginBottom: 2,
+        marginBottom: 0,
     },
-    bannerSubtitle: {
+    headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
+        marginBottom: 0,
+    },
+    resetBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.CHIP_PRIMARY_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        gap: 4,
+    },
+    resetBadgeText: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+        fontSize: 10,
     },
     currentUserFooter: {
         position: 'absolute',
