@@ -1,12 +1,13 @@
 /**
  * @file WeatherSection.tsx
- * @description A visual banner component displaying current local weather and geolocated coordinates on the home feed.
+ * @description A clean, minimalist weather section component displaying local weather, condition text, day/night extremes, and location metadata with symmetrical alignment.
  */
 
 import React from 'react';
 import {
+    Platform,
+    Pressable,
     StyleSheet,
-    TouchableOpacity,
     View,
 } from 'react-native';
 
@@ -17,7 +18,7 @@ import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { ProcessedWeatherData } from '@/src/core/types/weather';
-import { formatWeatherDisplay } from '@/src/core/utility/weatherHelpers';
+import { formatLastUpdatedLabel, formatWeatherDisplay } from '@/src/core/utility/weatherHelpers';
 import { IconLibrary } from '@/src/types/ui.types';
 
 /**
@@ -29,6 +30,7 @@ import { IconLibrary } from '@/src/types/ui.types';
  * @param error - Any error that occurred during weather fetching
  * @param onPress - Callback fired when the weather section is pressed
  * @param onReload - Callback fired to retry/reload weather fetching
+ * @param isRefreshing - Whether pull-to-refresh is currently active
  */
 export interface WeatherSectionProps {
     weatherData: ProcessedWeatherData | null | undefined;
@@ -37,39 +39,49 @@ export interface WeatherSectionProps {
     error?: Error | string | null;
     onPress: () => void;
     onReload?: () => void;
+    isRefreshing?: boolean;
 }
 
 /**
- * A UI section that displays current local weather and coordinates it with
- * device location tracking.
+ * Weather section component rendering a balanced, symmetrical 2-column card layout.
+ *
+ * @param props - WeatherSectionProps
+ * @returns React.JSX.Element
  */
-const WeatherSection: React.FC<WeatherSectionProps> = ({ weatherData, loading, locationName, error, onPress, onReload }) => {
-
+const WeatherSection = ({
+    weatherData,
+    loading,
+    locationName,
+    error,
+    onPress,
+    onReload,
+    isRefreshing = false,
+}: WeatherSectionProps): React.JSX.Element => {
     const display = formatWeatherDisplay(weatherData);
+    const lastUpdatedLabel = formatLastUpdatedLabel(weatherData?.lastUpdated);
+    const displayLocationText = locationName || 'Unknown location';
 
-    // 1. Loading / Locating State
-    if (loading && !weatherData) {
+    // 1. Loading / Locating / Refreshing State
+    if ((loading && !weatherData) || isRefreshing) {
         return (
             <View style={styles.container}>
-                <View style={styles.topRow}>
-                    <View style={styles.leftColumn}>
-                        <View style={styles.tempAndCondition}>
-                            <SkeletonEffect style={styles.skeletonTemp} />
-                            <SkeletonEffect style={styles.skeletonCondition} />
-                        </View>
-                    </View>
-
-                    <View style={styles.rightColumn}>
-                        <SkeletonEffect style={styles.skeletonIcon} />
-                    </View>
-                </View>
-
-                <View style={styles.bottomRow}>
-                    <View style={styles.locationRow}>
-                        <SkeletonEffect style={styles.skeletonLocIcon} />
+                <View style={styles.headerMetaRow}>
+                    <View style={styles.skeletonLocRow}>
+                        <SkeletonEffect style={styles.skeletonIconSmall} />
                         <SkeletonEffect style={styles.skeletonLocText} />
                     </View>
-                    <SkeletonEffect style={styles.skeletonBadge} />
+                    <SkeletonEffect style={styles.skeletonUpdatedText} />
+                </View>
+
+                <View style={styles.contentRow}>
+                    <View style={styles.leftCol}>
+                        <SkeletonEffect style={styles.skeletonTemp} />
+                        <SkeletonEffect style={styles.skeletonConditionText} />
+                    </View>
+                    <View style={styles.rightCol}>
+                        <SkeletonEffect style={styles.skeletonHeroIcon} />
+                        <SkeletonEffect style={styles.skeletonHiLoText} />
+                    </View>
                 </View>
             </View>
         );
@@ -78,21 +90,11 @@ const WeatherSection: React.FC<WeatherSectionProps> = ({ weatherData, loading, l
     // 2. Error / Connection Failed State
     if (error && !weatherData) {
         return (
-            <View style={[styles.container, styles.centerAll]}>
+            <View style={[styles.container, styles.centerStateContainer]}>
                 <CustomIcon library="Ionicons" name="cloud-offline-outline" size={32} color={Colors.ERROR} />
-                <CustomText variant="caption" style={[styles.stateText, { color: Colors.ERROR }]}>
-                    Unable to load weather.
+                <CustomText variant="caption" style={styles.errorText}>
+                    Unable to load weather data.
                 </CustomText>
-                {onReload && (
-                    <TouchableOpacity 
-                        style={styles.retryButton} 
-                        onPress={onReload}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="refresh-cw" size={14} color={Colors.WHITE} />
-                        <CustomText style={styles.retryButtonText}>Reload</CustomText>
-                    </TouchableOpacity>
-                )}
             </View>
         );
     }
@@ -100,242 +102,272 @@ const WeatherSection: React.FC<WeatherSectionProps> = ({ weatherData, loading, l
     // 3. Unavailable / No Data State
     if (!weatherData && !loading && !error) {
         return (
-            <View style={[styles.container, styles.centerAll]}>
+            <View style={[styles.container, styles.centerStateContainer]}>
                 <CustomIcon library="Ionicons" name="location-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                <CustomText variant="caption" style={styles.stateText}>
+                <CustomText variant="caption" style={styles.emptyStateText}>
                     Location services disabled or weather stats unavailable.
                 </CustomText>
-                {onReload && (
-                    <TouchableOpacity 
-                        style={styles.retryButton} 
-                        onPress={onReload}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="refresh-cw" size={14} color={Colors.WHITE} />
-                        <CustomText style={styles.retryButtonText}>Retry Location</CustomText>
-                    </TouchableOpacity>
-                )}
             </View>
         );
     }
 
-    const displayLocationText = locationName || 'Unknown location';
-
     return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
-            <View style={styles.topRow}>
-                <View style={styles.leftColumn}>
-                    <View style={styles.tempAndCondition}>
-                        <View style={styles.tempWrapper}>
-                            <CustomText style={styles.tempText}>
-                                {display.hasData ? display.temperature : '--'}
-                            </CustomText>
-                            <CustomText style={styles.degreeSymbol}>
-                                °C
-                            </CustomText>
-                        </View>
+        <Pressable
+            onPress={onPress}
+            style={({ hovered }) => [
+                styles.container,
+                hovered && styles.containerHovered,
+            ]}
+        >
+            {/* Top Header Row: Location Pin + Location Name (Left) & Quiet Relative Time (Right) */}
+            <View style={styles.headerMetaRow}>
+                <View style={styles.locationContainer}>
+                    <CustomIcon
+                        library="FontAwesome6"
+                        name="location-dot"
+                        size={13}
+                        color={Colors.PRIMARY}
+                    />
+                    <CustomText style={styles.locationText} numberOfLines={1}>
+                        {displayLocationText}
+                    </CustomText>
+                </View>
 
+                {lastUpdatedLabel && (
+                    <CustomText style={styles.updatedText}>
+                        {lastUpdatedLabel}
+                    </CustomText>
+                )}
+            </View>
+
+            {/* Symmetrical 2-Column Main Content */}
+            <View style={styles.contentRow}>
+                {/* Left Column: Top Temp (28°C) & Bottom Condition (Partly Cloudy) */}
+                <View style={styles.leftCol}>
+                    <View style={styles.tempBlock}>
+                        <CustomText style={styles.tempValueText}>
+                            {display.hasData ? display.temperature : '--'}
+                        </CustomText>
+                        <CustomText style={styles.tempUnitText}>°C</CustomText>
+                    </View>
+
+                    <View style={styles.bottomAlignWrapper}>
                         {display.hasData && (
-                            <CustomText style={styles.conditionText}>
+                            <CustomText style={styles.conditionText} numberOfLines={1}>
                                 {display.condition}
                             </CustomText>
                         )}
                     </View>
                 </View>
 
-                <View style={styles.rightColumn}>
-                    <CustomIcon 
-                        library={display.library as IconLibrary} 
-                        name={display.hasData ? display.icon : "partly-sunny-outline"}
-                        size={72} 
-                        color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM} 
-                    />
+                {/* Right Column: Top Weather Icon & Bottom Day/Night Readings */}
+                <View style={styles.rightCol}>
+                    <View style={styles.iconAlignWrapper}>
+                        <CustomIcon
+                            library={display.library as IconLibrary}
+                            name={display.hasData ? display.icon : 'partly-sunny-outline'}
+                            size={48}
+                            color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
+                        />
+                    </View>
+
+                    <View style={styles.bottomAlignWrapper}>
+                        {display.hasData && (
+                            <View style={styles.dayNightRow}>
+                                <View style={styles.hiLoItem}>
+                                    <CustomIcon library="Ionicons" name="sunny" size={13} color={Colors.WEATHER_SUN} />
+                                    <CustomText style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
+                                </View>
+
+                                <CustomText style={styles.hiLoDivider}>•</CustomText>
+
+                                <View style={styles.hiLoItem}>
+                                    <CustomIcon library="Ionicons" name="moon" size={13} color={Colors.WEATHER_MOON} />
+                                    <CustomText style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
+                                </View>
+                            </View>
+                        )}
+                    </View>
                 </View>
             </View>
-
-            <View style={styles.bottomRow}>
-                
-                <View style={styles.locationRow}>
-                    <CustomIcon 
-                        library="FontAwesome6" 
-                        name="location-dot" 
-                        size={16} 
-                        color={Colors.PRIMARY} 
-                    />
-                    <CustomText 
-                        style={styles.locationText}
-                        numberOfLines={1}
-                    >
-                        {displayLocationText}
-                    </CustomText>
-                </View>
-
-                <View style={styles.hiLoBadge}>
-                    <CustomText variant="caption" style={styles.dayNightText}>
-                        Day <CustomText style={styles.hiLoValue}>{display.dayTemp}°</CustomText> / Night <CustomText style={styles.hiLoValue}>{display.nightTemp}°</CustomText>
-                    </CustomText>
-                </View>
-            </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        marginHorizontal: 16, 
+        marginHorizontal: 16,
         marginTop: 8,
-        marginBottom: 16,     
-        paddingHorizontal: 20, 
-        paddingVertical: 14,
+        // marginBottom: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
         backgroundColor: Colors.WHITE,
-        borderRadius: 24,     
+        borderRadius: 24,
+        elevation: 3,
         ...GlobalStyles.dropShadow(3),
+        ...(Platform.OS === 'web' && { cursor: 'pointer' as const }),
     },
-    centerAll: {
+    containerHovered: {
+        opacity: 0.7,
+    },
+    centerStateContainer: {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: 130,
         gap: 10,
     },
-    stateText: {
+    errorText: {
+        color: Colors.ERROR,
+        fontWeight: '600',
+        textAlign: 'center',
+        paddingHorizontal: 16,
+    },
+    emptyStateText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
         textAlign: 'center',
         paddingHorizontal: 16,
     },
-    topRow: {
+    headerMetaRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 12,
     },
-    leftColumn: {
-        flex: 1.2,
-        justifyContent: 'center',
-        paddingRight: 12,
-    },
-    tempAndCondition: {
-        flexDirection: 'column', 
-        alignItems: 'flex-start',
-    },
-    tempWrapper: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    tempText: {
-        fontSize: 56,
-        fontWeight: '900',
-        color: Colors.TEXT_PRIMARY,
-        lineHeight: 64, 
-        letterSpacing: -2,
-    },
-    degreeSymbol: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        marginTop: 4,
-        marginLeft: 2,
-    },
-    conditionText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.PRIMARY,
-        textTransform: 'capitalize',
-        marginTop: -2,
-        marginLeft: 2,
-    },
-
-    rightColumn: {
-        flex: 1,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-    },
-    bottomRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 4, 
-    },
-
-    locationRow: {
+    locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginLeft: 2,
         flexShrink: 1,
-        marginRight: 8,
     },
     locationText: {
         color: Colors.TEXT_SECONDARY,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
+        lineHeight: 16,
         flexShrink: 1,
     },
-
-    hiLoBadge: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingHorizontal: 12, 
-        paddingVertical: 8, 
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    dayNightText: {
-        fontSize: 12, 
-        color: Colors.TEXT_SECONDARY,
-    },
-    hiLoValue: {
-        fontSize: 12, 
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-    },
-    retryButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.PRIMARY,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16,
-        gap: 6,
-        marginTop: 4,
-    },
-    retryButtonText: {
-        color: Colors.WHITE,
+    updatedText: {
         fontSize: 12,
-        fontWeight: 'bold',
+        color: Colors.TEXT_PLACEHOLDER,
+        fontWeight: '500',
+        lineHeight: 16,
     },
-    
-    skeletonTemp: {
-        width: 90,
-        height: 56,
-        borderRadius: 8,
+    contentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'stretch',
+        gap: 8,
     },
-    skeletonCondition: {
-        width: 80, 
-        height: 18,
-        borderRadius: 4,
-        marginTop: 4, 
+    leftCol: {
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 6,
+    },
+    tempBlock: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    tempValueText: {
+        fontSize: 44,
+        fontWeight: '900',
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 44,
+        letterSpacing: -1.5,
+    },
+    tempUnitText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 20,
         marginLeft: 2,
     },
-    skeletonIcon: {
-        width: 72, 
-        height: 72,
-        borderRadius: 36,
+    rightCol: {
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        gap: 6,
     },
-    skeletonLocIcon: {
-        width: 16, 
-        height: 16,
-        borderRadius: 8,
+    iconAlignWrapper: {
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    bottomAlignWrapper: {
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    conditionText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.PRIMARY,
+        textTransform: 'capitalize',
+        lineHeight: 18,
+    },
+    dayNightRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    hiLoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    hiLoText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 16,
+    },
+    hiLoDivider: {
+        fontSize: 10,
+        color: Colors.GRAY_MEDIUM,
+        lineHeight: 14,
+    },
+
+    // Skeleton Layout Mirrors
+    skeletonLocRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    skeletonIconSmall: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
     },
     skeletonLocText: {
         width: 110,
-        height: 14, 
+        height: 14,
         borderRadius: 4,
     },
-    skeletonBadge: {
-        width: 135,
-        height: 32, 
-        borderRadius: 16,
+    skeletonUpdatedText: {
+        width: 60,
+        height: 12,
+        borderRadius: 4,
+    },
+    skeletonTemp: {
+        width: 80,
+        height: 44,
+        borderRadius: 8,
+    },
+    skeletonConditionText: {
+        width: 80,
+        height: 14,
+        borderRadius: 4,
+    },
+    skeletonHeroIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
+    skeletonHiLoText: {
+        width: 110,
+        height: 14,
+        borderRadius: 4,
     },
 });
 
 export default WeatherSection;
+
