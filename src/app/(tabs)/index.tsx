@@ -18,8 +18,10 @@ import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 /**
  * Controller for the Home Tab.
  * Connects domain hooks and navigation to the pure HomeScreen UI.
+ * 
+ * @returns React.JSX.Element rendering the Home tab controller.
  */
-const home = () => {
+export default function home() {
     const { 
         trails, 
         onViewTrail,
@@ -51,7 +53,6 @@ const home = () => {
     const loadRecommendations = useRecommendationsStore(s => s.load);
     const isRecommendationsLoading = useRecommendationsStore(s => s.isLoading);
     const recommendationsError = useRecommendationsStore(s => s.error);
-    // const currentRecommendation = useRecommendationsStore(s => s.current);
 
     const fetchAllTrails = useTrailsStore(s => s.fetchAll);
     const discoverError = useTrailsStore(s => s.error);
@@ -65,22 +66,32 @@ const home = () => {
         }
     }, [fetchOffers, fetchAllTrails, user?.uid, loadRecommendations]);
 
-    // Retry callbacks
-    const onRetryRecommendations = async () => {
-        if (user?.uid) {
-            try {
-                await loadRecommendations(user.uid);
-            } catch (err) {
-                console.error("Retry recommendations failed:", err);
-            }
-        }
-    };
+    // Refreshing state for pull-to-refresh with 5-second Firebase cooldown protection
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const lastRefreshTimeRef = React.useRef<number>(0);
 
-    const onRetryDiscover = async () => {
+    const onRefreshPress = async () => {
+        const now = Date.now();
+        // Cooldown protection: If refreshed within last 5,000ms or already in flight, skip new Firebase network reads
+        if (isRefreshing || (now - lastRefreshTimeRef.current < 5000)) {
+            return;
+        }
+
+        lastRefreshTimeRef.current = now;
+        setIsRefreshing(true);
         try {
-            await fetchAllTrails();
+            const promises: Promise<void>[] = [
+                fetchOffers().then(() => {}).catch(() => {}),
+                fetchAllTrails().then(() => {}).catch(() => {})
+            ];
+            if (user?.uid) {
+                promises.push(loadRecommendations(user.uid).then(() => {}).catch(() => {}));
+            }
+            await Promise.all(promises);
         } catch (err) {
-            console.error("Retry discover failed:", err);
+            console.error("Error pulling to refresh Home screen:", err);
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -105,6 +116,8 @@ const home = () => {
         return trails.filter(t => uniqueIds.includes(t.id));
     }, [trails, offers]);
 
+    const isDiscoverLoading = isLoading || !profile;
+
     return (
         <View style={{ flex: 1 }}>
             <HomeScreen 
@@ -115,22 +128,21 @@ const home = () => {
                 recommendedTrails={[]}
                 isRecommendationsLoading={isRecommendationsLoading}
                 recommendationsError={recommendationsError}
-                onRetryRecommendations={onRetryRecommendations}
                 isNewAccount={isNewAccount}
                 discoverTrails={discoverTrails}
                 discoverError={discoverError}
-                onRetryDiscover={onRetryDiscover}
                 trailsWithOffers={trailsWithOffers}
                 isOffersLoading={isOffersLoading}
                 onMountainPress={onViewTrail}
                 onDownloadPress={onDownloadPress}
                 onGroupPress={onGroupPress}
                 getItemRating={getItemRating}
-                isLoading={isLoading}
+                isLoading={isDiscoverLoading}
                 offers={offers}
+                isRefreshing={isRefreshing}
+                onRefreshPress={onRefreshPress}
             />
         </View>
     );
 };
 
-export default home;
