@@ -10,7 +10,7 @@ import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen"
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-import { useBookingAdminList } from "@/src/core/models/Offer/hooks/useBookingAdminList";
+import { useBookingOfferAdminList } from "@/src/core/models/Offer/hooks/useBookingOfferAdminList";
 import { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
 
 export default function viewOffer() {
@@ -25,7 +25,7 @@ export default function viewOffer() {
         error,
         onViewBooking,
         offerBookings,
-    } = useBookingAdminList(offerId);
+    } = useBookingOfferAdminList(offerId);
     
     const {
         offer 
@@ -47,7 +47,6 @@ export default function viewOffer() {
             </ScreenWrapper>
         )
     }
-    console.log('reached admin/offer/view');
 
     return (
         <>
