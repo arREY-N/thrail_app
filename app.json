@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "assetBundlePatterns": [
       "src/assets/fonts/**/*",
       "src/assets/tiles/**/*",
@@ -20,7 +19,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.thesis.thrail",
       "googleServicesFile": "./google-services.json",
@@ -72,7 +70,9 @@
           "photosPermission": "Allow Thrail to access your photos to share in the group chat.",
           "cameraPermission": "Allow Thrail to access your camera to capture photos to share in the group chat."
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-splash-screen"
     ],
     "experiments": {
       "typedRoutes": true
