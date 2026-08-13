@@ -6,7 +6,8 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["jest"]
+    "types": ["jest", "node"],
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "**/*.ts",
