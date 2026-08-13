@@ -3,6 +3,26 @@
  * @description Pure UI layout screen displaying active conversation messages inside a group chat room.
  */
 
+import {
+    Bubble,
+    BubbleProps,
+    Chat,
+    Composer,
+    ComposerProps,
+    Day,
+    DayProps,
+    IMessage as IChatMessage,
+    InputToolbar,
+    InputToolbarProps,
+    MessageImageProps,
+    MessageText,
+    MessageTextProps,
+    SendProps,
+    SystemMessage,
+    SystemMessageProps,
+    Time,
+    TimeProps
+} from '@kesha-antonov/react-native-chat';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -15,26 +35,6 @@ import {
     View,
     ViewStyle
 } from 'react-native';
-import {
-    Bubble,
-    BubbleProps,
-    Composer,
-    ComposerProps,
-    Day,
-    DayProps,
-    GiftedChat,
-    IMessage as IGiftedMessage,
-    InputToolbar,
-    InputToolbarProps,
-    MessageImageProps,
-    MessageText,
-    MessageTextProps,
-    SendProps,
-    SystemMessage,
-    SystemMessageProps,
-    Time,
-    TimeProps
-} from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -53,9 +53,9 @@ import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/List
 import { useRoomScreen } from './hooks/useRoomScreen';
 
 /**
- * Custom extension of GiftedChat's message type to support extra custom properties.
+ * Custom extension of Chat's message type to support extra custom properties.
  */
-export interface CustomMessage extends IGiftedMessage {
+export interface CustomMessage extends IChatMessage {
     readBy?: { id: string; username?: string; firstname?: string }[];
     isDocument?: boolean;
     fileUrl?: string;
@@ -135,7 +135,7 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
 };
 
 /**
- * Custom text input field wrapper for GiftedChat.
+ * Custom text input field wrapper for Chat.
  */
 const CustomComposer: React.FC<ComposerProps & { onFocusInput?: () => void }> = (props) => {
     const [isFocused, setIsFocused] = React.useState<boolean>(false);
@@ -196,7 +196,7 @@ export interface RoomScreenProps {
 }
 
 /**
- * Group Room Screen containing GiftedChat message feeds and customized attachment capabilities.
+ * Group Room Screen containing Chat message feeds and customized attachment capabilities.
  */
 const RoomScreen: React.FC<RoomScreenProps> = ({ 
     messages, 
@@ -410,9 +410,9 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     const renderInputToolbar = useCallback((props: InputToolbarProps<CustomMessage>) => 
         <InputToolbar 
             {...props} 
-            containerStyle={[styles.inputToolbar, { width: '100%' }]} 
+            containerStyle={[styles.inputToolbar, { width: '100%', paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) }]} 
             primaryStyle={styles.inputToolbarPrimary} 
-        />, []);
+        />, [insets.bottom, isKeyboardVisible]);
 
     const renderFooter = useCallback(() => {
         if (!isUploading) return null;
@@ -561,7 +561,10 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
             
             <View style={[styles.container, { alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
-                    <GiftedChat
+                    <Chat
+                        disableKeyboardProvider={true}
+                        colorScheme='light'
+                        // renderAvatar={null}
                         messages={displayMessages} 
                         onSend={messages => onSend(messages)}
                         user={{ _id: currentUser?.id || '', name: currentUser?.username || 'User' }}
@@ -591,7 +594,9 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         }}
                         listProps={{
                             ...listViewProps,
-                            contentContainerStyle: { flexGrow: 1 }
+                            contentContainerStyle: { flexGrow: 1 },
+                            keyboardDismissMode: 'on-drag' as const,
+                            keyboardShouldPersistTaps: 'never' as const,
                         }}
                     />
                 </View>

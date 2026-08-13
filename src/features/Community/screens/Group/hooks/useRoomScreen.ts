@@ -101,7 +101,7 @@ export const useRoomScreen = ({
     }, [messages, currentUser, markAsRead]);
 
     /**
-     * Map raw database messages into GiftedChat compatible CustomMessage format.
+     * Map raw database messages into Chat compatible CustomMessage format.
      */
     const formattedFirebaseMessages = useMemo(() => {
         if (!messages) return [];
