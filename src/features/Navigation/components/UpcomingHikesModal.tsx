@@ -200,7 +200,7 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
 
 const styles = StyleSheet.create({
     modalContainer: { flex: 1, justifyContent: 'flex-end' },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: Colors.MODAL_OVERLAY || 'rgba(0, 0, 0, 0.5)' },
+    backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.MODAL_OVERLAY || 'rgba(0, 0, 0, 0.5)' },
     backdropTouch: { flex: 1 },
     modalContent: { 
         backgroundColor: Colors.WHITE, 

@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end' 
     },
     backdrop: { 
-        ...StyleSheet.absoluteFillObject, 
+        ...StyleSheet.absoluteFill, 
         backgroundColor: Colors.MODAL_OVERLAY 
     },
     backdropTouch: { 

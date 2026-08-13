@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.GRAY_LIGHT 
     },
     mapDarkenOverlay: { 
-        ...StyleSheet.absoluteFillObject, 
+        ...StyleSheet.absoluteFill, 
         backgroundColor: `${Colors.BLACK}33` 
     },
     glassPill: { 

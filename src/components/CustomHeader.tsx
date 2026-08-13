@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     centerBox: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,
@@ -502,7 +502,7 @@ const dashboardStyles = StyleSheet.create({
         zIndex: 10,
     },
     centerBox: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     KeyboardAvoidingView,
     Modal,
@@ -161,16 +161,12 @@ const styles = StyleSheet.create({
         padding: 20 
     },
     backdropTouch: { 
-        ...StyleSheet.absoluteFillObject 
+        ...StyleSheet.absoluteFill
     },
     modalContent: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 16, 
         padding: 24, 
-         
-         
-         
-         
         ...GlobalStyles.dropShadow(3), 
         maxHeight: '90%' 
     },

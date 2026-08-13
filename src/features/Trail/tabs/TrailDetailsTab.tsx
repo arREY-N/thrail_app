@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     mapCard: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3), backgroundColor: '#EFEFEF', position: 'relative' },
     mapImage: { width: '100%', height: '100%' },
-    mapDarkenOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)' },
+    mapDarkenOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.05)' },
     mapRouteLabel: { position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', zIndex: 2 },
     mapRouteText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
     mapOverlay: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center' },
