@@ -214,7 +214,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
     );
 
     const renderMobileStickyActions = () => {
-        const safeBottomPadding = Math.max(insets.bottom, 16);
+        const safeBottomPadding = Math.max(insets.bottom, 20);
 
         return (
             <View style={[styles.stickyFooter, { paddingBottom: safeBottomPadding }]}>
@@ -228,7 +228,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                         activeOpacity={0.7}
                     >
                         <CustomIcon library="Feather" name="map" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1} adjustsFontSizeToFit>Trails</CustomText>
+                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Trails</CustomText>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
@@ -237,7 +237,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                         activeOpacity={0.7}
                     >
                         <CustomIcon library="Ionicons" name="pricetags" size={16} color={Colors.WHITE} />
-                        <CustomText style={styles.primaryStickyBtnText} numberOfLines={1} adjustsFontSizeToFit>Offers</CustomText>
+                        <CustomText style={styles.primaryStickyBtnText} numberOfLines={1}>Offers</CustomText>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
@@ -246,7 +246,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                         activeOpacity={0.7}
                     >
                         <CustomIcon library="Feather" name="users" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1} adjustsFontSizeToFit>Personnel</CustomText>
+                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Personnel</CustomText>
                     </TouchableOpacity>
                 </View>
             </View>
