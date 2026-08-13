@@ -135,11 +135,27 @@ service cloud.firestore {
         allow create: 
             if request.auth != null
             && (
-                request.auth.uid == request.resource.data.userId
+                request.auth.uid == request.resource.data.userId 
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == request.resource.data.businessId
+                        || request.auth.token.owner == request.resource.data.businessId
+                    )
+                )
             );
         allow delete: 
             if request.auth != null
-            && request.auth.uid == resource.data.userId; 
+            && (
+                request.auth.uid == resource.data.userId
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == resource.data.businessId
+                        || request.auth.token.owner == resource.data.businessId
+                    )
+                )
+            ); 
     }
     
     match /businesses/{businessId}/admins/{adminId} {
