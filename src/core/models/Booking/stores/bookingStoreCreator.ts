@@ -17,12 +17,14 @@ export interface BookingState {
     unsubscribeFromBusinessBookings: (offerId: string) => void;
     subscribeToUserBookings: (userId: string) => Unsubscribe;
     deleteBooking: (bookingId: string) => Promise<void>;
+    fetchAllBusinessBookings: (businessId: string) => Promise<void>;
 
     data: Booking[];
     subscriptionError: string | null;
     error: string | null;
     isLoading: boolean;
     isWriting: boolean;
+    isFetching: boolean;
     userBookings: Booking[];
     offerBookings: Booking[];
     businessBookings: Booking[];
@@ -40,6 +42,7 @@ const init = {
     subscriptionError: null,
     isLoading: false,
     isWriting: false,
+    isFetching: false,
     bookingByOffer: {},
     activeListeners: {},
 };
@@ -90,6 +93,29 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }));
         } catch (error) {
             console.error("Error subscribing to business bookings: ", error);
+            throw error;
+        }
+    },
+
+    fetchAllBusinessBookings: async (businessId: string) => {
+        try {
+            if(get().businessBookings.length > 0 && get().businessBookings[0].business.id === businessId) {
+                return;
+            }
+
+            set({ isFetching: true, error: null });
+
+            const bookings = await BookingRepo.fetchAllBusinessBookings(businessId);
+
+            set({
+                businessBookings: bookings,
+                isFetching: false,
+            })
+        } catch (error) {
+            set({ 
+                error: `Failed to fetch business bookings: ${(error as Error).message}`,
+                isFetching: false
+            });
             throw error;
         }
     },
