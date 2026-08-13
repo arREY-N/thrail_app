@@ -2,7 +2,7 @@
  * @file SettingsScreen.tsx
  * @description Main Settings screen where users can configure app preferences, account details, and view info.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -157,6 +157,8 @@ const SettingsScreen = ({
                 cancelText="Cancel"
                 onConfirm={handleConfirmSignOut}
                 onClose={() => setShowSignOutModal(false)}
+                isDestructive={true}
+                iconName="log-out"
             />
 
             <CustomHeader 
