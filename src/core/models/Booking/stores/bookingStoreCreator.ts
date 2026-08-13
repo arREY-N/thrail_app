@@ -173,69 +173,65 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }
 
             const bookings = await BookingRepo.fetchAll();
-            set({ userBookings: bookings, isLoading: false });
+            set({ userBookings: bookings });
         } catch (error) {
-            set({ isLoading: false });
             throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     fetchOfferBookings: async (offerId: string, role: string) => {
-        set({ isLoading: true, error: null });
         try {
+            set({ isLoading: true, error: null });
+            
             if (role !== "admin") {
                 throw new Error("Only admins can fetch bookings for their offers");
             }
 
             const offerBookings = await BookingRepo.fetchOfferBookings(offerId);
 
-            set({
-                offerBookings,
-                isLoading: false,
-            });
+            set({ offerBookings });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     refresh: async (userId?: string | null) => {
-        set({ isLoading: true, error: null });
-
         try {
+            set({ isLoading: true, error: null });
             if (!userId) {
                 throw new Error("User ID is required for refreshing bookings");
             }
 
             const userBookings = await BookingRepo.fetchUserBookings(userId);
 
-            set({
-                userBookings,
-                isLoading: false,
-            });
+            set({ userBookings });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     load: async (userId: string) => {
-        if (get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) {
-            return;
-        }
-
-        set({ isLoading: true, error: null });
-
         try {
+            if (get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) {
+                return;
+            }
+    
+            set({ isLoading: true, error: null });
             const userBookings = await BookingRepo.fetchUserBookings(userId);
 
             set({
-                userBookings,
-                isLoading: false,
+                userBookings
             });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
@@ -261,21 +257,18 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }
 
             console.log('loaded booking:', upsertItem(get().data, booking));
-            set({
-                isLoading: false,
-                data: upsertItem(get().data, booking),
-            })
+            set({ data: upsertItem(get().data, booking) })
         } catch (error) {
-            set({ isLoading: false });
             throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     create: async (booking: Booking, isAdmin = false) => {
         try {
             const existing = [get().userBookings, get().offerBookings, get().businessBookings].flat().find(b => b.offer.id === booking.offer.id);
-            
-
+        
             if (existing && existing.status !== 'reservation-rejected') {
                 throw new Error("Booking for this offer already exists and is currently in progress.");
             }
@@ -300,47 +293,15 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
         } catch (error) {
             set({ isLoading: false });
             throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
-    // create: async (booking: Booking, isAdmin = false) => {
-    //     set({ isLoading: true, error: null });
-
-    //     try {
-
-
-    //         const data = await BookingRepo.write(booking);
-
-    //         set((state) => {
-    //             const index = isAdmin
-    //                 ? state.offerBookings.findIndex((b) => b.id === data.id)
-    //                 : state.userBookings.findIndex((b) => b.id === data.id);
-
-    //             if (index !== -1) {
-    //                 if (isAdmin) {
-    //                     state.offerBookings[index] = data;
-    //                 } else {
-    //                     state.userBookings[index] = data;
-    //                 }
-    //             } else if (isAdmin) {
-    //                 state.offerBookings.push(data);
-    //             } else {
-    //                 state.userBookings.push(data);
-    //             }
-
-    //             state.isLoading = false;
-    //         });
-    //         return data;
-    //     } catch (err) {
-    //         set({ isLoading: false });
-    //         throw err;
-    //     }
-    // },
-
     checkBookings: (id: string): boolean => {
-        set({ isLoading: true, error: null });
-
         try {
+            set({ isLoading: true, error: null });
+            
             if (get().userBookings.some((u) => u.offer.id === id)) {
                 throw new Error("Already booked this offer");
             }
@@ -348,8 +309,9 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             set({ isLoading: false, error: null });
             return true;
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     }
 });
