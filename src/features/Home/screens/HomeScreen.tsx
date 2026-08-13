@@ -4,22 +4,23 @@
  */
 
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     Platform,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     useWindowDimensions,
     View,
 } from 'react-native';
-import Carousel from 'react-native-reanimated-carousel';
 
 import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import MountainCard from '@/src/components/MountainCard';
+import MountainCardSkeleton from '@/src/components/MountainCardSkeleton';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -30,43 +31,39 @@ import { useLocation } from '@/src/hooks/useLocation';
 import { useWeather } from '@/src/hooks/useWeather';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
-import MountainCard from '@/src/components/MountainCard';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
+import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
 import { ITrail } from '@/src/core/models/Trail/Trail.types';
 import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 
 /**
  * Props for the HomeScreen component.
  * 
- * @param locationTemp - Unused legacy prop, maintained for signature consistency.
  * @param onWeatherPress - Callback when the weather section is pressed.
  * @param onSeeMoreRecommendationsPress - Callback to view all recommended trails.
- * @param onViewAllTrendingPress - Callback to view all trending/discover trails.
  * @param onSeeMoreDiscoverPress - Callback to view all discover trails.
  * @param onSeeMoreOffersPress - Callback to view all trails with offers.
  * @param recommendedTrails - Array of recommended trails.
  * @param discoverTrails - Array of discover trails.
- * @param trailsWithOffers - Array of trails that have upcoming offers.
- * @param isOffersLoading - Loading state of offers list.
- * @param onMountainPress - Callback when a specific mountain/trail is pressed.
- * @param onDownloadPress - Callback to download a trail.
+ * @param trailsWithOffers - Array of trails that have upcoming active offers.
+ * @param isOffersLoading - Loading state for the offers list.
+ * @param onMountainPress - Callback when a specific mountain or trail card is pressed.
+ * @param onDownloadPress - Callback to download offline trail data for a mountain.
  * @param onGroupPress - Callback when the group FAB is pressed.
- * @param getItemRating - Function to retrieve the rating for a specific item.
+ * @param getItemRating - Function returning the numerical review rating for a given trail ID.
  * @param isLoading - Global loading state.
- * @param offers - Array of hiking offers.
- * @param recommendationsError - Recommendations fetch error.
- * @param isRecommendationsLoading - Recommendations loading state.
- * @param isNewAccount - New account flag.
- * @param onRetryRecommendations - Callback to retry recommendations.
- * @param discoverError - Discover/trails fetch error.
- * @param onRetryDiscover - Callback to retry discover trails.
+ * @param offers - Array of active hike offers.
+ * @param recommendationsError - Error message when recommendations fetch fails.
+ * @param isRecommendationsLoading - Loading state for the recommendations list.
+ * @param isNewAccount - Flag indicating if the logged-in user is a cold-start new account.
+ * @param discoverError - Error message when discover trails fetch fails.
+ * @param isRefreshing - Active pull-to-refresh state boolean.
+ * @param onRefreshPress - Callback triggered when user performs a pull-to-refresh gesture.
  */
 export interface HomeScreenProps {
-    locationTemp?: Record<string, unknown>;
     onWeatherPress: () => void;
     onSeeMoreRecommendationsPress: () => void;
-    onViewAllTrendingPress?: () => void;
     onSeeMoreDiscoverPress: () => void;
     onSeeMoreOffersPress: () => void;
     recommendedTrails: ITrail[];
@@ -78,24 +75,221 @@ export interface HomeScreenProps {
     onGroupPress: () => void;
     getItemRating: (id: string) => number;
     isLoading: boolean;
-    offers?: any[];
+    offers?: IOffer[];
     recommendationsError?: string | null;
     isRecommendationsLoading?: boolean;
     isNewAccount?: boolean;
-    onRetryRecommendations?: () => void;
     discoverError?: string | null;
-    onRetryDiscover?: () => void;
+    isRefreshing?: boolean;
+    onRefreshPress?: () => void;
 }
+
+/**
+ * Props for the internal ListSection component.
+ * 
+ * @param title - Section header title.
+ * @param data - Array of ITrail items to display.
+ * @param onViewAll - Callback when "See more" text button is pressed.
+ * @param isSectionLoading - Loading state for this specific section.
+ * @param error - Error string if fetching failed for this section.
+ * @param isNewAccountSection - Indicates if section is showing cold-start onboarding state.
+ * @param cardWidth - Dynamic responsive card width in pixels.
+ * @param effectiveWidth - Max-width constrained container width.
+ * @param getItemRating - Function retrieving trail rating by ID.
+ * @param onMountainPress - Callback when card is pressed.
+ * @param onDownloadPress - Callback when trail download icon is pressed.
+ * @param mountainWeatherMap - Weather badge map keyed by trail ID.
+ * @param getTrailOffersCount - Helper returning count of upcoming active offers for a trail ID.
+ * @param isRefreshing - Active pull-to-refresh state boolean.
+ */
+interface ListSectionProps {
+    title: string;
+    data: ITrail[];
+    onViewAll: () => void;
+    isSectionLoading: boolean;
+    isRefreshing?: boolean;
+    error?: string | null;
+    isNewAccountSection?: boolean;
+    cardWidth: number;
+    effectiveWidth: number;
+    getItemRating: (id: string) => number;
+    onMountainPress: (id: string) => void;
+    onDownloadPress: (id: string) => void;
+    mountainWeatherMap: Record<string, TrailWeatherBadge>;
+    getTrailOffersCount: (trailId: string) => number;
+}
+
+/**
+ * Renders a horizontal list section of MountainCards or MountainCardSkeletons.
+ * 
+ * @param props - ListSectionProps containing data, callbacks, and layout parameters.
+ * @returns React.JSX.Element rendering section header and horizontal card list.
+ */
+const ListSection: React.FC<ListSectionProps> = ({ 
+    title, 
+    data, 
+    onViewAll, 
+    isSectionLoading,
+    isRefreshing = false,
+    error = null,
+    isNewAccountSection = false,
+    cardWidth,
+    effectiveWidth,
+    getItemRating,
+    onMountainPress,
+    onDownloadPress,
+    mountainWeatherMap,
+    getTrailOffersCount,
+}) => {
+    const hasData = data && data.length > 0;
+    const scrollRef = React.useRef<ScrollView>(null);
+
+    // Web drag-to-slide mouse scrolling hook for Web ScrollView
+    useWebDragScroll(scrollRef, hasData);
+
+    return (
+        <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+                <CustomText variant="subtitle" style={styles.sectionTitle}>
+                    {title}
+                </CustomText>
+
+                {hasData && (
+                    <TouchableOpacity onPress={onViewAll}>
+                        <CustomText variant="caption" style={styles.viewAllText}>
+                            See more
+                        </CustomText>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* SKELETON LOADING STATE: Renders shimmering MountainCardSkeleton cards while data is fetching or refreshing */}
+            {(isSectionLoading && !hasData) || isRefreshing ? (
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={styles.horizontalList}
+                    style={styles.scrollViewStyle}
+                >
+                    {[1, 2, 3].map((_, index) => (
+                        <MountainCardSkeleton 
+                            key={`skeleton-${title}-${index}`}
+                            style={{
+                                width: cardWidth,
+                                marginRight: 16
+                            }}
+                        />
+                    ))}
+                </ScrollView>
+            ) : error && !hasData ? (
+                <View style={styles.emptyStateContainer}>
+                    <CustomIcon 
+                        library="Ionicons" 
+                        name="alert-circle-outline" 
+                        size={48} 
+                        color={Colors.RED} 
+                    />
+                    <CustomText variant="caption" style={styles.emptyStateText}>
+                        {title === "Recommendations" 
+                            ? "Failed to load recommendations. Pull down to refresh."
+                            : "Failed to load trails. Pull down to refresh."}
+                    </CustomText>
+                </View>
+            ) : hasData ? (
+                <ScrollView 
+                    ref={scrollRef}
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={styles.horizontalList}
+                    style={styles.scrollViewStyle} 
+                >
+                    {data.map((item) => (
+                        <MountainCard 
+                            rating={getItemRating(item.id)}
+                            key={`${title}-${item.id}`}
+                            item={item}
+                            onPress={() => onMountainPress(item.id)}
+                            onDownload={() => onDownloadPress(item.id)}
+                            style={{ 
+                                width: cardWidth,
+                                marginRight: 16 
+                            }}
+                            weatherBadge={mountainWeatherMap[item.id] ?? null}
+                            offersCount={getTrailOffersCount(item.id)}
+                        />
+                    ))}
+                </ScrollView>
+            ) : (
+                <View style={styles.emptyStateContainer}>
+                    {/* EMPTY STATE: Render custom labels and illustrations based on section and user status */}
+                    {title === "Recommendations" ? (
+                        /* New User (Cold Start): user profile has no logged hikes */
+                        isNewAccountSection ? (
+                            <>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="bulb-outline" 
+                                    size={48} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                                <CustomText variant="caption" style={styles.emptyStateText}>
+                                    No recommendations yet. Start exploring!
+                                </CustomText>
+                            </>
+                        ) : (
+                            /* Regular Empty Recommendations: user has logged hikes but no new recommendation matches */
+                            <>
+                                <CustomIcon 
+                                    library="Ionicons" 
+                                    name="trail-sign-outline" 
+                                    size={48} 
+                                    color={Colors.GRAY_MEDIUM} 
+                                />
+                                <CustomText variant="caption" style={styles.emptyStateText}>
+                                    No matching recommendations found.
+                                </CustomText>
+                            </>
+                        )
+                    ) : (
+                        /* Standard Empty State for all other trail lists */
+                        <> 
+                            <CustomIcon 
+                                library="Ionicons" 
+                                name="trail-sign-outline" 
+                                size={48} 
+                                color={Colors.GRAY_MEDIUM} 
+                            />
+                            <CustomText variant="caption" style={styles.emptyStateText}>
+                                No trails available yet.
+                            </CustomText>
+                        </>
+                    )}
+
+                    <TouchableOpacity 
+                        style={styles.exploreButton}
+                        onPress={() => router.replace('/explore')}
+                        activeOpacity={0.7}
+                    >
+                        <CustomText style={styles.exploreButtonText}>
+                            Explore Trails
+                        </CustomText>
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
+    );
+};
 
 /**
  * HomeScreen — The main dashboard screen showing localized weather conditions,
  * curated trail recommendations, discover lists, and interactive hike offers.
+ * 
+ * @param props - HomeScreenProps containing navigation callbacks, trail data arrays, and loading flags.
+ * @returns React.JSX.Element rendering the complete Home tab view.
  */
 const HomeScreen: React.FC<HomeScreenProps> = ({
-    locationTemp,
     onWeatherPress,
     onSeeMoreRecommendationsPress,
-    onViewAllTrendingPress,
     onSeeMoreDiscoverPress,
     onSeeMoreOffersPress,
     recommendedTrails = [], 
@@ -111,13 +305,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     recommendationsError = null,
     isRecommendationsLoading = false,
     isNewAccount = false,
-    onRetryRecommendations,
     discoverError = null,
-    onRetryDiscover,
+    isRefreshing = false,
+    onRefreshPress,
 }) => {
     const { latitude, longitude, locationName, geocodedName, isLocating } = useLocation();
     const { weatherData, loading, error, refetch } = useWeather(latitude, longitude);
-    const [mountainWeatherMap, setMountainWeatherMap] = useState<Record<string, unknown>>({});
+    const [mountainWeatherMap, setMountainWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
     const { width } = useWindowDimensions();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
@@ -128,7 +322,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
     const hasAnyTrails = recommendedTrails.length > 0 || discoverTrails.length > 0 || trailsWithOffers.length > 0;
 
-    useEffect(() => {
+    const reloadMountainWeatherBadges = useCallback(() => {
         const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
         if (allVisibleTrails.length === 0) return;
         
@@ -139,182 +333,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
     }, [recommendedTrails, discoverTrails, trailsWithOffers]);
 
+    useEffect(() => {
+        reloadMountainWeatherBadges();
+    }, [reloadMountainWeatherBadges]);
+
     // Helper to calculate upcoming offers count for each card
     const getTrailOffersCount = (trailId: string) => {
         const now = new Date();
         return offers.filter(o => o.trail?.id === trailId && o.date && new Date(o.date).getTime() > now.getTime()).length;
-    };
-
-    /**
-     * Props for the internal ListSection component.
-     */
-    interface ListSectionProps {
-        title: string;
-        data: ITrail[];
-        onViewAll: () => void;
-        isSectionLoading: boolean;
-        error?: string | null;
-        onRetry?: () => void;
-        isNewAccountSection?: boolean;
-    }
-
-    /**
-     * Renders a horizontal list section of MountainCards.
-     * 
-     * @param props - The properties for the ListSection.
-     */
-    const ListSection = ({ 
-        title, 
-        data, 
-        onViewAll, 
-        isSectionLoading,
-        error = null,
-        onRetry,
-        isNewAccountSection = false,
-    }: ListSectionProps) => {
-        const hasData = data && data.length > 0;
-        const scrollRef = React.useRef<ScrollView>(null);
-
-        const totalCardsWidth = data.length * (cardWidth + 16) - 16;
-        const shouldScroll = data.length > 1 && totalCardsWidth > (effectiveWidth - 32);
-
-        // Web drag-to-slide mouse scrolling hook for Web ScrollView
-        useWebDragScroll(scrollRef, hasData);
-
-        return (
-            <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                    <CustomText variant="subtitle" style={styles.sectionTitle}>
-                        {title}
-                    </CustomText>
-
-                    {hasData && (
-                        <TouchableOpacity onPress={onViewAll}>
-                            <CustomText variant="caption" style={styles.viewAllText}>
-                                See more
-                            </CustomText>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
-                {/* ERROR STATE: Renders if data fetching failed and no cached data exists */}
-                {error && !hasData ? (
-                    <View style={styles.emptyStateContainer}>
-                        <CustomIcon 
-                            library="Ionicons" 
-                            name="alert-circle-outline" 
-                            size={48} 
-                            color={Colors.RED} 
-                        />
-                        <CustomText variant="caption" style={styles.emptyStateText}>
-                            {/* Choose message based on section title */}
-                            {title === "Recommendations" 
-                                ? "Failed to load recommendations."
-                                : "Failed to load trails."}
-                        </CustomText>
-                        {onRetry && (
-                            <TouchableOpacity 
-                                style={styles.exploreButton}
-                                onPress={onRetry}
-                                activeOpacity={0.7}
-                            >
-                                <CustomText style={styles.exploreButtonText}>
-                                    Try Again
-                                </CustomText>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                ) : isSectionLoading && !hasData ? (
-                    <View style={styles.loaderContainer}>
-                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                    </View>
-                ) : hasData ? (
-                    <ScrollView 
-                        ref={scrollRef}
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
-                        contentContainerStyle={styles.horizontalList}
-                        style={styles.scrollViewStyle} 
-                    >
-                        {data.map((item, index) => {
-                            const isLast = index === data.length - 1;
-
-                            return (
-                                <MountainCard 
-                                    rating={getItemRating(item.id)}
-                                    key={`${title}-${item.id}`}
-                                    item={item}
-                                    onPress={() => onMountainPress(item.id)}
-                                    onDownload={() => onDownloadPress(item.id)}
-                                    style={{ 
-                                        width: cardWidth,
-                                        marginRight: isLast ? 16 : 16 
-                                    }}
-                                    weatherBadge={(mountainWeatherMap[item.id] as TrailWeatherBadge) ?? null}
-                                    offersCount={getTrailOffersCount(item.id)}
-                                />
-                            );
-                        })}
-                    </ScrollView>
-                ) : (
-                    <View style={styles.emptyStateContainer}>
-                        {/* EMPTY STATE: Render custom labels and illustrations based on section and user status */}
-                        {title === "Recommendations" ? (
-                            /* New User (Cold Start): user profile has no logged hikes */
-                            isNewAccountSection ? (
-                                <>
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="bulb-outline" 
-                                        size={48} 
-                                        color={Colors.GRAY_MEDIUM} 
-                                    />
-                                    <CustomText variant="caption" style={styles.emptyStateText}>
-                                        No recommendations yet. Start exploring!
-                                    </CustomText>
-                                </>
-                            ) : (
-                                /* Regular Empty Recommendations: user has logged hikes but no new recommendation matches */
-                                <>
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="trail-sign-outline" 
-                                        size={48} 
-                                        color={Colors.GRAY_MEDIUM} 
-                                    />
-                                    <CustomText variant="caption" style={styles.emptyStateText}>
-                                        No matching recommendations found.
-                                    </CustomText>
-                                </>
-                            )
-                        ) : (
-                            /* Standard Empty State for all other trail lists*/
-                            <> 
-                                <CustomIcon 
-                                    library="Ionicons" 
-                                    name="trail-sign-outline" 
-                                    size={48} 
-                                    color={Colors.GRAY_MEDIUM} 
-                                />
-                                <CustomText variant="caption" style={styles.emptyStateText}>
-                                    No trails available yet.
-                                </CustomText>
-                            </>
-                        )}
-
-                        <TouchableOpacity 
-                            style={styles.exploreButton}
-                            onPress={() => router.replace('/explore')}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText style={styles.exploreButtonText}>
-                                Explore Trails
-                            </CustomText>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-        );
     };
 
     return (
@@ -331,13 +357,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     isWideScreen && styles.scrollContentWide
                 ]}
                 showsVerticalScrollIndicator={false}
-                alwaysBounceVertical={false} 
+                alwaysBounceVertical={true} 
                 overScrollMode={hasAnyTrails ? 'auto' : 'never'} 
                 scrollEnabled={true}
+                refreshControl={
+                    onRefreshPress ? (
+                        <RefreshControl 
+                            refreshing={isRefreshing}
+                            onRefresh={async () => {
+                                await refetch();
+                                await reloadMountainWeatherBadges();
+                                if (onRefreshPress) {
+                                    await onRefreshPress();
+                                }
+                            }}
+                            colors={[Colors.PRIMARY]}
+                            tintColor={Colors.PRIMARY}
+                        />
+                    ) : undefined
+                }
             >
                 <WeatherSection 
                     weatherData={weatherData}
                     loading={loading || isLocating}
+                    isRefreshing={isRefreshing}
                     error={error}
                     onPress={onWeatherPress}
                     onReload={refetch}
@@ -349,9 +392,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     data={recommendedTrails} 
                     onViewAll={onSeeMoreRecommendationsPress} 
                     isSectionLoading={isLoading || isRecommendationsLoading}
+                    isRefreshing={isRefreshing}
                     error={recommendationsError}
-                    onRetry={onRetryRecommendations}
                     isNewAccountSection={isNewAccount}
+                    cardWidth={cardWidth}
+                    effectiveWidth={effectiveWidth}
+                    getItemRating={getItemRating}
+                    onMountainPress={onMountainPress}
+                    onDownloadPress={onDownloadPress}
+                    mountainWeatherMap={mountainWeatherMap}
+                    getTrailOffersCount={getTrailOffersCount}
                 />
 
                 <ListSection 
@@ -359,8 +409,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     data={discoverTrails}
                     onViewAll={onSeeMoreDiscoverPress} 
                     isSectionLoading={isLoading}
+                    isRefreshing={isRefreshing}
                     error={discoverError}
-                    onRetry={onRetryDiscover}
+                    cardWidth={cardWidth}
+                    effectiveWidth={effectiveWidth}
+                    getItemRating={getItemRating}
+                    onMountainPress={onMountainPress}
+                    onDownloadPress={onDownloadPress}
+                    mountainWeatherMap={mountainWeatherMap}
+                    getTrailOffersCount={getTrailOffersCount}
                 />
 
                 {trailsWithOffers.length > 0 && (
@@ -369,6 +426,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                         data={trailsWithOffers}
                         onViewAll={onSeeMoreOffersPress} 
                         isSectionLoading={isLoading || isOffersLoading}
+                        isRefreshing={isRefreshing}
+                        cardWidth={cardWidth}
+                        effectiveWidth={effectiveWidth}
+                        getItemRating={getItemRating}
+                        onMountainPress={onMountainPress}
+                        onDownloadPress={onDownloadPress}
+                        mountainWeatherMap={mountainWeatherMap}
+                        getTrailOffersCount={getTrailOffersCount}
                     />
                 )}
             </ResponsiveScrollView>
@@ -424,12 +489,6 @@ const styles = StyleSheet.create({
                 marginBottom: -4,
             }
         })
-    },
-    loaderContainer: {
-        width: '100%',
-        paddingVertical: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     emptyStateContainer: {
         width: '100%',
