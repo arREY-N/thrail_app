@@ -5,7 +5,7 @@ export * from "@/src/core/models/Offer/interfaces/Offer.types";
 
 
 // FACTORY
-export { createOffer } from "@/src/core/models/Offer/OfferFactory";
+export { createOffer, createOffer as newOffer } from "@/src/core/models/Offer/OfferFactory";
 
 
 // REPOSITORY
