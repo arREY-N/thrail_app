@@ -1,5 +1,4 @@
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
-import { useEffect } from "react";
+import { Alert } from "react-native";
 
 export type UseBookParams = {
     userId?: string,
@@ -7,18 +6,5 @@ export type UseBookParams = {
 }
 
 export default function useBook(params: UseBookParams = {}) {
-    const { userId } = params;
-
-    const isLoading = useBookingsStore(s => s.isLoading);
-    const error = useBookingsStore(s => s.error);
-    const loadUserBookings = useBookingsStore(s => s.load);
-    
-    useEffect(() => {
-        if(userId) loadUserBookings(userId)
-    },[userId])
-
-    return {
-        isLoading,
-        error,
-    }
+    Alert.alert('useBook() is to be deprecated. Remove any usage of this hook. Report an issue if replacement hook is needed');
 }
