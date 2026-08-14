@@ -10,7 +10,14 @@ export function useBookingDelete() {
     const isDeleting = useBookingsStore(s => s.isWriting);    
     const deleteBooking = useBookingsStore(s => s.deleteBooking);
 
-    const cancelReservation = async (booking: Booking) => {
+    /**
+     * Function to cancel a booking with a pending status.
+     * Deletes the whole reservation immediately, no approval needed from 
+     * the admin or business. Only works for bookings that have not been 
+     * approved yet.
+     * @param {Booking} booking - The booking to cancel
+     */
+    const cancelPendingBooking = async (booking: Booking) => {
         try {
             setLocalError(null);
         
@@ -35,6 +42,6 @@ export function useBookingDelete() {
     return {
         error: localError,
         isDeleting,
-        cancelReservation,
+        cancelPendingBooking,
     }
 }
