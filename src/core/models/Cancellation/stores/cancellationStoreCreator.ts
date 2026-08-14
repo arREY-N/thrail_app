@@ -13,7 +13,7 @@ export interface CancellationState {
     isWriting: boolean;
 
     write: (writeData: WriteCancellationParams) => Promise<void>;
-    delete: (businessId: string, cancellation: Cancellation, userId: string) => Promise<void>;
+    delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
     
     fetchUserCancellation: (businessId: string, id: string) => Promise<Cancellation | null>;
     fetchAllUserCancellations: (userId: string, refresh?: boolean) => Promise<void>;
@@ -58,7 +58,11 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             const forApproval = cancellation.status === "approved";
 
             if (forApproval && !isAdmin) {
-                throw new Error("Only an admin can approve a cancellation.");
+                if(isAdmin && cancellation.cancelledBy === 'admin')
+                    throw new Error("This cancellation was made by an admin and cannot be approved by an admin.");
+
+                if(!isAdmin && cancellation.cancelledBy === 'user')
+                    throw new Error("This cancellation was made by a user and cannot be approved by a user.");
             }
 
             const result = await CancellationRepo.write(cancellation.businessId, cancellation);
@@ -87,13 +91,17 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         }
     },
 
-    async delete(businessId: string, cancellation: Cancellation, userId: string): Promise<void> {
+    async delete(businessId: string, cancellation: Cancellation, userId?: string): Promise<void> {
         try {
             if(cancellation.status !== "pending") {
                 throw new Error("Only pending cancellations can be deleted.");
             }
 
-            if(cancellation.userId !== userId) {
+            if(cancellation.cancelledBy === 'user' && !userId) {
+                throw new Error("User ID is required to delete a user cancellation.");
+            }
+
+            if(cancellation.cancelledBy !== 'admin' && cancellation.userId !== userId) {
                 throw new Error("Users can only delete their own cancellation requests.");
             }
 
@@ -102,17 +110,22 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             const id = cancellation.id;
 
             await CancellationRepo.delete(businessId, id);
-         
-            set({
-                userCancellations: [...get().userCancellations.filter(c => c.id !== id)],
-                isWriting: false
+            
+            set((state) => {
+                if(cancellation.cancelledBy === 'admin') {
+                    return {
+                        businessCancellations: state.businessCancellations.filter(c => c.id !== id),
+                    }
+                } else {
+                    return {
+                        userCancellations: state.userCancellations.filter(c => c.id !== id),
+                    }
+                }
             });
         } catch (error) {
-            set({ 
-                error: (error as Error).message,
-                isWriting: false 
-            });
             throw error;
+        } finally {
+            set({ isWriting: false });
         }
     },
 
