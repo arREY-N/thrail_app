@@ -1,3 +1,7 @@
+// TODO
+// Move functions in useApprovedBooking() related to 
+// admin actions to processing user bookings to useBookingAdmin.ts
+
 import { refundBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, createBooking, Requirements } from "@/src/core/models/Booking/Booking";
@@ -7,6 +11,7 @@ import { Offer } from "@/src/core/models/Offer/Offer";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import { User } from "@/src/core/models/User/User";
 import { UserRepository } from "@/src/core/repositories/userRepository";
+import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
@@ -43,7 +48,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                     const u = await UserRepository.fetchById(booking.user.id);
                     if (u) setHikerProfile(new User(u));
                 } catch (e) {
-                    console.error('Error fetching hiker profile: ', e);
+                    catchError(e as Error, 'writingError', 'onFetchHikerProfile()');
                 }
             } else {
                 setHikerProfile(null);
@@ -63,7 +68,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 loadBooking(bookingId);
             }
         } catch (error) {
-            console.error('Error loading offer or booking: ', error);
+            catchError(error as Error, 'writingError', 'onLoadOfferOrBooking()');
             setLocalError((error as Error).message || 'Failed to load offer or booking');
         }
     }, [offerId, bookingId]);
@@ -92,7 +97,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 }
             }
         } catch (error) {
-            console.error('Error setting offer or booking: ', error);
+            catchError(error as Error, 'writingError', 'onSetOfferOrBooking()');
             setLocalError((error as Error).message || 'Failed to set offer or booking');
         }
     }, [offerId, bookingId]);
@@ -146,7 +151,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             router.back();
 
         } catch (error) {
-            console.error('Error approving booking: ', error);
+            catchError(error as Error, 'writingError', 'onApproveBooking()');
             setLocalError((error as Error).message || 'Failed to approve booking');
         }
     }
@@ -172,7 +177,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
 
             router.back();
         } catch (error) {
-            console.error('Error confirming payment: ', error);
+            catchError(error as Error, 'writingError', 'onConfirmPayment()');
             setLocalError((error as Error).message || 'Failed to confirm payment');
         }
     }
@@ -222,36 +227,14 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             }
 
             // Sync the hiker's profile and emergency contact profile if they exist
-            try {
-                if (hikerProfile) {
-                    const updatedHiker = new User({
-                        ...hikerProfile,
-                        phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : hikerProfile.phoneVerifiedAt,
-                        emergencyContact: hikerProfile.emergencyContact ? {
-                            ...hikerProfile.emergencyContact,
-                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : hikerProfile.emergencyContact.phoneVerifiedAt,
-                        } : undefined
-                    });
-                    await UserRepository.write(updatedHiker);
-                }
-                
-                if (booking.emergencyContact?.userId) {
-                    const emergencyProfile = await UserRepository.fetchById(booking.emergencyContact.userId);
-                    if (emergencyProfile) {
-                        const updatedEmergency = new User({
-                            ...emergencyProfile,
-                            phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : emergencyProfile.phoneVerifiedAt
-                        });
-                        await UserRepository.write(updatedEmergency);
-                    }
-                }
-            } catch (syncError) {
-                console.error('Failed to sync global profile verifications: ', syncError);
-            }
+            // WRONG USE CASE
+            // 
+            // Sync upon submission of reservation not in approval
+            // Admins do not have permissions to edit users' profiles.
  
             router.back();
         } catch (error) {
-            console.error('Error rejecting booking: ', error);
+            catchError(error as Error, 'writingError', 'onRejectBooking()');
             setLocalError((error as Error).message || 'Failed to reject booking');
         }   
     }
@@ -274,6 +257,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
                 }
             });
         } catch (error) {
+            catchError(error as Error, 'writingError', 'onRescheduleBooking()');
             setLocalError((error as Error).message || 'Failed to reschedule booking');
         }
     }
@@ -299,6 +283,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             router.back();
 
         } catch (error) {
+            catchError(error as Error, 'writingError', 'onRefund()');
             setLocalError((error as Error).message || 'Failed to refund booking');  
         }
     }
@@ -319,7 +304,7 @@ export default function useApproveBooking(params: UseApproveBookingParams) {
             router.back();
 
         } catch (error) {
-            console.error('Error cancelling unpaid booking: ', error);
+            catchError(error as Error, 'writingError', 'onCancelUnpaid()');
             setLocalError((error as Error).message || 'Failed to cancel booking');
         }
     }
