@@ -1,7 +1,23 @@
 # Cancellation Feature
+
+
+- TODO: TO BE CONTINUED
+
+To set proper reservation distinction, the following status are to be followed:
+- For reservation: Users who have submitted reservation requests and is under the approval of the admin based on the submission of required information or documents.
+- Pending docs: If there are problems with the submitted documents, the user will be asked to resubmit the necessary documents.
+- For payment: Once approved, the reservation status will be updated and the user will be prompt to pay either the down payment or the full amount.
+- Downpayment: Incomplete payments will mark the reservation with downpayment until the remaining balance is paid.
+- Paid: Once the full amount is paid, the reservation will be marked as paid
+- Completed/Finished: Once the hike was accomplished, the reservation will be marked as finished.
+
+- For cancellation: users who have sent cancellation requests will have their reservation marked as for-cancellation
+
+For users, the application allows cancellations as long as the offer has not expired or the minimum period set by the admin has not been reached. 
+
 ```
-Allows users to submit cancellation requests for reserved and booked hikes and business admins to process requests.
-```
+Cancellation of booking reservations can be requested by both users and admins, given valid reasons. However, if the business explicitly states in their terms and conditions, as displayed and read by the user before reserving, that such action is not allowed, then the functionality will not be available to the user for that specific reservation. The user can take this up to the business through the chat feature. However, any request in such cases will not be handled by the application any further. 
+``` 
 
 ## Use Cases
 
@@ -27,6 +43,8 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 - Notify admins for incoming cancellation requests.
 - Run cloud refund procedure.
 
+- ReservedPax must only be updated once refund is set by the admin, whether the cancellation is requested by the user or the admin.
+
 ## Test Cases
 
 ### Users
@@ -37,6 +55,7 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 3. Users must be able to appeal for rejected requests.
 4. Users must be able to create requests for for-payment bookings.
 5. `Users must be able to create requests for paid bookings.`
+6. `Users must be able to choose between cancellation and rescheduling for admin-cancelled bookings`
 
 > Dont's
 1. Users must not be able to send requests to expired offers.
@@ -66,14 +85,23 @@ Allows users to submit cancellation requests for reserved and booked hikes and b
 ### Admin
 #### Create/Update
 > Do's
-1. Admins must be able to update cancellation requests, as long as it's pending.
+1. Admins must be able to update cancellation requests, as long as the request is still pending.
 2. Admins must be able to process previously rejected requests if the user submitted an appeal.
-3. Admins must decrement the current reservedPax in the offer details if request is approved.
-4. `Admins must update the associated booking status if request is approved.`
+3. Admins must decrement the current reservedPax in the offer details if user request is approved.
+4. Admins must update the associated booking status if request is approved.
 5. `Admin must still be able to process unprocessed requests made pre-expiration after the offer's expiration.`
+6. Admins must be able to create cancellation notices for user bookings
+    - for reservation: go to booking rejection instead
+    - for payment: yes, with reschedule option
+    - `paid/downpayment: yes, with refund or reschedule option`
+        - Issue [#32](https://github.com/arREY-N/thrail_app/issues/32)
+    - `completed: no    
+7. Admins must be able to revert cancellation notices as long as the notice has not been approved or rejected by the user.
+8. `Admins must be able to update the reservedPax in the offer details for admin cancellation once refund is confirmed.`
 
 > Dont's
 1. Admins must not be able to update approved or rejected requests anymore.
+2. `Admins must not be able to revert approved requests.`
 
 
 #### Read

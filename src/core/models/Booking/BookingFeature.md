@@ -25,7 +25,8 @@ Allow users to reserve and book hiking offers from businesses and for admins to 
     - Issue [#26](https://github.com/arREY-N/thrail_app/issues/26)
 4. Users must be able to either enter the information of their contact person in case of emergency or select them from the application's user database, if they have an existing account.
 5. Users must be able to submit all the documents required by the business and the application before proceeding with the reservation.
-6. Users must be able to add or update any of the documents they have submitted for the reservation during creation of request.
+6. `Users must be able to add or update any of the documents they have submitted for the reservation during creation of request.`
+    - Issue [#33](https://github.com/arREY-N/thrail_app/issues/33)
 7. Users must be able to agree to the terms and conditions of the business and the application before submitting a reservation.
 8. `Users must be able to update booking reserved pax upon reservation.`
 
