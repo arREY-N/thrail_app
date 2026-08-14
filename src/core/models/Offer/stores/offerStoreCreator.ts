@@ -1,6 +1,7 @@
 import { OfferRepo } from "@/src/core/init/repositories";
 import { createOffer, Offer } from "@/src/core/models/Offer/OfferFactory";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { StateCreator } from "zustand";
 
 type OfferParams = {
@@ -10,18 +11,29 @@ type OfferParams = {
 
 export interface OfferState {
     isLoading: boolean;
+    isFetching: boolean;
+    isWriting: boolean;
+
     error: string | null;
     data: Offer[];
     trailOffers: Offer[];
     businessOffers: Offer[];
     current: Offer | null;
+    similarOffers: {
+        similarTrail: Offer[],
+        similarDate: Offer[],
+        similarPrice: Offer[]
+    } | null;
 
     delete: (params: OfferParams) => Promise<void>;
     reset: () => void;
     fetchAll: () => Promise<void>;
     fetchOfferByBusiness: (id: string) => Promise<void>;
-    fetchOfferByTrail: (id: string) => Promise<void>;
     fetchOfferById: (id: string) => Promise<void>;
+    fetchOfferByTrail: (id: string) => Promise<void>;
+
+    findSimilarOffers: (offerId: string) => Promise<void>;
+    
     createOffer: (offer: Offer) => Promise<Offer | null>;
 }
 
@@ -29,15 +41,53 @@ const init = {
     data: [],
     current: null,
     isLoading: false,
+    isFetching: false,
+    isWriting: false,
     error: null,
     documents: [],
     sort: null,
     trailOffers: [],
     businessOffers: [],
+    similarOffers: null
 }
 
 export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
+
+    findSimilarOffers: async (offerId: string) => {
+        try {
+            set({ isLoading: true, error: null, similarOffers: null });
+            
+            const offer = [
+                ...get().data,
+                ...get().trailOffers,
+                ...get().businessOffers
+            ].find(o => o.id === offerId);
+
+            if(!offer) {
+                throw new Error("Offer not found.");
+            }
+
+            if(offer.date < new Date()) {
+                throw new Error("Cannot find similar offers for offers that have expired.");
+            }
+            logger('similarOffers', 'offer', offer);
+            const similarOffers: Offer[] = (await OfferRepo.fetchSimilarOffers(offer)).filter(o => o.reservedPax >= o.maxPax);
+
+            set({ 
+                similarOffers: {
+                    similarTrail: similarOffers.filter(o => o.trail.id === offer.trail.id),
+                    similarDate: similarOffers.filter(o => o.date.getTime() === offer.date.getTime()),
+                    similarPrice: similarOffers.filter(o => o.price === offer.price)
+                } 
+            });
+        } catch (err) {
+            set({ error: (err as Error).message || 'Failed to find similar offers' })
+            throw err;
+        } finally {
+            set({ isLoading: false })
+        }
+    },
 
     fetchAll: async () => {
         set({ isLoading: true, error: null })

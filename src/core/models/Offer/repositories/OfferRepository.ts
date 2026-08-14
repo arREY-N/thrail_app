@@ -1,6 +1,6 @@
 import { Offer, OfferParams } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { createOffer, offerConverter } from "@/src/core/models/Offer/OfferFactory";
-import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, or, query, setDoc, where } from 'firebase/firestore';
 
 const createOffersCollection = (db: any, businessId: string) => {
     return collection(db, 'businesses', businessId, 'offers').withConverter(offerConverter);
@@ -149,6 +149,33 @@ export const OfferRepository = (db: any) => ({
         } catch (err: any) {
             console.error(err.message);
             throw new Error(err.message ?? 'Failed creating offer')
+        }
+    },
+
+    /**
+     * Fetches similar offers based on the provided offer.
+     * @param offer - The offer object used to find similar offers. Similarity is determined based on the trail ID, business ID, and hike date of the provided offer.
+     * @returns 
+     */
+    async fetchSimilarOffers(offer: Offer): Promise<Offer[]> {
+        try {
+            const offerCollection = createOffersGroupCollection(db);
+
+            const q = query(
+                offerCollection, 
+                or(
+                    where('trail.id', '==', offer.trail.id),
+                    where('price', '==', offer.price),
+                    where('date', '==', offer.date)
+                )
+            )
+
+            const snap = await getDocs(q);
+
+            if(snap.empty) return [];
+            return snap.docs.map(doc => doc.data());
+        } catch (err) {
+            throw err;
         }
     },
 
