@@ -2,7 +2,7 @@
 export { CancellationRepo } from "@/src/core/init/repositories";
 
 // FACTORY
-export { createCancellationRequest } from "@/src/core/models/Cancellation/CancellationFactory";
+export { createCancellationRequest, createCancellationRequest as newCancellation } from "@/src/core/models/Cancellation/CancellationFactory";
 
 // TYPES
 export { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
@@ -21,3 +21,4 @@ export { useCancellationUserList } from "@/src/core/models/Cancellation/hooks/us
 export { useCancellationAdmin } from "@/src/core/models/Cancellation/hooks/useCancellationAdmin";
 export { useCancellationAdminItem } from "@/src/core/models/Cancellation/hooks/useCancellationAdminItem";
 export { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
+
