@@ -5,7 +5,7 @@ import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
 export interface BookingState {
-    create: (booking: Booking, isAdmin?: boolean) => Promise<Booking>;
+    create: (booking: Booking, isAdmin?: boolean, isUpdate?: boolean) => Promise<Booking>;
     checkBookings: (id: string) => boolean;
     reset: () => void;
     fetchOfferBookings: (offerId: string, role: string) => Promise<void>;
@@ -265,11 +265,11 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
         }
     },
 
-    create: async (booking: Booking, isAdmin = false) => {
+    create: async (booking: Booking, isAdmin = false, isUpdate = false) => {
         try {
             const existing = [get().userBookings, get().offerBookings, get().businessBookings].flat().find(b => b.offer.id === booking.offer.id);
         
-            if (existing && existing.status !== 'reservation-rejected') {
+            if (existing && existing.status !== 'reservation-rejected' && !isUpdate) {
                 throw new Error("Booking for this offer already exists and is currently in progress.");
             }
 
