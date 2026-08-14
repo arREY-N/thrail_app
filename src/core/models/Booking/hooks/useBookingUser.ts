@@ -86,7 +86,9 @@ export function useBookingUser() {
                 ...UserLogic.toSummary(profile),
                 bookingId: created.id,
             }
-
+            
+            // TODO MOVE JOIN GROUP LOGIC AFTER BOOKING IS APPROVED
+            
             await joinGroup(group, member);
             setBooking(createNewBooking());
             setLocalError(null);
