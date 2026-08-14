@@ -1,4 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Booking } from "@/src/core/models/Booking/BookingFactory";
+import { useBookingDelete } from "@/src/core/models/Booking/hooks/useBookingDelete";
 import { createCancellationRequest, newCancellation } from "@/src/core/models/Cancellation/CancellationFactory";
 import { CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
@@ -17,6 +19,8 @@ import { useState } from "react";
 export function useCancellationUser() {
     const { profile } = useAuthHook();
     
+    const { cancelPendingBooking } = useBookingDelete();
+
     const [writingError, setWritingError] = useState<string | null>(null);
     
     const isWriting = useCancellationStore(s => s.isWriting);
@@ -36,9 +40,20 @@ export function useCancellationUser() {
      * @param offerDate - The date of the offer associated with the booking 
      * that the user 
      */
-    const newCancellationRequest = async (request: CancellationRequest, offerDate: Date) => {
+    const cancelBooking = async (booking: Booking, reason: string) => {
+        
+        const request: CancellationRequest = {
+            bookingId: booking.id,
+            offerId: booking.offer.id,
+            businessId: booking.business.id,
+            reason: reason,
+        }
+
+        const offerDate = booking.offer.date;
+
         try {
             setWritingError(null);
+            
             if(!profile || !profile.id) {
                 throw new Error("User profile is not available.");
             }
@@ -51,17 +66,28 @@ export function useCancellationUser() {
                 throw new Error("Cannot cancel an expired offer.");
             }
 
-            const cancellationRequest = createCancellationRequest({ 
-                ...request, 
-                cancelledBy: "user", 
-                userId: profile.id 
-            }); 
+            if(booking.status === "for-reservation") {
+                await cancelPendingBooking(booking);
+            } else {
+                const cancellationRequest = createCancellationRequest({ 
+                    ...request, 
+                    cancelledBy: "user", 
+                    userId: profile.id 
+                }); 
+    
+                await write({
+                    cancellation: cancellationRequest,
+                    isAdmin: false
+                })
+            }
 
-            await write({
-                cancellation: cancellationRequest,
-                isAdmin: false
-            })
-            
+            // TODO: move this to admin hook for cancellation approval
+            // const cancelBookingFn = httpsCallable(functions, 'cancelBooking');
+            // await cancelBookingFn({
+            //     bookingId: booking.id,
+            //     userId: profile?.id || profile?.uid,
+            //     reason: reason
+            // });
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationUser');
             setWritingError(`Error submitting cancellation request: ${(error as Error).message}`);
@@ -207,13 +233,99 @@ export function useCancellationUser() {
         }
     }
     
+    /**
+     * Requests a refund securely via Firebase Cloud Functions.
+     * Invokes PayMongo refund API and updates the booking status.
+     * 
+     * @param {Booking} booking - The booking object to refund.
+     * @param {string} reason - The user's reason for requesting a refund.
+     * @returns {Promise<void>}
+     */
+    const onRefundBooking = async (booking: Booking, reason: string) => {
+        // try {
+        //     if(!booking) throw new Error('No booking selected');
+            
+        //     const refundBookingFn = httpsCallable(functions, 'refundBooking');
+        //     await refundBookingFn({
+        //         bookingId: booking.id,
+        //         userId: profile?.id || profile?.uid,
+        //         reason: reason || 'User requested refund'
+        //     });
+
+        //     router.back();
+        // } catch (error) {
+        //     setLocalError((error as Error).message || 'Failed processing refund')  
+        // }
+    }
+
     return {
-        newCancellationRequest,
+        cancelBooking,
         updateCancellationReason,
         cancelUserRequest,
         proceedToAdminCancellation,
         proceedToAdminReschedule,
+        onRefundBooking,
         writingError,
         isWriting
     }
 }
+
+
+// TODO
+// By @Zeed111
+// To move in admin side for approval of cancellation requests
+// /**
+//  * Cancels a booking securely via Firebase Cloud Functions.
+//  * Only works before payment is captured.
+//  * 
+//  * @param {Booking} booking - The booking object to cancel.
+//  * @param {string} reason - The user's reason for cancellation.
+//  * @returns {Promise<void>}
+//  */
+// const onCancelBookingPress = async (booking: Booking, reason: string) => {
+//     try {
+//         Alert.alert('This cancel booking function is the old procedure.');
+
+//         if(!booking)
+//             throw new Error('No booking selected');
+        
+//         if(!reason)
+//             throw new Error('Cancellation reason is required'); 
+    
+//         const cancelBookingFn = httpsCallable(functions, 'cancelBooking');
+//         await cancelBookingFn({
+//             bookingId: booking.id,
+//             userId: profile?.id || profile?.uid,
+//             reason: reason
+//         });
+
+//         router.back();
+//     } catch (error) {
+//         setLocalError((error as Error).message || 'Failed cancelling booking')  
+//     }
+// }
+
+// /**
+//  * Requests a refund securely via Firebase Cloud Functions.
+//  * Invokes PayMongo refund API and updates the booking status.
+//  * 
+//  * @param {Booking} booking - The booking object to refund.
+//  * @param {string} reason - The user's reason for requesting a refund.
+//  * @returns {Promise<void>}
+//  */
+// const onRefundBookingPress = async (booking: Booking, reason: string) => {
+//     try {
+//         if(!booking) throw new Error('No booking selected');
+        
+//         const refundBookingFn = httpsCallable(functions, 'refundBooking');
+//         await refundBookingFn({
+//             bookingId: booking.id,
+//             userId: profile?.id || profile?.uid,
+//             reason: reason || 'User requested refund'
+//         });
+
+//         router.back();
+//     } catch (error) {
+//         setLocalError((error as Error).message || 'Failed processing refund')  
+//     }
+// }
