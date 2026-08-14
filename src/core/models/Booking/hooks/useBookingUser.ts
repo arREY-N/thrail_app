@@ -2,6 +2,7 @@ import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Booking, createBooking as createNewBooking } from "@/src/core/models/Booking/BookingFactory";
 import { useState } from "react";
 
+import { payBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { BookingLogic } from "@/src/core/models/Booking/logic/Booking.logic";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
@@ -121,10 +122,31 @@ export function useBookingUser() {
         }
     }
 
+    const onPayOffer = async (amount: number, bookingId: string, type: string, returnUrl: string) => {
+        try {
+            if(!profile) 
+                throw new Error('No user found');
+            
+            const response = await payBooking({
+                amount,
+                bookingId,
+                userId: profile.id,
+                type,
+                returnUrl,
+            });
+            
+            return response;
+        } catch (error) {
+            setLocalError((error as Error).message || 'Failed setting payment');
+            throw error;
+        }
+    }
+
     return {
         error: localError || error,
         onUpdatePress,
         onCompleteBook,
         onSetOffer,
+        onPayOffer,
     }
 }
