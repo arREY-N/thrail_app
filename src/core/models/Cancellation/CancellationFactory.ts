@@ -2,6 +2,8 @@ import { Cancellation, CancellationDB } from "@/src/core/models/Cancellation/int
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
+export { createCancellationRequest as newCancellation };
+
 export const createCancellationRequest = (
     required: Pick<Cancellation, "userId" | "bookingId" | "businessId" | "reason" | "offerId" | "cancelledBy">,
     optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "adminNote">> = {}
