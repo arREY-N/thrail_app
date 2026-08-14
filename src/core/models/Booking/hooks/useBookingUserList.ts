@@ -7,7 +7,8 @@ export function useBookingUserList() {
 
     const bookings = useBookingsStore(s => s.userBookings);
     const subscriptionError = useBookingsStore(s => s.subscriptionError);
-    
+    const isFetching = useBookingsStore(s => s.isFetching);
+
     useEffect(() => {
         if(!profile || !profile.id) return;
 
@@ -18,6 +19,7 @@ export function useBookingUserList() {
 
     return {
         bookings,
-        subscriptionError
+        subscriptionError,
+        isFetching
     };
 }
