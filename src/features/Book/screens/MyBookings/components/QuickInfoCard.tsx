@@ -1,13 +1,12 @@
-import React from 'react';
-import { Platform,  StyleSheet, View  } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
 
 export interface QuickInfoCardProps {
     /** The booking data */

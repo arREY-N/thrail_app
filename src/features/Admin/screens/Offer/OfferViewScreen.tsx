@@ -21,8 +21,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
-import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
+import { IOffer } from '@/src/core/models/Offer/Offer';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
 import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/OfferSummaryCard';

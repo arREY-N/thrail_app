@@ -1,9 +1,8 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { GroupRepo, useGroupStore } from "@/src/core/models/Group/Group";
 import { Message } from "@/src/core/models/Message/Message";
 import { IMessage } from "@/src/core/models/Message/Message.types";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import { MessageRepository } from "@/src/core/repositories/messageRepository";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
 import { useCallback } from "react";
 
 export default function useGroupRoom(groupId: string) {
@@ -28,7 +27,7 @@ export default function useGroupRoom(groupId: string) {
             timesent: new Date(), 
         });
 
-        await MessageRepository.sendMessage(groupId, newMessage);
+        await GroupRepo.sendMessage(groupId, newMessage);
     }
     
     const markAsRead = useCallback((rawMsg: IMessage) => {

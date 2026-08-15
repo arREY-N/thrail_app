@@ -6,6 +6,15 @@ import { BusinessRepository } from "@/src/core/repositories/businessRepository";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+/**
+ * 
+ * Currently refactoring
+ * Still used by old code
+ * New store can be found in
+ * @src/core/models/Booking/stores/bookingStoreCreator.ts
+ * 
+ */
+
 type AdminUI = {
     user: User,
     businessId: string,
@@ -116,7 +125,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
             }
 
             set((state) => {
-                const updated = state.data.map(u => u.id !== id);
+                const updated = state.data.filter(u => u.id !== id);
 
                 return {
                     current: business,

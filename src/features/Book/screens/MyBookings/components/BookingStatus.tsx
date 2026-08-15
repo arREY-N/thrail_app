@@ -1,12 +1,12 @@
 import React from 'react';
-import { Platform,  StyleSheet, View  } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
-import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking.types';
+import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
 
 export interface BookingTrackerData {
     steps: Array<{ id: number, defaultLabel: string, defaultIcon: string }>;

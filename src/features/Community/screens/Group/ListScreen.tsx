@@ -3,7 +3,7 @@
  * @description Screen displaying a list of active group chats and conversations.
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import {
     FlatList,
     ListRenderItemInfo,
@@ -23,8 +23,8 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { getInitials, getShortTimeElapsed } from '@/src/utils/dateFormatter';
 
-import { IGroup } from '@/src/core/models/Group/Group.types';
-import { IUser } from '@/src/core/models/User/User.types';
+import { IGroup } from '@/src/core/models/Group/Group';
+import { IUser } from '@/src/core/models/User/User';
 import { useListScreen } from './hooks/useListScreen';
 
 /**

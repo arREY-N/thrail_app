@@ -1,4 +1,4 @@
-import { Booking } from "@/src/core/models/Booking/Ref_Booking";
+import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
 
 export const updateBookingOnCancellation = (
@@ -16,9 +16,7 @@ export const updateBookingOnCancellation = (
 
     if(approved) {
         updatedBooking.cancellationReason = request.reason;
-        updatedBooking.cancelledBy = request.cancelledBy == request.userId 
-            ? "user" 
-            : "admin";
+        updatedBooking.cancelledBy = request.cancelledBy;
     }
 
     return updatedBooking;

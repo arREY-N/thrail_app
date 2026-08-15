@@ -17,10 +17,9 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IUserBooking } from '@/src/core/models/Booking/Booking';
+import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { calculateAge, formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
-import { User } from '@/src/core/models/User/User';
-import { IEmergencyContact } from '@/src/core/models/User/User.types';
-import { IUserBooking } from '@/src/core/models/Booking/Booking.types';
 
 /**
  * Props for HikerProfileCard component.

@@ -1,4 +1,4 @@
-import { IPayment } from "@/src/core/models/Booking/Booking.types";
+import { IPayment } from "@/src/core/models/Booking/Booking";
 
 export interface UsePayBookingParams {
     amount: number;
@@ -13,8 +13,8 @@ export interface UsePayBookingParams {
  * @param UsePayBookingParams params - The parameters required to process the payment, including amount, booking ID, and user ID. 
  * @returns IPayment<Date> - An object containing details of the payment transaction, such as gateway information, reference code, status, refundable until date, amount, and creation date.
  */
-import { functions } from "../../config/Firebase";
 import { httpsCallable } from "firebase/functions";
+import { functions } from "../../config/Firebase";
 
 export async function payBooking(params: UsePayBookingParams): Promise<any> {
     const createPaymongoCheckout = httpsCallable(functions, 'createPaymongoCheckout');

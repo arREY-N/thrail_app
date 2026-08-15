@@ -1,5 +1,5 @@
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { useOffersStore } from "@/src/core/stores/offersStore";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { useEffect, useState } from "react";
 
 export interface IUseTrailOffer {
@@ -14,10 +14,10 @@ export type UseTrailOfferParams = {
 
 export function useTrailOffer(params: UseTrailOfferParams): IUseTrailOffer{
     const { trailId } = params;
-    const isLoading = useOffersStore(s => s.isLoading);
-    const error = useOffersStore(s => s.error);
-    const fetchOfferByTrail = useOffersStore(s => s.fetchOfferByTrail);
-    const trailOffers = useOffersStore(s => s.trailOffers);
+    const isLoading = useOfferStore(s => s.isLoading);
+    const error = useOfferStore(s => s.error);
+    const fetchOfferByTrail = useOfferStore(s => s.fetchOfferByTrail);
+    const trailOffers = useOfferStore(s => s.trailOffers);
 
     const [localError, setLocalError] = useState<string | null>(null)
 

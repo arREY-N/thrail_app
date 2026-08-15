@@ -7,7 +7,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
-import { IBooking, IPayment } from '@/src/core/models/Booking/Booking.types';
+import { IBooking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';

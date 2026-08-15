@@ -1,11 +1,10 @@
-import React from 'react';
-import { Platform,  StyleSheet, View  } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IPayment } from '@/src/core/models/Booking/Booking.types';
+import { IPayment } from '@/src/core/models/Booking/Booking';
 
 export interface PaymentSummaryCardProps {
     /** Total amount for the package */

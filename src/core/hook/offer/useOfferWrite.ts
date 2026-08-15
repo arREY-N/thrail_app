@@ -1,14 +1,13 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BusinessLogic } from "@/src/core/models/Business/logic/Business.logic";
-import { Group } from "@/src/core/models/Group/Group";
+import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
 import { createOffer, Offer } from "@/src/core/models/Offer/Offer";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
 import { useBusinessesStore } from "@/src/core/stores/businessesStore";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useState } from "react";
@@ -27,11 +26,11 @@ export function useOfferWrite(params: UseOfferParams = {}){
     const { profile } = useAuthHook();
 
     const businessAccount = useBusinessesStore(s => s.current);
-    const offers = useOffersStore(s => s.businessOffers);
-    const error = useOffersStore(s => s.error);
-    const isLoading = useOffersStore(s => s.isLoading);
-    const remove = useOffersStore(s => s.delete);
-    const create = useOffersStore(s => s.createOffer);
+    const offers = useOfferStore(s => s.businessOffers);
+    const error = useOfferStore(s => s.error);
+    const isLoading = useOfferStore(s => s.isLoading);
+    const remove = useOfferStore(s => s.delete);
+    const create = useOfferStore(s => s.createOffer);
     
     const createGroup = useGroupStore(s => s.createGroup);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
@@ -100,7 +99,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
             const success = await create(offer);
             if(!success) throw new Error('Failed creating/updating offer');
 
-            const groupBlueprint = new Group({
+            const groupBlueprint = newGroup({
                 id: success.id,
                 admins: [UserLogic.toSummary(profile)],
                 participantsIds: [profile.id],

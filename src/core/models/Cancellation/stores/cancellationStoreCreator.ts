@@ -1,63 +1,143 @@
 import { CancellationRepo } from "@/src/core/init/repositories";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 
 export interface CancellationState {
-    data: Cancellation[];
     businessCancellations: Cancellation[];
-    offerCancellations: Cancellation[];
-    write: (businessId: string, cancellation: Cancellation) => Promise<void>;
-    delete: (businessId: string, id: string) => Promise<void>;
+    offerCancellations: Record<string, Cancellation[]>;
+    userCancellations: Cancellation[];
     
-    fetchById: (businessId: string, id: string) => Promise<Cancellation | null>;
-    fetchByBusinessId: (businessId: string) => Promise<void>;
-    fetchByOfferId: (businessId: string, offerId: string) => Promise<Cancellation[]>;
-    fetchAll: () => Promise<void>;
+    error: string | null;
+    isFetching: boolean;
+    isWriting: boolean;
+
+    write: (writeData: WriteCancellationParams) => Promise<void>;
+    delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
+    
+    fetchUserCancellation: (businessId: string, id: string) => Promise<Cancellation | null>;
+    fetchAllUserCancellations: (userId: string, refresh?: boolean) => Promise<void>;
+    
+    fetchAllBusinessCancellations: (businessId: string, refresh?: boolean) => Promise<void>;
+    fetchAllOfferCancellations: (businessId: string, offerId: string) => Promise<Cancellation[]>;
 }
 
 const init = {
-    data: [],
     businessCancellations: [],
-    offerCancellations: [],
+    offerCancellations: {},
+    userCancellations: [],
+
+    error: null,
+    isFetching: false,
+    isWriting: false,
+}
+
+export type WriteCancellationParams = {
+    cancellation: Cancellation;
+    oldCancellation?: Cancellation;
+    isAdmin: boolean;
 }
 
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
-    async write(businessId: string, cancellation: Cancellation): Promise<void> {
+    async write(writeData: WriteCancellationParams): Promise<void> {
+        const { cancellation, oldCancellation, isAdmin } = writeData;
+        
         try {
-            const result = await CancellationRepo.write(businessId, cancellation);
+            set({ isWriting: true, error: null });
 
-            set({
-                data: [...get().data.filter(c => c.id !== result.id), result]
-            })
+            const alreadyApproved = oldCancellation?.status === "approved";
+            
+            const alreadyProcessed = alreadyApproved || (oldCancellation?.status === "rejected" && isAdmin);
 
-        } catch (error) {
-            console.error("Error writing cancellation:", (error as Error).message);
-            throw error;
-        }
-    },
+            if (alreadyProcessed) {
+                throw new Error("Cannot modify a cancellation that has already been processed.");
+            }
 
-    async delete(businessId: string, id: string): Promise<void> {
-        try {
-            await CancellationRepo.delete(businessId, id);
-            set({
-                data: get().data.filter(c => c.id !== id)
+            const forApproval = cancellation.status === "approved";
+
+            if (forApproval && !isAdmin) {
+                if(isAdmin && cancellation.cancelledBy === 'admin')
+                    throw new Error("This cancellation was made by an admin and cannot be approved by an admin.");
+
+                if(!isAdmin && cancellation.cancelledBy === 'user')
+                    throw new Error("This cancellation was made by a user and cannot be approved by a user.");
+            }
+
+            const result = await CancellationRepo.write(cancellation.businessId, cancellation);
+
+            set(state => {
+                if(isAdmin) {
+                    return {
+                        offerCancellations: {
+                            ...state.offerCancellations,
+                            [result.offerId]: upsertItem(state.offerCancellations[result.offerId] ?? [], result)
+                        },
+                        businessCancellations: upsertItem(state.businessCancellations, result),
+                    }
+                } else {
+                    return {
+                        userCancellations: upsertItem(state.userCancellations, result)
+                    }
+                }
             });
         } catch (error) {
-            console.error("Error deleting cancellation:", (error as Error).message);
+            const errorMessage = `Error writing ${isAdmin ? 'admin' : 'user'} cancellation: ${(error as Error).message}`;
+            set({ error: errorMessage });
             throw error;
+        } finally {
+            set({ isWriting: false });
         }
     },
 
-    async fetchById(businessId: string, id: string): Promise<Cancellation | null> {
+    async delete(businessId: string, cancellation: Cancellation, userId?: string): Promise<void> {
+        try {
+            if(cancellation.status !== "pending") {
+                throw new Error("Only pending cancellations can be deleted.");
+            }
+
+            if(cancellation.cancelledBy === 'user' && !userId) {
+                throw new Error("User ID is required to delete a user cancellation.");
+            }
+
+            if(cancellation.cancelledBy !== 'admin' && cancellation.userId !== userId) {
+                throw new Error("Users can only delete their own cancellation requests.");
+            }
+
+            set({ isWriting: true, error: null });
+
+            const id = cancellation.id;
+
+            await CancellationRepo.delete(businessId, id);
+            
+            set((state) => {
+                if(cancellation.cancelledBy === 'admin') {
+                    return {
+                        businessCancellations: state.businessCancellations.filter(c => c.id !== id),
+                    }
+                } else {
+                    return {
+                        userCancellations: state.userCancellations.filter(c => c.id !== id),
+                    }
+                }
+            });
+        } catch (error) {
+            throw error;
+        } finally {
+            set({ isWriting: false });
+        }
+    },
+
+
+    async fetchUserCancellation(businessId: string, id: string): Promise<Cancellation | null> {
         try {
             let cancellation: Cancellation | null;
 
-            if(get().data.length > 0) {
-                cancellation = get().data.find(c => c.id === id) || null;
+            if(get().userCancellations.length > 0 && get().userCancellations.some(c => c.id === id)) {
+                cancellation = get().userCancellations.find(c => c.id === id) || null;
             } else {
-                cancellation = await CancellationRepo.fetchById(businessId, id);
+                cancellation = await CancellationRepo.fetchCancellation(businessId, id);
             }
 
             return cancellation;
@@ -66,35 +146,71 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             throw error;
         }
     },
+    
+    async fetchAllUserCancellations(userId: string, refresh: boolean = false): Promise<void> {
+        if(get().isFetching){
+            console.log("Fetch already in progress for userId:", userId);
+            return;
+        }
+        
+        if(get().userCancellations.length > 0 && get().userCancellations[0].userId === userId && !refresh){
+            console.log("User cancellations already fetched for userId:", userId);
+            return;
+        }
 
-    async fetchByBusinessId(businessId: string): Promise<void> {
+        try {    
+            set({ isFetching: true, error: null });
+            
+            const userCancellations = await CancellationRepo.fetchAllUserCancellations(userId);
+            
+            set({ userCancellations });
+        } catch (error) {
+            console.error("Error fetching user cancellations:", (error as Error).message);
+            set({ error: (error as Error).message });
+        } finally {
+            set({ isFetching: false });
+        }
+    },
+
+    async fetchAllBusinessCancellations(businessId: string, refresh: boolean = false): Promise<void> {
+        if(get().isFetching) {
+            console.log("Fetch already in progress for businessId:", businessId);
+            return;
+        }
+
+        if(get().businessCancellations.length > 0 && get().businessCancellations[0].businessId === businessId && !refresh) {
+            console.log("Business cancellations already fetched for businessId:", businessId);
+            return;
+        }
+
         try {
-            let cancellations: Cancellation[];
+            set({ isFetching: true, error: null });
 
-            if(get().data.length > 0) {
-                cancellations = get().data.filter(c => c.businessId === businessId);
-            } else {
-                cancellations = await CancellationRepo.fetchByBusinessId(businessId);
-            }
+            const cancellations = await CancellationRepo.fetchAllBusinessCancellations(businessId);
 
             set({
-                data: [...get().data.filter(c => c.businessId !== businessId), ...cancellations],
-                businessCancellations: cancellations
+                businessCancellations: cancellations,
+                isFetching: false
             })
         } catch (error) {
-            console.error("Error fetching cancellations by business ID:", (error as Error).message);
+            set({ 
+                error: (error as Error).message,
+                isFetching: false
+            });
             throw error;
         }
     },
 
-    async fetchByOfferId(businessId: string, offerId: string): Promise<Cancellation[]> {
+    async fetchAllOfferCancellations(businessId: string, offerId: string): Promise<Cancellation[]> {
         try {
             let cancellations: Cancellation[];
 
-            if(get().data.length > 0) {
-                cancellations = get().data.filter(c => c.businessId === businessId && c.offerId === offerId);
+            const offerCancellations = get().offerCancellations[offerId];
+
+            if(offerCancellations && offerCancellations.length > 0) {
+                cancellations = offerCancellations.filter(c => c.businessId === businessId && c.offerId === offerId);
             } else {
-                cancellations = await CancellationRepo.fetchByOfferId(businessId, offerId);
+                cancellations = await CancellationRepo.fetchAllOfferCancellations(businessId, offerId);
             }
 
             return cancellations;
@@ -103,30 +219,4 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             throw error;
         }   
     },
-
-    async fetchAll(): Promise<void> {
-        try {
-
-            if(get().data.length > 0) {
-                return;
-            }
-
-            const cancellations = await CancellationRepo.fetchAll();
-            
-            set({ data: cancellations });
-        } catch (error) {
-            console.error("Error fetching all cancellations:", (error as Error).message);
-            throw error;
-        }
-    },
-
-    async refresh(): Promise<void> {
-        try {
-            const cancellations = await CancellationRepo.fetchAll();   
-            set({ data: cancellations });
-        } catch (error) {
-            console.error("Error refreshing cancellations:", (error as Error).message);
-            throw error;
-        }
-    }
 });
