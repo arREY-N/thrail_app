@@ -39,7 +39,7 @@ export default function adminOfferList() {
                 onEditOffer={onWriteOffer}
                 onViewOfferBookings={onViewOfferBookings}
                 onBackPress={onBackPress}
-                error={error || undefined}
+                error={error}
             />
         </>
     );
