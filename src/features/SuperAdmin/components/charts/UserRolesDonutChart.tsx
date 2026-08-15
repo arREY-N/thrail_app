@@ -137,10 +137,22 @@ const UserRolesDonutChart = ({
                     {arcs.map((arc, idx) => {
                         const isHovered = hoveredIndex === idx;
                         const isDimmed = hoveredIndex !== null && !isHovered;
+
+                        // Separate web DOM event listeners from mobile RN touch responder handlers to prevent onResponder* console warnings
+                        const segmentProps: Record<string, unknown> = Platform.OS === 'web'
+                            ? {
+                                onClick: () => handleSelectSegment(idx),
+                                onMouseEnter: () => setHoveredIndex(idx),
+                                onMouseLeave: () => setHoveredIndex(null),
+                            }
+                            : {
+                                onPress: () => handleSelectSegment(idx),
+                            };
+
                         return (
                             <G
                                 key={idx}
-                                onPress={() => handleSelectSegment(idx)}
+                                {...segmentProps}
                             >
                                 <Path
                                     d={describeArc(CX, CY, RADIUS, arc.startAngle, arc.endAngle)}
