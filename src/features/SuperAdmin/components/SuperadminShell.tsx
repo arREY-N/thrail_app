@@ -50,6 +50,8 @@ interface Props {
     leftActionOverride?: React.ReactNode;
     titleOverride?: string;
     refreshControl?: React.ReactElement<RefreshControlProps>;
+    noPadding?: boolean;
+    noScroll?: boolean;
 }
 
 const TAB_TITLES: Record<SuperadminTab, string> = {
@@ -81,6 +83,8 @@ const SuperadminShell = ({
     leftActionOverride,
     titleOverride,
     refreshControl,
+    noPadding = false,
+    noScroll = false,
 }: Props): React.JSX.Element => {
     const { isTablet, isMobile } = useBreakpoints();
     const insets = useSafeAreaInsets();
@@ -174,32 +178,47 @@ const SuperadminShell = ({
                             leftAction={leftActionOverride}
                         />
 
-                        {/* Scrollable Body Content */}
-                        <ScrollView
-                            ref={scrollRef}
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={[
-                                styles.scrollContent,
-                                isMobile && [
-                                    styles.scrollContentMobile,
-                                    { paddingBottom: 32 + insets.bottom }
-                                ]
-                            ]}
-                            keyboardShouldPersistTaps="handled"
-                            refreshControl={refreshControl}
-                        >
+                        {/* Body Content: Scrollable or Direct Full Canvas */}
+                        {noScroll ? (
                             <Animated.View 
                                 style={[
                                     styles.animatedContent,
                                     { 
                                         opacity: fadeAnim, 
-                                        transform: [{ translateY: translateYAnim }] 
+                                        transform: [{ translateY: translateYAnim }],
+                                        padding: noPadding ? 0 : isMobile ? 16 : 20,
                                     }
                                 ]}
                             >
                                 {children}
                             </Animated.View>
-                        </ScrollView>
+                        ) : (
+                            <ScrollView
+                                ref={scrollRef}
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={[
+                                    noPadding ? styles.noPaddingContent : styles.scrollContent,
+                                    isMobile && [
+                                        noPadding ? styles.noPaddingContent : styles.scrollContentMobile,
+                                        { paddingBottom: 32 + insets.bottom }
+                                    ]
+                                ]}
+                                keyboardShouldPersistTaps="handled"
+                                refreshControl={refreshControl}
+                            >
+                                <Animated.View 
+                                    style={[
+                                        styles.animatedContent,
+                                        { 
+                                            opacity: fadeAnim, 
+                                            transform: [{ translateY: translateYAnim }] 
+                                        }
+                                    ]}
+                                >
+                                    {children}
+                                </Animated.View>
+                            </ScrollView>
+                        )}
                     </View>
                 </View>
             </View>
@@ -243,6 +262,10 @@ const styles = StyleSheet.create({
     },
     scrollContentMobile: {
         padding: 16,
+    },
+    noPaddingContent: {
+        padding: 0,
+        flexGrow: 1,
     },
     animatedContent: {
         flex: 1,
