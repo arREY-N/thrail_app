@@ -3,7 +3,7 @@
  * @description Controller for the Home Tab. Connects domain hooks and navigation to the pure HomeScreen UI.
  */
 
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
