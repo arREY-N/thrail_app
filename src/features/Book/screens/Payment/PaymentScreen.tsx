@@ -17,15 +17,19 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { IBooking, IPayment } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+
+export interface PaymentResultResponse {
+    checkout_url: string;
+}
 
 export interface PaymentScreenProps {
     bookingData: IBooking;
     onBackPress: () => void;
     onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
-    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<any>;
+    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
     onTermsPress: () => void;
     onPrivacyPress: () => void;
 }
@@ -54,7 +58,8 @@ const PaymentScreen = ({
     const [isSignatureValid, setIsSignatureValid] = useState(false);
 
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
-    const latestPayment = payments[payments.length - 1] as any; // Cast as any because some properties might not be in the strict type yet
+    const latestPayment: IPayment<Date> | undefined = payments[payments.length - 1];
+    const latestStatus = (latestPayment?.status as string | undefined);
 
     const totalPrice = bookingData?.offer?.price || 0;
     const amountPaidAlready = payments.reduce((sum, p: IPayment<Date>) => {
@@ -79,13 +84,13 @@ const PaymentScreen = ({
     useEffect(() => {
         if (!isWaitingForVerification || !latestPayment) return;
 
-        if (latestPayment?.status === 'failed') {
+        if (latestStatus === 'failed') {
             setIsWaitingForVerification(false);
             setPaymentError("Your payment failed or was declined by the provider. Please check your balance and try again.");
             return;
         }
 
-        if (latestPayment?.status === 'expired') {
+        if (latestStatus === 'expired') {
             setIsWaitingForVerification(false);
             setPaymentError("Your payment session expired because it took too long. Please initiate a new payment.");
             return;
@@ -96,11 +101,11 @@ const PaymentScreen = ({
             bookingData.status === 'completed' || 
             (bookingData.status === 'downpayment' && effectivePaymentType === 'downpayment');
 
-        if (isNowPaid || latestPayment?.status === 'captured') {
+        if (isNowPaid || latestStatus === 'captured') {
             setIsWaitingForVerification(false);
             setCurrentStep(2); 
         }
-    }, [bookingData, isWaitingForVerification, effectivePaymentType, latestPayment]);
+    }, [bookingData, isWaitingForVerification, effectivePaymentType, latestPayment, latestStatus]);
 
     const handleHeaderBackPress = () => {
         if (isWaitingForVerification) {
@@ -210,7 +215,7 @@ const PaymentScreen = ({
                         }
                     }
 
-                } catch (error: unknown) {
+                } catch (error) {
                     if (popup) popup.close();
                     console.error("Payment Error:", error);
                     setPaymentError(
@@ -308,7 +313,7 @@ const PaymentScreen = ({
                     <MethodScreen 
                         amountToPay={amountToPay}
                         paymentType={effectivePaymentType}
-                        setPaymentType={setPaymentType as any}
+                        setPaymentType={setPaymentType}
                         selectedMethod={selectedMethod}
                         setSelectedMethod={setSelectedMethod}
                         profileFullName={expectedSignatureName}
