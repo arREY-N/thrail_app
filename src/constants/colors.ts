@@ -55,6 +55,11 @@ export const Palette = {
     Orange800:  '#E65100',
     Orange50:   '#FFF3E0',
 
+    // Browns & Earth
+    Brown600:   '#795548',
+    Brown500:   '#8D6E63',
+    Brown100:   '#D7CCC8',
+
     // Metals (Gold/Silver/Bronze)
     Gold700:   '#D97706',
     Gold500:   '#F59E0B',
@@ -336,6 +341,17 @@ export const Colors = {
     LEADERBOARD_BRONZE_BG:     Palette.Bronze100,
     LEADERBOARD_BRONZE_ACCENT: Palette.Bronze700,
     LEADERBOARD_PEAK_BASE:     Palette.Green700,
+
+    // Map Pin & Waypoint Semantic Tokens
+    PIN_SUMMIT:                Palette.Red700,
+    PIN_CHECKPOINT:            Palette.Orange800,
+    PIN_VIEWPOINT:             Palette.Green700,
+    PIN_WATER:                 Palette.Blue600,
+    PIN_SHELTER:               Palette.Brown600,
+    PIN_HAZARD:                Palette.Red900,
+    PIN_BADGE_BG:              Palette.Green50,
+    PIN_BADGE_BORDER:          Palette.Green100,
+    PIN_BADGE_TEXT:            Palette.Green700,
 };
 
 // Color Samples
