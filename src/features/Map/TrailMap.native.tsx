@@ -1,5 +1,13 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import {
+  Camera,
+  CameraRef,
+  GeoJSONSource,
+  Layer,
+  Map,
+  Marker,
+  UserLocation,
+} from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -45,9 +53,23 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
 
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<CameraRef | any>(null);
   const lastZoomRef = useRef<number>(16);
   const lastCenterRef = useRef<[number, number] | null>(null);
+
+  // Helper for cross-version camera flyTo animation
+  const flyCamera = (center: [number, number], zoom: number, duration = 800) => {
+    if (cameraRef.current?.flyTo) {
+      cameraRef.current.flyTo({ center, zoom, duration });
+    } else if (cameraRef.current?.setCamera) {
+      cameraRef.current.setCamera({
+        centerCoordinate: center,
+        zoomLevel: zoom,
+        animationDuration: duration,
+        animationMode: "flyTo",
+      });
+    }
+  };
 
   // ✅ Pre-warm GPS on mount so the blue dot appears instantly
   useEffect(() => {
@@ -116,39 +138,26 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
     setIsFollowing(false);
-    cameraRef.current?.setCamera({
-      centerCoordinate: [parsedLon, parsedLat],
-      zoomLevel: 14,
-      animationDuration: 800,
-      animationMode: "flyTo",
-    });
+    flyCamera([parsedLon, parsedLat], 14, 800);
   }, [hasInitialCoords, parsedLon, parsedLat, mapReady]);
 
   const centerOnUser = () => {
-    cameraRef.current?.setCamera({
-      centerCoordinate: userLocation,
-      zoomLevel: 18,
-      animationMode: "flyTo",
-      animationDuration: 500,
-    });
+    if (userLocation) {
+      flyCamera(userLocation as [number, number], 18, 500);
+    }
     setIsFollowing(true);
   };
 
   const centerOnCoordinate = (lon: number, lat: number) => {
     setIsFollowing(false);
-    cameraRef.current?.setCamera({
-      centerCoordinate: [lon, lat],
-      zoomLevel: 17,
-      animationMode: "flyTo",
-      animationDuration: 800,
-    });
+    flyCamera([lon, lat], 17, 800);
   };
 
   const handleRegionWillChange = (event: any) => {
-    if (!event.properties.isUserInteraction) return;
+    if (!event?.properties?.isUserInteraction) return;
 
     const newZoom = event.properties.zoomLevel;
-    const [newLon, newLat] = event.geometry.coordinates;
+    const [newLon, newLat] = event.geometry?.coordinates ?? [0, 0];
     const zoomChanged = Math.abs(newZoom - lastZoomRef.current) > 0.1;
     const centerChanged = lastCenterRef.current
       ? Math.abs(newLon - lastCenterRef.current[0]) > 0.0001 || Math.abs(newLat - lastCenterRef.current[1]) > 0.0001
@@ -193,59 +202,50 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
 
   return (
     <View style={styles.page}>
-      <MapLibreGL.MapView
+      <Map
         style={styles.map}
-        logoEnabled={true}
-        attributionEnabled={true}
         logoPosition={{ bottom: bottomInset, left: 16 }}
         attributionPosition={{ bottom: bottomInset, left: 100 }}
-        compassEnabled={true}
-        compassViewPosition={3}
-        compassViewMargins={{ x: 16, y: bottomInset + 120 }}
         mapStyle={activeStyle as any}
         onDidFinishLoadingMap={() => setMapReady(true)}
         onRegionWillChange={handleRegionWillChange}
       >
-        <MapLibreGL.Camera
+        <Camera
           ref={cameraRef}
-          defaultSettings={{
-            zoomLevel: hasInitialCoords ? 12 : 16,
-            centerCoordinate: hasInitialCoords ? [parsedLon, parsedLat] : [120.9842, 14.5995],
+          initialViewState={{
+            center: hasInitialCoords ? [parsedLon, parsedLat] : [120.9842, 14.5995],
+            zoom: hasInitialCoords ? 12 : 16,
           }}
-          minZoomLevel={10}
-          maxZoomLevel={20}
-          animationMode="flyTo"
-          animationDuration={500}
-          followUserMode={isFollowing && permissionGranted ? MapLibreGL.UserTrackingMode.Follow : undefined}
-          followUserLocation={isFollowing && permissionGranted}
+          minZoom={10}
+          maxZoom={20}
+          trackUserLocation={isFollowing && permissionGranted ? "default" : undefined}
         />
 
         {geoJsonUrl && (
-          <MapLibreGL.ShapeSource id="trailSource" url={geoJsonUrl}>
-            <MapLibreGL.LineLayer id="layer-hiking" style={mapStyles.trailLine as any} />
-          </MapLibreGL.ShapeSource>
+          <GeoJSONSource id="trailSource" data={geoJsonUrl}>
+            <Layer id="layer-hiking" type="line" style={mapStyles.trailLine as any} />
+          </GeoJSONSource>
         )}
 
         {/* ✅ Red dashed line will only draw when routeCoordinates actually receives data */}
         {routeCoordinates.length >= 2 && (
-          <MapLibreGL.ShapeSource
+          <GeoJSONSource
             id="walkedPathSource"
-            shape={{
+            data={{
               type: "Feature",
               geometry: { type: "LineString", coordinates: routeCoordinates },
               properties: {},
             }}
           >
-            <MapLibreGL.LineLayer id="layer-walked-path" style={mapStyles.walkedPathStyle as any} />
-          </MapLibreGL.ShapeSource>
+            <Layer id="layer-walked-path" type="line" style={mapStyles.walkedPathStyle as any} />
+          </GeoJSONSource>
         )}
 
         {permissionGranted && (
-          <MapLibreGL.UserLocation
-            visible={true}
-            renderMode={MapLibreGL.UserLocationRenderMode.Native}
-            showsUserHeadingIndicator={true}
-            androidRenderMode="compass"
+          <UserLocation
+            heading={true}
+            accuracy={true}
+            animated={true}
           />
         )}
 
@@ -260,10 +260,10 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
             : '?';
 
           return (
-            <MapLibreGL.PointAnnotation
+            <Marker
               key={`hiker-${hiker.id}`}
               id={`hiker-${hiker.id}`}
-              coordinate={[hiker.longitude, hiker.latitude]}
+              lngLat={[hiker.longitude, hiker.latitude]}
             >
               <View style={styles.hikerMarkerContainer}>
                 <View style={styles.hikerMarkerCircle}>
@@ -277,10 +277,10 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
                   </View>
                 )}
               </View>
-            </MapLibreGL.PointAnnotation>
+            </Marker>
           );
         })}
-      </MapLibreGL.MapView>
+      </Map>
     </View>
   );
 });
