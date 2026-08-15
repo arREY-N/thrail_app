@@ -1,5 +1,4 @@
-import { MessageRepository } from "@/src/core/repositories/messageRepository";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
+import { GroupRepo, useGroupStore } from "@/src/core/models/Group/Group";
 import { router } from "expo-router";
 import { useEffect } from "react";
 
@@ -8,7 +7,7 @@ export const useGroupList = (userId: string) => {
     
     useEffect(() => {
         if (!userId) return;
-        const unsubscribe = MessageRepository.listenToUserGroups(userId, setGroups);
+        const unsubscribe = GroupRepo.listenToUserGroups(userId, setGroups);
         return () => unsubscribe();
     }, [userId]);
 

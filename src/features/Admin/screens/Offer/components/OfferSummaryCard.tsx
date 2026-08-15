@@ -3,16 +3,16 @@
  * @description Card component displaying a summary of an offer's details with a collapsible section to show full package details.
  */
 
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
-import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
+import { IOffer } from '@/src/core/models/Offer/Offer';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useScrollFades } from '@/src/hooks/useScrollFades';

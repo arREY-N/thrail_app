@@ -2,6 +2,7 @@ import { FileRepository } from "@/src/core/repositories/fileRepository";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Alert } from "react-native";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -40,6 +41,14 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 throw new Error('Document selection canceled');
             }
         } catch (err) {
+            const regex = /\(storage\/quota-exceeded\)/g;
+            const matches = (err as Error).message.match(regex);
+            if(matches) {
+                window.alert("Quota exceeded error detected. Please check your Firebase storage plan and usage. For now a sample document will be used for testing purposes.");
+                Alert.alert("Quota exceeded error detected. Please check your Firebase storage plan and usage. For now a sample image will be used for testing purposes.");
+                return "https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing"
+            }
+            
             console.error('Error uploading document:', err);
             throw err instanceof Error ? err : new Error('Failed to upload document');
         }

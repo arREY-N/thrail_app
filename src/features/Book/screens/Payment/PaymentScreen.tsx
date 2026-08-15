@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -17,7 +17,7 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
-import { IBooking, IPayment } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 

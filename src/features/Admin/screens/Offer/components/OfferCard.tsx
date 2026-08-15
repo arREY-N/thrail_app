@@ -12,7 +12,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';

@@ -32,7 +32,7 @@ import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/Hi
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
 

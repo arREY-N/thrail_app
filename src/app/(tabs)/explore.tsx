@@ -1,10 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
-import { useOffersStore } from "@/src/core/stores/offersStore";
+import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 
 /**
@@ -29,8 +29,8 @@ export default function explore() {
         getItemRating,
     } = useReview();
 
-    const offers = useOffersStore(s => s.data);
-    const fetchOffers = useOffersStore(s => s.fetchAll);
+    const offers = useOfferStore(s => s.data);
+    const fetchOffers = useOfferStore(s => s.fetchAll);
 
     // Fetch offers in the controller context
     useEffect(() => {

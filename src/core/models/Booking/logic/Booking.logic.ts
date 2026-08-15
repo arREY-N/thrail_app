@@ -1,4 +1,4 @@
-import { IBookingBase, IPayment } from "@/src/core/models/Booking/Booking.types";
+import { IBookingBase, IPayment } from "@/src/core/models/Booking/interfaces/IBooking";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { User } from "@/src/core/models/User/User";
@@ -34,6 +34,7 @@ export const BookingLogic = {
         draft.trail = {
             id: trail.id,
             name: trail.general.name,
+            location: trail.general.province.join(', '),
         }
     },
 

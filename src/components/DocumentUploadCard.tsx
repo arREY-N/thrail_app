@@ -6,7 +6,7 @@ import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import useFileUpload from '@/src/core/hook/file/useFileUpload';
+import useFileUpload from '@/src/core/utility/uploadFile';
 
 /**
  * Props for the DocumentUploadCard component.

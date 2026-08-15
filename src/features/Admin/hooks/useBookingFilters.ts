@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 
 export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpayment', 'Fully Paid', 'Completed', 'Rejected'];
 

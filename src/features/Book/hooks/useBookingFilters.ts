@@ -1,4 +1,4 @@
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { useMemo, useState } from 'react';
 
 export type TabId = 'upcoming' | 'pending' | 'history';

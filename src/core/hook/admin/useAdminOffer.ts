@@ -1,14 +1,14 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 export default function useAdminOffer() {
     const { businessId } = useAuthHook();
 
-    const loadBusinessOffers = useOffersStore(s => s.fetchOfferByBusiness);
-    const businessOffers = useOffersStore(s => s.businessOffers); 
+    const loadBusinessOffers = useOfferStore(s => s.fetchOfferByBusiness);
+    const businessOffers = useOfferStore(s => s.businessOffers); 
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
@@ -42,7 +42,10 @@ export default function useAdminOffer() {
 
         // 2. Attach real-time listeners ONLY to those active offers
         activeOfferIds.forEach(offerId => {
-            subscribeToBusinessBookings(offerId);
+            subscribeToBusinessBookings(offerId, businessId || '').catch(err => {
+                console.error(`Failed to subscribe to bookings for offer ${offerId}: `, err);
+                setLocalError((err as Error).message || `Failed to subscribe to bookings for offer ${offerId}`);
+            });
         });
 
         // 3. CLEANUP: When the Admin leaves the list screen, kill the listeners to save memory/data!
@@ -61,8 +64,8 @@ export default function useAdminOffer() {
     }
 
     return {
-        isLoading: useOffersStore(s => s.isLoading),
-        error: useOffersStore(s => s.error) || localError,
+        isLoading: useOfferStore(s => s.isLoading),
+        error: useOfferStore(s => s.error) || localError,
         businessOffers, 
         onViewOfferBookings
     }

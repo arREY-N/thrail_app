@@ -1,5 +1,5 @@
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
 import { useNotificationsStore } from "@/src/core/stores/notificationsStore";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
@@ -20,7 +20,7 @@ export const useAppSubscriptions = () => {
         console.log('Subscribing to app subscriptions for user: ', profile.id);
         const unsubReview = reviewStore.subscribeToReviews();
         const unsubNotifications = notifStore.subscribeToNotifications();
-        const unsubUserBookings = userBookingsStore.subscribeToUserBookings();
+        const unsubUserBookings = userBookingsStore.subscribeToUserBookings(profile.id);
         fetchAllTrails();
         return () => {
             console.log('Cleaning up app subscriptions for user: ', profile.id);

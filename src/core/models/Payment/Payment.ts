@@ -6,6 +6,8 @@ import { IOfferSummary } from "../Offer/interfaces/Offer.types";
 import { IUserSummary } from "../User/User.types";
 import { IPayment, IPaymentDB, IReceipt } from "./Payment.types";
 
+export { usePaymentRefund } from "@/src/core/models/Payment/hooks/usePaymentRefund";
+
 export class Payment implements IPayment {
     [key: string]: any;
     [immerable] = true

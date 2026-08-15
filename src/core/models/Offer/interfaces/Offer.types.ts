@@ -50,3 +50,5 @@ export type OfferParams = {
     id: string,
     businessId: string,
 }
+
+export interface Offer extends IOffer {}

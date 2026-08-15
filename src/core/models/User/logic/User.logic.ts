@@ -1,4 +1,4 @@
-import { IUserBooking } from "@/src/core/models/Booking/Booking.types";
+import { IUserBooking } from "@/src/core/models/Booking/Booking";
 import { User } from "@/src/core/models/User/User";
 import { IUserSummary } from "@/src/core/models/User/User.types";
 

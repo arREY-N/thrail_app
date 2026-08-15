@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform,  StyleSheet, TouchableOpacity, View  } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -9,7 +9,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import { formatBookingDate, getRecentUpdateText, safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { IBooking } from '@/src/core/models/Booking/Booking.types';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 
 export interface BookingCardProps {
     booking: IBooking | null;

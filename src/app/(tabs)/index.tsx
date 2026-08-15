@@ -3,14 +3,14 @@
  * @description Controller for the Home Tab. Connects domain hooks and navigation to the pure HomeScreen UI.
  */
 
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailView from '@/src/core/hook/trail/useTrailView';
+import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
-import { useOffersStore } from '@/src/core/stores/offersStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from '@/src/core/stores/trailStores/trailsStore';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
@@ -42,9 +42,9 @@ export default function home() {
     } = useReview();
 
     // Fetch Offers
-    const offers = useOffersStore(s => s.data);
-    const fetchOffers = useOffersStore(s => s.fetchAll);
-    const isOffersLoading = useOffersStore(s => s.isLoading);
+    const offers = useOfferStore(s => s.data);
+    const fetchOffers = useOfferStore(s => s.fetchAll);
+    const isOffersLoading = useOfferStore(s => s.isLoading);
 
     // Recommendations and Auth Stores
     const user = useAuthStore(s => s.user);

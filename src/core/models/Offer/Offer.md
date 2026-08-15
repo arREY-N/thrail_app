@@ -122,7 +122,7 @@ Fallback/export file:
 
 ## 4) Feature Utility Logic
 
-### `utils/Offer.utils.ts`
+### `utils/OfferUtilities.ts`
 Offer-specific business rule utility:
 
 - **`updateOfferOnCancellation(offer)`**

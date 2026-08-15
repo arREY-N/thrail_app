@@ -1,4 +1,3 @@
-import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -10,7 +9,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IBooking, IPayment } from '@/src/core/models/Booking/Booking.types';
+import { IBooking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 export interface ReceiptScreenProps {

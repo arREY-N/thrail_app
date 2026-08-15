@@ -1,12 +1,11 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
 
 import useAdminOffer from "@/src/core/hook/admin/useAdminOffer";
 import useAdminNavigation from "@/src/core/hook/navigation/useAdminNavigation";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
-import useBookingsStore from "@/src/core/stores/bookingsStore";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import OfferListScreen from "@/src/features/Admin/screens/Offer/OfferListScreen";
 
 export default function adminOfferList() {

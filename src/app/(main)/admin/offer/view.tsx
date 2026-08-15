@@ -1,4 +1,3 @@
-import useOfferBooking from "@/src/core/hook/admin/useOfferBooking";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
@@ -9,6 +8,8 @@ import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen"
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
+import { useBookingOfferAdminList } from "@/src/core/models/Offer/hooks/useBookingOfferAdminList";
+import { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
 
 export default function viewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
@@ -17,15 +18,18 @@ export default function viewOffer() {
 
     const { onBackPress } = useAppNavigation();
 
-    const { 
-        offerBookings,
-        offer,
-        onViewBooking,
+    
+    const {
         error,
-        isLoading
-    } = useOfferBooking({ offerId });
+        onViewBooking,
+        offerBookings,
+    } = useBookingOfferAdminList(offerId);
+    
+    const {
+        offer 
+    } = useOfferItem(offerId);
 
-    if(!offerBookings || (isLoading && !offer)) {
+    if(!offerBookings || (!offer)) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={undefined}>
                 <Stack.Screen options={{ headerShown: false }} />
@@ -53,7 +57,7 @@ export default function viewOffer() {
                     bookings={offerBookings}
                     onViewBooking={onViewBooking}
                     onBackPress={onBackPress}
-                    error={error || undefined} 
+                    error={error as string} 
                 />
             )}
         </>

@@ -1,33 +1,36 @@
 import { BookingRepo } from "@/src/core/init/repositories";
-import { Booking } from "@/src/core/models/Booking/Ref_Booking";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
 export interface BookingState {
-    create: (booking: Booking, isAdmin?: boolean) => Promise<Booking>;
+    create: (booking: Booking, isAdmin?: boolean, isUpdate?: boolean) => Promise<Booking>;
     checkBookings: (id: string) => boolean;
     reset: () => void;
     fetchOfferBookings: (offerId: string, role: string) => Promise<void>;
-    loadById: (bookingId: string) => Promise<Booking | null>;
+    loadById: (bookingId: string) => Promise<void>;
     loadAll: (role: string) => Promise<void>;
     load: (userId: string) => Promise<void>;
     refresh: (userId?: string | null) => Promise<void>;
-    subscribeToBusinessBookings: (offerId: string) => Promise<void>;
+    subscribeToBusinessBookings: (offerId: string, businessId: string) => Promise<void>;
     unsubscribeFromBusinessBookings: (offerId: string) => void;
-    subscribeToUserBookings: () => Unsubscribe | null;
-    createBooking: (booking: Booking) => Promise<void>;
+    subscribeToUserBookings: (userId: string) => Unsubscribe;
+    deleteBooking: (bookingId: string) => Promise<void>;
+    fetchAllBusinessBookings: (businessId: string) => Promise<void>;
 
     data: Booking[];
+    subscriptionError: string | null;
     error: string | null;
     isLoading: boolean;
+    isWriting: boolean;
+    isFetching: boolean;
     userBookings: Booking[];
     offerBookings: Booking[];
     businessBookings: Booking[];
 
     bookingByOffer: Record<string, Booking[]>;
     activeListeners: Record<string, Unsubscribe>;
-    unsubscribe: Unsubscribe | null;
 }
 
 const init = {
@@ -36,10 +39,12 @@ const init = {
     businessBookings: [],
     offerBookings: [],
     error: null,
+    subscriptionError: null,
     isLoading: false,
+    isWriting: false,
+    isFetching: false,
     bookingByOffer: {},
     activeListeners: {},
-    unsubscribe: null,
 };
 
 export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", never]]> = (set, get) => ({
@@ -47,35 +52,25 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
     reset: () => set(init),
 
-    subscribeToUserBookings: () => {
+    subscribeToUserBookings: (userId: string): Unsubscribe => {
         try {
-            const { profile } = useAuthStore.getState();
-
-            if (!profile) {
-                throw new Error("User not found");
-            }
-
-            const unsubscribe = BookingRepo.listenToUserBookings(profile.id, (bookings) =>
+            return BookingRepo.listenToUserBookings(userId, (bookings) =>
                 set({
                     userBookings: bookings,
                 }),
             );
-
-            set({ unsubscribe });
-            return unsubscribe;
         } catch (error) {
             console.error("Error subscribing to user bookings: ", error);
-            return null;
+            set({ subscriptionError: "Failed to subscribe to user bookings" });
+            throw error;
         }
     },
 
-    subscribeToBusinessBookings: async (offerId: string) => {
+    subscribeToBusinessBookings: async (offerId: string, businessId: string) => {
         try {
             if (get().activeListeners[offerId]) {
                 return;
             }
-
-            const { businessId } = useAuthStore.getState();
 
             if (!businessId) {
                 throw new Error("Business ID is required for subscribing to business bookings");
@@ -98,6 +93,58 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }));
         } catch (error) {
             console.error("Error subscribing to business bookings: ", error);
+            throw error;
+        }
+    },
+
+    fetchAllBusinessBookings: async (businessId: string) => {
+        try {
+            if(get().businessBookings.length > 0 && get().businessBookings[0].business.id === businessId) {
+                return;
+            }
+
+            set({ isFetching: true, error: null });
+
+            const bookings = await BookingRepo.fetchAllBusinessBookings(businessId);
+
+            set({
+                businessBookings: bookings,
+                isFetching: false,
+            })
+        } catch (error) {
+            set({ 
+                error: `Failed to fetch business bookings: ${(error as Error).message}`,
+                isFetching: false
+            });
+            throw error;
+        }
+    },
+
+    deleteBooking: async (bookingId: string) => {
+        try {
+            set({ isWriting: true, error: null });
+
+            const booking = get().userBookings.find((b) => b.id === bookingId);
+
+            if (!booking) {
+                throw new Error("Booking not found");
+            }
+
+            if(booking.status !== 'for-reservation'){
+                throw new Error("Only bookings with pending status can be deleted.");
+            }
+
+            if(booking.offer.date < new Date()) {
+                throw new Error("You cannot cancel a booking for a past date.");
+            }
+
+            await BookingRepo.delete(bookingId, booking.user.id);
+            set((state) => ({
+                userBookings: state.userBookings.filter((b) => b.id !== bookingId),
+                isWriting: false,
+            }));
+        } catch (error) {
+            set({ isWriting: false, error: `Failed to delete booking: ${(error as Error).message}` });
             throw error;
         }
     },
@@ -126,69 +173,65 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }
 
             const bookings = await BookingRepo.fetchAll();
-            set({ userBookings: bookings, isLoading: false });
+            set({ userBookings: bookings });
         } catch (error) {
-            set({ isLoading: false });
             throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     fetchOfferBookings: async (offerId: string, role: string) => {
-        set({ isLoading: true, error: null });
         try {
+            set({ isLoading: true, error: null });
+            
             if (role !== "admin") {
                 throw new Error("Only admins can fetch bookings for their offers");
             }
 
             const offerBookings = await BookingRepo.fetchOfferBookings(offerId);
 
-            set({
-                offerBookings,
-                isLoading: false,
-            });
+            set({ offerBookings });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     refresh: async (userId?: string | null) => {
-        set({ isLoading: true, error: null });
-
         try {
+            set({ isLoading: true, error: null });
             if (!userId) {
                 throw new Error("User ID is required for refreshing bookings");
             }
 
             const userBookings = await BookingRepo.fetchUserBookings(userId);
 
-            set({
-                userBookings,
-                isLoading: false,
-            });
+            set({ userBookings });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     load: async (userId: string) => {
-        if (get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) {
-            return;
-        }
-
-        set({ isLoading: true, error: null });
-
         try {
+            if (get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) {
+                return;
+            }
+    
+            set({ isLoading: true, error: null });
             const userBookings = await BookingRepo.fetchUserBookings(userId);
 
             set({
-                userBookings,
-                isLoading: false,
+                userBookings
             });
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
@@ -199,87 +242,76 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             let booking = null;
 
             if (get().data.length > 0) {
+                console.log('[bookingStore] Searching for booking in store data...');
                 booking = get().data.find((b) => b.id === bookingId) ?? null;
             }
 
             if (!booking) {
+                console.log('[bookingStore] Booking not found in store data. Fetching from repository...');
                 booking = await BookingRepo.fetchById(bookingId);
             }
 
-            set((state) => {
-                state.data = booking ? [...state.data.filter((b) => b.id !== booking.id), booking] : state.data;
-                state.isLoading = false;
-            });
+            if(!booking) {
+                console.log('[bookingStore] Booking not found in repository.');
+                throw new Error("Booking not found");
+            }
 
-            return booking;
+            console.log('loaded booking:', upsertItem(get().data, booking));
+            set({ data: upsertItem(get().data, booking) })
         } catch (error) {
-            set({ isLoading: false });
             throw error;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
-    createBooking: async (booking: Booking) => {
+    create: async (booking: Booking, isAdmin = false, isUpdate = false) => {
         try {
+            const existing = [get().userBookings, get().offerBookings, get().businessBookings].flat().find(b => b.offer.id === booking.offer.id);
+        
+            if (existing && existing.status !== 'reservation-rejected' && !isUpdate) {
+                throw new Error("Booking for this offer already exists and is currently in progress.");
+            }
+
             set({ isLoading: true, error: null });
-            console.log("Creating booking: ", booking);
+
             const result = await BookingRepo.write(booking);
 
-            set({
-                data: [...get().data.filter((b) => b.id !== result.id), result],
-                isLoading: false,
-            })
+            set((state) => {
+                if(isAdmin) {
+                    return {
+                        offerBookings: upsertItem(state.offerBookings, result)
+                    }
+                } else {
+                    return {
+                        userBookings: upsertItem(state.userBookings, result),
+                    }
+                }
+            });
+
+            return result;
         } catch (error) {
-            console.error("Error creating booking:", (error as Error).message);
             set({ isLoading: false });
             throw error;
-        }
-    },
-
-    create: async (booking: Booking, isAdmin = false) => {
-        set({ isLoading: true, error: null });
-
-        try {
-            const data = await BookingRepo.write(booking);
-
-            set((state) => {
-                const index = isAdmin
-                    ? state.offerBookings.findIndex((b) => b.id === data.id)
-                    : state.userBookings.findIndex((b) => b.id === data.id);
-
-                if (index !== -1) {
-                    if (isAdmin) {
-                        state.offerBookings[index] = data;
-                    } else {
-                        state.userBookings[index] = data;
-                    }
-                } else if (isAdmin) {
-                    state.offerBookings.push(data);
-                } else {
-                    state.userBookings.push(data);
-                }
-
-                state.isLoading = false;
-            });
-            return data;
-        } catch (err) {
+        } finally {
             set({ isLoading: false });
-            throw err;
         }
     },
 
     checkBookings: (id: string): boolean => {
-        set({ isLoading: true, error: null });
-
         try {
-            if (get().userBookings.some((u) => u.offer.id === id || u.offer.id === id)) {
+            set({ isLoading: true, error: null });
+            
+            if (get().userBookings.some((u) => u.offer.id === id)) {
                 throw new Error("Already booked this offer");
             }
 
             set({ isLoading: false, error: null });
             return true;
         } catch (err) {
-            set({ isLoading: false });
             throw err;
+        } finally {
+            set({ isLoading: false });
         }
     }
 });
