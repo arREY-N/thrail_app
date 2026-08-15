@@ -1,10 +1,11 @@
 /**
  * @file CustomToast.tsx
  * @description Reusable status Toast component for displaying brief non-blocking warnings or reminders.
+ * Automatically adapts positioning with safe-area insets on mobile and accepts custom bottomOffset overrides.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -16,11 +17,12 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 /**
  * Props for the CustomToast component.
  * 
- * @param message - The message content to show
- * @param visible - Controls visibility of the toast
- * @param onHide - Callback when toast should hide itself after duration
- * @param duration - Duration in milliseconds before auto-hiding (default: 3000)
- * @param type - Visual style type of the toast (default: 'info')
+ * @param message - The message content to show.
+ * @param visible - Controls visibility of the toast.
+ * @param onHide - Callback when toast should hide itself after duration.
+ * @param duration - Duration in milliseconds before auto-hiding (default: 3000).
+ * @param type - Visual style type of the toast (default: 'info').
+ * @param bottomOffset - Optional custom bottom distance override (e.g. above sticky footers).
  */
 export interface CustomToastProps {
     message: string;
@@ -28,17 +30,22 @@ export interface CustomToastProps {
     onHide: () => void;
     duration?: number;
     type?: 'success' | 'warning' | 'info' | 'error';
+    bottomOffset?: number;
 }
 
 /**
- * CustomToast — Reusable status alert pill floating above the bottom tab bar.
+ * CustomToast — Reusable status alert pill floating cleanly above bottom navigation or sticky footers.
+ *
+ * @param props - Component properties.
+ * @returns {React.JSX.Element | null} The rendered toast component.
  */
 const CustomToast: React.FC<CustomToastProps> = ({
     message,
     visible,
     onHide,
     duration = 3000,
-    type = 'info'
+    type = 'info',
+    bottomOffset,
 }) => {
     const insets = useSafeAreaInsets();
     const { isMobile } = useBreakpoints();
@@ -145,8 +152,11 @@ const CustomToast: React.FC<CustomToastProps> = ({
 
     const config = getToastStyle();
 
-    // Position Toast cleanly above the bottom of the active tab content area (above CustomNavBar)
-    const bottomOffset = 16;
+    // Dynamically calculate bottom offset factoring in safe-area insets or explicit overrides
+    const computedBottom = bottomOffset !== undefined
+        ? bottomOffset
+        : Math.max(insets.bottom + 16, 20);
+
     const toastWidth = isMobile ? '90%' : 400;
 
     return (
@@ -157,7 +167,7 @@ const CustomToast: React.FC<CustomToastProps> = ({
                     backgroundColor: config.bg,
                     opacity: fadeAnim,
                     transform: [{ translateY: slideAnim }],
-                    bottom: bottomOffset,
+                    bottom: computedBottom,
                     width: toastWidth,
                 }
             ]}
@@ -185,7 +195,8 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         paddingVertical: 12,
         paddingHorizontal: 20,
-        zIndex: 999,
+        zIndex: 9999,
+        elevation: 8,
         ...GlobalStyles.dropShadow(3),
     },
     toastContent: {
