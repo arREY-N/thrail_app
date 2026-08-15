@@ -227,6 +227,8 @@ export function useCancellationUser() {
             logger('useCancellationUser()', 'Rescheduling for cancellation request: ', request);
             logger('useCancellationUser()', 'New offer for rescheduling: ', newOffer);
             // create a reschedule request for the admin to approve
+
+            throw new Error("Rescheduling functionality is not yet implemented. This function is a placeholder for future development.");
         } catch (error) {
             catchError(error as Error, 'writingError', 'rescheduleAdminRequest()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
@@ -242,6 +244,13 @@ export function useCancellationUser() {
      * @returns {Promise<void>}
      */
     const onRefundBooking = async (booking: Booking, reason: string) => {
+        try {
+            throw new Error("Refund processing is not yet implemented. This function is a placeholder for future development.");    
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onRefundBooking()');
+            setWritingError((error as Error).message || "An unexpected error occurred.");
+        }
+
         // try {
         //     if(!booking) throw new Error('No booking selected');
             

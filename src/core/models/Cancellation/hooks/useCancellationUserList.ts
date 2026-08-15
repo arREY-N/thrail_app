@@ -1,5 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
+import { catchError } from "@/src/core/utility/errorFormatter";
 import { useEffect, useState } from "react";
 
 /**
@@ -20,23 +21,29 @@ export function useCancellationUserList() {
     const storeFetching = useCancellationStore(s => s.isFetching);
 
     useEffect(() => {
-        if(!profile || !profile.id) {
-            setLocalError("User profile is not available.");
-            return;
+        const fetch = async () => {
+            setLocalError(null);
+            
+            if(!profile || !profile.id) {
+                setLocalError("User profile is not available.");
+                return;
+            }
+    
+            if(profile.role === "admin") {
+                setLocalError("Only users can fetch the list of their cancellation requests.");
+                return;
+            }
+    
+            await useCancellationStore.getState().fetchAllUserCancellations(profile.id);
         }
 
-        if(profile.role === "admin") {
-            setLocalError("Only users can fetch the list of their cancellation requests.");
-            return;
-        }
-
-        setLocalError(null);
-        useCancellationStore.getState().fetchAllUserCancellations(profile.id).catch(err => {
-            setLocalError(`Error fetching cancellations: ${(err as Error).message}`);
-        });
+        fetch();
         
     },[profile?.id, profile?.role]);
 
+    /**
+     * Refreshes the list of cancellation requests for the current user.
+     */
     const refreshUserCancellations = async () => {
         try {
             if(!profile || !profile.id) {
@@ -44,6 +51,7 @@ export function useCancellationUserList() {
             }
             await useCancellationStore.getState().fetchAllUserCancellations(profile.id, true);
         } catch (error) {
+            catchError(error as Error, 'localError', 'refreshUserCancellations()');
             setLocalError(`Error refreshing cancellations: ${(error as Error).message}`);
         }
     }

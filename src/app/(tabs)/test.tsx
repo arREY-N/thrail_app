@@ -81,7 +81,7 @@ const AdminCancellation = () => {
             
             <View style={styles.box}>
                 <Text>View Cancellations</Text>
-                <Pressable onPress={refreshAdminCancellations} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
+                <Pressable onPress={() => refreshAdminCancellations()} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
                     <Text>Refresh Cancellations</Text>
                 </Pressable>
                 { writingError && <Text style={{ color: 'red' }}>{writingError}</Text> }
@@ -193,7 +193,7 @@ const UserCancellation = () => {
     const [offer, setOffer] = useState<Offer | null>(null);
     
     const {
-        newCancellationRequest,
+        cancelBooking,
         updateCancellationReason,
         cancelUserRequest,
         proceedToAdminCancellation,
@@ -346,15 +346,7 @@ const UserCancellation = () => {
                     <Text>Booking ID: {b.id}</Text>
                     <Text>Trail: {b.trail.name}</Text>
                     <Text>On: {b.offer.date.toLocaleDateString()}</Text>
-                    <Pressable onPress={() => {
-                        const request = {
-                            businessId: b.business.id,
-                            bookingId: b.id,
-                            offerId: b.offer.id,
-                            reason: reason,
-                        };
-                        newCancellationRequest(request, b.offer.date);
-                    }}>
+                    <Pressable onPress={() => cancelBooking(b, reason)}>
                         <Text>Submit Cancellation Request</Text>
                     </Pressable>
                 </View>

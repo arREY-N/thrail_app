@@ -45,6 +45,14 @@ export function useCancellationAdmin() {
     
     const revertAdminCancellation = useCancellationStore(s => s.delete);
 
+    /**
+     * Approves of rejects a cancellation request and updates the associated booking, offer, and group chat accordingly.
+     * If approved, it will also initiate a refund process for the booking.
+     * 
+     * @param {Cancellation} request - The cancellation request to be processed. 
+     * @param approved - A boolean indicating whether the cancellation request is approved (true) or rejected (false).
+     * @param adminNote - An optional note from the admin explaining the decision. This is required if the request is rejected.
+     */
     const processCancellationRequest = async (request: Cancellation, approved: boolean, adminNote?: string) => {
         try {
             setWritingError(null);
@@ -106,11 +114,14 @@ export function useCancellationAdmin() {
         }
     }
     
+    /**
+     * Creates a cancellation request on behalf of a user booking. This function is intended for admin use only.
+     * @param {Booking} booking - The booking for which to create a cancellation request.
+     * @param {string} reason - The reason for the cancellation.
+     */    
     const cancelUserBooking = async (booking: Booking, reason: string) => {
         try {
             setWritingError(null);
-
-            logger('cancelUserBooking', `Attempting to cancel booking with ID: ${booking.id} due to reason: ${reason}`);
 
             if(!profile || !profile.id) 
                 throw new Error("User profile is not available.");
@@ -127,8 +138,6 @@ export function useCancellationAdmin() {
                 businessId: booking.business.id,
             });
 
-            logger('cancelUserBooking', `Cancellation request created:`, cancellationNotice);
-            
             await createCancellation({
                 cancellation: cancellationNotice,
                 isAdmin: true
@@ -140,6 +149,10 @@ export function useCancellationAdmin() {
         }
     }
 
+    /**
+     * Reverts a cancellation request made by an admin.
+     * @param {Cancellation} request - The cancellation request to be reverted.
+     */
     const revertCancellationRequest = async (request: Cancellation) => {
         try {
             setWritingError(null);
@@ -168,6 +181,12 @@ export function useCancellationAdmin() {
         }
     }
 
+    /**
+     * !! NOT YET IMPLEMENTED !!
+     * 
+     * Processes a refund for an approved cancellation request.
+     * @param {Cancellation} request - The cancellation request for which to process a refund.
+     */
     const proceedToRefund = async (request: Cancellation) => {
         try {
             setWritingError(null);
@@ -187,7 +206,7 @@ export function useCancellationAdmin() {
             logger('proceedToRefund', `Processing refund for cancellation request:`, request);
 
             // await processAdminRefund(businessId, request);
-
+            throw new Error("Refund processing is not yet implemented. This function is a placeholder for future development.");
         } catch (error) {
             catchError(error as Error, 'writingError', 'proceedToRefund()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
