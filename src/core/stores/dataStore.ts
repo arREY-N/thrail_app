@@ -1,6 +1,7 @@
-import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
+import { useBookingsStore } from '@/src/core/models/Booking/Booking';
+import { useOfferStore } from '@/src/core/models/Offer/Offer';
+
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useBookingsStore } from '@/src/core/stores/bookingsStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import { usePaymentsStore } from '@/src/core/stores/paymentsStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
