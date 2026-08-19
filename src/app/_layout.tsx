@@ -18,8 +18,12 @@ import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { useEffect } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+
+// Prevent splash screen auto-hide at module load time
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
 	const { checked, isMaintenance } = useMaintenance();
@@ -27,8 +31,6 @@ export default function RootLayout() {
 	const {
 		initialize,
 	} = useAuthHook();
-
-	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded, fontError] = useFonts({
 		...AntDesign.font,
@@ -53,11 +55,22 @@ export default function RootLayout() {
 		}
 	}, [fontsLoaded, fontError]);
 
-	if(!checked) return <LoadingScreen/>;
+	if (!checked) {
+		return (
+			<GestureHandlerRootView style={{ flex: 1 }}>
+				<LoadingScreen />
+			</GestureHandlerRootView>
+		);
+	}
 
 	if (checked && isMaintenance) {
-		return <MaintenanceScreen/>
+		return (
+			<GestureHandlerRootView style={{ flex: 1 }}>
+				<MaintenanceScreen />
+			</GestureHandlerRootView>
+		);
 	}
+
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<KeyboardProvider statusBarTranslucent>
