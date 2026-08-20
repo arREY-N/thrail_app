@@ -1,8 +1,7 @@
 import { db } from "@/src/core/config/Firebase";
 import { Repository } from "@/src/core/interface/repositoryInterface";
 import { Review, reviewConverter } from "@/src/core/models/Review/Review";
-import { Unsubscribe } from "firebase/auth";
-import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, onSnapshot, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, DocumentData, getDoc, getDocs, limit, onSnapshot, orderBy, query, QueryDocumentSnapshot, setDoc, startAfter, Unsubscribe, where } from "firebase/firestore";
 
 const createReviewsCollection = () => {
     return collection(db, 'reviews').withConverter(reviewConverter);
