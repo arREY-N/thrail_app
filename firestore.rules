@@ -8,7 +8,10 @@ service cloud.firestore {
     }
 
     match /leaderboards/{leaderboardId} {
-        allow read, create, update, delete: if true;
+        allow read: if request.auth != null;
+        allow create, update, delete: 
+            if request.auth != null 
+            && request.auth.token.role == 'superadmin';
     }
 
     match /users/{userId}{
@@ -298,10 +301,23 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-        allow read, create, update: if request.auth != null;
-        allow delete:
+        allow read: if request.auth != null;
+        allow create: 
             if request.auth != null 
             && request.auth.uid == request.resource.data.user.id;
+        allow update: 
+            if request.auth != null 
+            && (
+                request.auth.uid == resource.data.user.id 
+                || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt'])
+                || request.auth.token.role == 'superadmin'
+            );
+        allow delete:
+            if request.auth != null 
+            && (
+                request.auth.uid == resource.data.user.id 
+                || request.auth.token.role == 'superadmin'
+            );
     }  
   }
 }

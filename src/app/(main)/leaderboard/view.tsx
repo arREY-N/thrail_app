@@ -8,13 +8,12 @@ import { RankedUsers } from "@/src/core/models/Leaderboard/interfaces/ILeaderboa
 import LeaderboardScreen from "@/src/features/Community/screens/Leaderboard/LeaderboardScreen";
 import { LeaderboardMetric } from "@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs";
 import { useLeaderboardView } from "@/src/features/Community/screens/Leaderboard/hooks/useLeaderboardView";
-// import { SAMPLE_RANKINGS_DATA, CURRENT_USER_STANDING } from "@/src/features/Community/screens/Leaderboard/constants/LeaderboardDummyData";
 
 /**
  * Controller page for the Leaderboard route.
  * Handles navigation hooks, metric filter state, and passes live data to LeaderboardScreen.
  */
-export default function leaderboard(): React.JSX.Element {
+export default function Leaderboard(): React.JSX.Element {
     const { onBackPress } = useAppNavigation();
     const { profile } = useAuthHook();
 
@@ -35,59 +34,20 @@ export default function leaderboard(): React.JSX.Element {
     }, []);
 
     const userRankings: RankedUsers<Date>[] = backendLeaderboard?.userRankings ?? [];
-    
+
     const {
-        currentUserData, 
-        topThree, 
-        restOfList, 
-        currentMonthStr, 
+        currentUserData,
+        topThree,
+        restOfList,
+        currentMonthStr,
         nextMonthStr
     } = useLeaderboardView({
-        userRankings, 
+        userRankings,
         activeMetric,
-        activeUserId, 
-        activeUsername, 
+        activeUserId,
+        activeUsername,
         profile
     });
-
-    // DUMMY DATA FOR UI TESTING (Comment this block out when live)
-    // const isLoading = false;
-    // let baseRankings: RankedUsers<Date>[] = [...SAMPLE_RANKINGS_DATA];
-    
-    // if (profile) {
-    //     const foundUser = baseRankings.find(u => u.userId === activeUserId || u.username === activeUsername);
-    //     if (!foundUser) {
-    //         baseRankings.push({
-    //             rank: 7,
-    //             userId: profile.id || 'u999',
-    //             username: profile.username || 'You',
-    //             firstname: profile.firstname || '',
-    //             lastname: profile.lastname || '',
-    //             email: profile.email || '',
-    //             profileImage: null,
-    //             totalDistance: 20.5,
-    //             totalElevation: 800,
-    //             totalHikes: 2,
-    //             hikingRecords: []
-    //         });
-    //     }
-    // } else {
-    //     baseRankings.push(CURRENT_USER_STANDING);
-    // }
-    
-    // const { 
-    //     currentUserData, 
-    //     topThree, 
-    //     restOfList, 
-    //     currentMonthStr, 
-    //     nextMonthStr 
-    // } = useLeaderboardView({
-    //     userRankings: baseRankings, 
-    //     activeMetric, 
-    //     activeUserId, 
-    //     activeUsername, 
-    //     profile
-    // });
 
     return (
         <>

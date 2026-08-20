@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { Alert, Linking } from "react-native";
 
 export default function useMaintenance() {
-    const [url, setUrl] = useState<string>("https://www.youtube.com/watch?v=BBpIV9A1PXc&list=RDBBpIV9A1PXc&start_radio=1");
+    const [url, setUrl] = useState<string | null>(null);
     const [isMaintenance, setIsMaintenance] = useState<boolean>(false);
     const [checked, setChecked] = useState<boolean>(false);
 
     useEffect(() => {
         let isSubscribed = true;
-        
+
         // Safety timeout (3s) to unblock UI if network or Firestore hangs on startup
         const timeoutId = setTimeout(() => {
             if (isSubscribed) {
@@ -26,7 +26,7 @@ export default function useMaintenance() {
                 if (isSubscribed && docSnap.exists()) {
                     const data = docSnap.data();
                     console.log("Document data:", data);
-                    setUrl(data.url ?? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1');
+                    setUrl(data.url ?? null);
                     setIsMaintenance(data.maintenance ?? false);
                 }
             } catch (error) {
@@ -45,9 +45,11 @@ export default function useMaintenance() {
             isSubscribed = false;
             clearTimeout(timeoutId);
         };
-    },[])
+    }, [])
 
-    const handlePress = async (link: string) => {
+    const handlePress = async (link?: string | null) => {
+        if (!link) return;
+
         const supported = await Linking.canOpenURL(link);
 
         if (supported) {

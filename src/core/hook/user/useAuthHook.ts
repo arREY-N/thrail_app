@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 
 export function useAuthHook() {
-    const [localError, setLocalError] = useState<Error>();
+    const [localError, setLocalError] = useState('');
     const role = useAuthStore(s => s.role);
     const profile = useAuthStore(s => s.profile);
     const user = useAuthStore(s => s.user);
@@ -34,7 +34,7 @@ export function useAuthHook() {
             useTrailsStore.getState().reset();
             router.replace('/(auth)/landing');
         } catch (error) {
-            setLocalError((error as Error));
+            setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
@@ -49,7 +49,7 @@ export function useAuthHook() {
         try {
             await password(email);
         } catch (error) {
-            setLocalError((error as Error));
+            setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
@@ -59,7 +59,7 @@ export function useAuthHook() {
             await gmailSignUp();
             router.push("/(tabs)");
         } catch (error) {
-            setLocalError((error as Error));
+            setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
@@ -69,7 +69,7 @@ export function useAuthHook() {
             await logIn(email, password);
             router.push("/(tabs)");
         } catch (error) {
-            setLocalError((error as Error));
+            setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
