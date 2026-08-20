@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src/ --ext .js,.jsx,.ts,.tsx --fix",
     "fire": "firebase emulators:start --only functions,auth,firestore,storage --import=./emulator_data --export-on-exit=./emulator_data",
     "test": "jest"
   },
