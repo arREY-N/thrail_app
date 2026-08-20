@@ -1,5 +1,9 @@
+/* eslint-disable no-restricted-imports */
+// Disabled restriction to allow centralized initialization and 
+// direct reference to internal feature repository without eslint error.
+
 import { db } from "@/src/core/config/Firebase";
-import { BookingRepository } from "@/src/core/models/Booking/Booking";
+import { BookingRepository } from "@/src/core/models/Booking/repositories/BookingRepository";
 import { CancellationRepository } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
 import { GroupRepository } from "@/src/core/models/Group/repositories/GroupRepository";
 import { LeaderboardRepository } from "@/src/core/models/Leaderboard/repositories/LeaderboardRepository";
