@@ -3,7 +3,7 @@ import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 
-export function useAuthHook(){
+export function useAuthHook() {
     const role = useAuthStore(s => s.role);
     const profile = useAuthStore(s => s.profile);
     const user = useAuthStore(s => s.user);
@@ -23,10 +23,10 @@ export function useAuthHook(){
     const isAdmin = role === 'admin'
 
     const { stopBackgroundTracking } = useHikerGPS();
-    
+
     const onSignOutPress = async () => {
         try {
-            await signOut(); 
+            await signOut();
             stopBackgroundTracking();
             useTrailsStore.getState().reset();
             router.replace('/(auth)/landing');
@@ -37,7 +37,7 @@ export function useAuthHook(){
 
     const onForgotPassword = () => {
         router.push({
-            pathname: "/(auth)/forgotPassword"  
+            pathname: "/(auth)/forgotPassword"
         })
     }
 
@@ -49,16 +49,16 @@ export function useAuthHook(){
         }
     }
 
-    const onGmailLogIn = () => {
+    const onGmailLogIn = async () => {
         try {
             console.log("Attempting Gmail login...");
-            gmailSignUp();
+            await gmailSignUp();
             router.push("/(tabs)");
         } catch (error) {
             console.log("Gmail login error:", error);
         }
     }
-   
+
     const onLogIn = async (email: string, password: string) => {
         try {
             console.log("Attempting login...");

@@ -50,7 +50,7 @@ export interface AuthState {
     forgotPassword: (email: string) => Promise<void>;
     validateSignUp: () => Promise<boolean>;
     editAccount: (data: SignUp) => void;
-    gmailSignUp: () => void;
+    gmailSignUp: () => Promise<void>;
     signUp: () => Promise<void>;
     validateInfo: () => boolean;
     resetSignUp: () => void;
@@ -73,7 +73,7 @@ const init = {
 
 export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
-    
+
     resetSignUp: () => set({ account: new SignUp() }),
 
     reset: () => set({
@@ -82,7 +82,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     }),
 
     setHydrated: (hydrated) => set({ isHydrated: hydrated }),
-    
+
     initialize: () => {
         try {
             const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
@@ -102,23 +102,23 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 console.log('line 90')
 
                 if (firebaseUser) {
-                    
+
                     try {
                         console.log("with user");
-    
+
                         const idTokenResult = await firebaseUser.getIdTokenResult(false);
-    
+
                         console.log('worked');
-    
+
                         const businessId =
                             (idTokenResult.claims as CustomClaims).businessId ||
                             (idTokenResult.claims as CustomClaims).owner ||
-                            null;                          
-                        
+                            null;
+
                         const ref = doc(db, "users", firebaseUser.uid).withConverter(
                             userConverter,
                         );
-    
+
                         // Map only serializable string properties to the store state slice
                         const cleanedUser: CleanedAuthUser = {
                             uid: firebaseUser.uid,
@@ -144,7 +144,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                                         set({ isLoading: false, error: "User document does not exist" });
                                     } else {
                                         console.log("Profile loading from cache temporarily empty...");
-                                        
+
                                         // FIX: If we have a fallback profile restored safely via Zustand's AsyncStorage 
                                         // rehydration layer, turn off the loading spinner so the hiker can see their cached data layout!
                                         if (get().profile) {
@@ -174,7 +174,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                         currentUnsub();
                     }
 
-                    set({ 
+                    set({
                         ...init,
                         _unsubscribe: null,
                         isLoading: false,
@@ -212,9 +212,9 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         try {
             set({ isLoading: true, error: null });
             await signOut(auth);
-            
+
             const currentUnsub = get()._unsubscribe;
-            
+
             if (currentUnsub) {
                 currentUnsub();
             }
@@ -295,8 +295,8 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     gmailSignUp: async () => {
         try {
             set({ isChecking: true, error: null, isLoading: true });
-        
-            if(Platform.OS === 'web') {
+
+            if (Platform.OS === 'web') {
                 await AuthRepository.webSignUpWithGoogle();
             } else {
                 await AuthRepository.signUpWithGoogle();
@@ -307,7 +307,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
             console.error("Google sign-in error:", error);
             set({
                 isLoading: false,
-                error: (error as Error).message || "Failed signing up with Google", 
+                error: (error as Error).message || "Failed signing up with Google",
             })
         }
     },
@@ -317,8 +317,8 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
             set({ isLoading: true, error: null });
 
             const actionCodeSettings = {
-                url: 'https://thrail.firebaseapp.com/login', 
-                handleCodeInApp: true, 
+                url: 'https://thrail.firebaseapp.com/login',
+                handleCodeInApp: true,
                 iOS: { bundleId: 'com.thesis.thrail' },
                 android: {
                     packageName: 'com.thesis.thrail',
@@ -332,6 +332,6 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         } catch (error) {
             console.log("Forgot password error:", error);
             set({ isLoading: false, error: (error as Error).message || "Failed to initiate password reset" });
-        } 
+        }
     },
 });
