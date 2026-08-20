@@ -10,10 +10,10 @@ export function useBookingUserList() {
     const isFetching = useBookingsStore(s => s.isFetching);
 
     useEffect(() => {
-        if(!profile || !profile.id) return;
+        if (!profile?.id) return;
 
         const unsubscribe = useBookingsStore.getState().subscribeToUserBookings(profile.id);
-        
+
         return () => unsubscribe();
     }, [profile?.id]);
 

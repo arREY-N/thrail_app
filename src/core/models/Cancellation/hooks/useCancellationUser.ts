@@ -1,6 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/BookingFactory";
 import { useBookingDelete } from "@/src/core/models/Booking/hooks/useBookingDelete";
+import { Booking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { createCancellationRequest, newCancellation } from "@/src/core/models/Cancellation/CancellationFactory";
 import { CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";

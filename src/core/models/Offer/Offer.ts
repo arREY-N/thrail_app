@@ -3,6 +3,7 @@ import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
 // TYPES
 export * from "@/src/core/models/Offer/interfaces/Offer.types";
 
+export { OfferRepository } from "@/src/core/models/Offer/repositories/OfferRepository";
 
 // FACTORY
 export { createOffer, createOffer as newOffer } from "@/src/core/models/Offer/OfferFactory";

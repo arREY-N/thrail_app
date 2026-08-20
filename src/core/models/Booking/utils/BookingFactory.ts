@@ -1,10 +1,8 @@
-import { IBooking, IBookingDB } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking, IBookingDB } from "@/src/core/models/Booking/interfaces/IBooking";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
-export interface Booking extends IBooking {}
-
-export const createBooking = (init?: Partial<Booking>): Booking => {
+export const newBooking = (init?: Partial<Booking>): Booking => {
     return {
         id: '',
         createdAt: new Date(),
@@ -69,7 +67,7 @@ export const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
 }
 
 export const bookingToFirestore = (booking: Booking): IBookingDB => {
-    const isNew = booking.id === ''; 
+    const isNew = booking.id === '';
 
     const data: IBookingDB = {
         id: booking.id,
@@ -100,7 +98,7 @@ export const bookingToFirestore = (booking: Booking): IBookingDB => {
         documents: booking.documents,
     }
 
-    if(booking.cancelledBy && booking.cancellationReason) {
+    if (booking.cancelledBy && booking.cancellationReason) {
         data.cancellationReason = booking.cancellationReason;
         data.cancelledBy = booking.cancelledBy;
     }

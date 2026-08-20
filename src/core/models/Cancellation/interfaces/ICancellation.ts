@@ -11,9 +11,9 @@ interface CancellationBase<T> {
     status: "pending" | "approved" | "rejected";
     adminNote?: string;
     createdAt: T;
-    updatedAt: T; 
+    updatedAt: T;
 }
 
-export interface Cancellation extends CancellationBase<Date> {}
+export type Cancellation = CancellationBase<Date>
 
-export interface CancellationDB extends CancellationBase<Timestamp | FieldValue> {}
+export type CancellationDB = CancellationBase<Timestamp | FieldValue>

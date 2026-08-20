@@ -7,7 +7,6 @@ import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigatio
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-
 import { Booking, useBookingDelete } from "@/src/core/models/Booking/Booking";
 import { useBookingUser } from "@/src/core/models/Booking/hooks/useBookingUser";
 import { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
@@ -16,16 +15,16 @@ import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/hooks/useRescheduleUser";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 
-export default function listBook(){
+export default function ListBook() {
     const { bookingId, view } = useLocalSearchParams();
-    
-    const { 
-        onBackPress 
+
+    const {
+        onBackPress
     } = useAppNavigation();
-    
-    const { 
-        onTerms: onTermsPress, 
-        onPrivacy: onPrivacyPress 
+
+    const {
+        onTerms: onTermsPress,
+        onPrivacy: onPrivacyPress
     } = useLandingNavigation();
 
     const {
@@ -35,7 +34,7 @@ export default function listBook(){
     } = useCancellationUser();
 
     const {
-        onRescheduleBooking 
+        onRescheduleBooking
     } = useRescheduleUser();
 
     const {
@@ -43,7 +42,7 @@ export default function listBook(){
         subscriptionError,
         isFetching
     } = useBookingUserList();
-    
+
     const {
         isDeleting,
         error: deleteError,
@@ -53,9 +52,9 @@ export default function listBook(){
     const {
         onPayOffer,
     } = useBookingUser();
-    
+
     const displayBookings: Booking[] = [...(bookings || [])];
-    
+
     if (isFetching) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -63,19 +62,19 @@ export default function listBook(){
             </ScreenWrapper>
         );
     }
-    
-    if(isDeleting) {
+
+    if (isDeleting) {
         return <CustomLoading visible={true} message="Cancelling your booking..." />;
     }
-    
-    return(
+
+    return (
         <ScrollView>
-            { deleteError && (
+            {deleteError && (
                 <View style={{ padding: 10, margin: 10, backgroundColor: Colors.ERROR, borderRadius: 5 }}>
                     <Text style={{ color: Colors.WHITE }}>{deleteError}</Text>
                 </View>
             )}
-            { displayBookings.length > 0 && displayBookings.map(b => (
+            {displayBookings.length > 0 && displayBookings.map(b => (
                 <View key={b.id} style={{ padding: 10, margin: 10, borderWidth: 1, borderColor: Colors.GRAY, borderRadius: 5 }}>
                     <Text>ID: {b.id}</Text>
                     <Text>Trail: {b.trail.name}</Text>
@@ -86,7 +85,7 @@ export default function listBook(){
                     </Pressable>
                 </View>
             ))}
-            <MyBookingsScreen 
+            <MyBookingsScreen
                 userBookings={displayBookings as any}
                 isLoading={isFetching}
                 error={subscriptionError || deleteError as any}

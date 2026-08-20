@@ -1,4 +1,5 @@
-import { Booking, bookingConverter } from "@/src/core/models/Booking/BookingFactory";
+import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
+import { bookingConverter } from "@/src/core/models/Booking/utils/BookingFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
 
 const createBookingCollection = (db: any, userId: string) => {
@@ -198,8 +199,8 @@ export const BookingRepository = (db: any) => ({
         try {
             console.log("to create: ", booking);
 
-            const bookingRef = booking.id !== "" 
-                ? doc(createBookingCollection(db, booking.user.id), booking.id) 
+            const bookingRef = booking.id !== ""
+                ? doc(createBookingCollection(db, booking.user.id), booking.id)
                 : doc(createBookingCollection(db, booking.user.id));
 
             if (booking.id === "") {
@@ -208,8 +209,8 @@ export const BookingRepository = (db: any) => ({
 
             console.log("Final Writing booking: ", booking);
             await setDoc(
-                bookingRef, 
-                booking, 
+                bookingRef,
+                booking,
                 { merge: true }
             );
 

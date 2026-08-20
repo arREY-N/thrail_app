@@ -1,5 +1,5 @@
 import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { Cancellation } from "@/src/core/models/Cancellation/Cancellation";
 
 export const updateBookingOnCancellation = (
     booking: Booking,
@@ -10,11 +10,11 @@ export const updateBookingOnCancellation = (
         ...booking,
         updatedAt: new Date(),
         status: approved
-            ? "refund" 
+            ? "refund"
             : booking.status,
     }
 
-    if(approved) {
+    if (approved) {
         updatedBooking.cancellationReason = request.reason;
         updatedBooking.cancelledBy = request.cancelledBy;
     }

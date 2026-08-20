@@ -1,25 +1,25 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
-import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { IOfferBase } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
 import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-export type BookingStatus = 
-    'for-reservation' | 
+export type BookingStatus =
+    'for-reservation' |
     'pending-docs' |
     'approved-docs' |
     'cancelled' |
-    'for-payment' | 
+    'for-payment' |
     'paid' |
     'downpayment' |
     'completed' |
     'finished' |
 
     'reservation-rejected' |
-    
+
     'for-cancellation' |
-    'cancellation-rejected' | 
-    'refund' | 
+    'cancellation-rejected' |
+    'refund' |
 
     'for-reschedule' |
     'reschedule-rejected' |
@@ -36,10 +36,10 @@ export interface IPayment<T> {
     gateway: string;
     /** Records a reference to the checkout session */
     sessionId: string;
-    
+
     /** Records the receipt ID once available, will be null initially */
     referenceCode?: string | null;
-    
+
     status: 'pending' | 'captured' | 'failed' | 'refunded';
     refundableUntil: T;
     amount: number;
@@ -69,6 +69,5 @@ export interface IBookingBase<T> {
     cancelledBy?: string;
 }
 
-export interface IBookingDB extends IBookingBase<Timestamp | FieldValue> {}
-export interface IBooking extends IBookingBase<Date>{}
-export interface Booking extends IBooking {}
+export type IBookingDB = IBookingBase<Timestamp | FieldValue>
+export type Booking = IBookingBase<Date>

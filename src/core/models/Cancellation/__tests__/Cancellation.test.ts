@@ -1,11 +1,10 @@
 import { db } from "@/src/core/config/Firebase";
-import { createBooking } from "@/src/core/models/Booking/Booking";
-import { BookingRepository } from "@/src/core/models/Booking/repositories/BookingRepository";
+import { BookingRepository, newBooking } from "@/src/core/models/Booking/Booking";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/CancellationFactory";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
 import { CancellationRepository } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
-import { createOffer, updateOfferOnCancellation } from "@/src/core/models/Offer/Offer";
-import { OfferRepository } from "@/src/core/models/Offer/repositories/OfferRepository";
+import { createOffer, OfferRepository, updateOfferOnCancellation } from "@/src/core/models/Offer/Offer";
+
 import { collection, deleteDoc, doc } from "firebase/firestore";
 
 /**
@@ -56,7 +55,7 @@ const createSeedOffer = async (
     const offer = await offerRepo.write(
         createOffer({
             business: { id: businessId, name: "Test Business" },
-            trail: { id: ids("trail"), name: "Test Trail" , location: "Test Location"},
+            trail: { id: ids("trail"), name: "Test Trail", location: "Test Location" },
             reservedPax: overrides.reservedPax ?? 2,
             minPax: 1,
             maxPax: 10,
@@ -83,11 +82,11 @@ const createSeedBooking = async (params: {
     status?: "for-payment" | "paid" | "for-cancellation";
 }) => {
     const booking = await bookingRepo.write(
-        createBooking({
+        newBooking({
             status: params.status ?? "paid",
             offer: { id: params.offerId, price: 1200, date: new Date() },
             business: { id: params.businessId, name: "Test Business" },
-            trail: { id: ids("trail"), name: "Test Trail" , location: "Test Location"   },
+            trail: { id: ids("trail"), name: "Test Trail", location: "Test Location" },
             user: {
                 id: params.userId,
                 username: `user-${params.userId}`,
