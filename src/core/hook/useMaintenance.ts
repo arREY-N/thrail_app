@@ -9,28 +9,42 @@ export default function useMaintenance() {
     const [checked, setChecked] = useState<boolean>(false);
 
     useEffect(() => {
+        let isSubscribed = true;
+        
+        // Safety timeout (3s) to unblock UI if network or Firestore hangs on startup
+        const timeoutId = setTimeout(() => {
+            if (isSubscribed) {
+                setChecked(true);
+            }
+        }, 3000);
+
         const fetch = async () => {
             try {
                 const docRef = doc(db, "deployment", "status");
                 const docSnap = await getDoc(docRef);
 
-                if (docSnap.exists()) {
+                if (isSubscribed && docSnap.exists()) {
                     const data = docSnap.data();
                     console.log("Document data:", data);
                     setUrl(data.url ?? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1');
                     setIsMaintenance(data.maintenance ?? false);
-                    console.log(data);
-                } else {
-                    console.log("No such document!");
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
-                setChecked(true);
+                if (isSubscribed) {
+                    clearTimeout(timeoutId);
+                    setChecked(true);
+                }
             }
         }
 
         fetch();
+
+        return () => {
+            isSubscribed = false;
+            clearTimeout(timeoutId);
+        };
     },[])
 
     const handlePress = async (link: string) => {
