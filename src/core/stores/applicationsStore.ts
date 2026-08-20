@@ -7,20 +7,6 @@ export interface ApplicationState extends BaseStore<Application> {
     rejectApplication: (application: Application) => Promise<void>;
 }
 
-const applicationTemplate = {
-    applicantName: null,
-    userId: null,
-    email: null,
-    validId: null,
-    businessName: null,
-    address: null,
-    servicedLocation: [],
-    establishedOn: null,
-    dti: null,
-    denr: null,
-    bir: null,
-}
-
 const init = {
     current: null,
     data: [],

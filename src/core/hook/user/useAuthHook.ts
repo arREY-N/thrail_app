@@ -1,9 +1,12 @@
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
+import { useState } from "react";
 
 export function useAuthHook() {
+    const [localError, setLocalError] = useState('');
     const role = useAuthStore(s => s.role);
     const profile = useAuthStore(s => s.profile);
     const user = useAuthStore(s => s.user);
@@ -31,7 +34,8 @@ export function useAuthHook() {
             useTrailsStore.getState().reset();
             router.replace('/(auth)/landing');
         } catch (error) {
-            console.log("Sign out error:", error);
+            setLocalError((error as Error).message);
+            catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
 
@@ -45,27 +49,28 @@ export function useAuthHook() {
         try {
             await password(email);
         } catch (error) {
-            console.error("Forgot password error:", error);
+            setLocalError((error as Error).message);
+            catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
 
     const onGmailLogIn = async () => {
         try {
-            console.log("Attempting Gmail login...");
             await gmailSignUp();
             router.push("/(tabs)");
         } catch (error) {
-            console.log("Gmail login error:", error);
+            setLocalError((error as Error).message);
+            catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
 
     const onLogIn = async (email: string, password: string) => {
         try {
-            console.log("Attempting login...");
             await logIn(email, password);
             router.push("/(tabs)");
         } catch (error) {
-            console.log("Login error:", error);
+            setLocalError((error as Error).message);
+            catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
     return {
@@ -75,7 +80,7 @@ export function useAuthHook() {
         profile,
         user,
         isLoading,
-        error,
+        error: localError || error,
         businessId,
         remember,
         initialize,

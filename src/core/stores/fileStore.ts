@@ -17,10 +17,10 @@ export interface FileState {
 export const useFilesStore = create<FileState>()(immer((set, get) => ({
     error: null,
 
-    uploadDocument: async (): Promise<string> => { 
+    uploadDocument: async (): Promise<string> => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*', 
+                type: '*/*',
                 copyToCacheDirectory: true,
             });
 
@@ -30,7 +30,7 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 const selectedFile = { uri, name, mimeType, size };
 
                 const downloadURL = await FileRepository.uploadDocuments(selectedFile);
-                
+
                 if (!downloadURL) {
                     throw new Error('Failed to upload document');
                 }
@@ -43,12 +43,11 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
         } catch (err) {
             const regex = /\(storage\/quota-exceeded\)/g;
             const matches = (err as Error).message.match(regex);
-            if(matches) {
-                window.alert("Quota exceeded error detected. Please check your Firebase storage plan and usage. For now a sample document will be used for testing purposes.");
+            if (matches) {
                 Alert.alert("Quota exceeded error detected. Please check your Firebase storage plan and usage. For now a sample image will be used for testing purposes.");
                 return "https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing"
             }
-            
+
             console.error('Error uploading document:', err);
             throw err instanceof Error ? err : new Error('Failed to upload document');
         }
@@ -60,7 +59,7 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
-            if(!profile) {
+            if (!profile) {
                 throw new Error('User profile not found. Please log in again.');
             }
 
@@ -74,21 +73,21 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 base64: false,
             });
 
-            if(result.canceled) {
+            if (result.canceled) {
                 throw new Error('Photo capture canceled');
             }
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
 
-            const selectedFile = { 
-                uri, 
+            const selectedFile = {
+                uri,
                 name: fileName ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
-                mimeType, 
-                size 
+                mimeType,
+                size
             };
 
             const downloadURL = await FileRepository.uploadDocuments(selectedFile);
-            
+
             if (!downloadURL) {
                 throw new Error('Failed to upload document');
             }
@@ -125,15 +124,15 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
 
-            const selectedFile = { 
-                uri, 
+            const selectedFile = {
+                uri,
                 name: fileName ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
-                mimeType: mimeType ?? 'image/jpeg', 
-                size 
+                mimeType: mimeType ?? 'image/jpeg',
+                size
             };
 
             const downloadURL = await FileRepository.uploadDocuments(selectedFile);
-            
+
             if (!downloadURL) {
                 throw new Error('Failed to upload document');
             }

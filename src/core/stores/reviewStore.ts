@@ -1,6 +1,6 @@
 import { Review } from "@/src/core/models/Review/Review";
 import { ReviewRepository } from "@/src/core/repositories/reviewRepository";
-import { Unsubscribe } from "firebase/auth";
+import { Unsubscribe } from "firebase/firestore";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -10,6 +10,7 @@ export interface ReviewState {
     error: string | null;
     
     subscribeToReviews: () => Unsubscribe | null;
+    unsubscribeFromReviews: () => void;
 
     fetchAll: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -18,16 +19,21 @@ export interface ReviewState {
     create: (review: Review) => Promise<void>;
     remove: (id: string) => Promise<void>;
     likeReview: (review: Review) => void;
-    unsubscribe: Unsubscribe | null;
 }
+
+let activeReviewsUnsubscribe: Unsubscribe | null = null;
 
 export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
     reviews: [],
     isLoading: false,
     error: null,
-    unsubscribe: null,
 
     subscribeToReviews: () => {
+        if (activeReviewsUnsubscribe) {
+            activeReviewsUnsubscribe();
+            activeReviewsUnsubscribe = null;
+        }
+
         set({ isLoading: true });
         try {
             const unsubscribe = ReviewRepository.listenToReviews(
@@ -35,14 +41,28 @@ export const useReviewStore = create<ReviewState>()(immer((set, get) => ({
                     reviews: reviews,
                     isLoading: false
                 })
-            )
+            );
 
-            set({ unsubscribe });
-            return unsubscribe;
+            activeReviewsUnsubscribe = unsubscribe;
+            return () => {
+                if (activeReviewsUnsubscribe === unsubscribe) {
+                    activeReviewsUnsubscribe();
+                    activeReviewsUnsubscribe = null;
+                } else {
+                    unsubscribe();
+                }
+            };
         } catch (error) {
-            console.error('Error subscribing to reviews: ', error)
+            console.error('Error subscribing to reviews: ', error);
             set({ isLoading: false });
             throw error;
+        }
+    },
+
+    unsubscribeFromReviews: () => {
+        if (activeReviewsUnsubscribe) {
+            activeReviewsUnsubscribe();
+            activeReviewsUnsubscribe = null;
         }
     },
 

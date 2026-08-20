@@ -3,7 +3,6 @@
  * @description Screen component shown when the application is under maintenance.
  */
 
-import React from 'react';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -45,7 +44,7 @@ export const MaintenanceScreen = () => {
                     </CustomText>
 
                     <CustomText variant="body" style={styles.message}>
-                        Sorry, but the site is currently under maintenance. We'll be back soon!
+                        Sorry, but the site is currently under maintenance. We&aposll be back soon!
                     </CustomText>
 
                     <View style={styles.buttonContainer}>
@@ -56,10 +55,10 @@ export const MaintenanceScreen = () => {
                         />
                     </View>
 
-                    <TouchableOpacity 
-                        onPress={() => handlePress(url)}
+                    <TouchableOpacity
+                        onPress={() => url ? handlePress(url) : undefined}
                         style={styles.watermarkContainer}
-                        activeOpacity={0.7}
+                        activeOpacity={url ? 0.7 : 1}
                     >
                         <CustomText variant="caption" style={styles.watermarkText}>
                             Thrail 2026

@@ -46,7 +46,7 @@ export interface AuthState {
     signOut: () => Promise<void>;
     reset: () => void;
     logIn: (email: string, password: string) => Promise<void>;
-    rememberMe: () => boolean;
+    rememberMe: () => void;
     forgotPassword: (email: string) => Promise<void>;
     validateSignUp: () => Promise<boolean>;
     editAccount: (data: SignUp) => void;
@@ -285,11 +285,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     },
 
     rememberMe: () => {
-        set((state) => {
-            state.error = "Function to be added soon";
-            state.remember = !state.remember;
-        });
-        return get().remember;
+
     },
 
     gmailSignUp: async () => {
