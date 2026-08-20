@@ -11,16 +11,16 @@ const PAGE_SIZE = 30;
 let lastDoc: QueryDocumentSnapshot<Review, DocumentData>;
 
 class ReviewRepositoryImpl implements Repository<Review> {
-    async fetchAll(isInitial: Boolean = false): Promise<Review[]> {
+    async fetchAll(isInitial: boolean = false): Promise<Review[]> {
         try {
             const reviewCollection = createReviewsCollection();
-            let q =  query(
+            let q = query(
                 reviewCollection,
                 orderBy('createdAt', 'desc'),
                 limit(PAGE_SIZE)
             );
-            
-            if(!isInitial && lastDoc) { 
+
+            if (!isInitial && lastDoc) {
                 q = query(q, startAfter(lastDoc));
             }
 
@@ -39,12 +39,12 @@ class ReviewRepositoryImpl implements Repository<Review> {
     listenToReviews(onUpdate: (reviews: Review[]) => void): Unsubscribe {
         try {
             const reviewCollection = createReviewsCollection();
-            const q =  query(
+            const q = query(
                 reviewCollection,
                 orderBy('createdAt', 'desc'),
                 limit(PAGE_SIZE)
             );
-            
+
             return onSnapshot(q, (snapshot) => {
                 onUpdate(snapshot.docs.map(doc => doc.data()))
             }, (error) => {
@@ -59,20 +59,20 @@ class ReviewRepositoryImpl implements Repository<Review> {
     async fetchByUserId(userId: string, isInitial: boolean = false): Promise<Review[]> {
         try {
             const reviewCollection = createReviewsCollection();
-            
+
             let q = query(
-                reviewCollection, 
-                orderBy('createdAt', 'desc'), 
-                limit(PAGE_SIZE), 
+                reviewCollection,
+                orderBy('createdAt', 'desc'),
+                limit(PAGE_SIZE),
                 where('user.id', '==', userId)
             );
 
-            if(!isInitial && lastDoc) {
+            if (!isInitial && lastDoc) {
                 q = query(q, startAfter(lastDoc));
             }
 
-            const snapshot = await getDocs(q);  
-            
+            const snapshot = await getDocs(q);
+
             const lastVisible = snapshot.docs[snapshot.docs.length - 1];
             lastDoc = lastVisible;
 
@@ -105,12 +105,12 @@ class ReviewRepositoryImpl implements Repository<Review> {
         try {
             let review: Review = data;
 
-            const reviewRef = data.id 
+            const reviewRef = data.id
                 ? doc(createReviewsCollection(), data.id)
                 : doc(createReviewsCollection());
 
-            if(!data.id)
-                review = new Review({...data, id: reviewRef.id })
+            if (!data.id)
+                review = new Review({ ...data, id: reviewRef.id })
 
             console.log('repository', review);
 
