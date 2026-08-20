@@ -1,5 +1,5 @@
+import { RescheduleRepo } from "@/src/core/init/repositories";
 import { Reschedule } from "@/src/core/models/Reschedule/interfaces/IReschedule";
-import { RescheduleRepo } from "@/src/core/models/Reschedule/Reschedule";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 
@@ -38,7 +38,7 @@ export const rescheduleStoreCreator: StateCreator<RescheduleState, [["zustand/im
             set({ isFetching: true, error: null });
 
             const allReschedules = await RescheduleRepo.fetchAll();
-            
+
             set({ allReschedules });
         } catch (error) {
             set({ error: error as Error });
@@ -67,12 +67,12 @@ export const rescheduleStoreCreator: StateCreator<RescheduleState, [["zustand/im
 
             const reschedule = await RescheduleRepo.fetchById(businessId, rescheduleId);
 
-            if(!reschedule) {
+            if (!reschedule) {
                 throw new Error(`Reschedule with ID ${rescheduleId} not found for business ${businessId}`);
             }
 
             set(state => {
-                if(isAdmin) {
+                if (isAdmin) {
                     state.businessReschedules = upsertItem(state.businessReschedules, reschedule);
                 } else {
                     state.userReschedules = upsertItem(state.userReschedules, reschedule);
