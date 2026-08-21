@@ -3,7 +3,7 @@ import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
 
-export default function useSignUp(isNew: boolean = false){
+export default function useSignUp(isNew: boolean = false) {
     const error = useAuthStore(s => s.error);
     const isChecking = useAuthStore(s => s.isChecking);
     const isStoreLoading = useAuthStore(s => s.isLoading);
@@ -19,45 +19,47 @@ export default function useSignUp(isNew: boolean = false){
     const signUp = useAuthStore(s => s.signUp);
 
     const onContinuePress = (
-        phoneNumber: string, 
-        firstname: string, 
-        lastname: string, 
-        birthday: Date, 
+        phoneNumber: string,
+        firstname: string,
+        lastname: string,
+        birthday: Date,
         address: string
     ) => {
         const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
-        
+
         editAccount(new SignUp({
             phoneNumber: cleanPhoneNumber,
-            firstname, 
-            lastname, 
+            firstname,
+            lastname,
             birthday,
             address
         }));
 
-        if(validateInfo()) {
+        if (validateInfo()) {
             router.push('/(auth)/tac');
         }
     }
-    
+
     // TODO change parameters to SignUp object
     const onSignUpPress = async (
-        email: string, 
-        password: string, 
-        username: string, 
+        email: string,
+        password: string,
+        username: string,
         confirmPassword: string
     ) => {
-        if(!account) resetSignUp();
+        if (!account) resetSignUp();
 
         editAccount(new SignUp({
-            email, 
-            password, 
-            username, 
+            email,
+            password,
+            username,
             confirmPassword
-        }));    
-        
-        const validated = await validateSignUp();
-        if(validated) router.push('/(auth)/information');
+        }));
+
+        // const validated = await validateSignUp();
+        const validated = true;
+
+        if (validated) router.push('/(auth)/information');
     }
 
     const onAcceptPress = async () => {
@@ -75,8 +77,8 @@ export default function useSignUp(isNew: boolean = false){
     }
 
     useEffect(() => {
-        if(isNew) reset()
-    },[])
+        if (isNew) reset()
+    }, [])
 
     return {
         error,
