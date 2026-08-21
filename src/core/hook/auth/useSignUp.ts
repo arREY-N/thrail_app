@@ -56,8 +56,7 @@ export default function useSignUp(isNew: boolean = false) {
             confirmPassword
         }));
 
-        // const validated = await validateSignUp();
-        const validated = true;
+        const validated = await validateSignUp();
 
         if (validated) router.push('/(auth)/information');
     }
