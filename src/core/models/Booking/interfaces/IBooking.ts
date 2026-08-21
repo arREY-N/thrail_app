@@ -68,6 +68,13 @@ export interface IBookingBase<T> {
     cancellationReason?: string;
     cancelledBy?: string;
 }
+export interface UsePayBookingParams {
+    amount: number;
+    bookingId: string;
+    userId: string;
+    type: string;
+    returnUrl: string;
+}
 
 export type IBookingDB = IBookingBase<Timestamp | FieldValue>
 export type Booking = IBookingBase<Date>

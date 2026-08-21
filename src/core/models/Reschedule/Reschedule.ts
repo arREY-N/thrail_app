@@ -8,7 +8,7 @@ export { newReschedule } from "@/src/core/models/Reschedule/utils/RescheduleFact
 export { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
 
 // HOOKS
-
+export { useRescheduleUser } from "@/src/core/models/Reschedule/hooks/useRescheduleUser";
 
 // UTILITIES
 

@@ -7,7 +7,7 @@ export type AdminParams = {
     businessId: string | null
 }
 
-export function useAdmin(params: AdminParams){
+export function useAdmin(params: AdminParams) {
     const { businessId } = params
 
     const businessAccount = useBusinessesStore(s => s.current);
@@ -23,12 +23,12 @@ export function useAdmin(params: AdminParams){
     const [filteredOffers, setFilteredOffers] = useState<Offer[]>(businessOffers);
 
     useEffect(() => {
-        if(businessId) {
+        if (businessId) {
             loadBusinessAccount(businessId);
             loadBusinessAdmins(businessId)
             fetchAllBusinessOffers(businessId);
         }
-    }, [businessId]);
+    }, [businessId, fetchAllBusinessOffers, loadBusinessAccount, loadBusinessAdmins]);
 
     return {
         businessAccount,

@@ -3,12 +3,12 @@ import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { useState } from "react";
 
-import { payBooking } from "@/src/core/hook/book/usePayBooking";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { useGroupStore } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
+import { usePaymentUser } from "@/src/core/models/Payment/Payment";
 import { UserLogic } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { produce } from "immer";
@@ -18,6 +18,8 @@ export function useBookingUser() {
     const [localError, setLocalError] = useState<string | null>(null);
 
     const { profile } = useAuthHook();
+
+    const { payBooking } = usePaymentUser();
 
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);

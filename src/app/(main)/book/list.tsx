@@ -7,12 +7,12 @@ import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigatio
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-import { Booking, useBookingDelete } from "@/src/core/models/Booking/Booking";
-import { useBookingUser } from "@/src/core/models/Booking/hooks/useBookingUser";
-import { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
-import { useCancellationUser } from "@/src/core/models/Cancellation/hooks/useCancellationUser";
+import { Booking, useBookingDelete, useBookingUser, useBookingUserList } from "@/src/core/models/Booking/Booking";
+
+
+import { useCancellationUser } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
-import { useRescheduleUser } from "@/src/core/models/Reschedule/hooks/useRescheduleUser";
+import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 
 export default function ListBook() {
@@ -29,7 +29,6 @@ export default function ListBook() {
 
     const {
         cancelBooking,
-        proceedToAdminReschedule,
         onRefundBooking,
     } = useCancellationUser();
 
@@ -64,7 +63,11 @@ export default function ListBook() {
     }
 
     if (isDeleting) {
-        return <CustomLoading visible={true} message="Cancelling your booking..." />;
+        return (
+            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                <CustomLoading visible={true} message="Cancelling your booking..." />;
+            </ScreenWrapper>
+        );
     }
 
     return (

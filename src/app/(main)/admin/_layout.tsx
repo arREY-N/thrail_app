@@ -3,11 +3,15 @@ import UnauthorizedScreen from "@/src/app/unauthorized";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Stack } from "expo-router";
 
-export default function adminLayout(){
+export const unstable_settings = {
+    initialRouteName: 'index',
+};
+
+export default function AdminLayout() {
     const { role, isLoading } = useAuthHook();
-    if(isLoading) return <LoadingScreen/>
+    if (isLoading) return <LoadingScreen />
 
-    if(role !== 'admin') return <UnauthorizedScreen/>
+    if (role !== 'admin') return <UnauthorizedScreen />
 
-    return <Stack screenOptions={{ title: 'Admin Dashboard' }}/>
+    return <Stack screenOptions={{ title: 'Admin Dashboard' }} />
 }

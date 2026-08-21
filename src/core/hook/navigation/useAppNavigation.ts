@@ -6,12 +6,16 @@ export function useAppNavigation() {
     const onTrailPress = (id: string) => {
         router.push({
             pathname: '/(main)/trail/view',
-            params: { trailId: id},
+            params: { trailId: id },
         })
     }
 
     const onBackPress = () => {
-        router.back();
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/');
+        }
     };
 
     const onUserViewPress = (id?: string) => {
@@ -49,21 +53,21 @@ export function useAppNavigation() {
     const onSeeMoreRecommendationsPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'recommendations'}
+            params: { filter: 'recommendations' }
         })
     }
-    
+
     const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending'}
+            params: { filter: 'trending' }
         })
     }
 
     const onSeeMoreOffersPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'offers'}
+            params: { filter: 'offers' }
         })
     }
 
@@ -126,7 +130,7 @@ export function useAppNavigation() {
         onDownloadPress,
         onSignUpPress,
         onLogIn,
-        onBookingPress, 
+        onBookingPress,
         onNotificationPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
