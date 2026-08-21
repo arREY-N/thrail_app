@@ -66,6 +66,7 @@ venv/
 .venv/
 env/
 .env/
+.env*
 
 # Python compiled files / cache
 __pycache__/

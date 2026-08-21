@@ -2,7 +2,6 @@ import { functions } from "@/src/core/config/Firebase";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, IPayment } from "@/src/core/models/Booking/Booking";
 import { catchError } from "@/src/core/utility/errorFormatter";
-import { router } from "expo-router";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
 
@@ -40,7 +39,8 @@ export function usePaymentAdmin() {
             //     amount: totalAmountPaid,
             //     createdAt: new Date(),
             // }
-            router.back();
+
+            return booking;
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRefund()');
             setLocalError((error as Error).message || 'Failed to refund booking');

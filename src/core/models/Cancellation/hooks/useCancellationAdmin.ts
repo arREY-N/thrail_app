@@ -26,14 +26,14 @@ import {
     updateOfferOnCancellation,
     useOfferStore
 } from "@/src/core/models/Offer/Offer";
-import { usePaymentRefund } from "@/src/core/models/Payment/Payment";
+import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 
 
 export function useCancellationAdmin() {
     const { profile, role, businessId } = useAuthHook();
-    
-    const { authorizeRefund } = usePaymentRefund();
-    
+
+    const { onRefund } = usePaymentAdmin();
+
     const [writingError, setWritingError] = useState<string | null>(null);
     const storeError = useCancellationStore(s => s.error);
     const isWriting = useCancellationStore(s => s.isWriting);
@@ -42,7 +42,7 @@ export function useCancellationAdmin() {
     const createOffer = useOfferStore(s => s.createOffer);
     const createBooking = useBookingsStore(s => s.create);
     const createGroup = useGroupStore(s => s.createGroup);
-    
+
     const revertAdminCancellation = useCancellationStore(s => s.delete);
 
     /**
@@ -57,76 +57,77 @@ export function useCancellationAdmin() {
         try {
             setWritingError(null);
 
-            if(!profile || profile.role !== "admin") {
+            if (!profile || profile.role !== "admin") {
                 throw new Error("Only admins can process cancellation requests.");
             }
 
-            if(approved) {
+            if (approved) {
                 const { bookingId, offerId } = request;
-         
+
                 const offer: Offer | null = await getBusinessOfferItem(offerId);
 
-                if(!offer) 
+                if (!offer)
                     throw new Error("Offer not found for the provided offer ID.");
 
                 const booking: Booking | null = await getUserBookingItem(bookingId);
 
-                if(!booking) 
+                if (!booking)
                     throw new Error("Booking not found for the provided booking ID.");
 
                 const group: Group | null = await getGroupItem(booking.offer.id);
 
-                if(!group)
+                if (!group)
                     throw new Error("Group chat not found for the provided offer ID.");
-                
+
                 const updatedOffer: Offer = updateOfferOnCancellation(offer, booking);
 
                 const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
 
                 const updatedGroup: Group = updateGroupOnCancellation(group, booking.user.id);
 
-                const refundedBooking: Booking = await authorizeRefund(updatedBooking);
-                
+                const refundedBooking: Booking | undefined = await onRefund(updatedBooking);
+
+                if (!refundedBooking) throw new Error('Refund failed');
                 await createBooking(refundedBooking, true, true);
                 await createOffer(updatedOffer);
                 await createGroup(updatedGroup);
             } else {
-                if(!adminNote || adminNote.trim() === "") {
+                if (!adminNote || adminNote.trim() === "") {
                     throw new Error("Admin note is required when rejecting a cancellation request.");
                 }
             }
 
             const updated: Cancellation = flagCancellationRequest(request, approved, adminNote);
-            
+
             await createCancellation({
                 cancellation: updated,
                 oldCancellation: request,
                 isAdmin: true
             });
-            
+
             // notify user
-            const notificationMessage = approved 
-                ? "Your cancellation request has been approved." 
+            const notificationMessage = approved
+                ? "Your cancellation request has been approved."
                 : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided.");
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationAdmin()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
         }
     }
-    
+
     /**
      * Creates a cancellation request on behalf of a user booking. This function is intended for admin use only.
      * @param {Booking} booking - The booking for which to create a cancellation request.
      * @param {string} reason - The reason for the cancellation.
-     */    
+     */
     const cancelUserBooking = async (booking: Booking, reason: string) => {
         try {
             setWritingError(null);
 
-            if(!profile || !profile.id) 
+            if (!profile || !profile.id)
                 throw new Error("User profile is not available.");
 
-            if(role !== "admin")
+            if (role !== "admin")
                 throw new Error("Only admins can cancel bookings through this path.");
 
             const cancellationNotice = createCancellationRequest({
@@ -157,19 +158,19 @@ export function useCancellationAdmin() {
         try {
             setWritingError(null);
 
-            if(!businessId) {
+            if (!businessId) {
                 throw new Error("Cannot delete requests without the business ID.");
             }
 
-            if(!profile || profile.role !== "admin") {
+            if (!profile || profile.role !== "admin") {
                 throw new Error("Only admins can revert cancellation by admin requests.");
             }
 
-            if(request.cancelledBy !== "admin") {
+            if (request.cancelledBy !== "admin") {
                 throw new Error("Only cancellations made by admins can be reverted by an admin.");
             }
 
-            if(request.status !== "pending") {
+            if (request.status !== "pending") {
                 throw new Error("Only pending cancellations can be reverted.");
             }
 
@@ -191,15 +192,15 @@ export function useCancellationAdmin() {
         try {
             setWritingError(null);
 
-            if(!businessId) {
+            if (!businessId) {
                 throw new Error("Cannot process refunds without the business ID.");
             }
 
-            if(!profile || profile.role !== "admin") {
+            if (!profile || profile.role !== "admin") {
                 throw new Error("Only admins can process refunds.");
             }
 
-            if(request.status !== "approved") {
+            if (request.status !== "approved") {
                 throw new Error("Only approved cancellations can be processed for a refund.");
             }
 
