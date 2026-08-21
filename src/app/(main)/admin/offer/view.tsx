@@ -8,36 +8,35 @@ import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen"
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-import { useBookingOfferAdminList } from "@/src/core/models/Offer/hooks/useBookingOfferAdminList";
-import { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
+import { useBookingOfferAdminList, useOfferItem } from "@/src/core/models/Offer/Offer";
 
-export default function viewOffer() {
+
+export default function ViewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
 
     const offerId = getSearchParam(rawOfferId);
 
     const { onBackPress } = useAppNavigation();
 
-    
     const {
         error,
         onViewBooking,
         offerBookings,
     } = useBookingOfferAdminList(offerId);
-    
+
     const {
-        offer 
+        offer
     } = useOfferItem(offerId);
 
-    if(!offerBookings || (!offer)) {
+    if (!offerBookings || (!offer)) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={undefined}>
                 <Stack.Screen options={{ headerShown: false }} />
-                
-                <CustomHeader 
+
+                <CustomHeader
                     title="Offer Details"
                     centerTitle={true}
-                    onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined}                />
+                    onBackPress={onBackPress} rightActions={undefined} style={undefined} />
 
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
@@ -57,7 +56,7 @@ export default function viewOffer() {
                     bookings={offerBookings}
                     onViewBooking={onViewBooking}
                     onBackPress={onBackPress}
-                    error={error as string} 
+                    error={error as string}
                 />
             )}
         </>
