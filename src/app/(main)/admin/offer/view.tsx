@@ -8,7 +8,8 @@ import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen"
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-import { useBookingOfferAdminList, useOfferItem } from "@/src/core/models/Offer/Offer";
+import { useBookingOfferAdminList } from "@/src/core/models/Booking/Booking";
+import { useOfferItem } from "@/src/core/models/Offer/Offer";
 
 
 export default function ViewOffer() {
