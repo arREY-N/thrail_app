@@ -35,7 +35,6 @@ import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
 import { ITrail } from '@/src/core/models/Trail/Trail.types';
-import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 
 /**
  * Props for the HomeScreen component.
@@ -98,7 +97,6 @@ export interface HomeScreenProps {
  * @param getItemRating - Function retrieving trail rating by ID.
  * @param onMountainPress - Callback when card is pressed.
  * @param onDownloadPress - Callback when trail download icon is pressed.
- * @param mountainWeatherMap - Weather badge map keyed by trail ID.
  * @param getTrailOffersCount - Helper returning count of upcoming active offers for a trail ID.
  * @param isRefreshing - Active pull-to-refresh state boolean.
  */
@@ -115,7 +113,6 @@ interface ListSectionProps {
     getItemRating: (id: string) => number;
     onMountainPress: (id: string) => void;
     onDownloadPress: (id: string) => void;
-    mountainWeatherMap: Record<string, TrailWeatherBadge>;
     getTrailOffersCount: (trailId: string) => number;
 }
 
@@ -138,7 +135,6 @@ const ListSection: React.FC<ListSectionProps> = ({
     getItemRating,
     onMountainPress,
     onDownloadPress,
-    mountainWeatherMap,
     getTrailOffersCount,
 }) => {
     const hasData = data && data.length > 0;
@@ -214,7 +210,6 @@ const ListSection: React.FC<ListSectionProps> = ({
                                 width: cardWidth,
                                 marginRight: 16 
                             }}
-                            weatherBadge={mountainWeatherMap[item.id] ?? null}
                             offersCount={getTrailOffersCount(item.id)}
                         />
                     ))}
@@ -311,7 +306,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
     const { latitude, longitude, locationName, geocodedName, isLocating } = useLocation();
     const { weatherData, loading, error, refetch } = useWeather(latitude, longitude);
-    const [mountainWeatherMap, setMountainWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
     const { width } = useWindowDimensions();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
@@ -321,21 +315,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     const cardWidth = Math.min(width * 0.85, 360);
 
     const hasAnyTrails = recommendedTrails.length > 0 || discoverTrails.length > 0 || trailsWithOffers.length > 0;
-
-    const reloadMountainWeatherBadges = useCallback(() => {
-        const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
-        if (allVisibleTrails.length === 0) return;
-        
-        const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
-            .map(id => allVisibleTrails.find(t => t.id === id))
-            .filter((t): t is ITrail => t !== undefined);
-
-        fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
-    }, [recommendedTrails, discoverTrails, trailsWithOffers]);
-
-    useEffect(() => {
-        reloadMountainWeatherBadges();
-    }, [reloadMountainWeatherBadges]);
 
     // Helper to calculate upcoming offers count for each card
     const getTrailOffersCount = (trailId: string) => {
@@ -366,7 +345,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                             refreshing={isRefreshing}
                             onRefresh={async () => {
                                 await refetch();
-                                await reloadMountainWeatherBadges();
                                 if (onRefreshPress) {
                                     await onRefreshPress();
                                 }
@@ -400,7 +378,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     getItemRating={getItemRating}
                     onMountainPress={onMountainPress}
                     onDownloadPress={onDownloadPress}
-                    mountainWeatherMap={mountainWeatherMap}
                     getTrailOffersCount={getTrailOffersCount}
                 />
 
@@ -416,7 +393,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     getItemRating={getItemRating}
                     onMountainPress={onMountainPress}
                     onDownloadPress={onDownloadPress}
-                    mountainWeatherMap={mountainWeatherMap}
                     getTrailOffersCount={getTrailOffersCount}
                 />
 
@@ -432,7 +408,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                         getItemRating={getItemRating}
                         onMountainPress={onMountainPress}
                         onDownloadPress={onDownloadPress}
-                        mountainWeatherMap={mountainWeatherMap}
                         getTrailOffersCount={getTrailOffersCount}
                     />
                 )}
