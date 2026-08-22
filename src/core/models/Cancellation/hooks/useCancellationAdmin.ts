@@ -19,7 +19,7 @@ import {
     useGroupStore
 } from "@/src/core/models/Group/Group";
 
-import { createCancellationRequest } from "@/src/core/models/Cancellation/CancellationFactory";
+import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import {
     getBusinessOfferItem,
     Offer,

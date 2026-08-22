@@ -1,8 +1,8 @@
 import { db } from "@/src/core/config/Firebase";
-import { BookingRepository, newBooking } from "@/src/core/models/Booking/Booking";
-import { createCancellationRequest } from "@/src/core/models/Cancellation/CancellationFactory";
+import { BookingRepo, newBooking } from "@/src/core/models/Booking/Booking";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
 import { CancellationRepository } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
+import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { createOffer, OfferRepository, updateOfferOnCancellation } from "@/src/core/models/Offer/Offer";
 
 import { collection, deleteDoc, doc } from "firebase/firestore";
@@ -15,7 +15,8 @@ import { collection, deleteDoc, doc } from "firebase/firestore";
  * belong in a separate functions-level test suite.
  */
 
-const bookingRepo = BookingRepository(db);
+const bookingRepo = BookingRepo;
+
 const offerRepo = OfferRepository(db);
 const cancellationRepo = CancellationRepository(db);
 

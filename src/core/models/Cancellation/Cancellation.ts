@@ -2,7 +2,7 @@
 export { CancellationRepo } from "@/src/core/init/repositories";
 
 // FACTORY
-export { createCancellationRequest, createCancellationRequest as newCancellation } from "@/src/core/models/Cancellation/CancellationFactory";
+export { createCancellationRequest, createCancellationRequest as newCancellation } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 
 // TYPES
 export { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";

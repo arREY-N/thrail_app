@@ -1,6 +1,6 @@
 
-import { cancellationConverter } from "@/src/core/models/Cancellation/CancellationFactory";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { cancellationConverter } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 
 const createCancellationCollection = (db: Firestore, businessId: string) => {
@@ -17,7 +17,7 @@ export const CancellationRepository = (db: Firestore) => ({
     async write(businessId: string, cancellation: Cancellation) {
         try {
             const cancellationsRef = createCancellationCollection(db, businessId);
-            
+
             const isNew = cancellation.id === "";
 
             const docRef = isNew
@@ -36,7 +36,7 @@ export const CancellationRepository = (db: Firestore) => ({
             )
 
             return updated;
-        } catch(error) {
+        } catch (error) {
             console.error("Error writing cancellation to Firestore:", error);
             throw error;
         }
@@ -55,12 +55,12 @@ export const CancellationRepository = (db: Firestore) => ({
             const snapshot = await getDoc(docRef);
 
             return snapshot.exists() ? snapshot.data() : null;
-        } catch(error) {
+        } catch (error) {
             console.error("Error fetching cancellation by ID from Firestore:", error);
             throw error;
         }
     },
-    
+
     /**
      * Fetches all cancellations for a specific user from Firestore.
      * @param userId - The ID of the user whose cancellations are to be fetched.
@@ -70,7 +70,7 @@ export const CancellationRepository = (db: Firestore) => ({
         try {
             const cancellationsRef = collectionGroup(db, 'cancellations').withConverter(cancellationConverter);
             const q = query(
-                cancellationsRef, 
+                cancellationsRef,
                 where("userId", "==", userId)
             );
             const snapshot = await getDocs(q);
@@ -91,12 +91,12 @@ export const CancellationRepository = (db: Firestore) => ({
             const cancellationsRef = createCancellationCollection(db, businessId);
             const docRef = doc(cancellationsRef, id);
             await deleteDoc(docRef);
-        } catch(error) {
+        } catch (error) {
             console.error("Error deleting cancellation from Firestore:", error);
             throw error;
         }
     },
-    
+
     /**
      * Fetches all cancellations for a specific business from Firestore. 
      * @param businessId - The ID of the business whose cancellations are to be fetched.
@@ -109,7 +109,7 @@ export const CancellationRepository = (db: Firestore) => ({
             const snapshot = await getDocs(cancellationsRef);
 
             return snapshot.docs.map(docsnap => docsnap.data());
-        } catch(error) {
+        } catch (error) {
             console.error("Error fetching cancellations by business ID from Firestore:", error);
             throw error;
         }
@@ -126,14 +126,14 @@ export const CancellationRepository = (db: Firestore) => ({
             const cancellationsRef = createCancellationCollection(db, businessId);
 
             const q = query(
-                cancellationsRef, 
+                cancellationsRef,
                 where("offerId", "==", offerId)
             );
 
             const snapshot = await getDocs(q);
-            
+
             return snapshot.docs.map(docsnap => docsnap.data());
-        } catch(error) {
+        } catch (error) {
             console.error("Error fetching cancellations by offer ID from Firestore:", error);
             throw error;
         }
