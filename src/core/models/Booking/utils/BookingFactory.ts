@@ -1,4 +1,4 @@
-import { Booking, IBookingDB } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking, IBookingDB } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
@@ -40,9 +40,9 @@ export const newBooking = (init?: Partial<Booking>): Booking => {
         documents: [],
         ...init
     };
-}
+};
 
-export const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
+const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
     return {
         ...data,
         id,
@@ -64,9 +64,9 @@ export const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
         })),
         documents: data.documents || [],
     };
-}
+};
 
-export const bookingToFirestore = (booking: Booking): IBookingDB => {
+const bookingToFirestore = (booking: Booking): IBookingDB => {
     const isNew = booking.id === '';
 
     const data: IBookingDB = {
@@ -96,7 +96,7 @@ export const bookingToFirestore = (booking: Booking): IBookingDB => {
         })),
         emergencyContact: booking.emergencyContact,
         documents: booking.documents,
-    }
+    };
 
     if (booking.cancelledBy && booking.cancellationReason) {
         data.cancellationReason = booking.cancellationReason;
@@ -104,7 +104,8 @@ export const bookingToFirestore = (booking: Booking): IBookingDB => {
     }
 
     return data;
-}
+};
+
 export const bookingConverter: FirestoreDataConverter<Booking> = {
     toFirestore: (booking: Booking) => {
         return bookingToFirestore(booking);
@@ -113,4 +114,4 @@ export const bookingConverter: FirestoreDataConverter<Booking> = {
         const data = snapshot.data() as IBookingDB;
         return bookingFromFirestore(snapshot.id, data);
     }
-}
+};

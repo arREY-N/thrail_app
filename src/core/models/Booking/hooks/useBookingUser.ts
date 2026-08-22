@@ -1,5 +1,5 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { useState } from "react";
 
