@@ -1,3 +1,4 @@
+// THIS FILE IS MARKED FOR DELETION
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface NotificationBase<T> {
