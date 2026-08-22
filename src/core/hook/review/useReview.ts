@@ -1,8 +1,7 @@
 
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Review } from "@/src/core/models/Review/Review";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import { useReviewStore } from "@/src/core/stores/reviewStore";
+import { newReview, Review, useReviewStore } from "@/src/core/models/Review/Review";
+import { UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { useState } from "react";
 
@@ -47,7 +46,7 @@ export default function useReview() {
                 ? review.likes.filter(u => u.id !== profile.id)
                 : [...review.likes, UserLogic.toSummary(profile)]
 
-            like(new Review({ ...review, likes: updated }))
+            like(newReview({ ...review, likes: updated }))
 
         } catch (error) {
             console.error(error);
