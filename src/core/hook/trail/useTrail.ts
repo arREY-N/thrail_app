@@ -1,9 +1,9 @@
 import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
 import { useEffect } from "react";
 
-export interface ITrailDomain extends IBaseDomainHook{
+export interface ITrailDomain extends IBaseDomainHook {
     /** Access all available trais, for galleries */
     trails: Trail[];
     /** Access loaded trail */
@@ -16,7 +16,7 @@ export type UseTrailParams = {
     id?: string | null;
 }
 
-export default function useTrail(params: UseTrailParams = {}): ITrailDomain{
+export default function useTrail(params: UseTrailParams = {}): ITrailDomain {
     const { id } = params;
 
     // const loadAllTrails = useTrailsStore(s => s.fetchAll);
@@ -25,7 +25,7 @@ export default function useTrail(params: UseTrailParams = {}): ITrailDomain{
     const trail = useTrailsStore(s => s.current);
     const isLoading = useTrailsStore(s => s.isLoading);
     const error = useTrailsStore(s => s.error);
-    
+
     // useEffect(() => {
     //     loadAllTrails();
     // },[])

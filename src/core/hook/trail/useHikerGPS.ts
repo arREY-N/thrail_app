@@ -12,14 +12,13 @@ import {
 import { exportHikeData } from "../../utility/hikeStorage";
 import { LOCATION_TASK } from "../../utility/locationTask";
 // NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
+import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { Location as LocationModel } from "@/src/core/models/Location/Location";
-import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { HikeState } from "@/src/core/stores/hikeStores/hikeStoreCreator";
 
 
 // ✅ Background task must be defined outside the hook at the top level
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-  const addCoordinate = useHikesStore.getState().addCoordinate;
+  const addCoordinate = useHikeStore.getState().addCoordinate;
 
   if (error) return;
   const { locations } = data;
@@ -30,7 +29,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   const alt = location.coords.altitude ?? 0;
   const timestamp = new Date(location.timestamp).toISOString();
   console.log('calling from background task');
-    //await saveToCSV(lat, lon, alt, timestamp);
+  //await saveToCSV(lat, lon, alt, timestamp);
   addCoordinate(new LocationModel({
     latitude: lat,
     longitude: lon,
@@ -64,14 +63,14 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
  * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
  */
 export const useHikerGPS = () => {
-  const addCoordinate = useHikesStore((state: HikeState) => state.addCoordinate);
-  const updateHikeStore = useHikesStore((state: HikeState) => state.updateHikeStore);
-  
+  const addCoordinate = useHikeStore((state) => state.addCoordinate);
+  const updateHikeStore = useHikeStore((state) => state.updateHikeStore);
+
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
-  
+
   const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
