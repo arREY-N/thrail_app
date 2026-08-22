@@ -1,10 +1,10 @@
-import { Reschedule } from "@/src/core/models/Reschedule/interfaces/IReschedule";
+import { Reschedule } from "@/src/core/models/Reschedule/interfaces/Reschedule.types";
 import { rescheduleConverter } from "@/src/core/models/Reschedule/utils/RescheduleFactory";
 import { collection, collectionGroup, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 
 const createRescheduleCollection = (db: Firestore, businessId: string) => {
     return collection(db, 'businesses', businessId, 'reschedules').withConverter(rescheduleConverter);
-}
+};
 
 export const RescheduleRepository = (db: Firestore) => ({
     async write(reschedule: Reschedule): Promise<Reschedule> {
@@ -23,7 +23,7 @@ export const RescheduleRepository = (db: Firestore) => ({
                 rescheduleRef,
                 reschedule,
                 { merge: true }
-            )
+            );
 
             return reschedule;
         } catch (err) {
@@ -49,9 +49,7 @@ export const RescheduleRepository = (db: Firestore) => ({
     async fetchAllByBusinessId(businessId: string): Promise<Reschedule[]> {
         try {
             const rescheduleCollection = createRescheduleCollection(db, businessId);
-
             const rescheduleSnapshot = await getDocs(rescheduleCollection);
-
             return rescheduleSnapshot.docs.map(docSnap => docSnap.data());
         } catch (err) {
             throw err;
@@ -78,10 +76,9 @@ export const RescheduleRepository = (db: Firestore) => ({
             );
 
             const rescheduleSnapshot = await getDocs(q);
-
             return rescheduleSnapshot.docs.map(docSnap => docSnap.data());
         } catch (err) {
             throw err;
         }
-    }
-})
+    },
+});

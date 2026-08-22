@@ -1,7 +1,6 @@
-// THIS FILE IS MARKED FOR DELETION
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-interface IRescheduleBase<T> {
+export interface IRescheduleBase<T> {
     id: string;
     cancellationId: string;
     businessId: string;
@@ -13,5 +12,7 @@ interface IRescheduleBase<T> {
     updatedAt: T;
 }
 
-export type RescheduleDB = IRescheduleBase<Timestamp | FieldValue>;
+export type IRescheduleDB = IRescheduleBase<Timestamp | FieldValue>;
+export type RescheduleDB = IRescheduleDB;
 export type Reschedule = IRescheduleBase<Date>;
+export type IReschedule = Reschedule;
