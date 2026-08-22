@@ -1,60 +1,23 @@
-import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
-import { immerable } from "immer";
-import { toDate } from "../../utility/date";
-import { IAdmin, IAdminDB, Status } from "./Admin.types";
+// TYPES
+export * from "@/src/core/models/Admin/interfaces/Admin.types";
 
-export class Admin implements IAdmin {
-    [key: string]: any;
-    [immerable] = true
-    id: string = '';
-    createdAt: Date = new Date;
-    updatedAt: Date = new Date;
-    status: Status = 'active';
-    username: string = '';
-    firstname: string = '';
-    lastname: string = '';
-    email: string = '';
+// FACTORY & CONVERTER
+export {
+    newAdmin,
+    adminConverter,
+} from "@/src/core/models/Admin/utils/AdminFactory";
 
-    constructor(init?: Partial<IAdmin>){
-        Object.assign(this, init);
-    }
+// STORES
+export {
+    useAdminStore,
+    useAdminsStore,
+} from "@/src/core/models/Admin/stores/adminStore";
 
-    static fromFirestore(id: string, data: IAdminDB): Admin {
-        const mapped: IAdmin = {
-            ...data,
-            // id,
-            id: id === 'owner' ? (data.id || id) : id,
-            createdAt: toDate(data.createdAt),
-            updatedAt: toDate(data.updatedAt),
-        }
+// HOOKS
+export { useAdmin } from "@/src/core/models/Admin/hooks/useAdmin";
+export { useAdminItem } from "@/src/core/models/Admin/hooks/useAdminItem";
+export { useAdminList } from "@/src/core/models/Admin/hooks/useAdminList";
 
-        return new Admin(mapped);
-    }
-
-    toFirestore(): IAdminDB {
-        const isNew = this.id === '';
-
-        const mapped: IAdminDB = {
-            id: this.id,
-            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-            updatedAt: Timestamp.fromDate(this.updatedAt),
-            status: this.status,
-            username: this.username,
-            firstname: this.firstname,
-            lastname: this.lastname,
-            email: this.email,
-        }
-
-        return mapped;
-    }
-}
-
-export const adminConverter: FirestoreDataConverter<Admin> = {
-    toFirestore: (admin: Admin) => {
-        return admin.toFirestore();
-    },
-    fromFirestore: (snapshot: QueryDocumentSnapshot): Admin => {
-        const data = snapshot.data() as IAdminDB;
-        return Admin.fromFirestore(snapshot.id, data);
-    }
-}
+// REPOSITORIES
+export { AdminRepo } from "@/src/core/init/repositories";
+export { AdminRepository } from "@/src/core/models/Admin/repositories/AdminRepository";
