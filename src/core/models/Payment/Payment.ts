@@ -1,9 +1,9 @@
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 import { toDate } from "../../utility/date";
-import { IBusinessSummary } from "../Business/Business.types";
+import { IBusinessSummary } from "@/src/core/models/Business/Business";
 import { IOfferSummary } from "../Offer/interfaces/Offer.types";
-import { IUserSummary } from "../User/User.types";
+import { IUserSummary } from "../User/interfaces/User.types";
 import { IPayment, IPaymentDB, IReceipt } from "./Payment.types";
 
 export { usePaymentAdmin } from "@/src/core/models/Payment/hooks/usePaymentAdmin";

@@ -1,7 +1,7 @@
 import { auth, db } from "@/src/core/config/Firebase";
 import { SignUp } from "@/src/core/models/User/SignUp";
 import { User, userConverter } from "@/src/core/models/User/User";
-import { Role } from "@/src/core/models/User/User.types";
+import { Role } from "@/src/core/models/User/interfaces/User.types";
 import { AuthRepository } from "@/src/core/repositories/authRepository";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";

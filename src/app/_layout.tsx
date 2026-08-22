@@ -1,3 +1,8 @@
+
+import LoadingScreen from "@/src/app/loading";
+import { MaintenanceScreen } from "@/src/app/maintenance";
+import useMaintenance from "@/src/core/hook/useMaintenance";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import {
 	AntDesign,
 	Feather,
@@ -6,21 +11,15 @@ import {
 	Ionicons,
 	MaterialCommunityIcons,
 } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
+import { SplashScreen, Stack } from "expo-router";
+import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+
 import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
-
-import LoadingScreen from "@/src/app/loading";
-import { MaintenanceScreen } from "@/src/app/maintenance";
-import useMaintenance from "@/src/core/hook/useMaintenance";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useFonts } from "expo-font";
-import { SplashScreen } from "expo-router";
-import { useEffect } from "react";
-import { View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 
 // Prevent splash screen auto-hide at module load time
 SplashScreen.preventAutoHideAsync();
@@ -43,11 +42,11 @@ export default function RootLayout() {
 
 	useEffect(() => {
 		const unsub = initialize();
-		
+
 		return () => {
-			if(unsub) unsub()
+			if (unsub) unsub()
 		};
-	}, []);
+	}, [initialize]);
 
 	useEffect(() => {
 		if (fontsLoaded || fontError) {

@@ -1,20 +1,20 @@
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useBookingAdminList } from "@/src/core/models/Booking/hooks/useBookingAdminList";
-import { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
+import { useBookingAdminList, useBookingUserList } from "@/src/core/models/Booking/Booking";
+
 import {
     useCancellationAdmin,
     useCancellationAdminList,
     useCancellationUser,
     useCancellationUserList
 } from "@/src/core/models/Cancellation/Cancellation";
-import { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
-import { Offer } from "@/src/core/models/Offer/Offer";
+import { useOfferSimilarList } from "@/src/core/models/Offer/Offer";
+
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
-export default function test() {
+export default function Test() {
     const { role } = useAuthHook();
 
     const isAdmin = role === 'admin';
@@ -25,7 +25,7 @@ export default function test() {
             <Text>Test Screen</Text>
             <Text>Feature: Cancellation</Text>
 
-            { isSuperAdmin 
+            {isSuperAdmin
                 ? <View>
                     <AdminCancellation />
                     <UserCancellation />
@@ -46,7 +46,7 @@ const AdminCancellation = () => {
         businessCancellations,
         refreshAdminCancellations,
     } = useCancellationAdminList();
-    
+
     const {
         isWriting,
         storeError,
@@ -62,86 +62,86 @@ const AdminCancellation = () => {
         isFetching: isBookingFetching,
         error: subscriptionError
     } = useBookingAdminList();
-    
-    if(isBookingFetching) {
+
+    if (isBookingFetching) {
         return <CustomLoading message="Fetching bookings..." />
     }
 
-    if(isCancellationFetching) {
+    if (isCancellationFetching) {
         return <CustomLoading message="Fetching cancellations..." />
     }
 
-    if(isWriting) {
+    if (isWriting) {
         return <CustomLoading message="Processing cancellation request..." />
     }
 
     return (
         <View>
             <Text>Admin Cancellation</Text>
-            
+
             <View style={styles.box}>
                 <Text>View Cancellations</Text>
                 <Pressable onPress={() => refreshAdminCancellations()} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
                     <Text>Refresh Cancellations</Text>
                 </Pressable>
-                { writingError && <Text style={{ color: 'red' }}>{writingError}</Text> }
+                {writingError && <Text style={{ color: 'red' }}>{writingError}</Text>}
                 <TextInput
                     placeholder="Enter admin note for approval/rejection"
                     value={reason}
                     onChangeText={setReason}
                     style={{ borderWidth: 1, borderColor: 'gray', padding: 5, marginBottom: 10 }}
                 />
-                
+
                 <Text>Cancellations by Admin</Text>
-                { businessCancellations.length > 0 && businessCancellations.filter(c => c.cancelledBy === 'admin').map(c => (
+                {businessCancellations.length > 0 && businessCancellations.filter(c => c.cancelledBy === 'admin').map(c => (
                     <View key={c.id} style={styles.box}>
-                        <Text>Cancellation ID: {c.id}</Text>    
+                        <Text>Cancellation ID: {c.id}</Text>
                         <Text>Booking ID: {c.bookingId}</Text>
                         <Text>Offer ID: {c.offerId}</Text>
                         <Text>Reason: {c.reason}</Text>
                         <Text>Status: {c.status}</Text>
-                        { c.status === 'pending' && (
+                        {c.status === 'pending' && (
                             <View>
-                                <Pressable 
-                                    onPress={() => {}} 
+                                <Pressable
+                                    onPress={() => { }}
                                     style={{ backgroundColor: 'green', padding: 10, marginTop: 10 }}
                                 >
                                     <Text>Update</Text>
                                 </Pressable>
-                                <Pressable 
-                                    onPress={() => revertCancellationRequest(c)} 
+                                <Pressable
+                                    onPress={() => revertCancellationRequest(c)}
                                     style={{ backgroundColor: 'red', padding: 10, marginTop: 10 }}
                                 >
                                     <Text>Cancel</Text>
                                 </Pressable>
                             </View>
                         )}
-                        { c.status === 'approved' && (
-                            <Pressable 
+                        {c.status === 'approved' && (
+                            <Pressable
                                 onPress={() => proceedToRefund(c)}
                                 style={{ backgroundColor: 'green', padding: 10, marginTop: 10 }}
                             >
                                 <Text>Process Refund</Text>
                             </Pressable>
                         )}
-                        
+
                     </View>
                 ))}
-                
+
                 <Text>Cancellations by User</Text>
-                { businessCancellations.length > 0 && businessCancellations.filter(c => c.cancelledBy === 'user').map(c => (
+                {businessCancellations.length > 0 && businessCancellations.filter(c => c.cancelledBy === 'user').map(c => (
                     <View key={c.id} style={styles.box}>
-                        <Text>Cancellation ID: {c.id}</Text>    
+                        <Text>Cancellation ID: {c.id}</Text>
                         <Text>Booking ID: {c.bookingId}</Text>
                         <Text>Offer ID: {c.offerId}</Text>
                         <Text>Reason: {c.reason}</Text>
                         <Text>Status: {c.status}</Text>
-                        <Pressable onPress={() => processCancellationRequest(c, true, reason)} 
+                        <Pressable onPress={() => processCancellationRequest(c, true, reason)}
                             style={{ backgroundColor: 'green', padding: 10, marginTop: 10 }}
                         >
                             <Text>Approve</Text>
                         </Pressable>
-                        <Pressable onPress={() => processCancellationRequest(c, false, reason)} 
+                        <Pressable onPress={() => processCancellationRequest(c, false, reason)}
                             style={{ backgroundColor: 'red', padding: 10, marginTop: 10 }}
                         >
                             <Text>Reject</Text>
@@ -150,39 +150,39 @@ const AdminCancellation = () => {
                 ))}
 
                 <View style={styles.box}>
-                <Text>View Bookings</Text>
-                <Pressable onPress={() => {}} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
-                    <Text>Refresh Bookings</Text>
-                </Pressable>
-                { writingError && <Text style={{ color: 'red' }}>{writingError}</Text> }
-                { subscriptionError && <Text style={{ color: 'red' }}>{subscriptionError}</Text> }
-                { storeError && <Text style={{ color: 'red' }}>{storeError}</Text> }
-                <TextInput
-                    placeholder="Enter reason for cancellation"
-                    value={reason}
-                    onChangeText={setReason}
-                    style={{ borderWidth: 1, borderColor: 'gray', padding: 5, marginBottom: 10 }}
-                />
-                
-                { /** DISPLAY BUSINESS BOOKINGS */}
+                    <Text>View Bookings</Text>
+                    <Pressable onPress={() => { }} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
+                        <Text>Refresh Bookings</Text>
+                    </Pressable>
+                    {writingError && <Text style={{ color: 'red' }}>{writingError}</Text>}
+                    {subscriptionError && <Text style={{ color: 'red' }}>{subscriptionError}</Text>}
+                    {storeError && <Text style={{ color: 'red' }}>{storeError}</Text>}
+                    <TextInput
+                        placeholder="Enter reason for cancellation"
+                        value={reason}
+                        onChangeText={setReason}
+                        style={{ borderWidth: 1, borderColor: 'gray', padding: 5, marginBottom: 10 }}
+                    />
 
-                { businessBookings.length > 0 && businessBookings.filter(b => b.trail.name === 'Mt. Batulao').map(c => (
-                    <View key={c.id} style={styles.box}>
-                        <Text>Booking ID: {c.id}</Text>    
-                        <Text>Offer ID: {c.offer.id}</Text>
-                        <Text>User: {c.user.username}</Text>
-                        <Text>Trail: {c.trail.name}</Text>
-                        <Text>Status: {c.status}</Text>
-                        <Text>Reserved on: {c.createdAt.toLocaleDateString()}</Text>
-                        <Text>Status: {c.offer.date < new Date() ? 'Expired' : 'Active'}</Text>
-                        <Pressable onPress={() => cancelUserBooking(c, reason)} 
-                            style={{ backgroundColor: 'green', padding: 10, marginTop: 10 }}
-                        >
-                            <Text>Cancel User Booking</Text>
-                        </Pressable>
-                    </View>
-                ))}
-            </View>
+                    { /** DISPLAY BUSINESS BOOKINGS */}
+
+                    {businessBookings.length > 0 && businessBookings.filter(b => b.trail.name === 'Mt. Batulao').map(c => (
+                        <View key={c.id} style={styles.box}>
+                            <Text>Booking ID: {c.id}</Text>
+                            <Text>Offer ID: {c.offer.id}</Text>
+                            <Text>User: {c.user.username}</Text>
+                            <Text>Trail: {c.trail.name}</Text>
+                            <Text>Status: {c.status}</Text>
+                            <Text>Reserved on: {c.createdAt.toLocaleDateString()}</Text>
+                            <Text>Status: {c.offer.date < new Date() ? 'Expired' : 'Active'}</Text>
+                            <Pressable onPress={() => cancelUserBooking(c, reason)}
+                                style={{ backgroundColor: 'green', padding: 10, marginTop: 10 }}
+                            >
+                                <Text>Cancel User Booking</Text>
+                            </Pressable>
+                        </View>
+                    ))}
+                </View>
             </View>
         </View>
     )
@@ -190,8 +190,7 @@ const AdminCancellation = () => {
 
 const UserCancellation = () => {
     const [reason, setReason] = useState<string>("");
-    const [offer, setOffer] = useState<Offer | null>(null);
-    
+
     const {
         cancelBooking,
         updateCancellationReason,
@@ -204,7 +203,6 @@ const UserCancellation = () => {
 
     const {
         seeSimilarOffers,
-        error: similarOffersError,
         similarOffers
     } = useOfferSimilarList();
 
@@ -219,23 +217,23 @@ const UserCancellation = () => {
         refreshUserCancellations
     } = useCancellationUserList();
 
-    if(isFetching) {
+    if (isFetching) {
         return <CustomLoading message="Fetching your cancellations..." />
     }
 
-    if(isWriting) {
+    if (isWriting) {
         return <CustomLoading message="Submitting your request..." />
     }
 
     return (
         <View>
             <Text>User Cancellation</Text>
-            { error && <Text style={{ color: 'red' }}>{error}</Text> }
-            { subscriptionError && <Text style={{ color: 'red' }}>{subscriptionError}</Text> }
-            
+            {error && <Text style={{ color: 'red' }}>{error}</Text>}
+            {subscriptionError && <Text style={{ color: 'red' }}>{subscriptionError}</Text>}
+
             <Pressable onPress={refreshUserCancellations} style={{ backgroundColor: 'blue', padding: 10, marginTop: 10 }}>
                 <Text>Refresh Cancellations</Text>
-            </Pressable> 
+            </Pressable>
             <TextInput
                 placeholder="Enter cancellation reason"
                 value={reason}
@@ -244,28 +242,28 @@ const UserCancellation = () => {
             />
 
             <Text>Cancellations by Admin</Text>
-            { userCancellations.length > 0 && userCancellations.filter(c => c.cancelledBy === 'admin').map(c => (
+            {userCancellations.length > 0 && userCancellations.filter(c => c.cancelledBy === 'admin').map(c => (
                 <View key={c.id} style={styles.box}>
                     <Text>Cancellation ID: {c.id}</Text>
                     <Text>Booking ID: {c.bookingId}</Text>
                     <Text>Reason: {c.reason}</Text>
                     <Text>Status: {c.status}</Text>
-                    { c.status === 'pending' && (
+                    {c.status === 'pending' && (
                         <View>
                             <Pressable onPress={() => proceedToAdminCancellation(c)}>
                                 <Text>Approve Admin Cancellation</Text>
                             </Pressable>
-                            
+
 
                             <Pressable onPress={() => seeSimilarOffers(c.offerId)}>
                                 <Text>See Similar Offers to Reschedule</Text>
                             </Pressable>
 
-                            { similarOffers && (
+                            {similarOffers && (
                                 <View>
-                                    <br/>
+                                    <br />
                                     <Text>Similar Offers by Trail</Text>
-                                    { similarOffers.similarTrail.map(offer => (
+                                    {similarOffers.similarTrail.map(offer => (
                                         <Pressable key={offer.id} style={styles.box} onPress={() => proceedToAdminReschedule(c, offer)}>
                                             <Text>Offer ID: {offer.id}</Text>
                                             <Text>Trail: {offer.trail.name}</Text>
@@ -273,9 +271,9 @@ const UserCancellation = () => {
                                             <Text>Price: P{offer.price.toFixed(2)}</Text>
                                         </Pressable>
                                     ))}
-                                    <br/>
+                                    <br />
                                     <Text>Similar Offers by Date</Text>
-                                    { similarOffers.similarDate.map(offer => (
+                                    {similarOffers.similarDate.map(offer => (
                                         <Pressable key={offer.id} style={styles.box} onPress={() => proceedToAdminReschedule(c, offer)}>
                                             <Text>Offer ID: {offer.id}</Text>
                                             <Text>Trail: {offer.trail.name}</Text>
@@ -284,9 +282,9 @@ const UserCancellation = () => {
                                         </Pressable>
                                     ))}
 
-                                    <br/>
+                                    <br />
                                     <Text>Similar Offers by Price</Text>
-                                    { similarOffers.similarPrice.map(offer => (
+                                    {similarOffers.similarPrice.map(offer => (
                                         <Pressable key={offer.id} style={styles.box} onPress={() => proceedToAdminReschedule(c, offer)}>
                                             <Text>Offer ID: {offer.id}</Text>
                                             <Text>Trail: {offer.trail.name}</Text>
@@ -302,22 +300,22 @@ const UserCancellation = () => {
             ))}
 
             <Text>Cancellations by User</Text>
-            { userCancellations.length > 0 && userCancellations.filter(c => c.cancelledBy === 'user').map(c => (
+            {userCancellations.length > 0 && userCancellations.filter(c => c.cancelledBy === 'user').map(c => (
                 <View key={c.id} style={styles.box}>
                     <Text>Cancellation ID: {c.id}</Text>
                     <Text>Booking ID: {c.bookingId}</Text>
                     <Text>Reason: {c.reason}</Text>
                     <Text>Status: {c.status}</Text>
-                    { c.status === 'pending' && (
-                        <Pressable 
-                            onPress={() => cancelUserRequest(c)} 
+                    {c.status === 'pending' && (
+                        <Pressable
+                            onPress={() => cancelUserRequest(c)}
                             style={{ backgroundColor: 'red', padding: 10, marginTop: 10 }}
                         >
                             <Text>Cancel Request</Text>
                         </Pressable>
                     )}
 
-                    { c.status === 'approved' && (
+                    {c.status === 'approved' && (
                         <View>
                             <Text style={{ marginTop: 10, color: 'green' }}>
                                 Request Approved
@@ -325,13 +323,14 @@ const UserCancellation = () => {
                         </View>
                     )}
 
-                    { c.status === 'rejected' && (
+                    {c.status === 'rejected' && (
                         <View>
-                            <Pressable 
+                            <Pressable
                                 onPress={() => updateCancellationReason({
-                                reason: reason,
-                                oldRequest: c})}
-                                style={{ backgroundColor: 'orange', padding: 10, marginTop: 10 }}   
+                                    reason: reason,
+                                    oldRequest: c
+                                })}
+                                style={{ backgroundColor: 'orange', padding: 10, marginTop: 10 }}
                             >
                                 <Text>Update Cancellation Reason</Text>
                             </Pressable>
@@ -341,7 +340,7 @@ const UserCancellation = () => {
             ))}
 
             <Text>Bookings</Text>
-            { bookings.length > 0 && bookings.map(b => (
+            {bookings.length > 0 && bookings.map(b => (
                 <View key={b.id} style={styles.box}>
                     <Text>Booking ID: {b.id}</Text>
                     <Text>Trail: {b.trail.name}</Text>

@@ -1,4 +1,4 @@
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IUserSummary } from "@/src/core/models/User/interfaces/User.types";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'error';
@@ -14,5 +14,5 @@ export interface IMessageBase<T> {
     readBy: IUserSummary[];
 }
 
-export interface IMessageDB extends IMessageBase<Timestamp | FieldValue>{}
-export interface IMessage extends IMessageBase<Date>{}
+export interface IMessageDB extends IMessageBase<Timestamp | FieldValue> { }
+export interface IMessage extends IMessageBase<Date> { }

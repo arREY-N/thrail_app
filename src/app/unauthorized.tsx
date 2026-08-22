@@ -3,25 +3,22 @@
  * @description Screen component shown when a user attempts to access an unauthorized route.
  */
 
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import ScreenWrapper from '@/src/components/ScreenWrapper';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
-import { Layout } from '@/src/constants/layout';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { auth } from '@/src/core/config/Firebase';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
  * Component representing the Unauthorized Access Screen.
  */
-export default function unauthorized() {
+export default function Unauthorized() {
     const router = useRouter();
     const isLoggedIn = !!auth.currentUser;
 

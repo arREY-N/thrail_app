@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { BookingStatus, createBooking, IBooking } from "@/src/core/models/Booking/Booking";
+import { BookingStatus, IBooking, newBooking, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -25,7 +25,6 @@ import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHe
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
 
-import { useBookingsStore } from '@/src/core/models/Booking/stores/bookingStore';
 import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 
@@ -265,7 +264,7 @@ const BookingDetailsScreen = ({
                             setLocalStatus('pending-docs');
 
                             try {
-                                const updatedBookingData = createBooking({
+                                const updatedBookingData = newBooking({
                                     ...booking,
                                     status: 'pending-docs',
                                     documents: updatedDocs

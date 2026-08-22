@@ -1,8 +1,8 @@
-import { Application } from "@/src/core/models/Application/Application";
-import { Business } from "@/src/core/models/Business/Business";
-import { Role } from "@/src/core/models/User/User.types";
-import { useApplicationsStore } from "@/src/core/stores/applicationsStore";
-import { useBusinessesStore } from "@/src/core/stores/businessesStore";
+import { Application, newApplication, useApplicationsStore } from "@/src/core/models/Application/Application";
+import { businessFromApplication, useBusinessesStore } from "@/src/core/models/Business/Business";
+import { Role } from "@/src/core/models/User/User";
+
+
 import { router } from "expo-router";
 import { useState } from "react";
 
@@ -21,7 +21,7 @@ export interface IUseManageApplication {
     error: string | null;
 }
 
-export default function useManageApplication(params: UseManageApplicationParams = { role: 'user'}): IUseManageApplication{
+export default function useManageApplication(params: UseManageApplicationParams = { role: 'user' }): IUseManageApplication {
     const { applicationId, role } = params;
     const data = useApplicationsStore(s => s.data);
     const create = useBusinessesStore(s => s.create);
@@ -35,44 +35,44 @@ export default function useManageApplication(params: UseManageApplicationParams 
     const [localError, setLocalError] = useState<string | null>(null);
 
     const [application, setApplication] = useState<Application>(() => {
-        if(role !== 'superadmin') return new Application();
+        if (role !== 'superadmin') return newApplication();
 
         const current = data.find(app => app.id === applicationId);
-        return current ? new Application({...current}) : new Application();
+        return current ? newApplication({ ...current }) : newApplication();
     });
 
     const onApproveApplication = async () => {
         try {
             console.log('Approving: ', application)
-    
-            if(role !== 'superadmin')
+
+            if (role !== 'superadmin')
                 throw new Error('Only superadmins can approve application');
-            
+
             application.status = 'approved';
 
-            const business = Business.fromApplication(application);
+            const business = businessFromApplication(application);
 
             const applicationId = application.id;
-            
+
             const created = await create(business, applicationId);
-            
-            if(created) {
+
+            if (created) {
                 await approveApplication(application.id);
                 router.back();
             }
         } catch (error) {
-            setLocalError((error as Error).message || 'Failed approving application')        
-        } 
+            setLocalError((error as Error).message || 'Failed approving application')
+        }
     }
-    
+
     const onRejectApplication = async () => {
         console.log('Rejecting: ', application.message)
         try {
-            if(application.message.trim().length === 0){
+            if (application.message.trim().length === 0) {
                 console.log('Missing letter');
                 throw new Error('Reason for rejection must be provided');
             }
-            
+
             application.status = 'rejected';
 
             await rejectApplication(application)
@@ -80,17 +80,17 @@ export default function useManageApplication(params: UseManageApplicationParams 
         } catch (error) {
             setLocalError((error as Error).message || 'Failed rejecting application')
         }
-        
+
     }
 
     const setRejectionLetter = (letter: string) => {
         setApplication(prev => {
-            return new Application({
+            return newApplication({
                 ...prev,
                 message: letter,
-            })
-        })
-    }
+            });
+        });
+    };
 
     return {
         onApproveApplication,

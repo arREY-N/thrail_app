@@ -1,9 +1,9 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
-import { IBusinessSummary } from "../Business/Business.types";
+import { IBusinessSummary } from "@/src/core/models/Business/Business";
 import { IOfferSummary } from "../Offer/interfaces/Offer.types";
-import { IUserSummary } from "../User/User.types";
+import { IUserSummary } from "../User/interfaces/User.types";
 
-export interface IReceipt<T>{
+export interface IReceipt<T> {
     id: string;
     date: T;
     amount: number;
@@ -21,8 +21,8 @@ export interface IPaymentBase<T> {
     user: IUserSummary
 }
 
-export interface IPaymentDB extends IPaymentBase<Timestamp | FieldValue>{}
-export interface IPayment extends IPaymentBase<Date>{}
+export interface IPaymentDB extends IPaymentBase<Timestamp | FieldValue> { }
+export interface IPayment extends IPaymentBase<Date> { }
 
 export interface IPaymentSummary<T> {
     id: string;

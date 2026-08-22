@@ -1,13 +1,11 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { BusinessLogic } from "@/src/core/models/Business/logic/Business.logic";
+import { BusinessLogic, useBusinessesStore } from "@/src/core/models/Business/Business";
 import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
-import { createOffer, Offer } from "@/src/core/models/Offer/Offer";
-import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
-import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
-import { Trail } from "@/src/core/models/Trail/Trail";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import { useBusinessesStore } from "@/src/core/stores/businessesStore";
+import { newOffer, Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
+import { Trail, TrailLogic } from "@/src/core/models/Trail/Trail";
+import { UserLogic } from "@/src/core/models/User/User";
+
 import { router } from "expo-router";
 import { produce } from "immer";
 import { useState } from "react";
@@ -21,7 +19,7 @@ export type UseOfferParams = {
 
 export type FormMode = 'create' | 'edit';
 
-export function useOfferWrite(params: UseOfferParams = {}){
+export function useOfferWrite(params: UseOfferParams = {}) {
     const { offerId, businessId } = params
     const { profile } = useAuthHook();
 
@@ -30,44 +28,44 @@ export function useOfferWrite(params: UseOfferParams = {}){
     const error = useOfferStore(s => s.error);
     const isLoading = useOfferStore(s => s.isLoading);
     const remove = useOfferStore(s => s.delete);
-    const create = useOfferStore(s => s.createOffer);
-    
+    const create = useOfferStore(s => s.newOffer);
+
     const createGroup = useGroupStore(s => s.createGroup);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
-    
+
     const [mode, setMode] = useState<FormMode>('create');
     const [localError, setLocalError] = useState<string | null>(null);
-    
+
     const [offer, setOffer] = useState<Offer>(() => {
         const existing = offers.find(offer => offer.id === offerId);
-        
-        if(!businessAccount) {
+
+        if (!businessAccount) {
             setLocalError('No business account');
-            return createOffer();
+            return newOffer();
         }
 
         const businessSummary = BusinessLogic.toSummary(businessAccount);
 
-        if(existing) {
+        if (existing) {
             setMode('edit');
         }
 
         return existing
-            ? createOffer(existing)
-            : createOffer({ business: businessSummary });
+            ? newOffer(existing)
+            : newOffer({ business: businessSummary });
     })
 
     const onUpdatePress = (params: TEdit<Offer>) => {
         const { section, id, value } = params;
-    
+
         try {
-            setOffer(prev => 
+            setOffer(prev =>
                 produce(prev, (draft) => {
-                    if(section === 'root'){
+                    if (section === 'root') {
                         (draft as Record<string, any>)[id] = value;
                     } else {
                         const nestedSection = section as keyof Offer;
-                        if(draft[nestedSection] && typeof draft[nestedSection] === 'object') {
+                        if (draft[nestedSection] && typeof draft[nestedSection] === 'object') {
                             (draft[nestedSection] as Record<string, any>)[id] = value;
                         }
                     }
@@ -80,7 +78,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
     const onSetTrail = (trail: Trail) => {
         try {
-            setOffer(prev => 
+            setOffer(prev =>
                 produce(prev, (draft) => {
                     const trailSummary = TrailLogic.toSummary(trail);
                     draft.trail = trailSummary;
@@ -93,11 +91,11 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
     const onSubmitPress = async () => {
         try {
-            if(!profile)
+            if (!profile)
                 throw new Error('User profile not found');
 
             const success = await create(offer);
-            if(!success) throw new Error('Failed creating/updating offer');
+            if (!success) throw new Error('Failed creating/updating offer');
 
             const groupBlueprint = newGroup({
                 id: success.id,
@@ -128,7 +126,7 @@ export function useOfferWrite(params: UseOfferParams = {}){
                 await createGroup(groupBlueprint);
             } else if (mode === 'edit') {
                 let groupExists = false;
-                
+
                 try {
                     const existingGroup = await checkGroupExists(offer.id);
                     if (existingGroup) {
@@ -155,13 +153,13 @@ export function useOfferWrite(params: UseOfferParams = {}){
 
     const onRemovePress = async (id: string) => {
         try {
-            if(!businessId) throw new Error('Business ID missing');
-            if(!id) throw new Error('Offer ID missing');
+            if (!businessId) throw new Error('Business ID missing');
+            if (!id) throw new Error('Offer ID missing');
 
             remove({ id, businessId });
             router.back();
         } catch (error) {
-            setLocalError((error as Error).message || 'Failed removing offer')  
+            setLocalError((error as Error).message || 'Failed removing offer')
         }
     }
 

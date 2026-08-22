@@ -1,41 +1,36 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useReview from '@/src/core/hook/review/useReview';
 import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
-import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
+import { useOfferList } from '@/src/core/models/Offer/Offer';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 
 /**
  * Controller component for the Explore tab.
  * Responsible for fetching trail data and passing navigation callbacks.
  */
-export default function explore() {
+export default function Explore() {
     const { filter } = useLocalSearchParams<{ filter?: string }>();
 
-    const { 
-        onViewTrail, 
+    const {
+        onViewTrail,
         trails,
         isLoading,
-        // fetchAllTrails
     } = useTrailDomain();
 
     const {
         onGroupPress
     } = useAppNavigation();
-    
+
     const {
         getItemRating,
     } = useReview();
 
-    const offers = useOfferStore(s => s.data);
-    const fetchOffers = useOfferStore(s => s.fetchAll);
+    const {
+        offers
+    } = useOfferList();
 
-    // Fetch offers in the controller context
-    useEffect(() => {
-        fetchOffers().catch(() => {});
-    }, [fetchOffers]);
 
     // Map query parameter filters to actual Explore tab category labels
     let initialCategory = "All";
@@ -53,7 +48,7 @@ export default function explore() {
             trails={trails}
             onViewMountain={onViewTrail}
             onGroupPress={onGroupPress}
-            isLoading={isLoading} 
+            isLoading={isLoading}
             initialCategory={initialCategory}
             offers={offers}
         />

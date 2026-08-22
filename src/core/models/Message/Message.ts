@@ -1,10 +1,10 @@
 import { IMessage, IMessageDB, MessageStatus } from "@/src/core/models/Message/Message.types";
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IUserSummary } from "@/src/core/models/User/interfaces/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";
 
-export class Message implements IMessage{
+export class Message implements IMessage {
     [key: string]: any;
     [immerable] = true;
     id: string = '';

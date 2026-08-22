@@ -1,6 +1,6 @@
+import { HikeRepo } from "@/src/core/models/Hike/Hike";
 import { Leaderboard, RankedUserInfo, UserHikingRecords } from "@/src/core/models/Leaderboard/interfaces/ILeaderboard";
 import { generateLeaderboardId, generateUserHikingRecord, setUserRanking } from "@/src/core/models/Leaderboard/utils/Leaderboard.utils";
-import { HikeRepository } from "@/src/core/repositories/hikeRepository";
 import { UserRepository } from "@/src/core/repositories/userRepository";
 import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 
@@ -14,7 +14,7 @@ export async function generateLeaderboard(date: Date): Promise<Leaderboard<Date>
     for (const user of users) {
         const userId = user.id;
 
-        const userHikes = await HikeRepository.fetchAll(userId);
+        const userHikes = await HikeRepo.fetchAll(userId);
 
         const userInfo: RankedUserInfo = {
             userId: user.id,
