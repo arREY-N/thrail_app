@@ -32,7 +32,7 @@ import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/Hi
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
 
@@ -53,14 +53,14 @@ import { User } from '@/src/core/models/User/User';
  */
 export interface ReviewScreenProps {
     isLoading: boolean;
-    booking: IBooking;
+    booking: Booking;
     offers: Offer[];
     onBackPress: () => void;
     onApprove: (docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
     onConfirmPayment: () => Promise<void>;
     onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
     onReschedule: (offerData: Offer) => void | Promise<void>;
-    onRefund: (refundType: RefundType) => Promise<void>;
+    onRefund: (booking: Booking, refundType: RefundType) => Promise<void>;
     onCancelUnpaid?: () => Promise<void>;
     error?: string;
     hikerProfile?: User | null;
@@ -69,16 +69,16 @@ export interface ReviewScreenProps {
 /**
  * ReviewScreen — Admin booking review screen that consolidates the document and payment workflows.
  */
-const ReviewScreen: React.FC<ReviewScreenProps> = ({ 
-    isLoading, 
-    booking, 
-    offers, 
-    onBackPress, 
+const ReviewScreen: React.FC<ReviewScreenProps> = ({
+    isLoading,
+    booking,
+    offers,
+    onBackPress,
     onApprove,
-    onConfirmPayment, 
-    onReject, 
-    onReschedule, 
-    onRefund, 
+    onConfirmPayment,
+    onReject,
+    onReschedule,
+    onRefund,
     onCancelUnpaid,
     error,
     hikerProfile
@@ -97,10 +97,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         personalMonthsRemaining, emergencyMonthsRemaining,
         togglePersonalVerify, toggleEmergencyVerify,
         isMinor,
-        currentStatus, 
-        isApprovedStatus, 
-        isRejectedStatus, 
-        isCancelledStatus, 
+        currentStatus,
+        isApprovedStatus,
+        isRejectedStatus,
+        isCancelledStatus,
         isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
@@ -116,14 +116,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<any>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
-    
+
     const [isProcessingAction, setIsProcessingAction] = useState(false);
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p: any) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
 
     const handleViewFile = async (url: string, index: number) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
-        
+
         setViewedDocs((prev: Record<number, boolean>) => ({ ...prev, [index]: true }));
 
         if (url.toLowerCase().includes('.pdf')) {
@@ -138,14 +138,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const handleFinalDecision = async () => {
         setIsConfirmVisible(false);
         const allApproved = docStates.every((d: DocState) => d.valid === 'approved');
-        
+
         setIsProcessingAction(true);
         try {
             if (allApproved) {
                 await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt);
                 setActiveTab('payment');
             } else {
-                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt); 
+                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt);
             }
         } finally {
             setIsProcessingAction(false);
@@ -166,37 +166,37 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <CustomLoading 
-                visible={isProcessingAction} 
-                message="Processing request..." 
+
+            <CustomLoading
+                visible={isProcessingAction}
+                message="Processing request..."
             />
 
-            <CustomHeader 
-                title="Review Booking" 
-                centerTitle={true} 
-                onBackPress={onBackPress} 
+            <CustomHeader
+                title="Review Booking"
+                centerTitle={true}
+                onBackPress={onBackPress}
                 rightActions={
-                    <TouchableOpacity 
-                        style={styles.headerOptionsBtn} 
-                        onPress={() => setShowActionMenu(true)} 
+                    <TouchableOpacity
+                        style={styles.headerOptionsBtn}
+                        onPress={() => setShowActionMenu(true)}
                         activeOpacity={0.7}
                     >
                         <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 }
             />
-            
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.constrainer}>
-                    
+
                     {error && !error.includes('No payment found') && (
                         <ErrorMessage error={error} />
                     )}
                     <View style={isWide ? styles.splitLayoutContainer : styles.verticalLayoutContainer}>
                         {/* Left Column: Hiker Profile */}
                         <View style={isWide ? styles.leftColumn : styles.fullWidthContainer}>
-                            <HikerProfileCard 
+                            <HikerProfileCard
                                 user={booking.user}
                                 emergencyContact={booking.emergencyContact}
                                 hikerProfile={hikerProfile}
@@ -216,9 +216,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         {/* Right Column: Documents and Payment Verification */}
                         <View style={isWide ? styles.rightColumn : styles.fullWidthContainer}>
                             <View style={styles.tabContainer}>
-                                <TouchableOpacity 
-                                    style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]} 
-                                    onPress={() => setActiveTab('documents')} 
+                                <TouchableOpacity
+                                    style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
+                                    onPress={() => setActiveTab('documents')}
                                     activeOpacity={0.7}
                                 >
                                     <CustomIcon library="Feather" name="file-text" size={16} color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
@@ -226,10 +226,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         Documents
                                     </CustomText>
                                 </TouchableOpacity>
-                                
-                                <TouchableOpacity 
-                                    style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]} 
-                                    onPress={() => setActiveTab('payment')} 
+
+                                <TouchableOpacity
+                                    style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]}
+                                    onPress={() => setActiveTab('payment')}
                                     activeOpacity={0.7}
                                 >
                                     <CustomIcon library="Feather" name="credit-card" size={16} color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
@@ -240,7 +240,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             </View>
 
                             {activeTab === 'documents' && (
-                                <DocumentTab 
+                                <DocumentTab
                                     booking={booking}
                                     docStates={docStates}
                                     setDocStates={setDocStates as unknown as React.Dispatch<React.SetStateAction<DocState[]>>}
@@ -256,7 +256,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             )}
 
                             {activeTab === 'payment' && (
-                                <PaymentTab 
+                                <PaymentTab
                                     booking={booking}
                                     currentStatus={currentStatus}
                                     isApprovedStatus={isApprovedStatus}
@@ -264,7 +264,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     isCancelledStatus={isCancelledStatus}
                                     onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
                                 />
-                             )}
+                            )}
 
                             <ActivityLog booking={booking} currentStatus={currentStatus} />
                         </View>
@@ -280,7 +280,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             onPress: () => {
                                 if (isDecisionIncomplete || (hasRejections && !rejectionReason.trim())) {
                                     return Alert.alert(
-                                        "Incomplete", 
+                                        "Incomplete",
                                         "Please approve or reject all documents and provide a reason if rejecting."
                                     );
                                 }
@@ -292,17 +292,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 </View>
             )}
 
-            <ConfirmationModal 
-                visible={isConfirmVisible} 
-                onClose={() => setIsConfirmVisible(false)} 
-                onConfirm={handleFinalDecision} 
-                title="Process Decision" 
-                message={hasRejections ? "Reject this booking and request corrections?" : "Documents are valid. Approve to proceed to payment?"} 
+            <ConfirmationModal
+                visible={isConfirmVisible}
+                onClose={() => setIsConfirmVisible(false)}
+                onConfirm={handleFinalDecision}
+                title="Process Decision"
+                message={hasRejections ? "Reject this booking and request corrections?" : "Documents are valid. Approve to proceed to payment?"}
             />
 
-            <ConfirmationModal 
-                visible={isConfirmPaymentVisible} 
-                onClose={() => setIsConfirmPaymentVisible(false)} 
+            <ConfirmationModal
+                visible={isConfirmPaymentVisible}
+                onClose={() => setIsConfirmPaymentVisible(false)}
                 onConfirm={async () => {
                     setIsConfirmPaymentVisible(false);
                     setIsProcessingAction(true);
@@ -311,12 +311,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     } finally {
                         setIsProcessingAction(false);
                     }
-                }} 
-                title="Complete Booking" 
-                message="Are you sure you want to mark this transaction as verified and complete?" 
+                }}
+                title="Complete Booking"
+                message="Are you sure you want to mark this transaction as verified and complete?"
             />
 
-            <ConfirmationModal 
+            <ConfirmationModal
                 visible={showCancelUnpaidModal}
                 onClose={() => setShowCancelUnpaidModal(false)}
                 title="Cancel Booking?"
@@ -338,12 +338,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 iconName="alert-triangle"
             />
 
-            <CustomSelectionModal 
-                visible={showRescheduleModal} 
-                onClose={() => setShowRescheduleModal(false)} 
-                title="Select New Offer" 
-                options={availableOffers} 
-                selectedValue={selectedRescheduleOffer?.id} 
+            <CustomSelectionModal
+                visible={showRescheduleModal}
+                onClose={() => setShowRescheduleModal(false)}
+                title="Select New Offer"
+                options={availableOffers}
+                selectedValue={selectedRescheduleOffer?.id}
                 onSelect={(selected: any) => {
                     setSelectedRescheduleOffer(selected);
                     setShowRescheduleModal(false);
@@ -357,10 +357,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             }
                         }
                     }, 300);
-                }} 
+                }}
             />
 
-            <AdminRefundModal 
+            <AdminRefundModal
                 visible={showRefundModal}
                 amountPaid={totalAmountPaid}
                 onClose={() => setShowRefundModal(false)}
@@ -370,7 +370,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         if (onRefund) {
                             setIsProcessingAction(true);
                             try {
-                                await onRefund(refundType);
+                                await onRefund(booking, refundType);
                             } finally {
                                 setIsProcessingAction(false);
                             }
@@ -379,13 +379,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 }}
             />
 
-            <ImagePreviewModal 
-                visible={!!previewImageUrl} 
-                imageUrl={previewImageUrl || undefined} 
-                onClose={() => setPreviewImageUrl(null)} 
+            <ImagePreviewModal
+                visible={!!previewImageUrl}
+                imageUrl={previewImageUrl || undefined}
+                onClose={() => setPreviewImageUrl(null)}
             />
 
-            <AdminActionMenu 
+            <AdminActionMenu
                 visible={showActionMenu}
                 onClose={() => setShowActionMenu(false)}
                 isCancelledStatus={isCancelledStatus || currentStatus === 'completed'}
@@ -408,53 +408,53 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-    centerContent: { 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    centerContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    headerOptionsBtn: { 
-        padding: 4 
+    headerOptionsBtn: {
+        padding: 4
     },
-    constrainer: { 
-        width: '100%', 
-        maxWidth: Layout.MAX_WIDTH, 
-        alignSelf: 'center' 
+    constrainer: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center'
     },
-    scrollContent: { 
-        padding: 16, 
-        paddingBottom: 120, 
-        paddingTop: 20 
+    scrollContent: {
+        padding: 16,
+        paddingBottom: 120,
+        paddingTop: 20
     },
-    tabContainer: { 
-        flexDirection: 'row', 
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 12, 
-        padding: 4, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        marginBottom: 20 
+    tabContainer: {
+        flexDirection: 'row',
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        marginBottom: 20
     },
-    tabBtn: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: 8, 
-        paddingVertical: 12, 
-        borderRadius: 8 
+    tabBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        borderRadius: 8
     },
-    tabBtnActive: { 
-        backgroundColor: Colors.PRIMARY 
+    tabBtnActive: {
+        backgroundColor: Colors.PRIMARY
     },
-    tabText: { 
-        fontWeight: 'bold', 
-        color: Colors.TEXT_SECONDARY, 
-        fontSize: 14 
+    tabText: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 14
     },
-    footerWrapper: { 
-        alignItems: 'center', 
-        width: '100%' 
+    footerWrapper: {
+        alignItems: 'center',
+        width: '100%'
     },
 
     // Two-Column Grid Styles

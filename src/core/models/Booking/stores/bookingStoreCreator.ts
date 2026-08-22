@@ -68,6 +68,8 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
     subscribeToBusinessBookings: async (offerId: string, businessId: string) => {
         try {
+            set({ isFetching: true, error: null })
+
             if (get().activeListeners[offerId]) {
                 return;
             }
@@ -75,7 +77,6 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             if (!businessId) {
                 throw new Error("Business ID is required for subscribing to business bookings");
             }
-
             const unsubscribe = BookingRepo.listenToBusinessBookings(offerId, businessId, (bookings) =>
                 set((state) => ({
                     bookingByOffer: {
@@ -93,13 +94,15 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             }));
         } catch (error) {
             console.error("Error subscribing to business bookings: ", error);
-            throw error;
+            set({ error: (error as Error).message });
+        } finally {
+            set({ isFetching: false });
         }
     },
 
     fetchAllBusinessBookings: async (businessId: string) => {
         try {
-            if(get().businessBookings.length > 0 && get().businessBookings[0].business.id === businessId) {
+            if (get().businessBookings.length > 0 && get().businessBookings[0].business.id === businessId) {
                 return;
             }
 
@@ -112,7 +115,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
                 isFetching: false,
             })
         } catch (error) {
-            set({ 
+            set({
                 error: `Failed to fetch business bookings: ${(error as Error).message}`,
                 isFetching: false
             });
@@ -130,11 +133,11 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
                 throw new Error("Booking not found");
             }
 
-            if(booking.status !== 'for-reservation'){
+            if (booking.status !== 'for-reservation') {
                 throw new Error("Only bookings with pending status can be deleted.");
             }
 
-            if(booking.offer.date < new Date()) {
+            if (booking.offer.date < new Date()) {
                 throw new Error("You cannot cancel a booking for a past date.");
             }
 
@@ -184,7 +187,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     fetchOfferBookings: async (offerId: string, role: string) => {
         try {
             set({ isLoading: true, error: null });
-            
+
             if (role !== "admin") {
                 throw new Error("Only admins can fetch bookings for their offers");
             }
@@ -221,7 +224,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             if (get().userBookings?.length > 0 && get().userBookings[0].user.id === userId) {
                 return;
             }
-    
+
             set({ isLoading: true, error: null });
             const userBookings = await BookingRepo.fetchUserBookings(userId);
 
@@ -251,7 +254,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
                 booking = await BookingRepo.fetchById(bookingId);
             }
 
-            if(!booking) {
+            if (!booking) {
                 console.log('[bookingStore] Booking not found in repository.');
                 throw new Error("Booking not found");
             }
@@ -268,7 +271,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     create: async (booking: Booking, isAdmin = false, isUpdate = false) => {
         try {
             const existing = [get().userBookings, get().offerBookings, get().businessBookings].flat().find(b => b.offer.id === booking.offer.id);
-        
+
             if (existing && existing.status !== 'reservation-rejected' && !isUpdate) {
                 throw new Error("Booking for this offer already exists and is currently in progress.");
             }
@@ -278,7 +281,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             const result = await BookingRepo.write(booking);
 
             set((state) => {
-                if(isAdmin) {
+                if (isAdmin) {
                     return {
                         offerBookings: upsertItem(state.offerBookings, result)
                     }
@@ -301,7 +304,7 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     checkBookings: (id: string): boolean => {
         try {
             set({ isLoading: true, error: null });
-            
+
             if (get().userBookings.some((u) => u.offer.id === id)) {
                 throw new Error("Already booked this offer");
             }

@@ -2,23 +2,9 @@ import { ApplicationRepository } from '@/src/core/repositories/applicationReposi
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
 import { Application } from '../models/Application/Application';
-export interface ApplicationState extends BaseStore<Application>{
+export interface ApplicationState extends BaseStore<Application> {
     approveApplication: (id: string) => Promise<void>;
     rejectApplication: (application: Application) => Promise<void>;
-}
-
-const applicationTemplate = {
-    applicantName: null,
-    userId: null,
-    email: null,
-    validId: null,
-    businessName: null,
-    address: null,
-    servicedLocation: [],
-    establishedOn: null,
-    dti: null,
-    denr: null,
-    bir: null,
 }
 
 const init = {
@@ -28,20 +14,20 @@ const init = {
     error: null,
 }
 
-export const useApplicationsStore = create<ApplicationState>((set, get) =>({
-    ...init,   
+export const useApplicationsStore = create<ApplicationState>((set, get) => ({
+    ...init,
 
     fetchAll: async () => {
         const data = get().data;
 
-        if(data.length > 0) return;
-        
+        if (data.length > 0) return;
+
         set({ isLoading: true });
 
         try {
             const applications = await ApplicationRepository.fetchAll();
             set({
-                data: applications, 
+                data: applications,
                 isLoading: false
             });
         } catch (err) {
@@ -54,27 +40,29 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
     },
 
     load: async (id: string) => {
-        set({ isLoading: true, error: null});
-        
-        if(!id){
-            set({ 
-                current: new Application(), 
+        set({ isLoading: true, error: null });
+
+        if (!id) {
+            set({
+                current: new Application(),
                 isLoading: false
             })
             return;
         }
-        
+
         try {
             const data = get().data;
             let application = null;
-            
-            if(data.length > 0){
+
+            if (data.length > 0) {
                 application = data.find(a => a.id === id);
             }
-        
-            application = await ApplicationRepository.fetchById(id);
 
-            if(!application) throw new Error('Application not found');
+            if (!application) {
+                application = await ApplicationRepository.fetchById(id);
+            }
+
+            if (!application) throw new Error('Application not found');
 
             set({
                 current: application,
@@ -82,20 +70,20 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
             })
         } catch (err) {
             console.error((err as Error).message);
-            set({ 
-                error: (err as Error).message, 
+            set({
+                error: (err as Error).message,
                 isLoading: false
-            });            
+            });
         }
     },
-    
-    refresh: async () => {
-        set({ isLoading: true, error: null});
 
-        try{
+    refresh: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
             const applications = await ApplicationRepository.fetchAll();
             set({
-                data: applications, 
+                data: applications,
                 isLoading: false
             });
         } catch (err) {
@@ -109,18 +97,18 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
 
     create: async (application: Application) => {
         const data = get().data;
-        
-        set({isLoading: true, error: null });
-    
+
+        set({ isLoading: true, error: null });
+
         try {
             data.map(t => {
                 const applicant = t.owner.id;
                 const save = application.owner.id;
-                
-                if(applicant === save){
+
+                if (applicant === save) {
                     const currentStatus = t.status;
-                    
-                    switch(currentStatus){
+
+                    switch (currentStatus) {
                         case 'approved':
                             throw new Error('An application made with your user ID has been approved.')
                         case 'pending':
@@ -138,14 +126,14 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
             console.log(application);
 
             const created = await ApplicationRepository.write(application);
-                    
+
             set((state) => {
                 return {
                     data: [...state.data, created],
-                    isLoading: false 
-                } 
+                    isLoading: false
+                }
             })
-            
+
             return true;
         } catch (err) {
             console.error((err as Error).message);
@@ -158,16 +146,16 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
     },
 
     approveApplication: async (id: string) => {
-        set({ isLoading: true, error: null});
+        set({ isLoading: true, error: null });
         try {
             const data = get().data;
 
             const updatedApp = await ApplicationRepository.fetchById(id);
 
-            if(!updatedApp) {
+            if (!updatedApp) {
                 throw new Error('Application cannot be found');
             }
-            
+
             set({
                 data: data.map(a => a.id === id ? updatedApp : a),
                 isLoading: false
@@ -183,10 +171,10 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
     },
 
     rejectApplication: async (application: Application) => {
-        set({ isLoading: true, error: null});
+        set({ isLoading: true, error: null });
         try {
             const data = get().data;
-            
+
             await ApplicationRepository.update(application);
 
             set({
@@ -204,7 +192,7 @@ export const useApplicationsStore = create<ApplicationState>((set, get) =>({
 
     delete: async (id: string) => {
         set({ isLoading: true, error: null })
-        if(!id){
+        if (!id) {
             set({
                 error: 'No ID selected',
                 isLoading: false,

@@ -10,17 +10,17 @@ export function useBookingOfferAdminList(offerId: string) {
     const { businessId } = useAuthHook();
 
     useEffect(() => {
-        if(!offerId) {
+        if (!offerId) {
             console.error("Offer ID is required for subscribing to business bookings");
             return;
         }
-        
-        if(!businessId) {
+
+        if (!businessId) {
             console.error("Business ID is required for subscribing to business bookings");
             return;
         }
         useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId);
-    },[offerId]);
+    }, [businessId, offerId]);
 
     const onViewBooking = (bookingId: string, offerId: string) => {
         router.push({
@@ -28,10 +28,10 @@ export function useBookingOfferAdminList(offerId: string) {
             params: { bookingId, offerId }
         })
     }
-    
+
     return {
         offerBookings,
         onViewBooking,
-        error, 
+        error,
     }
 }

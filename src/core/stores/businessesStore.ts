@@ -2,6 +2,7 @@ import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
 import { Business } from "@/src/core/models/Business/Business";
 import { User } from "@/src/core/models/User/User";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { BusinessRepository } from "@/src/core/repositories/businessRepository";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -20,7 +21,7 @@ type AdminUI = {
     businessId: string,
 }
 
-export interface BusinessState extends BaseStore<Business>{
+export interface BusinessState extends BaseStore<Business> {
     businessAdmins: Admin[];
     lastFetchedAt: number;
 
@@ -39,15 +40,15 @@ const init = {
 };
 
 export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
-    ...init, 
+    ...init,
 
     fetchAll: async () => {
         const data = get().data;
 
-        if(data.length > 0) return;
+        if (data.length > 0) return;
 
         try {
-            set({ isLoading: true, error: null});
+            set({ isLoading: true, error: null });
 
             const businesses = await BusinessRepository.fetchAll();
 
@@ -64,7 +65,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
             });
         }
     },
-    
+
     refresh: async () => {
         const now = Date.now();
         const lastFetchedAt = get().lastFetchedAt;
@@ -76,7 +77,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         }
 
         try {
-            set({ isLoading: true, error: null});
+            set({ isLoading: true, error: null });
 
             const businesses = await BusinessRepository.fetchAll();
 
@@ -95,28 +96,28 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
     },
 
     load: async (id: string | null) => {
-        if(!id){
+        if (!id) {
             set({ current: new Business() })
             return;
         }
 
-        const data = get().data;        
+        const data = get().data;
 
         try {
-            set({ isLoading: true, error: null})
+            set({ isLoading: true, error: null })
 
             let business = null;
 
-            if(data.length > 0) {
+            if (data.length > 0) {
                 business = data.find(d => d.id === id);
             }
 
-            if(!business){
+            if (!business) {
                 console.log('calling repo');
                 business = await BusinessRepository.fetchById(id);
             }
 
-            if(!business){
+            if (!business) {
                 set({
                     error: 'Business not found',
                     isLoading: false
@@ -143,14 +144,14 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
     },
 
     create: async (business: Business, applicationId: string) => {
-        set({isLoading: true, error: null});
+        set({ isLoading: true, error: null });
 
         try {
             const newAccount = await BusinessRepository.write(business, applicationId);
-    
+
             set((state) => {
                 return {
-                    businesses: [...state.data, newAccount],
+                    data: upsertItem(state.data, newAccount),
                     isLoading: false
                 }
             });
@@ -158,7 +159,7 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         } catch (err) {
             console.error((err as Error).message);
             set({
-                error: (err as Error).message ?? 'Failed adding business', 
+                error: (err as Error).message ?? 'Failed adding business',
                 isLoading: false
             });
             return false;
@@ -170,14 +171,14 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
     },
 
     delete: async (id: string) => {
-        set({isLoading: true, error: null});
+        set({ isLoading: true, error: null });
 
-        try{
-            const archived = await BusinessRepository.delete(id);
+        try {
+            await BusinessRepository.delete(id);
 
             set((state) => {
                 return {
-                    businesses: [...state.data.filter(b => b.id !== id), archived],
+                    data: [...state.data.filter(b => b.id !== id)],
                     isLoading: false
                 }
             })
@@ -188,19 +189,19 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
                 isLoading: false,
             })
         }
-    }, 
+    },
 
     reset: () => set(init),
 
     loadBusinessAdmins: async (providedBusinessId: string | null = null) => {
-        if(get().current && get().businessAdmins.length > 0) return;
-        
-        set({isLoading: true, error: null});
+        if (get().current && get().businessAdmins.length > 0) return;
+
+        set({ isLoading: true, error: null });
 
         try {
             const targetID = providedBusinessId || get().current?.id;
             console.log('Target ID: ', targetID);
-            if(!targetID) throw new Error('Missing Business ID');
+            if (!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await BusinessRepository.fetchBusinessAdmins(targetID);
 
@@ -216,14 +217,14 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
             })
         }
     },
-    
+
     reloadBusinessAdmins: async (providedBusinessId: string | null = null) => {
-        set({isLoading: true, error: null});
+        set({ isLoading: true, error: null });
 
         try {
             const targetID = providedBusinessId || get().current?.id;
             console.log('Target ID: ', targetID);
-            if(!targetID) throw new Error('Missing Business ID');
+            if (!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await BusinessRepository.fetchBusinessAdmins(targetID);
 
@@ -240,24 +241,24 @@ export const useBusinessesStore = create<BusinessState>()(immer((set, get) => ({
         }
     },
 
-    createBusinessAdmin: async ({user, businessId}: AdminUI) => {
-        set({isLoading: true, error: null});
+    createBusinessAdmin: async ({ user, businessId }: AdminUI) => {
+        set({ isLoading: true, error: null });
 
-        try{
+        try {
             const role = user.role as string;
 
             // checking if user is already an admin or system admin
-            if(role === 'admin' || get().businessAdmins.some(a => a.id === user.id)) {
+            if (role === 'admin' || get().businessAdmins.some(a => a.id === user.id)) {
                 const errMsg = 'User is already an admin of this business';
                 set({
                     error: errMsg,
                     isLoading: false
                 })
                 throw new Error(errMsg);
-            }          
+            }
 
             const admin = await BusinessRepository.createBusinessAdmin(user, businessId);
-            
+
             set((state) => {
                 return {
                     businessAdmins: [...state.businessAdmins, admin],

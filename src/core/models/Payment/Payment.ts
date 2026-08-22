@@ -6,8 +6,8 @@ import { IOfferSummary } from "../Offer/interfaces/Offer.types";
 import { IUserSummary } from "../User/User.types";
 import { IPayment, IPaymentDB, IReceipt } from "./Payment.types";
 
-export { usePaymentRefund } from "@/src/core/models/Payment/hooks/usePaymentRefund";
-
+export { usePaymentAdmin } from "@/src/core/models/Payment/hooks/usePaymentAdmin";
+export { usePaymentUser } from "@/src/core/models/Payment/hooks/usePaymentUser";
 export class Payment implements IPayment {
     [key: string]: any;
     [immerable] = true
@@ -29,7 +29,7 @@ export class Payment implements IPayment {
         date: new Date(0),
         price: 0
     };
-    user: IUserSummary ={
+    user: IUserSummary = {
         id: "",
         username: "",
         firstname: "",
@@ -37,11 +37,11 @@ export class Payment implements IPayment {
         email: ""
     };
 
-    constructor(init?: Partial<IPayment>){
+    constructor(init?: Partial<IPayment>) {
         Object.assign(this, init);
     }
 
-    static fromFirestore(id: string, data: IPaymentDB): Payment{
+    static fromFirestore(id: string, data: IPaymentDB): Payment {
         const mapped: IPayment = {
             ...data,
             id,

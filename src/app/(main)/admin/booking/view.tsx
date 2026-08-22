@@ -4,19 +4,22 @@
  * Composes database states, user permissions, and passes clean props to the ReviewScreen.
  */
 
-import React from 'react';
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Text } from "react-native";
 
-import useApproveBooking from "@/src/core/hook/admin/useApproveBooking";
+import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useBookingAdmin, useBookingAdminItem, } from "@/src/core/models/Booking/Booking";
+import { useOfferList } from "@/src/core/models/Offer/Offer";
+import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
+import { useHikerProfile } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import ReviewScreen from "@/src/features/Admin/screens/Booking/ReviewScreen";
 
 /**
  * Controller page handling route resolution and rendering of ReviewScreen.
  */
-export default function adminViewBooking() {
+export default function AdminViewBooking() {
     const { bookingId: rawId, offerId: rawOfferId } = useLocalSearchParams();
 
     const bookingId = getSearchParam(rawId);
@@ -24,28 +27,46 @@ export default function adminViewBooking() {
 
     const { onBackPress } = useAppNavigation();
 
-    const { 
-        offer,
-        offers,
+    const { offers } = useOfferList();
+
+    const {
         booking,
-        hikerProfile,
-        error,
-        isLoading,
+        isFetching
+    } = useBookingAdminItem(bookingId, offerId);
+
+    const {
         onApproveBooking,
         onConfirmPayment,
-        onRejectBooking, 
+        onRejectBooking,
         onRescheduleBooking,
-        onRefund,
-        onCancelUnpaid
-    } = useApproveBooking({ bookingId, offerId });
+        onCancelUnpaid,
+        error,
+        isLoading,
+    } = useBookingAdmin();
+
+    const {
+        onRefund
+    } = usePaymentAdmin();
+
+    const {
+        hikerProfile,
+    } = useHikerProfile(booking?.user.id);
+
+    if (!booking || isFetching) {
+        return (
+            <>
+                <Stack.Screen options={{ headerShown: false }} />
+                <CustomLoading message="Fetching booking details" />
+            </>
+        )
+    }
 
     if (!booking) return <Text>Booking not found</Text>;
-    if (!offer) return <Text>Offer not found</Text>;
-    
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            
+
             <ReviewScreen
                 booking={booking}
                 offers={offers}
@@ -57,7 +78,7 @@ export default function adminViewBooking() {
                 onRefund={onRefund}
                 onCancelUnpaid={onCancelUnpaid}
                 isLoading={isLoading}
-                error={error || undefined}            
+                error={error || undefined}
                 hikerProfile={hikerProfile}
             />
         </>

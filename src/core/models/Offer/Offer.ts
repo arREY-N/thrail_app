@@ -15,7 +15,8 @@ export { OfferRepo } from "@/src/core/init/repositories";
 
 
 // HOOKS 
-
+export { useOfferItem } from '@/src/core/models/Offer/hooks/useOfferItem';
+export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
 
 // UTILITIES
 export { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/OfferUtilities";

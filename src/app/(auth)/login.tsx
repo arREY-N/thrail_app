@@ -1,5 +1,5 @@
 import { Redirect, router } from 'expo-router';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
@@ -11,18 +11,18 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export default function Login() {
     const { isLargeScreen } = useBreakpoints();
-    
-    const { 
+
+    const {
         onLanding,
-        onSignUpPress 
+        onSignUpPress
     } = useAppNavigation();
-    
-    const { 
-        onPrivacy, 
-        onTerms 
+
+    const {
+        onPrivacy,
+        onTerms
     } = useLandingNavigation();
-    
-    const { 
+
+    const {
         error,
         remember,
         reset,
@@ -31,11 +31,11 @@ export default function Login() {
         onForgotPassword,
         onGmailLogIn,
         isLoading,
-    } = useAuthHook();    
+    } = useAuthHook();
 
     useEffect(() => {
         reset();
-    }, []);
+    }, [reset]);
 
     const handleBack = () => {
         if (router.canGoBack()) {
@@ -51,10 +51,10 @@ export default function Login() {
 
     return (
         <View style={{ flex: 1 }}>
-            <LogInScreen 
-                onLogInPress={onLogIn as any} 
-                onSignUpPress={onSignUpPress as any} 
-                error={error} 
+            <LogInScreen
+                onLogInPress={onLogIn as any}
+                onSignUpPress={onSignUpPress as any}
+                error={error}
                 onForgotPasswordPress={onForgotPassword}
                 onBackPress={handleBack}
                 onRememberMePress={onRememberMePress}
@@ -64,9 +64,9 @@ export default function Login() {
                 onPrivacyPress={onPrivacy}
             />
 
-            <CustomLoading 
-                visible={isLoading} 
-                message="Signing in..." 
+            <CustomLoading
+                visible={isLoading}
+                message="Signing in..."
             />
         </View>
     );
