@@ -1,4 +1,4 @@
-import { useReviewStore } from "@/src/core/stores/reviewStore";
+import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
 import { useEffect } from "react";
 
 export function useReviewList() {
@@ -8,18 +8,18 @@ export function useReviewList() {
     useEffect(() => {
         const fetch = async () => {
             await useReviewStore.getState().fetchAll();
-        }
+        };
 
         fetch();
-    }, [])
+    }, []);
 
     const refresh = async () => {
         await useReviewStore.getState().fetchAll();
-    }
+    };
 
     return {
         reviews,
         isLoading,
-        refresh
-    }
+        refresh,
+    };
 }

@@ -1,4 +1,3 @@
-// THIS FILE IS MARKED FOR DELETION
 import { DifficultyRating } from "@/src/core/models/Review/interfaces/Review.types";
 
 export function toNumerical(rating: DifficultyRating | string): number {
