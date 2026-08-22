@@ -1,6 +1,6 @@
 import { requestNotificationPermission } from '@/src/core/hook/notification/useNotification';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { NotificationToken } from '@/src/core/models/User/User.types';
+import { NotificationToken } from '@/src/core/models/User/interfaces/User.types';
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -18,27 +18,27 @@ export function useNotifyPermission() {
             if (hasRun.current === true) {
                 return;
             }
-            
+
             const result = await requestNotificationPermission();
             console.log("Notification Permission Token:", result);
             setToken(result);
 
-            if(!result) {
+            if (!result) {
                 console.warn("No notification token obtained. User may have denied permission or an error occurred.");
                 return;
             }
 
             let platform: string | null = null;
 
-            if(Platform.OS === 'web') {
+            if (Platform.OS === 'web') {
                 platform = 'web';
-            } else if(Platform.OS === 'ios') {
+            } else if (Platform.OS === 'ios') {
                 platform = 'ios';
-            } else if(Platform.OS === 'android') {
+            } else if (Platform.OS === 'android') {
                 platform = 'android';
             }
 
-            if(!platform) {
+            if (!platform) {
                 console.warn("Unsupported platform for notifications:", Platform.OS);
                 return;
             }
@@ -48,13 +48,13 @@ export function useNotifyPermission() {
                 platform: String(platform) as 'web' | 'ios' | 'android',
                 lastUpdated: new Date(),
             }
-            
-            if(!profile) {
+
+            if (!profile) {
                 console.warn("No user profile found. Cannot associate notification token.");
                 return;
             }
 
-            if(profile.fcmTokens.some(t => t.token === newToken.token)) {
+            if (profile.fcmTokens.some(t => t.token === newToken.token)) {
                 console.log("Notification token already exists for user profile.");
                 return;
             }
@@ -67,7 +67,7 @@ export function useNotifyPermission() {
 
         fetchToken();
     }, []);
-    
+
 
     return token;
 }

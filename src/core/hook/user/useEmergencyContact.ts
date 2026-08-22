@@ -1,13 +1,13 @@
 import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
 import { User } from "@/src/core/models/User/User";
-import { IEmergencyContact } from "@/src/core/models/User/User.types";
+import { IEmergencyContact } from "@/src/core/models/User/interfaces/User.types";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useState } from "react";
 
-export function useEmergencyContact(){
+export function useEmergencyContact() {
     const [localError, setLocalError] = useState<string | null>(null);
-    
+
     const profile = useAuthStore(s => s.profile);
 
     const loadUserByEmail = useUsersStore(s => s.loadUserByEmail);
@@ -20,7 +20,7 @@ export function useEmergencyContact(){
             console.log("Finding user with email:", email);
             const users = await loadUserByEmail(email);
 
-            if(users.length === 0) {
+            if (users.length === 0) {
                 return []
             }
 
@@ -37,25 +37,25 @@ export function useEmergencyContact(){
             console.log("Setting emergency contact:", emergencyContact);
 
             if (!profile) throw new Error("No user profile found");
-            
-            if(!emergencyContact) throw new Error("No emergency contact provided");
 
-            if(profile.id === emergencyContact.userId) throw new Error("Cannot set yourself as an emergency contact");
+            if (!emergencyContact) throw new Error("No emergency contact provided");
+
+            if (profile.id === emergencyContact.userId) throw new Error("Cannot set yourself as an emergency contact");
 
             await setContact(profile, emergencyContact);
 
-            useAuthStore.setState({ 
-                profile: new User({ 
-                    ...profile, 
-                    emergencyContact: emergencyContact 
-                }) 
+            useAuthStore.setState({
+                profile: new User({
+                    ...profile,
+                    emergencyContact: emergencyContact
+                })
             });
 
-            if(user){
+            if (user) {
                 const groupId = [`${profile.id}_${emergencyContact.userId}`, `${emergencyContact.userId}_${profile.id}`];
-    
+
                 try {
-                    for(const id of groupId) {
+                    for (const id of groupId) {
                         await checkGroupExists(id);
                         console.log("Existing group found for emergency contact:");
                     }
@@ -81,7 +81,7 @@ export function useEmergencyContact(){
                         members: [safeProfile, safeUser],
                         participantsIds: [profile.id, user.id],
                     });
-    
+
                     createGroup(contactChat);
                     console.log('created group: ', contactChat);
                 }
@@ -93,7 +93,7 @@ export function useEmergencyContact(){
             return false;
         }
     }
-   
+
     return {
         findUser,
         setEmergencyContact,

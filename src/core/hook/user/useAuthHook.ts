@@ -1,9 +1,9 @@
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
+import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function useAuthHook() {
     const [localError, setLocalError] = useState('');
@@ -24,6 +24,7 @@ export function useAuthHook() {
 
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
+    const isNotUser = role && role !== 'user';
 
     const { stopBackgroundTracking } = useHikerGPS();
 
@@ -73,6 +74,13 @@ export function useAuthHook() {
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
+
+    const isNewAccount = useMemo(() => {
+        if (!profile) return false;
+        if (!profile.preferences) return true;
+        return profile.preferences.hiked === false;
+    }, [profile]);
+
     return {
         role,
         isSuperadmin,
@@ -91,5 +99,7 @@ export function useAuthHook() {
         forgotPassword,
         onSignOutPress,
         onGmailLogIn,
+        isNotUser,
+        isNewAccount,
     }
 }

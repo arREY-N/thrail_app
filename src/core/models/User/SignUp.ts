@@ -1,7 +1,7 @@
 import { immerable } from "immer";
-import { ISignUp } from "./SignUp.types";
+import { ISignUp } from "./interfaces/SignUp.types";
 
-export class SignUp implements ISignUp{
+export class SignUp implements ISignUp {
     [key: string]: any;
     [immerable] = true
     phoneNumber: string = '';
@@ -14,10 +14,10 @@ export class SignUp implements ISignUp{
     lastname: string = '';
     email: string = '';
 
-    constructor(init?: Partial<ISignUp>){
+    constructor(init?: Partial<ISignUp>) {
         Object.assign(this, init);
     }
-    
+
     update(newData: Partial<SignUp>) {
         Object.keys(newData).forEach((key) => {
             const val = newData[key as keyof SignUp];

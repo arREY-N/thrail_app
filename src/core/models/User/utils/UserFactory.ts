@@ -1,5 +1,5 @@
-import { ISignUp } from "@/src/core/models/User/SignUp.types";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/User.types";
+import { ISignUp } from "@/src/core/models/User/interfaces/SignUp.types";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/interfaces/User.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { immerable } from "immer";

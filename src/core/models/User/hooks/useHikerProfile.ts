@@ -31,7 +31,7 @@ export function useHikerProfile(userId?: string) {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [userId]);
 
     return {
         hikerProfile,

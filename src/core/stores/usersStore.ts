@@ -1,4 +1,4 @@
-import { IEmergencyContact, NotificationToken } from '@/src/core/models/User/User.types';
+import { IEmergencyContact, NotificationToken } from '@/src/core/models/User/interfaces/User.types';
 import { UserRepository } from '@/src/core/repositories/userRepository';
 import { create } from 'zustand';
 import { BaseStore } from '../interface/storeInterface';
@@ -9,7 +9,7 @@ export interface UserState extends BaseStore<User> {
     loadUserByEmail: (email: string) => Promise<User[]>;
     loadUser: (id: string) => Promise<User | null>;
     addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;
-    setEmergencyContact: (user: User, contact: IEmergencyContact) => Promise<void>;  
+    setEmergencyContact: (user: User, contact: IEmergencyContact) => Promise<void>;
 }
 
 const init = {
@@ -24,11 +24,11 @@ export const useUsersStore = create<UserState>((set, get) => ({
     ...init,
 
     loadUser: async (id: string): Promise<User | null> => {
-        set({ isLoading: true, error: null }) 
+        set({ isLoading: true, error: null })
         try {
             const user = await UserRepository.fetchById(id);
 
-            if(!user){
+            if (!user) {
                 throw new Error(`Could not find user with id ${id}`);
             }
 
@@ -49,14 +49,14 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
     fetchAll: async () => {
         const data = get().data;
-        if(data.length > 0) return;
+        if (data.length > 0) return;
 
         set({ isLoading: true, error: null });
-        
+
         try {
             const users = await UserRepository.fetchAll();
             const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
-            
+
             set({
                 data: sorted,
                 isLoading: false,
@@ -72,11 +72,11 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
     refresh: async () => {
         set({ isLoading: true, error: null });
-        
+
         try {
             const users = await UserRepository.fetchAll();
             const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname))
-            
+
             set({
                 data: sorted,
                 isLoading: false,
@@ -91,7 +91,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
     },
 
     load: async (id: string | null) => {
-        if(!id) {
+        if (!id) {
             set({ current: new User() })
             return;
         }
@@ -102,15 +102,15 @@ export const useUsersStore = create<UserState>((set, get) => ({
             let user: User | undefined | null = null;
             let data = get().data;
 
-            if(data.length > 0){
+            if (data.length > 0) {
                 user = data.find(u => u.id === id);
             }
 
-            if(!user){
+            if (!user) {
                 user = await UserRepository.fetchById(id);
             }
 
-            if(!user){
+            if (!user) {
                 throw new Error(`Could not find user with id ${id}`);
             }
 
@@ -122,7 +122,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
                     : [userInstance, ...data];
 
                 const sorted = newData.sort((a, b) => a.lastname.localeCompare(b.lastname));
-                
+
                 return {
                     data: sorted,
                     current: userInstance,
@@ -142,8 +142,8 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
         const current = user || get().current;
 
-        if(!current){
-            set({  error: 'No new data to save' });
+        if (!current) {
+            set({ error: 'No new data to save' });
             return false;
         }
 
@@ -172,7 +172,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
         return true;
     },
-    
+
     setEmergencyContact: async (user: User, contact: IEmergencyContact) => {
         set({ isLoading: true, error: null });
 
@@ -198,17 +198,17 @@ export const useUsersStore = create<UserState>((set, get) => ({
         set({ isLoading: true, error: null });
 
         try {
-            if(!id) throw new Error('Invalid user ID');
+            if (!id) throw new Error('Invalid user ID');
 
             const success = await UserRepository.delete(id);
- 
-            if(!success){
+
+            if (!success) {
                 set({
                     error: 'Failed deleting user',
                     isLoading: false
                 })
                 return;
-            } 
+            }
 
             set({
                 data: get().data.filter(d => d.id !== id),
@@ -222,7 +222,7 @@ export const useUsersStore = create<UserState>((set, get) => ({
             })
         }
     },
-    
+
     reset: () => set(init),
 
     loadUserByEmail: async (email: string): Promise<User[]> => {
@@ -230,8 +230,8 @@ export const useUsersStore = create<UserState>((set, get) => ({
 
         try {
             const users = await UserRepository.fetchByEmail(email);
-            
-            if(users.length === 0){
+
+            if (users.length === 0) {
                 throw new Error(`No user with email ${email}`)
             }
 
@@ -261,17 +261,17 @@ export const useUsersStore = create<UserState>((set, get) => ({
         try {
             const tokenExisting = user.fcmTokens.find(t => t.token === token.token);
 
-            if(!tokenExisting) {
+            if (!tokenExisting) {
                 const updatedUser = new User({
                     ...user,
                     fcmTokens: [...user.fcmTokens, token]
                 });
-    
+
                 const newUser = await UserRepository.write(updatedUser);
                 console.log("Updated user with new notification token:", newUser);
             }
         } catch (err) {
             console.error("Failed to add notification token:", err);
-        }   
+        }
     },
 }))

@@ -6,13 +6,13 @@ import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWith
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 import { SignUp } from '../models/User/SignUp';
-import { CredentialResponse, UserCredential } from '../models/User/SignUp.types';
 import { User, userConverter } from '../models/User/User';
-import { LogIn } from '../models/User/User.types';
+import { CredentialResponse, UserCredential } from '../models/User/interfaces/SignUp.types';
+import { LogIn } from '../models/User/interfaces/User.types';
 
 GoogleSignin.configure({
-  webClientId: '672035725620-l5sdrcnscegfqmh43o6sj7rpcsggj7vi.apps.googleusercontent.com', 
-  offlineAccess: true,
+    webClientId: '672035725620-l5sdrcnscegfqmh43o6sj7rpcsggj7vi.apps.googleusercontent.com',
+    offlineAccess: true,
 });
 
 
@@ -23,80 +23,80 @@ class AuthRepositoryImpl {
         const checkCredentials = httpsCallable(functions, 'checkEmail');
         try {
             const response = await checkCredentials(userCredentials);
-            
+
             let unavailable = []
-        
-            if(!(response as CredentialResponse).data.emailAvailable) unavailable.push('Email');
-            if(!(response as CredentialResponse).data.usernameAvailable) unavailable.push('Username');
-        
-            if(unavailable.length > 0) 
+
+            if (!(response as CredentialResponse).data.emailAvailable) unavailable.push('Email');
+            if (!(response as CredentialResponse).data.usernameAvailable) unavailable.push('Username');
+
+            if (unavailable.length > 0)
                 throw new Error(`${unavailable.join(', ')} already in use`);
-        } catch (err) { 
+        } catch (err) {
             console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
-    
+
     async checkEmail(email: string): Promise<boolean> {
         const checkCredentials = httpsCallable(functions, 'checkEmail');
         try {
-            const response = await checkCredentials({email, username: 'checkExistingEmailOnly'});
+            const response = await checkCredentials({ email, username: 'checkExistingEmailOnly' });
 
-            if((response as CredentialResponse).data.emailAvailable) return false;
+            if ((response as CredentialResponse).data.emailAvailable) return false;
 
             return true;
-        } catch (err) { 
+        } catch (err) {
             console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
-    
+
     async signUp(accountData: SignUp): Promise<User> {
         const { email, password } = accountData;
-        
-        try{
+
+        try {
             const userCredential = await createUserWithEmailAndPassword(
-                auth, 
-                email, 
+                auth,
+                email,
                 password,
             );
-            
+
             const user = new User(accountData);
             user.id = userCredential.user.uid;
-            
+
             await setDoc(
-                doc(userCollection, userCredential.user.uid), 
+                doc(userCollection, userCredential.user.uid),
                 user,
-                {merge: true}
+                { merge: true }
             );
-        
+
             return user;
-        } catch (err){
+        } catch (err) {
             console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
-    
-    async signUpWithGoogle(): Promise<void>{
+
+    async signUpWithGoogle(): Promise<void> {
         try {
             await GoogleSignin.hasPlayServices();
 
             const response = await GoogleSignin.signIn();
 
             console.log('Google Sign-In response:', response);
-            if(response.type === 'cancelled') 
+            if (response.type === 'cancelled')
                 throw new Error('Google sign-in was cancelled by the user');
 
             const { idToken } = response.data;
 
             const googleCredential = GoogleAuthProvider.credential(idToken);
 
-            const { user } = await signInWithCredential(getAuth(), googleCredential);    
+            const { user } = await signInWithCredential(getAuth(), googleCredential);
 
             const userDoc = doc(userCollection, user.uid);
             const snap = await getDoc(userDoc);
 
-            if(snap.exists()) {
+            if (snap.exists()) {
                 console.log('User already exists in Firestore');
                 return;
             }
@@ -111,9 +111,9 @@ class AuthRepositoryImpl {
             });
 
             await setDoc(
-                doc(userCollection, newUser.id), 
+                doc(userCollection, newUser.id),
                 newUser,
-                {merge: true}
+                { merge: true }
             );
         } catch (err) {
             console.log(err);
@@ -121,7 +121,7 @@ class AuthRepositoryImpl {
         }
     }
 
-    async webSignUpWithGoogle() : Promise<void> {
+    async webSignUpWithGoogle(): Promise<void> {
         try {
             const result = await signInWithPopup(auth, provider);
 
@@ -129,7 +129,7 @@ class AuthRepositoryImpl {
 
             const token = credential?.accessToken;
 
-            if(!token)
+            if (!token)
                 throw new Error('Failed to retrieve access token from Google');
 
             const user = result.user;
@@ -137,7 +137,7 @@ class AuthRepositoryImpl {
             const userDoc = doc(userCollection, user.uid);
             const snap = await getDoc(userDoc);
 
-            if(snap.exists()) {
+            if (snap.exists()) {
                 console.log('User already exists in Firestore');
                 return;
             }
@@ -152,17 +152,17 @@ class AuthRepositoryImpl {
             });
 
             await setDoc(
-                doc(userCollection, newUser.id), 
+                doc(userCollection, newUser.id),
                 newUser,
-                {merge: true}
+                { merge: true }
             );
-        
+
         } catch (err) {
             console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     }
-    
+
     async logIn(data: LogIn): Promise<void> {
         try {
             await signInWithEmailAndPassword(

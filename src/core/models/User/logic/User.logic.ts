@@ -1,6 +1,6 @@
 import { IUserBooking } from "@/src/core/models/Booking/Booking";
-import { User } from "@/src/core/models/User/User";
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IUserSummary } from "@/src/core/models/User/interfaces/User.types";
+import { User } from "@/src/core/models/User/utils/UserFactory";
 
 export const UserLogic = {
     toSummary(user: User): IUserSummary {
