@@ -1,5 +1,6 @@
 import { OfferRepo } from "@/src/core/init/repositories";
-import { createOffer, Offer } from "@/src/core/models/Offer/OfferFactory";
+import { Offer } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { newOffer } from "@/src/core/models/Offer/utils/OfferFactory";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
 import { StateCreator } from "zustand";
@@ -33,8 +34,8 @@ export interface OfferState {
     fetchOfferByTrail: (id: string) => Promise<void>;
 
     findSimilarOffers: (offerId: string) => Promise<void>;
-    
-    createOffer: (offer: Offer) => Promise<Offer | null>;
+
+    newOffer: (offer: Offer) => Promise<Offer | null>;
 }
 
 const init = {
@@ -57,29 +58,29 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
     findSimilarOffers: async (offerId: string) => {
         try {
             set({ isLoading: true, error: null, similarOffers: null });
-            
+
             const offer = [
                 ...get().data,
                 ...get().trailOffers,
                 ...get().businessOffers
             ].find(o => o.id === offerId);
 
-            if(!offer) {
+            if (!offer) {
                 throw new Error("Offer not found.");
             }
 
-            if(offer.date < new Date()) {
+            if (offer.date < new Date()) {
                 throw new Error("Cannot find similar offers for offers that have expired.");
             }
             logger('similarOffers', 'offer', offer);
             const similarOffers: Offer[] = (await OfferRepo.fetchSimilarOffers(offer)).filter(o => o.reservedPax >= o.maxPax);
 
-            set({ 
+            set({
                 similarOffers: {
                     similarTrail: similarOffers.filter(o => o.trail.id === offer.trail.id),
                     similarDate: similarOffers.filter(o => o.date.getTime() === offer.date.getTime()),
                     similarPrice: similarOffers.filter(o => o.price === offer.price)
-                } 
+                }
             });
         } catch (err) {
             set({ error: (err as Error).message || 'Failed to find similar offers' })
@@ -91,18 +92,18 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
     fetchAll: async () => {
         set({ isLoading: true, error: null })
-        
+
         const data = get().data;
-        
-        if(data.length > 0) {
-            set({ isLoading: false, error: null})
+
+        if (data.length > 0) {
+            set({ isLoading: false, error: null })
             return;
         }
 
         try {
             const offers = await OfferRepo.fetchAll();
 
-            if(offers.length === 0){
+            if (offers.length === 0) {
                 set({
                     data: [],
                     error: 'No offers found',
@@ -110,7 +111,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
                 })
                 return;
             }
-            
+
             set({
                 data: offers,
                 isLoading: false
@@ -123,24 +124,24 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
     fetchOfferByBusiness: async (id: string) => {
         set({ isLoading: true, error: null })
-        
+
         try {
-            if(!id)
+            if (!id)
                 throw new Error('No ID provided')
-                
+
             const data = get().businessOffers;
 
             let offers: Offer[] = [];
 
-            if(data.length > 0) {
+            if (data.length > 0) {
                 offers = data.filter(o => o.business.id === id);
             };
-            
-            if(offers.length === 0){
+
+            if (offers.length === 0) {
                 offers = await OfferRepo.fetchAllBusinessOffers(id);
             }
 
-            if(offers.length === 0){
+            if (offers.length === 0) {
                 set({
                     businessOffers: [],
                     error: 'No offers found',
@@ -148,7 +149,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
                 })
                 return;
             }
-            
+
             set({
                 businessOffers: offers,
                 isLoading: false
@@ -165,30 +166,30 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
             let offer = null;
 
-            if(get().data.length > 0) {
+            if (get().data.length > 0) {
                 offer = get().data.find(o => o.id === id);
             }
 
-            if(!offer){
+            if (!offer) {
                 offer = get().trailOffers.find(o => o.id === id);
             }
 
-            if(!offer){
+            if (!offer) {
                 offer = get().businessOffers.find(o => o.id === id);
             }
 
-            if(!offer){
+            if (!offer) {
                 offer = await OfferRepo.fetch(id);
             }
 
-            if(!offer){
+            if (!offer) {
                 throw new Error('No offer found');
             }
 
             set({
-                data: upsertItem(get().data, offer), 
-                isLoading: false, 
-                error: null 
+                data: upsertItem(get().data, offer),
+                isLoading: false,
+                error: null
             });
         } catch (error) {
             set({ isLoading: false })
@@ -198,24 +199,24 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
     fetchOfferByTrail: async (id: string) => {
         set({ isLoading: true, error: null });
-        
+
         try {
-            if(!id)
+            if (!id)
                 throw new Error('No ID provided')
 
             const data = get().data;
 
             let offers: Offer[] = [];
 
-            if(data.length > 0){
+            if (data.length > 0) {
                 offers = data.filter(o => o.trail?.id === id)
             }
-            
-            if(offers.length === 0){
+
+            if (offers.length === 0) {
                 offers = await OfferRepo.fetchAllTrailOffers(id);
             }
 
-            if(offers.length === 0){
+            if (offers.length === 0) {
                 set({
                     error: 'No offers for this trail',
                     trailOffers: [],
@@ -223,11 +224,11 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
                 })
                 return;
             }
-            
+
             set({
                 trailOffers: offers,
                 isLoading: false
-            })  
+            })
 
         } catch (err) {
             set({
@@ -238,19 +239,19 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         }
     },
 
-    load: async ({id, businessId }: OfferParams) => {
-        set({ isLoading: true, error: null});
-        
-        if(!id) {
-            set({ 
-                current: createOffer(), 
-                isLoading: false 
-            }); 
+    load: async ({ id, businessId }: OfferParams) => {
+        set({ isLoading: true, error: null });
+
+        if (!id) {
+            set({
+                current: newOffer(),
+                isLoading: false
+            });
             return;
         }
 
-        if(!businessId){
-            set({ 
+        if (!businessId) {
+            set({
                 error: 'No Business ID selected',
                 isLoading: false,
             });
@@ -262,17 +263,17 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
             let offer = null;
 
-            if(data.length > 0){
+            if (data.length > 0) {
                 console.log('data is filled')
                 offer = data.find(d => d.id === id);
             }
 
-            if(!offer){
+            if (!offer) {
                 console.log('go to repo');
-                offer = await OfferRepo.fetchById({id, businessId});
+                offer = await OfferRepo.fetchById({ id, businessId });
             }
 
-            if(!offer){
+            if (!offer) {
                 set({
                     error: 'Offer not found in load',
                     isLoading: false,
@@ -282,7 +283,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
 
             set({
                 current: offer,
-                isLoading: false, 
+                isLoading: false,
             })
         } catch (err) {
             console.error((err as Error).message);
@@ -293,8 +294,8 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         }
     },
 
-    createOffer: async (offer: Offer): Promise<Offer | null> => {
-        set({isLoading: true, error: null});
+    newOffer: async (offer: Offer): Promise<Offer | null> => {
+        set({ isLoading: true, error: null });
 
         try {
             const newOffer = await OfferRepo.write(offer);
@@ -302,7 +303,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
             set(state => {
                 const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
                 const offers = [...newOfferList, newOffer];
-                
+
                 return {
                     businessOffers: offers,
                     data: offers,
@@ -321,7 +322,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
     },
 
     create: async (offer: Offer) => {
-        set({isLoading: true, error: null});
+        set({ isLoading: true, error: null });
 
         try {
             const newOffer = await OfferRepo.write(offer);
@@ -329,7 +330,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
             set(state => {
                 const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
                 const offers = [...newOfferList, newOffer];
-                
+
                 return {
                     businessOffers: offers,
                     data: offers,
@@ -346,7 +347,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
             return false;
         }
     },
-    
+
     refresh: async () => {
         set({ isLoading: true, error: null })
         try {
@@ -365,16 +366,16 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         }
     },
 
-    delete: async ({id, businessId}: OfferParams) => {
-        set({isLoading: true, error: null});
+    delete: async ({ id, businessId }: OfferParams) => {
+        set({ isLoading: true, error: null });
 
         try {
-            if(!id || !businessId){
+            if (!id || !businessId) {
                 throw new Error('Offer and Business ID missing');
             }
 
-            await OfferRepo.delete({id, businessId})
-            
+            await OfferRepo.delete({ id, businessId })
+
             set((state) => {
                 return {
                     businessOffers: state.businessOffers.filter(o => o.id !== id),
@@ -392,7 +393,7 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
     },
 
     edit: () => {
-        
+
     },
 
     reset: () => set(init),

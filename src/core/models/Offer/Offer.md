@@ -5,33 +5,41 @@ This document describes the components inside `src/core/models/Offer` and how th
 ## Folder Structure
 
 - `Offer.ts`
-- `interfaces/Offer.types.ts`
-- `XOffer.ts`
-- `repositories/OfferRepository.ts`
-- `stores/offerStoreCreator.ts`
-- `stores/offerStore.native.ts`
-- `stores/offerStore.web.ts`
-- `stores/offerStore.ts`
-- `utils/Offer.utils.ts`
+- `Offer.md`
+- `interfaces/`
+  - `Offer.types.ts`
+- `repositories/`
+  - `OfferRepository.ts`
+- `stores/`
+  - `offerStoreCreator.ts`
+  - `offerStore.native.ts`
+  - `offerStore.web.ts`
+  - `offerStore.ts`
+- `utils/`
+  - `OfferFactory.ts`
+  - `getOffer.ts`
+  - `OfferUtilities.ts`
+- `hooks/`
+  - `useOfferItem.ts`
+  - `useOfferList.ts`
+  - `useOfferSimilarList.ts`
 
 ---
 
 ## 1) Domain Model
 
-### `Offer.ts`
-Primary offer model utilities:
+### `Offer.ts` (Facade)
+Primary entry point for the Offer feature, re-exporting:
+- **Types**: all domain contracts from `interfaces/Offer.types.ts`.
+- **Factory & Converter**: `newOffer` and `offerConverter` from `utils/OfferFactory.ts`.
+- **Utilities**: `updateOfferOnCancellation` from `utils/OfferUtilities.ts` and `getBusinessOfferItem` / `getOffer` from `utils/getOffer.ts`.
+- **Stores**: `useOfferStore` from `stores/offerStore.ts`.
+- **Hooks**: `useOfferItem`, `useOfferList`, `useOfferSimilarList` from `hooks/`.
+- **Repositories**: `OfferRepo` from `@/src/core/init/repositories` and `OfferRepository` from `repositories/OfferRepository.ts`.
 
-- **`Offer` interface**: concrete app-facing offer type (`Date`-based fields).
-- **`createOffer(init?)`**: factory that creates a default offer object and merges overrides.
-- **`offerFromFirestore(id, data)`**: maps Firestore data to app model:
-  - converts timestamp fields to `Date`,
-  - normalizes optional fields (`endDate`, `duration`, `thingsToBring`, `reminders`),
-  - maps nested schedule activity times to `Date`.
-- **`offerToFirestore(offer)`**: maps app model to Firestore shape:
-  - uses server timestamp semantics for `createdAt/updatedAt`,
-  - converts `Date` fields to Firestore `Timestamp`,
-  - serializes nested schedule activity times.
-- **`offerConverter`**: Firestore data converter for typed reads/writes.
+### `utils/OfferFactory.ts`
+- **`newOffer(init?)`**: factory function returning a default initialized `Offer` object merged with optional overrides.
+- **`offerConverter`**: Firestore data converter for typed reads/writes using internal mappers (`offerFromFirestore` and `offerToFirestore`).
 
 ### `interfaces/Offer.types.ts`
 Type contracts for offer data:
@@ -40,13 +48,9 @@ Type contracts for offer data:
 - **`IActivity<T>` / `ISchedule<T>`**: itinerary schedule types.
 - **`IOfferBase<T>`**: full offer record shape (id, timestamps, business/trail refs, schedule).
 - **`IOfferDB`**: Firestore shape (`Timestamp | FieldValue`).
-- **`IOffer`**: app/runtime shape (`Date`).
+- **`IOffer` / `Offer`**: app/runtime shape (`Date`).
 - **`IOfferSummary<T>`**: lightweight summary type.
 - **`OfferParams`**: `{ id, businessId }`, used by repository/store methods.
-
-### `XOffer.ts`
-Legacy/experimental class-based model implementation (currently commented out).  
-It mirrors the function-based implementation in `Offer.ts` but is not active.
 
 ---
 

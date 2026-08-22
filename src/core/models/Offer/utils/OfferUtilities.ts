@@ -1,5 +1,5 @@
 import { Booking } from "@/src/core/models/Booking/Booking";
-import { Offer } from "@/src/core/models/Offer/OfferFactory";
+import { Offer } from "@/src/core/models/Offer/interfaces/Offer.types";
 
 export const updateOfferOnCancellation = (offer: Offer, originalBooking: Booking): Offer => {
     

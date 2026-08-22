@@ -1,14 +1,14 @@
 import { Offer, OfferParams } from "@/src/core/models/Offer/interfaces/Offer.types";
-import { createOffer, offerConverter } from "@/src/core/models/Offer/OfferFactory";
+import { newOffer, offerConverter } from "@/src/core/models/Offer/utils/OfferFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, or, query, setDoc, where } from 'firebase/firestore';
 
 const createOffersCollection = (db: any, businessId: string) => {
     return collection(db, 'businesses', businessId, 'offers').withConverter(offerConverter);
-} 
+}
 
-const createOffersGroupCollection = (db: any) => {    
+const createOffersGroupCollection = (db: any) => {
     return collectionGroup(db, 'offers').withConverter(offerConverter);
-} 
+}
 
 export const OfferRepository = (db: any) => ({
     /**
@@ -19,13 +19,13 @@ export const OfferRepository = (db: any) => ({
         try {
             const offerCollection = createOffersGroupCollection(db);
             const snapshot = await getDocs(offerCollection);
-            
-            if(snapshot.empty) return [];
-            
+
+            if (snapshot.empty) return [];
+
             console.log('Sucessfully fetched all offers');
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
-            if(err instanceof Error) throw err;
+            if (err instanceof Error) throw err;
             throw new Error('Failed to fetch offer')
         }
     },
@@ -39,13 +39,13 @@ export const OfferRepository = (db: any) => ({
         try {
             const offerCollection = createOffersCollection(db, businessId);
             const snapshot = await getDocs(offerCollection);
-            
-            if(snapshot.empty) return [];
-            
+
+            if (snapshot.empty) return [];
+
             console.log('Sucessfully fetched offers for business: ', businessId);
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
-            if(err instanceof Error) throw err;
+            if (err instanceof Error) throw err;
             throw new Error('Failed fetching business offers')
         }
     },
@@ -55,17 +55,17 @@ export const OfferRepository = (db: any) => ({
      * @param trailId The ID of the trail for which to fetch offers.
      * @returns 
      */
-    async fetchAllTrailOffers(trailId: string): Promise<Offer[] | []>{
+    async fetchAllTrailOffers(trailId: string): Promise<Offer[] | []> {
         try {
-            if(!trailId) throw new Error('Trail ID missing'); 
+            if (!trailId) throw new Error('Trail ID missing');
 
             const ref = collectionGroup(db, 'offers');
             const q = query(ref, where('trail.id', '==', trailId));
 
             const querySnapshot = await getDocs(q);
 
-            if(querySnapshot.empty) return [];
-            
+            if (querySnapshot.empty) return [];
+
             console.log('Sucessfully fetched offers for trail: ', trailId);
             return querySnapshot.docs.map(docsnap => docsnap.data() as Offer);
         } catch (err: any) {
@@ -85,7 +85,7 @@ export const OfferRepository = (db: any) => ({
             const ref = doc(offerCollection, id)
             const snap = await getDoc(ref);
 
-            if(!snap.exists()) return null;
+            if (!snap.exists()) return null;
 
             console.log('Sucessfully fetched offer: ', snap.id);
             return snap.data();
@@ -94,7 +94,7 @@ export const OfferRepository = (db: any) => ({
             throw new Error('Failed to fetch offer')
         }
     },
-    
+
     /**
      * Fetches an offer by its ID.
      * @param offerId The ID of the offer to fetch.
@@ -106,7 +106,7 @@ export const OfferRepository = (db: any) => ({
             const ref = query(offerCollection, where('id', '==', offerId));
             const snap = await getDocs(ref);
 
-            if(snap.empty) {
+            if (snap.empty) {
                 console.log('No offer found in repo', offerId);
                 return null
             };
@@ -125,8 +125,8 @@ export const OfferRepository = (db: any) => ({
      * @returns 
      */
     async write(data: Offer): Promise<Offer> {
-        try {            
-            let offer = createOffer(data);
+        try {
+            let offer = newOffer(data);
 
             const create = offer.id === '';
 
@@ -136,11 +136,11 @@ export const OfferRepository = (db: any) => ({
                 ? doc(col)
                 : doc(col, data.id);
 
-            if(create) offer.id = businessOfferRef.id;
-            
-            await setDoc(businessOfferRef, offer, {merge: true});
+            if (create) offer.id = businessOfferRef.id;
 
-            if(!create) {
+            await setDoc(businessOfferRef, offer, { merge: true });
+
+            if (!create) {
                 // TODO: implement notification to reserved users about the changes in the offer
                 alert('notify reserved users about the changes');
             }
@@ -162,7 +162,7 @@ export const OfferRepository = (db: any) => ({
             const offerCollection = createOffersGroupCollection(db);
 
             const q = query(
-                offerCollection, 
+                offerCollection,
                 or(
                     where('trail.id', '==', offer.trail.id),
                     where('price', '==', offer.price),
@@ -172,7 +172,7 @@ export const OfferRepository = (db: any) => ({
 
             const snap = await getDocs(q);
 
-            if(snap.empty) return [];
+            if (snap.empty) return [];
             return snap.docs.map(doc => doc.data());
         } catch (err) {
             throw err;
@@ -184,7 +184,7 @@ export const OfferRepository = (db: any) => ({
      * @param OfferParams An object containing the offer ID and business ID.
      * @returns
      */
-    async delete({id, businessId}: OfferParams): Promise<void> {
+    async delete({ id, businessId }: OfferParams): Promise<void> {
         try {
             const offerCollection = createOffersCollection(db, businessId)
             const docRef = doc(offerCollection, id);

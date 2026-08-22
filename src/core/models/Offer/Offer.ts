@@ -1,36 +1,24 @@
-import { Offer } from '@/src/core/models/Offer/interfaces/Offer.types';
-import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
 // TYPES
 export * from "@/src/core/models/Offer/interfaces/Offer.types";
 
-export { OfferRepository } from "@/src/core/models/Offer/repositories/OfferRepository";
-
-// FACTORY
-export { createOffer, createOffer as newOffer } from "@/src/core/models/Offer/OfferFactory";
-
-
-// REPOSITORY
-export { OfferRepo } from "@/src/core/init/repositories";
-
-
-
-// HOOKS 
-export { useOfferItem } from '@/src/core/models/Offer/hooks/useOfferItem';
-export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
+// FACTORY & CONVERTER
+export {
+    newOffer,
+    offerConverter
+} from "@/src/core/models/Offer/utils/OfferFactory";
 
 // UTILITIES
+export { getBusinessOfferItem, getOffer } from "@/src/core/models/Offer/utils/getOffer";
 export { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/OfferUtilities";
 
-
-// STORE ACCESS
+// STORES
 export { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 
-export const getBusinessOfferItem = async (offerId: string): Promise<Offer | null> => {
-    await useOfferStore.getState().fetchOfferById(offerId);
-    return useOfferStore.getState().data.find(offer => offer.id === offerId) || null;
-}
+// HOOKS
+export { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
+export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
+export { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
 
-export const getOffer = async (offerId: string): Promise<Offer | null> => {
-    await useOfferStore.getState().fetchOfferById(offerId);
-    return useOfferStore.getState().data.find(o => o.id === offerId) || null;
-}
+// REPOSITORIES
+export { OfferRepo } from "@/src/core/init/repositories";
+export { OfferRepository } from "@/src/core/models/Offer/repositories/OfferRepository";

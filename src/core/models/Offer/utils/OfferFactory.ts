@@ -1,10 +1,8 @@
-import { IOffer, IOfferDB } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { IOfferDB, Offer } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
-export interface Offer extends IOffer {}
-
-export const createOffer = (init?: Partial<IOffer>): IOffer => {
+export const newOffer = (init?: Partial<Offer>): Offer => {
     return {
         id: '',
         createdAt: new Date(),
@@ -28,7 +26,7 @@ export const createOffer = (init?: Partial<IOffer>): IOffer => {
     };
 };
 
-export const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
+const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
     return {
         id,
         createdAt: toDate(data.createdAt),
@@ -61,9 +59,9 @@ export const offerFromFirestore = (id: string, data: IOfferDB): Offer => {
     };
 };
 
-export const offerToFirestore = (offer: Offer): IOfferDB => {
+const offerToFirestore = (offer: Offer): IOfferDB => {
     const isNew = offer.id === '';
-    
+
     return {
         id: offer.id,
         createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(offer.createdAt),
@@ -90,7 +88,7 @@ export const offerToFirestore = (offer: Offer): IOfferDB => {
                         ...activity,
                         time: Timestamp.fromDate(activity.time),
                     };
-                })                    
+                })
             };
         })
     };

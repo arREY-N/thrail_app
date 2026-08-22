@@ -6,8 +6,11 @@ export function useOfferItem(offerId: string) {
 
     useEffect(() => {
         if(!offerId) return;
-        useOfferStore.getState().fetchOfferById(offerId);
-    },[offerId])
+        const fetch = async () => {
+            await useOfferStore.getState().fetchOfferById(offerId);
+        };
+        fetch();
+    }, [offerId]);
 
     return {
         offer,
