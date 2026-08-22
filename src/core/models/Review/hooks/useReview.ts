@@ -1,7 +1,7 @@
 
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Review } from "@/src/core/models/Review/Review";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
+import { Review } from "@/src/core/models/Review/interfaces/Review.types";
+import { UserLogic } from "@/src/core/models/User/User";
 import { useReviewStore } from "@/src/core/stores/reviewStore";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -11,14 +11,11 @@ export type ReviewDomainParams = {
     reviewId?: string;
 }
 
-export default function useReview() {
+export function useReview() {
     const { profile } = useAuthHook();
 
     const reviews = useReviewStore(s => s.reviews);
     const like = useReviewStore(s => s.likeReview);
-    const isLoading = useReviewStore(s => s.isLoading);
-    const error = useReviewStore(s => s.error);
-    const refreshFeed = useReviewStore(s => s.refresh);
     const [localError, setLocalError] = useState<string | null>(null);
 
     const onWriteReviewPress = (id?: string) => {
@@ -75,18 +72,12 @@ export default function useReview() {
         return totalRating / itemReviews.length;
     }
 
-    const myReviews = reviews.filter(r => isOwned(r));
-
     return {
         onWriteReviewPress,
-        isOwned,
         likeReview,
         isLiked,
-        refreshFeed,
         getItemRating,
-        reviews,
-        isLoading,
-        error: error || localError,
-        myReviews
+        isOwned,
+        localError
     }
 }

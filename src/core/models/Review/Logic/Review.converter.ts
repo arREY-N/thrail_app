@@ -1,4 +1,4 @@
-import { DifficultyRating } from "@/src/core/models/Review/Review.types";
+import { DifficultyRating } from "@/src/core/models/Review/interfaces/Review.types";
 
 export function toNumerical(rating: DifficultyRating | string): number {
     switch (rating) {
@@ -23,12 +23,12 @@ export function toTextual(rating: number): DifficultyRating {
         case 1:
             return "Easy";
         case 2:
-            return "Just Right";    
+            return "Just Right";
         case 3:
             return "Moderate";
         case 4:
-            return "Hard";  
-        case 5: 
+            return "Hard";
+        case 5:
             return "Extreme";
         default:
             return "undefined";
