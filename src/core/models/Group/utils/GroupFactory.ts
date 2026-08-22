@@ -1,8 +1,8 @@
-import { Group, IGroup, IGroupDB } from "@/src/core/models/Group/interfaces/IGroup";
+import { Group, IGroupDB } from "@/src/core/models/Group/interfaces/Group.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
-export const newGroup = (groupData: Partial<IGroup> = {}): Group => {
+export const newGroup = (init?: Partial<Group>): Group => {
     return {
         id: '',
         type: 'group',
@@ -18,14 +18,14 @@ export const newGroup = (groupData: Partial<IGroup> = {}): Group => {
         trail: {
             id: '',
             name: '',
-            location: ''
+            location: '',
         },
         offer: {
-            id: "",
+            id: '',
             schedule: [],
             date: new Date(),
             endDate: new Date(),
-            duration: "",
+            duration: '',
             price: 0,
             maxPax: 0,
             minPax: 0,
@@ -34,9 +34,9 @@ export const newGroup = (groupData: Partial<IGroup> = {}): Group => {
             inclusions: [],
             thingsToBring: [],
             reminders: [],
-            description: ""
+            description: '',
         },
-        status: "active",
+        status: 'active',
         lastMessage: {
             id: '',
             content: '',
@@ -44,14 +44,14 @@ export const newGroup = (groupData: Partial<IGroup> = {}): Group => {
             senderName: '',
             timesent: new Date(),
             status: 'sent',
-            readBy: []
+            readBy: [],
         },
         image: '',
-        ...groupData
-    }   
-}
+        ...init,
+    };
+};
 
-export const groupFromFirestore = (id: string, data: IGroupDB): Group => {
+const groupFromFirestore = (id: string, data: IGroupDB): Group => {
     return {
         ...data,
         id,
@@ -65,19 +65,19 @@ export const groupFromFirestore = (id: string, data: IGroupDB): Group => {
                 ...s,
                 activities: (s.activities ?? []).map(a => ({
                     ...a,
-                    time: toDate(a.time)
-                }))
-            }))
+                    time: toDate(a.time),
+                })),
+            })),
         },
         lastMessage: data.lastMessage ? {
             ...data.lastMessage,
-            timesent: toDate(data.lastMessage.timesent)
+            timesent: toDate(data.lastMessage.timesent),
         } : null,
-        participantsIds: data.participantsIds ?? []
-    }
-}
+        participantsIds: data.participantsIds ?? [],
+    };
+};
 
-export const groupToFirestore = (group: Group): IGroupDB => {
+const groupToFirestore = (group: Group): IGroupDB => {
     const isNew = group.id === '';
 
     const mapped: IGroupDB = {
@@ -104,33 +104,33 @@ export const groupToFirestore = (group: Group): IGroupDB => {
             description: group.offer.description,
             date: Timestamp.fromDate(group.offer.date || new Date()),
             endDate: isNew ? serverTimestamp() : Timestamp.fromDate(group.offer.endDate || new Date()),
-            schedule: group.offer.schedule.map(s => ({
+            schedule: (group.offer?.schedule ?? []).map(s => ({
                 day: s.day,
-                activities: s.activities.map(a => ({
+                activities: (s.activities ?? []).map(a => ({
                     event: a.event,
-                    time: Timestamp.fromDate(a.time || new Date())
-                }))
-            }))
+                    time: Timestamp.fromDate(a.time || new Date()),
+                })),
+            })),
         },
-        lastMessage: group.lastMessage === null 
-            ? null 
+        lastMessage: group.lastMessage === null
+            ? null
             : {
                 ...group.lastMessage,
-                timesent: Timestamp.fromDate(group.lastMessage.timesent)
+                timesent: Timestamp.fromDate(group.lastMessage.timesent),
             },
         status: group.status,
-        image: group.image
+        image: group.image,
     };
 
     return mapped;
-}
+};
 
-export const GroupConverter: FirestoreDataConverter<Group> = {
+export const groupConverter: FirestoreDataConverter<Group> = {
     toFirestore: (group: Group) => {
         return groupToFirestore(group);
     },
     fromFirestore: (snapshot: QueryDocumentSnapshot): Group => {
         const data = snapshot.data() as IGroupDB;
         return groupFromFirestore(snapshot.id, data);
-    }
-}
+    },
+};

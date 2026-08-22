@@ -1,5 +1,5 @@
-import { GroupConverter } from "@/src/core/models/Group/GroupFactory";
-import { Group } from "@/src/core/models/Group/interfaces/IGroup";
+import { Group } from "@/src/core/models/Group/interfaces/Group.types";
+import { groupConverter } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message, MessageConverter } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
 import {
@@ -16,21 +16,21 @@ import {
     setDoc,
     Unsubscribe,
     updateDoc,
-    where
+    where,
 } from "firebase/firestore";
 
 export const GroupRepository = (db: Firestore) => ({
     async fetchGroup(groupId: string): Promise<Group> {
         try {
-            const docRef = doc(db, 'groups', groupId).withConverter(GroupConverter);
+            const docRef = doc(db, 'groups', groupId).withConverter(groupConverter);
             const docSnap = await getDoc(docRef);
 
             if (!docSnap.exists())
                 throw new Error('Group not found');
-                        
+
             return docSnap.data();
         } catch (error) {
-            console.log('MessageRepository Error:', error);
+            console.log('GroupRepository fetchGroup Error:', error);
             throw error;
         }
     },
@@ -40,10 +40,10 @@ export const GroupRepository = (db: Firestore) => ({
             collection(db, 'groups'),
             where('participantsIds', 'array-contains', userId),
             orderBy('updatedAt', 'desc')
-        ).withConverter(GroupConverter);
+        ).withConverter(groupConverter);
 
         return onSnapshot(q, (snapshot) => {
-            onUpdate(snapshot.docs.map(doc => doc.data()));
+            onUpdate(snapshot.docs.map(d => d.data()));
         }, (error) => {
             console.error('Error in listenToUserGroups: ', error);
         });
@@ -52,14 +52,14 @@ export const GroupRepository = (db: Firestore) => ({
     listenToMessages(groupId: string, limitCount: number, onUpdate: (messages: Message[], fromCache: boolean) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups', groupId, 'messages'),
-            orderBy('timesent', 'desc'), // Flipped to desc to get the newest messages
-            limit(limitCount) // Capped to prevent Firebase read spikes
+            orderBy('timesent', 'desc'),
+            limit(limitCount)
         ).withConverter(MessageConverter);
 
         return onSnapshot(q, (snapshot) => {
-            onUpdate(snapshot.docs.map(doc => doc.data()), snapshot.metadata.fromCache);
+            onUpdate(snapshot.docs.map(d => d.data()), snapshot.metadata.fromCache);
         }, (error) => {
-            console.error('Error in listenToMessages: ', error);    
+            console.error('Error in listenToMessages: ', error);
         });
     },
 
@@ -68,10 +68,10 @@ export const GroupRepository = (db: Firestore) => ({
             const create = group.id === '';
 
             const ref = create
-                ? doc(collection(db, 'groups')).withConverter(GroupConverter)
-                : doc(collection(db, 'groups'), group.id).withConverter(GroupConverter);
-            
-            await setDoc(ref, group, {merge: true});
+                ? doc(collection(db, 'groups')).withConverter(groupConverter)
+                : doc(collection(db, 'groups'), group.id).withConverter(groupConverter);
+
+            await setDoc(ref, group, { merge: true });
         } catch (error) {
             throw error;
         }
@@ -81,7 +81,7 @@ export const GroupRepository = (db: Firestore) => ({
         try {
             const messagesCol = collection(db, 'groups', groupId, 'messages').withConverter(MessageConverter);
             const messageRef = doc(messagesCol);
-            
+
             message.id = messageRef.id;
 
             await setDoc(messageRef, message);
@@ -93,7 +93,7 @@ export const GroupRepository = (db: Firestore) => ({
             }, { merge: true });
 
         } catch (error) {
-            console.log('MessageRepository Error:', error);
+            console.log('GroupRepository sendMessage Error:', error);
             throw error;
         }
     },
@@ -113,14 +113,14 @@ export const GroupRepository = (db: Firestore) => ({
 
             // Update the actual message
             await updateDoc(messageRef, {
-                readBy: arrayUnion(readUser)
+                readBy: arrayUnion(readUser),
             });
 
             // Update the parent group so the Group List unread dot disappears
             await updateDoc(groupRef, {
-                'lastMessage.readBy': arrayUnion(readUser)
+                'lastMessage.readBy': arrayUnion(readUser),
             });
-            
+
         } catch (error) {
             console.log('Failed to mark as read:', error);
         }
@@ -139,13 +139,11 @@ export const GroupRepository = (db: Firestore) => ({
             };
 
             // Merge visited user into the group-level lastMessage.readBy.
-            // This clears the unread indicator on the Group List without
-            // needing any message documents to exist.
             await updateDoc(groupRef, {
-                'lastMessage.readBy': arrayUnion(visitedUser)
+                'lastMessage.readBy': arrayUnion(visitedUser),
             });
         } catch {
             // Non-critical — swallow silently if group has no lastMessage yet
         }
-    }
-})
+    },
+});

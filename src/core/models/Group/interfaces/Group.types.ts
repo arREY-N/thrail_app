@@ -1,8 +1,8 @@
-import { IBusinessSummary } from "@/src/core/models/Business/Business.types";
+import { IBusinessSummary } from "@/src/core/models/Business/Business";
 import { IMessageBase } from "@/src/core/models/Message/Message.types";
-import { IOfferBase } from "@/src/core/models/Offer/interfaces/Offer.types";
-import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IOfferBase } from "@/src/core/models/Offer/Offer";
+import { ITrailSummary } from "@/src/core/models/Trail/Trail";
+import { IUserSummary } from "@/src/core/models/User/User";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IGroupMember extends IUserSummary {
@@ -23,9 +23,8 @@ export interface IGroupBase<T> {
     status: 'active' | 'archived';
     lastMessage: IMessageBase<T> | null;
     image: string;
-
 }
 
-export interface IGroupDB extends IGroupBase<Timestamp | FieldValue> {}
-export interface IGroup extends IGroupBase<Date>{}
-export interface Group extends IGroup {}
+export type IGroupDB = IGroupBase<Timestamp | FieldValue>;
+export type Group = IGroupBase<Date>;
+export type IGroup = Group;
