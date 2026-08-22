@@ -10,9 +10,9 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IPreference } from '@/src/core/models/User/User.types';
+import { IPreference } from '@/src/core/models/User/interfaces/User.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 /**
@@ -108,21 +108,21 @@ const HikingPreferencesScreen = ({ preferences, onBackPress, onEditPress }: Hiki
                 onClose={() => setShowEditModal(false)}
             />
 
-            <CustomHeader 
-                title="Hiking Preferences" 
-                centerTitle 
-                onBackPress={onBackPress} 
+            <CustomHeader
+                title="Hiking Preferences"
+                centerTitle
+                onBackPress={onBackPress}
                 rightActions={
                     <TouchableOpacity onPress={() => setShowEditModal(true)} style={styles.headerIcon}>
                         <CustomIcon library="Feather" name="edit-2" size={20} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 }
             />
-            
+
             <ScrollView contentContainerStyle={[styles.content, !isMobile && styles.desktopContent]} showsVerticalScrollIndicator={false}>
-                
+
                 <View style={[styles.layoutContainer, !isMobile && styles.desktopLayoutContainer]}>
-                    
+
                     {/* Hiker Profile Summary Header block */}
                     <View style={[styles.experienceCard, !isMobile && styles.experienceCardDesktop]}>
                         <View style={[styles.experienceIconCircle, { backgroundColor: expStyles.bg, borderColor: expStyles.border }]}>
@@ -139,7 +139,7 @@ const HikingPreferencesScreen = ({ preferences, onBackPress, onEditPress }: Hiki
 
                     {/* Unified preferences rows inside a single clean container card */}
                     <View style={[styles.detailsBlock, !isMobile && styles.detailsBlockDesktop]}>
-                        
+
                         {/* Hike length / Duration */}
                         <View style={styles.detailsRow}>
                             <View style={styles.rowHeader}>

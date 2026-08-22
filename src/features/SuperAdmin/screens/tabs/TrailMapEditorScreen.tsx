@@ -25,7 +25,7 @@ import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Trail } from '@/src/core/models/Trail/Trail';
-import { IOfflinePoint } from '@/src/core/models/Trail/Trail.types';
+import { IOfflinePoint } from '@/src/core/models/Trail/interfaces/Trail.types';
 import StaticTrailMap from '@/src/features/Map/StaticTrailMap';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
@@ -269,8 +269,8 @@ const TrailMapEditorScreen = ({
             <SuperadminShell
                 activeTab="trail"
                 pendingCount={pendingCount}
-                onTabPress={onTabPress || (() => {})}
-                onBackToSettings={onBackToSettings || (() => {})}
+                onTabPress={onTabPress || (() => { })}
+                onBackToSettings={onBackToSettings || (() => { })}
                 titleOverride={`Map Editor · ${trailName}`}
                 leftActionOverride={backHeaderAction}
                 rightActions={headerRightActionsWeb}

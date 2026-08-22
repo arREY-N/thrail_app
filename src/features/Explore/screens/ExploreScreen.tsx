@@ -17,7 +17,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { ITrail } from "@/src/core/models/Trail/Trail.types";
+import { ITrail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
@@ -58,20 +58,20 @@ interface ActiveFilters {
  * ExploreScreen — The primary discovery view containing category tabs, 
  * Province/Elevation filters, search queries, and a responsive grid layout.
  */
-const ExploreScreen: React.FC<ExploreScreenProps> = ({ 
-    trails, 
-    onViewMountain, 
-    onGroupPress, 
-    getItemRating, 
-    isLoading, 
-    initialCategory = "All", 
-    offers = [] 
+const ExploreScreen: React.FC<ExploreScreenProps> = ({
+    trails,
+    onViewMountain,
+    onGroupPress,
+    getItemRating,
+    isLoading,
+    initialCategory = "All",
+    offers = []
 }) => {
     const [weatherMap, setWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
     const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [isFilterModalVisible, setIsFilterModalVisible] = useState<boolean>(false);
-    
+
     const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
         provinces: [],
         elevation: null,
@@ -110,7 +110,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
     const { width, isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
-    const MAX_WIDTH = 1400; 
+    const MAX_WIDTH = 1400;
     const effectiveWidth = Math.min(width, MAX_WIDTH);
     const containerPadding = 16;
     const gap = 16;
@@ -141,11 +141,11 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
         if (activeFilters.provinces.length > 0) {
             result = result.filter((t: ITrail) => {
-                const targetProvinces = Array.isArray(t.general?.province) 
-                    ? t.general.province 
+                const targetProvinces = Array.isArray(t.general?.province)
+                    ? t.general.province
                     : [t.general?.province || t.general?.address || ""];
-                
-                return activeFilters.provinces.some((filterProv: string) => 
+
+                return activeFilters.provinces.some((filterProv: string) =>
                     targetProvinces.some((p: string) => p.toLowerCase().includes(filterProv.toLowerCase()))
                 );
             });
@@ -155,7 +155,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
             result = result.filter((t: ITrail) => {
                 const elevRaw = t.geography?.masl || t.difficulty?.elevation || "0";
                 const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
-                
+
                 if (activeFilters.elevation === '< 500 masl') return elev < 500;
                 if (activeFilters.elevation === '500 - 1000 masl') return elev >= 500 && elev <= 1000;
                 if (activeFilters.elevation === '> 1000 masl') return elev > 1000;
@@ -258,15 +258,15 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                                 </View>
                             ) : (
                                 <View style={styles.emptyState}>
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="trail-sign-outline" 
-                                        size={48} 
-                                        color={Colors.GRAY_MEDIUM} 
+                                    <CustomIcon
+                                        library="Ionicons"
+                                        name="trail-sign-outline"
+                                        size={48}
+                                        color={Colors.GRAY_MEDIUM}
                                     />
                                     <CustomText style={styles.emptyStateText}>
                                         {searchQuery || activeFilters.provinces.length > 0 || activeFilters.elevation
-                                            ? "No trails match your current filters and search." 
+                                            ? "No trails match your current filters and search."
                                             : `No trails found for "${selectedCategory}".`}
                                     </CustomText>
                                 </View>
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     scrollContentWide: {
-        maxWidth: 1400, 
+        maxWidth: 1400,
         width: '100%',
         alignSelf: 'center',
     },

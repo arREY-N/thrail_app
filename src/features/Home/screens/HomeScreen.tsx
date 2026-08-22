@@ -34,7 +34,7 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
-import { ITrail } from '@/src/core/models/Trail/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
 import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 
 /**
@@ -125,10 +125,10 @@ interface ListSectionProps {
  * @param props - ListSectionProps containing data, callbacks, and layout parameters.
  * @returns React.JSX.Element rendering section header and horizontal card list.
  */
-const ListSection: React.FC<ListSectionProps> = ({ 
-    title, 
-    data, 
-    onViewAll, 
+const ListSection: React.FC<ListSectionProps> = ({
+    title,
+    data,
+    onViewAll,
     isSectionLoading,
     isRefreshing = false,
     error = null,
@@ -165,14 +165,14 @@ const ListSection: React.FC<ListSectionProps> = ({
 
             {/* SKELETON LOADING STATE: Renders shimmering MountainCardSkeleton cards while data is fetching or refreshing */}
             {(isSectionLoading && !hasData) || isRefreshing ? (
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.horizontalList}
                     style={styles.scrollViewStyle}
                 >
                     {[1, 2, 3].map((_, index) => (
-                        <MountainCardSkeleton 
+                        <MountainCardSkeleton
                             key={`skeleton-${title}-${index}`}
                             style={{
                                 width: cardWidth,
@@ -183,36 +183,36 @@ const ListSection: React.FC<ListSectionProps> = ({
                 </ScrollView>
             ) : error && !hasData ? (
                 <View style={styles.emptyStateContainer}>
-                    <CustomIcon 
-                        library="Ionicons" 
-                        name="alert-circle-outline" 
-                        size={48} 
-                        color={Colors.RED} 
+                    <CustomIcon
+                        library="Ionicons"
+                        name="alert-circle-outline"
+                        size={48}
+                        color={Colors.RED}
                     />
                     <CustomText variant="caption" style={styles.emptyStateText}>
-                        {title === "Recommendations" 
+                        {title === "Recommendations"
                             ? "Failed to load recommendations. Pull down to refresh."
                             : "Failed to load trails. Pull down to refresh."}
                     </CustomText>
                 </View>
             ) : hasData ? (
-                <ScrollView 
+                <ScrollView
                     ref={scrollRef}
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.horizontalList}
-                    style={styles.scrollViewStyle} 
+                    style={styles.scrollViewStyle}
                 >
                     {data.map((item) => (
-                        <MountainCard 
+                        <MountainCard
                             rating={getItemRating(item.id)}
                             key={`${title}-${item.id}`}
                             item={item}
                             onPress={() => onMountainPress(item.id)}
                             onDownload={() => onDownloadPress(item.id)}
-                            style={{ 
+                            style={{
                                 width: cardWidth,
-                                marginRight: 16 
+                                marginRight: 16
                             }}
                             weatherBadge={mountainWeatherMap[item.id] ?? null}
                             offersCount={getTrailOffersCount(item.id)}
@@ -226,11 +226,11 @@ const ListSection: React.FC<ListSectionProps> = ({
                         /* New User (Cold Start): user profile has no logged hikes */
                         isNewAccountSection ? (
                             <>
-                                <CustomIcon 
-                                    library="Ionicons" 
-                                    name="bulb-outline" 
-                                    size={48} 
-                                    color={Colors.GRAY_MEDIUM} 
+                                <CustomIcon
+                                    library="Ionicons"
+                                    name="bulb-outline"
+                                    size={48}
+                                    color={Colors.GRAY_MEDIUM}
                                 />
                                 <CustomText variant="caption" style={styles.emptyStateText}>
                                     No recommendations yet. Start exploring!
@@ -239,11 +239,11 @@ const ListSection: React.FC<ListSectionProps> = ({
                         ) : (
                             /* Regular Empty Recommendations: user has logged hikes but no new recommendation matches */
                             <>
-                                <CustomIcon 
-                                    library="Ionicons" 
-                                    name="trail-sign-outline" 
-                                    size={48} 
-                                    color={Colors.GRAY_MEDIUM} 
+                                <CustomIcon
+                                    library="Ionicons"
+                                    name="trail-sign-outline"
+                                    size={48}
+                                    color={Colors.GRAY_MEDIUM}
                                 />
                                 <CustomText variant="caption" style={styles.emptyStateText}>
                                     No matching recommendations found.
@@ -252,12 +252,12 @@ const ListSection: React.FC<ListSectionProps> = ({
                         )
                     ) : (
                         /* Standard Empty State for all other trail lists */
-                        <> 
-                            <CustomIcon 
-                                library="Ionicons" 
-                                name="trail-sign-outline" 
-                                size={48} 
-                                color={Colors.GRAY_MEDIUM} 
+                        <>
+                            <CustomIcon
+                                library="Ionicons"
+                                name="trail-sign-outline"
+                                size={48}
+                                color={Colors.GRAY_MEDIUM}
                             />
                             <CustomText variant="caption" style={styles.emptyStateText}>
                                 No trails available yet.
@@ -265,7 +265,7 @@ const ListSection: React.FC<ListSectionProps> = ({
                         </>
                     )}
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.exploreButton}
                         onPress={() => router.replace('/explore')}
                         activeOpacity={0.7}
@@ -292,7 +292,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     onSeeMoreRecommendationsPress,
     onSeeMoreDiscoverPress,
     onSeeMoreOffersPress,
-    recommendedTrails = [], 
+    recommendedTrails = [],
     discoverTrails = [],
     trailsWithOffers = [],
     isOffersLoading = false,
@@ -325,7 +325,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     const reloadMountainWeatherBadges = useCallback(() => {
         const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
         if (allVisibleTrails.length === 0) return;
-        
+
         const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
             .map(id => allVisibleTrails.find(t => t.id === id))
             .filter((t): t is ITrail => t !== undefined);
@@ -345,24 +345,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
+            <CustomHeader
                 title="Home"
-                showDefaultIcons={true} 
+                showDefaultIcons={true}
             />
 
-            <ResponsiveScrollView 
-                style={styles.container} 
+            <ResponsiveScrollView
+                style={styles.container}
                 contentContainerStyle={[
                     styles.scrollContent,
                     isWideScreen && styles.scrollContentWide
                 ]}
                 showsVerticalScrollIndicator={false}
-                alwaysBounceVertical={true} 
-                overScrollMode={hasAnyTrails ? 'auto' : 'never'} 
+                alwaysBounceVertical={true}
+                overScrollMode={hasAnyTrails ? 'auto' : 'never'}
                 scrollEnabled={true}
                 refreshControl={
                     onRefreshPress ? (
-                        <RefreshControl 
+                        <RefreshControl
                             refreshing={isRefreshing}
                             onRefresh={async () => {
                                 await refetch();
@@ -377,7 +377,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     ) : undefined
                 }
             >
-                <WeatherSection 
+                <WeatherSection
                     weatherData={weatherData}
                     loading={loading || isLocating}
                     isRefreshing={isRefreshing}
@@ -387,10 +387,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     locationName={geocodedName || locationName}
                 />
 
-                <ListSection 
-                    title="Recommendations" 
-                    data={recommendedTrails} 
-                    onViewAll={onSeeMoreRecommendationsPress} 
+                <ListSection
+                    title="Recommendations"
+                    data={recommendedTrails}
+                    onViewAll={onSeeMoreRecommendationsPress}
                     isSectionLoading={isLoading || isRecommendationsLoading}
                     isRefreshing={isRefreshing}
                     error={recommendationsError}
@@ -404,10 +404,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                     getTrailOffersCount={getTrailOffersCount}
                 />
 
-                <ListSection 
-                    title="Discover" 
+                <ListSection
+                    title="Discover"
                     data={discoverTrails}
-                    onViewAll={onSeeMoreDiscoverPress} 
+                    onViewAll={onSeeMoreDiscoverPress}
                     isSectionLoading={isLoading}
                     isRefreshing={isRefreshing}
                     error={discoverError}
@@ -421,10 +421,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                 />
 
                 {trailsWithOffers.length > 0 && (
-                    <ListSection 
-                        title="Upcoming Offers" 
+                    <ListSection
+                        title="Upcoming Offers"
                         data={trailsWithOffers}
-                        onViewAll={onSeeMoreOffersPress} 
+                        onViewAll={onSeeMoreOffersPress}
                         isSectionLoading={isLoading || isOffersLoading}
                         isRefreshing={isRefreshing}
                         cardWidth={cardWidth}
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
         width: '100%',
         ...Platform.select({
             web: {
-                paddingBottom: 4, 
+                paddingBottom: 4,
                 marginBottom: -4,
             }
         })
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
         paddingBottom: 0,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.BACKGROUND, 
+        backgroundColor: Colors.BACKGROUND,
         opacity: 0.8,
         gap: 8,
     },

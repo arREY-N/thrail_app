@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-    Platform,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 import CustomFAB from '@/src/components/CustomFAB';
@@ -16,7 +15,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Review } from '@/src/core/models/Review/Review';
-import { IUser, Role } from '@/src/core/models/User/User.types';
+import { IUser, Role } from '@/src/core/models/User/interfaces/User.types';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
@@ -46,7 +45,7 @@ export interface ProfileScreenProps {
     /** The active role of the current user */
     role?: Role | null;
     /** Statistical milestones for the user */
-    stats?: import('@/src/features/Profile/tabs/MilestonesTab').MilestonesTabProps['stats']; 
+    stats?: import('@/src/features/Profile/tabs/MilestonesTab').MilestonesTabProps['stats'];
     /** An array of reviews/hikes the user has logged */
     hikeLog?: Review[];
     /** Callback for the settings gear icon */
@@ -89,17 +88,17 @@ const ProfileScreen = ({
 }: ProfileScreenProps) => {
 
     const [activeTab, setActiveTab] = useState<'Milestones' | 'Hike Log'>('Milestones');
-    
+
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth: number | `${number}%` = isDesktop ? 800 : (isTablet ? 650 : '100%');
     const responsiveAlignStyle = { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' as const };
 
-    const userName = profile?.firstname 
-        ? `${profile.firstname} ${profile.lastname}` 
+    const userName = profile?.firstname
+        ? `${profile.firstname} ${profile.lastname}`
         : 'User Name';
-    
-    const userHandle = profile?.username 
-        ? `@${profile.username}` 
+
+    const userHandle = profile?.username
+        ? `@${profile.username}`
         : '@username';
 
     let createdDate = 'Mar 2026';
@@ -120,16 +119,16 @@ const ProfileScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <CustomHeader 
+
+            <CustomHeader
                 title="Profile"
-                showDefaultIcons={true} 
+                showDefaultIcons={true}
                 style={styles.transparentHeader}
             />
 
-            <ResponsiveScrollView 
+            <ResponsiveScrollView
                 contentContainerStyle={styles.scrollContent}
-                stickyHeaderIndices={[1]} 
+                stickyHeaderIndices={[1]}
             >
                 <View style={[styles.userBanner, responsiveAlignStyle]}>
                     <View style={styles.userInfoLeft}>
@@ -138,7 +137,7 @@ const ProfileScreen = ({
                                 {userInitials}
                             </CustomText>
                         </View>
-                        
+
                         <View style={styles.identityTextGroup}>
                             <CustomText variant="h2" style={styles.userNameText}>
                                 {userName}
@@ -152,41 +151,41 @@ const ProfileScreen = ({
                         </View>
                     </View>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.settingsButton}
                         onPress={onSettingsPress}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="settings" 
-                            size={22} 
-                            color={Colors.TEXT_PRIMARY} 
+                        <CustomIcon
+                            library="Feather"
+                            name="settings"
+                            size={22}
+                            color={Colors.TEXT_PRIMARY}
                         />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.stickyTabWrapper}>
                     <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={[
-                                styles.tabButton, 
+                                styles.tabButton,
                                 activeTab === 'Milestones' && styles.tabButtonActive
                             ]}
                             onPress={() => setActiveTab('Milestones')}
                             activeOpacity={0.9}
                         >
-                            <CustomIcon 
-                                library="Ionicons" 
-                                name="stats-chart" 
-                                size={activeTab === 'Milestones' ? 22 : 20} 
-                                color={activeTab === 'Milestones' ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                            <CustomIcon
+                                library="Ionicons"
+                                name="stats-chart"
+                                size={activeTab === 'Milestones' ? 22 : 20}
+                                color={activeTab === 'Milestones' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                             />
-                                
-                            <CustomText 
+
+                            <CustomText
                                 style={[
-                                    styles.tabText, 
+                                    styles.tabText,
                                     activeTab === 'Milestones' && styles.tabTextActive
                                 ]}
                             >
@@ -194,23 +193,23 @@ const ProfileScreen = ({
                             </CustomText>
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[
-                                styles.tabButton, 
+                                styles.tabButton,
                                 activeTab === 'Hike Log' && styles.tabButtonActive
                             ]}
                             onPress={() => setActiveTab('Hike Log')}
                             activeOpacity={0.9}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="edit-3" 
-                                size={activeTab === 'Hike Log' ? 22 : 20} 
-                                color={activeTab === 'Hike Log' ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="edit-3"
+                                size={activeTab === 'Hike Log' ? 22 : 20}
+                                color={activeTab === 'Hike Log' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                             />
-                            <CustomText 
+                            <CustomText
                                 style={[
-                                    styles.tabText, 
+                                    styles.tabText,
                                     activeTab === 'Hike Log' && styles.tabTextActive
                                 ]}
                             >
@@ -220,20 +219,20 @@ const ProfileScreen = ({
 
                     </View>
                 </View>
-                
+
                 <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                     {activeTab === 'Milestones' ? (
                         <MilestonesTab stats={stats} />
                     ) : (
-                        <HikeLogTab 
-                            hikeLog={hikeLog} 
+                        <HikeLogTab
+                            hikeLog={hikeLog}
                             onLikeReview={onLikeReview}
                             isLiked={(review) => Boolean(isLiked(review))}
                             onEditReview={(id: string) => onEditReview(id)}
                         />
                     )}
                 </View>
-                
+
             </ResponsiveScrollView>
 
             <CustomFAB onPress={onGroupPress} />
@@ -316,11 +315,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND,
         paddingVertical: 12,
         zIndex: 10,
-        alignItems: 'center', 
+        alignItems: 'center',
     },
     floatingTabsContainer: {
         flexDirection: 'row',
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         padding: 3,
         borderRadius: 20,
     },
@@ -336,16 +335,16 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tabButtonActive: {
-        backgroundColor: Colors.WHITE, 
-        ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 8 }), 
+        backgroundColor: Colors.WHITE,
+        ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 8 }),
     },
     tabText: {
-        fontSize: 14, 
+        fontSize: 14,
         fontWeight: '500',
         color: Colors.TEXT_SECONDARY,
     },
     tabTextActive: {
-        color: Colors.PRIMARY, 
+        color: Colors.PRIMARY,
         fontWeight: 'bold',
     }
 });
