@@ -1,30 +1,33 @@
-# Thrail Recommendation Microservice: Developer Setup & Testing Guide
+# Thrail App Recommendation System (TARS) Microservice Guide
 
-This directory houses the experimental **Hybrid Recommendation System** for Thrail. The system uses a content-based vector search (accelerated by **FAISS**) blended with user-item collaborative filtering (calculated via **Pearson Correlation**).
+This directory houses the official **Thrail App Recommendation System (TARS)** microservice. TARS is a dynamic hybrid recommendation system that utilizes **Gower's Distance Similarity Engine** for mixed data types, **Dynamic Alpha Tuning ($\alpha$)** for cold-start progression, **Incremental Profile Recalibration** via GPS telemetry, **User-User Collaborative Filtering**, and **Upper-Triangular Symmetric Matrix Optimizations**.
 
 ---
 
 ## 1. Project Directory Structure
 
-All files relating to this service are located in the [recommendation_engine/](file:///d:/thrail_app/recommendation_engine) folder:
-*   [app.py](file:///d:/thrail_app/recommendation_engine/app.py) - FastAPI server containing API routing, middleware, and request validations.
-*   [recommender.py](file:///d:/thrail_app/recommendation_engine/recommender.py) - Core recommendation engine (feature extraction, FAISS index, collaborative scoring, and dynamic alpha calculations).
-*   [requirements.txt](file:///d:/thrail_app/recommendation_engine/requirements.txt) - List of Python dependencies.
-*   [test_client.py](file:///d:/thrail_app/recommendation_engine/test_client.py) - Mock client testing script.
+All files relating to this microservice are located in the [recommendation_engine/](file:///d:/thrail_app/recommendation_engine) folder:
+*   [gower_engine.py](file:///d:/thrail_app/recommendation_engine/gower_engine.py) - Gower's Distance Similarity Engine handling mixed attributes (numerical, ordinal, nominal) and symmetric matrix optimizations.
+*   [recommender.py](file:///d:/thrail_app/recommendation_engine/recommender.py) - Core TARS hybrid engine (base user profiles, dynamic $\alpha$ tuning, profile error correction, collaborative scoring, and safety threshold filters).
+*   [app.py](file:///d:/thrail_app/recommendation_engine/app.py) - FastAPI service exposing POST `/api/recommend`, POST `/api/profile/update`, and POST `/api/gower/similarity`.
+*   [test_client.py](file:///d:/thrail_app/recommendation_engine/test_client.py) - API test client script running sample tests, top-3 mountain breakdowns, and batch evaluation across 50 users.
+*   `tests/`
+    *   [test_tars_recommender.py](file:///d:/thrail_app/recommendation_engine/tests/test_tars_recommender.py) - Comprehensive automated test suite for TARS Modules 1 through 5.
 *   `data/`
-    *   [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) - Mock trails data mimicking Cloud Firestore schemas.
-    *   [user_ratings_mock.csv](file:///d:/thrail_app/recommendation_engine/data/user_ratings_mock.csv) - Mock user review and rating history.
-*   [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) - Jupyter Notebook for testing custom formulas and normalizations.
+    *   [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) - Mock database containing 10 candidate trails across CALABARZON.
+    *   [user_ratings_mock.csv](file:///d:/thrail_app/recommendation_engine/data/user_ratings_mock.csv) - Mock review history and telemetry logs for 50 active users (`user_001` to `user_050`).
+*   [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) - Jupyter Notebook for testing custom formulas, normalizations, and optimization performance.
+*   [requirements.txt](file:///d:/thrail_app/recommendation_engine/requirements.txt) - Python dependencies list.
 
 ---
 
 ## 2. Environment Setup (One-Time Setup)
 
-Ensure you have Python 3.8+ installed, then run the following commands:
+Ensure you have Python 3.8+ installed, then execute:
 
 ### Step 1: Create a virtual environment
 ```powershell
-# Navigate to the recommendation engine directory
+# Navigate to the recommendation_engine directory
 cd recommendation_engine
 
 # Create the virtual environment
@@ -35,6 +38,10 @@ python -m venv venv
 *   **Windows Powershell:**
     ```powershell
     .\venv\Scripts\Activate.ps1
+    ```
+*   **Windows Command Prompt (cmd):**
+    ```cmd
+    .\venv\Scripts\activate.bat
     ```
 *   **macOS/Linux Bash:**
     ```bash
@@ -48,73 +55,107 @@ pip install -r requirements.txt
 
 ---
 
-## 3. Running the Server
+## 3. How to Deactivate the Virtual Environment
 
-To launch the FastAPI server, ensure your virtual environment is active, then run:
+When you are finished working in the Python environment, you can deactivate it in **any terminal shell** (PowerShell, CMD, or Bash) by running:
 
-```powershell
-# Make sure you are in the recommendation_engine directory
-python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload --no-use-colors
+```bash
+deactivate
 ```
 
-*   The `--reload` flag enables auto-reloading whenever code changes are saved.
-*   The `--no-use-colors` flag disables raw ANSI color escape characters (like `←[32m`) which render incorrectly in standard Windows PowerShell consoles.
-*   The server will initialize the FAISS Index database using [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) on startup.
+This restores your terminal prompt back to your global system Python environment.
 
 ---
 
-## 4. Testing the API
+## 4. Running Automated Unit Tests
 
-With the server running in one terminal, open a new terminal window and run the test client script to verify everything is working:
+To run the automated unit test suite verifying Gower math, $\alpha$-decay, profile recalibration, and symmetric matrix optimizations:
 
 ```powershell
-# Navigate to recommendation_engine directory
-cd recommendation_engine
+# Make sure you are inside recommendation_engine directory with venv active
+python -m unittest tests/test_tars_recommender.py
+```
 
-# Run the test client
+---
+
+## 5. Running the FastAPI Microservice
+
+To launch the FastAPI server:
+
+```powershell
+# Run using Python directly
+python app.py
+
+# Or using Uvicorn CLI
+python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload --no-use-colors
+```
+
+*   The server runs locally at `http://localhost:8000`.
+*   Interactive OpenAPI documentation is accessible at `http://localhost:8000/docs`.
+
+---
+
+## 6. Testing the API Client
+
+With the server running in one terminal window, open a **second terminal** and run:
+
+```powershell
 python test_client.py
 ```
 
-### Expected Output
-The script will send a POST request with a mock payload containing experience settings and location choices. The server should return an HTTP `200 OK` response along with a list of matched trails:
+### What `test_client.py` Outputs:
+1. **Sample API Test (`POST /api/recommend`)**: Evaluates a single user request.
+2. **Top 3 Mountain Breakdown**: Displays top recommended mountains, match scores, and match reasons for 5 sample user profiles.
+3. **50-User Batch Evaluation**: Executes recommendation queries across all 50 users (`user_001` to `user_050`) and outputs a score diversity summary table.
+
+### Sample API Response Schema (`POST /api/recommend`):
 
 ```json
 {
   "user_id": "user_001",
   "recommendations": [
     {
-      "trail_id": "trail_001",
-      "trail_name": "Mt. Daraitan",
-      "match_score": 0.7508,
-      "reason": "Matches your target onboarding preferences for Rizal."
+      "trail_id": "trail_002",
+      "trail_name": "Mt. Batulao",
+      "match_score": 0.8549,
+      "cbf_score": 0.8549,
+      "cf_score": 0.8549,
+      "reason": "Balanced hybrid recommendation matching your preferences and past performance."
     },
-    ...
+    {
+      "trail_id": "trail_005",
+      "trail_name": "Mt. Pico de Loro",
+      "match_score": 0.7992,
+      "cbf_score": 0.7992,
+      "cf_score": 0.7992,
+      "reason": "Balanced hybrid recommendation matching your preferences and past performance."
+    }
   ],
+  "alpha_used": 0.5,
+  "completed_hikes": 3,
   "warning": null
 }
 ```
 
 ---
 
-## 5. Security & Reliability Highlights
+## 7. Mathematical & Architectural Specifications Summary
 
-1.  **Authorization:** Requests require a valid `X-API-Key` header (defined as security dependency verification in [app.py](file:///d:/thrail_app/recommendation_engine/app.py)).
-2.  **Request Tracking:** Custom middleware adds an `X-Request-ID` to logging and header outputs, facilitating request correlation and traceability in log search systems.
-3.  **Fail-Safe Fallbacks:** If the FAISS search or user-item correlation fails, a global exception handler intercepts the failure and seamlessly returns safe onboarding defaults rather than returning HTTP 500 errors to the client.
+1. **Gower's Distance Similarity Engine (Module 1)**:
+   - Numerical Attributes: $S_j = 1 - \frac{|A_j - B_j|}{\text{Range}_j}$
+   - Ordinal Attributes (LASCO 1–9): $S_j = 1 - |\text{norm}(A_j) - \text{norm}(B_j)|$
+   - Nominal Attributes: $S_j = 1$ if match else $0$.
+2. **Dynamic $\alpha$ Calibration (Module 2)**:
+   - $0$ hikes: $\alpha = 1.0$ (Cold-Start CBF)
+   - $1–2$ hikes: $\alpha = 0.75$
+   - $3+$ hikes: $\alpha = 0.50$ (Balanced Hybrid)
+3. **Incremental Profile Recalibration (Module 2.3)**:
+   - Recalibrates user capacity vector via Exponential Moving Average ($\eta = 0.25$) and perceived difficulty shift factor ($\delta$).
+4. **Upper Triangular Matrix Optimization (Module 4)**:
+   - $S(A,B) = S(B,A)$ mirroring and $S(A,A) = 1.0$ self-similarity bypass, reducing matrix operations by **$>50\%$**.
 
 ---
 
-## 6. Prototyping in the Jupyter Notebook
+## 8. Prototyping in the Jupyter Notebook
 
-The [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) file is a sandbox environment for testing custom mathematical formulas, user correlation models, and normalization logic.
-
-### How to use it in VS Code:
-1.  **Open the file:** Double-click on `recommendation_scratchpad.ipynb` inside your VS Code explorer.
-2.  **Select the Python Kernel:**
-    *   Click on **Select Kernel** in the top-right corner of the notebook editor window.
-    *   Choose **Python Environments...** and select your virtual environment path:
-        `recommendation_engine/venv/Scripts/python.exe`
-3.  **Execute the Cells:**
-    *   Hover over the left side of any code cell (box containing code) and click the **Play button** (or press `Shift + Enter` inside the cell).
-    *   Run the cells sequentially from top to bottom. Results and table representations will display directly underneath each cell.
-
+Open [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) inside VS Code to run interactive prototyping cells for Gower distance calculations, profile updates, and matrix optimization benchmarks.
