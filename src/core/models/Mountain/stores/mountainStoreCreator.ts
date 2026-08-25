@@ -1,7 +1,7 @@
-import { MountainRepo } from "@/src/core/init/repositories";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Mountain } from "@/src/core/models/Mountain/interfaces/Mountain.types";
+import { MountainRepo } from "@/src/core/models/Mountain/repositories/MountainRepository";
 import { newMountain } from "@/src/core/models/Mountain/utils/MountainFactory";
 import { StateCreator } from "zustand";
 

@@ -1,6 +1,6 @@
-import { ApplicationRepo } from '@/src/core/init/repositories';
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { Application } from '@/src/core/models/Application/interfaces/Application.types';
+import { ApplicationRepo } from '@/src/core/models/Application/repositories/applicationRepository';
 import { newApplication } from '@/src/core/models/Application/utils/ApplicationFactory';
 import { StateCreator } from 'zustand';
 

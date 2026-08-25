@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Notification } from "@/src/core/models/Notification/interfaces/Notification.types";
 import { newNotification, notificationConverter } from "@/src/core/models/Notification/utils/NotificationFactory";
 import {
@@ -83,3 +84,6 @@ export const NotificationRepository = (db: Firestore) => {
         },
     };
 };
+
+export const NotificationRepo = NotificationRepository(db);
+

@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Mountain } from "@/src/core/models/Mountain/interfaces/Mountain.types";
 import { mountainConverter } from "@/src/core/models/Mountain/utils/MountainFactory";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
@@ -98,3 +99,6 @@ export const MountainRepository = (db: any) => ({
         }
     },
 });
+
+export const MountainRepo = MountainRepository(db);
+

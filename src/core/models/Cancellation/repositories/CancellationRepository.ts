@@ -1,4 +1,5 @@
 
+import { db } from "@/src/core/config/Firebase";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
 import { cancellationConverter } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
@@ -138,4 +139,6 @@ export const CancellationRepository = (db: Firestore) => ({
             throw error;
         }
     },
-})
+});
+
+export const CancellationRepo = CancellationRepository(db);

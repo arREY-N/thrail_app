@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { hikeConverter } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, locationConverter } from "@/src/core/models/Location/Location";
@@ -191,3 +192,6 @@ export const HikeRepository = (db: Firestore) => ({
         }
     },
 });
+
+export const HikeRepo = HikeRepository(db);
+

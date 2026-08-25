@@ -1,5 +1,5 @@
-import { GroupRepo } from "@/src/core/init/repositories";
 import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/Group.types";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { newGroup } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";

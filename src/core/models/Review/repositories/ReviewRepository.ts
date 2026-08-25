@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { newReview, reviewConverter } from "@/src/core/models/Review/utils/ReviewFactory";
 import {
@@ -147,3 +148,6 @@ export const ReviewRepository = (db: Firestore) => {
         },
     };
 };
+
+export const ReviewRepo = ReviewRepository(db);
+

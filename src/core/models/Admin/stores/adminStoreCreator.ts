@@ -1,6 +1,6 @@
-import { AdminRepo } from "@/src/core/init/repositories";
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Admin } from "@/src/core/models/Admin/interfaces/Admin.types";
+import { AdminRepo } from "@/src/core/models/Admin/repositories/AdminRepository";
 import { newAdmin } from "@/src/core/models/Admin/utils/AdminFactory";
 import { User } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
@@ -57,7 +57,7 @@ export const adminStoreCreator: StateCreator<
         return true;
     },
 
-    edit: () => {},
+    edit: () => { },
 
     delete: async (id: string) => {
         set(state => {

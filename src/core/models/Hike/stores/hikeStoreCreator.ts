@@ -1,5 +1,5 @@
-import { HikeRepo } from "@/src/core/init/repositories";
 import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
+import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location } from "@/src/core/models/Location/Location";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";

@@ -1,5 +1,5 @@
-import { OfferRepo } from "@/src/core/init/repositories";
 import { Offer } from "@/src/core/models/Offer/interfaces/Offer.types";
+import { OfferRepo } from "@/src/core/models/Offer/repositories/OfferRepository";
 import { newOffer } from "@/src/core/models/Offer/utils/OfferFactory";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";

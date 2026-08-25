@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { bookingConverter } from "@/src/core/models/Booking/utils/BookingFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, Unsubscribe, where } from "firebase/firestore";
@@ -234,3 +235,5 @@ export const BookingRepository = (db: any) => ({
         }
     },
 });
+
+export const BookingRepo = BookingRepository(db);

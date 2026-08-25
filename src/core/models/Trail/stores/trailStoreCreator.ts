@@ -1,7 +1,7 @@
-import { TrailRepo } from "@/src/core/init/repositories";
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { IRecommendedTrail } from "@/src/core/models/Recommendation/Recommendation";
 import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
+import { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";
 import { newTrail } from "@/src/core/models/Trail/utils/TrailFactory";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import NetInfo from "@react-native-community/netinfo";

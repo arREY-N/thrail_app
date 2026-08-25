@@ -1,5 +1,5 @@
-import { RescheduleRepo } from "@/src/core/init/repositories";
 import { Reschedule } from "@/src/core/models/Reschedule/interfaces/Reschedule.types";
+import { RescheduleRepo } from "@/src/core/models/Reschedule/repositories/RescheduleRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 

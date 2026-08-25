@@ -26,5 +26,6 @@ export { useBookingUserItem } from "@/src/core/models/Booking/hooks/useBookingUs
 export { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
 
 // REPOSITORIES
-export { BookingRepo } from "@/src/core/init/repositories";
+export { BookingRepo } from "@/src/core/models/Booking/repositories/BookingRepository";
+
 

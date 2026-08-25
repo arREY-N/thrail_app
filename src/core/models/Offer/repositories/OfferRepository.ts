@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Offer, OfferParams } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { newOffer, offerConverter } from "@/src/core/models/Offer/utils/OfferFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, or, query, setDoc, where } from 'firebase/firestore';
@@ -195,4 +196,6 @@ export const OfferRepository = (db: any) => ({
             throw new Error(err.message ?? 'Failed deleting');
         }
     }
-})
+});
+
+export const OfferRepo = OfferRepository(db);

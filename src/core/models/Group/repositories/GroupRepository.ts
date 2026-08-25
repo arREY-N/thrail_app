@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
 import { groupConverter } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message, MessageConverter } from "@/src/core/models/Message/Message";
@@ -147,3 +148,5 @@ export const GroupRepository = (db: Firestore) => ({
         }
     },
 });
+
+export const GroupRepo = GroupRepository(db);

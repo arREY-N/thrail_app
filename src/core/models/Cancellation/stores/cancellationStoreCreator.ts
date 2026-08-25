@@ -1,5 +1,5 @@
-import { CancellationRepo } from "@/src/core/init/repositories";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { CancellationRepo } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 

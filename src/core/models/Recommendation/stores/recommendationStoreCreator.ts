@@ -1,7 +1,7 @@
-import { RecommendationRepo } from '@/src/core/init/repositories';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
 import { BaseStore } from '@/src/core/interface/storeInterface';
 import { Recommendation } from '@/src/core/models/Recommendation/interfaces/Recommendation.types';
+import { RecommendationRepo } from '@/src/core/models/Recommendation/repositories/recommendationRepository';
 import { newRecommendation } from '@/src/core/models/Recommendation/utils/RecommendationFactory';
 import { StateCreator } from 'zustand';
 

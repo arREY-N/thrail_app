@@ -17,5 +17,5 @@ export {
 export { useRecommendationItem } from "@/src/core/models/Recommendation/hooks/useRecommendationItem";
 
 // REPOSITORIES
-export { RecommendationRepo } from "@/src/core/init/repositories";
-export { RecommendationRepository } from "@/src/core/models/Recommendation/repositories/recommendationRepository";
+export { RecommendationRepo } from "@/src/core/models/Recommendation/repositories/recommendationRepository";
+

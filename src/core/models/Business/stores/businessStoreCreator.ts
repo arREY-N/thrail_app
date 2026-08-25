@@ -1,7 +1,7 @@
-import { BusinessRepo } from "@/src/core/init/repositories";
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
 import { Business } from "@/src/core/models/Business/interfaces/Business.types";
+import { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
 import { newBusiness } from "@/src/core/models/Business/utils/BusinessFactory";
 import { User } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";

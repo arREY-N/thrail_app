@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { trailConverter } from "@/src/core/models/Trail/utils/TrailFactory";
 import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, setDoc } from "firebase/firestore";
@@ -100,3 +101,6 @@ export const TrailRepository = (db: Firestore) => ({
         return { map: 'Map to be added' };
     }
 });
+
+export const TrailRepo = TrailRepository(db);
+

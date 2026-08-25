@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Reschedule } from "@/src/core/models/Reschedule/interfaces/Reschedule.types";
 import { rescheduleConverter } from "@/src/core/models/Reschedule/utils/RescheduleFactory";
 import { collection, collectionGroup, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
@@ -82,3 +83,5 @@ export const RescheduleRepository = (db: Firestore) => ({
         }
     },
 });
+
+export const RescheduleRepo = RescheduleRepository(db);

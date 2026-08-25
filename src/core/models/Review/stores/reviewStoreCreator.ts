@@ -1,5 +1,5 @@
-import { ReviewRepo } from "@/src/core/init/repositories";
 import { Review } from "@/src/core/models/Review/interfaces/Review.types";
+import { ReviewRepo } from "@/src/core/models/Review/repositories/ReviewRepository";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 

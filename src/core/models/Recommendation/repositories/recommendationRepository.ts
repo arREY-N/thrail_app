@@ -1,3 +1,4 @@
+import { db } from '@/src/core/config/Firebase';
 import { Recommendation } from '@/src/core/models/Recommendation/interfaces/Recommendation.types';
 import { recommendationConverter } from '@/src/core/models/Recommendation/utils/RecommendationFactory';
 import getRecoID from '@/src/core/utility/recommendation';
@@ -52,3 +53,5 @@ export const RecommendationRepository = (db: any) => ({
         }
     },
 });
+
+export const RecommendationRepo = RecommendationRepository(db);

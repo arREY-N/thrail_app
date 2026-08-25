@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Application } from "@/src/core/models/Application/interfaces/Application.types";
 import { applicationConverter } from "@/src/core/models/Application/utils/ApplicationFactory";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
@@ -98,3 +99,6 @@ export const ApplicationRepository = (db: any) => ({
         }
     },
 });
+
+export const ApplicationRepo = ApplicationRepository(db);
+

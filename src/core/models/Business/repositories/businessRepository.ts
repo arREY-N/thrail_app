@@ -1,3 +1,4 @@
+import { db } from '@/src/core/config/Firebase';
 import { Admin, adminConverter, newAdmin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/interfaces/Business.types';
 import { businessConverter } from '@/src/core/models/Business/utils/BusinessFactory';
@@ -27,7 +28,7 @@ export const BusinessRepository = (db: any) => ({
             const col = createBusinessCollection(db);
             const snapshot = await getDocs(col);
             if (snapshot.empty) return [];
-            return snapshot.docs.map(doc => doc.data()); 
+            return snapshot.docs.map(doc => doc.data());
         } catch (err) {
             if (err instanceof Error) throw err;
             throw new Error('Failed fetching all businesses');
@@ -48,14 +49,14 @@ export const BusinessRepository = (db: any) => ({
             throw new Error('Failed fetching business');
         }
     },
-    
+
     /**
      * Creates a new business account using cloud function.
      */
     async write(data: Business, applicationId: string): Promise<Business> {
         const functions = getFunctions();
         const createBusiness = httpsCallable(functions, 'createBusiness');
-    
+
         try {
             const result = await createBusiness({
                 data: {
@@ -67,7 +68,7 @@ export const BusinessRepository = (db: any) => ({
             });
 
             if (!result.data) throw new Error('Failed creating business');
-            
+
             return data;
         } catch (err) {
             if (err instanceof Error) throw err;
@@ -83,8 +84,8 @@ export const BusinessRepository = (db: any) => ({
             const col = createBusinessCollection(db);
             const docRef = doc(col, id);
 
-            await updateDoc( 
-                docRef, 
+            await updateDoc(
+                docRef,
                 { active: false }
             );
         } catch (err) {
@@ -100,7 +101,7 @@ export const BusinessRepository = (db: any) => ({
         try {
             const ref = createAdminCollection(db, id);
             const snapshot = await getDocs(ref);
-        
+
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err) {
             if (err instanceof Error) throw err;
@@ -114,11 +115,11 @@ export const BusinessRepository = (db: any) => ({
     async createBusinessAdmin(user: User, businessId: string): Promise<Admin> {
         const functions = getFunctions();
         const createAdmin = httpsCallable(functions, 'createAdmin');
-    
+
         try {
             if (!user) throw new Error('Missing user');
             if (!businessId) throw new Error('Missing business');
-    
+
             const admin = newAdmin({
                 id: user.id,
                 status: 'active',
@@ -132,7 +133,7 @@ export const BusinessRepository = (db: any) => ({
                 userId: user.id,
                 businessId,
             });
-            
+
             if (!uid) throw new Error('Admin creation failed');
 
             return admin;
@@ -142,3 +143,6 @@ export const BusinessRepository = (db: any) => ({
         }
     },
 });
+
+export const BusinessRepo = BusinessRepository(db);
+

@@ -1,3 +1,4 @@
+import { db } from "@/src/core/config/Firebase";
 import { Admin } from "@/src/core/models/Admin/interfaces/Admin.types";
 import { adminConverter, newAdmin } from "@/src/core/models/Admin/utils/AdminFactory";
 import { User } from "@/src/core/models/User/User";
@@ -106,3 +107,6 @@ export const AdminRepository = (db: any) => ({
         }
     },
 });
+
+export const AdminRepo = AdminRepository(db);
+
