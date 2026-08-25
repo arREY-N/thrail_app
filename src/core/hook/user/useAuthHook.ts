@@ -1,5 +1,5 @@
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
@@ -21,6 +21,7 @@ export function useAuthHook() {
     const password = useAuthStore(s => s.forgotPassword);
     const signOut = useAuthStore(s => s.signOut);
     const gmailSignUp = useAuthStore(s => s.gmailSignUp);
+    const isHydrated = useAuthStore(s => s.isHydrated);
 
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
@@ -30,9 +31,9 @@ export function useAuthHook() {
 
     const onSignOutPress = async () => {
         try {
-            await signOut();
             stopBackgroundTracking();
             useTrailsStore.getState().reset();
+            await signOut();
             router.replace('/(auth)/landing');
         } catch (error) {
             setLocalError((error as Error).message);
@@ -58,7 +59,7 @@ export function useAuthHook() {
     const onGmailLogIn = async () => {
         try {
             await gmailSignUp();
-            router.push("/(tabs)");
+            router.replace("/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
@@ -68,7 +69,7 @@ export function useAuthHook() {
     const onLogIn = async (email: string, password: string) => {
         try {
             await logIn(email, password);
-            router.push("/(tabs)");
+            router.replace("/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
@@ -99,6 +100,7 @@ export function useAuthHook() {
         forgotPassword,
         onSignOutPress,
         onGmailLogIn,
+        isHydrated,
         isNotUser,
         isNewAccount,
     }
