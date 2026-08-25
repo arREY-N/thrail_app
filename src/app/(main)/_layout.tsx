@@ -1,12 +1,16 @@
 
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import useRouteGuard from "@/src/core/hook/user/useRouteGuard";
 import { Stack } from "expo-router";
 import LoadingScreen from "../loading";
 
-export default function mainLayout(){
-    const isLoading = useAuthStore(s => s.isLoading);
+export default function MainLayout() {
+    const { isLoading } = useAuthHook();
 
-    if(isLoading) return <LoadingScreen/>
+    useRouteGuard();
 
-    return <Stack screenOptions={{headerShown: false}}/>
+    if (isLoading) return <LoadingScreen />
+
+
+    return <Stack screenOptions={{ headerShown: false }} />
 }
