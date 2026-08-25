@@ -1,11 +1,14 @@
+// DEPRECATED / MARKED FOR DELETION
+// Replaced by SignUp type in src/core/models/User/interfaces/SignUp.types.ts and newSignUp in src/core/models/User/utils/UserFactory.ts
+
 import { immerable } from "immer";
 import { ISignUp } from "./interfaces/SignUp.types";
 
 export class SignUp implements ISignUp {
     [key: string]: any;
-    [immerable] = true
+    [immerable] = true;
     phoneNumber: string = '';
-    birthday: Date = new Date;
+    birthday: Date = new Date();
     address: string = '';
     password: string = '';
     confirmPassword: string = '';

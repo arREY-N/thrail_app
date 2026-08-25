@@ -16,6 +16,8 @@ export interface IPreference {
     province: string[];
 }
 
+export type Preference = IPreference;
+
 export interface IEmergencyContact {
     name: string;
     contactNumber: string;
@@ -24,7 +26,7 @@ export interface IEmergencyContact {
     phoneVerifiedAt?: Date | Timestamp | FieldValue | null;
 }
 
-export interface IMedicalProfile {  // New
+export interface IMedicalProfile {
     hasCondition: boolean;
     details: string[];
     clearanceUri?: string;
@@ -44,18 +46,19 @@ export interface IUserBase<T> extends IUserSummary {
     onBoardingComplete: boolean;
     phoneNumber: string;
     preferences: IPreference;
-    medicalProfile: IMedicalProfile;  // New
+    medicalProfile: IMedicalProfile;
     role: Role;
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;
 }
 
-export type IUserDB = IUserBase<Timestamp | FieldValue>
-export type IUser = IUserBase<Date>
+export type IUserDB = IUserBase<Timestamp | FieldValue>;
+export type User<T = Date> = IUserBase<T>;
+export type IUser = User;
 
 export type LogIn = {
-    email: string,
-    password: string,
-}
+    email: string;
+    password: string;
+};
 
 export type Role = 'superadmin' | 'admin' | 'user';

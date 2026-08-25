@@ -186,7 +186,7 @@ Follow the standard **4-file store pattern**:
 | Reschedule | [x] | [ ] | [ ] |
 | Review | [x] | [ ] | [ ] |
 | Trail | [x] | [ ] | [ ] |
-| User | [ ] | [ ] | [x] |
+| User | [x] | [ ] | [ ] |
 
 *> Note: `Cancellation` has been moved to **Underway** so its factory files can be relocated to `utils/XFactory.ts` to align with the new single-root facade rule.*
 

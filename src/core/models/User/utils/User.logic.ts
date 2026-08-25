@@ -1,6 +1,3 @@
-// DEPRECATED / MARKED FOR DELETION
-// Replaced by src/core/models/User/utils/User.logic.ts
-
 import { IUserBooking } from "@/src/core/models/Booking/Booking";
 import { IUserSummary, User } from "@/src/core/models/User/interfaces/User.types";
 
