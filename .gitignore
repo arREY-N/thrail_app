@@ -55,11 +55,10 @@ firebase-debug.*.log
 
 eas.json
 desktop.ini
+.agents/
 
 /google-services.json
 firebase-messaging-sw.js
-
-setSuperAdmin.js
 
 # Python virtual environment
 recommendation_engine/venv/
@@ -67,6 +66,7 @@ venv/
 .venv/
 env/
 .env/
+.env*
 
 # Python compiled files / cache
 __pycache__/

@@ -5,7 +5,8 @@ export const TrailLogic = {
     toSummary(trail: Trail): ITrailSummary {
         return{
             id: trail.id,
-            name: trail.general.name
+            name: trail.general.name,
+            location: trail.general.province?.join(', ') || trail.general.address || ''
         }
     }
 }

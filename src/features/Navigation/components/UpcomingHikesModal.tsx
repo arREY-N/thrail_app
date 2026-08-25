@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IBooking } from '@/src/core/models/Booking/Booking';
 import { useTrailsStore } from '@/src/core/stores/trailStores/trailsStore';
 import { formatDate } from '@/src/core/utility/date';
 
@@ -14,9 +16,9 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface UpcomingHikesModalProps {
     visible: boolean;
     onClose: () => void;
-    bookings: any[];
-    activeBooking: any;
-    onSelectBooking: (booking: any) => void;
+    bookings: IBooking[];
+    activeBooking: IBooking | null;
+    onSelectBooking: (booking: IBooking) => void;
 }
 
 const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({ 
@@ -198,15 +200,14 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
 
 const styles = StyleSheet.create({
     modalContainer: { flex: 1, justifyContent: 'flex-end' },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: Colors.MODAL_OVERLAY || 'rgba(0, 0, 0, 0.5)' },
+    backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.MODAL_OVERLAY || 'rgba(0, 0, 0, 0.5)' },
     backdropTouch: { flex: 1 },
     modalContent: { 
         backgroundColor: Colors.WHITE, 
         borderTopLeftRadius: 24, 
         borderTopRightRadius: 24, 
         maxHeight: '75%',
-        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10
-    },
+        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12,...GlobalStyles.dropShadow(),},
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 0 },
     headerTitle: { fontSize: 18, color: Colors.TEXT_PRIMARY, marginBottom: 0 },
     closeBtn: { padding: 4, backgroundColor: Colors.GRAY_ULTRALIGHT, borderRadius: 16 },

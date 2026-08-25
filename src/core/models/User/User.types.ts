@@ -21,11 +21,12 @@ export interface IEmergencyContact {
     contactNumber: string;
     userId?: string;
     email?: string; 
+    phoneVerifiedAt?: Date | Timestamp | FieldValue | null;
 }
 
 export interface IMedicalProfile {  // New
     hasCondition: boolean;
-    details: string;
+    details: string[];
     clearanceUri?: string;
 }
 

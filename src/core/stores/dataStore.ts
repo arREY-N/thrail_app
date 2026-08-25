@@ -1,7 +1,8 @@
+import { useBookingsStore } from '@/src/core/models/Booking/Booking';
+import { useOfferStore } from '@/src/core/models/Offer/Offer';
+
 import { useApplicationsStore } from '@/src/core/stores/applicationsStore';
-import { useBookingsStore } from '@/src/core/stores/bookingsStore';
 import { useBusinessesStore } from '@/src/core/stores/businessesStore';
-import { useOffersStore } from '@/src/core/stores/offersStore';
 import { usePaymentsStore } from '@/src/core/stores/paymentsStore';
 import { useRecommendationsStore } from '@/src/core/stores/recommendationsStore';
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
@@ -14,7 +15,7 @@ export const resetData = () => {
         useApplicationsStore.getState().reset();
         useBookingsStore.getState().reset();
         useBusinessesStore.getState().reset();
-        useOffersStore.getState().reset();
+        useOfferStore.getState().reset();
         usePaymentsStore.getState().reset();
         useRecommendationsStore.getState().reset();
         useTrailsStore.getState().reset();

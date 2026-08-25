@@ -7,6 +7,13 @@ service cloud.firestore {
         allow read: if true;
     }
 
+    match /leaderboards/{leaderboardId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: 
+            if request.auth != null 
+            && request.auth.token.role == 'superadmin';
+    }
+
     match /users/{userId}{
         allow read: if request.auth != null;
       allow create: 
@@ -120,6 +127,72 @@ service cloud.firestore {
                     request.auth.token.role == 'superadmin'
             ) 
     }
+
+    match /{path=**}/cancellations/{cancellationId} {
+        allow read, update: 
+            if request.auth != null
+            && (
+                request.auth.token.role == 'admin' 
+                || request.auth.uid == resource.data.userId
+            );
+        allow create: 
+            if request.auth != null
+            && (
+                request.auth.uid == request.resource.data.userId 
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == request.resource.data.businessId
+                        || request.auth.token.owner == request.resource.data.businessId
+                    )
+                )
+            );
+        allow delete: 
+            if request.auth != null
+            && (
+                request.auth.uid == resource.data.userId
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == resource.data.businessId
+                        || request.auth.token.owner == resource.data.businessId
+                    )
+                )
+            ); 
+    }
+    
+    match /{path=**}/reschedules/{rescheduleId} {
+        allow read, update: 
+            if request.auth != null
+            && (
+                request.auth.token.role == 'admin' 
+                || request.auth.uid == resource.data.userId
+            );
+        allow create: 
+            if request.auth != null
+            && (
+                request.auth.uid == request.resource.data.userId 
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == request.resource.data.businessId
+                        || request.auth.token.owner == request.resource.data.businessId
+                    )
+                )
+            );
+        allow delete: 
+            if request.auth != null
+            && (
+                request.auth.uid == resource.data.userId
+                || (
+                    request.auth.token.role == 'admin'
+                    && (
+                        request.auth.token.businessId == resource.data.businessId
+                        || request.auth.token.owner == resource.data.businessId
+                    )
+                )
+            ); 
+    }
     
     match /businesses/{businessId}/admins/{adminId} {
     	allow read: if request.auth != null;
@@ -228,10 +301,23 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-        allow read, create, update: if request.auth != null;
-        allow delete:
+        allow read: if request.auth != null;
+        allow create: 
             if request.auth != null 
             && request.auth.uid == request.resource.data.user.id;
+        allow update: 
+            if request.auth != null 
+            && (
+                request.auth.uid == resource.data.user.id 
+                || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'updatedAt'])
+                || request.auth.token.role == 'superadmin'
+            );
+        allow delete:
+            if request.auth != null 
+            && (
+                request.auth.uid == resource.data.user.id 
+                || request.auth.token.role == 'superadmin'
+            );
     }  
   }
 }

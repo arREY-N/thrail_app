@@ -1,784 +1,468 @@
-import { Colors } from "@/src/constants/colors";
-import { IOfflinePoint } from "@/src/core/models/Trail/Trail.types";
-import { MaterialIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import {
-  Alert,
-  GestureResponderEvent,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ResumableZoom } from "react-native-zoom-toolkit";
-import { getStaticMapAsset } from "./trailMapAssets";
+/**
+ * @file StaticTrailMap.tsx
+ * @description Static trail map component rendering offline route maps with intrinsic 4:3 aspect-ratio preservation,
+ * cross-platform touch coordinate resolution, immediate pin visibility, interactive pin overlays,
+ * full 2D (horizontal and vertical) free pan and zoom, strict viewport clipping,
+ * on-canvas floating zoom controls (+, -, Reset), PointDetailsModal inspection, and EditPointModal integration.
+ */
 
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+    GestureResponderEvent,
+    Image,
+    LayoutChangeEvent,
+    Pressable,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ResumableZoom, ResumableZoomRefType } from 'react-native-zoom-toolkit';
+
+import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomIcon from '@/src/components/CustomIcon';
+import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IOfflinePoint } from '@/src/core/models/Trail/Trail.types';
+import EditPointModal from '@/src/features/SuperAdmin/components/EditPointModal';
+import PointDetailsModal from '@/src/features/SuperAdmin/components/PointDetailsModal';
+import { PIN_TYPES, PinType } from './map.types';
+import { getStaticMapAsset } from './trailMapAssets';
+
+export { PIN_TYPES, PinType };
+
+/**
+ * Properties for the StaticTrailMap component.
+ *
+ * @param trailId - The ID of the trail used to resolve map assets.
+ * @param trailName - Optional name of the trail.
+ * @param offlinePoints - Array of offline point/pin objects.
+ * @param isEditable - Flag enabling pin creation, updating, and deletion.
+ * @param onChange - Callback triggered when offline points list changes.
+ * @param onGestureActive - Callback triggered when user starts or ends gesture.
+ */
 interface StaticTrailMapProps {
-  trailId: string;
-  trailName?: string;
-  offlinePoints: IOfflinePoint[];
-  isEditable?: boolean;
-  onChange?: (points: IOfflinePoint[]) => void;
-  onGestureActive?: (active: boolean) => void;
+    trailId: string;
+    trailName?: string;
+    offlinePoints: IOfflinePoint[];
+    isEditable?: boolean;
+    onChange?: (points: IOfflinePoint[]) => void;
+    onGestureActive?: (active: boolean) => void;
 }
 
-const PIN_TYPES = [
-  { value: "summit", label: "Summit", icon: "flag", color: "#D32F2F" },
-  {
-    value: "checkpoint",
-    label: "Checkpoint",
-    icon: "location-on",
-    color: "#F57C00",
-  },
-  {
-    value: "viewpoint",
-    label: "Viewpoint",
-    icon: "visibility",
-    color: "#388E3C",
-  },
-  {
-    value: "water",
-    label: "Water Source",
-    icon: "local-drink",
-    color: "#1976D2",
-  },
-  { value: "shelter", label: "Shelter", icon: "home", color: "#795548" },
-  {
-    value: "hazard",
-    label: "Hazard Warning",
-    icon: "warning",
-    color: "#E65100",
-  },
-] as const;
+/** All trail map PNG assets are standard 800x600 (4:3 aspect ratio = 1.333333) */
+const MAP_ASPECT_RATIO = 800 / 600;
 
-type PinType = (typeof PIN_TYPES)[number]["value"];
+/**
+ * Calculates 4:3 fitted canvas dimensions within a given container box.
+ * 
+ * @param containerW - Available container width.
+ * @param containerH - Available container height.
+ * @returns {{ width: number; height: number }} Fitted canvas dimensions.
+ */
+const computeFittedCanvas = (containerW: number, containerH: number): { width: number; height: number } => {
+    if (containerW <= 0 || containerH <= 0) return { width: 0, height: 0 };
+    const containerAspect = containerW / containerH;
+
+    if (containerAspect > MAP_ASPECT_RATIO) {
+        // Container is wider than 4:3 (e.g. desktop widescreen) -> fit height
+        const height = containerH;
+        const width = height * MAP_ASPECT_RATIO;
+        return { width, height };
+    } else {
+        // Container is taller than 4:3 (e.g. mobile portrait) -> fit width
+        const width = containerW;
+        const height = width / MAP_ASPECT_RATIO;
+        return { width, height };
+    }
+};
+
+interface INativeTouchEvent {
+    locationX?: number;
+    locationY?: number;
+    offsetX?: number;
+    offsetY?: number;
+    clientX?: number;
+    clientY?: number;
+    pageX?: number;
+    pageY?: number;
+}
+
+interface IDomTarget {
+    getBoundingClientRect?: () => { left: number; top: number };
+}
 
 /**
  * StaticTrailMap component.
- * Displays a static trail map background with overlayed trail pin indicators.
- * Supports zoom/pan via ResumableZoom, full screen mode, and interactive pin placement,
- * editing, and deletion when in editable mode.
- * 
- * @param {StaticTrailMapProps} props - Component properties.
- * @param {string} props.trailId - The ID of the trail. Used to resolve map assets.
- * @param {string} [props.trailName] - Name of the trail.
- * @param {IOfflinePoint[]} props.offlinePoints - Array of offline point/pin objects.
- * @param {boolean} [props.isEditable=false] - Whether map pins can be added, updated, or deleted.
- * @param {function} [props.onChange] - Callback triggered when the points list is modified.
- * @param {function} [props.onGestureActive] - Callback triggered on active gesture.
- * @returns {React.ReactElement} The static trail map component.
+ * Displays a static trail map background with interactive, percentage-positioned waypoint pin overlays.
+ * Supports full 2D panning (up, down, left, right), floating zoom controls (+, -, Reset),
+ * and decoupled PointDetailsModal inspection.
+ *
+ * @param props - Component properties.
+ * @returns {React.JSX.Element} The static trail map component.
  */
-export default function StaticTrailMap({
-  trailId,
-  trailName,
-  offlinePoints = [],
-  isEditable = false,
-  onChange,
-  onGestureActive,
-}: StaticTrailMapProps) {
-  const [containerLayout, setContainerLayout] = useState({
-    width: 0,
-    height: 0,
-  });
-  const [selectedPoint, setSelectedPoint] = useState<IOfflinePoint | null>(
-    null,
-  );
+const StaticTrailMap = ({
+    trailId,
+    trailName,
+    offlinePoints = [],
+    isEditable = false,
+    onChange,
+    onGestureActive,
+}: StaticTrailMapProps): React.JSX.Element => {
+    const zoomRef = useRef<ResumableZoomRefType>(null);
+    const [containerLayout, setContainerLayout] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+    const [selectedPoint, setSelectedPoint] = useState<IOfflinePoint | null>(null);
 
-  // Fullscreen States
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fullscreenLayout, setFullscreenLayout] = useState({
-    width: 0,
-    height: 0,
-  });
+    // Editor Modal States
+    const [editorModalVisible, setEditorModalVisible] = useState<boolean>(false);
+    const [editingPoint, setEditingPoint] = useState<IOfflinePoint | null>(null);
+    const [draftCoords, setDraftCoords] = useState<{ x: number; y: number } | null>(null);
 
-  // Editor States
-  const [editorModalVisible, setEditorModalVisible] = useState(false);
-  const [editingPointId, setEditingPointId] = useState<string | null>(null);
-  const [draftCoords, setDraftCoords] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [draftName, setDraftName] = useState("");
-  const [draftType, setDraftType] = useState<PinType>("checkpoint");
-  const [draftDescription, setDraftDescription] = useState("");
+    // Confirmation Modal Deletion State
+    const [pointToDelete, setPointToDelete] = useState<IOfflinePoint | null>(null);
 
-  const mapAsset = getStaticMapAsset(trailId, trailName);
+    const mapAsset = getStaticMapAsset(trailId, trailName);
 
-  const handleContainerLayout = (event: any) => {
-    const { width, height } = event.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      setContainerLayout({ width, height });
-    }
-  };
+    // Compute fitted 4:3 canvas size for the container
+    const inlineCanvas = useMemo(() => {
+        return computeFittedCanvas(containerLayout.width, containerLayout.height);
+    }, [containerLayout.width, containerLayout.height]);
 
-  const handleFullscreenLayout = (event: any) => {
-    const { width, height } = event.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      setFullscreenLayout({ width, height });
-    }
-  };
-
-  const handleMapPress = (event: GestureResponderEvent) => {
-    if (!isEditable) return;
-
-    // Read tap position relative to the container layout
-    const { locationX, locationY } = event.nativeEvent;
-    const layout = isFullscreen ? fullscreenLayout : containerLayout;
-    if (layout.width === 0 || layout.height === 0) return;
-
-    const x = (locationX / layout.width) * 100;
-    const y = (locationY / layout.height) * 100;
-
-    // Reset draft fields and show modal
-    setDraftCoords({ x, y });
-    setDraftName("");
-    setDraftType("checkpoint");
-    setDraftDescription("");
-    setEditorModalVisible(true);
-  };
-
-  const handleSavePoint = () => {
-    if (!draftName.trim()) {
-      Alert.alert("Required Field", "Please enter a name for the map point.");
-      return;
-    }
-
-    if (editingPointId) {
-      const updatedPoints = offlinePoints.map((p) => {
-        if (p.id === editingPointId) {
-          return {
-            ...p,
-            name: draftName.trim(),
-            type: draftType,
-            description: draftDescription.trim(),
-          };
+    const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
+        const { width, height } = event.nativeEvent.layout;
+        if (width > 0 && height > 0) {
+            setContainerLayout({ width, height });
         }
-        return p;
-      });
-      onChange?.(updatedPoints);
+    }, []);
 
-      // Update selectedPoint state so the details card updates immediately
-      if (selectedPoint && selectedPoint.id === editingPointId) {
-        setSelectedPoint({
-          ...selectedPoint,
-          name: draftName.trim(),
-          type: draftType,
-          description: draftDescription.trim(),
-        });
-      }
-    } else {
-      if (!draftCoords) return;
-      const newPoint: IOfflinePoint = {
-        id: Date.now().toString(),
-        name: draftName.trim(),
-        type: draftType,
-        description: draftDescription.trim(),
-        x: Math.round(draftCoords.x * 100) / 100,
-        y: Math.round(draftCoords.y * 100) / 100,
-      };
+    const handleMapPress = (event: GestureResponderEvent) => {
+        if (!isEditable) return;
 
-      const updatedPoints = [...offlinePoints, newPoint];
-      onChange?.(updatedPoints);
-    }
+        if (inlineCanvas.width <= 0 || inlineCanvas.height <= 0) return;
 
-    setEditorModalVisible(false);
-    setDraftCoords(null);
-    setEditingPointId(null);
-  };
+        const native = event.nativeEvent as unknown as INativeTouchEvent;
+        let touchX = 0;
+        let touchY = 0;
 
-  const handleEditPointPress = (point: IOfflinePoint) => {
-    setEditingPointId(point.id);
-    setDraftName(point.name);
-    setDraftType(point.type as PinType);
-    setDraftDescription(point.description || "");
-    setEditorModalVisible(true);
-  };
+        // Cross-platform touch resolution (Native vs Web)
+        if (typeof native.locationX === 'number' && typeof native.locationY === 'number') {
+            touchX = native.locationX;
+            touchY = native.locationY;
+        } else if (typeof native.offsetX === 'number' && typeof native.offsetY === 'number') {
+            touchX = native.offsetX;
+            touchY = native.offsetY;
+        } else {
+            const rawTarget = (event.currentTarget || (event as unknown as { target?: IDomTarget }).target);
+            const target = rawTarget as unknown as IDomTarget | undefined;
+            if (target && typeof target.getBoundingClientRect === 'function') {
+                const rect = target.getBoundingClientRect();
+                const clientX = native.clientX ?? native.pageX ?? 0;
+                const clientY = native.clientY ?? native.pageY ?? 0;
+                touchX = clientX - rect.left;
+                touchY = clientY - rect.top;
+            }
+        }
 
-  const handleDeletePoint = (point: IOfflinePoint) => {
-    Alert.alert(
-      "Delete Map Point",
-      `Are you sure you want to delete "${point.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            const updatedPoints = offlinePoints.filter(
-              (p) => p.id !== point.id,
-            );
+        // Clamp coordinates within [0, inlineCanvas]
+        const clampedX = Math.max(0, Math.min(inlineCanvas.width, touchX));
+        const clampedY = Math.max(0, Math.min(inlineCanvas.height, touchY));
+
+        const x = Math.round(((clampedX / inlineCanvas.width) * 100) * 100) / 100;
+        const y = Math.round(((clampedY / inlineCanvas.height) * 100) * 100) / 100;
+
+        setDraftCoords({ x, y });
+        setEditingPoint(null);
+        setEditorModalVisible(true);
+    };
+
+    const handlePinPress = (event: GestureResponderEvent, point: IOfflinePoint) => {
+        event.stopPropagation?.();
+        setSelectedPoint(point);
+    };
+
+    const handleSaveModalPoint = (pointData: { name: string; type: PinType; description: string }) => {
+        if (editingPoint) {
+            const updatedPoints = offlinePoints.map((p) => {
+                if (p.id === editingPoint.id) {
+                    return { ...p, ...pointData };
+                }
+                return p;
+            });
             onChange?.(updatedPoints);
+
+            if (selectedPoint && selectedPoint.id === editingPoint.id) {
+                setSelectedPoint({ ...selectedPoint, ...pointData });
+            }
+        } else {
+            if (!draftCoords) return;
+            const newPoint: IOfflinePoint = {
+                id: Date.now().toString(),
+                name: pointData.name,
+                type: pointData.type,
+                description: pointData.description,
+                x: draftCoords.x,
+                y: draftCoords.y,
+            };
+            onChange?.([...offlinePoints, newPoint]);
+        }
+
+        setEditorModalVisible(false);
+        setDraftCoords(null);
+        setEditingPoint(null);
+    };
+
+    const handleEditPointPress = (point: IOfflinePoint) => {
+        setEditingPoint(point);
+        setEditorModalVisible(true);
+    };
+
+    const handleDeletePointPress = (point: IOfflinePoint) => {
+        setPointToDelete(point);
+    };
+
+    const handleConfirmDeletePoint = () => {
+        if (!pointToDelete) return;
+        const updatedPoints = offlinePoints.filter((p) => p.id !== pointToDelete.id);
+        onChange?.(updatedPoints);
+        if (selectedPoint?.id === pointToDelete.id) {
             setSelectedPoint(null);
-          },
-        },
-      ],
-    );
-  };
+        }
+        setPointToDelete(null);
+    };
 
-  const handleLongPressPin = (point: IOfflinePoint) => {
-    if (!isEditable) return;
-    handleDeletePoint(point);
-  };
+    const handleZoomIn = () => {
+        if (!zoomRef.current) return;
+        const currentScale = zoomRef.current.getState()?.scale || 1;
+        const targetScale = Math.min(5, Math.round((currentScale + 0.6) * 10) / 10);
+        zoomRef.current.zoom(targetScale);
+    };
 
-  const getPinConfig = (type: string) => {
-    return PIN_TYPES.find((t) => t.value === type) || PIN_TYPES[1]; // default checkpoint
-  };
+    const handleZoomOut = () => {
+        if (!zoomRef.current) return;
+        const currentScale = zoomRef.current.getState()?.scale || 1;
+        const targetScale = Math.max(1, Math.round((currentScale - 0.6) * 10) / 10);
+        zoomRef.current.zoom(targetScale);
+    };
 
-  const renderMapContent = () => {
-    const layout = isFullscreen ? fullscreenLayout : containerLayout;
+    const handleResetZoom = () => {
+        zoomRef.current?.reset(true);
+    };
+
+    const getPinConfig = (type: string) => {
+        return PIN_TYPES.find((t) => t.value === type) || PIN_TYPES[1];
+    };
 
     return (
-      <View style={{ flex: 1, position: "relative" }}>
-        <ResumableZoom style={styles.zoomContainer} maxScale={5}>
-          <View
-            style={[
-              styles.mapContainer,
-              { width: layout.width, height: layout.height },
-            ]}
-          >
-            <Pressable
-              onPress={handleMapPress}
-              style={{ width: "100%", height: "100%" }}
-            >
-              <Image
-                source={mapAsset}
-                style={styles.mapImage}
-                resizeMode="contain"
-              />
-            </Pressable>
-
-            {/* Render pins absolute-positioned based on layout percentages */}
-            {offlinePoints.map((point) => {
-              const config = getPinConfig(point.type);
-              return (
-                <TouchableOpacity
-                  key={point.id}
-                  style={[
-                    styles.pinWrapper,
-                    {
-                      left: `${point.x}%`,
-                      top: `${point.y}%`,
-                    },
-                  ]}
-                  onPress={() => setSelectedPoint(point)}
-                  onLongPress={() => handleLongPressPin(point)}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={[
-                      styles.pinCircle,
-                      { backgroundColor: config.color },
-                    ]}
-                  >
-                    <MaterialIcons name={config.icon} size={11} color="#FFF" />
-                  </View>
-                  <View style={styles.pinTriangle} />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ResumableZoom>
-
-        {/* Detail Bottom Card inside active viewport */}
-        {selectedPoint && (
-          <View style={styles.detailsCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleRow}>
-                <View
-                  style={[
-                    styles.cardIconBadge,
-                    { backgroundColor: getPinConfig(selectedPoint.type).color },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={getPinConfig(selectedPoint.type).icon}
-                    size={18}
-                    color="#FFF"
-                  />
-                </View>
-                <View>
-                  <Text style={styles.cardTitle}>{selectedPoint.name}</Text>
-                  <Text style={styles.cardSubtitle}>
-                    {getPinConfig(selectedPoint.type).label}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.closeCardBtn}
-                onPress={() => setSelectedPoint(null)}
-              >
-                <MaterialIcons name="close" size={20} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.cardDescription}>
-              {selectedPoint.description ||
-                "No description provided for this point."}
-            </Text>
-
-            {isEditable && (
-              <View style={styles.cardActionsRow}>
-                <TouchableOpacity
-                  style={[styles.cardActionBtn, styles.cardEditBtn]}
-                  onPress={() => handleEditPointPress(selectedPoint)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="edit" size={16} color="#FFF" />
-                  <Text style={styles.cardEditBtnText}>Edit Info</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.cardActionBtn, styles.cardDeleteBtn]}
-                  onPress={() => handleDeletePoint(selectedPoint)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="delete" size={16} color="#C5221F" />
-                  <Text style={styles.cardDeleteBtnText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  return (
-    <GestureHandlerRootView
-      style={styles.container}
-      onLayout={handleContainerLayout}
-      onTouchStart={() => !isFullscreen && onGestureActive?.(true)}
-      onTouchEnd={() => !isFullscreen && onGestureActive?.(false)}
-      onTouchCancel={() => !isFullscreen && onGestureActive?.(false)}
-    >
-      {containerLayout.width > 0 && containerLayout.height > 0 ? (
-        <View style={{ flex: 1, position: "relative" }}>
-          {renderMapContent()}
-
-          {/* Fullscreen Expand Button */}
-          {!isFullscreen && (
-            <TouchableOpacity
-              style={styles.fullscreenBtn}
-              onPress={() => setIsFullscreen(true)}
-            >
-              <MaterialIcons name="fullscreen" size={24} color="#333" />
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : null}
-
-      {/* Fullscreen Modal View */}
-      <Modal
-        visible={isFullscreen}
-        animationType="slide"
-        onRequestClose={() => setIsFullscreen(false)}
-      >
         <GestureHandlerRootView
-          style={styles.fullscreenContainer}
-          onLayout={handleFullscreenLayout}
+            style={styles.container}
+            onLayout={handleContainerLayout}
+            onTouchStart={() => onGestureActive?.(true)}
+            onTouchEnd={() => onGestureActive?.(false)}
+            onTouchCancel={() => onGestureActive?.(false)}
         >
-          {fullscreenLayout.width > 0 && fullscreenLayout.height > 0 ? (
-            <View style={{ flex: 1, backgroundColor: "#EBEFF2" }}>
-              {renderMapContent()}
+            {containerLayout.width > 0 && containerLayout.height > 0 ? (
+                <View style={styles.mapInnerWrapper}>
+                    {/* Centered Map Canvas Viewport with Strict Clipping */}
+                    <View style={styles.centeringContainer}>
+                        {inlineCanvas.width > 0 && inlineCanvas.height > 0 && (
+                            <ResumableZoom
+                                ref={zoomRef}
+                                style={{ width: inlineCanvas.width, height: inlineCanvas.height }}
+                                maxScale={5}
+                                minScale={1}
+                                extendGestures={true}
+                                panMode="free"
+                                pinchMode="clamp"
+                                allowPinchPanning={true}
+                            >
+                                <View style={[styles.mapCanvas, { width: inlineCanvas.width, height: inlineCanvas.height }]}>
+                                    {/* 4:3 Aspect-Ratio Map Image */}
+                                    <Image
+                                        source={mapAsset}
+                                        style={styles.fullSize}
+                                        resizeMode="stretch"
+                                    />
 
-              {/* Floating Minimize Button */}
-              <TouchableOpacity
-                style={styles.minimizeBtn}
-                onPress={() => setIsFullscreen(false)}
-              >
-                <MaterialIcons name="fullscreen-exit" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </GestureHandlerRootView>
-      </Modal>
+                                    {/* Touch Overlay to capture pin placement taps */}
+                                    <Pressable onPress={handleMapPress} style={StyleSheet.absoluteFill} />
 
-      {/* Editor Modal for Adding/Editing a Point */}
-      <Modal
-        visible={editorModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setEditorModalVisible(false);
-          setEditingPointId(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingPointId ? "Edit Map Point" : "Add Map Point"}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setEditorModalVisible(false);
-                  setEditingPointId(null);
-                }}
-              >
-                <MaterialIcons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
+                                    {/* Render percentage-positioned map pins (Always visible immediately) */}
+                                    {offlinePoints.map((point) => {
+                                        const config = getPinConfig(point.type);
+                                        return (
+                                            <TouchableOpacity
+                                                key={point.id}
+                                                style={[
+                                                    styles.pinWrapper,
+                                                    { left: `${point.x}%`, top: `${point.y}%` },
+                                                ]}
+                                                onPress={(e) => handlePinPress(e, point)}
+                                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                                activeOpacity={0.7}
+                                            >
+                                                <View style={[styles.pinCircle, { backgroundColor: config.color }]}>
+                                                    <CustomIcon library="Feather" name={config.icon} size={11} color={Colors.WHITE} />
+                                                </View>
+                                                <View style={styles.pinTriangle} />
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </ResumableZoom>
+                        )}
+                    </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
-              <Text style={styles.inputLabel}>Point Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Campsite 1, Scenic Overlook"
-                value={draftName}
-                onChangeText={setDraftName}
-              />
+                    {/* Floating On-Canvas Zoom Controls */}
+                    <View style={styles.zoomControlPanel}>
+                        <TouchableOpacity
+                            style={styles.zoomControlBtn}
+                            onPress={handleZoomIn}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="plus" size={18} color={Colors.TEXT_PRIMARY} />
+                        </TouchableOpacity>
+                        <View style={styles.zoomDivider} />
+                        <TouchableOpacity
+                            style={styles.zoomControlBtn}
+                            onPress={handleZoomOut}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="minus" size={18} color={Colors.TEXT_PRIMARY} />
+                        </TouchableOpacity>
+                        <View style={styles.zoomDivider} />
+                        <TouchableOpacity
+                            style={styles.zoomControlBtn}
+                            onPress={handleResetZoom}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="rotate-ccw" size={15} color={Colors.TEXT_PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ) : null}
 
-              <Text style={styles.inputLabel}>Point Type</Text>
-              <View style={styles.typeSelectorContainer}>
-                {PIN_TYPES.map((typeOption) => {
-                  const isSelected = draftType === typeOption.value;
-                  return (
-                    <TouchableOpacity
-                      key={typeOption.value}
-                      style={[
-                        styles.typePill,
-                        { borderColor: typeOption.color },
-                        isSelected && { backgroundColor: typeOption.color },
-                      ]}
-                      onPress={() => setDraftType(typeOption.value)}
-                    >
-                      <MaterialIcons
-                        name={typeOption.icon}
-                        size={14}
-                        color={isSelected ? "#FFF" : typeOption.color}
-                      />
-                      <Text
-                        style={[
-                          styles.typePillText,
-                          { color: isSelected ? "#FFF" : "#333" },
-                        ]}
-                      >
-                        {typeOption.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {/* Dedicated Decoupled Waypoint Point Details Modal Sheet */}
+            <PointDetailsModal
+                visible={Boolean(selectedPoint)}
+                point={selectedPoint}
+                isEditable={isEditable}
+                onClose={() => setSelectedPoint(null)}
+                onEdit={handleEditPointPress}
+                onDelete={handleDeletePointPress}
+            />
 
-              <Text style={styles.inputLabel}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Enter details for hikers (e.g. water is drinkable, strong wind here)"
-                value={draftDescription}
-                onChangeText={setDraftDescription}
-                multiline={true}
-                numberOfLines={3}
-              />
-
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.btn, styles.btnCancel]}
-                  onPress={() => {
+            {/* Co-located Waypoint Creation and Information Edit Dialog Modal */}
+            <EditPointModal
+                visible={editorModalVisible}
+                onClose={() => {
                     setEditorModalVisible(false);
-                    setEditingPointId(null);
-                  }}
-                >
-                  <Text style={styles.btnTextCancel}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.btn, styles.btnSave]}
-                  onPress={handleSavePoint}
-                >
-                  <Text style={styles.btnTextSave}>
-                    {editingPointId ? "Save Changes" : "Add Point"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </GestureHandlerRootView>
-  );
-}
+                    setEditingPoint(null);
+                }}
+                onSave={handleSaveModalPoint}
+                editingPoint={editingPoint}
+            />
+
+            {/* Standardized Delete Confirmation Modal */}
+            <ConfirmationModal
+                visible={Boolean(pointToDelete)}
+                title="Delete Map Point"
+                message={`Are you sure you want to delete "${pointToDelete?.name}"?`}
+                confirmText="Delete Point"
+                cancelText="Cancel"
+                isDestructive={true}
+                iconName='trash-2'
+                onConfirm={handleConfirmDeletePoint}
+                onClose={() => setPointToDelete(null)}
+            />
+        </GestureHandlerRootView>
+    );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F7F9FA",
-    position: "relative",
-  },
-  zoomContainer: {
-    width: "100%",
-    height: "100%",
-  },
-  mapContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#EBEFF2",
-    overflow: "hidden",
-  },
-  fullscreenContainer: {
-    flex: 1,
-    backgroundColor: "#EBEFF2",
-  },
-  fullscreenBtn: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    zIndex: 10,
-  },
-  minimizeBtn: {
-    position: "absolute",
-    top: 40,
-    right: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 100,
-  },
-  mapImage: {
-    width: "100%",
-    height: "100%",
-  },
-  pinWrapper: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    // Offset standard: centers the pin circle (22px diameter) and accounts for the bottom tip pointer (4px)
-    transform: [{ translateX: -11 }, { translateY: -25.5 }],
-  },
-  pinCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    opacity: 0.85,
-  },
-  pinTriangle: {
-    width: 0,
-    height: 0,
-    backgroundColor: "transparent",
-    borderStyle: "solid",
-    borderLeftWidth: 3.5,
-    borderRightWidth: 3.5,
-    borderBottomWidth: 4,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#FFF",
-    transform: [{ rotate: "180deg" }],
-    marginTop: -0.5,
-    opacity: 0.85,
-  },
-  detailsCard: {
-    position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 16,
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 10,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  cardTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  cardIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#202124",
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    color: "#70757a",
-  },
-  closeCardBtn: {
-    padding: 4,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#4A4A4A",
-    lineHeight: 20,
-  },
-  cardActionsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#EAEAEA",
-    paddingTop: 12,
-  },
-  cardActionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  cardEditBtn: {
-    backgroundColor: Colors.PRIMARY,
-    borderColor: Colors.PRIMARY,
-  },
-  cardEditBtnText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  cardDeleteBtn: {
-    backgroundColor: "#FCE8E6",
-    borderColor: "#FAD2CF",
-  },
-  cardDeleteBtnText: {
-    color: "#C5221F",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalContent: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    elevation: 8,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-    paddingBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  modalScroll: {
-    gap: 14,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#5F6368",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#DADCE0",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    color: "#333",
-  },
-  typeSelectorContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 6,
-  },
-  typePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#FFF",
-  },
-  typePillText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 10,
-  },
-  btn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  btnCancel: {
-    backgroundColor: "#F1F3F4",
-  },
-  btnSave: {
-    backgroundColor: Colors.PRIMARY,
-  },
-  btnTextCancel: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#5F6368",
-  },
-  btnTextSave: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#FFF",
-  },
+    container: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    mapInnerWrapper: {
+        flex: 1,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    fullSize: {
+        width: '100%',
+        height: '100%',
+    },
+    centeringContainer: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        overflow: 'hidden',
+    },
+    mapCanvas: {
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    zoomControlPanel: {
+        position: 'absolute',
+        top: 14,
+        right: 14,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        ...GlobalStyles.dropShadow(3),
+        zIndex: 10,
+        overflow: 'hidden',
+    },
+    zoomControlBtn: {
+        width: 38,
+        height: 38,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.WHITE,
+    },
+    zoomDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_LIGHT,
+        width: '100%',
+    },
+    pinWrapper: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: [{ translateX: -11 }, { translateY: -25.5 }],
+    },
+    pinCircle: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...GlobalStyles.dropShadow(2),
+        opacity: 0.9,
+    },
+    pinTriangle: {
+        width: 0,
+        height: 0,
+        backgroundColor: 'transparent',
+        borderStyle: 'solid',
+        borderLeftWidth: 3.5,
+        borderRightWidth: 3.5,
+        borderBottomWidth: 4,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: Colors.WHITE,
+        transform: [{ rotate: '180deg' }],
+        marginTop: -0.5,
+        opacity: 0.9,
+    },
 });
+
+export default StaticTrailMap;

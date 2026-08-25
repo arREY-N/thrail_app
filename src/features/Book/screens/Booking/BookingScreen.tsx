@@ -1,0 +1,347 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform,  StyleSheet, View  } from 'react-native';
+
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomLoading from '@/src/components/CustomLoading';
+import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Layout } from '@/src/constants/layout';
+
+import ProgressStep from '@/src/features/Book/components/ProgressStep';
+import DetailsScreen from '@/src/features/Book/screens/Booking/DetailsScreen';
+import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
+import StatusScreen from '@/src/features/Book/screens/Booking/StatusScreen';
+
+export interface BookingScreenProps {
+    offers?: Array<{ id: string; date?: string | Date; [key: string]: unknown }>;
+    onBackPress: () => void;
+    onSetOffer?: (offer: unknown) => void;
+    onCompleteOffer: (data: { hikerDetails: Record<string, any> }) => Promise<boolean>;
+    onUpdatePress?: (payload: { section: string; id: string; value: unknown }) => void;
+    onTermsPress?: () => void;
+    onPrivacyPress?: () => void;
+}
+
+export interface BookingDataState {
+    selectedOfferId: string | null;
+    hikerDetails: Record<string, any> | null;
+    uploadedDocs: Record<string, string> | null;
+}
+
+const BookingScreen: React.FC<BookingScreenProps> = ({
+    offers = [],
+    onBackPress,
+    onSetOffer,
+    onCompleteOffer,
+    onUpdatePress,
+    onTermsPress,
+    onPrivacyPress
+}) => {
+
+    const [currentView, setCurrentView] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitPhase, setSubmitPhase] = useState('idle');
+
+    const [isBookingSuccess, setIsBookingSuccess] = useState(false); 
+
+    const [bookingData, setBookingData] = useState<BookingDataState>({
+        selectedOfferId: null,
+        hikerDetails: null,
+        uploadedDocs: null,
+    });
+
+    const safeOffers = Array.isArray(offers) ? offers : [];
+    const lineFillPercentage = ((currentView - 1) / 2) * 100;
+    
+    const completeOfferRef = useRef(onCompleteOffer);
+    useEffect(() => {
+        completeOfferRef.current = onCompleteOffer;
+    }, [onCompleteOffer]);
+
+    const bookingDataRef = useRef(bookingData);
+    useEffect(() => {
+        bookingDataRef.current = bookingData;
+    }, [bookingData]);
+
+
+    const resetStateAndGoBack = () => {
+        setCurrentView(1);
+        setBookingData({
+            selectedOfferId: null,
+            hikerDetails: null,
+            uploadedDocs: null,
+        });
+        setIsBookingSuccess(false);
+        onBackPress();
+    };
+
+    const handleHeaderBackPress = () => {
+        if (currentView === 3) {
+            resetStateAndGoBack();
+        } else if (currentView === 2) {
+            setCurrentView(1);
+        } else {
+            resetStateAndGoBack();
+        }
+    };
+
+    const handleStepNavigation = (step: number) => {
+        if (currentView === 3) return;
+        if (step > currentView || isSubmitting) return;
+        setCurrentView(step);
+    };
+
+    const handleReserve = (detailsData: { hikerDetails: Record<string, any>; uploadedDocs: Record<string, string> }) => {
+        setIsSubmitting(true);
+
+        const normalizedHikerDetails: Record<string, any> = {
+            ...detailsData.hikerDetails,
+            phone: cleanPhoneNumber(detailsData.hikerDetails?.phone || ''),
+            emergencyPhone: cleanPhoneNumber(detailsData.hikerDetails?.emergencyPhone || ''),
+        };
+
+        if (onUpdatePress) {
+            onUpdatePress({
+                section: 'root',
+                id: 'emergencyContact',
+                value: {
+                    name: normalizedHikerDetails.emergencyName || '',
+                    contactNumber: normalizedHikerDetails.emergencyPhone || '',
+                },
+            });
+
+            const formattedDocsArray = Object.keys(detailsData.uploadedDocs || {}).map((docName) => ({
+                name: docName,
+                file: detailsData.uploadedDocs[docName],
+                valid: 'pending' 
+            }));
+
+            onUpdatePress({
+                section: 'root',
+                id: 'documents',
+                value: formattedDocsArray, 
+            });
+        }
+
+        setBookingData((prev) => ({
+            ...prev,
+            ...detailsData,
+            hikerDetails: normalizedHikerDetails,
+        }));
+        
+        setSubmitPhase('ready_to_submit');
+    };
+
+    useEffect(() => {
+        if (submitPhase === 'ready_to_submit') {
+            
+            const timer = setTimeout(async () => {
+                let successFlag = false; 
+                
+                try {
+                    successFlag = await completeOfferRef.current({
+                        hikerDetails: bookingDataRef.current.hikerDetails || {},
+                    });
+                } catch (backendError) {
+                    console.error("Booking Error:", backendError);
+                    successFlag = false;
+                }
+
+                setIsBookingSuccess(successFlag);
+                setCurrentView(3);
+                setIsSubmitting(false);
+                setSubmitPhase('idle');
+            }, 250);
+
+            return () => clearTimeout(timer);
+        }
+    }, [submitPhase]); 
+    
+    return (
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <CustomLoading
+                visible={isSubmitting}
+                message="Processing reservation..."
+            />
+
+            <CustomHeader
+                title={currentView === 3 ? 'Booking Status' : 'Book Trail'}
+                centerTitle={true}
+                onBackPress={currentView === 3 ? undefined : handleHeaderBackPress}
+            />
+
+            <View style={styles.progressOuterBounds}>
+                <View style={styles.progressWrapper}>
+                    <View style={styles.progressContainer}>
+                        <View style={styles.lineWrapper}>
+                            <View style={styles.progressLineBackground} />
+                            <View
+                                style={[
+                                    styles.progressLineActive,
+                                    { width: `${lineFillPercentage}%` },
+                                ]}
+                            />
+                        </View>
+
+                        <View style={styles.progressRow}>
+                            <ProgressStep
+                                stepNum={1}
+                                title="Offers"
+                                libraryName="FontAwesome5"
+                                iconName="tag"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                            <ProgressStep
+                                stepNum={2}
+                                title="Details"
+                                libraryName="Ionicons"
+                                iconName="document-text"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                            <ProgressStep
+                                stepNum={3}
+                                title="Status"
+                                libraryName="MaterialCommunityIcons"
+                                iconName="clock-check-outline"
+                                currentView={currentView}
+                                onStepPress={handleStepNavigation}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            <View style={styles.contentContainer}>
+                {currentView === 1 && (
+                    <OffersScreen
+                        offers={safeOffers}
+                        selectedOfferId={bookingData.selectedOfferId}
+                        onContinue={(offerId) => {
+                            const selectedOffer = safeOffers.find(
+                                (o) => o.id === offerId
+                            );
+
+                            if (onSetOffer && selectedOffer) {
+                                let properDate = new Date();
+                                if (selectedOffer.date) {
+                                    if (selectedOffer.date instanceof Date) {
+                                        properDate = selectedOffer.date;
+                                    } else if (typeof (selectedOffer.date as any).toDate === 'function') {
+                                        properDate = (selectedOffer.date as any).toDate();
+                                    } else if ((selectedOffer.date as any).seconds) {
+                                        properDate = new Date((selectedOffer.date as any).seconds * 1000);
+                                    } else {
+                                        properDate = new Date(selectedOffer.date as string | number);
+                                    }
+                                }
+                                onSetOffer({ ...selectedOffer, date: properDate });
+                            }
+
+                            setBookingData((prev) => ({
+                                ...prev,
+                                selectedOfferId: offerId,
+                            }));
+                            setCurrentView(2);
+                        }}
+                    />
+                )}
+
+                {currentView === 2 && (
+                    <DetailsScreen
+                        selectedOffer={safeOffers.find(
+                            (o) => o.id === bookingData.selectedOfferId
+                        )}
+                        savedDetails={bookingData.hikerDetails}
+                        savedDocs={bookingData.uploadedDocs}
+                        isSubmitting={isSubmitting}
+                        onContinue={handleReserve}
+                        onTermsPress={onTermsPress}
+                        onPrivacyPress={onPrivacyPress}
+                    />
+                )}
+
+                {currentView === 3 && (
+                    <StatusScreen
+                        onReturn={() => {
+                            resetStateAndGoBack();
+                        }}
+                        bookedOffer={safeOffers.find(
+                            (o) => o.id === bookingData.selectedOfferId
+                        )}
+                        hikerDetails={bookingData.hikerDetails}
+                        isSuccess={isBookingSuccess} 
+                    />
+                )}
+            </View>
+        </ScreenWrapper>
+    );
+};
+
+const styles = StyleSheet.create({
+    progressOuterBounds: {
+        width: '100%',
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
+    progressWrapper: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
+        paddingVertical: 20,
+        paddingHorizontal: 16,
+        backgroundColor: Colors.BACKGROUND,
+        
+        
+        
+        
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_LIGHT,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        ...GlobalStyles.dropShadow(3),
+    },
+    progressContainer: {
+        position: 'relative',
+        width: '100%',
+        maxWidth: 450, 
+        alignSelf: 'center',
+    },
+    progressRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        zIndex: 2,
+    },
+    lineWrapper: {
+        position: 'absolute',
+        top: 19, 
+        left: 35, 
+        right: 35, 
+        height: 2,
+        zIndex: 1,
+    },
+    progressLineBackground: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    progressLineActive: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: Colors.PRIMARY,
+    },
+    contentContainer: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+    },
+});
+
+export default BookingScreen;

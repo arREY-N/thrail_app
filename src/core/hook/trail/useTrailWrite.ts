@@ -39,6 +39,7 @@ export default function useTrailWrite(params: TrailParams = {}): IUseTrailWrite{
         mountains: [...mountains.map(m => m.name)],
         provinces: [...OPTIONS.provinces],
         circularity: [...OPTIONS.circularity],
+        classification: [...OPTIONS.classification],
         quality: [...OPTIONS.quality],
         difficultyPoints: [...OPTIONS.difficulty_points],
         viewpoints: [...OPTIONS.viewpoints],

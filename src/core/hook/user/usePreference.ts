@@ -136,7 +136,10 @@ export default function usePreference(){
         },
         medicalProfile: {
             hasCondition: questions['medical'].answer,
-            details: questions['medical'].details,
+            // Convert onboarding medical conditions string input into a string[] array
+            details: questions['medical'].details
+                ? (questions['medical'].details as string).split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
+                : [],
             clearanceUri: questions['medical'].clearanceUri,
         }
     });

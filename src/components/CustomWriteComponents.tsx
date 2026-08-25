@@ -1,9 +1,13 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { formatDate } from "@/src/core/utility/date";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import SelectionChip from "@/src/features/Auth/components/SelectionChip";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { Colors } from "../constants/colors";
 import { IFormField } from "../core/interface/formFieldInterface";
 import CustomDropdown from "./CustomDropdown";
+import CustomFeedbackInput from "./CustomFeedbackInput";
+import CustomText from "./CustomText";
 import CustomTextInput from "./CustomTextInput";
 
 export interface IWriteComponentParams {
@@ -22,270 +26,255 @@ const WriteComponent = (props: IWriteComponentParams) => {
     } = props;
 
     return (
-        <ScrollView style={styles.formCard}>
+        <View style={styles.formContainer}>
             {
-                informationSet.map(i => {
-                    const label: string = i.label;
-                    const type: string = i.type;
-                    const required: boolean = i.required;
-                    const section: string = i.section;
-                    const id : string = i.id;
-                    
-                    const isRoot = section === 'root';
-                    const elementKey = `${section}_${id}`;
-
-                    if(type === 'text' || type === 'numerical'){
-                        const rawVal = isRoot ? object[id] : object[section][id];
+                informationSet.length > 0
+                    ? informationSet.map(i => {
+                        const label: string = i.label;
+                        const type: string = i.type;
+                        const required: boolean = i.required;
+                        const section: string = i.section;
+                        const id : string = i.id;
                         
-                        const isCoordinate = id.toLowerCase().includes('lat') || id.toLowerCase().includes('long');
-                        const inputType = isCoordinate ? 'coordinate' : (type === 'numerical' ? 'numerical' : 'text');
+                        const isRoot = section === 'root';
+                        const elementKey = `${section}_${id}`;
 
-                        let displayVal = '';
-                        if (rawVal !== null && rawVal !== undefined) {
-                            if (type === 'numerical' && rawVal === 0) {
-                                displayVal = '';
-                            } else {
-                                displayVal = String(rawVal);
-                            }
+                        if (id === 'description') {
+                            const rawVal = isRoot ? object[id] : object[section]?.[id];
+                            const displayVal = rawVal || '';
+                            return (
+                                <View key={elementKey} style={styles.inputSpacing}>
+                                    <CustomFeedbackInput
+                                        label={`${label}${required ? ' *' : ''}`}
+                                        placeholder="Enter trail description..."
+                                        value={displayVal}
+                                        onChangeText={(val: string) => onEditProperty({ section, id, value: val })}
+                                    />
+                                </View>
+                            );
                         }
 
-                        return(
-                            <View key={elementKey}>
-                                <CustomTextInput
-                                    label={`${label}${required ? ' *' : ''}`}
-                                    placeholder={label}
-                                    value={displayVal}
-                                    onChangeText={(val: string) => onEditProperty({ section, id, value: val })}
-                                    type={inputType}
-                                    style={styles.inputSpacing}
-                                    keyboardType={inputType === 'coordinate' || inputType === 'numerical' ? 'numbers-and-punctuation' : undefined}
-                                    secureTextEntry={undefined}
-                                    isPasswordVisible={undefined}
-                                    onTogglePassword={undefined}
-                                    icon={undefined}
-                                    prefix={undefined}
-                                    children={undefined}
-                                    showTodayButton={undefined}
-                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                    />
-                            </View>
-                        )
-                    }
-                    
-                    if(type === 'multi-select'){
-                        const key = i.options;
+                        if (type === 'text' || type === 'numerical') {
+                            const rawVal = isRoot ? object[id] : object[section]?.[id];
+                            
+                            const isCoordinate = id.toLowerCase().includes('lat') || id.toLowerCase().includes('long');
+                            const inputType = isCoordinate ? 'coordinate' : (type === 'numerical' ? 'numerical' : 'text');
+
+                            let displayVal = '';
+                            if (rawVal !== null && rawVal !== undefined) {
+                                if (type === 'numerical' && rawVal === 0) {
+                                    displayVal = '';
+                                } else {
+                                    displayVal = String(rawVal);
+                                }
+                            }
+
+                            return (
+                                <View key={elementKey}>
+                                    <CustomTextInput
+                                        label={`${label}${required ? ' *' : ''}`}
+                                        placeholder={label}
+                                        value={displayVal}
+                                        onChangeText={(val: string) => onEditProperty({ section, id, value: val })}
+                                        type={inputType}
+                                        style={styles.inputSpacing}
+                                        keyboardType={inputType === 'coordinate' || inputType === 'numerical' ? 'numbers-and-punctuation' : undefined}
+                                    />
+                                </View>
+                            );
+                        }
                         
-                        if(!optionSet) return <Text key={elementKey}>Options Unavailable for {label}</Text>
-                        
-                        const options = optionSet[key as any];
-                        
-                        const val: string[] | null = isRoot ? object[id] : object[section][id] || null;
-                        
-                        return(
-                            <View key={elementKey}>
-                                <Text>{label} { required ? '*' : ''}</Text>
-                                {
-                                    options.length > 0
-                                        ? options.map(o => {
-                                            const optionKey = typeof o === 'string' ? o : JSON.stringify(o);
-                                            return(
-                                                <Pressable 
+                        if (type === 'multi-select') {
+                            const key = i.options;
+                            
+                            if (!optionSet) return <CustomText key={elementKey}>Options Unavailable for {label}</CustomText>;
+                            
+                            const options = optionSet[key as any];
+                            
+                            const val: string[] | null = isRoot ? object[id] : object[section]?.[id] || null;
+                            
+                            return (
+                                <View key={elementKey} style={styles.inputSpacing}>
+                                    <CustomText variant="caption" style={styles.inputLabel}>
+                                        {label} {required ? '*' : ''}
+                                    </CustomText>
+                                    <View style={styles.chipContainer}>
+                                        {options && options.length > 0
+                                            ? options.map(o => {
+                                                const optionKey = typeof o === 'string' ? o : JSON.stringify(o);
+                                                const isSelected = val === o || (Array.isArray(val) && val?.find(v => v === o));
+                                                return (
+                                                    <SelectionChip 
+                                                        key={optionKey}
+                                                        label={String(o)}
+                                                        selected={!!isSelected}
+                                                        onPress={() => onEditProperty({ section, id, value: o })}
+                                                    />
+                                                );
+                                            })
+                                            : <CustomText key="no-options">No available options</CustomText>
+                                        }
+                                    </View>
+                                </View>
+                            );
+                        }
+
+                        if (type === 'single-select') {
+                            const key = i.options;
+                            
+                            if (!optionSet) return <CustomText key={elementKey}>Options Unavailable for {label}</CustomText>;
+                            
+                            const options: any[] = optionSet[key as any] || [];
+                            const val: string | null = isRoot ? object[id] : object[section]?.[id] || null;
+                            
+                            if (key === 'classification' || key === 'circularity') {
+                                return (
+                                    <View key={elementKey} style={styles.inputSpacing}>
+                                        <CustomText variant="caption" style={styles.inputLabel}>
+                                            {label} {required ? '*' : ''}
+                                        </CustomText>
+                                        <View style={styles.chipContainer}>
+                                            {options.map(o => {
+                                                const optionKey = String(o);
+                                                const isSelected = val === o;
+                                                return (
+                                                    <SelectionChip
+                                                        key={optionKey}
+                                                        label={optionKey.charAt(0).toUpperCase() + optionKey.slice(1)}
+                                                        selected={isSelected}
+                                                        onPress={() => onEditProperty({ section, id, value: o })}
+                                                    />
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                );
+                            }
+
+                            return (
+                                <View key={elementKey} style={styles.inputSpacing}>
+                                    <CustomDropdown
+                                        label={`${label}${required ? ' *' : ''}`}
+                                        placeholder={`Select ${label}`}
+                                        options={options}
+                                        value={val as any}
+                                        onSelect={(value: string) => onEditProperty({ section, id, value })}
+                                    />
+                                </View>
+                            );
+                        }
+
+                        if (type === 'file') {
+                            const val: string | null = isRoot ? object[id] : object[section]?.[id] || null;
+                            return (
+                                <View key={elementKey}>
+                                    <CustomTextInput
+                                        placeholder={label}
+                                        label={`${label} ${required ? '*' : ''}`}
+                                        value={val || ''}
+                                        onChangeText={(value: string) => onEditProperty({ section, id, value })}
+                                    />
+                                </View>
+                            );
+                        }
+
+                        if (type === 'object-select') {
+                            const key = i.key;
+
+                            if (!optionSet) return <CustomText key={elementKey}>Options unavailable for {label}</CustomText>;
+
+                            const options: any[] = optionSet[key as any] as any[];
+                            const val: any | null = isRoot ? object[id] : object[section]?.[id] || null;
+
+                            return (
+                                <View key={elementKey} style={styles.inputSpacing}>
+                                    <CustomText variant="caption" style={styles.inputLabel}>
+                                        {label} {required ? '*' : ''}
+                                    </CustomText>
+                                    <View style={styles.chipContainer}>
+                                        {options && options.map(o => {
+                                            const optionKey = typeof o === 'string' ? o : (o.id || o.name || JSON.stringify(o));
+                                            const isSelected = val === o || val?.name === o;
+                                            return (
+                                                <SelectionChip 
                                                     key={optionKey}
-                                                    style={(val === o || (Array.isArray(val) && val?.find(v => v === o))) ? styles.true : styles.false} 
-                                                    onPress={() => onEditProperty({section, id, value: o})}
-                                                    key={o}
-                                                >
-                                                    <Text>{o}</Text>
-                                                </Pressable>
-                                            )
-                                        })
-                                        : <Text key="no-options">No available options</Text>
-                                }
-                            </View>
-                        )
-                    }
+                                                    label={String(o)}
+                                                    selected={!!isSelected}
+                                                    onPress={() => onEditProperty({ section, id, value: o })}
+                                                />
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            );
+                        }
 
-                    if(type === 'single-select'){
-                        const key = i.options;
-                        
-                        if(!optionSet) return <Text key={elementKey}>Options Unavailable for {label}</Text>
-                        
-                        const options: [] = optionSet[key as any] as []; 
-                        
-                        const val: string[] | null = isRoot ? object[id] : object[section][id] || null;
-                        
-                        return(
-                            <View key={elementKey}>
-                                <CustomDropdown
-                                    label={`${label}${required ? ' *' : ''}`}
-                                    placeholder={`Select ${label}`}
-                                    options={options}
-                                    value={val}
-                                    onSelect={(value: string) => onEditProperty({ section, id, value })} children={undefined}                                />
-                            </View>
-                        )
-                    }
+                        if (type === 'boolean') {
+                            const val: boolean | null = isRoot ? object[id] : object[section]?.[id] ?? null;
+                            const isStatus = id === 'active';
 
-                    if(type === 'file'){
-                        const val: string | null = isRoot ? object[id] : object[section][id] || null;
-                        return(
-                            <View key={elementKey}>
+                            const trueLabel = isStatus ? 'Active' : 'Yes';
+                            const falseLabel = isStatus ? 'Inactive' : 'No';
+
+                            return (
+                                <View key={elementKey} style={styles.inputSpacing}>
+                                    <CustomText variant="caption" style={styles.inputLabel}>
+                                        {label} {required ? '*' : ''}
+                                    </CustomText>
+                                    <View style={styles.chipContainer}>
+                                        <SelectionChip 
+                                            label={trueLabel}
+                                            selected={val === true}
+                                            onPress={() => onEditProperty({ section, id, value: true })}
+                                        />
+                                        <SelectionChip 
+                                            label={falseLabel}
+                                            selected={val === false}
+                                            onPress={() => onEditProperty({ section, id, value: false })}
+                                        />
+                                    </View>
+                                </View>
+                            );
+                        }
+
+                        if (type === 'date') {
+                            const val: Date | null = isRoot ? object[id] : object[section]?.[id] || null;
+                            
+                            return (
                                 <CustomTextInput
-                                    placeholder={label}
+                                    key={elementKey}
                                     label={`${label} ${required ? '*' : ''}`}
-                                    value={val || ''}
-                                    onChangeText={(value: string) => onEditProperty({ section, id, value })}
-                                    secureTextEntry={undefined}
-                                    keyboardType={undefined}
-                                    isPasswordVisible={undefined}
-                                    onTogglePassword={undefined}
-                                    style={undefined}
-                                    icon={undefined}
-                                    prefix={undefined}
-                                    children={undefined}
-                                    showTodayButton={undefined}
-                                    allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                    />
-                            </View>
-                        )
-                    }
-
-                    if(type === 'object-select'){
-                        const key = i.key;
-
-                        if(!optionSet) return <Text key={elementKey}>Options unavailable for {label}</Text>
-
-                        const options: [] = optionSet[key as any] as [];
-
-                        const val: any | null = isRoot ? object[id] : object[section][id] || null
-
-                        return(
-                            <View key={elementKey}>
-                                <Text>{label} { required ? '*' : ''}</Text>
-                                {
-                                    options && options.map(o => {
-                                        const optionKey = typeof o === 'string' ? o : (o.id || o.name || JSON.stringify(o));
-                                        return(
-                                            <Pressable 
-                                                key={optionKey}
-                                                style={(val === o || val?.name === o) ? styles.true : styles.false} 
-                                                onPress={() => onEditProperty({section, id, value: o})}>
-                                                <Text>{o}</Text>
-                                            </Pressable>
-                                        )
-                                    })
-                                }
-                            </View>
-                        )
-                    }
-
-                    if(type === 'boolean'){
-                        const val: boolean = isRoot ? object[id] : object[section][id];
-
-                        return(
-                            <View key={elementKey}>
-                                <Text>{label} { required ? '*' : ''}</Text>
-                                <Pressable 
-                                    style={!val ? styles.false : (val ? styles.true : styles.false)} 
-                                    onPress={() => onEditProperty({section, id, value: val})}
-                                >
-                                    <Text>{val === null ? 'NO DATA' : (val ? 'TRUE' : 'FALSE')}</Text>
-                                </Pressable>
-                            </View>
-                        )
-                    }
-
-                    if(type === 'date'){
-                        const val: Date | null = isRoot ? object[id] : object[section][id] || null;
-                        
-                        return(
-                            <CustomTextInput
-                                key={elementKey}
-                                label={`${label} ${required ? '*' : ''}`}
-                                placeholder="DD/MM/YYYY"
-                                value={formatDate(val)}
-                                onChangeText={(value: Date) => onEditProperty({ section, id, value })}
-                                type="date"
-                                secureTextEntry={undefined}
-                                keyboardType={undefined}
-                                isPasswordVisible={undefined}
-                                onTogglePassword={undefined}
-                                style={undefined}
-                                icon={undefined}
-                                prefix={undefined}
-                                children={undefined}
-                                showTodayButton={undefined}
-                                allowFutureDates={undefined} inputStyle={undefined} multiline={undefined} defaultMode={undefined} maximumDate={undefined}                                />
-                        )
-                    }
-                })
+                                    placeholder="DD/MM/YYYY"
+                                    value={formatDate(val)}
+                                    onChangeText={(value: Date) => onEditProperty({ section, id, value })}
+                                    type="date"
+                                />
+                            );
+                        }
+                    })
+                    : <CustomText>No Fields detected</CustomText>
             }
-        </ScrollView>
-    )
-}
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
-    true: {
-        margin: 10,
-        borderWidth: 1,
-        padding: 10,
-        backgroundColor: '#d2d2d2'
-    },
-    false: {
-        margin: 10,
-        borderWidth: 1,
-        padding: 10,
-        backgroundColor: '#4e4e4e'
-    },
-    scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
-    },
-    headerSection: {
-        marginBottom: 20,
-        alignItems: 'center',
-    },
-    pageTitle: {
+    inputLabel: {
         fontWeight: 'bold',
-        fontSize: 20,
-        marginBottom: 6,
+        marginBottom: 8,
         color: Colors.TEXT_PRIMARY,
     },
-    pageSubtitle: {
-        textAlign: 'center',
-        color: Colors.TEXT_SECONDARY,
-        maxWidth: '85%',
+    chipContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
     },
-    successBox: {
-        backgroundColor: '#E0F2FE',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#BAE6FD',
-    },
-    successText: {
-        color: '#0369A1',
-        textAlign: 'center',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    formCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: Colors.SHADOW,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
+    formContainer: {
+        gap: 16,
     },
     inputSpacing: {
-        marginBottom: 16,
+        marginBottom: 4,
     },
-    buttonContainer: {
-        marginTop: 8,
-    }
 });
 
 export default WriteComponent;

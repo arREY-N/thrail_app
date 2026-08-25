@@ -1,12 +1,12 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Booking";
+import { Booking, useBookingsStore } from "@/src/core/models/Booking/Booking";
+
 import { Hike } from "@/src/core/models/Hike/Hike";
-import { Offer } from "@/src/core/models/Offer/Offer";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
+
 import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
-import { BookingRepository } from "@/src/core/repositories/bookingRepository";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
+
 import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useOffersStore } from "@/src/core/stores/offersStore";
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -16,8 +16,8 @@ export interface IUseWriteHike {
     error: string | null;
     isLoading: boolean;
     booking?: Booking | null;
-    fullOffer?: Offer | null;    
-    
+    fullOffer?: Offer | null;
+
     elapsedTime: number;
     timerStartTime: number;
     totalDistance: number;
@@ -30,7 +30,7 @@ export interface IUseWriteHike {
     onCompleteHike: () => void;
     onResetHike: () => void;
     onEmergencyPress: () => void;
-    onAddReview: (trailId: string) => void; 
+    onAddReview: (trailId: string) => void;
     setShareLocationEnabled: (enabled: boolean) => Promise<void>;
 }
 
@@ -53,7 +53,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const trails = useTrailsStore(s => s.data);
     const hikes = useHikesStore(s => s.hikes);
 
-    const fetchOffer = useOffersStore(s => s.fetchOfferById);
+    const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const [fullOffer, setFullOffer] = useState<Offer | null>(null);
 
     const currentHike = useHikesStore(s => s.currentHike);
@@ -73,6 +73,8 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     const create = useHikesStore(s => s.create);
     const startHike = useHikesStore(s => s.startHike);
 
+    const createBooking = useBookingsStore(s => s.create);
+
     const [booking, setBooking] = useState<Booking | null>(null);
 
     // Resolve booking and offer when bookings list loads or active hike changes
@@ -82,22 +84,25 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             const b = bookings.find(b => b.id === targetBookingId);
             if (b) {
                 setBooking(b);
-                fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                fetchOffer(b.offer.id).then(() => {
+                    const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                    setFullOffer(offer);
+                });
             }
         }
     }, [bookingId, active, currentHike?.bookingId, bookings, booking]);
 
     useEffect(() => {
         setLocalError(null); // Clear local error on parameter change
-    },[]);
+    }, []);
     useEffect(() => {
         let found: Hike | undefined;
 
-        if(active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))) {
+        if (active && ((trailId && currentHike?.trail.id === trailId) || (hikeId && currentHike?.id === hikeId))) {
             console.log('Active hike already loaded with matching parameters. Using current hike from store.');
             return;
         }
-        
+
         if (currentHike && ((hikeId && currentHike.id !== hikeId) || (trailId && currentHike.trail.id !== trailId)) && active) {
             setLocalError(`Rerunning hike: ${currentHike.trail.name}`);
             updateCurrentHike({ startTime: new Date() })
@@ -113,28 +118,35 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         if (hikeId === 'new_diy_session') {
             console.log('starting new DIY hike session');
             found = new Hike({
-                trail: { id: "diy", name: "Free Roam (DIY)" },
+                trail: {
+                    id: "diy",
+                    name: "Free Roam (DIY)",
+                    location: "Unknown"
+                },
                 status: 'unhiked',
                 mode: 'direct',
                 startTime: new Date(),
             });
             updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
-        } 
+        }
         else if (hikeId) {
             console.log('with hikeId: ', hikeId)
             const exist = hikes.find(h => h.id === hikeId);
             if (exist) {
-                found = exist; 
+                found = exist;
                 if (exist.mode === 'booked' && exist.bookingId) {
                     const b = bookings.find(b => b.id === exist.bookingId);
                     if (b) {
                         setBooking(b);
-                        fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                        fetchOffer(b.offer.id).then(() => {
+                            const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                            setFullOffer(offer);
+                        });
                     }
                 }
             }
             console.log('found with hikeId: ', found);
-        } 
+        }
         else if (trailId) {
             console.log('with trailId: ', trailId)
             const trail = trails.find(t => t.id === trailId);
@@ -151,20 +163,23 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                     const b = bookings.find(b => b.id === bookingId);
                     if (b) {
                         setBooking(b);
-                        fetchOffer(b.offer.id).then(o => setFullOffer(o));
+                        fetchOffer(b.offer.id).then(() => {
+                            const offer = useOfferStore.getState().businessOffers.find(o => o.id === b.offer.id) || null;
+                            setFullOffer(offer);
+                        });
                     }
                 }
 
                 updateHikeStore({ elapsedTime: 0, timerStartTime: 0, totalDistance: 0, totalElevationGain: 0 });
             }
         }
-        
-        if(!found){
+
+        if (!found) {
             console.log('no hike found, proceeding with empty')
-            updateHikeStore({ 
-                elapsedTime: 0, 
-                timerStartTime: 0, 
-                totalDistance: 0, 
+            updateHikeStore({
+                elapsedTime: 0,
+                timerStartTime: 0,
+                totalDistance: 0,
                 totalElevationGain: 0,
                 currentHike: new Hike()
             });
@@ -176,10 +191,9 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
 
         return () => {
-            if(
-                (bookingId && currentHike?.bookingId !== bookingId && currentHike?.status === 'unhiked') || 
-                (currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked')))
-            {
+            if (
+                (bookingId && currentHike?.bookingId !== bookingId && currentHike?.status === 'unhiked') ||
+                (currentHike && (currentHike.status === 'completed' || currentHike.status === 'unhiked'))) {
                 console.log('linis');
                 console.log(currentHike)
                 console.log(currentHike.status);
@@ -189,23 +203,23 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                 console.log('or nah')
             }
         }
-    },[hikeId, trailId, bookingId, profile?.id]);
-    
+    }, [hikeId, trailId, bookingId, profile?.id]);
+
     const onStartSharingLocation = async () => {
         try {
-            if(!groupId) throw new Error("Group ID is required to share location");
-            
+            if (!groupId) throw new Error("Group ID is required to share location");
+
             await shareLocation(groupId);
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
-        }    
+        }
     }
 
     const onStopSharingLocation = () => {
-        try {            
-            if(!groupId) throw new Error("Group ID is required to share location");
-            stopSharingLocation(groupId);    
+        try {
+            if (!groupId) throw new Error("Group ID is required to share location");
+            stopSharingLocation(groupId);
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while stopping location sharing.");
@@ -213,23 +227,23 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     }
 
     const onStartHike = async () => {
-        if(!profile?.id) {
+        if (!profile?.id) {
             setLocalError("User ID is required to start hike");
             return;
         }
 
-        if(!currentHike) {
+        if (!currentHike) {
             setLocalError("No hike loaded to start");
             return;
         }
 
-        if(active && currentHike.status === 'paused'){
+        if (active && currentHike.status === 'paused') {
             onResumeHike();
             return;
         }
 
         await startHike(profile!.id);
-        if(groupId) {
+        if (groupId) {
             updateHikeStore({ activeGroupId: groupId });
             await onStartSharingLocation();
         }
@@ -240,17 +254,17 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         const currentElapsedTime = Date.now() - timerStartTime;
         updateCurrentHike({ status: 'paused' });
         updateHikeStore({ elapsedTime: currentElapsedTime });
-        if(groupId){
+        if (groupId) {
             onStopSharingLocation();
         }
     }
 
     const onResumeHike = async () => {
         if (!currentHike || currentHike.status !== 'paused') return;
-        const newStartTime = Date.now() - elapsedTime; 
+        const newStartTime = Date.now() - elapsedTime;
 
         updateCurrentHike({
-            status: 'started', 
+            status: 'started',
         });
 
         updateHikeStore({
@@ -258,40 +272,39 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             active: true,
         });
 
-        if(groupId) {
+        if (groupId) {
             updateHikeStore({ activeGroupId: groupId });
             await onStartSharingLocation();
         }
     }
 
     const onCompleteHike = async () => {
-        if (!currentHike || !profile?.id) return; 
+        if (!currentHike || !profile?.id) return;
 
         // ✅ FIX 2: Calculate final seconds if they didn't pause before finishing
-        const finalDuration = currentHike.status === 'started' 
+        const finalDuration = currentHike.status === 'started'
             ? elapsedTime + (Date.now() - timerStartTime)
             : elapsedTime;
 
         updateHikeStore({ active: false });
-        
+
         const completedHike = new Hike({
             ...currentHike,
             status: 'completed',
             endTime: new Date(),
-            distance: totalDistance,            
+            distance: totalDistance,
             duration: finalDuration,   // ✅ Safely saves the exact millisecond duration           
-            elevation: totalElevationGain       
+            elevation: totalElevationGain
         });
-        
-        updateCurrentHike(completedHike); 
+
+        updateCurrentHike(completedHike);
         await create(profile.id, completedHike);
-        
+
         if (completedHike.mode === 'booked' && booking) {
-            const finishedBooking = new Booking({ ...booking, status: 'finished' });
-            await BookingRepository.write(finishedBooking);
+            await createBooking({ ...booking, status: 'finished' });
         }
-        
-        if(groupId){
+
+        if (groupId) {
             onStopSharingLocation();
         }
     }
@@ -306,16 +319,16 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
     const onAddReview = (trailId: string) => {
         if (!currentHike || currentHike.status !== 'completed') return;
-        
-        router.push({ 
-            pathname: '/(main)/review/write', 
-            params: { 
-                trailId: trailId, 
+
+        router.push({
+            pathname: '/(main)/review/write',
+            params: {
+                trailId: trailId,
                 hikeId: currentHike.id,
                 distance: String(currentHike.distance || totalDistance),
                 duration: String(currentHike.duration || elapsedTime),
                 elevation: String(currentHike.elevation || totalElevationGain)
-            } 
+            }
         })
     }
 
@@ -325,13 +338,13 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         isLoading,
         booking,
         fullOffer,
-        
+
         elapsedTime,
         timerStartTime,
         totalDistance,
         totalElevationGain,
         shareLocationEnabled,
-        
+
         onEmergencyPress,
         onStartHike,
         onAddReview,
@@ -342,4 +355,3 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         setShareLocationEnabled,
     }
 }
-    

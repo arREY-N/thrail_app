@@ -1,59 +1,48 @@
-import LoadingScreen from "@/src/app/loading";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import useUser, { IUserDomain } from "@/src/core/hook/user/useUser";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+/**
+ * @file list.tsx
+ * @description User accounts management controller for Superadmin. Composes auth, user domain, and navigation hooks to render UserListScreen inside SuperadminShell.
+ */
 
-import CustomHeader from "@/src/components/CustomHeader";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import React from 'react';
 
-export default function listUsers(){
+import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
+import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import useUser from '@/src/core/hook/user/useUser';
+import UserListScreen from '@/src/features/SuperAdmin/screens/tabs/UserListScreen';
+
+/**
+ * Superadmin user accounts list page controller component.
+ * 
+ * @returns {React.ReactElement} The rendered UserListScreen presentation view.
+ */
+export default function listUsers() {
     const { role } = useAuthHook();
+    const {
+        users,
+        isLoading,
+        error
+    } = useUser({ role });
 
-    const controller = useUser({ role });
+    const {
+        pendingApplication
+    } = useSuperadminDomain(null);
 
-    if(controller.isLoading) return <LoadingScreen/>
-    
-    return <TESTUSER { ...controller }/>;
+    const { 
+        onTabPress, 
+        onBackToSettingsPress 
+    } = useSuperadminNavigation();
+
+    const pendingCount = pendingApplication?.length || 0;
+
+    return (
+        <UserListScreen
+            users={users}
+            isLoading={isLoading}
+            error={error}
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={onBackToSettingsPress}
+        />
+    );
 }
-
-const TESTUSER = (params: IUserDomain) => {
-    const { error, isLoading, users } = params;
-    const { onBackPress } = useAppNavigation();
-    return(
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Applications" 
-                centerTitle={true} 
-                onBackPress={onBackPress}
-            />
-
-            <ScrollView>
-                <Text>Users</Text>
-                { error && <Text>{error}</Text> }
-                { isLoading && <Text> Loading </Text>}
-                { users && users.map((u) => {
-                    return(
-                        <View key={u.id} style={styles.userCard}>
-                            <Text>ID: {u.id}</Text>
-                            <Text>Name: {u.firstname} {u.lastname}</Text>
-                            <Text>Email: {u.email}</Text>
-                            <Text>Role: {u.role}</Text>
-                                                    
-                        </View>
-                    )}) 
-                }
-                <View style={{margin: 50}}/>
-            </ScrollView>
-        </ScreenWrapper>
-    )
-}
-
-const styles = StyleSheet.create({
-    userCard: {
-        borderWidth: 1,
-        margin: 10,
-        padding: 10,
-    }
-})

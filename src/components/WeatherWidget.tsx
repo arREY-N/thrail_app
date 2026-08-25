@@ -1,11 +1,13 @@
-import React, { useCallback, useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { WeatherWidgetSkeleton } from '@/src/features/Home/components/WeatherSkeleton';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IconLibrary } from '@/src/types/ui.types';
 import { ProcessedWeatherData } from '../core/types/weather';
 import {
     formatForecastDay,
@@ -31,28 +33,31 @@ interface SafetyTheme {
 }
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) => {
-    const { weatherData: data, loading, error, refetch } = useWeather(latitude, longitude);
+    const { weatherData: data, error, refetch } = useWeather(latitude, longitude);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const lastUpdatedLabel = useMemo(
         () => formatLastUpdatedLabel(data?.lastUpdated),
         [data?.lastUpdated]
     );
 
-    const handleRefresh = useCallback(() => {
-        refetch();
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await refetch();
+        setIsRefreshing(false);
     }, [refetch]);
 
-    if (loading) {
-        return <WeatherWidgetSkeleton />;
-    }
-
-    if (error || !data) {
+    if (error && !data) {
         return (
             <View style={styles.centerContent}>
                 <CustomIcon library="Ionicons" name="warning-outline" size={32} color={Colors.ERROR} />
                 <CustomText style={styles.errorText}>Unable to load weather data</CustomText>
             </View>
         );
+    }
+
+    if (isRefreshing || !data) {
+        return <WeatherWidgetSkeleton />;
     }
 
     const weatherData = data as ProcessedWeatherData;
@@ -133,7 +138,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
                                 {isToday ? "Today" : formatForecastDay(day.date, index)}
                             </CustomText>
                             <View style={styles.fIconWrapper}>
-                                <CustomIcon library={library} name={icon} size={26} color={Colors.PRIMARY} />
+                                <CustomIcon library={library as IconLibrary} name={icon} size={26} color={Colors.PRIMARY} />
                             </View>
                             <View style={styles.forecastTempRow}>
                                 <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>
@@ -221,12 +226,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ latitude, longitude }) =>
         </View>
     );
 };
-
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
-    android: { elevation: 2 },
-    web: { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.06)' }
-});
 
 const styles = StyleSheet.create({
     container: {
@@ -370,7 +369,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow,
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }),
     },
     gridLabel: {
         color: Colors.TEXT_SECONDARY,
@@ -397,7 +396,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...dropShadow, 
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     sunItem: {
         flexDirection: 'row',

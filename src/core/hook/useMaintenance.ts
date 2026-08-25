@@ -4,36 +4,52 @@ import { useEffect, useState } from "react";
 import { Alert, Linking } from "react-native";
 
 export default function useMaintenance() {
-    const [url, setUrl] = useState<string>("https://www.youtube.com/watch?v=BBpIV9A1PXc&list=RDBBpIV9A1PXc&start_radio=1");
+    const [url, setUrl] = useState<string | null>(null);
     const [isMaintenance, setIsMaintenance] = useState<boolean>(false);
     const [checked, setChecked] = useState<boolean>(false);
 
     useEffect(() => {
+        let isSubscribed = true;
+
+        // Safety timeout (3s) to unblock UI if network or Firestore hangs on startup
+        const timeoutId = setTimeout(() => {
+            if (isSubscribed) {
+                setChecked(true);
+            }
+        }, 3000);
+
         const fetch = async () => {
             try {
                 const docRef = doc(db, "deployment", "status");
                 const docSnap = await getDoc(docRef);
 
-                if (docSnap.exists()) {
+                if (isSubscribed && docSnap.exists()) {
                     const data = docSnap.data();
                     console.log("Document data:", data);
-                    setUrl(data.url ?? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1');
+                    setUrl(data.url ?? null);
                     setIsMaintenance(data.maintenance ?? false);
-                    console.log(data);
-                } else {
-                    console.log("No such document!");
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
-                setChecked(true);
+                if (isSubscribed) {
+                    clearTimeout(timeoutId);
+                    setChecked(true);
+                }
             }
         }
 
         fetch();
-    },[])
 
-    const handlePress = async (link: string) => {
+        return () => {
+            isSubscribed = false;
+            clearTimeout(timeoutId);
+        };
+    }, [])
+
+    const handlePress = async (link?: string | null) => {
+        if (!link) return;
+
         const supported = await Linking.canOpenURL(link);
 
         if (supported) {

@@ -1,10 +1,9 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/Booking";
-import { Group } from "@/src/core/models/Group/Group";
+import { Booking, createBooking } from "@/src/core/models/Booking/Booking";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { Group, useGroupStore } from "@/src/core/models/Group/Group";
 import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useGroupStore } from "@/src/core/stores/groupStores/groupStoreCreator";
-import { router } from "expo-router";
+
 import { useEffect, useState } from "react";
 
 export const useGroup = (groupId: string) => {
@@ -39,7 +38,7 @@ export const useGroup = (groupId: string) => {
                 console.log('found bookingId: ', bookingId);
                 if(profile.role === 'admin' && !bookingId) {    
                     console.log('is admin');
-                    setBooking(new Booking({
+                    setBooking(createBooking({
                         id: 'admin-booking',
                         status: 'paid',
                         trail: currentGroup.trail,
@@ -49,6 +48,11 @@ export const useGroup = (groupId: string) => {
                     return;
                 }
     
+                if (currentGroup.type === 'chat') {
+                    // If the group is a chat group, we don't need to fetch a booking
+                    return;
+                }
+
                 if(!bookingId) {
                     console.warn(`No bookingId found for user ${profile.id} in group ${groupId}`);
                     setLocalError('No booking found for this user in the selected group');
@@ -72,16 +76,17 @@ export const useGroup = (groupId: string) => {
         
     }, [currentGroup, profile?.id]);
 
-    const onViewGroupLocation = (groupId: string) => {
-        router.push({
-            pathname: '/(main)/group/location',
-            params: { groupId, bookingId }
-        })
-    }
+    // TODO: Remove this function if not needed
+    // const onViewGroupLocation = (groupId: string) => {
+    //     router.push({
+    //         pathname: '/(main)/group/location',
+    //         params: { groupId, bookingId }
+    //     })
+    // }
     
     return {  
         currentGroup,
         booking,
-        onViewGroupLocation
+        // onViewGroupLocation
     };
 };

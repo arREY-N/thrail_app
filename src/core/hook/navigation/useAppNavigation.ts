@@ -6,12 +6,24 @@ export function useAppNavigation() {
     const onTrailPress = (id: string) => {
         router.push({
             pathname: '/(main)/trail/view',
-            params: { trailId: id},
+            params: { trailId: id },
         })
     }
 
     const onBackPress = () => {
-        router.back();
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/');
+        }
+    };
+
+    const onUserViewPress = (id?: string) => {
+        if (!id) return;
+        router.push({
+            pathname: '/(main)/user/view',
+            params: { userId: id }
+        });
     };
 
     const onDownloadPress = (id: string) => {
@@ -38,17 +50,24 @@ export function useAppNavigation() {
         router.push('/(main)/home/weather')
     }
 
-    const onViewAllRecommendationPress = () => {
+    const onSeeMoreRecommendationsPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'recommendations'}
+            params: { filter: 'recommendations' }
         })
     }
-    
-    const onViewAllTrendingPress = () => {
+
+    const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending'}
+            params: { filter: 'trending' }
+        })
+    }
+
+    const onSeeMoreOffersPress = () => {
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'offers' }
         })
     }
 
@@ -64,6 +83,12 @@ export function useAppNavigation() {
         })
     }
 
+    const onProfilePress = () => {
+        router.replace({
+            pathname: '/(tabs)/profile',
+        })
+    }
+
     const onSettingsPress = () => {
         router.push({
             pathname: '/(main)/settings',
@@ -74,6 +99,30 @@ export function useAppNavigation() {
         router.replace('/(auth)/landing');
     }
 
+    const onSecuritySettingsPress = () => {
+        router.push('/(main)/settings/security');
+    }
+
+    const onNotificationSettingsPress = () => {
+        router.push('/(main)/settings/notifications');
+    }
+
+    const onPrivacySettingsPress = () => {
+        router.push('/(main)/settings/privacy');
+    }
+
+    const onAboutSettingsPress = () => {
+        router.push('/(main)/settings/about');
+    }
+
+    const onHelpSettingsPress = () => {
+        router.push('/(main)/settings/help');
+    }
+
+    const onHikingPreferencesPress = () => {
+        router.push('/(main)/settings/preferences');
+    }
+
     return {
         onLanding,
         onTrailPress,
@@ -81,13 +130,22 @@ export function useAppNavigation() {
         onDownloadPress,
         onSignUpPress,
         onLogIn,
-        onBookingPress, 
+        onBookingPress,
         onNotificationPress,
         onWeatherPress,
-        onViewAllRecommendationPress,
-        onViewAllTrendingPress,
+        onSeeMoreRecommendationsPress,
+        onSeeMoreDiscoverPress,
+        onSeeMoreOffersPress,
         onGroupPress,
         onLeaderBoardPress,
-        onSettingsPress
+        onProfilePress,
+        onSettingsPress,
+        onSecuritySettingsPress,
+        onNotificationSettingsPress,
+        onPrivacySettingsPress,
+        onAboutSettingsPress,
+        onHelpSettingsPress,
+        onHikingPreferencesPress,
+        onUserViewPress
     }
 }
