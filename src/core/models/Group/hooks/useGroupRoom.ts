@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { GroupRepo } from "@/src/core/init/repositories";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 import { Message } from "@/src/core/models/Message/Message";
 import { IMessage } from "@/src/core/models/Message/Message.types";

@@ -1,4 +1,4 @@
-import { GroupRepo } from "@/src/core/init/repositories";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 import { router } from "expo-router";
 import { useEffect } from "react";

@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { GroupRepo } from "@/src/core/init/repositories";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
 import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
