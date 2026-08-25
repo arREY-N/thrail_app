@@ -15,7 +15,7 @@ import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
  * Handles authentication checks, queries business configurations,
  * maps navigation actions, and manages loading/error reload triggers.
  */
-export default function adminHome() {
+export default function AdminHome() {
     const {
         businessId,
         profile,
