@@ -13,5 +13,3 @@ export const useAdminStore = create<AdminState>()(
         }
     )
 );
-
-export const useAdminsStore = useAdminStore;
