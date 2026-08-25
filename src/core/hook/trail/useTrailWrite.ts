@@ -1,12 +1,11 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
+import { Trail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { validate } from "@/src/core/utility/validate";
 import { TrailUIConfig } from "@/src/fields/trailFields";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Trail } from "../../models/Trail/Trail";
-import { useMountainsStore } from "../../stores/mountainsStore";
 
 /** */
 type TrailParams = {

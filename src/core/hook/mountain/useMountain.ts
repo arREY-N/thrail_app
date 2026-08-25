@@ -1,8 +1,8 @@
+import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useMountainsStore } from "../../stores/mountainsStore";
 
-export default function useMountain(){
+export default function useMountain() {
     const mountains = useMountainsStore(s => s.data);
     const isLoading = useMountainsStore(s => s.isLoading);
 
@@ -13,7 +13,7 @@ export default function useMountain(){
     }, [])
 
     const onWritePress = (mountainId?: string | null) => {
-        if(mountainId){
+        if (mountainId) {
             router.push({
                 pathname: '/(main)/superadmin/mountain/write',
                 params: { mountainId }

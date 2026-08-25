@@ -1,9 +1,9 @@
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useApplicationsStore } from "@/src/core/models/Application/Application";
+import { useBusinessesStore } from "@/src/core/models/Business/Business";
+import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useApplicationsStore } from "../../stores/applicationsStore";
-import { useBusinessesStore } from "../../stores/businessesStore";
-import { useMountainsStore } from "../../stores/mountainsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import { SuperadminParams } from "./useSuperadmin";
 
