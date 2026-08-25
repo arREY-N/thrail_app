@@ -1,7 +1,5 @@
 
 import LoadingScreen from "@/src/app/loading";
-import { MaintenanceScreen } from "@/src/app/maintenance";
-import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import {
 	AntDesign,
@@ -17,6 +15,8 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
+import MaintenanceScreen from "@/src/app/maintenance";
+import useMaintenance from "@/src/core/hook/useMaintenance";
 import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -29,6 +29,7 @@ export default function RootLayout() {
 
 	const {
 		initialize,
+		isLoading
 	} = useAuthHook();
 
 	const [fontsLoaded, fontError] = useFonts({
@@ -69,6 +70,8 @@ export default function RootLayout() {
 			</GestureHandlerRootView>
 		);
 	}
+
+	if (isLoading) return <LoadingScreen />
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
