@@ -1,29 +1,16 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import useUser from "@/src/core/hook/user/useUser";
-import React, { useState } from 'react';
+import { useState } from 'react';
 // import useUserWrite from "@/src/core/hook/user/useUserWrite";
 
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack } from "expo-router";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import ProfileInfoScreen from "@/src/features/Settings/screens/ProfileInfoScreen";
 
-export default function viewUser(){
-    const { userId: rawUserId } = useLocalSearchParams();
-    
-    const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
-    
-    const { role } = useAuthHook();
+export default function ViewUser() {
+    const { profile: user } = useAuthHook();
 
-    const { 
-        user, 
-        isLoading 
-    } = useUser({ role, id: userId });
-    
-    // const {
-    //     onDeleteAccountPress
-    // } = useUserWrite();
     const [isEditing, setIsEditing] = useState(false);
 
     const {
@@ -41,20 +28,18 @@ export default function viewUser(){
     };
 
     const onSavePress = async (updatedFields: any) => {
-            console.log("Saving fields in placeholder:", updatedFields);
-            // TODO: [Backend] Connect this to useEditProfile hook
-            setIsEditing(false);
+        console.log("Saving fields in placeholder:", updatedFields);
+        // TODO: [Backend] Connect this to useEditProfile hook
+        setIsEditing(false);
     };
 
-    if(!user) return <LoadingScreen/>
+    if (!user) return <LoadingScreen />
 
-    console.log(user);
-
-    return(
+    return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            
-            <ProfileInfoScreen 
+
+            <ProfileInfoScreen
                 user={user}
                 onBackPress={onBackPress}
                 onEditPress={onEditPress}
