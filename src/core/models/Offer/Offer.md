@@ -35,7 +35,7 @@ Primary entry point for the Offer feature, re-exporting:
 - **Utilities**: `updateOfferOnCancellation` from `utils/OfferUtilities.ts` and `getBusinessOfferItem` / `getOffer` from `utils/getOffer.ts`.
 - **Stores**: `useOfferStore` from `stores/offerStore.ts`.
 - **Hooks**: `useOfferItem`, `useOfferList`, `useOfferSimilarList` from `hooks/`.
-- **Repositories**: `OfferRepo` from `@/src/core/init/repositories` and `OfferRepository` from `repositories/OfferRepository.ts`.
+- **Repositories**: `OfferRepo` and `OfferRepository` from `repositories/OfferRepository.ts`.
 
 ### `utils/OfferFactory.ts`
 - **`newOffer(init?)`**: factory function returning a default initialized `Offer` object merged with optional overrides.

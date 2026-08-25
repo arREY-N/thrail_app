@@ -20,5 +20,5 @@ export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
 export { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
 
 // REPOSITORIES
-export { OfferRepo } from "@/src/core/init/repositories";
-export { OfferRepository } from "@/src/core/models/Offer/repositories/OfferRepository";
+export { OfferRepo } from "@/src/core/models/Offer/repositories/OfferRepository";
+

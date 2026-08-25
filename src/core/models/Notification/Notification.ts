@@ -25,5 +25,4 @@ export {
 } from "@/src/core/models/Notification/hooks/useViewNotification";
 
 // REPOSITORIES
-export { NotificationRepo } from "@/src/core/init/repositories";
-export { NotificationRepository } from "@/src/core/models/Notification/repositories/NotificationRepository";
+export { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";

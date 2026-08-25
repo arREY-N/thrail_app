@@ -20,4 +20,4 @@ export { useBusinessItem } from "@/src/core/models/Business/hooks/useBusinessIte
 export { useBusinessList } from "@/src/core/models/Business/hooks/useBusinessList";
 
 // REPOSITORIES
-export { BusinessRepo } from "@/src/core/init/repositories";
+export { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";

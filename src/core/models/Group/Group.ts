@@ -21,4 +21,5 @@ export { useGroupLocation } from "@/src/core/models/Group/hooks/useGroupLocation
 export { useGroupRoom } from "@/src/core/models/Group/hooks/useGroupRoom";
 
 // REPOSITORIES
-export { GroupRepo } from "@/src/core/init/repositories";
+export { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
+

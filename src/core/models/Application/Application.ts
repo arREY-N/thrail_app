@@ -16,4 +16,4 @@ export { useApplicationItem } from "@/src/core/models/Application/hooks/useAppli
 export { useApplicationList } from "@/src/core/models/Application/hooks/useApplicationList";
 
 // REPOSITORIES
-export { ApplicationRepo } from "@/src/core/init/repositories";
+export { ApplicationRepo } from "@/src/core/models/Application/repositories/applicationRepository";

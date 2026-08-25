@@ -17,5 +17,5 @@ export { useMountainItem } from "@/src/core/models/Mountain/hooks/useMountainIte
 export { useMountainList } from "@/src/core/models/Mountain/hooks/useMountainList";
 
 // REPOSITORIES
-export { MountainRepo } from "@/src/core/init/repositories";
-export { MountainRepository } from "@/src/core/models/Mountain/repositories/MountainRepository";
+export { MountainRepo } from "@/src/core/models/Mountain/repositories/MountainRepository";
+

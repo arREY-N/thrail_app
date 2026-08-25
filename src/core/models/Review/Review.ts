@@ -32,5 +32,5 @@ export { useReviewItem } from "@/src/core/models/Review/hooks/useReviewItem";
 export { useReviewList } from "@/src/core/models/Review/hooks/useReviewList";
 
 // REPOSITORIES
-export { ReviewRepo } from "@/src/core/init/repositories";
-export { ReviewRepository } from "@/src/core/models/Review/repositories/ReviewRepository";
+export { ReviewRepo } from "@/src/core/models/Review/repositories/ReviewRepository";
+

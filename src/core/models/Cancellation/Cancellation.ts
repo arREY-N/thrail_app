@@ -1,5 +1,6 @@
-// REPO
-export { CancellationRepo } from "@/src/core/init/repositories";
+// REPOSITORIES
+export { CancellationRepo } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
+
 
 // FACTORY
 export { createCancellationRequest, createCancellationRequest as newCancellation } from "@/src/core/models/Cancellation/utils/CancellationFactory";

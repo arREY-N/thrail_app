@@ -31,5 +31,5 @@ export { useTrailItem } from "@/src/core/models/Trail/hooks/useTrailItem";
 export { useTrailList } from "@/src/core/models/Trail/hooks/useTrailList";
 
 // REPOSITORIES
-export { TrailRepo } from "@/src/core/init/repositories";
-export { TrailRepository } from "@/src/core/models/Trail/repositories/TrailRepository";
+export { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";
+

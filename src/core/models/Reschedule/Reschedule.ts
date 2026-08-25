@@ -16,5 +16,5 @@ export { useRescheduleUser } from "@/src/core/models/Reschedule/hooks/useResched
 export { useRescheduleUserList } from "@/src/core/models/Reschedule/hooks/useRescheduleUserList";
 
 // REPOSITORIES
-export { RescheduleRepo } from "@/src/core/init/repositories";
-export { RescheduleRepository } from "@/src/core/models/Reschedule/repositories/RescheduleRepository";
+export { RescheduleRepo } from "@/src/core/models/Reschedule/repositories/RescheduleRepository";
+
