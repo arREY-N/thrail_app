@@ -37,7 +37,7 @@ XFeature/
 - Placing all other code files into subdirectories guarantees that ESLint's `no-restricted-imports` rule can target root level files cleanly without accidentally misidentifying internal utilities (like factories) as facades.
 - **Exports:**
   - **Hooks** — Primary path for cross-feature UI consumption (`useX`, `useXItem`, `useXList`).
-  - **Repositories** — Re-exported initialized repository (`XRepo`) from `@/src/core/init/repositories` for cross-feature **non-UI** access (e.g., background services or external stores).
+  - **Repositories** — Re-exported initialized repository (`XRepo`) and repository factory (`XRepository`) from `repositories/XRepository` for cross-feature **non-UI** access (e.g., background services or external stores).
   - **Types/Interfaces & Factory Constructors** — Re-exported from `interfaces/` and `utils/XFactory.ts` for safe, shareable usage across features.
   - **Stores** — Selectors only (or store hooks) to limit access to certain store functions rather than full arbitrary mutations.
 
@@ -46,13 +46,13 @@ XFeature/
 - May include separate DB-facing types (e.g., Firestore schema mappings).
 
 ### `repositories/`
-- Contains data-access implementations structured as factory functions accepting the Firestore instance: `export const XRepository = (db: any) => ({ ... })`.
+- Contains data-access implementations structured as factory functions accepting the Firestore instance: `export const XRepository = (db: Firestore) => ({ ... })`.
 - Encapsulates database queries/writes and keeps DB details out of UI/store logic.
-- Registered and initialized centrally in `src/core/init/repositories.ts` as `export const XRepo = XRepository(db);`.
+- **Self-Contained Initialization**: Initialized and exported directly within the repository file: `export const XRepo = XRepository(db);` (using `db` imported from `@/src/core/config/Firebase`). This decentralized initialization prevents circular module dependency cycles.
 
 ### `stores/`
 - Zustand store layer for feature state and actions.
-- Accesses data by importing the initialized repository `XRepo` directly from `@/src/core/init/repositories`.
+- Accesses data by importing the initialized repository `XRepo` directly from its own feature repository (`@/src/core/models/X/repositories/XRepository`).
 - **Entire store is never exported through `X.ts`** or imported directly by another feature.
 - Expected files:
   - `XStoreCreator.ts`: Base store logic and actions.
@@ -97,7 +97,7 @@ XFeature/
 |---|---|---|---|
 | **Facade** | `X.ts` (Root) | — | Public entry point for all cross-feature access. |
 | **Hooks** | `hooks/` | ✅ Yes | Other features' UI components & hooks. |
-| **Repositories** | `repositories/` -> `src/core/init/repositories.ts` | ✅ Yes (`XRepo`) | External non-UI services/stores needing direct data access. |
+| **Repositories** | `repositories/XRepository.ts` | ✅ Yes (`XRepo`, `XRepository`) | External non-UI services/stores needing direct data access. |
 | **Interfaces & Factory** | `interfaces/`, `utils/XFactory.ts` | ✅ Yes (Re-exported) | Shared type contracts and model constructors. |
 | **Stores** | `stores/` | ❌ Limited | Selectors / specific store hooks only. |
 
@@ -131,13 +131,19 @@ When refactoring or creating a model feature folder, follow these steps:
 - **Converter**: Implement and export `xConverter: FirestoreDataConverter<X>` utilizing the internal mapper functions.
 - **Strict Export Surface**: Only expose `newX` and `xConverter` from `XFactory.ts`.
 
-### 4. Repositories Layer (`repositories/`) & Central Initialization
-- Implement repository as a factory function receiving `db`: `export const XRepository = (db: any) => ({ ... })`.
-- Register the initialized instance in `src/core/init/repositories.ts`: `export const XRepo = XRepository(db);`.
+### 4. Repositories Layer (`repositories/`) & Self-Contained Initialization
+- Implement repository as a factory function receiving `db`: `export const XRepository = (db: Firestore) => ({ ... })`.
+- Initialize and export the instance directly within `repositories/XRepository.ts`:
+  ```ts
+  import { db } from "@/src/core/config/Firebase";
+  // ... repository implementation ...
+  export const XRepo = XRepository(db);
+  ```
+- This self-contained initialization prevents cross-feature module import cycles.
 
 ### 5. Stores Layer (`stores/`)
 Follow the standard **4-file store pattern**:
-- **`XStoreCreator.ts`**: Implements the base store logic, initial state, and actions using `StateCreator<XState, [["zustand/immer", never]]>`. Imports and calls `XRepo` from `@/src/core/init/repositories`. Uses `newX()` for default model instances instead of class constructors.
+- **`XStoreCreator.ts`**: Implements the base store logic, initial state, and actions using `StateCreator<XState, [["zustand/immer", never]]>`. Imports and calls `XRepo` from `@/src/core/models/X/repositories/XRepository`. Uses `newX()` for default model instances instead of class constructors.
 - **`XStore.native.ts`**: Mobile/native wiring using `zustand/middleware` `persist` with `AsyncStorage` (`name: "x-storage"`).
 - **`XStore.web.ts`**: Web platform wiring without native storage persistence.
 - **`XStore.ts`**: Fallback export file re-exporting `* from "./XStore.native"`.
@@ -153,7 +159,7 @@ Follow the standard **4-file store pattern**:
   - **FACTORY & CONVERTER**: `export { newX, xConverter } from "@/src/core/models/X/utils/XFactory";`
   - **STORES**: `export { useXStore } from "@/src/core/models/X/stores/XStore";`
   - **HOOKS**: `export { useX, useXItem, useXList } from "@/src/core/models/X/hooks/...";`
-  - **REPOSITORIES**: `export { XRepo } from "@/src/core/init/repositories";`
+  - **REPOSITORIES**: `export { XRepo } from "@/src/core/models/X/repositories/XRepository";`
 
 ---
 
@@ -168,13 +174,14 @@ Follow the standard **4-file store pattern**:
 | Cancellation | [ ] | [x] | [ ] |
 | Group | [x] | [ ] | [ ] |
 | Hike | [x] | [ ] | [ ] |
-| Leaderboard | [ ] | [x] | [ ] |
+| Leaderboard | [x] | [ ] | [ ] |
 | Location | [ ] | [ ] | [x] |
 | Message | [ ] | [ ] | [x] |
 | Mountain | [x] | [ ] | [ ] |
 | Notification | [x] | [ ] | [ ] |
 | Offer | [x] | [ ] | [ ] |
 | Payment | [ ] | [ ] | [x] |
+| Permission | [ ] | [ ] | [x] |
 | Recommendation | [x] | [ ] | [ ] |
 | Reschedule | [x] | [ ] | [ ] |
 | Review | [x] | [ ] | [ ] |
@@ -236,3 +243,7 @@ This section tracks mistakes identified during model refactoring sessions to pre
 ### 4. Do NOT Modify Files Inside `src/features/`
 - **Rule:** Refactoring and maintenance tasks are strictly scoped to the core model features under `src/core/models/` (and shared initialization/utilities under `src/core/`).
 - ❌ **Do not touch:** Files inside `src/features/` (UI screens, component layouts, UI-level hooks/tabs) are maintained by the UI developer. If model refactoring introduces consumer breaks or type mismatches in `src/features/`, leave them for the UI team to resolve.
+
+### 5. Self-Contained Repository Initialization (Avoiding Circular Dependencies)
+- ❌ **Mistake:** Centralizing all repository initializations inside a global file like `src/core/init/repositories.ts` creates circular dependency cycles when model stores, facades, and other features import back and forth from the central init file.
+- ✅ **Correction:** Initialize repositories directly within their feature file `repositories/XRepository.ts` (`export const XRepo = XRepository(db);`). The feature store imports `XRepo` from its own repository file, and the facade `X.ts` re-exports `XRepo` for external consumers.
