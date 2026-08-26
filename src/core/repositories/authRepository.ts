@@ -6,7 +6,7 @@ import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWith
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 import { SignUp } from '../models/User/SignUp';
-import { User, userConverter } from '../models/User/User';
+import { newUser, User, userConverter } from '../models/User/User';
 import { CredentialResponse, UserCredential } from '../models/User/interfaces/SignUp.types';
 import { LogIn } from '../models/User/interfaces/User.types';
 
@@ -61,7 +61,7 @@ class AuthRepositoryImpl {
                 password,
             );
 
-            const user = new User(accountData);
+            const user = newUser(accountData);
             user.id = userCredential.user.uid;
 
             await setDoc(
@@ -101,7 +101,7 @@ class AuthRepositoryImpl {
                 return;
             }
 
-            const newUser = new User({
+            const created = newUser({
                 id: user.uid,
                 email: user.email ?? '',
                 firstname: user.displayName?.split(' ')[0] ?? '',
@@ -111,8 +111,8 @@ class AuthRepositoryImpl {
             });
 
             await setDoc(
-                doc(userCollection, newUser.id),
-                newUser,
+                doc(userCollection, created.id),
+                created,
                 { merge: true }
             );
         } catch (err) {
@@ -142,7 +142,7 @@ class AuthRepositoryImpl {
                 return;
             }
 
-            const newUser = new User({
+            const created = newUser({
                 id: user.uid,
                 email: user.email ?? '',
                 firstname: user.displayName?.split(' ')[0] ?? '',
@@ -152,8 +152,8 @@ class AuthRepositoryImpl {
             });
 
             await setDoc(
-                doc(userCollection, newUser.id),
-                newUser,
+                doc(userCollection, created.id),
+                created,
                 { merge: true }
             );
 

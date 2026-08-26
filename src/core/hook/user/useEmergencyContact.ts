@@ -1,5 +1,5 @@
 import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
-import { User } from "@/src/core/models/User/User";
+import { newUser, User } from "@/src/core/models/User/User";
 import { IEmergencyContact } from "@/src/core/models/User/interfaces/User.types";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useUsersStore } from "@/src/core/stores/usersStore";
@@ -45,7 +45,7 @@ export function useEmergencyContact() {
             await setContact(profile, emergencyContact);
 
             useAuthStore.setState({
-                profile: new User({
+                profile: newUser({
                     ...profile,
                     emergencyContact: emergencyContact
                 })
