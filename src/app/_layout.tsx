@@ -24,6 +24,10 @@ WebBrowser.maybeCompleteAuthSession();
 // Prevent splash screen auto-hide at module load time
 SplashScreen.preventAutoHideAsync();
 
+export const unstable_settings = {
+	initialRouteName: 'index',
+};
+
 export default function RootLayout() {
 	const { checked, isMaintenance } = useMaintenance();
 
