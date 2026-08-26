@@ -1,4 +1,4 @@
-import { SignUp } from "@/src/core/models/User/SignUp";
+import { newSignUp } from "@/src/core/models/User/User";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
@@ -22,12 +22,12 @@ export default function useSignUp(isNew: boolean = false) {
         phoneNumber: string,
         firstname: string,
         lastname: string,
-        birthday: string,
+        birthday: string | Date,
         address: string
     ) => {
         const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
         const convertedBirthday = new Date(birthday);
-        editAccount(new SignUp({
+        editAccount(newSignUp({
             phoneNumber: cleanPhoneNumber,
             firstname,
             lastname,
@@ -49,7 +49,7 @@ export default function useSignUp(isNew: boolean = false) {
     ) => {
         if (!account) resetSignUp();
 
-        editAccount(new SignUp({
+        editAccount(newSignUp({
             email,
             password,
             username,
