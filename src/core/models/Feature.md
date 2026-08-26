@@ -180,7 +180,7 @@ Follow the standard **4-file store pattern**:
 | Mountain | [x] | [ ] | [ ] |
 | Notification | [x] | [ ] | [ ] |
 | Offer | [x] | [ ] | [ ] |
-| Payment | [ ] | [ ] | [x] |
+| Payment | [x] | [ ] | [ ] |
 | Permission | [ ] | [ ] | [x] |
 | Recommendation | [x] | [ ] | [ ] |
 | Reschedule | [x] | [ ] | [ ] |

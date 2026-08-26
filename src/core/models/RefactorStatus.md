@@ -21,7 +21,7 @@ This document provides a comprehensive evaluation of all 20 feature folders and 
 | **[Mountain](./Mountain)** | Refactored Already | ✅ **Fully Refactored** | Fully aligned with standard layers, 4-file store, factory, hooks, self-contained `MountainRepo`, and clean facade. |
 | **[Notification](./Notification)** | Refactored Already | ✅ **Fully Refactored** | Fully aligned with standard `Notification.types.ts` in `interfaces/`, plain factory, 4-file store, self-contained `NotificationRepo`, and facade. |
 | **[Offer](./Offer)** | Refactored Already | ✅ **Fully Refactored** | Fully aligned with standard layers, utility factory, self-contained `OfferRepo`, and clean facade. |
-| **[Payment](./Payment)** | Not Yet | ❌ **Not Yet Refactored** | Legacy class model in facade; non-standard `logic/` directory; empty stores/repositories/interfaces. |
+| **[Payment](./Payment)** | Refactored Already | ✅ **Fully Refactored** | Standardized `Payment.types.ts` in `interfaces/`, plain object factory, self-contained `PaymentRepo`, 4-file store layer, hooks (`usePayment`, `usePaymentItem`, `usePaymentList`, `usePaymentAdmin`, `usePaymentUser`), `Payment.logic` in `utils/`, and clean facade. |
 | **[Permission](./Permission)** | Not Yet | ❌ **Not Yet Refactored** | Legacy class model; root-level types; empty subdirectories. |
 | **[Recommendation](./Recommendation)** | Refactored Already | ✅ **Fully Refactored** | Fully aligned with standard layers, self-contained `RecommendationRepo`, and clean facade. |
 | **[Reschedule](./Reschedule)** | Refactored Already | ✅ **Fully Refactored** | Standardized `Reschedule.types.ts`, 4-file store layer, self-contained `RescheduleRepo`, and clean facade. |
@@ -33,12 +33,12 @@ This document provides a comprehensive evaluation of all 20 feature folders and 
 
 ## 2. Status Groupings
 
-1. **Fully Refactored (15)**:
-   - `Admin`, `Application`, `Booking`, `Business`, `Group`, `Hike`, `Leaderboard`, `Mountain`, `Notification`, `Offer`, `Recommendation`, `Reschedule`, `Review`, `Trail`, `User`
+1. **Fully Refactored (16)**:
+   - `Admin`, `Application`, `Booking`, `Business`, `Group`, `Hike`, `Leaderboard`, `Mountain`, `Notification`, `Offer`, `Payment`, `Recommendation`, `Reschedule`, `Review`, `Trail`, `User`
 2. **Underway / Partially Refactored with Deviations (1)**:
    - `Cancellation`
-3. **Not Yet Refactored (4)**:
-   - `Location`, `Message`, `Payment`, `Permission`
+3. **Not Yet Refactored (3)**:
+   - `Location`, `Message`, `Permission`
 
 ---
 
@@ -47,11 +47,11 @@ This document provides a comprehensive evaluation of all 20 feature folders and 
 ### A. Root-Level Files Violations
 The specification states: **`X.ts` (Facade) must be the ONLY code file at the root level of the feature directory.** (Markdown documentation files like `X.md` / `XFeature.md` at the root are permitted to help developers understand the feature).
 - **Legacy root auxiliary files in `User` (`SignUp.ts`, `Preference.ts`)**: Deprecated and marked for deletion.
-- **Root `.types.ts` files**: `Location.types.ts`, `Message.types.ts`, `Payment.types.ts`, `Permission.types.ts` are located in the root instead of their respective `interfaces/` subdirectories.
+- **Root `.types.ts` files**: `Location.types.ts`, `Message.types.ts`, `Permission.types.ts` are located in the root instead of their respective `interfaces/` subdirectories (`Payment.types.ts` migrated and marked for deletion).
 
 ### B. Non-Standard Directories (`logic/` and `Logic/`)
 The specification requires domain helpers, validators, and logic to reside in `utils/`.
-- **`Payment/logic/`**: Contains `Payment.logic.ts` outside `utils/`.
+- **`Payment/logic/`**: Migrated to `utils/Payment.logic.ts`; legacy file marked for deletion.
 - **`User/logic/`**: Migrated to `utils/User.logic.ts`; legacy file marked for deletion.
 
 ### C. Interface File Naming Discrepancies
@@ -70,36 +70,35 @@ Instead of a monolithic central `src/core/init/repositories.ts` (which caused ci
   ```
 - Stores import `XRepo` directly from `@/src/core/models/X/repositories/XRepository`.
 - The root facade `X.ts` re-exports `{ XRepo }` from `repositories/XRepository` for external access.
-- Refactored features (`Admin`, `Application`, `Booking`, `Business`, `Group`, `Hike`, `Leaderboard`, `Mountain`, `Notification`, `Offer`, `Recommendation`, `Reschedule`, `Review`, `Trail`) fully conform to this decentralized pattern.
+- Refactored features (`Admin`, `Application`, `Booking`, `Business`, `Group`, `Hike`, `Leaderboard`, `Mountain`, `Notification`, `Offer`, `Payment`, `Recommendation`, `Reschedule`, `Review`, `Trail`, `User`) fully conform to this decentralized pattern.
 
 ### E. Facade Impurities (Inline Logic & Class Declarations)
 The facade `X.ts` should only contain clean re-exports.
-- **Unrefactored Facades (`Location`, `Message`, `Payment`, `Permission`)**: Entire model classes (`class X implements IX`), conversion functions, and Firestore converters are defined directly inside `X.ts`.
+- **Unrefactored Facades (`Location`, `Message`, `Permission`)**: Entire model classes (`class X implements IX`), conversion functions, and Firestore converters are defined directly inside `X.ts`.
 
 ### F. Store File Naming & Structure Inconsistencies
 - **Plural vs. Singular Mismatches**:
    - `Trail`: `trailsStore.native.ts`, `trailsStore.web.ts`, `trailsStore.ts` (plural) vs. `trailStoreCreator.ts` (singular).
-- **Missing Stores Layer**: `Payment`, `Permission` have no standard 4-file store layer implemented yet.
+- **Missing Stores Layer**: `Permission` has no standard 4-file store layer implemented yet (`Payment` store layer is implemented).
 
 ### G. Factory Implementation Discrepancies
-- Legacy models (`Location`, `Message`, `Payment`, `Permission`) define class constructors rather than plain object factories.
+- Legacy models (`Location`, `Message`, `Permission`) define class constructors rather than plain object factories.
 
 ### H. Cross-Feature Import Violations (Anti-Pattern 1)
-- **`Payment/Payment.ts`**: Imports from `../Offer/interfaces/Offer.types` and `../User/interfaces/User.types` instead of root facades.
 - **`Booking/interfaces/Booking.types.ts`**: Compliant (imports from `@/src/core/models/Business/Business`, `@/src/core/models/Offer/Offer`, `@/src/core/models/Trail/Trail`, `@/src/core/models/User/User`).
+- **`Payment/interfaces/Payment.types.ts`**: Compliant (imports from `@/src/core/models/Business/Business`, `@/src/core/models/Offer/Offer`, `@/src/core/models/User/User`).
 
 ---
 
 ## 4. Suggested Alignment Checklist for Next Refactoring Steps
 
 1. **Relocate Root Files**:
-   - Move root `.types.ts` into respective `interfaces/` folders (`Location`, `Message`, `Payment`, `Permission`).
-2. **Standardize Directories**:
-   - Merge `Payment/logic/` into `utils/`.
-3. **Normalize Interface Naming**:
+   - Move root `.types.ts` into respective `interfaces/` folders (`Location`, `Message`, `Permission`).
+2. **Normalize Interface Naming**:
    - Clean up duplicate/legacy interface files (`Booking/interfaces/IBooking.ts`, `Cancellation/interfaces/ICancellation.ts`, `Trail/interfaces/ITrail.ts`).
-4. **Build Standard 4-File Stores**:
-   - Implement Zustand store layers for `Payment`, `Permission`.
-5. **Clean Facades**:
-   - Replace class implementations in legacy facades (`Location`, `Message`, `Payment`, `Permission`) with standard re-exports.
+3. **Build Standard 4-File Stores**:
+   - Implement Zustand store layers for `Permission`.
+4. **Clean Facades**:
+   - Replace class implementations in legacy facades (`Location`, `Message`, `Permission`) with standard re-exports.
+
 
