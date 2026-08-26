@@ -171,7 +171,7 @@ Follow the standard **4-file store pattern**:
 | Application | [x] | [ ] | [ ] |
 | Booking | [x] | [ ] | [ ] |
 | Business | [x] | [ ] | [ ] |
-| Cancellation | [ ] | [x] | [ ] |
+| Cancellation | [x] | [ ] | [ ] |
 | Group | [x] | [ ] | [ ] |
 | Hike | [x] | [ ] | [ ] |
 | Leaderboard | [x] | [ ] | [ ] |
@@ -188,7 +188,7 @@ Follow the standard **4-file store pattern**:
 | Trail | [x] | [ ] | [ ] |
 | User | [x] | [ ] | [ ] |
 
-*> Note: `Cancellation` has been moved to **Underway** so its factory files can be relocated to `utils/XFactory.ts` to align with the new single-root facade rule.*
+*> Note: `Cancellation` has been fully refactored, with normalized `Cancellation.types.ts`, plain object factory (`newCancellation`), self-contained repository (`CancellationRepo`), 4-file store layer (`cancellationStore`), hooks, and clean root facade.*
 
 ---
 

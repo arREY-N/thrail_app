@@ -1,9 +1,9 @@
+
 import { db } from "@/src/core/config/Firebase";
 import { BookingRepo, newBooking } from "@/src/core/models/Booking/Booking";
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
-import { CancellationRepository } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
-import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
-import { createOffer, OfferRepository, updateOfferOnCancellation } from "@/src/core/models/Offer/Offer";
+// eslint-disable-next-line no-restricted-imports
+import { Cancellation, CancellationRepository, createCancellationRequest } from "@/src/core/models/Cancellation/Cancellation";
+import { newOffer, OfferRepo, updateOfferOnCancellation } from "@/src/core/models/Offer/Offer";
 
 import { collection, deleteDoc, doc } from "firebase/firestore";
 
@@ -17,7 +17,6 @@ import { collection, deleteDoc, doc } from "firebase/firestore";
 
 const bookingRepo = BookingRepo;
 
-const offerRepo = OfferRepository(db);
 const cancellationRepo = CancellationRepository(db);
 
 const ids = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -53,8 +52,8 @@ const createSeedOffer = async (
     businessId: string,
     overrides: { reservedPax?: number; date?: Date; endDate?: Date } = {},
 ) => {
-    const offer = await offerRepo.write(
-        createOffer({
+    const offer = await OfferRepo.write(
+        newOffer({
             business: { id: businessId, name: "Test Business" },
             trail: { id: ids("trail"), name: "Test Trail", location: "Test Location" },
             reservedPax: overrides.reservedPax ?? 2,
@@ -474,9 +473,9 @@ describe("Cancellation feature E2E (real Firestore emulator)", () => {
             await cancellationRepo.write(businessId, approve(pending));
 
             const updatedOffer = updateOfferOnCancellation(offer, booking);
-            await offerRepo.write(updatedOffer);
+            await OfferRepo.write(updatedOffer);
 
-            const finalOffer = await offerRepo.fetch(offer.id);
+            const finalOffer = await OfferRepo.fetch(offer.id);
             expect(finalOffer?.reservedPax).toBe(2);
         });
 

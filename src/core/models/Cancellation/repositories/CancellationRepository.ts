@@ -1,12 +1,11 @@
-
 import { db } from "@/src/core/config/Firebase";
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { cancellationConverter } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 
 const createCancellationCollection = (db: Firestore, businessId: string) => {
     return collection(db, 'businesses', businessId, 'cancellations').withConverter(cancellationConverter);
-}
+};
 
 export const CancellationRepository = (db: Firestore) => ({
     /**
@@ -28,13 +27,13 @@ export const CancellationRepository = (db: Firestore) => ({
             const updated: Cancellation = {
                 ...cancellation,
                 id: isNew ? docRef.id : cancellation.id,
-            }
+            };
 
             await setDoc(
                 docRef,
                 updated,
                 { merge: true }
-            )
+            );
 
             return updated;
         } catch (error) {
@@ -141,4 +140,4 @@ export const CancellationRepository = (db: Firestore) => ({
     },
 });
 
-export const CancellationRepo = CancellationRepository(db);
+export const CancellationRepo = CancellationRepository(db);

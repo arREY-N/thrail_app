@@ -1,54 +1,54 @@
-import { Cancellation, CancellationDB } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { Cancellation, ICancellationDB } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
-export { createCancellationRequest as newCancellation };
-
-export const createCancellationRequest = (
+export const newCancellation = (
     required: Pick<Cancellation, "userId" | "bookingId" | "businessId" | "reason" | "offerId" | "cancelledBy">,
-    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "adminNote">> = {}
+    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote">> = {}
 ): Cancellation => {
     const currentDate = new Date();
 
-    if(!required.userId) {
+    if (!required.userId) {
         throw new Error("User ID is required to create a cancellation request.");
     }
 
-    if(!required.bookingId) {
+    if (!required.bookingId) {
         throw new Error("Booking ID is required to create a cancellation request.");
     }
 
-    if(!required.businessId) {
+    if (!required.businessId) {
         throw new Error("Business ID is required to create a cancellation request.");
     }
 
-    if(!required.offerId) {
+    if (!required.offerId) {
         throw new Error("Offer ID is required to create a cancellation request.");
     }
 
-    if(!required.reason || required.reason.trim() === "") {
+    if (!required.reason || required.reason.trim() === "") {
         throw new Error("Reason is required to create a cancellation request.");
     }
 
-    if(!required.cancelledBy) {
+    if (!required.cancelledBy) {
         throw new Error("Cancelled By is required to create a cancellation request.");
     }
 
-    if(optional.status && optional.status === "rejected" && (!optional.adminNote || optional.adminNote.trim() === "")) {
+    if (optional.status && optional.status === "rejected" && (!optional.adminNote || optional.adminNote.trim() === "")) {
         throw new Error("Admin note is required when flagging a cancellation request as rejected.");
     }
 
     return {
         id: "",
         status: "pending",
-        updatedAt: currentDate,
         createdAt: currentDate,
+        updatedAt: currentDate,
         ...required,
         ...optional,
-    }
-}
+    };
+};
 
-export const cancellationFromFirestore = (id: string, data: CancellationDB): Cancellation => {
+export const createCancellationRequest = newCancellation;
+
+const cancellationFromFirestore = (id: string, data: ICancellationDB): Cancellation => {
     const request: Cancellation = {
         id,
         userId: data.userId,
@@ -60,17 +60,17 @@ export const cancellationFromFirestore = (id: string, data: CancellationDB): Can
         status: data.status,
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
-    }
+    };
 
-    if(data.adminNote) {
+    if (data.adminNote) {
         request.adminNote = data.adminNote;
     }
 
     return request;
-}
+};
 
-export const cancellationToFirestore = (cancellation: Cancellation): CancellationDB => {
-    const request: CancellationDB = {
+const cancellationToFirestore = (cancellation: Cancellation): ICancellationDB => {
+    const request: ICancellationDB = {
         id: cancellation.id,
         userId: cancellation.userId,
         cancelledBy: cancellation.cancelledBy,
@@ -79,23 +79,23 @@ export const cancellationToFirestore = (cancellation: Cancellation): Cancellatio
         businessId: cancellation.businessId,
         reason: cancellation.reason,
         status: cancellation.status,
-        createdAt: cancellation.createdAt ? Timestamp.fromDate(cancellation.createdAt) : serverTimestamp(),
-        updatedAt: cancellation.updatedAt ? Timestamp.fromDate(cancellation.updatedAt) : serverTimestamp(),
-    }
+        createdAt: cancellation.createdAt ? Timestamp.fromDate(toDate(cancellation.createdAt)) : serverTimestamp(),
+        updatedAt: cancellation.updatedAt ? Timestamp.fromDate(toDate(cancellation.updatedAt)) : serverTimestamp(),
+    };
 
-    if(cancellation.adminNote) {
+    if (cancellation.adminNote) {
         request.adminNote = cancellation.adminNote;
     }
 
     return request;
-}
+};
 
 export const cancellationConverter: FirestoreDataConverter<Cancellation> = {
-    toFirestore: (cancellation: Cancellation): CancellationDB => {
-        return cancellationToFirestore(cancellation)
+    toFirestore: (cancellation: Cancellation): ICancellationDB => {
+        return cancellationToFirestore(cancellation);
     },
-    fromFirestore: (snapshot: QueryDocumentSnapshot<CancellationDB>): Cancellation => {
-        const data = snapshot.data()
-        return cancellationFromFirestore(snapshot.id, data)
-    }
-}
+    fromFirestore: (snapshot: QueryDocumentSnapshot): Cancellation => {
+        const data = snapshot.data() as ICancellationDB;
+        return cancellationFromFirestore(snapshot.id, data);
+    },
+};
