@@ -22,16 +22,16 @@ export default function useSignUp(isNew: boolean = false) {
         phoneNumber: string,
         firstname: string,
         lastname: string,
-        birthday: Date,
+        birthday: string,
         address: string
     ) => {
         const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
-
+        const convertedBirthday = new Date(birthday);
         editAccount(new SignUp({
             phoneNumber: cleanPhoneNumber,
             firstname,
             lastname,
-            birthday,
+            birthday: convertedBirthday,
             address
         }));
 
