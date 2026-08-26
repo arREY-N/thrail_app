@@ -1,132 +1,33 @@
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { Trail } from "@/src/core/models/Trail/Trail";
-import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useMemo, useState } from "react";
-import { Keyboard, View } from "react-native";
+import { View } from "react-native";
 
-import { useGroupList } from "@/src/core/hook/group/useGroupList";
-import useHike from "@/src/core/hook/hike/useHike";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 
-import { useBookingUserList } from "@/src/core/models/Booking/Booking";
+import { useHikeTemp } from "@/src/core/models/Hike/Hike";
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 
 export default function Hike() {
-    const [isFocused, setIsFocused] = useState(false);
-
-    useFocusEffect(
-        useCallback(() => {
-            setIsFocused(true);
-            return () => setIsFocused(false);
-        }, [])
-    );
+    const {
+        isFocused,
+        profile,
+        groups,
+        upcomingBookings,
+        filteredTrails,
+        selectedTrail,
+        hikeLoading,
+        searchQuery,
+        handleSearchChange,
+        handleSearchSubmit,
+        handleTrailSelect,
+        handleStartTracking,
+        handleDeveloperBypass,
+        isAdmin
+    } = useHikeTemp();
 
     const {
         onGroupPress,
         onBookingPress
     } = useAppNavigation();
-
-    const { profile } = useAuthHook();
-
-    const { bookings } = useBookingUserList();
-    const { groups } = useGroupList(profile?.id || "");
-
-    const { viewHike, isLoading: hikeLoading } = useHike();
-
-    const trailsDb = useTrailsStore(s => s.data);
-
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
-
-    const filteredTrails = useMemo(() => {
-        if (!searchQuery.trim()) return [];
-        return trailsDb.filter(t =>
-            t.general?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery, trailsDb]);
-
-    const currentDate = useMemo(() => {
-        return new Date();
-    }, [])
-
-    currentDate.setHours(0, 0, 0, 0);
-
-    const upcomingBookings = useMemo(() => {
-        if (!bookings) return [];
-        return bookings.filter(b => {
-            if (b.status !== 'completed') return false;
-            if (!b.offer?.date) return false;
-
-            const bDate = new Date(b.offer.date);
-            bDate.setHours(0, 0, 0, 0);
-            return bDate.getTime() >= currentDate.getTime();
-        }).sort((a, b) => new Date(a.offer.date).getTime() - new Date(b.offer.date).getTime());
-    }, [bookings, currentDate]);
-
-    const handleSearchChange = (text: string) => {
-        setSearchQuery(text);
-        if (text.trim() === "") {
-            setSelectedTrail(null);
-            Keyboard.dismiss();
-        }
-    };
-
-    const handleTrailSelect = (trail: Trail) => {
-        setSelectedTrail(trail);
-        setSearchQuery(trail.general?.name || "");
-        Keyboard.dismiss();
-    };
-
-    const handleSearchSubmit = () => {
-        if (filteredTrails.length > 0 && !selectedTrail) {
-            handleTrailSelect(filteredTrails[0]);
-        }
-        Keyboard.dismiss();
-    };
-
-    const handleStartTracking = (bookingContext?: any) => {
-        if (bookingContext) {
-            console.log('Booking context provided:', bookingContext);
-            const targetGroup = groups?.find(g =>
-                g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
-            );
-
-            router.push({
-                pathname: '/(main)/hike/view',
-                params: {
-                    trailId: bookingContext.trail.id,
-                    groupId: targetGroup?.id,
-                    bookingId: bookingContext.id
-                }
-            });
-        } else if (selectedTrail) {
-            console.log('Starting new hike with trail:', selectedTrail.id);
-            viewHike(selectedTrail.id);
-        } else {
-            console.log('Starting new hike without specific trail');
-            viewHike("new_diy_session");
-        }
-    };
-
-    const handleDeveloperBypass = (bookingContext: any) => {
-        console.log('handleDeveloperBypass:', bookingContext);
-        if (!bookingContext) return;
-        const targetGroup = groups?.find(g =>
-            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
-        );
-        router.push({
-            pathname: '/(main)/hike/view',
-            params: {
-                trailId: bookingContext.trail.id,
-                groupId: targetGroup?.id,
-                bookingId: bookingContext.id
-            }
-        });
-    };
-
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
 
     return (
         <View style={{ flex: 1 }}>

@@ -1,12 +1,2 @@
-import { Trail } from "@/src/core/models/Trail/Trail";
-import { ITrailSummary } from "@/src/core/models/Trail/Trail.types";
-
-export const TrailLogic = {
-    toSummary(trail: Trail): ITrailSummary {
-        return{
-            id: trail.id,
-            name: trail.general.name,
-            location: trail.general.province?.join(', ') || trail.general.address || ''
-        }
-    }
-}
+// DELETE THIS FILE
+export * from "@/src/core/models/Trail/utils/Trail.logic";

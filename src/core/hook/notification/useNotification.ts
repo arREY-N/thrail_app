@@ -1,4 +1,4 @@
-import { useNotificationsStore } from "@/src/core/stores/notificationsStore";
+import { useNotificationsStore } from "@/src/core/models/Notification/Notification";
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
@@ -8,7 +8,7 @@ export const useNotifications = () => {
     const notifications = useNotificationsStore(s => s.notifications);
 
     const onViewNotification = (notificationId: string) => {
-        if(notificationId){
+        if (notificationId) {
             router.push({
                 pathname: '/(main)/notification/view',
                 params: {
@@ -29,7 +29,7 @@ export const requestNotificationPermission = async () => {
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
         const { status } = await Notifications.requestPermissionsAsync();
         console.log("Notification permission:", status);
-        
+
         if (status === 'granted') {
             const token = (await Notifications.getDevicePushTokenAsync()).data;
             console.log("Device Push Token:", token);

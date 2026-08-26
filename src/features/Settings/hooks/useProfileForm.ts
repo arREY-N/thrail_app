@@ -3,9 +3,9 @@
  * @description Hook managing profile edit states, validation, search inputs, and saving operations.
  */
 
-import { useEffect, useState } from 'react';
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User.types";
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/interfaces/User.types";
+import { useEffect, useState } from 'react';
 
 export interface UseProfileFormParams {
     user: IUser;
@@ -62,7 +62,7 @@ export function useProfileForm({
         }
     }, [isEditing, user]);
 
-    const isDirty = 
+    const isDirty =
         username !== (user.username || '') ||
         phoneNumber !== (user.phoneNumber || '') ||
         (birthday?.getTime() !== (user.birthday ? new Date(user.birthday).getTime() : undefined)) ||

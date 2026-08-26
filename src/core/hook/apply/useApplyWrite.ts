@@ -1,8 +1,8 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
-import { Application } from "@/src/core/models/Application/Application";
+import { Application, newApplication, useApplicationsStore } from "@/src/core/models/Application/Application";
 import { User } from "@/src/core/models/User/User";
-import { useApplicationsStore } from "@/src/core/stores/applicationsStore";
+
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { validate } from "@/src/core/utility/validate";
 import { ApplicationUIConfig } from "@/src/fields/applicationFields";
@@ -22,19 +22,19 @@ export type UseApplyWriteParams = {
 
 export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyWrite {
     const { applicationId, userId } = params;
-    const profile = useAuthStore(s =>  s.profile);
+    const profile = useAuthStore(s => s.profile);
 
     const data = useApplicationsStore(s => s.data);
-    
+
     const error = useApplicationsStore(s => s.error);
     const isLoading = useApplicationsStore(s => s.isLoading);
     const create = useApplicationsStore(s => s.create);
     const [localError, setLocalError] = useState<string | null>(error);
     const [application, setApplication] = useState<Application>(() => {
         const existing = data.find(d => d.id === applicationId || d.owner.id === userId);
-        return existing 
-            ? new Application({ ...existing }) 
-            : new Application({ 
+        return existing
+            ? newApplication({ ...existing })
+            : newApplication({
                 owner: {
                     id: profile?.id || '',
                     name: `${profile?.firstname} ${profile?.lastname}`,
@@ -53,18 +53,18 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
     const options = {
         provinces: [...OPTIONS.provinces],
     }
-    async function onUpdatePress(params: TEdit<Application>){
+    async function onUpdatePress(params: TEdit<Application>) {
         const { section, id, value } = params;
 
         try {
-            if(section !== 'root' && !id)
+            if (section !== 'root' && !id)
                 throw new Error(`Missing key for ${String(section)}`);
-            
 
-            setApplication(prev => 
+
+            setApplication(prev =>
                 produce(prev, (draft) => {
 
-                    if(section === 'root'){
+                    if (section === 'root') {
                         draft[id] = value;
                     } else {
                         draft[section][id] = value;
@@ -72,38 +72,38 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
                 })
             )
         } catch (error) {
-            setLocalError(error instanceof Error ? error.message : 'Failed saving trail');   
+            setLocalError(error instanceof Error ? error.message : 'Failed saving trail');
         }
 
     }
 
-    async function onSubmitPress(){
+    async function onSubmitPress() {
         try {
             console.log(application);
-            if(!profile) throw new Error('Applicant must be logged in to apply for a business account.') 
-                
+            if (!profile) throw new Error('Applicant must be logged in to apply for a business account.')
+
             const errors = validate(application, information)
 
-            if(errors.length > 0) 
+            if (errors.length > 0)
                 throw new Error(`${errors.join(', ')} missing`)
 
             const submitted = await create(application);
-    
-            if(!submitted) throw new Error('An error occured while submitting application.');
-            
+
+            if (!submitted) throw new Error('An error occured while submitting application.');
+
             router.back();
         } catch (error) {
             setLocalError(error instanceof Error ? error.message : 'Failed submitting application.')
         }
     }
 
-    async function onRemovePress(){
+    async function onRemovePress() {
 
     }
 
-    async function onRejectApplication(user: User){
+    async function onRejectApplication(user: User) {
         try {
-            if(user.role !== 'superadmin') 
+            if (user.role !== 'superadmin')
                 throw new Error('Only superadmins are allowed to reject applications')
 
 
@@ -112,9 +112,9 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
         }
     }
 
-    async function onApproveApplication(user: User){
+    async function onApproveApplication(user: User) {
         try {
-            if(user.role !== 'superadmin') 
+            if (user.role !== 'superadmin')
                 throw new Error('Only superadmins are allowed to approve applications')
 
 
@@ -123,7 +123,7 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
         }
     }
 
-    
+
     return {
         information,
         object: application,

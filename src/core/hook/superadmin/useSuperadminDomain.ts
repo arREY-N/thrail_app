@@ -1,13 +1,13 @@
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useApplicationsStore } from "@/src/core/models/Application/Application";
+import { useBusinessesStore } from "@/src/core/models/Business/Business";
+import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { useApplicationsStore } from "../../stores/applicationsStore";
-import { useBusinessesStore } from "../../stores/businessesStore";
-import { useMountainsStore } from "../../stores/mountainsStore";
 import { useUsersStore } from "../../stores/usersStore";
 import { SuperadminParams } from "./useSuperadmin";
 
-export default function useSuperadminDomain(params: SuperadminParams | null){
+export default function useSuperadminDomain(params: SuperadminParams | null) {
     const loadBusinesses = useBusinessesStore(s => s.fetchAll);
     const businesses = useBusinessesStore(s => s.data);
 
@@ -22,7 +22,7 @@ export default function useSuperadminDomain(params: SuperadminParams | null){
     const superadmin = loadedUsers.filter(s => s.role === 'superadmin');
     const admin = loadedUsers.filter(s => s.role === 'admin');
     const users = loadedUsers.filter(s => s.role === 'user');
-    
+
     const loadApplications = useApplicationsStore(s => s.fetchAll);
     const applications = useApplicationsStore(s => s.data);
     const pendingApplication = applications.filter(a => a.status === 'pending');
@@ -48,13 +48,13 @@ export default function useSuperadminDomain(params: SuperadminParams | null){
             pathname: '/(main)/superadmin/trail/list'
         })
     }
-    
+
     const onManageUsersPress = () => {
         router.push({
             pathname: '/(main)/superadmin/user/list'
         })
     }
-    
+
     const onManageMountainPress = () => {
         router.push({
             pathname: '/(main)/superadmin/mountain/list'

@@ -22,7 +22,6 @@ export function useAppNavigation() {
         if (!id) return;
         router.push({
             pathname: '/(main)/user/view',
-            params: { userId: id }
         });
     };
 

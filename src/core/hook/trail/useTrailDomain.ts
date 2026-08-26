@@ -1,4 +1,4 @@
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
 import { Mode } from "@/src/core/types/Enum";
 import { router } from "expo-router";
 import { useEffect } from "react";
@@ -8,12 +8,12 @@ export type TrailParams = {
     mode: Mode
 }
 
-export default function useTrailDomain(params: TrailParams | null = null){
+export default function useTrailDomain(params: TrailParams | null = null) {
     const trails = useTrailsStore(s => s.data);
     const trail = useTrailsStore(s => s.current);
     const hikingTrail = useTrailsStore(s => s.hikingTrail);
     const isLoading = useTrailsStore(s => s.isLoading);
-    
+
     const setOnHike = useTrailsStore(s => s.setOnHike);
     const setHikingTrail = useTrailsStore(s => s.setHikingTrail);
     const fetchAllTrails = () => {
@@ -23,7 +23,7 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     useEffect(() => {
         console.log('calling here')
-        if(params?.trailId) {
+        if (params?.trailId) {
             load(params.trailId);
         }
     }, [params?.trailId]);
@@ -39,23 +39,23 @@ export default function useTrailDomain(params: TrailParams | null = null){
 
     const onHikePress = (trailId: string) => {
         setHikingTrail(trailId);
-        
+
         router.push({
             pathname: '/(main)/hike/view',
-            params: { 
+            params: {
                 trailId,
                 lon: activeTrail?.geography?.startLong,
-                lat: activeTrail?.geography?.startLat, 
+                lat: activeTrail?.geography?.startLat,
             },
         })
     }
 
     const onWriteTrail = (trailId: string) => {
         console.log('write: ', trailId)
-        if(trailId){
+        if (trailId) {
             router.push({
                 pathname: '/(main)/superadmin/trail/write',
-                params: {trailId}
+                params: { trailId }
             });
         } else {
             router.push({

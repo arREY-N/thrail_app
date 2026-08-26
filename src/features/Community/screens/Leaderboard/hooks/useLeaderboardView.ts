@@ -1,5 +1,5 @@
 import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
-import { IUser } from '@/src/core/models/User/User.types';
+import { IUser } from '@/src/core/models/User/interfaces/User.types';
 import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import { useMemo } from 'react';
 

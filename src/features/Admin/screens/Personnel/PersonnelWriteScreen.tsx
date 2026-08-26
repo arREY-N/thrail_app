@@ -11,14 +11,14 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
-import ErrorMessage from '@/src/components/ErrorMessage';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IAdmin } from '@/src/core/models/Admin/Admin.types';
+import { IAdmin } from '@/src/core/models/Admin/Admin';
 import { User } from '@/src/core/models/User/User';
 import { getInitials } from '@/src/utils/dateFormatter';
 
@@ -57,7 +57,7 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
     isLoading,
     error,
     success,
-    onBackPress 
+    onBackPress
 }) => {
     const [email, setEmail] = useState<string>('');
 
@@ -69,9 +69,9 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
         const isSystemAdmin = user.role === 'admin';
         const isBusinessAdmin = Array.isArray(businessAdmins) && businessAdmins.some((admin) => admin.id === user.id);
         const isAlreadyAdmin = isSystemAdmin || isBusinessAdmin;
-        
-        const fullName = (user.firstname || user.lastname) 
-            ? `${user.firstname || ''} ${user.lastname || ''}`.trim() 
+
+        const fullName = (user.firstname || user.lastname)
+            ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
             : '--';
         const initials = getInitials(fullName !== '--' ? fullName : user.username);
 
@@ -82,7 +82,7 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
                         {initials}
                     </CustomText>
                 </View>
-                
+
                 <View style={styles.adminInfo}>
                     <CustomText variant="body" style={styles.username} numberOfLines={1}>
                         {user.username || '--'}
@@ -100,8 +100,8 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
                             </CustomText>
                         </View>
                     ) : (
-                        <CustomButton 
-                            title={isLoading ? "Promoting..." : "Make Admin"} 
+                        <CustomButton
+                            title={isLoading ? "Promoting..." : "Make Admin"}
                             onPress={() => {
                                 onMakeAdminPress(user);
                                 setEmail('');
@@ -122,11 +122,11 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
                 <CustomHeader title="Personnel" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.unauthorized}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="lock" 
-                        size={48} 
-                        color={Colors.GRAY_MEDIUM} 
+                    <CustomIcon
+                        library="Feather"
+                        name="lock"
+                        size={48}
+                        color={Colors.GRAY_MEDIUM}
                     />
                     <CustomText variant="h2" style={styles.unauthorizedTitle}>
                         Access Denied
@@ -144,17 +144,17 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
             <CustomHeader title="Personnel" centerTitle={true} onBackPress={onBackPress} />
 
             <ResponsiveScrollView contentContainerStyle={styles.scrollContent}>
-                
+
                 <View style={styles.constrainer}>
                     <ErrorMessage error={error} />
-                    
+
                     {success ? (
                         <View style={styles.successContainer}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="check-circle" 
-                                size={18} 
-                                color={Colors.STATUS_APPROVED_TEXT} 
+                            <CustomIcon
+                                library="Feather"
+                                name="check-circle"
+                                size={18}
+                                color={Colors.STATUS_APPROVED_TEXT}
                                 style={styles.successIcon}
                             />
                             <View style={styles.successTextContainer}>
@@ -180,19 +180,19 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
                                 autoCapitalize="none"
                             />
                         </View>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[
-                                styles.searchBtn, 
+                                styles.searchBtn,
                                 isLoading && { opacity: 0.5 }
-                            ]} 
+                            ]}
                             onPress={handleSearch}
                             disabled={isLoading}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="search" 
-                                size={20} 
-                                color={Colors.WHITE} 
+                            <CustomIcon
+                                library="Feather"
+                                name="search"
+                                size={20}
+                                color={Colors.WHITE}
                             />
                         </TouchableOpacity>
                     </View>
@@ -201,16 +201,16 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
                         <CustomText variant="caption" style={styles.resultsTitle}>
                             Search Results
                         </CustomText>
-                        
+
                         {searched.length > 0 ? (
                             searched.map((user) => <UserResultCard key={user.id} user={user} />)
                         ) : (
                             <View style={styles.emptyState}>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name={email ? "user-x" : "mail"} 
-                                    size={40} 
-                                    color={Colors.GRAY_MEDIUM} 
+                                <CustomIcon
+                                    library="Feather"
+                                    name={email ? "user-x" : "mail"}
+                                    size={40}
+                                    color={Colors.GRAY_MEDIUM}
                                 />
                                 <CustomText style={styles.emptyText}>
                                     {email ? "No user found." : "Enter an email to search."}
@@ -226,69 +226,69 @@ const PersonnelWriteScreen: React.FC<PersonnelWriteScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-    scrollContent: { 
-        padding: 16, 
+    scrollContent: {
+        padding: 16,
         paddingBottom: 40,
     },
 
     constrainer: {
         width: '100%',
-        maxWidth: Layout.MAX_WIDTH, 
+        maxWidth: Layout.MAX_WIDTH,
         alignSelf: 'center',
         flex: 1,
     },
-    subtitle: { 
-        color: Colors.TEXT_SECONDARY, 
-        marginBottom: 24, 
+    subtitle: {
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 24,
         fontSize: 13,
     },
-    searchSection: { 
-        flexDirection: 'row', 
+    searchSection: {
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 12, 
+        gap: 12,
         marginBottom: 32,
     },
     inputWrapper: {
         flex: 1,
     },
-    searchInput: { 
-        marginBottom: 0, 
+    searchInput: {
+        marginBottom: 0,
     },
-    searchBtn: { 
-        width: 54, 
-        height: 54, 
-        backgroundColor: Colors.PRIMARY, 
-        borderRadius: 12, 
-        justifyContent: 'center', 
+    searchBtn: {
+        width: 54,
+        height: 54,
+        backgroundColor: Colors.PRIMARY,
+        borderRadius: 12,
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    resultsSection: { 
+    resultsSection: {
         flex: 1,
     },
-    resultsTitle: { 
-        marginBottom: 12, 
-        color: Colors.TEXT_SECONDARY, 
-        textTransform: 'uppercase', 
-        fontWeight: 'bold', 
+    resultsTitle: {
+        marginBottom: 12,
+        color: Colors.TEXT_SECONDARY,
+        textTransform: 'uppercase',
+        fontWeight: 'bold',
         fontSize: 12,
     },
-    card: { 
-        flexDirection: 'row', 
-        backgroundColor: Colors.WHITE, 
-        padding: 16, 
-        borderRadius: 16, 
-        alignItems: 'center', 
-        gap: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT, 
+    card: {
+        flexDirection: 'row',
+        backgroundColor: Colors.WHITE,
+        padding: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        gap: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
         ...GlobalStyles.dropShadow(3),
     },
-    avatar: { 
-        width: 44, 
-        height: 44, 
-        borderRadius: 22, 
-        backgroundColor: Colors.PRIMARY, 
-        justifyContent: 'center', 
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
         borderColor: Colors.STATUS_APPROVED_BG,
@@ -298,74 +298,74 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
-    adminInfo: { 
-        flex: 1, 
+    adminInfo: {
+        flex: 1,
         justifyContent: 'center',
     },
-    username: { 
-        color: Colors.TEXT_PRIMARY, 
-        marginBottom: 2, 
+    username: {
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 2,
         fontWeight: 'bold',
     },
-    email: { 
-        color: Colors.TEXT_SECONDARY, 
+    email: {
+        color: Colors.TEXT_SECONDARY,
         marginBottom: 2,
     },
     actionWrapper: {
         justifyContent: 'center',
         alignItems: 'flex-end',
     },
-    makeAdminBtn: { 
-        height: 36, 
-        paddingHorizontal: 12, 
+    makeAdminBtn: {
+        height: 36,
+        paddingHorizontal: 12,
         borderRadius: 8,
     },
-    makeAdminBtnText: { 
-        fontSize: 12, 
+    makeAdminBtnText: {
+        fontSize: 12,
         fontWeight: 'bold',
     },
-    disabledBadge: { 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        paddingHorizontal: 8, 
-        paddingVertical: 4, 
-        borderRadius: 4, 
+    disabledBadge: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
     },
-    disabledText: { 
-        color: Colors.STATUS_APPROVED_TEXT, 
-        fontSize: 10, 
-        fontWeight: 'bold', 
+    disabledText: {
+        color: Colors.STATUS_APPROVED_TEXT,
+        fontSize: 10,
+        fontWeight: 'bold',
         textTransform: 'uppercase',
     },
-    emptyState: { 
-        paddingVertical: 40, 
+    emptyState: {
+        paddingVertical: 40,
         alignItems: 'center',
         gap: 12,
     },
-    emptyText: { 
-        color: Colors.TEXT_PLACEHOLDER, 
+    emptyText: {
+        color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
     },
-    unauthorized: { 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+    unauthorized: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 32,
-        paddingBottom: 80, 
+        paddingBottom: 80,
     },
     unauthorizedTitle: {
         marginTop: 16,
     },
-    unauthorizedText: { 
-        color: Colors.TEXT_SECONDARY, 
-        textAlign: 'center', 
+    unauthorizedText: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
         marginTop: 8,
     },
     successContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,    
+        borderColor: Colors.STATUS_APPROVED_BORDER,
         padding: 12,
         borderRadius: 8,
         marginBottom: 20,

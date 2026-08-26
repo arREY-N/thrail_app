@@ -1,31 +1,31 @@
+import { useApplicationsStore } from "@/src/core/models/Application/Application";
+import { useBusinessesStore } from "@/src/core/models/Business/Business";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { useEffect, useState } from "react";
-import { useApplicationsStore } from "../../stores/applicationsStore";
-import { useBusinessesStore } from "../../stores/businessesStore";
 
 export type ApplicationParams = {
     applicationId?: string,
 }
 
-export default function useSuperadminApply(params: ApplicationParams = {}){
+export default function useSuperadminApply(params: ApplicationParams = {}) {
     const { profile } = useAuthStore();
 
-    const [rejectionLetter, setRejectionLetter ]= useState<string | null>(null);
-    
+    const [rejectionLetter, setRejectionLetter] = useState<string | null>(null);
+
     const loadApplication = useApplicationsStore(s => s.load);
     const application = useApplicationsStore(s => s.current);
     const businessIsLoading = useBusinessesStore(s => s.isLoading);
     const applicationIsLoading = useApplicationsStore(s => s.isLoading);
 
-    async function onApproveApplication(id: string){
+    async function onApproveApplication(id: string) {
     }
-    
-    async function onRejectApplication(id: string){
+
+    async function onRejectApplication(id: string) {
     }
 
     useEffect(() => {
         loadApplication(params?.applicationId);
-    },[params?.applicationId])
+    }, [params?.applicationId])
 
     return {
         application,

@@ -1,25 +1,25 @@
-import { Group } from "@/src/core/models/Group/interfaces/IGroup";
-import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
-
 // TYPES
-export * from "@/src/core/models/Group/interfaces/IGroup";
+export * from "@/src/core/models/Group/interfaces/Group.types";
 
-// FACTORY
-export { GroupConverter, newGroup } from "@/src/core/models/Group/GroupFactory";
-
-// REPOSITORY
-export { GroupRepo } from "@/src/core/init/repositories";
-
-// STORE ACCESS
-export { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
-
-export const getGroupItem = async (groupId: string): Promise<Group | null> => {
-    await useGroupStore.getState().fetchGroupById(groupId);
-    return useGroupStore.getState().groups.find(group => group.id === groupId) || null;
-}
-
-// HOOKS
-
+// FACTORY & CONVERTER
+export {
+    groupConverter, newGroup
+} from "@/src/core/models/Group/utils/GroupFactory";
 
 // UTILITIES
+export { getGroupName } from "@/src/core/models/Group/utils/getGroupName";
 export { updateGroupOnCancellation } from "@/src/core/models/Group/utils/updateGroupOnCancellation";
+
+// STORES
+export { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
+
+// HOOKS
+export { useGroup } from "@/src/core/models/Group/hooks/useGroup";
+export { useGroupItem } from "@/src/core/models/Group/hooks/useGroupItem";
+export { useGroupList } from "@/src/core/models/Group/hooks/useGroupList";
+export { useGroupLocation } from "@/src/core/models/Group/hooks/useGroupLocation";
+export { useGroupRoom } from "@/src/core/models/Group/hooks/useGroupRoom";
+
+// REPOSITORIES
+export { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
+

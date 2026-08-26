@@ -5,9 +5,9 @@ import { useAdmin } from '@/src/core/hook/admin/useAdmin';
 import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
+import { useBusinessesStore } from '@/src/core/models/Business/Business';
+import { useOfferStore } from '@/src/core/models/Offer/Offer';
 import { useAuthStore } from '@/src/core/stores/authStores/authStore';
-import { useBusinessesStore } from '@/src/core/stores/businessesStore';
 import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
 /**
@@ -15,7 +15,7 @@ import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
  * Handles authentication checks, queries business configurations,
  * maps navigation actions, and manages loading/error reload triggers.
  */
-export default function adminHome() {
+export default function AdminHome() {
     const {
         businessId,
         profile,
@@ -32,9 +32,9 @@ export default function adminHome() {
 
     const {
         onManageAdminsPress,
-        onManageOffersPress,    
+        onManageOffersPress,
         onManageTrailsPress,
-    } = useAdminNavigation({ 
+    } = useAdminNavigation({
         userId: profile?.id,
         businessId: businessId || undefined,
         role: role || undefined,
@@ -53,14 +53,14 @@ export default function adminHome() {
     };
 
     // Handle loading and error states
-    if (!isLoading && (!businessId || !profile || !role)) 
-        return <UnauthorizedScreen/>;
+    if (!isLoading && (!businessId || !profile || !role))
+        return <UnauthorizedScreen />;
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <DashboardScreen 
+            <DashboardScreen
                 businessAccount={businessAccount}
                 onManageAdminsPress={onManageAdminsPress}
                 onManageOffersPress={onManageOffersPress}

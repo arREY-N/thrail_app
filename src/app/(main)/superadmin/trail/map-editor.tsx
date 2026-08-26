@@ -12,8 +12,8 @@ import useSuperadminNavigation from "@/src/core/hook/navigation/useSuperadminNav
 import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { IOfflinePoint } from "@/src/core/models/Trail/Trail.types";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { IOfflinePoint } from "@/src/core/models/Trail/interfaces/Trail.types";
+import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
 import TrailMapEditorScreen from "@/src/features/SuperAdmin/screens/tabs/TrailMapEditorScreen";
 
 /**

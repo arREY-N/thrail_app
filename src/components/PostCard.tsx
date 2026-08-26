@@ -23,7 +23,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
 import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { formatDuration } from "@/src/utils/dateFormatter";
 
@@ -56,18 +56,18 @@ interface PostCardProps {
  * PostCard — A comprehensive card component used to display user reviews,
  * photos, stats, and tags within the community feed or user profile.
  */
-const PostCard: React.FC<PostCardProps> = ({ 
-    review, 
-    onLike, 
-    isLiked, 
+const PostCard: React.FC<PostCardProps> = ({
+    review,
+    onLike,
+    isLiked,
     onEdit,
-    variant = 'community' 
+    variant = 'community'
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
     const scrollRef = useRef<ScrollView>(null);
 
-    const { 
+    const {
         showLeftFade,
         showRightFade,
         scrollProps
@@ -82,8 +82,8 @@ const PostCard: React.FC<PostCardProps> = ({
         const legacyTrailId = review?.trail?.id || (review as any)?.trailId || (review as any)?.mountainId;
         const legacyTrailName = review?.trail?.name || (review as any)?.trailName || (review as any)?.mountainName;
 
-        return trails.find(t => 
-            (legacyTrailId && t.id === legacyTrailId) || 
+        return trails.find(t =>
+            (legacyTrailId && t.id === legacyTrailId) ||
             (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
         );
     }, [trails, review]);
@@ -107,18 +107,18 @@ const PostCard: React.FC<PostCardProps> = ({
 
     const formatStat = (val: unknown, type: string): string => {
         if (val === undefined || val === null || val === '--' || isNaN(val as any)) return '--';
-        
+
         const numVal = Number(val);
 
         if (type === 'distance') {
             if (numVal < 1000) return `${Math.round(numVal)} m`;
             return `${(numVal / 1000).toFixed(2)} km`;
         }
-        
+
         if (type === 'elevation') {
             return `${Math.round(numVal)} m`;
         }
-        
+
         if (type === 'duration') {
             return formatDuration(numVal);
         }
@@ -127,29 +127,29 @@ const PostCard: React.FC<PostCardProps> = ({
     };
 
     const getDifficultyStyle = (diff: string) => {
-        switch(diff) {
-            case 'Easy': 
-            case 'Just Right': 
+        switch (diff) {
+            case 'Easy':
+            case 'Just Right':
                 return { bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'emoticon-happy-outline' as const };
-            case 'Moderate': 
+            case 'Moderate':
                 return { bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'emoticon-neutral-outline' as const };
-            case 'Hard': 
-            case 'Extreme': 
+            case 'Hard':
+            case 'Extreme':
                 return { bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'emoticon-sad-outline' as const };
-            default: 
+            default:
                 return { bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'image-filter-hdr' as const };
         }
     };
 
     const getMaintenanceStyle = (maint: string) => {
-        switch(maint) {
-            case 'Easy': 
+        switch (maint) {
+            case 'Easy':
                 return { label: 'Well-maintained', bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'check-circle' };
-            case 'Moderate': 
+            case 'Moderate':
                 return { label: 'Damaged but usable', bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'alert-triangle' };
-            case 'Extreme': 
+            case 'Extreme':
                 return { label: 'Critical / Unusable', bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'x-circle' };
-            default: 
+            default:
                 return { label: maint, bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'info' };
         }
     };
@@ -174,16 +174,16 @@ const PostCard: React.FC<PostCardProps> = ({
     const likeCount = Array.isArray(review.likes)
         ? review.likes.length
         : Number(review.likes) || 0;
-    
+
     const reviewText = review?.review || review?.content || "";
-    const maxLength = 110; 
+    const maxLength = 110;
     const isLong = reviewText.length > maxLength;
     const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
     const displayText = isExpanded ? reviewText : truncatedText;
 
     return (
         <View style={styles.card}>
-            
+
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <View style={styles.avatarPlaceholder}>
@@ -202,7 +202,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 </View>
 
                 <View style={styles.headerRight}>
-                    
+
                     <View style={styles.headerRatingBadge}>
                         <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
                         <CustomText variant="label" style={styles.headerRatingText}>
@@ -210,18 +210,18 @@ const PostCard: React.FC<PostCardProps> = ({
                         </CustomText>
                     </View>
 
-                    <Pressable 
-                        onPress={onLike} 
+                    <Pressable
+                        onPress={onLike}
                         style={[styles.headerLikeBadge, liked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive]}
                     >
-                        <CustomIcon 
+                        <CustomIcon
                             library="Ionicons"
-                            name={liked ? "heart" : "heart-outline"} 
-                            size={14} 
-                            color={liked ? Colors.ERROR : Colors.TEXT_SECONDARY} 
+                            name={liked ? "heart" : "heart-outline"}
+                            size={14}
+                            color={liked ? Colors.ERROR : Colors.TEXT_SECONDARY}
                         />
-                        <CustomText 
-                            variant="label" 
+                        <CustomText
+                            variant="label"
                             style={liked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
                         >
                             {likeCount}
@@ -236,19 +236,19 @@ const PostCard: React.FC<PostCardProps> = ({
                 </View>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.imageWrapper}
                 activeOpacity={0.9}
                 onPress={() => setIsPreviewVisible(true)}
             >
                 <CustomImage source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
-                
+
                 <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
                             {review.trail?.name || review.trailName || "Mountain Name"}
                         </CustomText>
-                        
+
                         <View style={styles.locationRow}>
                             <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
                             <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
@@ -266,26 +266,26 @@ const PostCard: React.FC<PostCardProps> = ({
             </TouchableOpacity>
 
             <View style={styles.statsContainer}>
-                <StatItem 
-                    label="Distance" 
+                <StatItem
+                    label="Distance"
                     value={formatStat(review.distance, 'distance')}
-                    icon="map-outline" 
+                    icon="map-outline"
                     lib="Ionicons"
                     style={styles.threeColStat}
                 />
                 <View style={styles.verticalDivider} />
-                <StatItem 
-                    label="Elevation" 
+                <StatItem
+                    label="Elevation"
                     value={formatStat(review.elevation, 'elevation')}
-                    icon="trending-up" 
+                    icon="trending-up"
                     lib="Feather"
                     style={styles.threeColStat}
                 />
                 <View style={styles.verticalDivider} />
-                <StatItem 
-                    label="Duration" 
+                <StatItem
+                    label="Duration"
                     value={formatStat(review.duration, 'duration')}
-                    icon="time-outline" 
+                    icon="time-outline"
                     lib="Ionicons"
                     style={styles.threeColStat}
                 />
@@ -295,7 +295,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
             {hasTags && (
                 <View style={[styles.tagsWrapper, !reviewText && { marginBottom: 0 }]}>
-                    <ScrollView 
+                    <ScrollView
                         ref={scrollRef}
                         horizontal={true}
                         showsHorizontalScrollIndicator={false}
@@ -338,22 +338,22 @@ const PostCard: React.FC<PostCardProps> = ({
                     </ScrollView>
 
                     {showLeftFade && (
-                        <LinearGradient 
-                            colors={[Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]} 
-                            start={{ x: 0, y: 0 }} 
-                            end={{ x: 1, y: 0 }} 
-                            style={styles.leftFade} 
-                            pointerEvents="none" 
+                        <LinearGradient
+                            colors={[Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.leftFade}
+                            pointerEvents="none"
                         />
                     )}
 
                     {showRightFade && (
-                        <LinearGradient 
-                            colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]} 
-                            start={{ x: 0, y: 0 }} 
-                            end={{ x: 1, y: 0 }} 
-                            style={styles.rightFade} 
-                            pointerEvents="none" 
+                        <LinearGradient
+                            colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.rightFade}
+                            pointerEvents="none"
                         />
                     )}
                 </View>
@@ -382,20 +382,20 @@ const PostCard: React.FC<PostCardProps> = ({
     );
 };
 
-const StatItem = ({ 
-    label, 
-    value, 
-    icon, 
-    lib, 
-    iconColor = Colors.PRIMARY, 
-    style 
-}: { 
-    label: string, 
-    value: string, 
-    icon: string, 
-    lib: IconLibrary, 
-    iconColor?: string, 
-    style?: StyleProp<ViewStyle> 
+const StatItem = ({
+    label,
+    value,
+    icon,
+    lib,
+    iconColor = Colors.PRIMARY,
+    style
+}: {
+    label: string,
+    value: string,
+    icon: string,
+    lib: IconLibrary,
+    iconColor?: string,
+    style?: StyleProp<ViewStyle>
 }) => (
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
@@ -727,7 +727,7 @@ export default React.memo(PostCard, (prevProps, nextProps) => {
     const prevLiked = prevProps.isLiked ? prevProps.isLiked(prevProps.review) : false;
     const nextLiked = nextProps.isLiked ? nextProps.isLiked(nextProps.review) : false;
 
-    return prevProps.review === nextProps.review && 
-           prevProps.variant === nextProps.variant &&
-           prevLiked === nextLiked;
+    return prevProps.review === nextProps.review &&
+        prevProps.variant === nextProps.variant &&
+        prevLiked === nextLiked;
 });

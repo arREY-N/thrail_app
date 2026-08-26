@@ -1,82 +1,80 @@
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
-import { Hike } from "@/src/core/models/Hike/Hike";
+import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { Location } from "@/src/core/models/Location/Location";
-import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
+import { TrailLogic, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
-export default function useCurrentHike(trailId: string){
+export default function useCurrentHike(trailId: string) {
     const [localError, setLocalError] = useState<string | null>(null);
 
     const profile = useAuthStore(s => s.profile);
 
-    const currentHike = useHikesStore(s => s.currentHike);
-    const elapsedTime = useHikesStore(s => s.elapsedTime);
-    const timerStartTime = useHikesStore(s => s.timerStartTime);
-    const isLoading = useHikesStore(s => s.isLoading);
-    const active = useHikesStore(s => s.active);
-    const startHike = useHikesStore(s => s.startHike);
-    const create = useHikesStore(s => s.create);
+    const currentHike = useHikeStore(s => s.currentHike);
+    const elapsedTime = useHikeStore(s => s.elapsedTime);
+    const timerStartTime = useHikeStore(s => s.timerStartTime);
+    const isLoading = useHikeStore(s => s.isLoading);
+    const active = useHikeStore(s => s.active);
+    const startHike = useHikeStore(s => s.startHike);
+    const create = useHikeStore(s => s.create);
 
     const { startBackgroundTracking, stopBackgroundTracking } = useHikerGPS();
 
     const [lastKnownCoordinate, setLastKnownCoordinate] = useState<Location | null>(null);
-    const coordinates = useHikesStore(s => s.coordinates);
-    const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
-    const updateHikeStore = useHikesStore(s => s.updateHikeStore);  
+    const coordinates = useHikeStore(s => s.coordinates);
+    const updateCurrentHike = useHikeStore(s => s.updateCurrentHike);
+    const updateHikeStore = useHikeStore(s => s.updateHikeStore);
 
-    const trails = useTrailsStore(s => s.data); 
+    const trails = useTrailsStore(s => s.data);
 
     useEffect(() => {
-        if(coordinates.length === 0) return;
+        if (coordinates.length === 0) return;
 
         const lastCoordinate = coordinates[coordinates.length - 1];
         setLastKnownCoordinate(lastCoordinate);
-    },[coordinates])
+    }, [coordinates])
     useEffect(() => {
-        if(active && currentHike && currentHike.trail.id !== trailId){
+        if (active && currentHike && currentHike.trail.id !== trailId) {
             console.log(`Active hike found for a different trail: ${currentHike?.trail.id}`);
             setLocalError(`Active hike found for a different trail: ${currentHike?.trail.id}`);
             return;
         }
 
-        if(trailId && currentHike?.trail.id !== trailId){
-            const trail = trails.find(t => t.id === trailId);  
+        if (trailId && currentHike?.trail.id !== trailId) {
+            const trail = trails.find(t => t.id === trailId);
 
-            if(!trail) {
+            if (!trail) {
                 setLocalError('Trail not found');
                 return;
             }
 
-            const hike = new Hike({
+            const hike = newHike({
                 trail: TrailLogic.toSummary(trail),
                 status: 'unhiked',
                 mode: 'direct'
-            })
+            });
 
             updateHikeStore({ currentHike: hike });
         }
 
         return () => {
             console.log('Unmounting useCurrentHike, checking if hike needs to be reset', currentHike);
-            if(currentHike && (currentHike.status === 'unhiked' || currentHike.status === 'completed')){
+            if (currentHike && (currentHike.status === 'unhiked' || currentHike.status === 'completed')) {
                 console.log('resetting current hike on unmount', currentHike);
-                updateHikeStore({ 
+                updateHikeStore({
                     currentHike: null,
                     active: false,
-                 });
+                });
             } else {
                 console.log('not resetting current hike on unmount because hike is active');
                 console.log(currentHike);
             }
         }
-    },[trailId]);
+    }, [trailId]);
 
     useEffect(() => {
-        if(currentHike && currentHike.status !== 'started'){
+        if (currentHike && currentHike.status !== 'started') {
             return;
         }
 
@@ -86,10 +84,10 @@ export default function useCurrentHike(trailId: string){
         }, 500);
 
         return () => clearInterval(interval);
-    },[active, currentHike?.status,]);
+    }, [active, currentHike?.status,]);
 
     const onResetHike = () => {
-        if(!currentHike) {
+        if (!currentHike) {
             setLocalError("No hike data available to reset");
             return;
         }
@@ -99,49 +97,49 @@ export default function useCurrentHike(trailId: string){
     }
 
     const onStartHike = async () => {
-        try{
-            if(!profile){
+        try {
+            if (!profile) {
                 throw new Error("User profile not found. Please log in again.");
             }
-    
-            if(!currentHike) {
+
+            if (!currentHike) {
                 throw new Error("No hike data available to start");
             }
-    
-            if(active && currentHike.status === 'paused'){
+
+            if (active && currentHike.status === 'paused') {
                 onResumeHike();
                 return;
             }
-            
+
             console.log('Starting hike with id: ', currentHike.id);
             await startHike(profile.id);
             startBackgroundTracking();
             console.log('current hike: ', currentHike);
-        } catch(error){
+        } catch (error) {
             console.error("Error starting hike: ", error);
             setLocalError("Failed to start hike. Please try again.");
         }
     }
 
     const onPauseHike = () => {
-        if(!currentHike || currentHike.status !== 'started') {
+        if (!currentHike || currentHike.status !== 'started') {
             setLocalError("No active hike to pause");
             return;
         }
 
         const currentElapsed = timerStartTime ? Date.now() - timerStartTime : 0;
-        
-        updateHikeStore({ 
-            elapsedTime: currentElapsed, 
+
+        updateHikeStore({
+            elapsedTime: currentElapsed,
         });
-        
+
         updateCurrentHike({ status: 'paused' });
         stopBackgroundTracking();
     }
 
     const onResumeHike = () => {
         console.log('Resuming hike with id: ', currentHike?.id);
-        if(!currentHike || currentHike.status !== 'paused') {
+        if (!currentHike || currentHike.status !== 'paused') {
             console.log("Current hike status: ", currentHike?.status);
             setLocalError("No paused hike to resume");
             return;
@@ -149,17 +147,17 @@ export default function useCurrentHike(trailId: string){
 
         updateCurrentHike({ status: 'started' });
 
-        const newStartTime = Date.now() - elapsedTime; 
+        const newStartTime = Date.now() - elapsedTime;
         updateHikeStore({ timerStartTime: newStartTime, active: true });
         startBackgroundTracking();
     }
 
-    const onCompleteHike = async() => {
-        if(!currentHike) {
+    const onCompleteHike = async () => {
+        if (!currentHike) {
             setLocalError("No active hike to complete");
             return;
         }
-    
+
         stopBackgroundTracking();
 
         updateHikeStore({
@@ -168,8 +166,8 @@ export default function useCurrentHike(trailId: string){
             timerStartTime: undefined,
         })
 
-        updateCurrentHike({ 
-            status: 'completed', 
+        updateCurrentHike({
+            status: 'completed',
             endTime: new Date()
         });
 
@@ -178,7 +176,7 @@ export default function useCurrentHike(trailId: string){
             status: 'completed',
             endTime: new Date(),
         })
-        
+
         console.log('Completed hike: ', completedHike);
         await create(profile!.id, completedHike);
         //router.replace('/');
@@ -191,10 +189,10 @@ export default function useCurrentHike(trailId: string){
 
     const onAddReview = () => {
         try {
-            if(!currentHike) 
-                throw new Error("No hike data available to review"); 
-    
-            if(currentHike.status !== 'completed')
+            if (!currentHike)
+                throw new Error("No hike data available to review");
+
+            if (currentHike.status !== 'completed')
                 throw new Error('Cannot review an incomplete hike');
 
             router.push({
@@ -202,9 +200,9 @@ export default function useCurrentHike(trailId: string){
                 params: {
                     trailId: currentHike.trail.id,
                 }
-            });   
+            });
         } catch (error) {
-            setLocalError("No hike data available to review"); 
+            setLocalError("No hike data available to review");
         }
     }
 

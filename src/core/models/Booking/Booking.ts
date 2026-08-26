@@ -1,42 +1,31 @@
-import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
-
-export { BookingRepository } from "@/src/core/models/Booking/repositories/BookingRepository";
-
 // TYPES
-export * from "@/src/core/models/Booking/interfaces/IBooking";
+export * from "@/src/core/models/Booking/interfaces/Booking.types";
 
-// FACTORY
-export { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
+// FACTORY & CONVERTER
+export {
+    bookingConverter,
+    newBooking
+} from "@/src/core/models/Booking/utils/BookingFactory";
+
+// UTILITIES
+export { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
+export { updateBookingOnCancellation } from "@/src/core/models/Booking/utils/Booking.utils";
+export { getUserBookingItem } from "@/src/core/models/Booking/utils/getUserBookingItem";
 
 // STORES
 export { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 
-export const getUserBookingItem = async (bookingId: string): Promise<Booking | null> => {
-
-    await useBookingsStore.getState().loadById(bookingId);
-
-    const bookingStore = useBookingsStore.getState();
-
-    const allBookings = [
-        ...bookingStore.userBookings,
-        ...bookingStore.offerBookings,
-        ...bookingStore.businessBookings,
-        ...bookingStore.data
-    ];
-
-    console.log('allBookings:', allBookings);
-    return allBookings.find(booking => booking.id === bookingId) || null;
-}
-
-// UTILS
-export { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
-export { updateBookingOnCancellation } from "@/src/core/models/Booking/utils/Booking.utils";
-
-// HOOK
+// HOOKS
 export { useBookingAdmin } from "@/src/core/models/Booking/hooks/useBookingAdmin";
 export { useBookingAdminItem } from "@/src/core/models/Booking/hooks/useBookingAdminItem";
+export { useBookingAdminList } from "@/src/core/models/Booking/hooks/useBookingAdminList";
 export { useBookingDelete } from "@/src/core/models/Booking/hooks/useBookingDelete";
 export { useBookingOfferAdminList } from "@/src/core/models/Booking/hooks/useBookingOfferAdminList";
 export { useBookingUser } from "@/src/core/models/Booking/hooks/useBookingUser";
+export { useBookingUserItem } from "@/src/core/models/Booking/hooks/useBookingUserItem";
 export { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
+
+// REPOSITORIES
+export { BookingRepo } from "@/src/core/models/Booking/repositories/BookingRepository";
+
+
