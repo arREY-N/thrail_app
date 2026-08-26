@@ -5,6 +5,7 @@ import { Role } from "@/src/core/models/User/interfaces/User.types";
 import { AuthRepository } from "@/src/core/repositories/authRepository";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
     onIdTokenChanged,
@@ -244,6 +245,11 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         try {
             validateSignUp(get().account);
             console.log(get().account);
+            if (__DEV__) {
+                logger('authStoreCreator', 'credential bypassed, only for development mode');
+                set({ isChecking: false, error: null });
+                return true;
+            }
             await AuthRepository.checkUserCredentials(get().account);
             set({ isChecking: false, error: null });
             return true;
