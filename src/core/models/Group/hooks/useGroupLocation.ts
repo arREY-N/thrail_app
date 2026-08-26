@@ -3,7 +3,7 @@ import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository"
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
 import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
-import { Message } from "@/src/core/models/Message/Message";
+import { newMessage } from "@/src/core/models/Message/Message";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useState } from "react";
 import { Platform } from "react-native";
@@ -65,14 +65,14 @@ export function useGroupLocation(groupId: string) {
             if (!documentUrl)
                 throw new Error(`Failed to capture or upload photo`);
 
-            const newMessage = new Message({
+            const msg = newMessage({
                 content: `${documentUrl}`,
                 senderId: profile!.id,
                 senderName: profile!.firstname,
                 timesent: new Date(),
             });
 
-            GroupRepo.sendMessage(groupId, newMessage);
+            GroupRepo.sendMessage(groupId, msg);
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sending picture.");
@@ -91,14 +91,14 @@ export function useGroupLocation(groupId: string) {
 
         const mapLink = `https://www.google.com/maps/search/?api=1&query=${coordinate.latitude},${coordinate.longitude}`;
 
-        const newMessage = new Message({
+        const msg = newMessage({
             content: `Send help! \n\nLast known location: ${mapLink} \n\nTime: ${coordinate.timestamp}`,
             senderId: profile.id,
             senderName: profile.firstname,
             timesent: new Date(),
         });
 
-        GroupRepo.sendMessage(groupId, newMessage);
+        GroupRepo.sendMessage(groupId, msg);
     };
 
     const onStartHike = async (group: Group, booking: Booking) => {

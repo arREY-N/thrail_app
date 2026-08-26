@@ -1,5 +1,5 @@
 import { IBusinessSummary } from "@/src/core/models/Business/Business";
-import { IMessageBase } from "@/src/core/models/Message/Message.types";
+import { IMessageBase } from "@/src/core/models/Message/Message";
 import { IOfferBase } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary } from "@/src/core/models/Trail/Trail";
 import { IUserSummary } from "@/src/core/models/User/User";

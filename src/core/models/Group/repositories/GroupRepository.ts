@@ -1,7 +1,7 @@
 import { db } from "@/src/core/config/Firebase";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
 import { groupConverter } from "@/src/core/models/Group/utils/GroupFactory";
-import { Message, MessageConverter } from "@/src/core/models/Message/Message";
+import { Message, messageConverter } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
 import {
     arrayUnion,
@@ -55,7 +55,7 @@ export const GroupRepository = (db: Firestore) => ({
             collection(db, 'groups', groupId, 'messages'),
             orderBy('timesent', 'desc'),
             limit(limitCount)
-        ).withConverter(MessageConverter);
+        ).withConverter(messageConverter);
 
         return onSnapshot(q, (snapshot) => {
             onUpdate(snapshot.docs.map(d => d.data()), snapshot.metadata.fromCache);
@@ -80,16 +80,27 @@ export const GroupRepository = (db: Firestore) => ({
 
     async sendMessage(groupId: string, message: Message): Promise<void> {
         try {
-            const messagesCol = collection(db, 'groups', groupId, 'messages').withConverter(MessageConverter);
+            const messagesCol = collection(db, 'groups', groupId, 'messages').withConverter(messageConverter);
             const messageRef = doc(messagesCol);
 
-            message.id = messageRef.id;
+            const toSave = {
+                ...message,
+                id: messageRef.id,
+            };
 
-            await setDoc(messageRef, message);
+            await setDoc(messageRef, toSave);
 
             const groupRef = doc(db, 'groups', groupId);
             await setDoc(groupRef, {
-                lastMessage: message.toFirestore(),
+                lastMessage: {
+                    id: toSave.id,
+                    content: toSave.content,
+                    senderId: toSave.senderId,
+                    senderName: toSave.senderName,
+                    readBy: toSave.readBy || [],
+                    status: toSave.status,
+                    timesent: serverTimestamp(),
+                },
                 updatedAt: serverTimestamp(),
             }, { merge: true });
 

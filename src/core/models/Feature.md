@@ -176,7 +176,7 @@ Follow the standard **4-file store pattern**:
 | Hike | [x] | [ ] | [ ] |
 | Leaderboard | [x] | [ ] | [ ] |
 | Location | [x] | [ ] | [ ] |
-| Message | [ ] | [ ] | [x] |
+| Message | [x] | [ ] | [ ] |
 | Mountain | [x] | [ ] | [ ] |
 | Notification | [x] | [ ] | [ ] |
 | Offer | [x] | [ ] | [ ] |

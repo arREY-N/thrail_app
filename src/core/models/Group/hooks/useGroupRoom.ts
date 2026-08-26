@@ -1,8 +1,7 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
-import { Message } from "@/src/core/models/Message/Message";
-import { IMessage } from "@/src/core/models/Message/Message.types";
+import { Message, newMessage } from "@/src/core/models/Message/Message";
 import { UserLogic } from "@/src/core/models/User/User";
 import { useCallback } from "react";
 
@@ -21,21 +20,21 @@ export function useGroupRoom(groupId: string) {
     const sendMessage = async (content: string) => {
         if (!profile || !groupId) throw new Error("Missing profile or groupId");
 
-        const newMessage = new Message({
+        const msg = newMessage({
             content,
             senderId: profile.id,
             senderName: profile.username,
             timesent: new Date(),
         });
 
-        await GroupRepo.sendMessage(groupId, newMessage);
+        await GroupRepo.sendMessage(groupId, msg);
     };
 
-    const markAsRead = useCallback((rawMsg: IMessage) => {
+    const markAsRead = useCallback((rawMsg: Message) => {
         if (!profile || !groupId) return;
 
-        const message = new Message(rawMsg);
-        const alreadyRead = message.readBy.some(user => user.id === profile.id);
+        const message = newMessage(rawMsg);
+        const alreadyRead = message.readBy?.some(user => user.id === profile.id);
         if (!alreadyRead) {
             markAsReadAction(groupId, message, UserLogic.toSummary(profile));
         }
