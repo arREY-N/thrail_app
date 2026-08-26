@@ -67,7 +67,6 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
     initialCategory = "All",
     offers = []
 }) => {
-    const [weatherMap, setWeatherMap] = useState<Record<string, TrailWeatherBadge>>({});
     const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [isFilterModalVisible, setIsFilterModalVisible] = useState<boolean>(false);
@@ -122,11 +121,6 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
     else if (availableWidth >= 650) numColumns = 2;
 
     const cardWidth = (availableWidth - gap * (numColumns - 1)) / numColumns;
-
-    useEffect(() => {
-        if (!trails || trails.length === 0) return;
-        fetchTrailWeatherBadges(trails).then(setWeatherMap);
-    }, [trails]);
 
     const filteredTrails = useMemo(() => {
         let result = filterTrailsByCategory(trails, selectedCategory, offers);
@@ -280,7 +274,6 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                             onPress={() => onViewMountain(t.id)}
                             onLikePress={() => console.log("Like", t.general?.name)}
                             style={{ width: cardWidth }}
-                            weatherBadge={weatherMap[t.id] ?? null}
                             offersCount={getTrailOffersCount(t.id)}
                         />
                     )}
