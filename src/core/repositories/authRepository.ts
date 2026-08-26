@@ -1,12 +1,11 @@
 import { auth, db, functions, provider } from '@/src/core/config/Firebase';
 import { getAuthErrorMessage } from '@/src/core/error/autherror';
+import { newUser, SignUp, User, userConverter } from '@/src/core/models/User/User';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
-import { SignUp } from '../models/User/SignUp';
-import { newUser, User, userConverter } from '../models/User/User';
 import { CredentialResponse, UserCredential } from '../models/User/interfaces/SignUp.types';
 import { LogIn } from '../models/User/interfaces/User.types';
 
