@@ -4,7 +4,7 @@
  */
 
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import {
     Platform,
     RefreshControl,
@@ -35,7 +35,6 @@ import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
 import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
-import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 
 /**
  * Props for the HomeScreen component.
@@ -317,20 +316,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
     const hasAnyTrails = recommendedTrails.length > 0 || discoverTrails.length > 0 || trailsWithOffers.length > 0;
 
-    const reloadMountainWeatherBadges = useCallback(() => {
-        const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
-        if (allVisibleTrails.length === 0) return;
+    // const reloadMountainWeatherBadges = useCallback(() => {
+    //     const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
+    //     if (allVisibleTrails.length === 0) return;
 
-        const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
-            .map(id => allVisibleTrails.find(t => t.id === id))
-            .filter((t): t is ITrail => t !== undefined);
+    //     const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
+    //         .map(id => allVisibleTrails.find(t => t.id === id))
+    //         .filter((t): t is ITrail => t !== undefined);
 
-        fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
-    }, [recommendedTrails, discoverTrails, trailsWithOffers]);
+    //     fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
+    // }, [recommendedTrails, discoverTrails, trailsWithOffers]);
 
-    useEffect(() => {
-        reloadMountainWeatherBadges();
-    }, [reloadMountainWeatherBadges]);
+    // useEffect(() => {
+    //     reloadMountainWeatherBadges();
+    // }, [reloadMountainWeatherBadges]);
 
     // Helper to calculate upcoming offers count for each card
     const getTrailOffersCount = (trailId: string) => {
