@@ -27,9 +27,9 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import useSignUp from '@/src/core/hook/auth/useSignUp';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { useForgotPassword } from '@/src/core/hook/user/useForgotPassword';
+import { useSignUp } from "@/src/core/models/User/User";
 import ForgotPasswordScreen from '@/src/features/Auth/screens/ForgotPasswordScreen';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
@@ -56,10 +56,10 @@ export interface LandingScreenProps {
  * Screen component that renders the Landing page with options to Log In or Sign Up,
  * or handles split-screen desktop authentication.
  */
-const LandingScreen: React.FC<LandingScreenProps> = ({ 
-    onLogInPress, 
-    onSignUpPress, 
-    onTermsPress, 
+const LandingScreen: React.FC<LandingScreenProps> = ({
+    onLogInPress,
+    onSignUpPress,
+    onTermsPress,
     onPrivacyPress,
     initialMode,
     onModeChange
@@ -160,8 +160,8 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                             authMode === 'login'
                                 ? "Signing in..."
                                 : authMode === 'signup'
-                                ? "Validating..."
-                                : "Sending reset email..."
+                                    ? "Validating..."
+                                    : "Sending reset email..."
                         }
                     />
                 </View>
@@ -174,9 +174,9 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     const content = (
         <>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-            
+
             <View style={[styles.imageWrapper, isLandscapeMode && { height: heroImageHeight }]}>
-                <CustomImage 
+                <CustomImage
                     source={require('@/src/assets/images/Mt.Tagapo.jpg')}
                     style={styles.heroImage}
                     resizeMode="cover"
@@ -184,14 +184,14 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
             </View>
 
             <View style={[
-                styles.cardSection, 
-                { 
+                styles.cardSection,
+                {
                     paddingBottom: Math.max(insets.bottom + 16, 32),
                     paddingTop: isLandscapeMode ? 48 : 32,
                 }
             ]}>
                 <View style={styles.contentConstrainer}>
-                    
+
                     <View style={[
                         styles.headerContainer,
                         { marginBottom: isLandscapeMode ? 16 : 24 }
@@ -199,39 +199,39 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                         <CustomText variant="label" style={styles.welcomeText}>
                             WELCOME TO THRAIL
                         </CustomText>
-                        
-                        <CustomText 
-                            variant="h1" 
+
+                        <CustomText
+                            variant="h1"
                             style={[
                                 styles.titleText,
-                                { 
+                                {
                                     fontSize: isLandscapeMode ? 28 : 32,
-                                    lineHeight: isLandscapeMode ? 36 : 40 
+                                    lineHeight: isLandscapeMode ? 36 : 40
                                 }
                             ]}
                         >
                             Your Next Trail
                         </CustomText>
-                        <CustomText 
-                            variant="h1" 
+                        <CustomText
+                            variant="h1"
                             style={[
                                 styles.titleText,
-                                { 
+                                {
                                     fontSize: isLandscapeMode ? 28 : 32,
-                                    lineHeight: isLandscapeMode ? 36 : 40 
+                                    lineHeight: isLandscapeMode ? 36 : 40
                                 }
                             ]}
                         >
                             Begins Here
                         </CustomText>
 
-                        <CustomText 
-                            variant="body" 
+                        <CustomText
+                            variant="body"
                             style={[
                                 styles.subtitleText,
-                                { 
+                                {
                                     marginTop: isLandscapeMode ? 10 : 16,
-                                    fontSize: isLandscapeMode ? 14 : 15 
+                                    fontSize: isLandscapeMode ? 14 : 15
                                 }
                             ]}
                         >
@@ -241,35 +241,35 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
 
                     <View style={[
                         styles.buttonContainer,
-                        { 
+                        {
                             gap: isLandscapeMode ? 12 : 16,
-                            marginBottom: isLandscapeMode ? 24 : 32 
+                            marginBottom: isLandscapeMode ? 24 : 32
                         }
                     ]}>
-                        <CustomButton 
-                            title="Sign Up" 
-                            onPress={onSignUpPress} 
-                            variant="primary" 
+                        <CustomButton
+                            title="Sign Up"
+                            onPress={onSignUpPress}
+                            variant="primary"
                         />
-                        <CustomButton 
-                            title="Log In" 
-                            onPress={onLogInPress} 
-                            variant="outline" 
+                        <CustomButton
+                            title="Log In"
+                            onPress={onLogInPress}
+                            variant="outline"
                         />
                     </View>
 
                     <CustomText variant="caption" style={styles.footerText}>
                         By continuing, you agree to our{' '}
-                        <CustomText 
-                            variant="caption" 
+                        <CustomText
+                            variant="caption"
                             style={styles.linkText}
                             onPress={onTermsPress}
                         >
                             Terms of Service
                         </CustomText>
                         {' '}and{' '}
-                        <CustomText 
-                            variant="caption" 
+                        <CustomText
+                            variant="caption"
                             style={styles.linkText}
                             onPress={onPrivacyPress}
                         >
@@ -284,7 +284,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
 
     if (isLandscapeMode) {
         return (
-            <ScrollView 
+            <ScrollView
                 style={styles.container}
                 contentContainerStyle={styles.scrollContainer}
                 bounces={false}
@@ -304,7 +304,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1, 
+        flex: 1,
         width: '100%',
         backgroundColor: Colors.WHITE,
     },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         backgroundColor: Colors.WHITE,
     },
-    
+
     imageWrapper: {
         flex: 1,
         width: '100%',
@@ -324,20 +324,20 @@ const styles = StyleSheet.create({
     },
 
     cardSection: {
-        backgroundColor: Colors.WHITE, 
+        backgroundColor: Colors.WHITE,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        marginTop: -32, 
+        marginTop: -32,
         paddingHorizontal: 24,
         paddingTop: 32,
         alignItems: 'center',
 
         ...Platform.select({
             ios: {
-                
-                
-                
-                
+
+
+
+
             },
             android: {
                 ...GlobalStyles.dropShadow(3),
@@ -346,14 +346,14 @@ const styles = StyleSheet.create({
                 boxShadow: '0px -8px 24px rgba(0, 0, 0, 0.12)'
             }
         })
-    },  
-    
+    },
+
     contentConstrainer: {
         width: '100%',
-        maxWidth: 400, 
+        maxWidth: 400,
         alignItems: 'center',
     },
-    
+
     headerContainer: {
         alignItems: 'center',
         marginBottom: 24,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
-    
+
     // ─── Split-Screen Styles ──────────────────────────────────────────────────
 
     splitScreenContainer: {
