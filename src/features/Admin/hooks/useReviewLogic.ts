@@ -9,15 +9,14 @@ export default function useReviewLogic(booking: any, offers: any[]) {
     const [viewedDocs, setViewedDocs] = useState<any>({});
     const [rejectionReason, setRejectionReason] = useState('');
     
-    const [personalVerifiedAt, setPersonalVerifiedAt] = useState<Date | null>(null);
-    const [emergencyVerifiedAt, setEmergencyVerifiedAt] = useState<Date | null>(null);
-    const [isMinor, setIsMinor] = useState(false);
+    const [personalVerifiedAt, setPersonalVerifiedAt] = useState<Date | null>(() => {
+        return booking?.user?.phoneVerifiedAt ? new Date(booking.user.phoneVerifiedAt) : null;
+    });
+    const [emergencyVerifiedAt, setEmergencyVerifiedAt] = useState<Date | null>(() => {
+        return booking?.emergencyContact?.phoneVerifiedAt ? new Date(booking.emergencyContact.phoneVerifiedAt) : null;
+    });
 
     useEffect(() => {
-        if (booking?.user) {
-            setPersonalVerifiedAt(booking.user.phoneVerifiedAt ? new Date(booking.user.phoneVerifiedAt) : null);
-        }
-        
         const loadEmergencyVerification = async () => {
             if (booking?.emergencyContact) {
                 // Use the booking's own verification date if it exists
@@ -41,7 +40,7 @@ export default function useReviewLogic(booking: any, offers: any[]) {
             }
         };
         loadEmergencyVerification();
-    }, [booking?.user?.phoneVerifiedAt, booking?.emergencyContact?.phoneVerifiedAt, booking?.emergencyContact?.userId]);
+    }, [booking?.emergencyContact]);
 
     const offerDate = booking?.offer?.date ? new Date(booking.offer.date) : null;
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0,0,0,0) : false;
@@ -67,39 +66,38 @@ export default function useReviewLogic(booking: any, offers: any[]) {
 
     const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
 
-    useEffect(() => {
-        setIsMinor(checkIfMinor(booking?.user?.birthday));
-    }, [booking?.user?.birthday]);
+    const isMinor = checkIfMinor(booking?.user?.birthday);
 
-    useEffect(() => {
-        if (!booking?.documents) return;
+    const mapDocument = (name: any, file: any, valid: any) => {
+        let validState = 'pending';
+        if (valid === 'approved' || valid === true) validState = 'approved';
+        if (valid === 'rejected' || valid === false) validState = 'rejected';
+        if (isApprovedStatus) validState = 'approved';
+        if (isRejectedStatus && validState === 'pending') validState = 'rejected';
+        return { name: name || 'Unnamed Document', file, valid: validState };
+    };
 
-        const mapDocument = (name: any, file: any, valid: any) => {
-            let validState = 'pending';
-            if (valid === 'approved' || valid === true) validState = 'approved';
-            if (valid === 'rejected' || valid === false) validState = 'rejected';
-            if (isApprovedStatus) validState = 'approved';
-            if (isRejectedStatus && validState === 'pending') validState = 'rejected';
-            return { name: name || 'Unnamed Document', file, valid: validState };
-        };
-
-        const docsArray = Array.isArray(booking.documents) 
-            ? booking.documents.map((d: any, i: any) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
-            : Object.entries(booking.documents).map(([k, v]: [string, any]) => mapDocument(v.name || k, v.file || '', v.valid));
-        
-        setDocStates(docsArray);
-        
-        const initialViewed: any = {};
-        docsArray.forEach((d: any, i: any) => { 
-            if (d.valid !== 'pending') initialViewed[i] = true; 
-        });
-        setViewedDocs(initialViewed);
-        
+    const [prevBooking, setPrevBooking] = useState(booking);
+    if (booking !== prevBooking) {
+        setPrevBooking(booking);
+        if (booking?.user?.phoneVerifiedAt) {
+            setPersonalVerifiedAt(new Date(booking.user.phoneVerifiedAt));
+        }
+        if (booking?.documents) {
+            const docsArray = Array.isArray(booking.documents) 
+                ? booking.documents.map((d: any, i: any) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
+                : Object.entries(booking.documents).map(([k, v]: [string, any]) => mapDocument(v.name || k, v.file || '', v.valid));
+            setDocStates(docsArray);
+            const initialViewed: any = {};
+            docsArray.forEach((d: any, i: any) => { 
+                if (d.valid !== 'pending') initialViewed[i] = true; 
+            });
+            setViewedDocs(initialViewed);
+        }
         if (isApprovedStatus) {
             setActiveTab('payment');
         }
-
-    }, [booking, booking?.documents, isApprovedStatus, isRejectedStatus]);
+    }
 
     const hasRejections = docStates.some((d: any) => d.valid === 'rejected');
     const isDecisionIncomplete = docStates.length > 0 && docStates.some((d: any) => d.valid === 'pending');

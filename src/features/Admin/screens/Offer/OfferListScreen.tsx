@@ -22,7 +22,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
@@ -44,7 +44,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  */
 export interface OfferListScreenProps {
     offers: Offer[];
-    bookingByOffer: Record<string, IBooking[]>;
+    bookingByOffer: Record<string, Booking[]>;
     isLoading: boolean;
     error: string | null;
     onAddOffer: () => void;

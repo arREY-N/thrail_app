@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -128,17 +128,21 @@ const ScheduleBuilderModal = ({
     const [lastDayToDelete, setLastDayToDelete] = useState<{ index: number, dayNum: number } | null>(null);
 
     const [renderModal, setRenderModal] = useState(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
-    useEffect(() => {
+    const [prevDayToDelete, setPrevDayToDelete] = useState(dayToDelete);
+    if (dayToDelete !== prevDayToDelete) {
+        setPrevDayToDelete(dayToDelete);
         if (dayToDelete !== null) {
             setLastDayToDelete(dayToDelete);
         }
-    }, [dayToDelete]);
+    }
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.timing(animValue, { 
                 toValue: 1, 
                 duration: 300, 
@@ -153,7 +157,9 @@ const ScheduleBuilderModal = ({
         }
     }, [visible, animValue]);
 
-    useEffect(() => {
+    const [prevScheduleKey, setPrevScheduleKey] = useState({ visible, initialSchedule, offerDays });
+    if (prevScheduleKey.visible !== visible || prevScheduleKey.initialSchedule !== initialSchedule || prevScheduleKey.offerDays !== offerDays) {
+        setPrevScheduleKey({ visible, initialSchedule, offerDays });
         if (visible) {
             const targetDays = typeof offerDays === 'string' ? parseInt(offerDays, 10) : (offerDays || 0);
             let formattedSchedule: any[] = [];
@@ -199,7 +205,7 @@ const ScheduleBuilderModal = ({
             }
             setSchedule(formattedSchedule);
         }
-    }, [visible, initialSchedule, offerDays]);
+    }
 
     /**
      * Appends a new, empty day to the end of the schedule.

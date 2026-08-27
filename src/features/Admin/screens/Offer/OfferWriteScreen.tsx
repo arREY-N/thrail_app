@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -69,101 +69,97 @@ const OfferWriteScreen = ({
     const [showBackWarningModal, setShowBackWarningModal] = useState(false);
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
-    const [days, setDays] = useState('');
-    const [nights, setNights] = useState('');
     const [focusedField, setFocusedField] = useState<string | null>(null);
-
-    const prevStartDate = useRef(offer?.date);
-    const prevEndDate = useRef(offer?.endDate);
-
-    useEffect(() => {
-        if (!isEditing) {
-            onUpdateOffer({ section: 'root', id: 'date', value: null });
-            onUpdateOffer({ section: 'root', id: 'endDate', value: null });
-        }
-    }, []);
 
     const handleUpdate = (params: TEdit<Offer>) => {
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
     };
 
-    useEffect(() => {
+    const computeDuration = (startVal?: any, endVal?: any, sched?: any[]) => {
+        if (startVal && endVal) {
+            const start = new Date(startVal);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endVal);
+            end.setHours(0, 0, 0, 0);
+
+            if (end.getTime() >= start.getTime()) {
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const calcDays = diffDays + 1;
+                const calcNights = diffDays;
+                let durString = '';
+                if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
+                if (calcDays > 0 && calcNights > 0) durString += ', ';
+                if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
+                return durString;
+            }
+        }
+        if (Array.isArray(sched) && sched.length > 0) {
+            const calcDays = sched.length;
+            const calcNights = calcDays > 0 ? calcDays - 1 : 0;
+            let durString = '';
+            if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
+            if (calcDays > 0 && calcNights > 0) durString += ', ';
+            if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
+            return durString;
+        }
+        return '';
+    };
+
+    const computedDays = (() => {
         if (offer?.date && offer?.endDate) {
             const start = new Date(offer.date);
             start.setHours(0, 0, 0, 0);
             const end = new Date(offer.endDate);
             end.setHours(0, 0, 0, 0);
-
-            if (end.getTime() < start.getTime()) {
-                handleUpdate({ section: 'root', id: 'endDate', value: offer.date });
-                return; 
-            }
-
-            const diffTime = Math.abs(end.getTime() - start.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            const calcDays = diffDays + 1;
-            const calcNights = diffDays;
-
-            setDays(String(calcDays));
-            setNights(String(calcNights));
-
-            let durString = '';
-            if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
-            if (calcDays > 0 && calcNights > 0) durString += ', ';
-            if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
-
-            if (offer.duration !== durString) {
-                handleUpdate({ section: 'root', id: 'duration', value: durString });
-            }
-        } else if (offer?.schedule?.length > 0) {
-            const calcDays = offer.schedule.length;
-            const calcNights = calcDays > 0 ? calcDays - 1 : 0;
-
-            setDays(String(calcDays));
-            setNights(String(calcNights));
-
-            let durString = '';
-            if (calcDays > 0) durString += `${calcDays} Day${calcDays > 1 ? 's' : ''}`;
-            if (calcDays > 0 && calcNights > 0) durString += ', ';
-            if (calcNights > 0) durString += `${calcNights} Night${calcNights > 1 ? 's' : ''}`;
-
-            if (offer.duration !== durString) {
-                handleUpdate({ section: 'root', id: 'duration', value: durString });
-            }
-        } else {
-            setDays('');
-            setNights('');
-            if (offer.duration !== '') {
-                handleUpdate({ section: 'root', id: 'duration', value: '' });
+            if (end.getTime() >= start.getTime()) {
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             }
         }
-        
-        prevStartDate.current = offer?.date;
-        prevEndDate.current = offer?.endDate;
+        if (Array.isArray(offer?.schedule) && offer.schedule.length > 0) {
+            return offer.schedule.length;
+        }
+        return 0;
+    })();
 
-    }, [offer?.date, offer?.endDate, offer?.schedule?.length]);
+    const days = computedDays > 0 ? String(computedDays) : '';
+    const nights = computedDays > 1 ? String(computedDays - 1) : computedDays === 1 ? '0' : '';
 
     const handleStartDateChange = (val: any) => {
         handleUpdate({ section: 'root', id: 'date', value: val });
         
         const scheduleLength = offer?.schedule?.length || 0;
+        let newEnd = offer?.endDate;
         if (val && scheduleLength > 0) {
-            const newEnd = new Date(val);
-            newEnd.setHours(0, 0, 0, 0);
-            newEnd.setDate(newEnd.getDate() + scheduleLength - 1);
-            handleUpdate({ section: 'root', id: 'endDate', value: newEnd });
+            const computedEnd = new Date(val);
+            computedEnd.setHours(0, 0, 0, 0);
+            computedEnd.setDate(computedEnd.getDate() + scheduleLength - 1);
+            newEnd = computedEnd;
+            handleUpdate({ section: 'root', id: 'endDate', value: computedEnd });
         }
+        const dur = computeDuration(val, newEnd, offer?.schedule);
+        handleUpdate({ section: 'root', id: 'duration', value: dur });
     };
 
     const handleEndDateChange = (val: any) => {
-        handleUpdate({ section: 'root', id: 'endDate', value: val });
-
+        let validEnd = val;
         if (offer?.date && val) {
             const start = new Date(offer.date);
             start.setHours(0, 0, 0, 0);
             const end = new Date(val);
+            end.setHours(0, 0, 0, 0);
+            if (end.getTime() < start.getTime()) {
+                validEnd = offer.date;
+            }
+        }
+        handleUpdate({ section: 'root', id: 'endDate', value: validEnd });
+
+        if (offer?.date && validEnd) {
+            const start = new Date(offer.date);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(validEnd);
             end.setHours(0, 0, 0, 0);
             
             if (end >= start) {
@@ -187,6 +183,8 @@ const OfferWriteScreen = ({
                 }
             }
         }
+        const dur = computeDuration(offer?.date, validEnd, offer?.schedule);
+        handleUpdate({ section: 'root', id: 'duration', value: dur });
     };
 
     const handleAddToArray = (field: string, currentArray: string[], value: string) => {
@@ -671,10 +669,6 @@ const styles = StyleSheet.create({
         borderRadius: 24, 
         paddingVertical: 24, 
         paddingHorizontal: 16, 
-         
-         
-         
-         
         ...GlobalStyles.dropShadow(3), 
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT,
