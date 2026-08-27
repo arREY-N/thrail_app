@@ -15,10 +15,10 @@ export { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/OfferUt
 export { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 
 // HOOKS
+export { useOfferAdminList } from "@/src/core/models/Offer/hooks/useOfferAdminList";
 export { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
 export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
 export { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
-
 // REPOSITORIES
 export { OfferRepo } from "@/src/core/models/Offer/repositories/OfferRepository";
 

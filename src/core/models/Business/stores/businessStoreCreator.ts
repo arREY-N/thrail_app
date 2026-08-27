@@ -1,4 +1,4 @@
-import { BaseStore } from "@/src/core/interface/storeInterface";
+import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
 import { Business } from "@/src/core/models/Business/interfaces/Business.types";
 import { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
@@ -12,7 +12,20 @@ export type AdminUI = {
     businessId: string;
 };
 
-export interface BusinessState extends BaseStore<Business> {
+export interface BusinessState {
+    data: Business[];
+    current: Business | null;
+    isLoading: boolean;
+    error: string | null;
+
+    fetchAll: () => Promise<void>;
+    refresh: (userId?: string | null) => Promise<void>;
+    load: (...args: any) => Promise<void>;
+    create: (...args: any) => Promise<boolean>;
+    delete: (id: string) => Promise<void>;
+    edit?: (property: TEdit<Business>) => void;
+    reset: () => void;
+
     businessAdmins: Admin[];
     lastFetchedAt: number;
 

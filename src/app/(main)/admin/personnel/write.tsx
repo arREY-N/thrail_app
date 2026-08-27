@@ -15,22 +15,22 @@ import { Stack } from 'expo-router';
 /**
  * PersonnelWrite page controller component.
  */
-export default function personnel() {
+export default function Personnel() {
     const { profile, isLoading } = useAuthHook();
 
     const { onBackPress } = useAppNavigation();
 
     if (isLoading) return <LoadingScreen />;
 
-    if (!profile) return <UnauthorizedScreen />; 
-    
+    if (!profile) return <UnauthorizedScreen />;
+
     const controller = useAdminWrite({ userId: profile.id });
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <PersonnelWriteScreen 
+            <PersonnelWriteScreen
                 businessAdmins={controller.businessAdmins}
                 onFindUserPress={controller.onFindUserPress}
                 searched={controller.searched}
@@ -39,8 +39,8 @@ export default function personnel() {
                 isLoading={controller.isLoading}
                 error={controller.error}
                 success={controller.success}
-                onBackPress={onBackPress} 
-            />  
-        </>  
+                onBackPress={onBackPress}
+            />
+        </>
     );
 }

@@ -11,8 +11,12 @@ export function useBookingAdminItem(bookingId: string, offerId: string) {
     const offerBookings = useBookingsStore(s => s.bookingByOffer[booking?.offer.id || '']);
 
     useEffect(() => {
-        if (!businessId || !offerId) return;
-        useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId)
+        const fetch = async () => {
+            if (!businessId || !offerId) return;
+            useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId)
+        }
+
+        fetch();
     }, [offerId, businessId])
 
     return {

@@ -1,4 +1,5 @@
-import { Role } from "@/src/core/models/User/interfaces/User.types";
+import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { Role } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 
 export type UseAdminNavigationParams = {
@@ -16,14 +17,21 @@ export type UseAdminNavigationParams = {
  * @param {Role} [params.role] - The role of the current user.
  * @returns {object} Navigation callback handlers.
  */
-export default function useAdminNavigation(params: UseAdminNavigationParams) {
-    const { userId, businessId, role } = params;
+export function useAdminNavigation() {
+    const { profile, businessId, role } = useAuthHook();
+
+    const isAllowed = () => {
+        if (!profile?.id || role !== 'admin' || !businessId) return false;
+        return true;
+    }
 
     const onManageAdminsPress = () => {
+        if (!isAllowed()) return;
         router.push('/(main)/admin/personnel/list');
     }
 
     const onManageOffersPress = () => {
+        if (!isAllowed()) return;
         router.push({
             pathname: '/(main)/admin/offer/list',
             params: { businessId }
@@ -31,10 +39,12 @@ export default function useAdminNavigation(params: UseAdminNavigationParams) {
     }
 
     const onAddAdminPress = () => {
+        if (!isAllowed()) return;
         router.push('/(main)/admin/personnel/write');
     }
 
     const onWriteOffer = (id: string | null = null) => {
+        if (!isAllowed()) return;
         router.push({
             pathname: '/(main)/admin/offer/write',
             params: { offerId: id }
@@ -46,6 +56,7 @@ export default function useAdminNavigation(params: UseAdminNavigationParams) {
      * Accessible by both admins and superadmins.
      */
     const onManageTrailsPress = () => {
+        if (!isAllowed()) return;
         router.push('/(main)/superadmin/trail/list');
     }
 

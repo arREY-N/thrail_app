@@ -2,10 +2,8 @@
 export * from "@/src/core/models/Business/interfaces/Business.types";
 
 // FACTORY & CONVERTER
-export { 
-    newBusiness, 
-    businessFromApplication, 
-    businessConverter 
+export {
+    businessConverter, businessFromApplication, newBusiness
 } from "@/src/core/models/Business/utils/BusinessFactory";
 
 // LOGIC / UTILS
@@ -16,8 +14,9 @@ export { useBusinessesStore } from "@/src/core/models/Business/stores/businessSt
 
 // HOOKS
 export { useBusiness } from "@/src/core/models/Business/hooks/useBusiness";
-export { useBusinessItem } from "@/src/core/models/Business/hooks/useBusinessItem";
+export { useBusinessAdmin } from "@/src/core/models/Business/hooks/useBusinessAdmin";
 export { useBusinessList } from "@/src/core/models/Business/hooks/useBusinessList";
 
 // REPOSITORIES
-export { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
+export { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
+
