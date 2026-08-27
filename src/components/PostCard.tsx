@@ -123,7 +123,7 @@ const PostCard: React.FC<PostCardProps> = ({
     };
 
     const formatStat = (val: unknown, type: string): string => {
-        if (val === undefined || val === null || val === '--' || isNaN(val as any)) return '--';
+        if (val === undefined || val === null || val === '--' || isNaN(Number(val))) return '--';
         
         const numVal = Number(val);
 
