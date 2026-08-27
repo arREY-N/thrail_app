@@ -70,7 +70,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const mapRef = useRef<any>(null);
     
     const [localError, setLocalError] = useState<string | null>(error);
-    useEffect(() => setLocalError(error), [error]);
+    const [prevError, setPrevError] = useState<string | null>(error);
+    if (error !== prevError) {
+        setPrevError(error);
+        setLocalError(error);
+    }
 
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [showSosMenu, setShowSosMenu] = useState(false);
@@ -99,19 +103,22 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     }, [isStarted, isPaused, isCompleted]);
 
     useEffect(() => {
-        let interval: ReturnType<typeof setInterval>;
-        if (isStarted && timerStartTime > 0) {
-            setLiveTime(Date.now() - timerStartTime); 
-            interval = setInterval(() => {
-                setLiveTime(Date.now() - timerStartTime);
-            }, 1000);
-        } else {
-            setLiveTime(baseElapsedTime); 
-        }
+        if (!isStarted || timerStartTime <= 0) return;
+        const interval = setInterval(() => {
+            setLiveTime(Date.now() - timerStartTime);
+        }, 1000);
         return () => clearInterval(interval);
-    }, [isStarted, timerStartTime, baseElapsedTime]);
+    }, [isStarted, timerStartTime]);
 
-    const completeAnim = useRef(new Animated.Value(0)).current;
+    const [currentTime, setCurrentTime] = useState(() => Date.now());
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const [completeAnim] = useState(() => new Animated.Value(0));
     useEffect(() => { completeAnim.setValue(0); }, [hike.status, completeAnim]);
 
     const animateProgress = (anim: Animated.Value, duration: number, toValue: number) => {
@@ -162,21 +169,23 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     const handleHikerLocationPress = (member: any, locData: any) => {
-        if (!locData || !locData.latitude || !locData.longitude) return;
-
         Alert.alert(
-            "Track Hiker",
-            `Where would you like to view ${member.firstname}'s location?`,
+            `Hiker Location: ${member.firstname} ${member.lastname}`,
+            `Coordinates: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}\nLast Updated: ${formatDate(locData.timestamp as any)}`,
             [
                 {
-                    text: "Center on Trail Map",
+                    text: "Track",
                     onPress: () => {
+                        mapRef.current?.flyTo({
+                            center: [locData.longitude, locData.latitude],
+                            zoom: 17,
+                            duration: 1000
+                        });
                         setShowTeamStatus(false);
-                        mapRef.current?.centerOnCoordinate(locData.longitude, locData.latitude);
                     }
                 },
                 {
-                    text: "Open in Google Maps",
+                    text: "Open in Maps",
                     onPress: () => {
                         const locationLink = `https://www.google.com/maps/search/?api=1&query=${locData.latitude},${locData.longitude}`;
                         handlePress(locationLink);
@@ -200,16 +209,22 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             return true;
         });
 
-        return allMembers.sort((a, b) => {
-            const locA = hikerLocations?.find(loc => loc.id === a.id);
-            const locB = hikerLocations?.find(loc => loc.id === b.id);
-            const isInactiveA = locA ? (Date.now() - new Date(locA.timestamp).getTime() > 5000) : true;
-            const isInactiveB = locB ? (Date.now() - new Date(locB.timestamp).getTime() > 5000) : true;
-            if (isInactiveA && !isInactiveB) return -1;
-            if (!isInactiveA && isInactiveB) return 1;
+        const membersWithLoc = allMembers.map(member => {
+            const locData = hikerLocations?.find(loc => loc.id === member.id);
+            const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 10000) : true;
+            return {
+                ...member,
+                locData,
+                isInactive,
+            };
+        });
+
+        return membersWithLoc.sort((a, b) => {
+            if (a.isInactive && !b.isInactive) return -1;
+            if (!a.isInactive && b.isInactive) return 1;
             return 0;
         });
-    }, [currentGroup, hikerLocations]);
+    }, [currentGroup, hikerLocations, currentTime]);
 
     const formatDistance = (meters: number) => {
         if (meters < 1000) return `${Math.round(meters)} m`;
@@ -217,17 +232,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     }
     const liveDistanceStr = isTracking ? formatDistance(totalDistance) : "--";
     const liveElevationStr = isTracking ? `${Math.round(totalElevationGain)} m` : "--";
-
-    const locationMap = new Map(hikerLocations?.map(loc => [loc.id, loc])) || new Map();
-
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.container}>
-                <CustomHeader title={hike.trail?.name || "Independent Route"} showDefaultIcons={false} onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined} />
-                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} />
-            </View>
-        );
-    }
 
     const enrichedHikerLocations = useMemo(() => {
         if (!hikerLocations) return [];
@@ -243,6 +247,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             return hiker;
         });
     }, [hikerLocations, sortedMembers]);
+
+    if (Platform.OS === 'web') {
+        return (
+            <View style={styles.container}>
+                <CustomHeader title={hike.trail?.name || "Independent Route"} showDefaultIcons={false} onBackPress={onBackPress} />
+                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -439,7 +452,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 confirmText="Yes, Leave"
                 cancelText="Cancel"
                 isDestructive={false}
-                iconName="shield" children={undefined}            />
+                iconName="shield"
+            />
 
             <Modal visible={showTrailInfo} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
@@ -456,7 +470,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <>
                                     <View style={styles.infoSection}>
                                         <CustomText style={styles.infoTitle}>Trail Guidelines</CustomText>
-                                        <CustomText style={styles.infoText}>Stay on the marked path. Keep in contact with your group and follow your guide's instructions at all times to ensure safety.</CustomText>
+                                        <CustomText style={styles.infoText}>Stay on the marked path. Keep in contact with your group and follow your guide&apos;s instructions at all times to ensure safety.</CustomText>
                                     </View>
 
                                     {(fullOffer?.schedule && fullOffer.schedule.length > 0) && (
@@ -508,7 +522,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 message="Please take a quick photo of the emergency to help your guide assess the situation."
                 confirmText="Open Camera"
                 cancelText="Skip"
-                iconName="camera" children={undefined}            />
+                iconName="camera"
+            />
 
             <Modal visible={showMapOptions} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
@@ -564,9 +579,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </View>
                         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
                             {sortedMembers.map((member, index) => {
-                                const locData = locationMap.get(member.id);
-                                const isInactive = locData ? (Date.now() - new Date(locData.timestamp).getTime() > 10000) : true;
-                                const locationLink = `https://www.google.com/maps/search/?api=1&query=${locData?.latitude},${locData?.longitude}`;
+                                const locData = member.locData;
+                                const isInactive = member.isInactive;
                                 
                                 return (
                                     <View key={index} style={styles.memberCard}>

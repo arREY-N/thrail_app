@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Platform, 
+import {
     FlatList,
     ListRenderItemInfo,
     Pressable,

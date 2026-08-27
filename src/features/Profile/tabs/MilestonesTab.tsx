@@ -1,5 +1,5 @@
 import React from 'react';
-import { DimensionValue, Platform, StyleSheet, View } from 'react-native';
+import { DimensionValue, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';

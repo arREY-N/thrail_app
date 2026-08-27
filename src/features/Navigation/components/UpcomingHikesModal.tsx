@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Dimensions, Modal, Platform, SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,7 +7,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { useTrailsStore } from '@/src/core/stores/trailStores/trailsStore';
 import { formatDate } from '@/src/core/utility/date';
 
@@ -16,9 +16,9 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface UpcomingHikesModalProps {
     visible: boolean;
     onClose: () => void;
-    bookings: IBooking[];
-    activeBooking: IBooking | null;
-    onSelectBooking: (booking: IBooking) => void;
+    bookings: Booking[];
+    activeBooking: Booking | null;
+    onSelectBooking: (booking: Booking) => void;
 }
 
 const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({ 
@@ -33,11 +33,13 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
 
     // ✅ Animation States (Matching CustomFilterModal)
     const [renderModal, setRenderModal] = useState(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,

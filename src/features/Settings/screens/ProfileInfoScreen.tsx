@@ -22,7 +22,7 @@ import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
 import { Layout } from "@/src/constants/layout";
 import { IUser } from "@/src/core/models/User/User.types";
-import { formatDate } from "@/src/core/utility/date";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";
 import { useProfileForm } from "@/src/features/Settings/hooks/useProfileForm";
@@ -165,7 +165,7 @@ const ProfileInfoScreen = ({
     const personalDetailsFields = [
         { label: "Username", value: user.username ? `@${user.username}` : '' },
         { label: "Phone Number", value: user.phoneNumber },
-        { label: "Birthday", value: user.birthday ? formatDate(user.birthday as Date) : null },
+        { label: "Birthday", value: user.birthday ? formatDateToStandard(user.birthday) : null },
         { label: "Email Address", value: user.email },
         { label: "Address", value: user.address }
     ];
@@ -397,7 +397,7 @@ const ProfileInfoScreen = ({
                 </CustomText>
                 {user.createdAt && (
                     <CustomText variant="caption" style={styles.memberSinceText} numberOfLines={1} adjustsFontSizeToFit>
-                        Member since {formatDate(user.createdAt, 'full')}
+                        Member since {formatDateToStandard(user.createdAt)}
                     </CustomText>
                 )}
             </View>
@@ -488,14 +488,14 @@ const ProfileInfoScreen = ({
                                     <View style={styles.editForm}>
                                         <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
                                         <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
-                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" />
+                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" dateFormat="MM/DD/YYYY" />
                                         <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={styles.noMarginBottom} />
                                     </View>
                                 ) : (
                                     <View>
                                         <InfoRow label="Username" value={`@${user.username}`} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Phone Number" value={formatPhoneWithPrefix(user.phoneNumber)} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Birthday" value={user.birthday ? formatDate(user.birthday as Date) : null} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Birthday" value={user.birthday ? formatDateToStandard(user.birthday) : null} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Email Address" value={user.email} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Address" value={user.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
                                     </View>

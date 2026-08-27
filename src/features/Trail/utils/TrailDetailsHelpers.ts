@@ -4,7 +4,7 @@ import { ITrail } from '@/src/core/models/Trail/Trail.types';
 
 export interface GlossaryData {
     title: string;
-    points: Array<{ label: string; text: string }>;
+    points: { label: string; text: string }[];
     col: number;
 }
 
