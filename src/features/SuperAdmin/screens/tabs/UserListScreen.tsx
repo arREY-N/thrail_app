@@ -19,7 +19,7 @@ import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminCard from '@/src/features/SuperAdmin/components/SuperadminCard';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
-import useUserList, { RoleFilter } from '@/src/features/SuperAdmin/hooks/useUserList';
+import { useUserList, RoleFilter } from '@/src/features/SuperAdmin/hooks/useUserList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
 

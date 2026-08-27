@@ -5,7 +5,7 @@
  * for desktop modal and mobile bottom-sheet with safe-area insets for Android 3-button navigation.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -66,11 +66,13 @@ const PointDetailsModal = ({
     const isWideScreen = isDesktop || isTablet;
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,

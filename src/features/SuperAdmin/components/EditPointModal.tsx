@@ -5,7 +5,7 @@
  * Adapts layout between centered modal on Desktop/Web and bottom sheet with safe-area insets on Mobile.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -74,16 +74,20 @@ const EditPointModal = ({
     const isWideScreen = isDesktop || isTablet;
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
     const [draftName, setDraftName] = useState<string>('');
     const [draftType, setDraftType] = useState<PinType>('checkpoint');
     const [draftDescription, setDraftDescription] = useState<string>('');
     const [nameError, setNameError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const [prevVisibleKey, setPrevVisibleKey] = useState({ visible, editingPoint });
+    if (prevVisibleKey.visible !== visible || prevVisibleKey.editingPoint !== editingPoint) {
+        setPrevVisibleKey({ visible, editingPoint });
         if (visible) {
-            setRenderModal(true);
             if (editingPoint) {
                 setDraftName(editingPoint.name || '');
                 setDraftType((editingPoint.type as PinType) || 'checkpoint');
@@ -94,7 +98,11 @@ const EditPointModal = ({
                 setDraftDescription('');
             }
             setNameError(null);
+        }
+    }
 
+    useEffect(() => {
+        if (visible) {
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
@@ -107,7 +115,7 @@ const EditPointModal = ({
                 useNativeDriver: Platform.OS !== 'web',
             }).start(() => setRenderModal(false));
         }
-    }, [visible, editingPoint, animValue]);
+    }, [visible, animValue]);
 
     if (!renderModal) return null;
 

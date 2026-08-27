@@ -216,7 +216,7 @@ const HikerAreaChart = ({
     }, []);
 
     const updateActivePointFromEvent = useCallback((e: GestureResponderEvent) => {
-        const native = (e.nativeEvent || e) as { locationX?: number; offsetX?: number; clientX?: number; pageX?: number; touches?: Array<{ locationX?: number; pageX?: number }> };
+        const native = (e.nativeEvent || e) as { locationX?: number; offsetX?: number; clientX?: number; pageX?: number; touches?: { locationX?: number; pageX?: number }[] };
         let localX: number | null = null;
 
         if (native.locationX !== undefined && native.locationX !== null) {

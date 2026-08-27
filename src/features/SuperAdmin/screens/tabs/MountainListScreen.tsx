@@ -21,7 +21,7 @@ import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminCard from '@/src/features/SuperAdmin/components/SuperadminCard';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
-import useMountainList from '@/src/features/SuperAdmin/hooks/useMountainList';
+import { useMountainList } from '@/src/features/SuperAdmin/hooks/useMountainList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**

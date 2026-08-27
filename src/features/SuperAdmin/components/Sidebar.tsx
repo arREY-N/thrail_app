@@ -93,7 +93,7 @@ const Sidebar = ({
 }: Props): React.JSX.Element => {
     const insets = useSafeAreaInsets();
     const [isCollapsed, setIsCollapsed] = useState<boolean>(globalSidebarCollapsed);
-    const animatedWidth = useRef(new Animated.Value(globalSidebarCollapsed ? 68 : 240)).current;
+    const [animatedWidth] = useState(() => new Animated.Value(globalSidebarCollapsed ? 68 : 240));
     const isFirstRender = useRef(true);
 
     const effectiveCollapsed = isMobileDrawer ? false : isCollapsed;
@@ -293,7 +293,7 @@ const Sidebar = ({
             </View>
 
             {/* Bottom Profile Footer */}
-            <View style={[styles.profileFooter, isMobileDrawer && { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={[styles.profileFooter, isMobileDrawer && { paddingBottom: bottomInsetPadding }]}>
                 {isMobileDrawer ? (
                     /* Mobile Drawer Layout: Avatar + Name/Role on left, compact Settings icon on right */
                     <View style={styles.profileMobileRow}>
