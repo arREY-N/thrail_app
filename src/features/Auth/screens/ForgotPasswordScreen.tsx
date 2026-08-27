@@ -171,7 +171,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
             ) : (
                 <>
                     <CustomText variant="body" style={styles.descriptionText}>
-                        Enter your email address below and we'll send you instructions to reset your password.
+                        Enter your email address below and we&apos;ll send you instructions to reset your password.
                     </CustomText>
 
                     <CustomTextInput

@@ -6,7 +6,7 @@
  * landing with CTA buttons.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -69,13 +69,15 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     const { height: screenHeight } = useWindowDimensions();
     const heroImageHeight = screenHeight < 500 ? 180 : screenHeight * 0.45;
 
+    const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
     const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>(initialMode || 'login');
 
-    useEffect(() => {
+    if (initialMode !== prevInitialMode) {
+        setPrevInitialMode(initialMode);
         if (initialMode) {
             setAuthMode(initialMode);
         }
-    }, [initialMode]);
+    }
 
     const loginHook = useAuthHook();
     const signupHook = useSignUp(true);
