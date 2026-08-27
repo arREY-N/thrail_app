@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Modal,
     Pressable,
@@ -59,15 +59,17 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
     const [showPicker, setShowPicker] = useState<boolean>(false);
     const [mode, setMode] = useState<'date' | 'month' | 'year'>(defaultMode); 
     
+    const [prevValue, setPrevValue] = useState(value);
     const [viewDate, setViewDate] = useState<Date>(
         value ? safeParseDateString(value as string) : new Date()
     );
 
-    useEffect(() => {
+    if (value !== prevValue) {
+        setPrevValue(value);
         if (value) {
             setViewDate(safeParseDateString(value as string));
         }
-    }, [value]);
+    }
 
     const effectiveMaxDate: Date | null = maximumDate || (allowFutureDates ? null : new Date());
 

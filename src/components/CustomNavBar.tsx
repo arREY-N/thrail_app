@@ -95,7 +95,7 @@ const getTabConfig = (routeName: string, isFocused: boolean): TabConfig => {
 interface CustomNavBarProps {
     state: {
         index: number;
-        routes: Array<{ key: string; name: string }>;
+        routes: { key: string; name: string }[];
     };
     descriptors: Record<string, {
         options: {

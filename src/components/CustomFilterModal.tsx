@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -61,13 +61,20 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     const [localValues, setLocalValues] = useState<Record<string, any>>(initialValues);
-    const animValue = useRef(new Animated.Value(0)).current;
+    const [animValue] = useState(() => new Animated.Value(0));
 
-    useEffect(() => {
+    const currentVisibleKey = visible ? `open_${JSON.stringify(initialValues)}` : 'closed';
+    const [prevVisibleKey, setPrevVisibleKey] = useState(currentVisibleKey);
+    if (currentVisibleKey !== prevVisibleKey) {
+        setPrevVisibleKey(currentVisibleKey);
         if (visible) {
             setRenderModal(true);
             setLocalValues(initialValues);
-            
+        }
+    }
+
+    useEffect(() => {
+        if (visible) {
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
@@ -78,9 +85,11 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                 toValue: 0,
                 duration: 250,
                 useNativeDriver: Platform.OS !== 'web',
-            }).start(() => setRenderModal(false));
+            }).start(({ finished }) => {
+                if (finished) setRenderModal(false);
+            });
         }
-    }, [visible, initialValues, animValue]);
+    }, [visible, animValue]);
 
     const handleReset = () => setLocalValues(defaultValues);
     

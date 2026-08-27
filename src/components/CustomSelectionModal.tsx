@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -51,11 +51,13 @@ const CustomSelectionModal: React.FC<CustomSelectionModalProps> = ({
     const isWideScreen = isDesktop || isTablet;
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,

@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Image, ImageSourcePropType, Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import ImageZoom from 'react-native-image-pan-zoom';
-
-const TypedImageZoom = ImageZoom as unknown as React.FC<any>;
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+
+const TypedImageZoom = ImageZoom as unknown as React.FC<any>;
 
 /**
  * Props for the ImagePreviewModal component.
@@ -40,11 +40,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
     const imageList = images && images.length > 0 ? images : (imageUrl ? [imageUrl] : []);
 
-    useEffect(() => {
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
             setCurrentIndex(0);
         }
-    }, [visible]);
+    }
 
     const handleNext = () => {
         if (currentIndex < imageList.length - 1) {
@@ -83,9 +85,11 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const currentImage = imageList[currentIndex];
     const memoizedSource = useMemo(() => getSource(currentImage), [currentImage]);
 
-    useEffect(() => {
+    const [prevSource, setPrevSource] = useState(memoizedSource);
+    if (memoizedSource !== prevSource) {
+        setPrevSource(memoizedSource);
         setIsImageLoading(true);
-    }, [memoizedSource]);
+    }
 
     return (
         <Modal

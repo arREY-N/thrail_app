@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -88,12 +88,15 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
     const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
     const [renderModal, setRenderModal] = useState(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
-    useEffect(() => {
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
-            setRenderModal(true);
-            
             setMyPhone(initialUserPhone);
             setSearchResults([]);
             setShowDropdown(false);
@@ -111,7 +114,11 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
             );
             setContactName(profile?.emergencyContact?.name || '');
             setContactPhone(profile?.emergencyContact?.contactNumber || '');
+        }
+    }
 
+    useEffect(() => {
+        if (visible) {
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
@@ -124,7 +131,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                 useNativeDriver: Platform.OS !== 'web',
             }).start(() => setRenderModal(false));
         }
-    }, [visible, initialUserPhone, profile, animValue]);
+    }, [visible, animValue]);
 
     const handleCloseOrSkip = () => {
         setErrorMsg(null);
@@ -174,7 +181,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                 setSearchResults(results);
                 setShowDropdown(true);
             }
-        } catch (error) {
+        } catch {
             setErrorMsg("Could not connect to the server. Please try again.");
         } finally {
             setIsSearching(false);

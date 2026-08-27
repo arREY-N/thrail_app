@@ -1,5 +1,4 @@
-/* eslint-disable i18next/no-literal-string */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     StyleSheet,
@@ -27,7 +26,7 @@ const EmergencyNotification: React.FC = () => {
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
-    const slideAnim = useRef(new Animated.Value(-150)).current;
+    const [slideAnim] = useState(() => new Animated.Value(-150));
 
     useEffect(() => {
         const checkEmergency = async () => {

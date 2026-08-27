@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Easing,
@@ -23,7 +23,7 @@ interface SkeletonEffectProps {
  * as a placeholder while data is being fetched.
  */
 const SkeletonEffect: React.FC<SkeletonEffectProps> = ({ style }) => {
-    const opacity = useRef(new Animated.Value(0.3)).current;
+    const [opacity] = useState(() => new Animated.Value(0.3));
 
     useEffect(() => {
         Animated.loop(
