@@ -1,14 +1,13 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferWrite } from "@/src/core/hook/offer/useOfferWrite";
 import useTrail from "@/src/core/hook/trail/useTrail";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useOfferWrite } from "@/src/core/models/Offer/Offer";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import OfferWriteScreen from "@/src/features/Admin/screens/Offer/OfferWriteScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
 
-export default function writeOffer() {
+export default function WriteOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
     const { businessId } = useAuthHook();
     const { onBackPress } = useAppNavigation();
@@ -25,9 +24,9 @@ export default function writeOffer() {
         onUpdatePress,
         onSubmitPress,
     } = useOfferWrite({ offerId, businessId });
-    
+
     if (isLoading || !offer) return <LoadingScreen />;
-    
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
@@ -43,6 +42,6 @@ export default function writeOffer() {
                 onBackPress={onBackPress}
             />
         </>
-        
+
     );
 }

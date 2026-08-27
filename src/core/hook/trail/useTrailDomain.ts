@@ -16,26 +16,16 @@ export default function useTrailDomain(params: TrailParams | null = null) {
 
     const setOnHike = useTrailsStore(s => s.setOnHike);
     const setHikingTrail = useTrailsStore(s => s.setHikingTrail);
-    const fetchAllTrails = () => {
-        console.log('Fetching all trails');
-    }
+
     const load = useTrailsStore(s => s.load);
 
     useEffect(() => {
-        console.log('calling here')
         if (params?.trailId) {
             load(params.trailId);
         }
     }, [params?.trailId]);
 
     const activeTrail = trail as any;
-
-    const onViewTrail = (trailId: string) => {
-        router.push({
-            pathname: '/(main)/trail/view',
-            params: { trailId }
-        })
-    }
 
     const onHikePress = (trailId: string) => {
         setHikingTrail(trailId);
@@ -50,19 +40,7 @@ export default function useTrailDomain(params: TrailParams | null = null) {
         })
     }
 
-    const onWriteTrail = (trailId: string) => {
-        console.log('write: ', trailId)
-        if (trailId) {
-            router.push({
-                pathname: '/(main)/superadmin/trail/write',
-                params: { trailId }
-            });
-        } else {
-            router.push({
-                pathname: '/(main)/superadmin/trail/write',
-            });
-        }
-    }
+
 
     return {
         trails,
@@ -70,9 +48,6 @@ export default function useTrailDomain(params: TrailParams | null = null) {
         hikingTrail,
         isLoading,
         setOnHike,
-        onViewTrail,
         onHikePress,
-        onWriteTrail,
-        fetchAllTrails
     }
 }

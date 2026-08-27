@@ -21,14 +21,14 @@ export {
 
 // STORES
 export {
-    useTrailStore,
-    useTrailsStore
+    useTrailsStore, useTrailStore
 } from "@/src/core/models/Trail/stores/trailStore";
 
 // HOOKS
 export { useTrail } from "@/src/core/models/Trail/hooks/useTrail";
 export { useTrailItem } from "@/src/core/models/Trail/hooks/useTrailItem";
 export { useTrailList } from "@/src/core/models/Trail/hooks/useTrailList";
+export { useTrailNavigation } from "@/src/core/models/Trail/hooks/useTrailNavigation";
 
 // REPOSITORIES
 export { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";

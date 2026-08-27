@@ -18,7 +18,12 @@ export { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
 export { useOfferAdminList } from "@/src/core/models/Offer/hooks/useOfferAdminList";
 export { useOfferItem } from "@/src/core/models/Offer/hooks/useOfferItem";
 export { useOfferList } from "@/src/core/models/Offer/hooks/useOfferList";
+export { useOfferNavigation } from "@/src/core/models/Offer/hooks/useOfferNavigation";
 export { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
+export { useOfferState } from "@/src/core/models/Offer/hooks/useOfferState";
+export { useOfferTrails } from "@/src/core/models/Offer/hooks/useOfferTrails";
+export { useOfferWrite } from "@/src/core/models/Offer/hooks/useOfferWrite";
+
 // REPOSITORIES
 export { OfferRepo } from "@/src/core/models/Offer/repositories/OfferRepository";
 

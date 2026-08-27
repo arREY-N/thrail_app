@@ -5,10 +5,10 @@
 
 import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import useAdminWrite from "@/src/core/hook/admin/useAdminWrite";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useBusiness } from "@/src/core/models/Business/Business";
 import PersonnelWriteScreen from "@/src/features/Admin/screens/Personnel/PersonnelWriteScreen";
 import { Stack } from 'expo-router';
 
@@ -20,11 +20,11 @@ export default function Personnel() {
 
     const { onBackPress } = useAppNavigation();
 
+    const controller = useBusiness();
+
     if (isLoading) return <LoadingScreen />;
 
     if (!profile) return <UnauthorizedScreen />;
-
-    const controller = useAdminWrite({ userId: profile.id });
 
     return (
         <>

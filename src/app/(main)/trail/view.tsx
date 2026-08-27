@@ -1,10 +1,11 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferDomain } from "@/src/core/hook/offer/useOfferDomain";
 import useReview from '@/src/core/hook/review/useReview';
-import useTrailDomain from "@/src/core/hook/trail/useTrailDomain";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useHike } from "@/src/core/models/Hike/Hike";
+import { useOfferNavigation } from "@/src/core/models/Offer/Offer";
 import { newReview } from "@/src/core/models/Review/Review";
+import { useTrailItem, useTrailNavigation } from "@/src/core/models/Trail/Trail";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -19,10 +20,16 @@ export default function ViewTrail() {
     const { isSuperadmin } = useAuthHook();
 
     const {
-        trail,
-        onHikePress,
+        trail
+    } = useTrailItem(tId);
+
+    const {
+        onHikePress
+    } = useHike(tId);
+
+    const {
         onWriteTrail,
-    } = useTrailDomain({ trailId: tId } as any);
+    } = useTrailNavigation();
 
     const {
         reviews,
@@ -35,11 +42,9 @@ export default function ViewTrail() {
 
     const {
         onSeeTrailOffers
-    } = useOfferDomain({} as any);
+    } = useOfferNavigation();
 
     if (!trail) return <LoadingScreen />;
-
-    console.log('Trail Reviews:', reviews.filter(r => r.trail.id === trail.id));
 
     return (
         <View style={{ flex: 1 }}>

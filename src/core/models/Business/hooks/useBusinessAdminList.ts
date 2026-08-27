@@ -1,6 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 export function useBusinessAdminList() {
     const { businessId, role } = useAuthHook();
@@ -16,7 +16,16 @@ export function useBusinessAdminList() {
         fetch();
     }, [businessId, role]);
 
-    return {
+    const onRefreshBusinessAdmins = useCallback(async () => {
+        if (!businessId || !role || role !== 'admin') return;
+        await useBusinessesStore.getState().reloadBusinessAdmins(businessId)
+    }, [businessId, role])
+
+    return useMemo(() => ({
+        onRefreshBusinessAdmins,
         businessAdmins
-    }
+    }), [
+        onRefreshBusinessAdmins,
+        businessAdmins
+    ])
 }

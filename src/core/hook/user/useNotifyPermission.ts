@@ -1,6 +1,6 @@
-import { requestNotificationPermission } from '@/src/core/hook/notification/useNotification';
 import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { NotificationToken } from '@/src/core/models/User/interfaces/User.types';
+import { requestNotificationPermission } from '@/src/core/models/Notification/Notification';
+import { NotificationToken } from '@/src/core/models/User/User';
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -66,7 +66,7 @@ export function useNotifyPermission() {
         };
 
         fetchToken();
-    }, []);
+    }, [addUserNotificationToken, profile]);
 
 
     return token;

@@ -5,10 +5,10 @@
 
 import React from 'react';
 
-import useMountain from '@/src/core/hook/mountain/useMountain';
 import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
 
 import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import { useMountainList } from '@/src/core/models/Mountain/Mountain';
 import MountainListScreen from '@/src/features/SuperAdmin/screens/tabs/MountainListScreen';
 
 /**
@@ -16,12 +16,12 @@ import MountainListScreen from '@/src/features/SuperAdmin/screens/tabs/MountainL
  * 
  * @returns {React.ReactElement} Rendered MountainListScreen presentation view.
  */
-export default function listMountains() {
+export default function ListMountains() {
     const {
         isLoading,
         mountains,
         onWritePress
-    } = useMountain();
+    } = useMountainList();
 
     const {
         pendingApplication
