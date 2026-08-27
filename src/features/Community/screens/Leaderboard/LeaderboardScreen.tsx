@@ -106,7 +106,7 @@ const LeaderboardScreen = ({
                 currentUserId={currentUserData?.userId}
             />
         ),
-        [activeMetric]
+        [activeMetric, currentUserData?.userId]
     );
 
     return (

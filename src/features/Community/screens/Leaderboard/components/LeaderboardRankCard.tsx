@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';

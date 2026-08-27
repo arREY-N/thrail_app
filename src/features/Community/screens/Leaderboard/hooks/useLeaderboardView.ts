@@ -1,7 +1,8 @@
-import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
-import { IUser } from '@/src/core/models/User/User.types';
-import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import { useMemo } from 'react';
+
+import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
+import { User } from '@/src/core/models/User/User';
+import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 
 /**
  * Parameters for the useLeaderboardView hook.
@@ -17,7 +18,7 @@ interface UseLeaderboardViewParams {
     activeMetric: LeaderboardMetric;
     activeUserId?: string;
     activeUsername?: string;
-    profile?: Partial<IUser> | null;
+    profile?: Partial<User> | null;
 }
 
 /**
