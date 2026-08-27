@@ -1,9 +1,9 @@
 import { useHikerGPS } from "@/src/core/hook/trail/useHikerGPS";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function useAuthHook() {
     const [localError, setLocalError] = useState('');
@@ -21,17 +21,19 @@ export function useAuthHook() {
     const password = useAuthStore(s => s.forgotPassword);
     const signOut = useAuthStore(s => s.signOut);
     const gmailSignUp = useAuthStore(s => s.gmailSignUp);
+    const isHydrated = useAuthStore(s => s.isHydrated);
 
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
+    const isNotUser = role && role !== 'user';
 
     const { stopBackgroundTracking } = useHikerGPS();
 
     const onSignOutPress = async () => {
         try {
-            await signOut();
             stopBackgroundTracking();
             useTrailsStore.getState().reset();
+            await signOut();
             router.replace('/(auth)/landing');
         } catch (error) {
             setLocalError((error as Error).message);
@@ -57,7 +59,7 @@ export function useAuthHook() {
     const onGmailLogIn = async () => {
         try {
             await gmailSignUp();
-            router.push("/(tabs)");
+            router.replace("/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
@@ -67,12 +69,19 @@ export function useAuthHook() {
     const onLogIn = async (email: string, password: string) => {
         try {
             await logIn(email, password);
-            router.push("/(tabs)");
+            router.replace("/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
         }
     }
+
+    const isNewAccount = useMemo(() => {
+        if (!profile) return false;
+        if (!profile.preferences) return true;
+        return profile.preferences.hiked === false;
+    }, [profile]);
+
     return {
         role,
         isSuperadmin,
@@ -91,5 +100,8 @@ export function useAuthHook() {
         forgotPassword,
         onSignOutPress,
         onGmailLogIn,
+        isHydrated,
+        isNotUser,
+        isNewAccount,
     }
 }

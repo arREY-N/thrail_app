@@ -1,20 +1,20 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import WeatherWidget from '@/src/components/WeatherWidget';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import WeatherWidget from '@/src/components/WeatherWidget';
 import { Colors } from '@/src/constants/colors';
-import { ITrail } from '@/src/core/models/Trail/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
 
 // Fallback coordinate table keyed by mountain name substring (lowercase).
 // Used when the Firestore trail document does not carry lat/lng fields.
 const MOUNTAIN_COORDS: Record<string, { lat: number; lon: number }> = {
-  tagapo: { lat: 14.3392772, lon: 121.2325293 },
-  marami: { lat: 14.1986108, lon: 120.6858334 },
-  batulao: { lat: 14.0399434, lon: 120.8023782 },
-  makiling: { lat: 14.1352241, lon: 121.1944517 },
-  maculot: { lat: 13.9208682, lon: 121.0516961 },
+    tagapo: { lat: 14.3392772, lon: 121.2325293 },
+    marami: { lat: 14.1986108, lon: 120.6858334 },
+    batulao: { lat: 14.0399434, lon: 120.8023782 },
+    makiling: { lat: 14.1352241, lon: 121.1944517 },
+    maculot: { lat: 13.9208682, lon: 121.0516961 },
 };
 
 /** Resolve coordinates for a trail from the fallback lookup table. */

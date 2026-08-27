@@ -1,5 +1,6 @@
-import { User } from "@/src/core/models/User/utils/UserFactory";
-import { UserRepository } from "@/src/core/repositories/userRepository";
+import { User } from "@/src/core/models/User/interfaces/User.types";
+import { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
+import { newUser } from "@/src/core/models/User/utils/UserFactory";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { useCallback, useState } from "react";
 
@@ -15,13 +16,13 @@ export function useHikerProfile(userId?: string) {
 
         setIsLoading(true);
         try {
-            const user = await UserRepository.fetchById(userId);
+            const user = await UserRepo.fetchById(userId);
             if (!user) {
                 setHikerProfile(null);
                 return null;
             }
 
-            const profile = new User(user);
+            const profile = newUser(user);
             setHikerProfile(profile);
             return profile;
         } catch (error) {
@@ -31,11 +32,11 @@ export function useHikerProfile(userId?: string) {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [userId]);
 
     return {
         hikerProfile,
         fetchHikerProfile,
-        isLoading
+        isLoading,
     };
 }

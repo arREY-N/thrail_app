@@ -1,6 +1,6 @@
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";

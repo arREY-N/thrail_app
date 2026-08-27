@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { IApplication } from '@/src/core/models/Application/Application.types';
+import { IApplication } from '@/src/core/models/Application/Application';
 
 /**
  * Calculated SaaS metrics for the Superadmin business applications dashboard.

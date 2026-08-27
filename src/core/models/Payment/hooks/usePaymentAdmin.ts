@@ -2,6 +2,7 @@ import { functions } from "@/src/core/config/Firebase";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, IPayment } from "@/src/core/models/Booking/Booking";
 import { catchError } from "@/src/core/utility/errorFormatter";
+import { RefundType } from "@/src/features/Admin/screens/Booking/components/AdminRefundModal";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
 
@@ -9,7 +10,7 @@ export function usePaymentAdmin() {
     const { profile, businessId, role } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const onRefund = async (booking: Booking, refundPercentage: 'full' | 'partial' = 'full') => {
+    const onRefund = async (booking: Booking, refundType: RefundType) => {
         try {
             if (!booking) throw new Error('Booking not found');
 
@@ -27,7 +28,7 @@ export function usePaymentAdmin() {
                 bookingId: booking.id,
                 userId: booking.user.id,
                 reason: 'requested_by_admin',
-                refundPercentage: refundPercentage
+                refundPercentage: refundType === 'full' ? 100 : 50
             });
 
             // const response: IPayment<Date> = {
@@ -38,12 +39,11 @@ export function usePaymentAdmin() {
             //     refundableUntil: new Date(),
             //     amount: totalAmountPaid,
             //     createdAt: new Date(),
-            // }
-
-            return booking;
+            // 
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRefund()');
             setLocalError((error as Error).message || 'Failed to refund booking');
+            throw error;
         }
     }
 

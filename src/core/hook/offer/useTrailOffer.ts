@@ -1,5 +1,4 @@
-import { Offer } from "@/src/core/models/Offer/Offer";
-import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useEffect, useState } from "react";
 
 export interface IUseTrailOffer {
@@ -12,7 +11,7 @@ export type UseTrailOfferParams = {
     trailId?: string;
 }
 
-export function useTrailOffer(params: UseTrailOfferParams): IUseTrailOffer{
+export function useTrailOffer(params: UseTrailOfferParams): IUseTrailOffer {
     const { trailId } = params;
     const isLoading = useOfferStore(s => s.isLoading);
     const error = useOfferStore(s => s.error);
@@ -25,7 +24,7 @@ export function useTrailOffer(params: UseTrailOfferParams): IUseTrailOffer{
         const fetch = async () => {
             try {
                 console.log('Fetching offers for trailId started');
-                if(!trailId) return;
+                if (!trailId) return;
                 await fetchOfferByTrail(trailId);
                 console.log('Fetched offers for trailId done');
             } catch (error) {

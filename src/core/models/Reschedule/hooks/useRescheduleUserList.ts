@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore.web";
+import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
 import { useEffect } from "react";
 
 export const useRescheduleUserList = () => {
@@ -10,19 +10,19 @@ export const useRescheduleUserList = () => {
 
     useEffect(() => {
         const fetch = async () => {
-            if(!profile?.id) {
+            if (!profile?.id) {
                 return;
             }
 
             await useRescheduleStore.getState().fetchAllUserReschedules(profile.id);
-        }
+        };
 
         fetch();
-    }, [profile?.id])
+    }, [profile?.id]);
 
     return {
         userReschedules,
         isFetching,
-        error
-    }
-}
+        error,
+    };
+};

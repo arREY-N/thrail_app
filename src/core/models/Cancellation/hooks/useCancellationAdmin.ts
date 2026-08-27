@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/ICancellation";
+import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
@@ -19,7 +19,7 @@ import {
     useGroupStore
 } from "@/src/core/models/Group/Group";
 
-import { createCancellationRequest } from "@/src/core/models/Cancellation/CancellationFactory";
+import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import {
     getBusinessOfferItem,
     Offer,

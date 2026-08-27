@@ -1,4 +1,4 @@
-import { ITrailStats } from "@/src/core/models/Trail/Trail.types";
+import { ITrailStats } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { getStatsForMountain } from "@/src/core/models/Trail/logic/GeoJSONProcessor";
 import { useEffect, useState } from "react";
 

@@ -1,16 +1,16 @@
-import { useBusinessesStore } from '@/src/core/stores/businessesStore';
-import { useMountainsStore } from '@/src/core/stores/mountainsStore';
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useApplicationsStore } from '@/src/core/models/Application/Application';
+import { useBusinessesStore } from '@/src/core/models/Business/Business';
+import { useMountainsStore } from '@/src/core/models/Mountain/Mountain';
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { Role } from '@/src/core/models/User/User';
 import { useUsersStore } from '@/src/core/stores/usersStore';
 import { useEffect } from 'react';
-import { Role } from '../../models/User/User.types';
-import { useApplicationsStore } from '../../stores/applicationsStore';
 
 export type SuperadminParams = {
     role: Role | null;
 }
 
-export default function useSuperadmin(params: SuperadminParams | null){
+export default function useSuperadmin(params: SuperadminParams | null) {
     const loadBusinesses = useBusinessesStore(s => s.fetchAll);
     const reloadBusinesses = useBusinessesStore(s => s.refresh);
     const businessLoading = useBusinessesStore(s => s.isLoading);
@@ -42,7 +42,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
     const rejectedApplications = applications.filter((a: any) => a.approved === false).length;
     const applicationLoading = useApplicationsStore(s => s.isLoading);
     const approveApplication = useApplicationsStore(s => s.approveApplication);
-    
+
     useEffect(() => {
         // console.log('in hook')
         if (params && params.role === 'superadmin') {
@@ -75,7 +75,7 @@ export default function useSuperadmin(params: SuperadminParams | null){
         role: params?.role,
         businesses,
         businessCount,
-        trails, 
+        trails,
         trailCount,
         users,
         userCount,

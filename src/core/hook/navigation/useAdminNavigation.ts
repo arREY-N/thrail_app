@@ -1,4 +1,4 @@
-import { Role } from "@/src/core/models/User/User.types";
+import { Role } from "@/src/core/models/User/interfaces/User.types";
 import { router } from "expo-router";
 
 export type UseAdminNavigationParams = {
@@ -16,7 +16,7 @@ export type UseAdminNavigationParams = {
  * @param {Role} [params.role] - The role of the current user.
  * @returns {object} Navigation callback handlers.
  */
-export default function useAdminNavigation(params: UseAdminNavigationParams){
+export default function useAdminNavigation(params: UseAdminNavigationParams) {
     const { userId, businessId, role } = params;
 
     const onManageAdminsPress = () => {

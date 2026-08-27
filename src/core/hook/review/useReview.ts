@@ -1,29 +1,16 @@
 
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Review } from "@/src/core/models/Review/Review";
-import { UserLogic } from "@/src/core/models/User/logic/User.logic";
-import { useReviewStore } from "@/src/core/stores/reviewStore";
+import { newReview, Review, useReviewStore } from "@/src/core/models/Review/Review";
+import { UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { useState } from "react";
 
-export interface IReviewDomain {
-    reviews: Review[];
-    isLoading: boolean;
-    error: string | null;
-
-    onWriteReviewPress: (id?: string) => void;
-    isOwned: (review: Review) => boolean;
-    likeReview: (review: Review) => void;
-    isLiked: (review: Review) => boolean;
-    refreshFeed: () => void;    
-    getItemRating: (itemId: string) => number;
-}
 
 export type ReviewDomainParams = {
     reviewId?: string;
 }
 
-export default function useReview(): IReviewDomain {
+export default function useReview() {
     const { profile } = useAuthHook();
 
     const reviews = useReviewStore(s => s.reviews);
@@ -34,11 +21,11 @@ export default function useReview(): IReviewDomain {
     const [localError, setLocalError] = useState<string | null>(null);
 
     const onWriteReviewPress = (id?: string) => {
-        if(id){
+        if (id) {
             router.push({
                 pathname: '/(main)/review/write',
                 params: { reviewId: id }
-                })
+            })
         } else {
             router.push({
                 pathname: '/(main)/review/write',
@@ -52,14 +39,14 @@ export default function useReview(): IReviewDomain {
 
     const likeReview = (review: Review) => {
         try {
-            if(!profile)
+            if (!profile)
                 throw new Error('User must be logged in to like a review')
-            
+
             let updated = isLiked(review)
                 ? review.likes.filter(u => u.id !== profile.id)
                 : [...review.likes, UserLogic.toSummary(profile)]
-    
-            like(new Review({...review, likes: updated}))
+
+            like(newReview({ ...review, likes: updated }))
 
         } catch (error) {
             console.error(error);
@@ -69,8 +56,8 @@ export default function useReview(): IReviewDomain {
 
     const isLiked = (review: Review): boolean => {
         try {
-            if(!profile) return false;
-                
+            if (!profile) return false;
+
 
             return review.likes.some(r => r.id === profile?.id);
         } catch (error) {
@@ -82,10 +69,12 @@ export default function useReview(): IReviewDomain {
 
     const getItemRating = (itemId: string): number => {
         const itemReviews = reviews.filter(r => r.trail.id === itemId);
-        if(itemReviews.length === 0) return 0;
+        if (itemReviews.length === 0) return 0;
         const totalRating = itemReviews.reduce((sum, review) => sum + review.overallRating, 0);
         return totalRating / itemReviews.length;
     }
+
+    const myReviews = reviews.filter(r => isOwned(r));
 
     return {
         onWriteReviewPress,
@@ -96,6 +85,7 @@ export default function useReview(): IReviewDomain {
         getItemRating,
         reviews,
         isLoading,
-        error: error || localError, 
+        error: error || localError,
+        myReviews
     }
 }

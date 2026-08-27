@@ -1,7 +1,7 @@
-import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore.web";
+import { useBusinessesStore } from "@/src/core/models/Business/Business";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useEffect, useState } from "react";
-import { Offer } from "../../models/Offer/Offer";
-import { useBusinessesStore } from "../../stores/businessesStore";
+
 
 export type AdminParams = {
     businessId: string | null

@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
 import { useAppSubscriptions } from "@/src/core/hook/useAppSubscriptions";
+import useRouteGuard from "@/src/core/hook/user/useRouteGuard";
 
 export const unstable_settings = {
     initialRouteName: 'index',
@@ -12,6 +13,8 @@ export const unstable_settings = {
  */
 export default function HomeLayout() {
     useAppSubscriptions();
+
+    useRouteGuard();
 
     return (
         <Tabs

@@ -1,0 +1,79 @@
+import { IBusinessSummary } from "@/src/core/models/Business/Business";
+import { IOfferBase } from "@/src/core/models/Offer/Offer";
+import { ITrailSummary } from "@/src/core/models/Trail/Trail";
+import { IEmergencyContact, IUserSummary } from "@/src/core/models/User/User";
+import { FieldValue, Timestamp } from "firebase/firestore";
+
+export type BookingStatus =
+    | "for-reservation"
+    | "pending-docs"
+    | "approved-docs"
+    | "cancelled"
+    | "for-payment"
+    | "paid"
+    | "downpayment"
+    | "completed"
+    | "finished"
+    | "reservation-rejected"
+    | "for-cancellation"
+    | "cancellation-rejected"
+    | "refund"
+    | "for-reschedule"
+    | "reschedule-rejected"
+    | "rescheduled";
+
+export type Requirements = {
+    name: string;
+    file: string;
+    valid: "pending" | "approved" | "rejected";
+};
+
+export interface IPayment<T> {
+    /** Name of the payment method used (GCash, Maya, etc.) */
+    gateway: string;
+    /** Records a reference to the checkout session */
+    sessionId: string;
+
+    /** Records the receipt ID once available, will be null initially */
+    referenceCode?: string | null;
+
+    status: "pending" | "captured" | "failed" | "refunded";
+    refundableUntil: T;
+    amount: number;
+    refundedAmount?: number;
+    createdAt: T;
+}
+
+export interface IUserBooking<T> extends IUserSummary {
+    birthday: T;
+    phoneNumber: string;
+    phoneVerifiedAt?: T | null;
+}
+
+export interface IBookingBase<T> {
+    id: string;
+    createdAt: T;
+    updatedAt: T;
+    offer: Pick<IOfferBase<T>, "date" | "price" | "id">;
+    user: IUserBooking<T>;
+    business: IBusinessSummary;
+    trail: ITrailSummary;
+    payment: IPayment<T>[];
+    status: BookingStatus;
+    emergencyContact: IEmergencyContact;
+    documents: Requirements[];
+    cancellationReason?: string;
+    cancelledBy?: string;
+}
+
+export interface UsePayBookingParams {
+    amount: number;
+    bookingId: string;
+    userId: string;
+    type: string;
+    returnUrl: string;
+}
+
+export type IBookingDB = IBookingBase<Timestamp | FieldValue>;
+export type Booking = IBookingBase<Date>;
+export type IBooking = Booking;

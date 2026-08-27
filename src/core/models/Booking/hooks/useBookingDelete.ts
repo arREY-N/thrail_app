@@ -1,5 +1,5 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useState } from "react";
 

@@ -4,7 +4,6 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React from "react";
 import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -21,7 +20,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
 import { Layout } from "@/src/constants/layout";
-import { IUser } from "@/src/core/models/User/User.types";
+import { IUser } from "@/src/core/models/User/interfaces/User.types";
 import { formatDate } from "@/src/core/utility/date";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";
@@ -131,10 +130,10 @@ export interface ProfileInfoScreenProps {
 /**
  * View screen displaying and editing hiker/admin profile information.
  */
-const ProfileInfoScreen = ({ 
-    user, 
-    onBackPress, 
-    onEditPress, 
+const ProfileInfoScreen = ({
+    user,
+    onBackPress,
+    onEditPress,
     isEditing = false,
     onCancelPress,
     onSavePress,
@@ -214,8 +213,8 @@ const ProfileInfoScreen = ({
         handleSave,
     } = useProfileForm({ user, isEditing, onSavePress, onCancelPress, onEditPress });
 
-    const clearanceImages = medicalProfile?.clearanceUri 
-        ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean) 
+    const clearanceImages = medicalProfile?.clearanceUri
+        ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean)
         : [];
 
     const getRoleDisplayName = (role: string) => {
@@ -302,7 +301,7 @@ const ProfileInfoScreen = ({
     const expStyles = getExperienceStyles(user.preferences?.experience);
     const activeColor = getExperienceActiveColor(user.preferences?.experience);
     const showMedicalProfile = user.medicalProfile && (user.medicalProfile.hasCondition || user.medicalProfile.clearanceUri);
-    
+
     /**
      * Dynamic Layout Logic:
      * If user's list of favorite destinations is long (> 4 items), the Hiking Preferences card 
@@ -406,16 +405,16 @@ const ProfileInfoScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <CustomHeader 
+
+            <CustomHeader
                 title={isEditing ? "Edit Profile" : "Profile Information"}
                 centerTitle={true}
-                onBackPress={isEditing ? undefined : onBackPress} 
+                onBackPress={isEditing ? undefined : onBackPress}
                 leftAction={
                     isEditing ? (
-                        <TouchableOpacity 
-                            onPress={handleCancelPress} 
-                            style={styles.headerCancelButton} 
+                        <TouchableOpacity
+                            onPress={handleCancelPress}
+                            style={styles.headerCancelButton}
                             activeOpacity={0.7}
                         >
                             <CustomText style={styles.cancelText}>Cancel</CustomText>
@@ -424,16 +423,16 @@ const ProfileInfoScreen = ({
                 }
                 rightActions={
                     isEditing ? (
-                        <TouchableOpacity 
-                            onPress={handleSavePress} 
+                        <TouchableOpacity
+                            onPress={handleSavePress}
                             style={[
                                 styles.headerSaveButton,
                                 !isDirty && styles.headerSaveButtonDisabled
-                            ]} 
+                            ]}
                             disabled={!isDirty}
                             activeOpacity={0.7}
                         >
-                            <CustomText 
+                            <CustomText
                                 style={[
                                     styles.saveText,
                                     !isDirty && styles.saveTextDisabled
@@ -443,23 +442,23 @@ const ProfileInfoScreen = ({
                             </CustomText>
                         </TouchableOpacity>
                     ) : (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.headerActionButton}
                             onPress={() => setIsEditModalVisible(true)}
                             activeOpacity={0.7}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="edit-2" 
-                                size={20} 
-                                color={Colors.PRIMARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="edit-2"
+                                size={20}
+                                color={Colors.PRIMARY}
                             />
                         </TouchableOpacity>
                     )
                 }
             />
 
-             <ScrollView 
+            <ScrollView
                 style={styles.contentArea}
                 contentContainerStyle={[
                     styles.scrollContent,
@@ -474,7 +473,7 @@ const ProfileInfoScreen = ({
                     <ErrorMessage error={formError} />
                 )}
                 <View style={!isMobile ? styles.desktopColumns : styles.mobileStack}>
-                    
+
                     {/* LEFT COLUMN */}
                     <View style={[styles.column, isWideScreen && styles.columnWide]}>
                         <View style={styles.card}>
@@ -482,7 +481,7 @@ const ProfileInfoScreen = ({
                                 <CustomIcon library="Feather" name="user" size={18} color={Colors.PRIMARY} />
                                 <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Personal Details</CustomText>
                             </View>
-                            
+
                             <View style={styles.cardBody}>
                                 {isEditing ? (
                                     <View style={styles.editForm}>
@@ -526,7 +525,7 @@ const ProfileInfoScreen = ({
                                                 )}
                                             </TouchableOpacity>
                                         </View>
-                                        
+
                                         {searchError && <ErrorMessage error={searchError} style={{ marginBottom: 12 }} />}
                                         {searchSuccess && (
                                             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_APPROVED_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
@@ -667,16 +666,16 @@ const ProfileInfoScreen = ({
                                                                 return (
                                                                     <View key={lvl} style={{ flex: 1, alignItems: 'center' }}>
                                                                         <View style={[
-                                                                            styles.segment, 
+                                                                            styles.segment,
                                                                             isActive && { backgroundColor: activeColor },
                                                                             idx === 0 && styles.segmentFirst,
                                                                             idx === LEVELS.length - 1 && styles.segmentLast,
                                                                         ]} />
-                                                                        <CustomText 
-                                                                            numberOfLines={1} 
-                                                                            adjustsFontSizeToFit 
+                                                                        <CustomText
+                                                                            numberOfLines={1}
+                                                                            adjustsFontSizeToFit
                                                                             style={[
-                                                                                styles.segmentLabelText, 
+                                                                                styles.segmentLabelText,
                                                                                 isActive && { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
                                                                                 isCurrent && { color: activeColor }
                                                                             ]}
@@ -714,7 +713,7 @@ const ProfileInfoScreen = ({
                     </View>
 
                 </View>
-                
+
                 <View style={styles.bottomSpacer} />
             </ScrollView>
 
@@ -727,12 +726,12 @@ const ProfileInfoScreen = ({
                 <ImagePreviewModal visible={isImageModalVisible} images={clearanceImages} onClose={() => setIsImageModalVisible(false)} />
             )}
 
-            <EmergencyModal 
-                visible={isEmergencyModalVisible} 
-                onClose={() => setIsEmergencyModalVisible(false)} 
-                mode="emergency_only" 
+            <EmergencyModal
+                visible={isEmergencyModalVisible}
+                onClose={() => setIsEmergencyModalVisible(false)}
+                mode="emergency_only"
             />
-            
+
         </ScreenWrapper>
     );
 };

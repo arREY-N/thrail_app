@@ -1,10 +1,9 @@
 import { auth, db } from "@/src/core/config/Firebase";
-import { SignUp } from "@/src/core/models/User/SignUp";
-import { User, userConverter } from "@/src/core/models/User/User";
-import { Role } from "@/src/core/models/User/User.types";
+import { newSignUp, Role, SignUp, User, userConverter } from "@/src/core/models/User/User";
 import { AuthRepository } from "@/src/core/repositories/authRepository";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
     onIdTokenChanged,
@@ -64,7 +63,7 @@ const init = {
     error: null,
     _unsubscribe: null,
     businessId: null,
-    account: new SignUp(),
+    account: newSignUp(),
     remember: true,
     isChecking: false,
     role: null,
@@ -74,7 +73,7 @@ const init = {
 export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
-    resetSignUp: () => set({ account: new SignUp() }),
+    resetSignUp: () => set({ account: newSignUp() }),
 
     reset: () => set({
         ...init,
@@ -244,6 +243,11 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         try {
             validateSignUp(get().account);
             console.log(get().account);
+            if (__DEV__) {
+                logger('authStoreCreator', 'credential bypassed, only for development mode');
+                set({ isChecking: false, error: null });
+                return true;
+            }
             await AuthRepository.checkUserCredentials(get().account);
             set({ isChecking: false, error: null });
             return true;
@@ -279,8 +283,8 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     },
 
     editAccount: (data: SignUp) => {
-        const current = get().account || new SignUp();
-        const updated = current.update(data);
+        const current = get().account || newSignUp();
+        const updated = newSignUp({ ...current, ...data });
         set({ account: updated });
     },
 
@@ -302,6 +306,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         } catch (error) {
             console.error("Google sign-in error:", error);
             set({
+                isChecking: false,
                 isLoading: false,
                 error: (error as Error).message || "Failed signing up with Google",
             })

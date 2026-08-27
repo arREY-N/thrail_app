@@ -1,6 +1,11 @@
+import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
 import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import { Stack, useSegments } from "expo-router";
+
+export const unstable_settings = {
+    initialRouteName: 'index',
+};
 
 /**
  * Layout component for the Superadmin section.
@@ -9,27 +14,27 @@ import { Stack, useSegments } from "expo-router";
  * 
  * @returns {React.ReactElement} The Stack navigator if authorized, or UnauthorizedScreen.
  */
-export default function superadminLayout(){
+export default function SuperadminLayout() {
     const user = useAuthStore(s => s.user);
     const isLoading = useAuthStore(s => s.isLoading);
     const role = useAuthStore(s => s.role);
     const segments = useSegments();
 
-    // if(isLoading) return <LoadingScreen/>
+    if (isLoading) return <LoadingScreen />
 
-    if(!user) return <UnauthorizedScreen/>
+    if (!user) return <UnauthorizedScreen />
 
     // Allow both superadmin and admin roles to access trail management routes.
     // Other superadmin panels remain restricted to superadmin only.
     const isTrailRoute = (segments as string[]).includes("trail");
 
     if (role === "superadmin") {
-        return <Stack screenOptions={{ headerShown: false}}/>;
+        return <Stack screenOptions={{ headerShown: false }} />;
     }
 
     if (role === "admin" && isTrailRoute) {
-        return <Stack screenOptions={{ headerShown: false}}/>;
+        return <Stack screenOptions={{ headerShown: false }} />;
     }
 
-    return <UnauthorizedScreen/>;
+    return <UnauthorizedScreen />;
 }
