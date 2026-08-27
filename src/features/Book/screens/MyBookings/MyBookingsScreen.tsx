@@ -19,12 +19,12 @@ import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/Booking
 import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 
 export interface MyBookingsScreenProps {
     /** Array of user's bookings */
-    userBookings: IBooking[];
+    userBookings: Booking[];
     /** Error message, if any */
     error?: string | null;
     /** Loading state */
@@ -32,11 +32,11 @@ export interface MyBookingsScreenProps {
     /** Back button handler */
     onBackPress: () => void;
     /** Callback when cancel is pressed */
-    onCancelBookingPress: (booking: IBooking, reason: string) => void;
+    onCancelBookingPress: (booking: Booking, reason: string) => void;
     /** Callback when refund is pressed */
-    onRefundBookingPress?: (booking: IBooking, reason: string) => void;
+    onRefundBookingPress?: (booking: Booking, reason: string) => void;
     /** Callback to reschedule */
-    onRescheduleBooking?: (booking: IBooking, newOffer: unknown) => void;
+    onRescheduleBooking?: (booking: Booking, newOffer: unknown) => void;
     /** Callback to pay */
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<any>;
     /** Function to fetch full offer */
@@ -74,16 +74,19 @@ const MyBookingsScreen = ({
     onTermsPress,
     onPrivacyPress
 }: MyBookingsScreenProps) => {
+    const initialKey = `${initialView || 'list'}_${initialBookingId || ''}`;
+    const [prevInitialKey, setPrevInitialKey] = useState(initialKey);
     const [currentView, setCurrentView] = useState<'list' | 'overview' | 'payment' | 'receipt'>(initialView || 'list'); 
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId || null);
     const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
 
-    React.useEffect(() => {
+    if (initialKey !== prevInitialKey) {
+        setPrevInitialKey(initialKey);
         if (initialView && initialBookingId) {
             setSelectedBookingId(initialBookingId);
             setCurrentView(initialView);
         }
-    }, [initialView, initialBookingId]);
+    }
 
     const selectedBooking = userBookings?.find(b => b.id === selectedBookingId) || null;
 
@@ -109,7 +112,7 @@ const MyBookingsScreen = ({
         }
     };
 
-    const onBookingSelectPress = (booking: IBooking) => {
+    const onBookingSelectPress = (booking: Booking) => {
         setSelectedBookingId(booking.id);
         setCurrentView('overview'); 
     };
@@ -181,11 +184,11 @@ const MyBookingsScreen = ({
                         )}
 
                         {filteredBookings.length > 0 ? (
-                            filteredBookings.map((booking: IBooking) => (
+                            filteredBookings.map((booking: Booking) => (
                                 <BookingCard 
                                     key={booking.id} 
                                     booking={booking} 
-                                    onSelectBooking={(b) => { setSelectedBookingId(b.id); setCurrentView('overview'); }} 
+                                    onSelectBooking={onBookingSelectPress} 
                                 />
                             ))
                         ) : (

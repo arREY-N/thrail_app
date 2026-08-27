@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, 
+import React, { useMemo, useState } from 'react';
+import { 
     StyleSheet,
     TouchableOpacity,
     View
@@ -26,13 +26,15 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     
     const [isExpanded, setIsExpanded] = useState(false);
     
+    const [prevSelectedDate, setPrevSelectedDate] = useState(selectedDate);
     const [displayMonth, setDisplayMonth] = useState(() => safeParseDateString(selectedDate));
 
-    useEffect(() => {
+    if (selectedDate !== prevSelectedDate) {
+        setPrevSelectedDate(selectedDate);
         if (selectedDate) {
             setDisplayMonth(safeParseDateString(selectedDate));
         }
-    }, [selectedDate]);
+    }
 
     const monthNames = [
         "January", "February", "March", "April", "May", "June", 
@@ -53,11 +55,13 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
     const handlePrevMonth = () => {
-        setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1));
+        const prev = new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1);
+        setDisplayMonth(prev);
     };
 
     const handleNextMonth = () => {
-        setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1));
+        const next = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1);
+        setDisplayMonth(next);
     };
 
     const handleDayPress = (dateObj: Date, isPast: boolean) => {
@@ -73,8 +77,8 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
         const daysInMonth = getDaysInMonth(year, month);
         const firstDay = getFirstDayOfMonth(year, month);
 
-        let matrix: Array<Array<Date | null>> = [];
-        let currentWeek: Array<Date | null> = [];
+        const matrix: (Date | null)[][] = [];
+        let currentWeek: (Date | null)[] = [];
 
         for (let i = 0; i < firstDay; i++) {
             currentWeek.push(null);

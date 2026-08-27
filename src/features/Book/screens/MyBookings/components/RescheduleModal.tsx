@@ -12,7 +12,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
+import { IOffer } from '@/src/core/models/Offer/Offer';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 

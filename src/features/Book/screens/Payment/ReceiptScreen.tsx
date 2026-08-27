@@ -9,11 +9,11 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IBooking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 export interface ReceiptScreenProps {
-    bookingData: IBooking;
+    bookingData: Booking;
     onFinish: () => void;
 }
 
@@ -34,13 +34,13 @@ const ReceiptScreen = ({
     const isRefunded = (bookingData?.status as string) === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
     
     const totalPaid = capturedPayments.length > 0 
-        ? capturedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) 
+        ? capturedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0) 
         : (isRefunded ? 0 : totalAmount);
         
-    const totalRefunded = refundedPayments.reduce((sum, p: IPayment<Date>) => sum + (p.refundedAmount || 0), 0);
+    const totalRefunded = refundedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || 0), 0);
     const hasUnrecordedRefund = refundedPayments.some((p: IPayment<Date>) => p.refundedAmount === undefined || p.refundedAmount === null);
 
-    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0);
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
         ? ` (${Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100)}%)`
         : '';

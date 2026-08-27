@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -17,7 +17,7 @@ import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
-import { IBooking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -26,7 +26,7 @@ export interface PaymentResultResponse {
 }
 
 export interface PaymentScreenProps {
-    bookingData: IBooking;
+    bookingData: Booking;
     onBackPress: () => void;
     onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
@@ -62,7 +62,7 @@ const PaymentScreen = ({
     const latestStatus = (latestPayment?.status as string | undefined);
 
     const totalPrice = bookingData?.offer?.price || 0;
-    const amountPaidAlready = payments.reduce((sum, p: IPayment<Date>) => {
+    const amountPaidAlready = payments.reduce((sum: number, p: IPayment<Date>) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0);
@@ -81,31 +81,31 @@ const PaymentScreen = ({
         ? bookingData.emergencyContact.name.trim() 
         : hikerFullName;
 
-    useEffect(() => {
-        if (!isWaitingForVerification || !latestPayment) return;
+    const verificationKey = isWaitingForVerification && latestPayment ? `${latestStatus}_${bookingData?.status}` : null;
+    const [prevVerificationKey, setPrevVerificationKey] = useState(verificationKey);
 
-        if (latestStatus === 'failed') {
-            setIsWaitingForVerification(false);
-            setPaymentError("Your payment failed or was declined by the provider. Please check your balance and try again.");
-            return;
+    if (verificationKey !== prevVerificationKey) {
+        setPrevVerificationKey(verificationKey);
+        if (isWaitingForVerification && latestPayment) {
+            if (latestStatus === 'failed') {
+                setIsWaitingForVerification(false);
+                setPaymentError("Your payment failed or was declined by the provider. Please check your balance and try again.");
+            } else if (latestStatus === 'expired') {
+                setIsWaitingForVerification(false);
+                setPaymentError("Your payment session expired because it took too long. Please initiate a new payment.");
+            } else {
+                const isNowPaid = 
+                    bookingData.status === 'paid' || 
+                    bookingData.status === 'completed' || 
+                    (bookingData.status === 'downpayment' && effectivePaymentType === 'downpayment');
+
+                if (isNowPaid || latestStatus === 'captured') {
+                    setIsWaitingForVerification(false);
+                    setCurrentStep(2); 
+                }
+            }
         }
-
-        if (latestStatus === 'expired') {
-            setIsWaitingForVerification(false);
-            setPaymentError("Your payment session expired because it took too long. Please initiate a new payment.");
-            return;
-        }
-
-        const isNowPaid = 
-            bookingData.status === 'paid' || 
-            bookingData.status === 'completed' || 
-            (bookingData.status === 'downpayment' && effectivePaymentType === 'downpayment');
-
-        if (isNowPaid || latestStatus === 'captured') {
-            setIsWaitingForVerification(false);
-            setCurrentStep(2); 
-        }
-    }, [bookingData, isWaitingForVerification, effectivePaymentType, latestPayment, latestStatus]);
+    }
 
     const handleHeaderBackPress = () => {
         if (isWaitingForVerification) {

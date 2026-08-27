@@ -9,7 +9,7 @@ import { getStatusConfig } from '@/src/constants/statusConfig';
 import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
 
 export interface BookingTrackerData {
-    steps: Array<{ id: number, defaultLabel: string, defaultIcon: string }>;
+    steps: { id: number, defaultLabel: string, defaultIcon: string }[];
     currentIndex: number;
     isTerminalError: boolean;
     config: any;

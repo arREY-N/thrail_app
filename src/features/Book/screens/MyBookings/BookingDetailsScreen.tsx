@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { BookingStatus, createBooking, IBooking } from "@/src/core/models/Booking/Booking";
+import { Booking, BookingStatus, newBooking, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 
 import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
@@ -24,8 +24,6 @@ import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/compo
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
-
-import { useBookingsStore } from '@/src/core/models/Booking/stores/bookingStore';
 import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 
@@ -46,21 +44,21 @@ const getStrictDocKey = (docName: string): string => {
 
 export interface BookingDetailsScreenProps {
     /** The booking data */
-    booking: IBooking;
+    booking: Booking;
     /** Function to fetch full offer details */
     getBookOffer: (id: string) => Promise<IOffer>;
     /** Callback for back button press */
     onBackPress: () => void;
     /** Callback when user proceeds to payment */
-    onProceedToPayment: (booking: IBooking) => void;
+    onProceedToPayment: (booking: Booking) => void;
     /** Callback for reschedule confirmation */
-    onReschedule?: (booking: IBooking, offerData: unknown) => void;
+    onReschedule?: (booking: Booking, offerData: unknown) => void;
     /** Callback to view receipt */
-    onViewReceipt: (booking: IBooking) => void;
+    onViewReceipt: (booking: Booking) => void;
     /** Callback for cancellation confirmation */
-    onCancelConfirm: (booking: IBooking, reason: string) => void;
+    onCancelConfirm: (booking: Booking, reason: string) => void;
     /** Callback for refund confirmation */
-    onRefundConfirm: (booking: IBooking, reason: string) => void;
+    onRefundConfirm: (booking: Booking, reason: string) => void;
     /** Optional callback for update press */
     onUpdatePress?: () => void;
     /** Available future offers for rescheduling */
@@ -92,15 +90,17 @@ const BookingDetailsScreen = ({
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState<boolean>(true);
     
-    const [localDocs, setLocalDocs] = useState<any>([]);
+    const [prevBooking, setPrevBooking] = useState(booking);
+    const [localDocs, setLocalDocs] = useState<any>(booking?.documents || []);
     const [localStatus, setLocalStatus] = useState<BookingStatus | string | undefined>(booking?.status);
 
     const updateBookingInStore = useBookingsStore(s => s.create);
 
-    useEffect(() => {
+    if (booking !== prevBooking) {
+        setPrevBooking(booking);
         setLocalDocs(booking?.documents || []);
         setLocalStatus(booking?.status);
-    }, [booking]);
+    }
 
     useEffect(() => {
         const fetchOfferDetails = async () => {
@@ -127,7 +127,7 @@ const BookingDetailsScreen = ({
         };
 
         fetchOfferDetails();
-    }, [booking?.offer?.id]);
+    }, [booking?.offer, getBookOffer]);
 
     let displayStatus = localStatus;
     if (localStatus === 'cancelled' || localStatus === 'for-cancellation') {
@@ -265,11 +265,11 @@ const BookingDetailsScreen = ({
                             setLocalStatus('pending-docs'); 
                             
                             try {
-                                const updatedBookingData = createBooking({
+                                const updatedBookingData = newBooking({
                                     ...booking,
                                     status: 'pending-docs', 
                                     documents: updatedDocs
-                                } as unknown as Partial<IBooking>);
+                                } as unknown as Partial<Booking>);
                                 await updateBookingInStore(updatedBookingData, false);
                             } catch (e) {
                                 console.error("Failed to save re-uploaded doc to DB", e);

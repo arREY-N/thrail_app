@@ -4,11 +4,11 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 
 export interface HeroHeaderProps {
     /** The booking data */
-    booking: IBooking | any; // To allow for the enhancedBooking passed from details screen
+    booking: Booking | any; // To allow for the enhancedBooking passed from details screen
 }
 
 /**

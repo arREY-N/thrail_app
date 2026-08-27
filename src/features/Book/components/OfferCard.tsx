@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, 
+import { 
     StyleSheet,
     TouchableOpacity,
     View
@@ -20,7 +20,7 @@ export interface OfferData {
     minPax?: number;
     maxPax?: number;
     description?: string;
-    schedule?: Array<{ day: number; activities?: Array<{ time: unknown; event: string }> }>;
+    schedule?: { day: number; activities?: { time: unknown; event: string }[] }[];
     inclusions?: string[];
     thingsToBring?: string[];
     reminders?: string[] | string;

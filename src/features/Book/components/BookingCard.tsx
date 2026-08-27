@@ -9,11 +9,11 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import { formatBookingDate, getRecentUpdateText, safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 
 export interface BookingCardProps {
-    booking: IBooking | null;
-    onSelectBooking: (booking: IBooking) => void;
+    booking: Booking | null;
+    onSelectBooking: (booking: Booking) => void;
     role?: 'user' | 'admin' | 'superadmin' | 'business';
 }
 

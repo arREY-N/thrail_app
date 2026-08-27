@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Platform,  ScrollView, StyleSheet, TouchableOpacity, View  } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
@@ -70,23 +70,24 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [formData, setFormData] = useState<HikerDetails>(getInitialData());
     const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>(savedDocs || {});
     const [isSignatureValid, setIsSignatureValid] = useState(false);
-    const [isMinor, setIsMinor] = useState(false);
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
 
-    useEffect(() => { setIsMinor(checkIfMinor(profile?.birthday)); }, [profile?.birthday]);
+    const isMinor = checkIfMinor(profile?.birthday);
 
     const activeDocuments = [...requiredDocuments];
     if (isMinor && !activeDocuments.includes('Parent/Guardian Valid ID')) {
         activeDocuments.push('Parent/Guardian Valid ID');
     }
 
-    useEffect(() => {
+    const [prevContact, setPrevContact] = useState(profile?.emergencyContact);
+    if (profile?.emergencyContact !== prevContact) {
+        setPrevContact(profile?.emergencyContact);
         setFormData(prev => ({
             ...prev,
             emergencyName: profile?.emergencyContact?.name || '',
             emergencyPhone: profile?.emergencyContact?.contactNumber || '',
         }));
-    }, [profile?.emergencyContact]);
+    }
 
     const handleLocalPhoneSave = (newPhone: string) => {
         setFormData(prev => ({ ...prev, phone: formatLocalPhoneNumber(newPhone) }));
