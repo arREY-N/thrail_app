@@ -272,12 +272,10 @@ export const businessStoreCreator: StateCreator<
                 };
             });
         } catch (err) {
-            console.error((err as Error).message);
             set({
                 error: (err as Error).message ?? 'Store: Failed creating business admin',
                 isLoading: false,
             });
-            throw err;
         }
     },
 });
