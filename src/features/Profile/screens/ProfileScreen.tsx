@@ -15,7 +15,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Review } from '@/src/core/models/Review/Review';
-import { IUser, Role } from '@/src/core/models/User/interfaces/User.types';
+import { IUser, Role } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
