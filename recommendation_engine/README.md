@@ -1,45 +1,72 @@
-# Thrail Recommendation Microservice: Developer Setup & Testing Guide
+# Thrail App Recommendation System (TARS 2.0) Microservice Guide
 
-This directory houses the experimental **Hybrid Recommendation System** for Thrail. The system uses a content-based vector search (accelerated by **FAISS**) blended with user-item collaborative filtering (calculated via **Pearson Correlation**).
+This directory houses the official **Thrail App Recommendation System (TARS 2.0)** microservice.
 
 ---
 
 ## 1. Project Directory Structure
 
-All files relating to this service are located in the [recommendation_engine/](file:///d:/thrail_app/recommendation_engine) folder:
-*   [app.py](file:///d:/thrail_app/recommendation_engine/app.py) - FastAPI server containing API routing, middleware, and request validations.
-*   [recommender.py](file:///d:/thrail_app/recommendation_engine/recommender.py) - Core recommendation engine (feature extraction, FAISS index, collaborative scoring, and dynamic alpha calculations).
-*   [requirements.txt](file:///d:/thrail_app/recommendation_engine/requirements.txt) - List of Python dependencies.
-*   [test_client.py](file:///d:/thrail_app/recommendation_engine/test_client.py) - Mock client testing script.
-*   `data/`
-    *   [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) - Mock trails data mimicking Cloud Firestore schemas.
-    *   [user_ratings_mock.csv](file:///d:/thrail_app/recommendation_engine/data/user_ratings_mock.csv) - Mock user review and rating history.
-*   [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) - Jupyter Notebook for testing custom formulas and normalizations.
+All files relating to this microservice are organized into logical subdirectories inside [recommendation_engine/](file:///d:/thrail_app/recommendation_engine):
+
+```
+recommendation_engine/
+│
+├── core/                        <-- CORE RECOMMENDATION MODULES
+│   ├── recommender.py           <-- HybridRecommender engine
+│   ├── distance_strategies.py   <-- Strategy Pattern metrics (Gower, Euclidean, Cosine, 23 Configs)
+│   ├── profile_manager.py       <-- 18-Feature mapping, P_e/P_d anchors, BCF updates
+│   └── gower_engine.py          <-- Legacy Gower engine utility
+│
+├── data/                        <-- MOCK DATASETS
+│   ├── trails_mock.csv          <-- Candidate trails dataset
+│   └── user_ratings_mock.csv    <-- Historical user ratings and logs
+│
+├── visualizer/                  <-- INTERACTIVE TESTING & DASHBOARD
+│   ├── tars_interactive_dashboard.html  <-- Live Web Dashboard (1 to 50 users slider & random tester)
+│   ├── run_visualizer.py       <-- Dashboard launcher script
+│   └── README.md
+│
+├── benchmarks/                  <-- BENCHMARK EVALUATOR & SCRATCHPAD
+│   ├── benchmark_evaluator.py   <-- 23 Benchmark configurations evaluator
+│   └── recommendation_scratchpad.ipynb <-- Interactive Jupyter prototyping scratchpad
+│
+├── tests/                       <-- AUTOMATED TESTS & API CLIENT
+│   ├── test_tars_recommender.py <-- Unit test suite
+│   └── test_client.py           <-- API test client
+│
+├── app.py                       <-- FastAPI Entry Point
+├── requirements.txt             <-- Dependencies list
+└── README.md                    <-- Service Documentation
+```
 
 ---
 
-## 2. Environment Setup (One-Time Setup)
+## 2. First-Time Environment Setup (One-Time Setup)
 
 Ensure you have Python 3.8+ installed, then run the following commands:
 
 ### Step 1: Create a virtual environment
 ```powershell
-# Navigate to the recommendation engine directory
+# Navigate to recommendation_engine directory
 cd recommendation_engine
 
 # Create the virtual environment
 python -m venv venv
 ```
 
-### Step 2: Activate the environment
-*   **Windows Powershell:**
-    ```powershell
-    .\venv\Scripts\Activate.ps1
-    ```
-*   **macOS/Linux Bash:**
-    ```bash
-    source venv/bin/activate
-    ```
+### Step 2: Activate the virtual environment
+* **Windows PowerShell:**
+  ```powershell
+  .\venv\Scripts\Activate.ps1
+  ```
+* **Windows Command Prompt (cmd):**
+  ```cmd
+  .\venv\Scripts\activate.bat
+  ```
+* **macOS/Linux Bash:**
+  ```bash
+  source venv/bin/activate
+  ```
 
 ### Step 3: Install dependencies
 ```bash
@@ -48,73 +75,84 @@ pip install -r requirements.txt
 
 ---
 
-## 3. Running the Server
+## 3. Deactivating the Virtual Environment
 
-To launch the FastAPI server, ensure your virtual environment is active, then run:
+When you are finished working in the Python virtual environment, run in **any terminal shell**:
 
-```powershell
-# Make sure you are in the recommendation_engine directory
-python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload --no-use-colors
+```bash
+deactivate
 ```
-
-*   The `--reload` flag enables auto-reloading whenever code changes are saved.
-*   The `--no-use-colors` flag disables raw ANSI color escape characters (like `←[32m`) which render incorrectly in standard Windows PowerShell consoles.
-*   The server will initialize the FAISS Index database using [trails_mock.csv](file:///d:/thrail_app/recommendation_engine/data/trails_mock.csv) on startup.
 
 ---
 
-## 4. Testing the API
+## 4. Quick Commands Reference
 
-With the server running in one terminal, open a new terminal window and run the test client script to verify everything is working:
-
+### Launch the FastAPI Microservice Server
 ```powershell
-# Navigate to recommendation_engine directory
 cd recommendation_engine
-
-# Run the test client
-python test_client.py
+python app.py
 ```
 
-### Expected Output
-The script will send a POST request with a mock payload containing experience settings and location choices. The server should return an HTTP `200 OK` response along with a list of matched trails:
+### Launch the Interactive Testing Dashboard in Web Browser
+```powershell
+cd recommendation_engine
+python visualizer/run_visualizer.py
+```
 
-```json
-{
-  "user_id": "user_001",
-  "recommendations": [
-    {
-      "trail_id": "trail_001",
-      "trail_name": "Mt. Daraitan",
-      "match_score": 0.7508,
-      "reason": "Matches your target onboarding preferences for Rizal."
-    },
-    ...
-  ],
-  "warning": null
-}
+### Run 23 Benchmark Configurations Evaluator
+```powershell
+cd recommendation_engine
+python benchmarks/benchmark_evaluator.py
+```
+
+### Run Automated Unit Test Suite
+```powershell
+cd recommendation_engine
+python -m unittest tests/test_tars_recommender.py
+```
+
+### Run API Test Client Script
+```powershell
+cd recommendation_engine
+python tests/test_client.py
 ```
 
 ---
 
-## 5. Security & Reliability Highlights
+## 5. Running the Jupyter Notebook Scratchpad
 
-1.  **Authorization:** Requests require a valid `X-API-Key` header (defined as security dependency verification in [app.py](file:///d:/thrail_app/recommendation_engine/app.py)).
-2.  **Request Tracking:** Custom middleware adds an `X-Request-ID` to logging and header outputs, facilitating request correlation and traceability in log search systems.
-3.  **Fail-Safe Fallbacks:** If the FAISS search or user-item correlation fails, a global exception handler intercepts the failure and seamlessly returns safe onboarding defaults rather than returning HTTP 500 errors to the client.
+When running [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/benchmarks/recommendation_scratchpad.ipynb):
+
+### Method 1: Inside VS Code (Recommended)
+1. Double-click `benchmarks/recommendation_scratchpad.ipynb`.
+2. Click **Select Kernel** in the top-right corner of the notebook editor window.
+3. Choose **Python Environments...** and select your virtual environment Python path:
+   `recommendation_engine/venv/Scripts/python.exe`
+4. Execute the cells (`Shift + Enter`).
+
+### Method 2: Via Terminal Jupyter Server
+Ensure your virtual environment is active (`.\venv\Scripts\Activate.ps1`), then run:
+```powershell
+jupyter notebook benchmarks/recommendation_scratchpad.ipynb
+```
 
 ---
 
-## 6. Prototyping in the Jupyter Notebook
+## 6. Mathematical Specifications Summary
 
-The [recommendation_scratchpad.ipynb](file:///d:/thrail_app/recommendation_engine/recommendation_scratchpad.ipynb) file is a sandbox environment for testing custom mathematical formulas, user correlation models, and normalization logic.
+1. **18-Feature Dataset Vector Mapping ($p=18$)**:
+   Maps trail profile and user profile into a normalized 18-dimensional vector $[v_1 \dots v_{18}] \in [0, 1]^{18}$ covering 5 provinces, 5 mountain affinities, LASCO rating requirement, duration, length/elevation index, and 5 tourism infrastructures.
 
-### How to use it in VS Code:
-1.  **Open the file:** Double-click on `recommendation_scratchpad.ipynb` inside your VS Code explorer.
-2.  **Select the Python Kernel:**
-    *   Click on **Select Kernel** in the top-right corner of the notebook editor window.
-    *   Choose **Python Environments...** and select your virtual environment path:
-        `recommendation_engine/venv/Scripts/python.exe`
-3.  **Execute the Cells:**
-    *   Hover over the left side of any code cell (box containing code) and click the **Play button** (or press `Shift + Enter` inside the cell).
-    *   Run the cells sequentially from top to bottom. Results and table representations will display directly underneath each cell.
+2. **Two-Anchor Profiles ($P_e$ and $P_d$)**:
+   - $P_e$ (Easy Profile): Onboarding baseline prediction.
+   - $P_d$ (Difficult Profile): Reverse-engineered upper intensity boundary prediction.
 
+3. **Alpha Tuner Parameter ($\alpha$)**:
+   $$\alpha = \begin{cases} 1 - \frac{u}{2m} & \text{if } u \le m \\ 1.0 & \text{if } u > m \end{cases}$$
+
+4. **Recommendation Score Equation**:
+   $$R_{tu} = \frac{\alpha (CB_{tu}) + (1 - \alpha) (CF_{tuv})}{\sqrt{18}}$$
+
+5. **Profile Update Function & Beta Corrector Factor ($\beta$) Matrix**:
+   $$P_{xu} = P_{xo} + \frac{1}{k} \sum_{i=1}^k \beta_i (H_{xi} - P_{xo})$$
+   where $\beta_i = \frac{R_{tu}}{2}$ if matched (actual == predicted) else $-\frac{1 - R_{tu}}{2}$ if mismatched.
