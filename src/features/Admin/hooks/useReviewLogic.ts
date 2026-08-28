@@ -1,19 +1,21 @@
 import { getStatusConfig } from '@/src/constants/statusConfig';
-import { UserRepository } from '@/src/core/repositories/userRepository';
+import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
+import { Offer } from '@/src/core/models/Offer/Offer';
+import { UserRepo } from '@/src/core/models/User/User';
 import { checkIfMinor, formatDateToStandard } from '@/src/utils/dateFormatter';
 import { useEffect, useMemo, useState } from 'react';
 
-export default function useReviewLogic(booking: any, offers: any[]) {
-    const [activeTab, setActiveTab] = useState('documents'); 
-    const [docStates, setDocStates] = useState<any[]>([]);
-    const [viewedDocs, setViewedDocs] = useState<any>({});
+export default function useReviewLogic(booking: Booking | null | undefined, offers: Offer[]) {
+    const [activeTab, setActiveTab] = useState<'documents' | 'payment'>('documents'); 
+    const [docStates, setDocStates] = useState<Requirements[]>([]);
+    const [viewedDocs, setViewedDocs] = useState<Record<number, boolean>>({});
     const [rejectionReason, setRejectionReason] = useState('');
     
     const [personalVerifiedAt, setPersonalVerifiedAt] = useState<Date | null>(() => {
         return booking?.user?.phoneVerifiedAt ? new Date(booking.user.phoneVerifiedAt) : null;
     });
     const [emergencyVerifiedAt, setEmergencyVerifiedAt] = useState<Date | null>(() => {
-        return booking?.emergencyContact?.phoneVerifiedAt ? new Date(booking.emergencyContact.phoneVerifiedAt) : null;
+        return booking?.emergencyContact?.phoneVerifiedAt ? new Date(booking.emergencyContact.phoneVerifiedAt as Date) : null;
     });
 
     useEffect(() => {
@@ -21,15 +23,15 @@ export default function useReviewLogic(booking: any, offers: any[]) {
             if (booking?.emergencyContact) {
                 // Use the booking's own verification date if it exists
                 if (booking.emergencyContact.phoneVerifiedAt) {
-                    setEmergencyVerifiedAt(new Date(booking.emergencyContact.phoneVerifiedAt));
+                    setEmergencyVerifiedAt(new Date(booking.emergencyContact.phoneVerifiedAt as Date));
                     return;
                 }
                 // Otherwise check if the emergency contact has a linked user account, and load their global verification
                 if (booking.emergencyContact.userId) {
                     try {
-                        const contactUser = await UserRepository.fetchById(booking.emergencyContact.userId);
-                        if (contactUser?.phoneVerifiedAt) {
-                            setEmergencyVerifiedAt(new Date(contactUser.phoneVerifiedAt));
+                        const contactUser = await UserRepo.fetchById(booking.emergencyContact.userId);
+                        if (contactUser?.emergencyContact?.phoneVerifiedAt) {
+                            setEmergencyVerifiedAt(new Date(contactUser.emergencyContact.phoneVerifiedAt as Date));
                             return;
                         }
                     } catch (e) {
@@ -44,13 +46,12 @@ export default function useReviewLogic(booking: any, offers: any[]) {
 
     const offerDate = booking?.offer?.date ? new Date(booking.offer.date) : null;
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0,0,0,0) : false;
-    const isTerminalStatus = ['completed', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status);
+    const isTerminalStatus = ['completed', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
-    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded');
     
     const currentStatus = hasRefundedPayment 
         ? 'refunded' 
-        // : (isOfferExpired && !isTerminalStatus && booking?.status !== 'paid' && booking?.status !== 'downpayment'
         : (isOfferExpired && !isTerminalStatus
             ? 'expired'
             : (booking?.status || 'for-reservation'));
@@ -68,13 +69,13 @@ export default function useReviewLogic(booking: any, offers: any[]) {
 
     const isMinor = checkIfMinor(booking?.user?.birthday);
 
-    const mapDocument = (name: any, file: any, valid: any) => {
-        let validState = 'pending';
+    const mapDocument = (name: string, file: string, valid: string | boolean | undefined): Requirements => {
+        let validState: 'pending' | 'approved' | 'rejected' = 'pending';
         if (valid === 'approved' || valid === true) validState = 'approved';
         if (valid === 'rejected' || valid === false) validState = 'rejected';
         if (isApprovedStatus) validState = 'approved';
         if (isRejectedStatus && validState === 'pending') validState = 'rejected';
-        return { name: name || 'Unnamed Document', file, valid: validState };
+        return { name: name || 'Unnamed Document', file: file || '', valid: validState };
     };
 
     const [prevBooking, setPrevBooking] = useState(booking);
@@ -84,12 +85,12 @@ export default function useReviewLogic(booking: any, offers: any[]) {
             setPersonalVerifiedAt(new Date(booking.user.phoneVerifiedAt));
         }
         if (booking?.documents) {
-            const docsArray = Array.isArray(booking.documents) 
-                ? booking.documents.map((d: any, i: any) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
-                : Object.entries(booking.documents).map(([k, v]: [string, any]) => mapDocument(v.name || k, v.file || '', v.valid));
+            const docsArray: Requirements[] = Array.isArray(booking.documents) 
+                ? booking.documents.map((d, i) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
+                : Object.entries(booking.documents as unknown as Record<string, Requirements>).map(([k, v]) => mapDocument(v?.name || k, v?.file || '', v?.valid));
             setDocStates(docsArray);
-            const initialViewed: any = {};
-            docsArray.forEach((d: any, i: any) => { 
+            const initialViewed: Record<number, boolean> = {};
+            docsArray.forEach((d, i) => { 
                 if (d.valid !== 'pending') initialViewed[i] = true; 
             });
             setViewedDocs(initialViewed);
@@ -99,20 +100,20 @@ export default function useReviewLogic(booking: any, offers: any[]) {
         }
     }
 
-    const hasRejections = docStates.some((d: any) => d.valid === 'rejected');
-    const isDecisionIncomplete = docStates.length > 0 && docStates.some((d: any) => d.valid === 'pending');
+    const hasRejections = docStates.some((d) => d.valid === 'rejected');
+    const isDecisionIncomplete = docStates.length > 0 && docStates.some((d) => d.valid === 'pending');
     
     const availableOffers = useMemo(() => {
         const today = new Date();
         today.setHours(0,0,0,0);
         return offers 
             ? offers
-                .filter((o: any) => {
+                .filter((o) => {
                     if (!o.date) return false;
                     const dateObj = new Date(o.date);
                     return o.id !== booking?.offer?.id && dateObj.getTime() >= today.getTime();
                 })
-                .map((o: any) => ({ 
+                .map((o) => ({ 
                     id: o.id, 
                     label: formatDateToStandard(o.date),
                     subLabel: `₱${o.price}`, 
