@@ -2,6 +2,8 @@ import { Colors } from '@/src/constants/colors';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import { ImageSourcePropType } from 'react-native';
 
+const DEFAULT_HERO_IMAGE: ImageSourcePropType = require('@/src/assets/images/Mt.Tagapo.jpg');
+
 export interface GlossaryData {
     title: string;
     points: { label: string; text: string }[];
@@ -115,7 +117,7 @@ export const getFeatureIcon = (label: string): { library: string; name: string }
 export const getHeroImageSource = (item?: Partial<ITrail> | null): ImageSourcePropType => {
     if (item?.coverImage) return { uri: item.coverImage };
     if (item?.routeMapImage) return { uri: item.routeMapImage };
-    return require('@/src/assets/images/Mt.Tagapo.jpg');
+    return DEFAULT_HERO_IMAGE;
 };
 
 export const isUsingMapFallback = (item?: Partial<ITrail> | null): boolean => {

@@ -20,6 +20,7 @@ import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
+const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 // Minimum valid PMTiles size — adjust if your file is smaller
@@ -98,7 +99,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
         await FileSystem.deleteAsync(fileUri, { idempotent: true });
       }
 
-      const asset = Asset.fromModule(require("../../assets/tiles/thrail-offline-map.pmtiles"));
+      const asset = Asset.fromModule(offlineMapTileAsset);
 
       try {
         await asset.downloadAsync();
