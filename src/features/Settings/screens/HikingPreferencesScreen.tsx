@@ -10,7 +10,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { IPreference } from '@/src/core/models/User/interfaces/User.types';
+import { IPreference } from '@/src/core/models/User/User';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
