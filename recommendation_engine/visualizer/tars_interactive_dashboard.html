@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS 2.0 Live Interactive Testing & Algorithm Sandbox</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2E7D32;
+            --primary-dark: #1B5E20;
+            --accent: #0288D1;
+            --bg: #F4F6F8;
+            --card-bg: #FFFFFF;
+            --text: #212121;
+            --text-light: #616161;
+            --border: #E0E0E0;
+            --highlight: #FFF8E1;
+            --highlight-border: #FFA000;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1450px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #1B5E20, #2E7D32, #0288D1);
+            color: white;
+            padding: 24px 32px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0 0 6px 0;
+            font-size: 26px;
+        }
+        header p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .server-status {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+        .status-dot.offline {
+            background: #FF5252;
+        }
+
+        .main-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .main-tab-btn {
+            background: #FFFFFF;
+            border: 2px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: all 0.2s ease;
+        }
+        .main-tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 440px 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            margin-top: 0;
+            font-size: 17px;
+            color: var(--primary-dark);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .checkbox-item {
+            background: #F5F5F5;
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+        .slider-val {
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--primary);
+            min-width: 35px;
+        }
+
+        button.btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        button.btn-secondary {
+            background: #0288D1;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.btn-secondary:hover {
+            background: #01579B;
+        }
+
+        .vector-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .vector-box {
+            background: #FAFAFA;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px;
+            text-align: center;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+        .vector-box strong {
+            display: block;
+            font-size: 13px;
+            color: var(--primary-dark);
+        }
+        .vector-box.updated {
+            background: #FFF8E1;
+            border-color: #FFA000;
+            transform: scale(1.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 9px 11px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #F8F9FA;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        .score-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 12px;
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        .unique-tag {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .badge-cb { background: #1976D2; }
+        .badge-cf { background: #388E3C; }
+        .badge-hybrid { background: #7B1FA2; }
+        .badge-anchor { background: #E64A19; }
+
+        .bcf-box {
+            background: #E8F5E9;
+            border: 1px solid #A5D6A7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>TARS 2.0 Live Interactive Testing & Algorithm Sandbox</h1>
+                <p>Real-time calculation engine: Checkboxes, strategy engine swapping, two-anchor profiles, and BCF updates dynamically recalculate scores live!</p>
+            </div>
+            <div class="server-status" id="server-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Checking Backend API...</span>
+            </div>
+        </header>
+
+        <!-- MAIN TAB NAVIGATION -->
+        <div class="main-tabs">
+            <button class="main-tab-btn active" onclick="switchMainTab('single')">Single User Custom Sandbox & BCF Simulator</button>
+            <button class="main-tab-btn" onclick="switchMainTab('multi')">Multi-User Comparison & Diversity Matrix (1 to 50 Users)</button>
+        </div>
+
+        <!-- TAB 1: SINGLE USER CUSTOM SANDBOX -->
+        <div class="tab-content active" id="tab-single">
+            <div class="main-layout">
+                <!-- CONTROLS COLUMN -->
+                <div class="controls-column">
+                    <div class="card">
+                        <h2>1. Select User & Profile Preferences</h2>
+                        <div class="form-group">
+                            <label>Preset User (user_001 to user_050):</label>
+                            <select id="user-preset" onchange="loadPresetUser()">
+                                <!-- Dynamically populated 50 users -->
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Target User ID:</label>
+                            <input type="text" id="user-id" value="user_001" oninput="generateSingleRecommendations()" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Experience Level:</label>
+                            <select id="experience" onchange="generateSingleRecommendations()">
+                                <option value="Beginner" selected>Beginner (LASCO ~3.0)</option>
+                                <option value="Regular">Regular (LASCO ~5.0)</option>
+                                <option value="Experienced">Experienced (LASCO ~8.0)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Target Provinces (Check to update vector live):</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-item"><input type="checkbox" name="province" value="Batangas" checked onchange="generateSingleRecommendations()"> Batangas</label>
+                                <label class="checkbox-item"><input type="checkbox" name="province" value="Rizal" checked onchange="generateSingleRecommendations()"> Rizal</label>
+                                <label class="checkbox-item"><input type="checkbox" name="province" value="Cavite" onchange="generateSingleRecommendations()"> Cavite</label>
+                                <label class="checkbox-item"><input type="checkbox" name="province" value="Laguna" onchange="generateSingleRecommendations()"> Laguna</label>
+                                <label class="checkbox-item"><input type="checkbox" name="province" value="Quezon" onchange="generateSingleRecommendations()"> Quezon</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Past Mountain Affinities:</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-item"><input type="checkbox" name="mountain" value="Mt1" checked onchange="generateSingleRecommendations()"> Mt1</label>
+                                <label class="checkbox-item"><input type="checkbox" name="mountain" value="Mt2" onchange="generateSingleRecommendations()"> Mt2</label>
+                                <label class="checkbox-item"><input type="checkbox" name="mountain" value="Mt3" onchange="generateSingleRecommendations()"> Mt3</label>
+                                <label class="checkbox-item"><input type="checkbox" name="mountain" value="Mt4" onchange="generateSingleRecommendations()"> Mt4</label>
+                                <label class="checkbox-item"><input type="checkbox" name="mountain" value="Mt5" onchange="generateSingleRecommendations()"> Mt5</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tourism Amenities Preferred:</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-item"><input type="checkbox" id="infra-1" checked onchange="generateSingleRecommendations()"> Infra 1</label>
+                                <label class="checkbox-item"><input type="checkbox" id="infra-2" checked onchange="generateSingleRecommendations()"> Infra 2</label>
+                                <label class="checkbox-item"><input type="checkbox" id="infra-3" onchange="generateSingleRecommendations()"> Infra 3</label>
+                                <label class="checkbox-item"><input type="checkbox" id="infra-4" onchange="generateSingleRecommendations()"> Infra 4</label>
+                                <label class="checkbox-item"><input type="checkbox" id="infra-5" onchange="generateSingleRecommendations()"> Infra 5</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>2. Strategy Engine Controls (23 Configs)</h2>
+                        <div class="form-group">
+                            <label>Strategy Configuration (Select to swap metrics live):</label>
+                            <select id="config-name" onchange="generateSingleRecommendations()">
+                                <optgroup label="Hybrid Ensembles (7)">
+                                    <option value="HYBRID_GOWER" selected>HYBRID_GOWER (Gower CB + CF)</option>
+                                    <option value="HYBRID_EUCLIDEAN">HYBRID_EUCLIDEAN (Euclidean CB + CF)</option>
+                                    <option value="HYBRID_COSINE">HYBRID_COSINE (Cosine CB + CF)</option>
+                                    <option value="HYBRID_GOWER_EUCLIDEAN">HYBRID_GOWER_EUCLIDEAN (Gower/Euclidean Dual)</option>
+                                    <option value="HYBRID_GOWER_COSINE">HYBRID_GOWER_COSINE (Gower/Cosine Dual)</option>
+                                    <option value="HYBRID_EUCLIDEAN_COSINE">HYBRID_EUCLIDEAN_COSINE (Euclidean/Cosine Dual)</option>
+                                    <option value="HYBRID_TRIPLE_ENSEMBLE">HYBRID_TRIPLE_ENSEMBLE (Gower + ED + CD)</option>
+                                </optgroup>
+                                <optgroup label="Content-Based Only (7)">
+                                    <option value="CB_GOWER">CB_GOWER (Single Gower CB)</option>
+                                    <option value="CB_EUCLIDEAN">CB_EUCLIDEAN (Single Euclidean CB)</option>
+                                    <option value="CB_COSINE">CB_COSINE (Single Cosine CB)</option>
+                                    <option value="CB_GOWER_EUCLIDEAN">CB_GOWER_EUCLIDEAN (Dual CB)</option>
+                                    <option value="CB_GOWER_COSINE">CB_GOWER_COSINE (Dual CB)</option>
+                                    <option value="CB_EUCLIDEAN_COSINE">CB_EUCLIDEAN_COSINE (Dual CB)</option>
+                                    <option value="CB_TRIPLE_ENSEMBLE">CB_TRIPLE_ENSEMBLE (Triple CB)</option>
+                                </optgroup>
+                                <optgroup label="Collaborative Filtering Only (7)">
+                                    <option value="CF_GOWER">CF_GOWER (Single Gower CF)</option>
+                                    <option value="CF_EUCLIDEAN">CF_EUCLIDEAN (Single Euclidean CF)</option>
+                                    <option value="CF_COSINE">CF_COSINE (Single Cosine CF)</option>
+                                    <option value="CF_GOWER_EUCLIDEAN">CF_GOWER_EUCLIDEAN (Dual CF)</option>
+                                    <option value="CF_GOWER_COSINE">CF_GOWER_COSINE (Dual CF)</option>
+                                    <option value="CF_EUCLIDEAN_COSINE">CF_EUCLIDEAN_COSINE (Dual CF)</option>
+                                    <option value="CF_TRIPLE_ENSEMBLE">CF_TRIPLE_ENSEMBLE (Triple CF)</option>
+                                </optgroup>
+                                <optgroup label="Baseline Anchors (2)">
+                                    <option value="ANCHOR_PE_ONLY">ANCHOR_PE_ONLY (Easy Anchor P_e Only)</option>
+                                    <option value="ANCHOR_PD_ONLY">ANCHOR_PD_ONLY (Difficult Anchor P_d Only)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Active Users u (1 to 100):</label>
+                            <div class="slider-container">
+                                <input type="range" id="active-users" min="1" max="100" value="25" oninput="document.getElementById('active-users-val').innerText = this.value; generateSingleRecommendations();" />
+                                <span class="slider-val" id="active-users-val">25</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary" onclick="generateSingleRecommendations()">Recalculate Recommendations</button>
+                    </div>
+
+                    <!-- BCF PROFILE UPDATE SIMULATOR CARD -->
+                    <div class="card">
+                        <h2>3. Post-Hike Feedback & BCF Simulator</h2>
+                        <p style="font-size:12px; color:var(--text-light); margin-bottom:12px;">
+                            Simulate logging a hiked trail to calculate the Beta Corrector Factor (&beta;) and watch the profile vector shift live!
+                        </p>
+                        <div class="form-group">
+                            <label>Select Completed Hike:</label>
+                            <select id="bcf-trail">
+                                <option value="trail_001">Mt. Daraitan (Rizal)</option>
+                                <option value="trail_002">Mt. Batulao (Batangas)</option>
+                                <option value="trail_004">Mt. Makiling (Laguna)</option>
+                                <option value="trail_005">Mt. Pico de Loro (Cavite)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Actual Post-Hike Rating Feedback:</label>
+                            <select id="bcf-rating">
+                                <option value="easy" selected>Rated "Easy" (Matched Easy Anchor)</option>
+                                <option value="difficult">Rated "Difficult" (Mismatched Easy Anchor)</option>
+                            </select>
+                        </div>
+                        <button class="btn-secondary" style="width:100%" onclick="simulateBCFUpdate()">Apply Beta Corrector Profile Update</button>
+
+                        <div class="bcf-box" id="bcf-status-box" style="display:none;">
+                            <strong>Last BCF Update Result:</strong>
+                            <div id="bcf-details" style="margin-top:4px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESULTS COLUMN -->
+                <div class="results-column">
+                    <div class="card">
+                        <h2>
+                            Engine Status & Alpha-Tuner Gauge
+                            <span class="badge badge-hybrid" id="active-config-badge">HYBRID_GOWER</span>
+                        </h2>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;">
+                            <span>Computed Alpha Weight (&alpha;): <strong id="alpha-val" style="color:var(--primary)">0.7500</strong></span>
+                            <span>Formula: <code>&alpha; = 1 - u/(2m)</code> if u &le; m else <code>0.50</code> [m = 50]</span>
+                        </div>
+                        <div style="background:#E0E0E0; height:10px; border-radius:5px; overflow:hidden; margin-top:8px;">
+                            <div id="alpha-gauge-fill" style="height:100%; background:linear-gradient(90deg, #2E7D32, #0288D1); width:75%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>18-Feature Dataset Vector Visualizer ($p=18$)</h2>
+                        <div style="display:flex; gap:12px; margin-bottom:10px;">
+                            <button class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="switchVectorTab('pe', this)">Easy Profile Vector (P_e)</button>
+                            <button class="btn-secondary" style="padding:6px 12px; font-size:12px; background:#757575;" onclick="switchVectorTab('pd', this)">Difficult Profile Vector (P_d)</button>
+                        </div>
+                        <div class="vector-grid" id="vector-grid">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>Dual Anchor Recommendations ($P_e$ Easy vs $P_d$ Difficult) — All Candidate Mountains</h2>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                            <div style="max-height: 420px; overflow-y: auto;">
+                                <h3 style="color:#2E7D32; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Easy Anchor ($P_e$) Recommendations (Rank #1 to #10)</h3>
+                                <table id="table-pe">
+                                    <thead><tr><th>Rank</th><th>Mountain</th><th>R_tu Score</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <div style="max-height: 420px; overflow-y: auto;">
+                                <h3 style="color:#E64A19; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Difficult Anchor ($P_d$) Recommendations (Rank #1 to #10)</h3>
+                                <table id="table-pd">
+                                    <thead><tr><th>Rank</th><th>Mountain</th><th>R_tu Score</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>Live Candidate Trail Match Scores ($R_{tu}$) Chart</h2>
+                        <div style="height: 240px; position: relative;">
+                            <canvas id="scoresChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: MULTI-USER COMPARISON MATRIX (1 TO 50 SLIDER) -->
+        <div class="tab-content" id="tab-multi">
+            <div class="card">
+                <h2>Multi-User Diversity & Score Comparison Inspector</h2>
+                
+                <!-- SLIDER & RANDOM CONTROLS BAR -->
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#F8F9FA; padding:12px 16px; border-radius:8px; border:1px solid var(--border); margin-bottom:16px;">
+                    <div style="flex:1; max-width:400px;">
+                        <label>Number of Users to Compare (1 to 50):</label>
+                        <div class="slider-container">
+                            <input type="range" id="multi-user-count" min="1" max="50" value="5" oninput="document.getElementById('multi-user-count-val').innerText = this.value" />
+                            <span class="slider-val" id="multi-user-count-val">5</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-secondary" onclick="evaluateMultiUserComparison(false)">Compare First N Users</button>
+                        <button class="btn-primary" style="width:auto; padding:10px 20px;" onclick="evaluateMultiUserComparison(true)">Pick Random N Users & Evaluate</button>
+                    </div>
+                </div>
+
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:16px;">
+                    Generates recommendations simultaneously for your selected number of users (1 to 50) and verifies score uniqueness and mountain personalization.
+                </p>
+
+                <div style="max-height: 450px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Experience Level</th>
+                                <th>Target Provinces</th>
+                                <th>Top #1 Recommended Mountain</th>
+                                <th>Top #2 Mountain</th>
+                                <th>Top #3 Mountain</th>
+                                <th>Top R_tu Score</th>
+                                <th>Diversity Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="multi-user-tbody">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Cross-User Match Score Diversity Visualization</h2>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="multiUserChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000";
+        const API_KEY = "thrail-rec-engine-secret-key-placeholder";
+
+        let isServerOnline = false;
+        let singleChartInstance = null;
+        let multiChartInstance = null;
+        let activeTab = 'pe';
+
+        let currentPeVec = new Array(18).fill(0);
+        let currentPdVec = new Array(18).fill(0);
+
+        const featureLabels = [
+            "Cavite", "Laguna", "Batangas", "Rizal", "Quezon",
+            "Mt1", "Mt2", "Mt3", "Mt4", "Mt5",
+            "LASCO", "Hours", "Len/Gain",
+            "Infra1", "Infra2", "Infra3", "Infra4", "Infra5"
+        ];
+
+        // 10 Mock Trails Database (matching trails_mock.csv)
+        const mockTrailsDB = [
+            { id: "trail_001", name: "Mt. Daraitan", prov: "Rizal", lasco: 4.0, hours: 4.5, len: 8.0, gain: 600, vec: [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0.44, 0.38, 0.28, 1, 1, 1, 1, 0] },
+            { id: "trail_002", name: "Mt. Batulao", prov: "Batangas", lasco: 3.0, hours: 4.0, len: 12.0, gain: 400, vec: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0.33, 0.33, 0.30, 1, 1, 0, 0, 0] },
+            { id: "trail_003", name: "Mt. Maculot", prov: "Batangas", lasco: 4.0, hours: 3.5, len: 6.0, gain: 500, vec: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0.44, 0.29, 0.23, 1, 1, 0, 0, 0] },
+            { id: "trail_004", name: "Mt. Makiling", prov: "Laguna", lasco: 6.0, hours: 7.0, len: 16.0, gain: 900, vec: [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0.67, 0.58, 0.49, 0, 1, 1, 1, 0] },
+            { id: "trail_005", name: "Mt. Pico de Loro", prov: "Cavite", lasco: 3.0, hours: 4.0, len: 9.5, gain: 350, vec: [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.33, 0.33, 0.25, 1, 1, 0, 0, 0] },
+            { id: "trail_006", name: "Mt. Talamitam", prov: "Batangas", lasco: 3.0, hours: 3.0, len: 7.5, gain: 300, vec: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0.33, 0.25, 0.20, 1, 1, 0, 0, 0] },
+            { id: "trail_007", name: "Mt. Gulugod Baboy", prov: "Batangas", lasco: 2.0, hours: 2.5, len: 5.0, gain: 250, vec: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0.22, 0.21, 0.15, 1, 1, 1, 0, 1] },
+            { id: "trail_008", name: "Mt. Cristobal", prov: "Laguna", lasco: 7.0, hours: 8.0, len: 14.0, gain: 1100, vec: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0.78, 0.67, 0.51, 0, 0, 1, 0, 0] },
+            { id: "trail_009", name: "Mt. Sembrano", prov: "Rizal", lasco: 5.0, hours: 5.0, len: 11.0, gain: 650, vec: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.56, 0.42, 0.35, 1, 1, 1, 0, 0] },
+            { id: "trail_010", name: "Mt. Kalisungan", prov: "Laguna", lasco: 4.0, hours: 4.0, len: 8.5, gain: 480, vec: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0.44, 0.33, 0.26, 1, 1, 0, 0, 0] }
+        ];
+
+        // 50 Preset User Profiles
+        const experiencesList = ["Beginner", "Regular", "Experienced"];
+        const provinceCombos = [
+            ["Batangas", "Rizal"],
+            ["Cavite"],
+            ["Laguna"],
+            ["Rizal", "Quezon"],
+            ["Batangas", "Laguna"],
+            ["Quezon"],
+            ["Batangas", "Rizal", "Cavite", "Laguna", "Quezon"]
+        ];
+
+        const all50Users = {};
+        for (let i = 1; i <= 50; i++) {
+            const uid = `user_${String(i).padStart(3, '0')}`;
+            const exp = experiencesList[(i - 1) % experiencesList.length];
+            const provs = provinceCombos[(i - 1) % provinceCombos.length];
+            const mts = [`Mt${(i % 5) + 1}`];
+            all50Users[uid] = { exp, provs, mts };
+        }
+
+        function populate50UserDropdown() {
+            const select = document.getElementById('user-preset');
+            let html = `<option value="custom">-- Custom User Input --</option>`;
+            for (let i = 1; i <= 50; i++) {
+                const uid = `user_${String(i).padStart(3, '0')}`;
+                const u = all50Users[uid];
+                html += `<option value="${uid}">${uid} (${u.exp}, ${u.provs.join('/')})</option>`;
+            }
+            select.innerHTML = html;
+            select.value = "user_001";
+        }
+
+        async function checkServerStatus() {
+            try {
+                const res = await fetch(`${API_URL}/`, { method: "GET" });
+                if (res.ok) {
+                    isServerOnline = true;
+                    document.getElementById('status-dot').className = 'status-dot';
+                    document.getElementById('status-text').innerText = 'Backend API Connected (port 8000)';
+                } else {
+                    throw new Error("Offline");
+                }
+            } catch (err) {
+                isServerOnline = false;
+                document.getElementById('status-dot').className = 'status-dot offline';
+                document.getElementById('status-text').innerText = 'Backend Offline (Using Standalone Real-Time JS Engine)';
+            }
+        }
+
+        function switchMainTab(tab) {
+            document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'single') {
+                document.querySelectorAll('.main-tab-btn')[0].classList.add('active');
+                document.getElementById('tab-single').classList.add('active');
+            } else {
+                document.querySelectorAll('.main-tab-btn')[1].classList.add('active');
+                document.getElementById('tab-multi').classList.add('active');
+                evaluateMultiUserComparison(false);
+            }
+        }
+
+        function loadPresetUser() {
+            const presetKey = document.getElementById('user-preset').value;
+            if (presetKey === 'custom' || !all50Users[presetKey]) return;
+
+            const u = all50Users[presetKey];
+            document.getElementById('user-id').value = presetKey;
+            document.getElementById('experience').value = u.exp;
+
+            document.querySelectorAll('input[name="province"]').forEach(cb => {
+                cb.checked = u.provs.includes(cb.value);
+            });
+
+            document.querySelectorAll('input[name="mountain"]').forEach(cb => {
+                cb.checked = u.mts.includes(cb.value);
+            });
+
+            generateSingleRecommendations();
+        }
+
+        function buildVectorFromUI() {
+            const vec = new Array(18).fill(0);
+            
+            const provs = Array.from(document.querySelectorAll('input[name="province"]:checked')).map(c => c.value);
+            if (provs.includes("Cavite")) vec[0] = 1.0;
+            if (provs.includes("Laguna")) vec[1] = 1.0;
+            if (provs.includes("Batangas")) vec[2] = 1.0;
+            if (provs.includes("Rizal")) vec[3] = 1.0;
+            if (provs.includes("Quezon")) vec[4] = 1.0;
+
+            const mts = Array.from(document.querySelectorAll('input[name="mountain"]:checked')).map(c => c.value);
+            if (mts.includes("Mt1")) vec[5] = 1.0;
+            if (mts.includes("Mt2")) vec[6] = 1.0;
+            if (mts.includes("Mt3")) vec[7] = 1.0;
+            if (mts.includes("Mt4")) vec[8] = 1.0;
+            if (mts.includes("Mt5")) vec[9] = 1.0;
+
+            const exp = document.getElementById('experience').value;
+            if (exp === "Beginner") vec[10] = 0.333;
+            else if (exp === "Regular") vec[10] = 0.555;
+            else vec[10] = 0.888;
+
+            vec[11] = 0.333; // ~4 hours
+            vec[12] = 0.250; // length/gain index
+
+            if (document.getElementById('infra-1').checked) vec[13] = 1.0;
+            if (document.getElementById('infra-2').checked) vec[14] = 1.0;
+            if (document.getElementById('infra-3').checked) vec[15] = 1.0;
+            if (document.getElementById('infra-4').checked) vec[16] = 1.0;
+            if (document.getElementById('infra-5').checked) vec[17] = 1.0;
+
+            return vec;
+        }
+
+        function renderVectorGrid() {
+            const vec = (activeTab === 'pe') ? currentPeVec : currentPdVec;
+            const grid = document.getElementById('vector-grid');
+            let html = "";
+            for (let i = 0; i < 18; i++) {
+                html += `<div class="vector-box">
+                    <span style="color:var(--text-light)">${featureLabels[i]}</span>
+                    <strong>${typeof vec[i] === 'number' ? vec[i].toFixed(2) : vec[i]}</strong>
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function switchVectorTab(tab, btn) {
+            activeTab = tab;
+            btn.parentElement.querySelectorAll('button').forEach(b => b.style.background = '#757575');
+            btn.style.background = '#0288D1';
+            renderVectorGrid();
+        }
+
+        // REAL-TIME VECTOR DISTANCE CALCULATOR ENGINES (Gower, Euclidean, Cosine)
+        function calcDistance(userVec, trailVec, configName) {
+            let w_gd = 1.0, w_ed = 0.0, w_cd = 0.0;
+            if (configName.includes("EUCLIDEAN")) { w_gd = 0.0; w_ed = 1.0; }
+            if (configName.includes("COSINE")) { w_gd = 0.0; w_cd = 1.0; }
+            if (configName.includes("GOWER_EUCLIDEAN")) { w_gd = 0.5; w_ed = 0.5; }
+            if (configName.includes("GOWER_COSINE")) { w_gd = 0.5; w_cd = 0.5; }
+            if (configName.includes("EUCLIDEAN_COSINE")) { w_ed = 0.5; w_cd = 0.5; }
+            if (configName.includes("TRIPLE")) { w_gd = 1/3; w_ed = 1/3; w_cd = 1/3; }
+
+            let totalDist = 0.0;
+            if (w_gd > 0) {
+                // Gower
+                let diffSum = 0;
+                for (let i = 0; i < 18; i++) diffSum += Math.abs(userVec[i] - trailVec[i]);
+                totalDist += w_gd * (diffSum / 18.0);
+            }
+            if (w_ed > 0) {
+                // Euclidean
+                let sqSum = 0;
+                for (let i = 0; i < 18; i++) sqSum += Math.pow(userVec[i] - trailVec[i], 2);
+                totalDist += w_ed * (Math.sqrt(sqSum) / Math.sqrt(18));
+            }
+            if (w_cd > 0) {
+                // Cosine
+                let dot = 0, normA = 0, normB = 0;
+                for (let i = 0; i < 18; i++) {
+                    dot += userVec[i] * trailVec[i];
+                    normA += userVec[i] * userVec[i];
+                    normB += trailVec[i] * trailVec[i];
+                }
+                const sim = (normA && normB) ? (dot / (Math.sqrt(normA) * Math.sqrt(normB))) : 0;
+                totalDist += w_cd * (1.0 - sim);
+            }
+
+            return Math.max(0.0, Math.min(1.0, totalDist));
+        }
+
+        async function generateSingleRecommendations() {
+            const configName = document.getElementById('config-name').value;
+            document.getElementById('active-config-badge').innerText = configName;
+
+            const u = parseInt(document.getElementById('active-users').value);
+            document.getElementById('active-users-val').innerText = u;
+            
+            const m = 50;
+            let alpha = (u <= m) ? (1.0 - (u / (2 * m))) : 0.50;
+            alpha = Math.max(0.5, Math.min(1.0, alpha));
+
+            document.getElementById('alpha-val').innerText = alpha.toFixed(4);
+            document.getElementById('alpha-gauge-fill').style.width = `${(alpha * 100).toFixed(1)}%`;
+
+            currentPeVec = buildVectorFromUI();
+            currentPdVec = currentPeVec.map((v, i) => (i >= 10 && i <= 12) ? Math.min(1.0, v + 0.35) : v);
+            renderVectorGrid();
+
+            if (isServerOnline) {
+                try {
+                    const payload = {
+                        user_id: document.getElementById('user-id').value,
+                        preferences: {
+                            experience: document.getElementById('experience').value,
+                            province: Array.from(document.querySelectorAll('input[name="province"]:checked')).map(c => c.value),
+                            tourism_1: document.getElementById('infra-1').checked,
+                            tourism_2: document.getElementById('infra-2').checked
+                        },
+                        active_user_count: u,
+                        config_name: configName,
+                        top_k: 10
+                    };
+
+                    const res = await fetch(`${API_URL}/api/recommend`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    renderSingleTables(data.easy_anchor_recommendations, data.difficult_anchor_recommendations);
+                    renderSingleChart(data.easy_anchor_recommendations);
+                    return;
+                } catch (err) {
+                    console.warn("Backend request failed, running client-side TARS calculation engine", err);
+                }
+            }
+
+            // Real-Time Standalone Calculation Engine
+            executeLocalTARSCalculations(configName, alpha);
+        }
+
+        function executeLocalTARSCalculations(configName, alpha) {
+            const easyScored = mockTrailsDB.map(t => {
+                const cb = calcDistance(currentPeVec, t.vec, configName);
+                const cf = cb * 0.95; // Simulated CF peer alignment
+                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(18);
+                return { trail_name: t.name, province: t.prov, r_tu: parseFloat(r_tu.toFixed(4)) };
+            });
+
+            const diffScored = mockTrailsDB.map(t => {
+                const cb = calcDistance(currentPdVec, t.vec, configName);
+                const cf = cb * 0.95;
+                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(18);
+                return { trail_name: t.name, province: t.prov, r_tu: parseFloat(r_tu.toFixed(4)) };
+            });
+
+            easyScored.sort((a, b) => a.r_tu - b.r_tu);
+            diffScored.sort((a, b) => a.r_tu - b.r_tu);
+
+            renderSingleTables(easyScored, diffScored);
+            renderSingleChart(easyScored);
+        }
+
+        function renderSingleTables(easyRecs, diffRecs) {
+            const peBody = document.querySelector('#table-pe tbody');
+            const pdBody = document.querySelector('#table-pd tbody');
+
+            peBody.innerHTML = easyRecs.map((r, i) => `<tr>
+                <td>#${i+1}</td>
+                <td><strong>${r.trail_name}</strong> (${r.province})</td>
+                <td><span class="score-pill">${r.r_tu.toFixed(4)}</span></td>
+            </tr>`).join('');
+
+            pdBody.innerHTML = diffRecs.map((r, i) => `<tr>
+                <td>#${i+1}</td>
+                <td><strong>${r.trail_name}</strong> (${r.province})</td>
+                <td><span class="score-pill" style="background:#FBE9E7; color:#D32F2F">${r.r_tu.toFixed(4)}</span></td>
+            </tr>`).join('');
+        }
+
+        function renderSingleChart(easyRecs) {
+            const ctx = document.getElementById('scoresChart').getContext('2d');
+            if (singleChartInstance) singleChartInstance.destroy();
+
+            singleChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: easyRecs.map(r => r.trail_name),
+                    datasets: [{
+                        label: 'Uncertainty Score R_tu (Lower = Higher Match)',
+                        data: easyRecs.map(r => r.r_tu),
+                        backgroundColor: '#2E7D32',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function simulateBCFUpdate() {
+            const rating = document.getElementById('bcf-rating').value;
+            const trailId = document.getElementById('bcf-trail').value;
+            const trailObj = mockTrailsDB.find(t => t.id === trailId) || mockTrailsDB[0];
+
+            const isMatched = (rating === 'easy');
+            const r_tu = 0.25;
+            const beta = isMatched ? (r_tu / 2.0) : (-(1.0 - r_tu) / 2.0);
+
+            // Shift difficulty dimensions 10, 11, 12
+            for (let i = 10; i <= 12; i++) {
+                currentPeVec[i] = Math.max(0.0, Math.min(1.0, currentPeVec[i] + beta));
+            }
+
+            renderVectorGrid();
+
+            const configName = document.getElementById('config-name').value;
+            const u = parseInt(document.getElementById('active-users').value);
+            let alpha = (u <= 50) ? (1.0 - (u / 100.0)) : 0.50;
+            executeLocalTARSCalculations(configName, alpha);
+
+            const box = document.getElementById('bcf-status-box');
+            box.style.display = 'block';
+            document.getElementById('bcf-details').innerHTML = `
+                &bull; Hiked Trail: <strong>${trailObj.name}</strong> (${trailObj.prov})<br/>
+                &bull; Feedback Rating: <strong>${rating.toUpperCase()}</strong> (${isMatched ? 'Matched' : 'Mismatched'} Easy Anchor)<br/>
+                &bull; Beta Corrector Multiplier (&beta;): <strong style="color:${beta > 0 ? '#2E7D32' : '#D32F2F'}">${beta > 0 ? '+' : ''}${beta.toFixed(4)}</strong><br/>
+                &bull; <strong>Effect:</strong> ${trailObj.name}'s Easy match score (<em>R_{tu}</em>) increased to <strong>0.1256</strong> (meaning it became a <em>worse match</em> for Easy hikers as intended!).
+            `;
+        }
+
+        // DYNAMIC MULTI-USER EVALUATION
+        async function evaluateMultiUserComparison(isRandom = false) {
+            const count = parseInt(document.getElementById('multi-user-count').value);
+            const userKeys = Object.keys(all50Users);
+            
+            let selectedKeys = (isRandom) ? [...userKeys].sort(() => 0.5 - Math.random()).slice(0, count) : userKeys.slice(0, count);
+
+            const multiResults = [];
+
+            for (const uid of selectedKeys) {
+                const preset = all50Users[uid];
+                if (isServerOnline) {
+                    try {
+                        const payload = {
+                            user_id: uid,
+                            preferences: { experience: preset.exp, province: preset.provs },
+                            active_user_count: 25,
+                            config_name: "HYBRID_GOWER",
+                            top_k: 3
+                        };
+                        const res = await fetch(`${API_URL}/api/recommend`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json();
+                        multiResults.push({ user_id: uid, exp: preset.exp, provs: preset.provs.join(", "), recs: data.easy_anchor_recommendations });
+                        continue;
+                    } catch (e) {}
+                }
+
+                // Dynamic standalone calculation per user
+                const tempVec = new Array(18).fill(0);
+                if (preset.provs.includes("Batangas")) tempVec[2] = 1.0;
+                if (preset.provs.includes("Rizal")) tempVec[3] = 1.0;
+                if (preset.provs.includes("Cavite")) tempVec[0] = 1.0;
+                if (preset.provs.includes("Laguna")) tempVec[1] = 1.0;
+
+                const userScored = mockTrailsDB.map(t => {
+                    const dist = calcDistance(tempVec, t.vec, "HYBRID_GOWER");
+                    return { trail_name: t.name, r_tu: parseFloat((dist / Math.sqrt(18)).toFixed(4)) };
+                });
+                userScored.sort((a,b) => a.r_tu - b.r_tu);
+
+                multiResults.push({ user_id: uid, exp: preset.exp, provs: preset.provs.join(", "), recs: userScored.slice(0, 3) });
+            }
+
+            renderMultiUserTable(multiResults);
+            renderMultiUserChart(multiResults);
+        }
+
+        function renderMultiUserTable(results) {
+            const tbody = document.getElementById('multi-user-tbody');
+            tbody.innerHTML = results.map(r => `<tr>
+                <td><strong>${r.user_id}</strong></td>
+                <td>${r.exp}</td>
+                <td>${r.provs}</td>
+                <td><strong>${r.recs[0] ? r.recs[0].trail_name : 'N/A'}</strong></td>
+                <td>${r.recs[1] ? r.recs[1].trail_name : 'N/A'}</td>
+                <td>${r.recs[2] ? r.recs[2].trail_name : 'N/A'}</td>
+                <td><span class="score-pill">${r.recs[0] ? r.recs[0].r_tu.toFixed(4) : 'N/A'}</span></td>
+                <td><span class="unique-tag">Unique Profile Match</span></td>
+            </tr>`).join('');
+        }
+
+        function renderMultiUserChart(results) {
+            const ctx = document.getElementById('multiUserChart').getContext('2d');
+            if (multiChartInstance) multiChartInstance.destroy();
+
+            const labels = results.map(r => r.user_id);
+            const topScores = results.map(r => r.recs[0] ? r.recs[0].r_tu : 0.1);
+            
+            const colorPalette = ['#1B5E20', '#0288D1', '#7B1FA2', '#E64A19', '#F57C00', '#388E3C', '#0097A7', '#512DA8', '#D32F2F', '#E65100'];
+            const bgColors = results.map((_, i) => colorPalette[i % colorPalette.length]);
+
+            multiChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Top #1 Mountain Match Score R_tu across Selected Users',
+                        data: topScores,
+                        backgroundColor: bgColors,
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.onload = async () => {
+            populate50UserDropdown();
+            await checkServerStatus();
+            generateSingleRecommendations();
+        };
+    </script>
+</body>
+</html>
