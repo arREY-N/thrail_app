@@ -1,21 +1,23 @@
+
 import LoadingScreen from "@/src/app/loading";
+import { CreateOfferFlow } from "@/src/core/flows/CreateOfferFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferWrite } from "@/src/core/hook/offer/useOfferWrite";
-import useTrail from "@/src/core/hook/trail/useTrail";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useTrailList } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import OfferWriteScreen from "@/src/features/Admin/screens/Offer/OfferWriteScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
 
-export default function writeOffer() {
+export default function WriteOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
     const { businessId } = useAuthHook();
     const { onBackPress } = useAppNavigation();
 
     const offerId = getSearchParam(rawOfferId);
 
-    const { trails } = useTrail();
+    const {
+        trails
+    } = useTrailList();
 
     const {
         offer,
@@ -24,10 +26,10 @@ export default function writeOffer() {
         onRemovePress,
         onUpdatePress,
         onSubmitPress,
-    } = useOfferWrite({ offerId, businessId });
-    
+    } = CreateOfferFlow({ offerId, businessId });
+
     if (isLoading || !offer) return <LoadingScreen />;
-    
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
@@ -43,6 +45,6 @@ export default function writeOffer() {
                 onBackPress={onBackPress}
             />
         </>
-        
+
     );
 }

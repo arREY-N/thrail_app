@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export function useBookingAdminItem(bookingId: string, offerId: string) {
@@ -11,8 +11,12 @@ export function useBookingAdminItem(bookingId: string, offerId: string) {
     const offerBookings = useBookingsStore(s => s.bookingByOffer[booking?.offer.id || '']);
 
     useEffect(() => {
-        if (!businessId || !offerId) return;
-        useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId)
+        const fetch = async () => {
+            if (!businessId || !offerId) return;
+            useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId)
+        }
+
+        fetch();
     }, [offerId, businessId])
 
     return {

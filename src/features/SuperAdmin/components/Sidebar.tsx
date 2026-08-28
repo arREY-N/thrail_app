@@ -12,7 +12,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { useAuthStore } from '@/src/core/models/User/stores/authStore';
 import { IconLibrary } from '@/src/types/ui.types';
 import { getInitials } from '@/src/utils/dateFormatter';
 
@@ -107,10 +107,10 @@ const Sidebar = ({
     const fullName = profile ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : '';
     const displayName = fullName || profile?.username || 'SuperAdmin';
     const initials = getInitials(displayName !== 'SuperAdmin' ? displayName : 'SA');
-    const roleTitle = role === 'superadmin' 
-        ? 'System Administrator' 
-        : role === 'admin' 
-            ? 'Business Admin' 
+    const roleTitle = role === 'superadmin'
+        ? 'System Administrator'
+        : role === 'admin'
+            ? 'Business Admin'
             : 'Administrator';
 
     useEffect(() => {
@@ -144,11 +144,11 @@ const Sidebar = ({
     };
 
     return (
-        <Animated.View 
+        <Animated.View
             style={[
-                styles.sidebar, 
-                isMobileDrawer 
-                    ? [styles.sidebarMobile, { paddingTop: topInsetPadding, paddingBottom: 0 }] 
+                styles.sidebar,
+                isMobileDrawer
+                    ? [styles.sidebarMobile, { paddingTop: topInsetPadding, paddingBottom: 0 }]
                     : { width: animatedWidth }
             ]}
         >
@@ -173,16 +173,16 @@ const Sidebar = ({
 
                 {/* Desktop Minimize Toggle Button (Combined in same header row when expanded) */}
                 {!isMobileDrawer && !effectiveCollapsed && (
-                    <TouchableOpacity 
-                        style={styles.minimizeBtn} 
+                    <TouchableOpacity
+                        style={styles.minimizeBtn}
                         onPress={toggleCollapse}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="sidebar" 
-                            size={16} 
-                            color={Colors.PRIMARY} 
+                        <CustomIcon
+                            library="Feather"
+                            name="sidebar"
+                            size={16}
+                            color={Colors.PRIMARY}
                         />
                     </TouchableOpacity>
                 )}
@@ -191,16 +191,16 @@ const Sidebar = ({
             {/* Desktop Minimize Button below logo when Collapsed */}
             {!isMobileDrawer && effectiveCollapsed && (
                 <View style={styles.minimizeRowCollapsed}>
-                    <TouchableOpacity 
-                        style={styles.minimizeBtn} 
+                    <TouchableOpacity
+                        style={styles.minimizeBtn}
                         onPress={toggleCollapse}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="sidebar" 
-                            size={16} 
-                            color={Colors.TEXT_SECONDARY} 
+                        <CustomIcon
+                            library="Feather"
+                            name="sidebar"
+                            size={16}
+                            color={Colors.TEXT_SECONDARY}
                         />
                     </TouchableOpacity>
                 </View>
@@ -254,10 +254,10 @@ const Sidebar = ({
                                             name={item.icon}
                                             size={18}
                                             color={
-                                                isActive 
-                                                    ? Colors.PRIMARY 
-                                                    : hasPending 
-                                                        ? Colors.ERROR 
+                                                isActive
+                                                    ? Colors.PRIMARY
+                                                    : hasPending
+                                                        ? Colors.ERROR
                                                         : Colors.TEXT_SECONDARY
                                             }
                                         />

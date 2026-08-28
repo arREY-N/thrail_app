@@ -3,7 +3,8 @@ import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
-export const useNotification = () => {
+
+export const useNotifications = () => {
     const notifications = useNotificationsStore(s => s.notifications);
 
     const onViewNotification = (notificationId: string) => {
@@ -23,8 +24,6 @@ export const useNotification = () => {
     };
 };
 
-export const useNotifications = useNotification;
-
 export const requestNotificationPermission = async () => {
     console.log("Requesting notification permission...");
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
@@ -39,3 +38,5 @@ export const requestNotificationPermission = async () => {
     }
     return null;
 };
+
+

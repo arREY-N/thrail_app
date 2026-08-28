@@ -7,9 +7,9 @@ export {
 } from "@/src/core/models/Group/utils/GroupFactory";
 
 // UTILITIES
+export { getGroup } from "@/src/core/models/Group/utils/getGroup";
 export { getGroupName } from "@/src/core/models/Group/utils/getGroupName";
 export { updateGroupOnCancellation } from "@/src/core/models/Group/utils/updateGroupOnCancellation";
-
 // STORES
 export { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 

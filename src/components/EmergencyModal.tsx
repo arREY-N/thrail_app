@@ -18,8 +18,8 @@ import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextIn
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
-import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { EmergencyContactFlow } from '@/src/core/flows/EmergencyContactFlow';
+import { useAuthStore } from '@/src/core/models/User/stores/authStore';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -58,20 +58,20 @@ interface UserSearchResult {
  * EmergencyModal — A bottom sheet modal for users to set up or edit their
  * emergency contact information. Optionally allows editing their own phone number.
  */
-const EmergencyModal: React.FC<EmergencyModalProps> = ({ 
-    visible, 
-    onClose, 
-    mode = 'emergency_only', 
-    initialUserPhone = '', 
-    onSaveLocalPhone, 
-    onSkip 
+const EmergencyModal: React.FC<EmergencyModalProps> = ({
+    visible,
+    onClose,
+    mode = 'emergency_only',
+    initialUserPhone = '',
+    onSaveLocalPhone,
+    onSkip
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
     const { profile } = useAuthStore();
-    const { findUser, setEmergencyContact, localError } = useEmergencyContact();
+    const { findUser, setEmergencyContact, localError } = EmergencyContactFlow();
 
     const [myPhone, setMyPhone] = useState(initialUserPhone);
     const [searchEmail, setSearchEmail] = useState('');
@@ -97,19 +97,21 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
     if (visible !== prevVisible) {
         setPrevVisible(visible);
         if (visible) {
+            setRenderModal(true);
+            
             setMyPhone(initialUserPhone);
             setSearchResults([]);
             setShowDropdown(false);
             setErrorMsg(null);
             setInfoMsg(null);
-            
+
             setSearchEmail(profile?.emergencyContact?.email || '');
             setSelectedUser(
-                profile?.emergencyContact?.userId 
-                    ? { 
-                        id: profile.emergencyContact.userId, 
+                profile?.emergencyContact?.userId
+                    ? {
+                        id: profile.emergencyContact.userId,
                         email: profile.emergencyContact.email || ''
-                    } 
+                    }
                     : null
             );
             setContactName(profile?.emergencyContact?.name || '');
@@ -148,7 +150,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
         setShowDropdown(false);
         setErrorMsg(null);
         setInfoMsg(null);
-        
+
         if (selectedUser && text.trim().toLowerCase() !== (selectedUser.email || '').toLowerCase()) {
             setSelectedUser(null);
         }
@@ -158,9 +160,9 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
         setErrorMsg(null);
         setInfoMsg(null);
         const cleanedSearch = searchEmail.trim().toLowerCase();
-        
+
         if (!cleanedSearch) return;
-        
+
         if (cleanedSearch === profile?.email?.trim().toLowerCase()) {
             setErrorMsg("You cannot use your own email as an emergency contact.");
             return;
@@ -168,10 +170,10 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
 
         setIsSearching(true);
         setShowDropdown(false);
-        
+
         try {
             const results = await findUser(cleanedSearch);
-            
+
             if (!results || results.length === 0) {
                 setInfoMsg("No Thrail account found with this email. Please provide the contact name and phone number, we will save this as an external SMS contact.");
                 setSelectedUser(null);
@@ -255,27 +257,27 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
     if (!renderModal) return null;
 
     return (
-        <Modal 
-            visible={renderModal} 
-            transparent 
-            animationType="none" 
+        <Modal
+            visible={renderModal}
+            transparent
+            animationType="none"
             onRequestClose={handleCloseOrSkip}
         >
-            <KeyboardAvoidingView 
-                style={styles.modalContainer} 
+            <KeyboardAvoidingView
+                style={styles.modalContainer}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                
+
                 {/* Animated Background Overlay */}
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
-                    <TouchableOpacity 
-                        style={styles.backdropTouch} 
-                        activeOpacity={1} 
-                        onPress={handleCloseOrSkip} 
+                    <TouchableOpacity
+                        style={styles.backdropTouch}
+                        activeOpacity={1}
+                        onPress={handleCloseOrSkip}
                     />
                 </Animated.View>
 
-                <Animated.View 
+                <Animated.View
                     style={[
                         styles.bottomSheet,
                         isWideScreen ? styles.bottomSheetDesktop : styles.bottomSheetMobile,
@@ -297,22 +299,22 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                         <CustomText variant="h2" style={styles.headerTitle}>
                             {mode === 'unified' ? "Edit Contacts" : "Emergency Setup"}
                         </CustomText>
-                        <TouchableOpacity 
-                            onPress={handleCloseOrSkip} 
-                            style={styles.closeBtn} 
+                        <TouchableOpacity
+                            onPress={handleCloseOrSkip}
+                            style={styles.closeBtn}
                             disabled={isSaving}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="x" 
-                                size={20} 
-                                color={Colors.TEXT_SECONDARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="x"
+                                size={20}
+                                color={Colors.TEXT_SECONDARY}
                             />
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView 
-                        showsVerticalScrollIndicator={false} 
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                     >
 
@@ -324,25 +326,25 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                                 <CustomText style={styles.sectionSubtitle}>
                                     For your guide to reach you during this hike.
                                 </CustomText>
-                                <CustomTextInput 
-                                    label="Phone Number" 
-                                    placeholder="9XX XXX XXXX" 
-                                    prefix="+63" 
-                                    type="phone" 
-                                    value={myPhone} 
-                                    keyboardType="number-pad" 
-                                    onChangeText={setMyPhone} 
-                                    maxLength={12} 
+                                <CustomTextInput
+                                    label="Phone Number"
+                                    placeholder="9XX XXX XXXX"
+                                    prefix="+63"
+                                    type="phone"
+                                    value={myPhone}
+                                    keyboardType="number-pad"
+                                    onChangeText={setMyPhone}
+                                    maxLength={12}
                                 />
                             </View>
                         )}
 
-                        <View 
+                        <View
                             style={[
-                                styles.section, 
-                                { 
-                                    borderTopWidth: mode === 'unified' ? 1 : 0, 
-                                    borderColor: Colors.GRAY_ULTRALIGHT, 
+                                styles.section,
+                                {
+                                    borderTopWidth: mode === 'unified' ? 1 : 0,
+                                    borderColor: Colors.GRAY_ULTRALIGHT,
                                     paddingTop: mode === 'unified' ? 16 : 0
                                 }
                             ]}
@@ -353,34 +355,34 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                             <CustomText style={styles.sectionSubtitle}>
                                 Link a Thrail account by email to enable automated SOS group chats, or enter their details manually below.
                             </CustomText>
-                            
+
                             <View style={styles.searchRow}>
                                 <View style={{ flex: 1 }}>
-                                    <CustomTextInput 
-                                        label="Search by Email (Optional)" 
-                                        placeholder="friend@email.com" 
-                                        value={searchEmail} 
-                                        onChangeText={handleEmailChange} 
-                                        keyboardType="email-address" 
+                                    <CustomTextInput
+                                        label="Search by Email (Optional)"
+                                        placeholder="friend@email.com"
+                                        value={searchEmail}
+                                        onChangeText={handleEmailChange}
+                                        keyboardType="email-address"
                                         autoCapitalize="none"
                                     />
                                 </View>
-                                <TouchableOpacity 
-                                    style={styles.searchBtn} 
-                                    onPress={handleSearch} 
+                                <TouchableOpacity
+                                    style={styles.searchBtn}
+                                    onPress={handleSearch}
                                     disabled={isSearching}
                                 >
                                     {isSearching ? (
-                                        <ActivityIndicator 
-                                            color={Colors.WHITE} 
-                                            size="small" 
+                                        <ActivityIndicator
+                                            color={Colors.WHITE}
+                                            size="small"
                                         />
                                     ) : (
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name="search" 
-                                            size={20} 
-                                            color={Colors.WHITE} 
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="search"
+                                            size={20}
+                                            color={Colors.WHITE}
                                         />
                                     )}
                                 </TouchableOpacity>
@@ -388,18 +390,18 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
 
                             <View style={styles.alertContainer}>
                                 {errorMsg ? (
-                                    <ErrorMessage 
-                                        error={errorMsg} 
-                                        style={{ marginBottom: 12, width: '100%' }} 
+                                    <ErrorMessage
+                                        error={errorMsg}
+                                        style={{ marginBottom: 12, width: '100%' }}
                                     />
                                 ) : null}
                                 {infoMsg ? (
                                     <View style={styles.infoBox}>
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name="info" 
-                                            size={16} 
-                                            color={Colors.PRIMARY} 
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="info"
+                                            size={16}
+                                            color={Colors.PRIMARY}
                                         />
                                         <CustomText style={styles.infoText}>
                                             {infoMsg}
@@ -411,17 +413,17 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                             {showDropdown && searchResults.length > 0 && (
                                 <View style={styles.dropdown}>
                                     {searchResults.map((user) => (
-                                        <TouchableOpacity 
-                                            key={user.id} 
-                                            style={styles.dropdownItem} 
+                                        <TouchableOpacity
+                                            key={user.id}
+                                            style={styles.dropdownItem}
                                             onPress={() => handleSelectUser(user)}
                                         >
                                             <View style={styles.dropdownAvatar}>
-                                                <CustomIcon 
-                                                    library="Feather" 
-                                                    name="user" 
-                                                    size={16} 
-                                                    color={Colors.PRIMARY} 
+                                                <CustomIcon
+                                                    library="Feather"
+                                                    name="user"
+                                                    size={16}
+                                                    color={Colors.PRIMARY}
                                                 />
                                             </View>
                                             <View>
@@ -438,35 +440,35 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                             )}
 
                             <View style={styles.inputSpacing}>
-                                <CustomTextInput 
-                                    label="Contact Name" 
-                                    placeholder="Maria Dela Cruz" 
-                                    value={contactName} 
-                                    onChangeText={setContactName} 
+                                <CustomTextInput
+                                    label="Contact Name"
+                                    placeholder="Maria Dela Cruz"
+                                    value={contactName}
+                                    onChangeText={setContactName}
                                 />
                             </View>
-                            
+
                             <View style={styles.inputSpacing}>
-                                <CustomTextInput 
-                                    label="Contact Phone Number" 
-                                    placeholder="9XX XXX XXXX" 
-                                    prefix="+63" 
-                                    type="phone" 
-                                    value={contactPhone} 
-                                    keyboardType="number-pad" 
-                                    onChangeText={setContactPhone} 
-                                    maxLength={12} 
+                                <CustomTextInput
+                                    label="Contact Phone Number"
+                                    placeholder="9XX XXX XXXX"
+                                    prefix="+63"
+                                    type="phone"
+                                    value={contactPhone}
+                                    keyboardType="number-pad"
+                                    onChangeText={setContactPhone}
+                                    maxLength={12}
                                 />
                             </View>
                         </View>
                     </ScrollView>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[
-                            styles.saveBtn, 
+                            styles.saveBtn,
                             isSaving && { opacity: 0.7 }
-                        ]} 
-                        onPress={handleSave} 
+                        ]}
+                        onPress={handleSave}
                         disabled={isSaving}
                     >
                         {isSaving ? (
@@ -484,154 +486,154 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
 }
 
 const styles = StyleSheet.create({
-    modalContainer: { 
-        flex: 1, 
-        justifyContent: 'flex-end' 
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'flex-end'
     },
-    backdrop: { 
-        ...StyleSheet.absoluteFill, 
-        backgroundColor: Colors.MODAL_OVERLAY 
+    backdrop: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: Colors.MODAL_OVERLAY
     },
-    backdropTouch: { 
-        flex: 1, 
-        width: '100%' 
+    backdropTouch: {
+        flex: 1,
+        width: '100%'
     },
-    bottomSheet: { 
-        backgroundColor: Colors.WHITE, 
-        paddingHorizontal: 24, 
-        paddingTop: 24, 
-        maxHeight: '90%', 
+    bottomSheet: {
+        backgroundColor: Colors.WHITE,
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        maxHeight: '90%',
         ...GlobalStyles.dropShadow(3),
     },
     bottomSheetMobile: {
         width: '100%',
-        borderTopLeftRadius: 32, 
-        borderTopRightRadius: 32, 
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
     },
     bottomSheetDesktop: {
-        alignSelf: 'center', 
-        marginBottom: 'auto', 
-        marginTop: 'auto', 
-        width: 500, 
+        alignSelf: 'center',
+        marginBottom: 'auto',
+        marginTop: 'auto',
+        width: 500,
         borderRadius: 24,
     },
 
-    headerRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 24 
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24
     },
-    headerTitle: { 
-        marginBottom: 0 
+    headerTitle: {
+        marginBottom: 0
     },
-    closeBtn: { 
-        padding: 8, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        borderRadius: 20 
+    closeBtn: {
+        padding: 8,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 20
     },
-    section: { 
-        marginBottom: 4 
+    section: {
+        marginBottom: 4
     },
-    sectionTitle: { 
-        fontSize: 18, 
-        fontWeight: 'bold', 
-        color: Colors.TEXT_PRIMARY, 
-        marginBottom: 4 
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 4
     },
-    sectionSubtitle: { 
-        fontSize: 13, 
-        color: Colors.TEXT_SECONDARY, 
-        marginBottom: 20, 
-        lineHeight: 18 
+    sectionSubtitle: {
+        fontSize: 13,
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 20,
+        lineHeight: 18
     },
-    searchRow: { 
-        flexDirection: 'row', 
-        alignItems: 'flex-start', 
-        gap: 12, 
-        marginBottom: 0, 
-        zIndex: 10 
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        marginBottom: 0,
+        zIndex: 10
     },
-    searchBtn: { 
-        backgroundColor: Colors.PRIMARY, 
-        height: 50, 
-        width: 52, 
-        borderRadius: 16, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginTop: 28 
+    searchBtn: {
+        backgroundColor: Colors.PRIMARY,
+        height: 50,
+        width: 52,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 28
     },
-    alertContainer: { 
-        width: '100%' 
+    alertContainer: {
+        width: '100%'
     },
-    dropdown: { 
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT, 
-        marginBottom: 20, 
-        overflow: 'hidden', 
-        ...GlobalStyles.dropShadow(3) 
+    dropdown: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        marginBottom: 20,
+        overflow: 'hidden',
+        ...GlobalStyles.dropShadow(3)
     },
-    dropdownItem: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        padding: 16, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
-        gap: 12 
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        gap: 12
     },
-    dropdownAvatar: { 
-        width: 36, 
-        height: 36, 
-        borderRadius: 18, 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    dropdownAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    dropdownName: { 
-        fontSize: 15, 
-        color: Colors.TEXT_PRIMARY, 
-        fontWeight: 'bold' 
+    dropdownName: {
+        fontSize: 15,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold'
     },
-    dropdownEmail: { 
-        fontSize: 12, 
-        color: Colors.TEXT_SECONDARY, 
-        marginTop: 2 
+    dropdownEmail: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2
     },
-    inputSpacing: { 
-        marginBottom: 0 
+    inputSpacing: {
+        marginBottom: 0
     },
-    saveBtn: { 
-        backgroundColor: Colors.PRIMARY, 
-        height: 56, 
-        borderRadius: 16, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginTop: 12 
+    saveBtn: {
+        backgroundColor: Colors.PRIMARY,
+        height: 56,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 12
     },
-    saveBtnText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold', 
-        fontSize: 16 
+    saveBtnText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+        fontSize: 16
     },
-    infoBox: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        padding: 12, 
-        borderRadius: 12, 
-        marginBottom: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.STATUS_APPROVED_BORDER, 
-        gap: 8, 
-        width: '100%' 
+    infoBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+        gap: 8,
+        width: '100%'
     },
-    infoText: { 
-        color: Colors.PRIMARY, 
-        fontSize: 13, 
-        flex: 1, 
-        fontWeight: '500' 
+    infoText: {
+        color: Colors.PRIMARY,
+        fontSize: 13,
+        flex: 1,
+        fontWeight: '500'
     }
 });
 

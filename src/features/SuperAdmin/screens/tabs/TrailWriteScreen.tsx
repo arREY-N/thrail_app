@@ -22,9 +22,9 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { Trail } from '@/src/core/models/Trail/Trail';
-import { IUseTrailWrite } from '@/src/core/hook/trail/useTrailWrite';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
+import { Trail } from '@/src/core/models/Trail/Trail';
+import { IUseTrailWrite } from '@/src/core/models/Trail/hooks/useTrailWrite';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 import { ITrailFormField } from '@/src/fields/trailFields';
@@ -300,8 +300,8 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
             <SuperadminShell
                 activeTab="trail"
                 pendingCount={pendingCount}
-                onTabPress={onTabPress || (() => {})}
-                onBackToSettings={onBackToSettings || (() => {})}
+                onTabPress={onTabPress || (() => { })}
+                onBackToSettings={onBackToSettings || (() => { })}
                 titleOverride={screenTitle}
                 leftActionOverride={backHeaderAction}
             >

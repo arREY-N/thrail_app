@@ -8,9 +8,8 @@ export function useUserItem(userId?: string | null) {
 
     useEffect(() => {
         const fetch = async () => {
-            if (userId) {
-                await useUserStore.getState().load(userId);
-            }
+            if (!userId) return
+            await useUserStore.getState().load(userId);
         };
 
         fetch();

@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 
-import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
+import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
 import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
 import { safeParseDateString } from "@/src/utils/dateFormatter";
 
@@ -38,7 +38,7 @@ export function useProfileForm({
     const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
     const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
 
-    const { findUser } = useEmergencyContact();
+    const { findUser } = EmergencyContactFlow();
     const [searchEmail, setSearchEmail] = useState<string>('');
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);

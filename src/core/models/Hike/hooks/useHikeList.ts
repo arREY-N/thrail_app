@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useHikeStore } from "@/src/core/models/Hike/stores/hikeStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export function useHikeList() {

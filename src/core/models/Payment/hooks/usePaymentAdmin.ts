@@ -1,6 +1,6 @@
 import { functions } from "@/src/core/config/Firebase";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, IPayment } from "@/src/core/models/Booking/Booking";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { RefundType } from "@/src/features/Admin/screens/Booking/components/AdminRefundModal";
 import { httpsCallable } from "firebase/functions";

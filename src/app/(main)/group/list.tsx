@@ -1,8 +1,8 @@
 import { Stack } from "expo-router";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useGroupList } from "@/src/core/models/Group/Group";
+import { useAuthHook } from "@/src/core/models/User/User";
 import ListScreen from "@/src/features/Community/screens/Group/ListScreen";
 
 

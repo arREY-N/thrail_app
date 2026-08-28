@@ -3,7 +3,7 @@ import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface"
 import { Application, newApplication, useApplicationsStore } from "@/src/core/models/Application/Application";
 import { User } from "@/src/core/models/User/User";
 
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { validate } from "@/src/core/utility/validate";
 import { ApplicationUIConfig } from "@/src/fields/applicationFields";
 import { router } from "expo-router";

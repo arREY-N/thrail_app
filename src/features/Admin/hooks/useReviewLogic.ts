@@ -45,7 +45,7 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
     }, [booking?.emergencyContact]);
 
     const offerDate = booking?.offer?.date ? new Date(booking.offer.date) : null;
-    const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0,0,0,0) : false;
+    const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
     const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded');
@@ -86,7 +86,7 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         }
         if (booking?.documents) {
             const docsArray: Requirements[] = Array.isArray(booking.documents) 
-                ? booking.documents.map((d, i) => mapDocument(d.name || `Req ${i+1}`, d.file, d.valid))
+                ? booking.documents.map((d, i) => mapDocument(d.name || `Req ${i + 1}`, d.file, d.valid))
                 : Object.entries(booking.documents as unknown as Record<string, Requirements>).map(([k, v]) => mapDocument(v?.name || k, v?.file || '', v?.valid));
             setDocStates(docsArray);
             const initialViewed: Record<number, boolean> = {};
@@ -105,7 +105,7 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
     
     const availableOffers = useMemo(() => {
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
         return offers 
             ? offers
                 .filter((o) => {

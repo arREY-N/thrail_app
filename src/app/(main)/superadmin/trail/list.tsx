@@ -5,14 +5,12 @@
 
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useSuperadminNavigation from "@/src/core/hook/navigation/useSuperadminNavigation";
-import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
-import useTrail from "@/src/core/hook/trail/useTrail";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
+import { useTrailList } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
 import TrailListScreen from "@/src/features/SuperAdmin/screens/tabs/TrailListScreen";
-import React from "react";
 
-export default function listTrail() {
+export default function ListTrail() {
     const { isSuperadmin } = useAuthHook();
 
     const {
@@ -31,7 +29,7 @@ export default function listTrail() {
         trails,
         isLoading,
         error
-    } = useTrail();
+    } = useTrailList();
 
     const {
         pendingApplication

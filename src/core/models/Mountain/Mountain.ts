@@ -15,6 +15,7 @@ export {
 export { useMountain } from "@/src/core/models/Mountain/hooks/useMountain";
 export { useMountainItem } from "@/src/core/models/Mountain/hooks/useMountainItem";
 export { useMountainList } from "@/src/core/models/Mountain/hooks/useMountainList";
+export { useMountainWrite } from "@/src/core/models/Mountain/hooks/useMountainWrite";
 
 // REPOSITORIES
 export { MountainRepo } from "@/src/core/models/Mountain/repositories/MountainRepository";

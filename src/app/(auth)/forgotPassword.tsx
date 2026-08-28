@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useForgotPassword } from "@/src/core/hook/user/useForgotPassword";
+import { useForgotPassword } from "@/src/core/models/User/User";
 import ForgotPasswordScreen from "@/src/features/Auth/screens/ForgotPasswordScreen";
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 

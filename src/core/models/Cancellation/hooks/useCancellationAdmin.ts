@@ -1,7 +1,7 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 
@@ -13,7 +13,7 @@ import {
 } from "@/src/core/models/Booking/Booking";
 
 import {
-    getGroupItem,
+    getGroup,
     Group,
     updateGroupOnCancellation,
     useGroupStore
@@ -39,7 +39,7 @@ export function useCancellationAdmin() {
     const isWriting = useCancellationStore(s => s.isWriting);
 
     const createCancellation = useCancellationStore(s => s.write);
-    const createOffer = useOfferStore(s => s.createOffer);
+    const createOffer = useOfferStore(s => s.newOffer);
     const createBooking = useBookingsStore(s => s.create);
     const createGroup = useGroupStore(s => s.createGroup);
 
@@ -74,7 +74,7 @@ export function useCancellationAdmin() {
                 if (!booking)
                     throw new Error("Booking not found for the provided booking ID.");
 
-                const group: Group | null = await getGroupItem(booking.offer.id);
+                const group: Group | null = await getGroup(booking.offer.id);
 
                 if (!group)
                     throw new Error("Group chat not found for the provided offer ID.");
@@ -85,10 +85,9 @@ export function useCancellationAdmin() {
 
                 const updatedGroup: Group = updateGroupOnCancellation(group, booking.user.id);
 
-                const refundedBooking: Booking | undefined = await onRefund(updatedBooking);
+                await onRefund(updatedBooking, 'full');
 
-                if (!refundedBooking) throw new Error('Refund failed');
-                await createBooking(refundedBooking, true, true);
+                await createBooking(updatedBooking, true, true);
                 await createOffer(updatedOffer);
                 await createGroup(updatedGroup);
             } else {
@@ -109,6 +108,8 @@ export function useCancellationAdmin() {
             const notificationMessage = approved
                 ? "Your cancellation request has been approved."
                 : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided.");
+
+            logger('useCancellationAdmin', notificationMessage);
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationAdmin()');
             setWritingError((error as Error).message || "An unexpected error occurred.");

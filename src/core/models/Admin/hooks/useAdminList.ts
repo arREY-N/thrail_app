@@ -1,5 +1,5 @@
 import { useAdminStore } from "@/src/core/models/Admin/stores/adminStore";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 export function useAdminList(businessId?: string | null) {
     const admins = useAdminStore(s => s.businessAdmins);
@@ -16,14 +16,16 @@ export function useAdminList(businessId?: string | null) {
         fetchAll();
     }, [businessId]);
 
+    const onRefresh = useCallback(async () => {
+        if (businessId) {
+            await useAdminStore.getState().fetchAllByBusinessId(businessId);
+        }
+    }, [businessId]);
+
     return {
         admins,
         isLoading,
         error,
-        reload: async () => {
-            if (businessId) {
-                await useAdminStore.getState().fetchAllByBusinessId(businessId);
-            }
-        },
+        onRefresh,
     };
 }

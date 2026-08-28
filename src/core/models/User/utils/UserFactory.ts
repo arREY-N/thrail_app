@@ -70,6 +70,8 @@ export const newUser = (init?: Partial<User>): User => {
         role: 'user',
         fcmTokens: [],
         emergencyContact: newEmergencyContact(init?.emergencyContact),
+        phoneVerifiedAt: init?.phoneVerifiedAt ? toDate(init.phoneVerifiedAt) : new Date(),
+        profileImage: '',
         ...init,
         ...(init?.birthday ? { birthday: toDate(init.birthday) } : {}),
         ...(init?.createdAt ? { createdAt: toDate(init.createdAt) } : {}),
@@ -96,6 +98,8 @@ const userFromFirestore = (id: string, data: IUserDB): User => {
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
         preferences: newPreference(data.preferences),
+        profileImage: data.profileImage || '',
+        phoneVerifiedAt: data.phoneVerifiedAt ? toDate(data.phoneVerifiedAt) : new Date(),
         medicalProfile: {
             ...data.medicalProfile,
             hasCondition: !!data.medicalProfile?.hasCondition,
@@ -132,6 +136,8 @@ const userToFirestore = (user: User): IUserDB => {
         medicalProfile: user.medicalProfile,
         role: user.role,
         emergencyContact: user.emergencyContact,
+        phoneVerifiedAt: user.phoneVerifiedAt instanceof Date ? Timestamp.fromDate(user.phoneVerifiedAt) : user.phoneVerifiedAt,
+        profileImage: user.profileImage,
     };
 
     return mapped;
