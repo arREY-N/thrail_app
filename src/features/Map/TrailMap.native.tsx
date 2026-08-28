@@ -19,17 +19,43 @@ import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
-const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 // Minimum valid PMTiles size — adjust if your file is smaller
 const MIN_PMTILES_SIZE_BYTES = 18_000_000;
 
 type LoadState = "loading" | "ready" | "error";
 
-// eslint-disable-next-line react/display-name
-const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280, hikerLocations = [], currentUserId }: any, ref) => {
+export interface HikerLocation {
+  id: string;
+  latitude: number;
+  longitude: number;
+  hikerName?: string;
+}
+
+export interface TrailMapProps {
+  initialLon?: number | string | (number | string)[];
+  initialLat?: number | string | (number | string)[];
+  showControls?: boolean;
+  showRecenter?: boolean;
+  bottomInset?: number;
+  hikerLocations?: HikerLocation[];
+  currentUserId?: string;
+}
+
+export interface TrailMapRef {
+  centerOnUser: () => void;
+  centerOnCoordinate: (lon: number, lat: number) => void;
+  toggleOffline: () => void;
+  exportHikeData: () => void;
+  startBackgroundTracking: () => Promise<void>;
+  stopBackgroundTracking: () => Promise<void>;
+}
+
+const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280, hikerLocations = [], currentUserId }, ref) => {
   const {
     userLocation,
     routeCoordinates,
@@ -55,16 +81,17 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
 
-  const cameraRef = useRef<CameraRef | any>(null);
+  const cameraRef = useRef<CameraRef | null>(null);
   const lastZoomRef = useRef<number>(16);
   const lastCenterRef = useRef<[number, number] | null>(null);
 
   // Helper for cross-version camera flyTo animation
   const flyCamera = (center: [number, number], zoom: number, duration = 800) => {
-    if (cameraRef.current?.flyTo) {
-      cameraRef.current.flyTo({ center, zoom, duration });
-    } else if (cameraRef.current?.setCamera) {
-      cameraRef.current.setCamera({
+    const cam = cameraRef.current as any;
+    if (cam?.flyTo) {
+      cam.flyTo({ center, zoom, duration });
+    } else if (cam?.setCamera) {
+      cam.setCamera({
         centerCoordinate: center,
         zoomLevel: zoom,
         animationDuration: duration,
@@ -76,6 +103,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   // ✅ Pre-warm GPS on mount so the blue dot appears instantly
   useEffect(() => {
     initForegroundGps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -103,8 +131,8 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
 
       try {
         await asset.downloadAsync();
-      } catch (e) {
-        console.warn("⚠️ asset.downloadAsync() failed, falling back...");
+      } catch (error) {
+        console.warn("⚠️ asset.downloadAsync() failed, falling back to manual HTTP download:", error);
       }
 
       if (asset.localUri) {
@@ -116,8 +144,9 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
           try {
             await FileSystem.downloadAsync(asset.uri, fileUri);
             downloadSuccess = true;
-          } catch (e) {
+          } catch (error) {
             retries -= 1;
+            console.warn(`⚠️ FileSystem.downloadAsync attempt failed (${retries} retries left):`, error);
             if (retries > 0) await new Promise((r) => setTimeout(r, 2000));
           }
         }
@@ -158,7 +187,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
   const handleRegionWillChange = (event: any) => {
     if (!event?.properties?.isUserInteraction) return;
 
-    const newZoom = event.properties.zoomLevel;
+    const newZoom = event.properties.zoomLevel ?? lastZoomRef.current;
     const [newLon, newLat] = event.geometry?.coordinates ?? [0, 0];
     const zoomChanged = Math.abs(newZoom - lastZoomRef.current) > 0.1;
     const centerChanged = lastCenterRef.current
@@ -252,7 +281,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
         )}
 
         {/* Render other group hikers on the map */}
-        {hikerLocations && hikerLocations.map((hiker: any) => {
+        {hikerLocations && hikerLocations.map((hiker: HikerLocation) => {
           // Skip if coordinate is invalid or is the current user
           if (!hiker || !hiker.latitude || !hiker.longitude) return null;
           if (currentUserId && hiker.id === currentUserId) return null;
@@ -286,6 +315,8 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
     </View>
   );
 });
+
+TrailMap.displayName = "TrailMap";
 
 const styles = StyleSheet.create({
   page: { flex: 1, height: "100%", width: "100%" },
