@@ -1,7 +1,7 @@
 """
 @file recommender.py
 @description Official Thrail App Recommendation System (TARS) Core Engine.
-             Integrates Strategy Pattern Distance Engines, 18-Feature Dataset Vector Mapping,
+             Integrates Strategy Pattern Distance Engines, 17-Feature Dataset Vector Mapping (Duration removed),
              Two-Anchor Profiles (Easy P_e and Difficult P_d), Dynamic Alpha Tuner Parameter (alpha),
              Profile Update Function with Beta Corrector Factor (BCF) matrix, and support for all 23 benchmark configurations.
 """
@@ -13,7 +13,7 @@ import pandas as pd
 from typing import List, Dict, Any, Tuple, Optional
 
 from .distance_strategies import DistanceStrategy, EngineRegistry, EnsembleDistanceStrategy
-from .profile_manager import build_18_feature_vector, TwoAnchorProfileManager, NUM_FEATURES
+from .profile_manager import build_17_feature_vector, build_18_feature_vector, TwoAnchorProfileManager, NUM_FEATURES
 
 logger = logging.getLogger("recommendation_engine")
 
@@ -21,8 +21,10 @@ logger = logging.getLogger("recommendation_engine")
 def calculate_alpha_tuner(active_user_count: int, steady_state_threshold: int = 50) -> float:
     u = max(0, active_user_count)
     m = max(1, steady_state_threshold)
-    if u <= m:
-        alpha = 1.0 - (float(u) / (2.0 * float(m)))
+    if u <= 0:
+        alpha = 1.0
+    elif u <= m:
+        alpha = 1.0 - (float(m) / (2.0 * float(u)))
     else:
         alpha = 0.5
     return float(np.clip(alpha, 0.5, 1.0))
@@ -64,10 +66,15 @@ class HybridRecommender:
 
         self.trail_ids = self.trails_df['id'].tolist() if 'id' in self.trails_df.columns else [f"trail_{i:03d}" for i in range(len(self.trails_df))]
         
+        len_col = 'difficulty_length' if 'difficulty_length' in self.trails_df.columns else ('length' if 'length' in self.trails_df.columns else None)
+        gain_col = 'difficulty_gain' if 'difficulty_gain' in self.trails_df.columns else ('gain' if 'gain' in self.trails_df.columns else None)
+        self.max_length = float(self.trails_df[len_col].dropna().max()) if len_col else None
+        self.max_gain = float(self.trails_df[gain_col].dropna().max()) if gain_col else None
+
         vectors = []
         for _, row in self.trails_df.iterrows():
             row_dict = row.to_dict()
-            vec = build_18_feature_vector(row_dict)
+            vec = build_17_feature_vector(row_dict, max_length=self.max_length, max_gain=self.max_gain)
             vectors.append(vec)
 
         self.trail_vectors = np.array(vectors, dtype=np.float32)
@@ -87,7 +94,7 @@ class HybridRecommender:
 
         return cb_scores
 
-    def compute_cf_scores(self, target_profile_vec: np.ndarray, cb_scores: np.ndarray) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def compute_cf_scores(self, target_profile_vec: np.ndarray, cb_scores: np.ndarray, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         stats = {"computed_pairs": 0, "skipped_pairs": 0}
         n_trails = len(self.trail_vectors)
         if n_trails == 0 or self.ratings_df.empty or 'user_id' not in self.ratings_df.columns:
@@ -116,10 +123,10 @@ class HybridRecommender:
 
         cb_uv = np.zeros(len(peer_matrix), dtype=np.float32)
         for v in range(len(peer_matrix)):
-            cb_uv[v] = self.strategy.calculate_distance(target_profile_vec, peer_matrix[v])
+            cb_uv[v] = self.strategy.calculate_distance(target_profile_vec, peer_matrix[v], weights=weights)
             stats["computed_pairs"] += 1
 
-        cb_vt_matrix, matrix_stats = self.strategy.calculate_matrix(peer_matrix, self.trail_vectors)
+        cb_vt_matrix, matrix_stats = self.strategy.calculate_matrix(peer_matrix, self.trail_vectors, weights=weights)
         stats["skipped_pairs"] += matrix_stats.get("skipped_pairs", 0)
 
         cf_scores = np.zeros(n_trails, dtype=np.float32)
@@ -136,26 +143,34 @@ class HybridRecommender:
         preferences: Dict[str, Any],
         top_k: int = 5,
         active_user_count: int = 1,
-        config_override: Optional[str] = None
+        config_override: Optional[str] = None,
+        weight_mode: str = "uniform"
     ) -> Dict[str, Any]:
         current_config = config_override if config_override else self.config_name
         current_strategy = EngineRegistry.get_engine(current_config)
 
-        p_e, p_d = TwoAnchorProfileManager.create_anchor_profiles(preferences)
+        from .distance_strategies import UNIFORM_WEIGHTS, GROUP_BALANCED_WEIGHTS
+        feature_weights = GROUP_BALANCED_WEIGHTS if str(weight_mode).lower() == "group_balanced" else UNIFORM_WEIGHTS
+
+        p_e, p_d = TwoAnchorProfileManager.create_anchor_profiles(
+            preferences,
+            max_length=getattr(self, 'max_length', None),
+            max_gain=getattr(self, 'max_gain', None)
+        )
 
         alpha = calculate_alpha_tuner(active_user_count, self.steady_state_threshold)
         logger.info(f"Calculated Alpha Tuner alpha = {alpha:.4f} for u = {active_user_count} active users.")
 
         cb_easy = np.zeros(len(self.trail_vectors), dtype=np.float32)
         for i in range(len(self.trail_vectors)):
-            cb_easy[i] = current_strategy.calculate_distance(p_e, self.trail_vectors[i])
+            cb_easy[i] = current_strategy.calculate_distance(p_e, self.trail_vectors[i], weights=feature_weights)
 
         cb_diff = np.zeros(len(self.trail_vectors), dtype=np.float32)
         for i in range(len(self.trail_vectors)):
-            cb_diff[i] = current_strategy.calculate_distance(p_d, self.trail_vectors[i])
+            cb_diff[i] = current_strategy.calculate_distance(p_d, self.trail_vectors[i], weights=feature_weights)
 
-        cf_easy, opt_stats = self.compute_cf_scores(p_e, cb_easy)
-        cf_diff, _ = self.compute_cf_scores(p_d, cb_diff)
+        cf_easy, opt_stats = self.compute_cf_scores(p_e, cb_easy, weights=feature_weights)
+        cf_diff, _ = self.compute_cf_scores(p_d, cb_diff, weights=feature_weights)
 
         norm_factor = np.sqrt(float(NUM_FEATURES))
 

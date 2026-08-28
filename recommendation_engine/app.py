@@ -22,7 +22,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from core.recommender import HybridRecommender, calculate_alpha_tuner
-from core.profile_manager import TwoAnchorProfileManager, build_18_feature_vector
+from core.profile_manager import TwoAnchorProfileManager, build_17_feature_vector, build_18_feature_vector
 from core.distance_strategies import EngineRegistry
 
 # Configure Structured Logging
@@ -63,11 +63,12 @@ class RecommendRequest(BaseModel):
     active_user_count: int = Field(default=10, ge=1, description="Current number of active users u in system")
     config_name: str = Field(default="HYBRID_GOWER", description="One of the 23 TARS benchmark configurations")
     top_k: int = Field(default=5, ge=1, description="Number of recommendations to return")
+    weight_mode: str = Field(default="uniform", description="Feature weighting mode ('uniform' or 'group_balanced')")
 
 class ProfileUpdateRequest(BaseModel):
     user_id: str = Field(..., description="Unique user identifier")
-    p_old_easy: List[float] = Field(..., description="18-feature vector for old Easy profile P_e")
-    p_old_difficult: List[float] = Field(..., description="18-feature vector for old Difficult profile P_d")
+    p_old_easy: List[float] = Field(..., description="17-feature vector for old Easy profile P_e")
+    p_old_difficult: List[float] = Field(..., description="17-feature vector for old Difficult profile P_d")
     hiked_trails: List[Dict[str, Any]] = Field(..., description="List of hiked trail dictionaries")
     r_tu_scores: List[float] = Field(..., description="List of calculated R_tu recommendation scores")
     actual_difficulties: List[str] = Field(..., description="User actual difficulty feedback ('easy' or 'difficult') for each trail")
@@ -166,7 +167,8 @@ async def recommend(payload: RecommendRequest):
         preferences=pref_dict,
         top_k=payload.top_k,
         active_user_count=payload.active_user_count,
-        config_override=payload.config_name
+        config_override=payload.config_name,
+        weight_mode=payload.weight_mode
     )
 
     easy_items = [TrailRecommendationItem(**rec) for rec in result["easy_anchor_recommendations"]]

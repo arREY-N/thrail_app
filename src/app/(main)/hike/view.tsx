@@ -18,6 +18,8 @@ import { useHikeWrite } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
+const SCREEN_OPTIONS = { headerShown: false };
+
 export default function HikeView() {
     const { hikeId: rawId, trailId: rawTrail, groupId: rawGroup, bookingId: rawBooking, lon: paramLon, lat: paramLat } = useLocalSearchParams();
 
@@ -99,7 +101,7 @@ export default function HikeView() {
 
     return (
         <>
-            <Stack.Screen options={{ headerShown: false }} />
+            <Stack.Screen options={SCREEN_OPTIONS} />
 
             <HikeRecordingScreen
                 fullOffer={fullOffer}

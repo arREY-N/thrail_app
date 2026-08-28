@@ -18,50 +18,10 @@ export const fetchWeatherFromApi = async (
   const cachedData = await AsyncStorage.getItem(CACHE_KEY);
   const now = Date.now();
 
-  /**
-   * ============================================================================
-   * DEV OVERRIDE SECTION
-   * ============================================================================
-   * To remove these developer mocked conditions and use REAL live weather data:
-   * 
-   * 1. Delete this entire `applyDevOverrides` function block (lines ~26-52).
-   * 2. Remove the `applyDevOverrides(...)` wrapper from the three return statements below:
-   *    - Replace: `return applyDevOverrides({ ...data, isStale: false });` -> `return { ...data, isStale: false };`
-   *    - Replace: `return applyDevOverrides(transformed);` -> `return transformed;`
-   *    - Replace: `return applyDevOverrides({ ...data, isStale: true });` -> `return { ...data, isStale: true };`
-   * ============================================================================
-   */
-  const applyDevOverrides = (data: ProcessedWeatherData): ProcessedWeatherData => {
-    if (typeof __DEV__ === 'undefined' || !__DEV__) return data;
-
-    // Batulao: Sunny & Safe
-    if (roundLat === "14.0399" && roundLon === "120.8024") {
-      data.temperature = 34;
-      data.weatherCode = 0; // Clear sky
-      data.windSpeed = 10;
-      data.precipitationProbability = 0;
-    }
-    // Maculot: Rainy & Caution
-    else if (roundLat === "13.9209" && roundLon === "121.0517") {
-      data.temperature = 24;
-      data.weatherCode = 61; // Rain
-      data.windSpeed = 45; // >40kmh triggers CAUTION
-      data.precipitationProbability = 60;
-    }
-    // Makiling: Thunderstorm & Danger
-    else if (roundLat === "14.1352" && roundLon === "121.1945") {
-      data.temperature = 20;
-      data.weatherCode = 95; // Thunderstorm triggers DANGER
-      data.windSpeed = 65; 
-      data.precipitationProbability = 95;
-    }
-    return data;
-  };
-
   if (cachedData) {
     const { data, timestamp } = JSON.parse(cachedData);
     if (now - timestamp < CACHE_EXPIRY_MS) {
-      return applyDevOverrides({ ...data, isStale: false });
+      return { ...data, isStale: false };
     }
   }
 
@@ -121,12 +81,13 @@ export const fetchWeatherFromApi = async (
         timestamp: now,
     }));
 
-    return applyDevOverrides(transformed);
+    return transformed;
   } catch (error) {
+    console.warn('[weatherRepository] Weather API fetch error:', error);
     if (cachedData) {
       // Return stale, but gracefully
       const { data } = JSON.parse(cachedData);
-      return applyDevOverrides({ ...data, isStale: true });
+      return { ...data, isStale: true };
     }
     throw new Error(
       "Failed to fetch weather data and no valid cache available.",

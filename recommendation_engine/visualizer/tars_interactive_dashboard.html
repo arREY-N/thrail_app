@@ -410,6 +410,21 @@
                             </div>
                         </div>
 
+                        <!-- FEATURE WEIGHTING MODE TOGGLE -->
+                        <div class="form-group">
+                            <label><strong>Feature Weighting Mode:</strong></label>
+                            <div style="display:flex; flex-direction:column; gap:8px; background:#F1F8E9; padding:10px 12px; border-radius:6px; border:1px solid #C8E6C9; margin-top:4px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; cursor:pointer;">
+                                    <input type="radio" name="weight_mode" value="uniform" checked onchange="generateSingleRecommendations()" />
+                                    <span><strong>Uniform Weights</strong> (Standard unweighted: all 17 features = 1.0)</span>
+                                </label>
+                                <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:normal; cursor:pointer;">
+                                    <input type="radio" name="weight_mode" value="group_balanced" onchange="generateSingleRecommendations()" />
+                                    <span><strong>Group-Balanced Weights</strong> (Difficulty 40%, Provinces 30%, Affinities 15%, Tourism 15%)</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <button class="btn-primary" onclick="generateSingleRecommendations()">Recalculate Recommendations</button>
                     </div>
 
@@ -424,8 +439,9 @@
                             <select id="bcf-trail">
                                 <option value="trail_001">Mt. Daraitan (Rizal)</option>
                                 <option value="trail_002">Mt. Batulao (Batangas)</option>
-                                <option value="trail_004">Mt. Makiling (Laguna)</option>
-                                <option value="trail_005">Mt. Pico de Loro (Cavite)</option>
+                                <option value="trail_003">Mt. Makiling (Laguna)</option>
+                                <option value="trail_004">Mt. Tagapo (Rizal)</option>
+                                <option value="trail_005">Mt. Kulis (Rizal)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -448,12 +464,12 @@
                 <div class="results-column">
                     <div class="card">
                         <h2>
-                            Engine Status & Alpha-Tuner Gauge
+                            Active Recommendation Strategy Engine: 
                             <span class="badge badge-hybrid" id="active-config-badge">HYBRID_GOWER</span>
                         </h2>
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;">
                             <span>Computed Alpha Weight (&alpha;): <strong id="alpha-val" style="color:var(--primary)">0.7500</strong></span>
-                            <span>Formula: <code>&alpha; = 1 - u/(2m)</code> if u &le; m else <code>0.50</code> [m = 50]</span>
+                            <span>Formula: <code>&alpha; = 1 - m/(2u)</code> if u &le; m else <code>0.50</code> [m = 50]</span>
                         </div>
                         <div style="background:#E0E0E0; height:10px; border-radius:5px; overflow:hidden; margin-top:8px;">
                             <div id="alpha-gauge-fill" style="height:100%; background:linear-gradient(90deg, #2E7D32, #0288D1); width:75%;"></div>
@@ -461,7 +477,7 @@
                     </div>
 
                     <div class="card">
-                        <h2>18-Feature Dataset Vector Visualizer ($p=18$)</h2>
+                        <h2>17-Feature Dataset Vector Visualizer ($p=17$)</h2>
                         <div style="display:flex; gap:12px; margin-bottom:10px;">
                             <button class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="switchVectorTab('pe', this)">Easy Profile Vector (P_e)</button>
                             <button class="btn-secondary" style="padding:6px 12px; font-size:12px; background:#757575;" onclick="switchVectorTab('pd', this)">Difficult Profile Vector (P_d)</button>
@@ -472,17 +488,17 @@
                     </div>
 
                     <div class="card">
-                        <h2>Dual Anchor Recommendations ($P_e$ Easy vs $P_d$ Difficult) — All Candidate Mountains</h2>
+                        <h2>Dual Anchor Recommendations ($P_e$ Easy vs $P_d$ Difficult) — All 5 Candidate Mountains</h2>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
                             <div style="max-height: 420px; overflow-y: auto;">
-                                <h3 style="color:#2E7D32; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Easy Anchor ($P_e$) Recommendations (Rank #1 to #10)</h3>
+                                <h3 style="color:#2E7D32; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Easy Anchor ($P_e$) Recommendations (Rank #1 to #5)</h3>
                                 <table id="table-pe">
                                     <thead><tr><th>Rank</th><th>Mountain</th><th>R_tu Score</th></tr></thead>
                                     <tbody></tbody>
                                 </table>
                             </div>
                             <div style="max-height: 420px; overflow-y: auto;">
-                                <h3 style="color:#E64A19; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Difficult Anchor ($P_d$) Recommendations (Rank #1 to #10)</h3>
+                                <h3 style="color:#E64A19; font-size:14px; margin-top:0; position:sticky; top:0; background:white;">Difficult Anchor ($P_d$) Recommendations (Rank #1 to #5)</h3>
                                 <table id="table-pd">
                                     <thead><tr><th>Rank</th><th>Mountain</th><th>R_tu Score</th></tr></thead>
                                     <tbody></tbody>
@@ -565,28 +581,23 @@
         let multiChartInstance = null;
         let activeTab = 'pe';
 
-        let currentPeVec = new Array(18).fill(0);
-        let currentPdVec = new Array(18).fill(0);
+        let currentPeVec = new Array(17).fill(0);
+        let currentPdVec = new Array(17).fill(0);
 
         const featureLabels = [
             "Cavite", "Laguna", "Batangas", "Rizal", "Quezon",
             "Mt1", "Mt2", "Mt3", "Mt4", "Mt5",
-            "LASCO", "Hours", "Len/Gain",
+            "LASCO", "Len/Gain",
             "Infra1", "Infra2", "Infra3", "Infra4", "Infra5"
         ];
 
-        // 10 Mock Trails Database (matching trails_mock.csv)
+        // 5 Target Mountains Database (matching trails_mock.csv, 17 features)
         const mockTrailsDB = [
-            { id: "trail_001", name: "Mt. Daraitan", prov: "Rizal", lasco: 4.0, hours: 4.5, len: 8.0, gain: 600, vec: [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0.44, 0.38, 0.28, 1, 1, 1, 1, 0] },
-            { id: "trail_002", name: "Mt. Batulao", prov: "Batangas", lasco: 3.0, hours: 4.0, len: 12.0, gain: 400, vec: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0.33, 0.33, 0.30, 1, 1, 0, 0, 0] },
-            { id: "trail_003", name: "Mt. Maculot", prov: "Batangas", lasco: 4.0, hours: 3.5, len: 6.0, gain: 500, vec: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0.44, 0.29, 0.23, 1, 1, 0, 0, 0] },
-            { id: "trail_004", name: "Mt. Makiling", prov: "Laguna", lasco: 6.0, hours: 7.0, len: 16.0, gain: 900, vec: [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0.67, 0.58, 0.49, 0, 1, 1, 1, 0] },
-            { id: "trail_005", name: "Mt. Pico de Loro", prov: "Cavite", lasco: 3.0, hours: 4.0, len: 9.5, gain: 350, vec: [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.33, 0.33, 0.25, 1, 1, 0, 0, 0] },
-            { id: "trail_006", name: "Mt. Talamitam", prov: "Batangas", lasco: 3.0, hours: 3.0, len: 7.5, gain: 300, vec: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0.33, 0.25, 0.20, 1, 1, 0, 0, 0] },
-            { id: "trail_007", name: "Mt. Gulugod Baboy", prov: "Batangas", lasco: 2.0, hours: 2.5, len: 5.0, gain: 250, vec: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0.22, 0.21, 0.15, 1, 1, 1, 0, 1] },
-            { id: "trail_008", name: "Mt. Cristobal", prov: "Laguna", lasco: 7.0, hours: 8.0, len: 14.0, gain: 1100, vec: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0.78, 0.67, 0.51, 0, 0, 1, 0, 0] },
-            { id: "trail_009", name: "Mt. Sembrano", prov: "Rizal", lasco: 5.0, hours: 5.0, len: 11.0, gain: 650, vec: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.56, 0.42, 0.35, 1, 1, 1, 0, 0] },
-            { id: "trail_010", name: "Mt. Kalisungan", prov: "Laguna", lasco: 4.0, hours: 4.0, len: 8.5, gain: 480, vec: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0.44, 0.33, 0.26, 1, 1, 0, 0, 0] }
+            { id: "trail_001", name: "Mt. Daraitan", prov: "Rizal", lasco: 4.0, hours: 4.5, len: 8.0, gain: 600, vec: [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0.44, 0.28, 1, 1, 1, 1, 0] },
+            { id: "trail_002", name: "Mt. Batulao", prov: "Batangas", lasco: 3.0, hours: 4.0, len: 12.0, gain: 400, vec: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0.33, 0.30, 1, 1, 0, 0, 0] },
+            { id: "trail_003", name: "Mt. Makiling", prov: "Laguna", lasco: 6.0, hours: 7.0, len: 16.0, gain: 900, vec: [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0.67, 0.49, 0, 1, 1, 1, 0] },
+            { id: "trail_004", name: "Mt. Tagapo", prov: "Rizal", lasco: 2.0, hours: 3.0, len: 5.0, gain: 350, vec: [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0.22, 0.22, 1, 1, 1, 0, 0] },
+            { id: "trail_005", name: "Mt. Kulis", prov: "Rizal", lasco: 2.0, hours: 2.5, len: 4.0, gain: 250, vec: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.22, 0.18, 1, 1, 0, 0, 0] }
         ];
 
         // 50 Preset User Profiles
@@ -673,7 +684,7 @@
         }
 
         function buildVectorFromUI() {
-            const vec = new Array(18).fill(0);
+            const vec = new Array(17).fill(0);
             
             const provs = Array.from(document.querySelectorAll('input[name="province"]:checked')).map(c => c.value);
             if (provs.includes("Cavite")) vec[0] = 1.0;
@@ -694,14 +705,13 @@
             else if (exp === "Regular") vec[10] = 0.555;
             else vec[10] = 0.888;
 
-            vec[11] = 0.333; // ~4 hours
-            vec[12] = 0.250; // length/gain index
+            vec[11] = vec[10]; // Physical stamina aligns with experience level
 
-            if (document.getElementById('infra-1').checked) vec[13] = 1.0;
-            if (document.getElementById('infra-2').checked) vec[14] = 1.0;
-            if (document.getElementById('infra-3').checked) vec[15] = 1.0;
-            if (document.getElementById('infra-4').checked) vec[16] = 1.0;
-            if (document.getElementById('infra-5').checked) vec[17] = 1.0;
+            if (document.getElementById('infra-1').checked) vec[12] = 1.0;
+            if (document.getElementById('infra-2').checked) vec[13] = 1.0;
+            if (document.getElementById('infra-3').checked) vec[14] = 1.0;
+            if (document.getElementById('infra-4').checked) vec[15] = 1.0;
+            if (document.getElementById('infra-5').checked) vec[16] = 1.0;
 
             return vec;
         }
@@ -710,7 +720,7 @@
             const vec = (activeTab === 'pe') ? currentPeVec : currentPdVec;
             const grid = document.getElementById('vector-grid');
             let html = "";
-            for (let i = 0; i < 18; i++) {
+            for (let i = 0; i < 17; i++) {
                 html += `<div class="vector-box">
                     <span style="color:var(--text-light)">${featureLabels[i]}</span>
                     <strong>${typeof vec[i] === 'number' ? vec[i].toFixed(2) : vec[i]}</strong>
@@ -726,8 +736,26 @@
             renderVectorGrid();
         }
 
-        // REAL-TIME VECTOR DISTANCE CALCULATOR ENGINES (Gower, Euclidean, Cosine)
-        function calcDistance(userVec, trailVec, configName) {
+        // FEATURE WEIGHT VECTORS (Uniform vs Group-Balanced)
+        const UNIFORM_WEIGHTS = new Array(17).fill(1.0);
+        const GROUP_BALANCED_WEIGHTS = [
+            0.6, 0.6, 0.6, 0.6, 0.6,   // Dims 0..4: Provinces
+            0.5, 0.5, 0.5, 0.5, 0.5,   // Dims 5..9: Mountain Affinities
+            3.5, 3.5,                  // Dims 10..11: Difficulty & Stamina (Heavy Weight)
+            0.9, 0.9, 0.9, 0.9, 0.9    // Dims 12..16: Tourism Facilities
+        ];
+
+        function getActiveWeightMode() {
+            const checkedRadio = document.querySelector('input[name="weight_mode"]:checked');
+            return checkedRadio ? checkedRadio.value : 'uniform';
+        }
+
+        // REAL-TIME VECTOR DISTANCE CALCULATOR ENGINES (Gower, Euclidean, Cosine - 17 Features)
+        function calcDistance(userVec, trailVec, configName, weightMode = 'uniform') {
+            const weights = (weightMode === 'group_balanced') ? GROUP_BALANCED_WEIGHTS : UNIFORM_WEIGHTS;
+            let wSum = 0;
+            for (let i = 0; i < 17; i++) wSum += weights[i];
+
             let w_gd = 1.0, w_ed = 0.0, w_cd = 0.0;
             if (configName.includes("EUCLIDEAN")) { w_gd = 0.0; w_ed = 1.0; }
             if (configName.includes("COSINE")) { w_gd = 0.0; w_cd = 1.0; }
@@ -738,24 +766,27 @@
 
             let totalDist = 0.0;
             if (w_gd > 0) {
-                // Gower
+                // Gower (p = 17)
                 let diffSum = 0;
-                for (let i = 0; i < 18; i++) diffSum += Math.abs(userVec[i] - trailVec[i]);
-                totalDist += w_gd * (diffSum / 18.0);
+                for (let i = 0; i < 17; i++) diffSum += weights[i] * Math.abs(userVec[i] - trailVec[i]);
+                totalDist += w_gd * (diffSum / wSum);
             }
             if (w_ed > 0) {
-                // Euclidean
+                // Euclidean (p = 17)
                 let sqSum = 0;
-                for (let i = 0; i < 18; i++) sqSum += Math.pow(userVec[i] - trailVec[i], 2);
-                totalDist += w_ed * (Math.sqrt(sqSum) / Math.sqrt(18));
+                for (let i = 0; i < 17; i++) sqSum += weights[i] * Math.pow(userVec[i] - trailVec[i], 2);
+                totalDist += w_ed * (Math.sqrt(sqSum) / Math.sqrt(wSum));
             }
             if (w_cd > 0) {
-                // Cosine
+                // Cosine (p = 17)
                 let dot = 0, normA = 0, normB = 0;
-                for (let i = 0; i < 18; i++) {
-                    dot += userVec[i] * trailVec[i];
-                    normA += userVec[i] * userVec[i];
-                    normB += trailVec[i] * trailVec[i];
+                for (let i = 0; i < 17; i++) {
+                    const sqrtW = Math.sqrt(weights[i]);
+                    const wa = userVec[i] * sqrtW;
+                    const wb = trailVec[i] * sqrtW;
+                    dot += wa * wb;
+                    normA += wa * wa;
+                    normB += wb * wb;
                 }
                 const sim = (normA && normB) ? (dot / (Math.sqrt(normA) * Math.sqrt(normB))) : 0;
                 totalDist += w_cd * (1.0 - sim);
@@ -771,15 +802,17 @@
             const u = parseInt(document.getElementById('active-users').value);
             document.getElementById('active-users-val').innerText = u;
             
+            const weightMode = getActiveWeightMode();
+
             const m = 50;
-            let alpha = (u <= m) ? (1.0 - (u / (2 * m))) : 0.50;
+            let alpha = (u <= 0) ? 1.0 : ((u <= m) ? (1.0 - (m / (2 * u))) : 0.50);
             alpha = Math.max(0.5, Math.min(1.0, alpha));
 
             document.getElementById('alpha-val').innerText = alpha.toFixed(4);
             document.getElementById('alpha-gauge-fill').style.width = `${(alpha * 100).toFixed(1)}%`;
 
             currentPeVec = buildVectorFromUI();
-            currentPdVec = currentPeVec.map((v, i) => (i >= 10 && i <= 12) ? Math.min(1.0, v + 0.35) : v);
+            currentPdVec = currentPeVec.map((v, i) => (i >= 10 && i <= 11) ? Math.min(1.0, v + 0.35) : v);
             renderVectorGrid();
 
             if (isServerOnline) {
@@ -794,7 +827,8 @@
                         },
                         active_user_count: u,
                         config_name: configName,
-                        top_k: 10
+                        top_k: 10,
+                        weight_mode: weightMode
                     };
 
                     const res = await fetch(`${API_URL}/api/recommend`, {
@@ -812,22 +846,22 @@
                 }
             }
 
-            // Real-Time Standalone Calculation Engine
-            executeLocalTARSCalculations(configName, alpha);
+            // Real-Time Standalone Calculation Engine (p = 17)
+            executeLocalTARSCalculations(configName, alpha, weightMode);
         }
 
-        function executeLocalTARSCalculations(configName, alpha) {
+        function executeLocalTARSCalculations(configName, alpha, weightMode = 'uniform') {
             const easyScored = mockTrailsDB.map(t => {
-                const cb = calcDistance(currentPeVec, t.vec, configName);
+                const cb = calcDistance(currentPeVec, t.vec, configName, weightMode);
                 const cf = cb * 0.95; // Simulated CF peer alignment
-                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(18);
+                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(17);
                 return { trail_name: t.name, province: t.prov, r_tu: parseFloat(r_tu.toFixed(4)) };
             });
 
             const diffScored = mockTrailsDB.map(t => {
-                const cb = calcDistance(currentPdVec, t.vec, configName);
+                const cb = calcDistance(currentPdVec, t.vec, configName, weightMode);
                 const cf = cb * 0.95;
-                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(18);
+                const r_tu = (alpha * cb + (1 - alpha) * cf) / Math.sqrt(17);
                 return { trail_name: t.name, province: t.prov, r_tu: parseFloat(r_tu.toFixed(4)) };
             });
 
@@ -883,8 +917,8 @@
             const r_tu = 0.25;
             const beta = isMatched ? (r_tu / 2.0) : (-(1.0 - r_tu) / 2.0);
 
-            // Shift difficulty dimensions 10, 11, 12
-            for (let i = 10; i <= 12; i++) {
+            // Shift difficulty dimensions 10, 11 (duration removed)
+            for (let i = 10; i <= 11; i++) {
                 currentPeVec[i] = Math.max(0.0, Math.min(1.0, currentPeVec[i] + beta));
             }
 
@@ -892,7 +926,8 @@
 
             const configName = document.getElementById('config-name').value;
             const u = parseInt(document.getElementById('active-users').value);
-            let alpha = (u <= 50) ? (1.0 - (u / 100.0)) : 0.50;
+            let alpha = (u <= 0) ? 1.0 : ((u <= 50) ? (1.0 - (50.0 / (2.0 * u))) : 0.50);
+            alpha = Math.max(0.5, Math.min(1.0, alpha));
             executeLocalTARSCalculations(configName, alpha);
 
             const box = document.getElementById('bcf-status-box');
@@ -936,8 +971,8 @@
                     } catch (e) {}
                 }
 
-                // Dynamic standalone calculation per user
-                const tempVec = new Array(18).fill(0);
+                // Dynamic standalone calculation per user (p = 17)
+                const tempVec = new Array(17).fill(0);
                 if (preset.provs.includes("Batangas")) tempVec[2] = 1.0;
                 if (preset.provs.includes("Rizal")) tempVec[3] = 1.0;
                 if (preset.provs.includes("Cavite")) tempVec[0] = 1.0;
@@ -945,7 +980,7 @@
 
                 const userScored = mockTrailsDB.map(t => {
                     const dist = calcDistance(tempVec, t.vec, "HYBRID_GOWER");
-                    return { trail_name: t.name, r_tu: parseFloat((dist / Math.sqrt(18)).toFixed(4)) };
+                    return { trail_name: t.name, r_tu: parseFloat((dist / Math.sqrt(17)).toFixed(4)) };
                 });
                 userScored.sort((a,b) => a.r_tu - b.r_tu);
 

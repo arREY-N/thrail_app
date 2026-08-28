@@ -2,7 +2,7 @@ import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { useAuthStore } from "@/src/core/models/User/User";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -87,8 +87,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 return;
             }
 
-            if (!profile) throw new Error("Cannot save coordinates without user");
-            if (!currentHike) throw new Error("Cannot save coordinates without active hike");
+            if (!profile) {
+                console.warn("[addCoordinate] Skipped: No user profile found.");
+                return;
+            }
+            if (!currentHike) {
+                console.warn("[addCoordinate] Skipped: No active hike found.");
+                return;
+            }
 
             set((state) => {
                 if (state.currentHike && state.active && state.currentHike.status === 'started') {
@@ -115,26 +121,32 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const updatedCoordinates = get().coordinates;
 
             if (updatedCoordinates.length % 5 === 0 && updatedCoordinates.length !== 0 && get().currentHike) {
-                await HikeRepo.writeCoordinates(
-                    profile.id,
-                    currentHike.id,
-                    updatedCoordinates
-                );
-                set({ coordinates: [updatedCoordinates[updatedCoordinates.length - 1]] });
+                try {
+                    await HikeRepo.writeCoordinates(
+                        profile.id,
+                        currentHike.id,
+                        updatedCoordinates
+                    );
+                    set({ coordinates: [updatedCoordinates[updatedCoordinates.length - 1]] });
+                } catch (repoError) {
+                    console.error('[addCoordinate] Background repo write failed, keeping coordinates in state queue:', repoError);
+                }
             }
 
-            if (get().live && get().shareLocationEnabled) {
-                if (!activeGroupId) throw new Error('Cannot save live coordinates without active group ID');
-                const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                const coordinateWithHikerName = newLocation({
-                    ...coordinate,
-                    hikerName: name
-                });
-                await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+            if (get().live && get().shareLocationEnabled && activeGroupId) {
+                try {
+                    const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                    const coordinateWithHikerName = newLocation({
+                        ...coordinate,
+                        hikerName: name
+                    });
+                    await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+                } catch (shareError) {
+                    console.error('[addCoordinate] Background location share failed:', shareError);
+                }
             }
         } catch (error) {
             console.error('Error adding coordinates: ', error);
-            throw error;
         }
     },
 
