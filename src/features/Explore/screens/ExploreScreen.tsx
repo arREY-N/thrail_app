@@ -17,8 +17,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { ITrail } from "@/src/core/models/Trail/interfaces/Trail.types";
-import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
+import { ITrail } from "@/src/core/models/Trail/Trail";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Offers", "Nearby", "Discover", "Challenge"];
