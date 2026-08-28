@@ -22,7 +22,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IOfflinePoint } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { IOfflinePoint } from '@/src/core/models/Trail/Trail';
 import { PIN_TYPES } from '@/src/features/Map/map.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
