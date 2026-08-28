@@ -14,9 +14,9 @@ import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
@@ -42,7 +42,7 @@ interface NavigationScreenProps {
 }
 
 const getElevation = (trail: Trail) => {
-    const elev = trail?.difficulty?.elevation || trail?.geography?.masl || trail?.masl;
+    const elev = trail?.difficulty?.elevation || trail?.geography?.masl;
     return elev && elev > 0 ? elev : '--';
 };
 
@@ -103,13 +103,13 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const handleDisabledPress = () => {
         Alert.alert(
             "Booking Scheduled",
-            `Your guided hike is scheduled for ${formatDate(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
+            `Your guided hike is scheduled for ${formatDateToStandard(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
             [{ text: "Understood" }]
         );
     };
 
     const navigateToGroupChat = (booking: Booking) => {
-        const targetGroup = groups?.find((g: any) => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
+        const targetGroup = groups?.find((g: Group) => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
@@ -297,7 +297,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                     delayLongPress={2000}
                                 >
                                     <CustomIcon library="Feather" name="lock" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDate(activeBooking.offer.date)}</CustomText>
+                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDateToStandard(activeBooking.offer.date)}</CustomText>
                                 </Pressable>
                             )}
 
