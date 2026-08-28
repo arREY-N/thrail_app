@@ -1,7 +1,6 @@
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useHikeStore } from "@/src/core/models/Hike/stores/hikeStore";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
-import { Location } from "@/src/core/models/Location/Location";
 import { TrailLogic, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthStore } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
@@ -23,23 +22,19 @@ export default function useCurrentHike(trailId: string) {
 
     const { startBackgroundTracking, stopBackgroundTracking } = TrackHikerGPSFlow();
 
-    const [lastKnownCoordinate, setLastKnownCoordinate] = useState<Location | null>(null);
     const coordinates = useHikeStore(s => s.coordinates);
+    const lastKnownCoordinate = coordinates.at(-1) ?? null;
     const updateCurrentHike = useHikeStore(s => s.updateCurrentHike);
     const updateHikeStore = useHikeStore(s => s.updateHikeStore);
 
     const trails = useTrailsStore(s => s.data);
 
     useEffect(() => {
-        if (coordinates.length === 0) return;
-
-        const lastCoordinate = coordinates[coordinates.length - 1];
-        setLastKnownCoordinate(lastCoordinate);
-    }, [coordinates])
-    useEffect(() => {
         if (active && currentHike && currentHike.trail.id !== trailId) {
             console.log(`Active hike found for a different trail: ${currentHike?.trail.id}`);
-            setLocalError(`Active hike found for a different trail: ${currentHike?.trail.id}`);
+            queueMicrotask(() => {
+                setLocalError(`Active hike found for a different trail: ${currentHike?.trail.id}`);
+            });
             return;
         }
 
@@ -47,7 +42,9 @@ export default function useCurrentHike(trailId: string) {
             const trail = trails.find(t => t.id === trailId);
 
             if (!trail) {
-                setLocalError('Trail not found');
+                queueMicrotask(() => {
+                    setLocalError('Trail not found');
+                });
                 return;
             }
 

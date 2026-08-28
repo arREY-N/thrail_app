@@ -16,30 +16,29 @@ import { exportHikeData } from "@/src/core/utility/hikeStorage";
 import { LOCATION_TASK } from "@/src/core/utility/locationTask";
 
 
-// ✅ Background task must be defined outside the hook at the top level
-TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-    const addCoordinate = useHikeStore.getState().addCoordinate;
+// ✅ Background task must be defined outside the hook at the top level (mobile only)
+if (Platform.OS !== "web") {
+    TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
+        const addCoordinate = useHikeStore.getState().addCoordinate;
 
-    if (error) return;
-    const { locations } = data;
-    const location = locations[0];
+        if (error) return;
+        const { locations } = data;
+        const location = locations[0];
 
-    const lat = location.coords.latitude;
-    const lon = location.coords.longitude;
-    const alt = location.coords.altitude ?? 0;
-    const timestamp = new Date(location.timestamp).toISOString();
-    console.log('calling from background task');
-    //await saveToCSV(lat, lon, alt, timestamp);
-    addCoordinate(newLocation({
-        latitude: lat,
-        longitude: lon,
-        altitude: alt,
-        timestamp: new Date(timestamp),
-        status: 'APP_BACKGROUNDED',
-    }));
-
-    // await saveToCSV(lat, lon, alt, timestamp);
-});
+        const lat = location.coords.latitude;
+        const lon = location.coords.longitude;
+        const alt = location.coords.altitude ?? 0;
+        const timestamp = new Date(location.timestamp).toISOString();
+        console.log('calling from background task');
+        addCoordinate(newLocation({
+            latitude: lat,
+            longitude: lon,
+            altitude: alt,
+            timestamp: new Date(timestamp),
+            status: 'APP_BACKGROUNDED',
+        }));
+    });
+}
 
 
 /**
@@ -87,6 +86,7 @@ export const TrackHikerGPSFlow = () => {
      * Will ONLY record data and draw the red line if the global store says active === true.
      */
     const initForegroundGps = async () => {
+        if (Platform.OS === "web") return;
         if (locationSubscription.current) return;
 
         try {
@@ -207,6 +207,7 @@ export const TrackHikerGPSFlow = () => {
      * Starts the TaskManager so tracking continues when screen is off.
      */
     const startBackgroundTracking = async () => {
+        if (Platform.OS === "web") return;
         try {
             if (Platform.OS === "android" && Platform.Version >= 33) {
                 await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -236,16 +237,18 @@ export const TrackHikerGPSFlow = () => {
      * Stops the background TaskManager.
      */
     const stopBackgroundTracking = async () => {
+        if (Platform.OS === "web") return;
         try {
             await Location.stopLocationUpdatesAsync(LOCATION_TASK);
             console.log("✅ Background task stopped");
-        } catch (err) {
+        } catch {
             // Safely ignore if not running
         }
     };
 
     // Set up listeners on mount and clean up on unmount
     useEffect(() => {
+        if (Platform.OS === "web") return;
         unsubscribeNetwork.current = NetInfo.addEventListener((state) => {
             setIsOnline(!!state.isInternetReachable);
         });
@@ -292,6 +295,7 @@ export const TrackHikerGPSFlow = () => {
             if (unsubscribeNetwork.current) unsubscribeNetwork.current();
             stopBackgroundTracking();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return {
