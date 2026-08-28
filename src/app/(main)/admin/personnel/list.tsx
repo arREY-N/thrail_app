@@ -5,38 +5,35 @@
 
 import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import { useAdmin } from "@/src/core/hook/admin/useAdmin";
-import useAdminNavigation from "@/src/core/hook/navigation/useAdminNavigation";
 
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useAdminAccount, useAdminNavigation } from "@/src/core/models/Admin/Admin";
 import PersonnelListScreen from "@/src/features/Admin/screens/Personnel/PersonnelListScreen";
 import { Stack } from 'expo-router';
 
 /**
  * PersonnelList page controller component.
  */
-export default function personnelList() {
-    const { profile, businessId, role, isLoading } = useAuthHook(); 
-    
-    const {onBackPress} = useAppNavigation();
+export default function PersonnelList() {
 
-    if(isLoading) return <LoadingScreen/>
-
-    if(!profile || !businessId || !role) return <UnauthorizedScreen/>
+    const { onBackPress } = useAppNavigation();
 
     const {
         businessAdmins,
-        onReloadPress,
-        businessAccount
-    } = useAdmin({ businessId });
-
-    const { onAddAdminPress } = useAdminNavigation({
-        userId: profile.id,
+        onRefresh: onReloadPress,
+        businessAccount,
+        isLoading,
+        profile,
         businessId,
         role,
-    });
+    } = useAdminAccount();
+
+    const { onAddAdminPress } = useAdminNavigation();
+
+    if (isLoading) return <LoadingScreen />
+
+    if (!profile || !businessId || !role) return <UnauthorizedScreen />
 
     return (
         <>
@@ -49,7 +46,7 @@ export default function personnelList() {
                 currentUserId={profile?.id}
                 onReloadPress={onReloadPress}
                 onAddAdminPress={onAddAdminPress}
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
             />
         </>
     )

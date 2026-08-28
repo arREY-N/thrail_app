@@ -1,10 +1,10 @@
 import { Colors } from '@/src/constants/colors';
-import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 import { ImageSourcePropType } from 'react-native';
 
 export interface GlossaryData {
     title: string;
-    points: Array<{ label: string; text: string }>;
+    points: { label: string; text: string }[];
     col: number;
 }
 

@@ -27,7 +27,7 @@ import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 import TrailCard from '@/src/features/SuperAdmin/components/TrailCard';
-import useTrailList from '@/src/features/SuperAdmin/hooks/useTrailList';
+import { useTrailList } from '@/src/features/SuperAdmin/hooks/useTrailList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**

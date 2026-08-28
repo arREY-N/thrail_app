@@ -11,7 +11,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -31,7 +31,7 @@ import SlotsCounter from './SlotsCounter';
 export interface OfferSummaryCardProps {
     offer: IOffer & { hikeDuration?: string };
     trailName: string;
-    bookings?: IBooking[];
+    bookings?: Booking[];
     isOfferLocked?: boolean;
 }
 

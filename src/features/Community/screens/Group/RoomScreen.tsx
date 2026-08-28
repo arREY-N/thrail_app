@@ -47,8 +47,8 @@ import { Colors } from '@/src/constants/colors';
 import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import { IMessage } from '@/src/core/models/Message/Message.types';
-import { IUser } from '@/src/core/models/User/interfaces/User.types';
+import { IMessage } from '@/src/core/models/Message/Message';
+import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { useRoomScreen } from './hooks/useRoomScreen';
 
@@ -87,13 +87,8 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
     const [showSpinner, setShowSpinner] = React.useState(false);
 
     React.useEffect(() => {
-        let timeout: ReturnType<typeof setTimeout>;
-        if (isLoading) {
-            /* Delay spinner to prevent flash on cached images */
-            timeout = setTimeout(() => setShowSpinner(true), 150);
-        } else {
-            setShowSpinner(false);
-        }
+        if (!isLoading) return;
+        const timeout = setTimeout(() => setShowSpinner(true), 150);
         return () => clearTimeout(timeout);
     }, [isLoading]);
 
@@ -122,10 +117,14 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
                         source={{ uri: currentMessage.image }}
                         style={{ width: dynamicWidth, height: dynamicHeight, borderRadius: 12, backgroundColor: Colors.GRAY_LIGHT }}
                         resizeMode="cover"
-                        onLoadEnd={() => setIsLoading(false)}
-                        onError={() => {
+                        onLoadEnd={() => {
                             setIsLoading(false);
-                            setHasError(true);
+                            setShowSpinner(false);
+                        }}
+                        onError={() => { 
+                            setIsLoading(false); 
+                            setShowSpinner(false);
+                            setHasError(true); 
                         }}
                     />
                 )}

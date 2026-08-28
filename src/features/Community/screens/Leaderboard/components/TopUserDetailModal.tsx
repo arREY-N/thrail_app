@@ -11,7 +11,7 @@ import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
+import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import { formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
 /**

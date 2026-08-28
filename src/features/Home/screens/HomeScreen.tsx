@@ -33,8 +33,8 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
-import { IOffer } from '@/src/core/models/Offer/interfaces/Offer.types';
-import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { IOffer } from '@/src/core/models/Offer/Offer';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 
 /**
  * Props for the HomeScreen component.

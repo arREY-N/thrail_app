@@ -8,8 +8,8 @@ import { Keyboard, Platform } from 'react-native';
 
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { IMessage } from '@/src/core/models/Message/Message.types';
-import { IUser } from '@/src/core/models/User/interfaces/User.types';
+import { IMessage } from '@/src/core/models/Message/Message';
+import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { CustomMessage } from '@/src/features/Community/screens/Group/RoomScreen';
 
@@ -58,11 +58,11 @@ export const useRoomScreen = ({
         fn: loadMoreMessages,
     });
 
-    // Synchronously keep the ref in sync with latest props/state on every render
-    // (not via useEffect — that's async and causes stale reads)
-    loadMoreRef.current.hasReachedEnd = hasReachedEnd;
-    loadMoreRef.current.isLoadingEarlier = isLoadingEarlier;
-    loadMoreRef.current.fn = loadMoreMessages;
+    useEffect(() => {
+        loadMoreRef.current.hasReachedEnd = hasReachedEnd;
+        loadMoreRef.current.isLoadingEarlier = isLoadingEarlier;
+        loadMoreRef.current.fn = loadMoreMessages;
+    });
 
     /**
      * Parses the headerTitle to split the mountain/trail name from the date/business information.
@@ -145,22 +145,16 @@ export const useRoomScreen = ({
         return () => clearTimeout(timer);
     }, [formattedFirebaseMessages]);
 
-    useEffect(() => {
-        if (formattedFirebaseMessages.length > 0 && pendingMessages.length > 0) {
-            setPendingMessages(prev => prev.filter(pendingMsg => {
-                const isNowInFirebase = formattedFirebaseMessages.some(fbMsg =>
-                    fbMsg.text === pendingMsg.text && fbMsg.user._id === pendingMsg.user._id
-                );
-                return !isNowInFirebase;
-            }));
-        }
-    }, [formattedFirebaseMessages, pendingMessages.length]);
-
     /**
      * Combines pending messages with fetched Firebase messages, prepending system message if at the beginning.
      */
     const displayMessages = useMemo(() => {
-        const combined = [...pendingMessages, ...formattedFirebaseMessages];
+        const activePending = pendingMessages.filter(pendingMsg => {
+            return !formattedFirebaseMessages.some(fbMsg => 
+                fbMsg.text === pendingMsg.text && fbMsg.user._id === pendingMsg.user._id
+            );
+        });
+        const combined = [...activePending, ...formattedFirebaseMessages];
 
         if (hasReachedEnd && combined.length > 0) {
             if (!combined.some(m => m._id === 'system-beginning-of-chat')) {

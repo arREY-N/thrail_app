@@ -15,6 +15,8 @@ export {
 export { useAdmin } from "@/src/core/models/Admin/hooks/useAdmin";
 export { useAdminItem } from "@/src/core/models/Admin/hooks/useAdminItem";
 export { useAdminList } from "@/src/core/models/Admin/hooks/useAdminList";
+export { useAdminNavigation } from "@/src/core/models/Admin/hooks/useAdminNavigation";
+
 
 // REPOSITORIES
 export { AdminRepo } from "@/src/core/models/Admin/repositories/AdminRepository";

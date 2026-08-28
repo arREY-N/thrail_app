@@ -3,14 +3,12 @@
  * @description Application list controller for Superadmin. Wrapped inside SuperadminShell for persistent sidebar navigation.
  */
 
-import React from 'react';
 import useApply from '@/src/core/hook/apply/useApply';
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
-import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
+import { useAuthHook } from '@/src/core/models/User/User';
 import ApplicationListScreen from '@/src/features/SuperAdmin/screens/tabs/ApplicationListScreen';
 
-export default function listApplications() {
+export default function ListApplications() {
     const { role } = useAuthHook();
     const { onViewApplicationPress } = useSuperadminDomain(null);
     const { applications } = useApply({ role } as any);

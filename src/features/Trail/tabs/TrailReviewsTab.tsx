@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, ListRenderItemInfo, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -7,7 +7,7 @@ import { Colors } from '@/src/constants/colors';
 
 import PostCard from '@/src/components/PostCard';
 
-import { IReview } from '@/src/core/models/Review/interfaces/Review.types';
+import { IReview } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export interface TrailReviewsTabProps {
@@ -25,10 +25,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
     likeReview,
     isLiked,
     onWriteReviewPress,
-    isOwned,
 }) => {
-    const [searchQuery, setSearchQuery] = useState('');
-
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
@@ -40,7 +37,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
             isLiked={isLiked}
             onEdit={() => onWriteReviewPress(item)}
         />
-    ), [likeReview, isLiked, onWriteReviewPress, isOwned]);
+    ), [likeReview, isLiked, onWriteReviewPress]);
 
     return (
         <View style={styles.tabContent}>
@@ -61,7 +58,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
                         <View style={styles.emptyStateContainer}>
                             <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
                             <CustomText variant="caption" style={styles.emptyStateText}>
-                                {searchQuery ? "No posts found matching search." : "No community posts found."}
+                                No community posts found.
                             </CustomText>
                         </View>
                     ) : null

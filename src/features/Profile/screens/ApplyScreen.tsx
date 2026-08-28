@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, 
+import { 
     StyleSheet,
     View
  } from 'react-native';
@@ -225,7 +225,6 @@ const ApplyScreen = ({
                                             selected={safeLocations.includes(province)}
                                             onPress={() => handleLocationSelect(province)}
                                             style={styles.compactSelection}
-                                            children={undefined}
                                         />
                                     );
                                 })}

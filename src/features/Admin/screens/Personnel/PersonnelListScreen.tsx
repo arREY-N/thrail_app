@@ -3,7 +3,7 @@
  * @description Displays the list of admins for a business, allowing the business owner to add admins and refresh the list with visual indicators for the current user and roles.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Animated, Easing, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -55,7 +55,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
 
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [isReloading, setIsReloading] = useState<boolean>(false);
-    const spinAnim = useRef<Animated.Value>(new Animated.Value(0)).current;
+    const [spinAnim] = useState(() => new Animated.Value(0));
 
     const sortedAdmins = useMemo(() => {
         return [...businessAdmins].sort((a, b) => {
@@ -72,7 +72,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
         });
     }, [businessAdmins, ownerId]);
 
-    const startSpin = () => {
+    const startSpin = useCallback(() => {
         spinAnim.setValue(0);
         Animated.loop(
             Animated.timing(spinAnim, {
@@ -82,12 +82,12 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                 useNativeDriver: true,
             })
         ).start();
-    };
+    }, [spinAnim]);
 
-    const stopSpin = () => {
+    const stopSpin = useCallback(() => {
         spinAnim.stopAnimation();
         spinAnim.setValue(0);
-    };
+    }, [spinAnim]);
 
     const handleReload = async () => {
         if (isReloading) return;
@@ -110,7 +110,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
             stopSpin();
             setRefreshing(false);
         }
-    }, [businessId, onReloadPress]);
+    }, [businessId, onReloadPress, startSpin, stopSpin]);
 
     const AdminCard = ({ admin }: { admin: IAdmin }) => {
         const isOwner = ownerId ? admin.id === ownerId : false;

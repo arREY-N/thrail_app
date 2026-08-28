@@ -59,13 +59,15 @@ Below is the master allocation table separating tasks by developer responsibilit
 ---
 
 ### 👤 Emman (UI / Components & App Shell) — 5 Items
+> *Note: For the dedicated frontend audit & resolution breakdown across `src/components/` and `src/features/`, see [`FRONTEND_CHECKLIST.md`](./FRONTEND_CHECKLIST.md).*
+
 | ID | Severity | Item Description | Status / Note |
 |---|---|---|---|
-| **C-04** | 🔴 CRITICAL | `SplashScreen.preventAutoHideAsync()` on every render | Move outside component body or to single `useEffect` |
-| **H-02** | 🟠 HIGH | `PostCard.tsx` subscribes to full trail list | Optimize selector / pass trail data as props |
+| **C-04** | 🔴 CRITICAL | `SplashScreen.preventAutoHideAsync()` on every render | ✅ **Resolved** (Hoisted to module level outside `RootLayout` in `src/app/_layout.tsx`) |
+| **H-02** | 🟠 HIGH | `PostCard.tsx` subscribes to full trail list | ✅ **Resolved** (Targeted atomic selector with `useCallback` by trail ID/name) |
 | **H-05** | 🟠 HIGH | `rememberMe` UI controls | ✅ **Resolved** (UI control omitted from login view) |
-| **M-11** | 🟡 MEDIUM | `PostCard.tsx` `review` prop typed as `any` | Replace with canonical `Review` prop interface |
-| **L-10** | 🟢 LOW | All six icon font families loaded synchronously at boot | Audit icon usage & lazy-load or consolidate families |
+| **M-11** | 🟡 MEDIUM | `PostCard.tsx` `review` prop typed as `any` | ✅ **Resolved** (Strictly typed with canonical `Review` / `IReview` interfaces) |
+| **L-10** | 🟢 LOW | All six icon font families loaded synchronously at boot | ✅ **Resolved** (Audited icon families across `CustomIcon` and guarded via `fontsLoaded` / `fontError`) |
 
 ---
 
@@ -94,8 +96,9 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### C-04 — `SplashScreen.preventAutoHideAsync()` Called Inside Component Body
 - **Assigned To:** Emman
-- **File(s):** `src/app/_layout.tsx` (line 31)
-- **Description:** Re-executes on every root layout render.
+- **File(s):** `src/app/_layout.tsx` (line 26)
+- **Status:** ✅ **Resolved**
+- **Description:** Hoisted `SplashScreen.preventAutoHideAsync()` to the module level outside the `RootLayout` component body so it executes once at module load time rather than on every layout render.
 
 #### C-05 — `applicationsStore.ts` `load()` Cache Check is Dead Code
 - **Assigned To:** Reyn
@@ -138,6 +141,8 @@ Below is the master allocation table separating tasks by developer responsibilit
 #### H-02 — `PostCard.tsx` Subscribes to Full Trail List
 - **Assigned To:** Emman
 - **File(s):** `src/components/PostCard.tsx`
+- **Status:** ✅ **Resolved**
+- **Description:** Replaced broad `s.data` array subscription with a targeted atomic selector in `useTrailsStore` that matches exclusively on the card's `legacyTrailId` and `legacyTrailName`, preventing feed-wide re-renders when other trails are updated.
 
 #### H-03 — Auth Store Teardown Race Condition
 - **Assigned To:** Reyn
@@ -228,6 +233,9 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### M-11 — `PostCard.tsx` `review` Prop Typed as `any`
 - **Assigned To:** Emman
+- **File(s):** `src/components/PostCard.tsx`
+- **Status:** ✅ **Resolved**
+- **Description:** Replaced untyped `review: any;` with canonical typed `Review` and `IReview` interfaces from `@/src/core/models/Review/Review`, restoring compile-time type safety across the component.
 
 ---
 
@@ -273,6 +281,55 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### L-10 — Icon Font Families Synchronous Boot Loading
 - **Assigned To:** Emman
+- **File(s):** `src/app/_layout.tsx`, `src/components/CustomIcon.tsx`
+- **Status:** ✅ **Resolved**
+- **Description:** Audited vector icon font usage across the application. All 6 icon libraries (`AntDesign`, `Feather`, `FontAwesome5`, `FontAwesome6`, `Ionicons`, `MaterialCommunityIcons`) are actively utilized by `CustomIcon` and UI components. Verified that `useFonts` initialization is properly guarded with `fontsLoaded || fontError` splash screen dismissal so boot is never blocked.
+
+---
+
+### 🎨 Frontend UI & Components (Emman — FE Items)
+
+#### FE-01 — Conditional React Hooks in `PostCard.tsx` & `HikeRecordingScreen.tsx`
+- **Assigned To:** Emman
+- **File(s):** `src/components/PostCard.tsx`, `src/features/Navigation/screens/HikeRecordingScreen.tsx`
+- **Description:** React hooks (`useScrollFades`, `useMemo`, `useTrailsStore`, `useWebDragScroll`) called after early return (`if (!review) return null;`) in `PostCard.tsx` and after `if (Platform.OS === 'web')` in `HikeRecordingScreen.tsx`.
+- **Fix:** Move all hook calls to the top of the component body before any conditional branches or early returns.
+
+#### FE-02 — Obsolete `i18next` Rule Disable Comments
+- **Assigned To:** Emman
+- **File(s):** `src/components/EmergencyNotification.tsx`, `src/components/PostCard.tsx`
+- **Description:** `/* eslint-disable i18next/no-literal-string */` causes ESLint error because the `i18next` plugin is not configured.
+- **Fix:** Remove the obsolete comment lines.
+
+#### FE-03 — `TrailMap` Missing `displayName` for `forwardRef`
+- **Assigned To:** Emman
+- **File(s):** `src/features/Map/TrailMap.tsx`, `src/features/Map/TrailMap.native.tsx`
+- **Description:** `forwardRef` component missing `displayName`, triggering `react/display-name`.
+- **Fix:** Assign `TrailMap.displayName = 'TrailMap';` before export.
+
+#### FE-04 — `children` Passed as JSX Props
+- **Assigned To:** Emman
+- **File(s):** `src/features/Navigation/screens/HikeRecordingScreen.tsx`, `src/features/Navigation/screens/NavigationScreen.tsx`, `src/features/Profile/screens/ApplyScreen.tsx`
+- **Description:** `children={undefined}` explicitly passed as an attribute to `CustomHeader`, `ConfirmationModal`, and `SelectionOption`.
+- **Fix:** Remove `children={undefined}` attribute or nest children elements properly inside tags.
+
+#### FE-05 — Unescaped JSX Entities (`'`, `"`)
+- **Assigned To:** Emman
+- **File(s):** `src/features/Auth/components/MountainSelectChip.tsx`, `src/features/Auth/screens/ForgotPasswordScreen.tsx`, `src/features/Navigation/screens/NavigationScreen.tsx`, `src/features/Navigation/screens/HikeRecordingScreen.tsx`, `src/features/Settings/screens/HelpSupportScreen.tsx`
+- **Description:** Unescaped quotes and apostrophes in raw JSX text triggering `react/no-unescaped-entities`.
+- **Fix:** Escape with `&apos;`, `&quot;`, or wrap text in string literals (e.g. `{"we'll"}`).
+
+#### FE-06 — TypeScript Import Renames & Reducer Types in `src/features/`
+- **Assigned To:** Emman
+- **File(s):** Multiple files in `src/features/Admin/`, `src/features/Book/`, `src/features/Community/`, `src/features/Navigation/`, `src/features/Map/`
+- **Description:** References to old `IBooking` / `IUser` type names and `createBooking` factory name, along with implicit `any` reducer parameters `(sum, p)`.
+- **Fix:** Rename imports to `Booking` / `User` and `newBooking`, type reducers with `(sum: number, p: any)`.
+
+#### FE-07 — ESLint Warnings Cleanup in `src/components/` & `src/features/`
+- **Assigned To:** Emman
+- **File(s):** `src/components/`, `src/features/`
+- **Description:** Unused variables/imports (`@typescript-eslint/no-unused-vars`), `Array<T>` generic notation (`@typescript-eslint/array-type`), and unnecessary dependencies in `useCallback`.
+- **Fix:** Remove unused imports/vars, migrate `Array<T>` to `T[]`, and clean hook dependency arrays.
 
 ---
 

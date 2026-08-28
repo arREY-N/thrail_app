@@ -8,10 +8,10 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
 import { Application } from '@/src/core/models/Application/Application';
 import { Business } from '@/src/core/models/Business/Business';
 import { Mountain } from '@/src/core/models/Mountain/Mountain';
+import { useSuperadminNavigation } from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
 import { Trail } from '@/src/core/models/Trail/Trail';
 import { User } from '@/src/core/models/User/User';
 import AnalyticsChart from '@/src/features/SuperAdmin/components/AnalyticsChart';

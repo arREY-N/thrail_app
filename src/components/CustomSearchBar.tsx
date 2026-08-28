@@ -78,13 +78,14 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     autoFocus = false,
     isMobile = false,
 }) => {
+    const [prevSearchValue, setPrevSearchValue] = useState(searchValue || "");
     const [localQuery, setLocalQuery] = useState(searchValue || "");
     const [isFocused, setIsFocused] = useState<boolean>(false);
 
-    // Keep local query in sync with incoming search value
-    useEffect(() => {
+    if ((searchValue || "") !== prevSearchValue) {
+        setPrevSearchValue(searchValue || "");
         setLocalQuery(searchValue || "");
-    }, [searchValue]);
+    }
 
     // Debounce query propagation to parent to optimize list updates
     useEffect(() => {

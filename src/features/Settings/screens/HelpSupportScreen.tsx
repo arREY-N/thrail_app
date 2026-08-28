@@ -98,7 +98,7 @@ const HelpSupportScreen = ({ faqs, onSubmitRequest, onBackPress }: HelpSupportSc
                     <CustomText variant="h3" style={styles.sectionTitle}>Contact Us</CustomText>
                     <View style={styles.contactCard}>
                         <CustomText variant="body" style={styles.contactDescription}>
-                            Can't find what you're looking for? Send us a message and our support team will get back to you.
+                            Can&apos;t find what you&apos;re looking for? Send us a message and our support team will get back to you.
                         </CustomText>
                         <CustomButton 
                             title="Contact Support" 

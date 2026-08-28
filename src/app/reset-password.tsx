@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
-import { useForgotPassword } from '@/src/core/hook/user/useForgotPassword';
+import { useForgotPassword } from '@/src/core/models/User/User';
 import ResetPasswordScreen from '@/src/features/Auth/screens/ResetPasswordScreen';
 
 export default function ResetPassword() {

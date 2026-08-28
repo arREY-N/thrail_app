@@ -6,12 +6,12 @@
 import { View } from 'react-native';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useReview from '@/src/core/hook/review/useReview';
 import { useHomeRefresh } from '@/src/core/hook/useHomeRefresh';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { useTrailOffers } from '@/src/core/hook/useTrailOffers';
 import { useRecommendationItem } from '@/src/core/models/Recommendation/Recommendation';
+import { useReview } from '@/src/core/models/Review/Review';
 import { useTrailList } from '@/src/core/models/Trail/Trail';
+import { useAuthHook } from '@/src/core/models/User/User';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 /**

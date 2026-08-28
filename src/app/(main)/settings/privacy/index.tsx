@@ -2,19 +2,18 @@
  * @file index.tsx
  * @description Controller for the privacy & permissions settings page.
  */
-import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useDevicePermissions } from '@/src/core/models/User/User';
 import PrivacyPermissionsScreen from '@/src/features/Settings/screens/PrivacyPermissionsScreen';
-import useDevicePermissions from '@/src/core/hook/user/useDevicePermissions';
 
 /**
  * PrivacyPage coordinates user profile privacy and hardware permissions settings.
  */
-export default function privacy() {
+export default function Privacy() {
     const { onBackPress } = useAppNavigation();
     const { statuses, requestPermission } = useDevicePermissions();
-    
+
     // TODO: [Backend] Retrieve initial privacy preferences from user profile
     const publicProfile = true;
     const shareStats = true;
@@ -34,9 +33,9 @@ export default function privacy() {
         // TODO: [Backend] Handle updating activity status privacy setting in Firestore
         console.log('Toggle activity status:', value);
     };
-    
+
     return (
-        <PrivacyPermissionsScreen 
+        <PrivacyPermissionsScreen
             onBackPress={onBackPress}
             publicProfile={publicProfile}
             shareStats={shareStats}

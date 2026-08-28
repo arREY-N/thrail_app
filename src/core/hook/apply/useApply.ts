@@ -1,6 +1,6 @@
 import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { Application, useApplicationsStore } from "@/src/core/models/Application/Application";
-import { Role } from "@/src/core/models/User/interfaces/User.types";
+import { Role } from "@/src/core/models/User/User";
 
 import { useEffect } from "react";
 

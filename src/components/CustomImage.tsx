@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Image, ImageProps, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -26,26 +26,30 @@ const CustomImage: React.FC<CustomImageProps> = ({
     source,
     ...props 
 }) => {
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [hasError, setHasError] = useState(false);
-
     const sourceUri = typeof source === 'object' && source !== null && 'uri' in source 
         ? (source as any).uri 
         : source;
 
-    useEffect(() => {
-        setIsLoaded(false);
-        setHasError(false);
-
+    const [prevSourceUri, setPrevSourceUri] = useState(sourceUri);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [hasError, setHasError] = useState(() => {
         if (typeof source === 'object' && source !== null && 'uri' in source) {
             const uriVal = (source as any).uri;
-            if (!uriVal || (typeof uriVal === 'string' && !uriVal.trim())) {
-                setHasError(true);
-            }
-        } else if (!source) {
-            setHasError(true);
+            return !uriVal || (typeof uriVal === 'string' && !uriVal.trim());
         }
-    }, [sourceUri]);
+        return !source;
+    });
+
+    if (sourceUri !== prevSourceUri) {
+        setPrevSourceUri(sourceUri);
+        setIsLoaded(false);
+        if (typeof source === 'object' && source !== null && 'uri' in source) {
+            const uriVal = (source as any).uri;
+            setHasError(!uriVal || (typeof uriVal === 'string' && !uriVal.trim()));
+        } else {
+            setHasError(!source);
+        }
+    }
 
     const flatStyle = StyleSheet.flatten(style) || {};
     const { backgroundColor, ...layoutStyle } = flatStyle;

@@ -40,7 +40,7 @@ export interface PersonnelWriteScreenProps {
     onMakeAdminPress: (user: User) => void | Promise<void>;
     isOwner: boolean;
     isLoading: boolean;
-    error?: string;
+    error: string | null;
     success?: string;
     onBackPress: () => void;
 }

@@ -4,13 +4,13 @@
  */
 
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
+import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import { getInitials } from '@/src/utils/dateFormatter';
 

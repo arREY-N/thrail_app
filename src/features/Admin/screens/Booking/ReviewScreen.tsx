@@ -25,7 +25,7 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
-import ActivityLog from '@/src/features/Admin/screens/Booking/components/ActivityLog';
+import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
@@ -60,7 +60,7 @@ export interface ReviewScreenProps {
     onConfirmPayment: () => Promise<void>;
     onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
     onReschedule: (offerData: Offer) => void | Promise<void>;
-    onRefund: (booking: Booking, refundType: RefundType) => Promise<void>;
+    onRefund: (booking: Booking, refundType: RefundType) => Promise<Booking | undefined | void> | void;
     onCancelUnpaid?: () => Promise<void>;
     error?: string;
     hikerProfile?: User | null;
@@ -104,8 +104,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
-        availableOffers,
-        displayCancellationReason
+        availableOffers
     } = useReviewLogic(booking, offers);
 
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);

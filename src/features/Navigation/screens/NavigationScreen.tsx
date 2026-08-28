@@ -14,16 +14,16 @@ import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
-import { IBooking } from "@/src/core/models/Booking/Booking";
+import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 
 interface NavigationScreenProps {
-    upcomingBookings: IBooking[]; 
+    upcomingBookings: Booking[]; 
     groups: Group[];
     currentUserId?: string;
     
@@ -37,12 +37,12 @@ interface NavigationScreenProps {
     onTrailSelect: (trail: Trail) => void;
     onGroupPress: () => void;
     onBookingPress: () => void;
-    onStartTracking: (bookingContext?: IBooking | null) => void;
-    onDeveloperBypass?: (bookingContext: IBooking | null) => void;
+    onStartTracking: (bookingContext?: Booking | null) => void;
+    onDeveloperBypass?: (bookingContext: Booking | null) => void;
 }
 
 const getElevation = (trail: Trail) => {
-    const elev = trail?.difficulty?.elevation || trail?.geography?.masl || trail?.masl;
+    const elev = trail?.difficulty?.elevation || trail?.geography?.masl;
     return elev && elev > 0 ? elev : '--';
 };
 
@@ -76,14 +76,15 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
-    const [activeBooking, setActiveBooking] = useState<any>(upcomingBookings[0] || null);
+    const [activeBooking, setActiveBooking] = useState<Booking | null>(upcomingBookings[0] || null);
     const prevTrailRef = useRef<Trail | null>(null);
-
-    useEffect(() => {
+    const [prevUpcomingLength, setPrevUpcomingLength] = useState(upcomingBookings.length);
+    if (upcomingBookings.length !== prevUpcomingLength) {
+        setPrevUpcomingLength(upcomingBookings.length);
         if (upcomingBookings.length > 0 && !activeBooking) {
             setActiveBooking(upcomingBookings[0]);
         }
-    }, [upcomingBookings]);
+    }
 
     useEffect(() => {
         if (prevTrailRef.current !== null && selectedTrail === null) {
@@ -102,13 +103,13 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const handleDisabledPress = () => {
         Alert.alert(
             "Booking Scheduled",
-            `Your guided hike is scheduled for ${formatDate(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
+            `Your guided hike is scheduled for ${formatDateToStandard(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
             [{ text: "Understood" }]
         );
     };
 
-    const navigateToGroupChat = (booking: IBooking) => {
-        const targetGroup = groups?.find(g => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
+    const navigateToGroupChat = (booking: Booking) => {
+        const targetGroup = groups?.find((g: Group) => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
@@ -119,7 +120,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     if (Platform.OS === 'web') {
         return (
             <View style={styles.container}>
-                <CustomHeader title="Hike" showDefaultIcons={true} onBackPress={undefined} rightActions={undefined} style={undefined} children={undefined} />
+                <CustomHeader title="Hike" showDefaultIcons={true} />
                 <TrailMap ref={mapRef} bottomInset={0} />
                 <CustomFAB onPress={onGroupPress} />
             </View>
@@ -254,7 +255,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 </View>
                             </View>
                             <CustomText variant="h3" style={styles.trailTitle}>Selected: {selectedTrail.general?.name}</CustomText>
-                            <CustomText variant="caption" style={styles.trailSubtext}>You're all set! Tap below to load the trail map and start recording your adventure.</CustomText>
+                            <CustomText variant="caption" style={styles.trailSubtext}>You&apos;re all set! Tap below to load the trail map and start recording your adventure.</CustomText>
                             <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                 <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />
                                 <CustomText style={styles.activeLaunchText}>Start Selected Hike</CustomText>
@@ -296,7 +297,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                     delayLongPress={2000}
                                 >
                                     <CustomIcon library="Feather" name="lock" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDate(activeBooking.offer.date)}</CustomText>
+                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDateToStandard(activeBooking.offer.date)}</CustomText>
                                 </Pressable>
                             )}
 
@@ -309,7 +310,6 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 confirmText="Bypass & Start"
                                 isDestructive={false}
                                 iconName="unlock"
-                                children={undefined}
                             />
                         </View>
                     ) : (
@@ -335,7 +335,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     onClose={() => setUpcomingModalVisible(false)}
                     bookings={upcomingBookings}
                     activeBooking={activeBooking}
-                    onSelectBooking={(booking: IBooking) => {
+                    onSelectBooking={(booking: Booking) => {
                         setActiveBooking(booking);
                         setUpcomingModalVisible(false);
                     }}

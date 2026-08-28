@@ -17,8 +17,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { ITrail } from "@/src/core/models/Trail/interfaces/Trail.types";
-import { fetchTrailWeatherBadges, TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
+import { ITrail } from "@/src/core/models/Trail/Trail";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 
 const CATEGORIES = ["All", "Recommended", "Offers", "Nearby", "Discover", "Challenge"];
@@ -79,13 +78,15 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
     // Header animated scroll visibility states
     const [headerVisible, setHeaderVisible] = useState<boolean>(true);
     const lastOffsetY = useRef<number>(0);
-    const animatedHeaderHeight = useRef(new Animated.Value(1)).current; // 1 = visible, 0 = hidden
+    const [animatedHeaderHeight] = useState(() => new Animated.Value(1)); // 1 = visible, 0 = hidden
 
-    useEffect(() => {
+    const [prevInitialCategory, setPrevInitialCategory] = useState(initialCategory);
+    if (initialCategory !== prevInitialCategory) {
+        setPrevInitialCategory(initialCategory);
         if (initialCategory) {
             setSelectedCategory(initialCategory);
         }
-    }, [initialCategory]);
+    }
 
     useEffect(() => {
         Animated.timing(animatedHeaderHeight, {
@@ -93,12 +94,27 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
             duration: 200,
             useNativeDriver: true,
         }).start();
-    }, [headerVisible]);
+    }, [headerVisible, animatedHeaderHeight]);
 
     const translateY = animatedHeaderHeight.interpolate({
         inputRange: [0, 1],
         outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
+
+    const handleScroll = useCallback((event: any) => {
+        const currentOffsetY = event.nativeEvent.contentOffset.y;
+        if (currentOffsetY <= 0) {
+            setHeaderVisible(true);
+            return;
+        }
+        const diff = currentOffsetY - lastOffsetY.current;
+        if (diff > 15 && headerVisible) {
+            setHeaderVisible(false);
+        } else if (diff < -15 && !headerVisible) {
+            setHeaderVisible(true);
+        }
+        lastOffsetY.current = currentOffsetY;
+    }, [headerVisible]);
 
     useFocusEffect(
         useCallback(() => {
@@ -159,8 +175,6 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
         return result;
     }, [selectedCategory, trails, searchQuery, activeFilters, offers]);
-
-    const shouldCenterGrid = filteredTrails.length > 0 && filteredTrails.length < numColumns;
 
     // Retrieve active upcoming offers count for the trail card badge
     const getTrailOffersCount = (trailId: string) => {
@@ -224,26 +238,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     ItemSeparatorComponent={() => <View style={{ height: gap }} />}
                     showsVerticalScrollIndicator={false}
                     scrollEventThrottle={16}
-                    onScroll={Animated.event(
-                        [],
-                        {
-                            useNativeDriver: false,
-                            listener: (event: any) => {
-                                const currentOffsetY = event.nativeEvent.contentOffset.y;
-                                if (currentOffsetY <= 0) {
-                                    setHeaderVisible(true);
-                                    return;
-                                }
-                                const diff = currentOffsetY - lastOffsetY.current;
-                                if (diff > 15 && headerVisible) {
-                                    setHeaderVisible(false);
-                                } else if (diff < -15 && !headerVisible) {
-                                    setHeaderVisible(true);
-                                }
-                                lastOffsetY.current = currentOffsetY;
-                            }
-                        }
-                    )}
+                    onScroll={handleScroll}
                     ListEmptyComponent={() => (
                         <View style={[styles.listContainer, { justifyContent: 'center' }]}>
                             {isLoading ? (

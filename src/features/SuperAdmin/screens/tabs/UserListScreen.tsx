@@ -19,7 +19,7 @@ import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminCard from '@/src/features/SuperAdmin/components/SuperadminCard';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
-import useUserList, { RoleFilter } from '@/src/features/SuperAdmin/hooks/useUserList';
+import { useUserList, RoleFilter } from '@/src/features/SuperAdmin/hooks/useUserList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
 
@@ -148,13 +148,6 @@ const UserListScreen: React.FC<UserListScreenProps> = ({
                     variant="pill"
                 />
 
-                {/* Error Banner */}
-                {error ? (
-                    <View style={styles.statusWrapper}>
-                        <ErrorMessage error={error} />
-                    </View>
-                ) : null}
-
                 {/* Loading Spinner */}
                 {isLoading ? (
                     <View style={styles.statusWrapper}>
@@ -216,6 +209,13 @@ const UserListScreen: React.FC<UserListScreenProps> = ({
                         )}
                     </View>
                 )}
+
+                {/* Error Banner */}
+                {error ? (
+                    <View style={styles.statusWrapper}>
+                        <ErrorMessage error={error} />
+                    </View>
+                ) : null}
             </View>
         </SuperadminShell>
     );
@@ -227,7 +227,6 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     statusWrapper: {
-        paddingVertical: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },

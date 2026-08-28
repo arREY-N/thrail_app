@@ -35,9 +35,13 @@ pmtiles.exe
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Environment & Secrets
 .env
+.env.*
+.env*.local
+.env.preview
+.env.productionw
+.env*
 
 # typescript
 *.tsbuildinfo

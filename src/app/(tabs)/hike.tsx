@@ -1,10 +1,8 @@
+import { HikeTempFlow } from "@/src/core/flows/HikeTempFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
-
-
-import { useHikeTemp } from "@/src/core/models/Hike/Hike";
-import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 
 export default function Hike() {
     const {
@@ -22,7 +20,7 @@ export default function Hike() {
         handleStartTracking,
         handleDeveloperBypass,
         isAdmin
-    } = useHikeTemp();
+    } = HikeTempFlow();
 
     const {
         onGroupPress,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform,  StyleSheet, TouchableOpacity, View  } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';

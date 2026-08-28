@@ -1,5 +1,5 @@
 import { GlobalStyles } from "@/src/constants/globalStyles";
-import { ITrailStats } from "@/src/core/models/Trail/interfaces/Trail.types";
+import { ITrailStats } from "@/src/core/models/Trail/Trail";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
     ActivityIndicator,

@@ -21,7 +21,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
@@ -40,7 +40,7 @@ import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/Offe
 export interface OfferViewScreenProps {
     offerId: string;
     offer: IOffer;
-    bookings: IBooking[];
+    bookings: Booking[];
     onViewBooking: (bookingId: string, offerId: string) => void;
     onBackPress: () => void;
     error?: string;
@@ -140,7 +140,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     )}
 
                     {filteredBookings && filteredBookings.length > 0 ? (
-                        filteredBookings.map((b: IBooking) => (
+                        filteredBookings.map((b: Booking) => (
                             <AdminBookingCard 
                                 key={b.id} 
                                 booking={b} 

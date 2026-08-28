@@ -91,8 +91,8 @@ const SuperadminShell = ({
     const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
     const scrollRef = useRef<ScrollView>(null);
-    const fadeAnim = useRef(new Animated.Value(1)).current;
-    const translateYAnim = useRef(new Animated.Value(0)).current;
+    const [fadeAnim] = useState(() => new Animated.Value(1));
+    const [translateYAnim] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         fadeAnim.setValue(0);

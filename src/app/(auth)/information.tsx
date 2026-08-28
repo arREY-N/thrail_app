@@ -1,5 +1,5 @@
-import useSignUp from "@/src/core/hook/auth/useSignUp";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useSignUp } from "@/src/core/models/User/User";
 import InformationScreen from "@/src/features/Auth/screens/InformationScreen";
 
 export default function Information() {

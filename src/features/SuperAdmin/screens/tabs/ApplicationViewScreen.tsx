@@ -18,7 +18,6 @@ import { Layout } from '@/src/constants/layout';
 import { Application } from '@/src/core/models/Application/Application';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 export interface ApplicationViewScreenProps {
@@ -46,7 +45,6 @@ const ApplicationViewScreen: React.FC<ApplicationViewScreenProps> = ({
     onTabPress,
     onBackToSettings,
 }) => {
-    const { isDesktop } = useBreakpoints();
     const isPending = application.status === 'pending';
 
     const getStatusColor = (status: string) => {

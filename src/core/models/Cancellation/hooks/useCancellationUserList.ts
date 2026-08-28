@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { useEffect, useState } from "react";
 
@@ -23,30 +23,30 @@ export function useCancellationUserList() {
     useEffect(() => {
         const fetch = async () => {
             setLocalError(null);
-            
-            if(!profile || !profile.id) {
+
+            if (!profile?.id) {
                 setLocalError("User profile is not available.");
                 return;
             }
-    
-            if(profile.role === "admin") {
+
+            if (profile.role === "admin") {
                 setLocalError("Only users can fetch the list of their cancellation requests.");
                 return;
             }
-    
+
             await useCancellationStore.getState().fetchAllUserCancellations(profile.id);
         }
 
         fetch();
-        
-    },[profile?.id, profile?.role]);
+
+    }, [profile?.id, profile?.role]);
 
     /**
      * Refreshes the list of cancellation requests for the current user.
      */
     const refreshUserCancellations = async () => {
         try {
-            if(!profile || !profile.id) {
+            if (!profile || !profile.id) {
                 throw new Error("User profile is not available. Cannot refresh cancellations.");
             }
             await useCancellationStore.getState().fetchAllUserCancellations(profile.id, true);

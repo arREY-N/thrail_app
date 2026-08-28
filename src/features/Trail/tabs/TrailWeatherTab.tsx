@@ -5,7 +5,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import WeatherWidget from '@/src/components/WeatherWidget';
 import { Colors } from '@/src/constants/colors';
-import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 
 // Fallback coordinate table keyed by mountain name substring (lowercase).
 // Used when the Firestore trail document does not carry lat/lng fields.

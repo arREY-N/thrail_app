@@ -10,12 +10,12 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
+import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
-import { useHikerGPS } from "../../core/hook/trail/useHikerGPS";
 import { buildOfflineStyle } from "./offlineStyle";
 import { onlineStyle } from "./onlineStyle";
 
@@ -27,6 +27,7 @@ const MIN_PMTILES_SIZE_BYTES = 18_000_000;
 
 type LoadState = "loading" | "ready" | "error";
 
+// eslint-disable-next-line react/display-name
 const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280, hikerLocations = [], currentUserId }: any, ref) => {
   const {
     userLocation,
@@ -37,7 +38,7 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
     initForegroundGps,
     startBackgroundTracking,
     stopBackgroundTracking,
-  } = useHikerGPS();
+  } = TrackHikerGPSFlow();
 
   const lonStr = Array.isArray(initialLon) ? initialLon[0] : initialLon;
   const latStr = Array.isArray(initialLat) ? initialLat[0] : initialLat;
@@ -255,8 +256,8 @@ const TrailMap = forwardRef(({ initialLon, initialLat, showControls = true, show
           if (!hiker || !hiker.latitude || !hiker.longitude) return null;
           if (currentUserId && hiker.id === currentUserId) return null;
 
-          const initials = hiker.hikerName 
-            ? hiker.hikerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
+          const initials = hiker.hikerName
+            ? hiker.hikerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
             : '?';
 
           return (

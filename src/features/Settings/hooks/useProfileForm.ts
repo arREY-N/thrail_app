@@ -3,9 +3,11 @@
  * @description Hook managing profile edit states, validation, search inputs, and saving operations.
  */
 
-import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/interfaces/User.types";
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+
+import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
+import { safeParseDateString } from "@/src/utils/dateFormatter";
 
 export interface UseProfileFormParams {
     user: IUser;
@@ -30,13 +32,13 @@ export function useProfileForm({
 
     const [username, setUsername] = useState<string>(user.username || '');
     const [phoneNumber, setPhoneNumber] = useState<string>(user.phoneNumber || '');
-    const [birthday, setBirthday] = useState<Date | null>(user.birthday ? new Date(user.birthday) : null);
+    const [birthday, setBirthday] = useState<Date | null>(user.birthday ? safeParseDateString(user.birthday) : null);
     const [address, setAddress] = useState<string>(user.address || '');
     const [medicalProfile, setMedicalProfile] = useState<IMedicalProfile>(user.medicalProfile || { hasCondition: false, details: [], clearanceUri: '' });
     const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
     const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
 
-    const { findUser } = useEmergencyContact();
+    const { findUser } = EmergencyContactFlow();
     const [searchEmail, setSearchEmail] = useState<string>('');
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);
@@ -45,11 +47,13 @@ export function useProfileForm({
 
     const [formError, setFormError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const [prevResetKey, setPrevResetKey] = useState({ isEditing, user });
+    if (prevResetKey.isEditing !== isEditing || prevResetKey.user !== user) {
+        setPrevResetKey({ isEditing, user });
         if (!isEditing) {
             setUsername(user.username || '');
             setPhoneNumber(user.phoneNumber || '');
-            setBirthday(user.birthday ? new Date(user.birthday) : null);
+            setBirthday(user.birthday ? safeParseDateString(user.birthday) : null);
             setAddress(user.address || '');
             setMedicalProfile(user.medicalProfile || { hasCondition: false, details: [], clearanceUri: '' });
             setEmergencyContact(user.emergencyContact || { name: '', contactNumber: '', email: '' });
@@ -60,12 +64,12 @@ export function useProfileForm({
             setSearchInfo(null);
             setFormError(null);
         }
-    }, [isEditing, user]);
+    }
 
     const isDirty =
         username !== (user.username || '') ||
         phoneNumber !== (user.phoneNumber || '') ||
-        (birthday?.getTime() !== (user.birthday ? new Date(user.birthday).getTime() : undefined)) ||
+        (birthday?.getTime() !== (user.birthday ? safeParseDateString(user.birthday).getTime() : undefined)) ||
         address !== (user.address || '') ||
         JSON.stringify(medicalProfile) !== JSON.stringify(user.medicalProfile || { hasCondition: false, details: [], clearanceUri: '' }) ||
         JSON.stringify(emergencyContact) !== JSON.stringify(user.emergencyContact || { name: '', contactNumber: '', email: '' }) ||
@@ -100,7 +104,7 @@ export function useProfileForm({
                 });
                 setSearchSuccess(`Found and linked ${foundUser.firstname || 'user'}! This contact will unlock automated SOS group chats.`);
             }
-        } catch (err) {
+        } catch {
             setSearchError("Error searching. Please try again.");
         } finally {
             setIsSearching(false);

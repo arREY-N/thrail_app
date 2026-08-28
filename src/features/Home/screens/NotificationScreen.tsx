@@ -1,11 +1,11 @@
 import React, { useCallback } from 'react';
-import { Platform, 
+import {
     FlatList,
     ListRenderItemInfo,
     Pressable,
     StyleSheet,
-    View,
- } from 'react-native';
+    View
+} from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -68,9 +68,9 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }: Notific
 
     const renderItem = useCallback(({ item }: ListRenderItemInfo<AppNotification>) => {
         const iconData = getIcon(item.title);
-        
+
         return (
-            <Pressable 
+            <Pressable
                 onPress={() => onPressItem(item.id)}
                 style={({ pressed }) => [
                     styles.cardContainer,
@@ -78,32 +78,32 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }: Notific
                     !item.isRead && styles.unreadCard
                 ]}
             >
-                <View style={[styles.iconContainer, { backgroundColor: iconData.color + '15' }]}> 
-                    <CustomIcon 
-                        library={iconData.lib} 
-                        name={iconData.name} 
-                        size={24} 
-                        color={iconData.color} 
+                <View style={[styles.iconContainer, { backgroundColor: iconData.color + '15' }]}>
+                    <CustomIcon
+                        library={iconData.lib}
+                        name={iconData.name}
+                        size={24}
+                        color={iconData.color}
                     />
                 </View>
 
                 <View style={styles.textContainer}>
                     <View style={styles.headerRow}>
-                        <CustomText 
-                            variant="subtitle" 
+                        <CustomText
+                            variant="subtitle"
                             style={[styles.title, !item.isRead && styles.unreadTitle]}
                             numberOfLines={1}
                         >
                             {item.title}
                         </CustomText>
-                        
+
                         {!item.isRead && <View style={styles.unreadDot} />}
                     </View>
-                    
+
                     <CustomText variant="body" style={styles.message} numberOfLines={2}>
                         {item.message}
                     </CustomText>
-                    
+
                     <CustomText variant="caption" style={styles.time}>
                         {item.time}
                     </CustomText>
@@ -114,8 +114,8 @@ const NotificationScreen = ({ notifications, onBackPress, onPressItem }: Notific
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Notifications" 
+            <CustomHeader
+                title="Notifications"
                 centerTitle={true}
                 onBackPress={onBackPress}
             />
@@ -144,18 +144,18 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 16,
     },
-    
+
     cardContainer: {
         flexDirection: 'row',
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
         padding: 16,
         alignItems: 'flex-start',
-        
-        
-        
-        
-        
+
+
+
+
+
         ...GlobalStyles.dropShadow(3),
     },
     cardPressed: {

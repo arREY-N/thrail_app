@@ -9,6 +9,8 @@ export function useUser() {
     const addUserNotificationToken = useUserStore(s => s.addUserNotificationToken);
     const isLoading = useUserStore(s => s.isLoading);
     const error = useUserStore(s => s.error);
+    const users = useUserStore(s => s.data);
+    const user = useUserStore(s => s.current);
 
     return {
         loadUser,
@@ -17,6 +19,8 @@ export function useUser() {
         deleteUser,
         setEmergencyContact,
         addUserNotificationToken,
+        users,
+        user,
         isLoading,
         error,
     };

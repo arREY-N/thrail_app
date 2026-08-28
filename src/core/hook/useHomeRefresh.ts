@@ -1,7 +1,7 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useRecommendationsStore } from "@/src/core/models/Recommendation/Recommendation";
 import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useRef, useState } from "react";
 
 export function useHomeRefresh() {

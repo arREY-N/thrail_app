@@ -4,7 +4,7 @@
  * Automatically adapts positioning with safe-area insets on mobile and accepts custom bottomOffset overrides.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,13 +50,34 @@ const CustomToast: React.FC<CustomToastProps> = ({
     const insets = useSafeAreaInsets();
     const { isMobile } = useBreakpoints();
     const [shouldRender, setShouldRender] = useState(visible);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(20)).current;
+    if (visible && !shouldRender) {
+        setShouldRender(true);
+    }
+
+    const [fadeAnim] = useState(() => new Animated.Value(0));
+    const [slideAnim] = useState(() => new Animated.Value(20));
     const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleHide = useCallback(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 15,
+                duration: 200,
+                useNativeDriver: true,
+            })
+        ]).start(() => {
+            setShouldRender(false);
+            onHide();
+        });
+    }, [fadeAnim, slideAnim, onHide]);
 
     useEffect(() => {
         if (visible) {
-            setShouldRender(true);
             if (hideTimeout.current) {
                 clearTimeout(hideTimeout.current);
             }
@@ -99,25 +120,7 @@ const CustomToast: React.FC<CustomToastProps> = ({
                 clearTimeout(hideTimeout.current);
             }
         };
-    }, [visible, message]);
-
-    const handleHide = () => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }),
-            Animated.timing(slideAnim, {
-                toValue: 15,
-                duration: 200,
-                useNativeDriver: true,
-            })
-        ]).start(() => {
-            setShouldRender(false);
-            onHide();
-        });
-    };
+    }, [visible, message, duration, fadeAnim, slideAnim, handleHide]);
 
     if (!shouldRender) return null;
 

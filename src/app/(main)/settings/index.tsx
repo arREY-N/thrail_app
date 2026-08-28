@@ -2,20 +2,19 @@
  * @file index.tsx
  * @description Controller for the main settings page.
  */
-import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useAuthHook } from '@/src/core/models/User/User';
 import SettingsScreen from '@/src/features/Settings/screens/SettingsScreen';
 
 /**
  * SettingsPage coordinates navigation options, sign out triggers, and role-based actions.
  */
-export default function settings() {
+export default function Settings() {
     const { profile } = useAuthHook();
 
-    const { 
+    const {
         // onBackPress,
         onProfilePress,
         onSecuritySettingsPress,
@@ -25,9 +24,9 @@ export default function settings() {
         onUserViewPress
     } = useAppNavigation();
 
-    const { 
-        role, 
-        onSignOutPress 
+    const {
+        role,
+        onSignOutPress
     } = useAuthHook();
 
     const {
@@ -40,18 +39,18 @@ export default function settings() {
         <SettingsScreen
             role={role as string}
             onBackPress={onProfilePress}
-            
+
             onProfileInfoPress={() => onUserViewPress(profile?.id)}
             onSecurityPress={onSecuritySettingsPress}
             onAdminPress={onAdminPress}
             onSuperadminPress={onSuperadminPress}
             onApplyPress={onApplyPress}
-            
+
             onPrivacySettingsPress={onPrivacySettingsPress}
             onNotificationsPress={onNotificationSettingsPress}
-            
+
             onAboutPress={onAboutSettingsPress}
-            
+
             onSignOutPress={onSignOutPress}
         />
     );

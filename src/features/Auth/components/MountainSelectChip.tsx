@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, 
+import { 
     NativeScrollEvent,
     NativeSyntheticEvent,
     ScrollView,
@@ -153,7 +153,7 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: Mou
                                 size={22} 
                             />
                             <CustomText style={styles.addCustomText}>
-                                Add "{searchQuery.trim()}"
+                                {`Add "${searchQuery.trim()}"`}
                             </CustomText>
                         </TouchableOpacity>
                     )}

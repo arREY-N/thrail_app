@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string */
 /**
  * @file PostCard.tsx
  * @description A comprehensive card component used to display user reviews,
@@ -6,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
     ImageSourcePropType,
     Platform,
@@ -23,14 +22,13 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
-import { formatDuration } from "@/src/utils/dateFormatter";
+import { formatDateToStandard, formatDuration } from "@/src/utils/dateFormatter";
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { Review } from '@/src/core/models/Review/Review';
-import { formatDate } from '@/src/core/utility/date';
+import { IReview, Review } from '@/src/core/models/Review/Review';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
@@ -45,7 +43,7 @@ import { IconLibrary } from '@/src/types/ui.types';
  * @param variant - The visual variant of the post card ('community' or 'profile').
  */
 interface PostCardProps {
-    review: any;
+    review: Review | IReview;
     onLike?: () => void;
     isLiked?: (review: Review) => boolean;
     onEdit?: () => void;
@@ -56,12 +54,12 @@ interface PostCardProps {
  * PostCard — A comprehensive card component used to display user reviews,
  * photos, stats, and tags within the community feed or user profile.
  */
-const PostCard: React.FC<PostCardProps> = ({
-    review,
-    onLike,
-    isLiked,
-    onEdit,
-    variant = 'community'
+const PostCard: React.FC<PostCardProps> = ({ 
+    review, 
+    onLike, 
+    isLiked, 
+    onEdit, 
+    variant = 'community' 
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
@@ -73,20 +71,38 @@ const PostCard: React.FC<PostCardProps> = ({
         scrollProps
     } = useScrollFades();
 
+    const liked = useMemo(() => isLiked && review ? isLiked(review as Review) : false, [review, isLiked]);
+
+    const legacyTrailId = review?.trail?.id;
+    const legacyTrailName = review?.trail?.name;
+
+    const trailData = useTrailsStore(
+        useCallback(
+            (s) => {
+                if (!legacyTrailId && !legacyTrailName) return undefined;
+                return s.data.find(
+                    (t) =>
+                        (legacyTrailId && t.id === legacyTrailId) ||
+                        (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
+                );
+            },
+            [legacyTrailId, legacyTrailName]
+        )
+    );
+
+    const hasTags = Boolean(
+        review && (
+            (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') ||
+            (review.trailMaintenance && review.trailMaintenance !== 'undefined') ||
+            (review.difficultyFactors && review.difficultyFactors.length > 0) ||
+            (review.favoredFactors && review.favoredFactors.length > 0)
+        )
+    );
+
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(scrollRef, hasTags);
+
     if (!review) return null;
-
-    const liked = useMemo(() => isLiked ? isLiked(review) : false, [review, isLiked]);
-
-    const trails = useTrailsStore(s => s.data);
-    const trailData = useMemo(() => {
-        const legacyTrailId = review?.trail?.id || (review as any)?.trailId || (review as any)?.mountainId;
-        const legacyTrailName = review?.trail?.name || (review as any)?.trailName || (review as any)?.mountainName;
-
-        return trails.find(t =>
-            (legacyTrailId && t.id === legacyTrailId) ||
-            (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
-        );
-    }, [trails, review]);
 
     const fallbackImage = getHeroImageSource(trailData);
     const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
@@ -106,7 +122,7 @@ const PostCard: React.FC<PostCardProps> = ({
     };
 
     const formatStat = (val: unknown, type: string): string => {
-        if (val === undefined || val === null || val === '--' || isNaN(val as any)) return '--';
+        if (val === undefined || val === null || val === '--' || isNaN(Number(val))) return '--';
 
         const numVal = Number(val);
 
@@ -164,18 +180,11 @@ const PostCard: React.FC<PostCardProps> = ({
     review.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
     review.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
 
-    const visibleTags = isExpanded ? allTags : allTags.slice(0, 2);
-    const hiddenTagsCount = allTags.length - visibleTags.length;
-    const hasTags = allTags.length > 0;
-
-    // Enable drag-to-scroll functionality on Web platforms
-    useWebDragScroll(scrollRef, hasTags);
-
     const likeCount = Array.isArray(review.likes)
         ? review.likes.length
         : Number(review.likes) || 0;
 
-    const reviewText = review?.review || review?.content || "";
+    const reviewText = review?.review || "";
     const maxLength = 110;
     const isLong = reviewText.length > maxLength;
     const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
@@ -196,7 +205,7 @@ const PostCard: React.FC<PostCardProps> = ({
                             {review?.user?.username || review?.user?.firstname || "Hiker Name"}
                         </CustomText>
                         <CustomText variant="caption" style={styles.dateText}>
-                            {formatDate(review?.createdAt || review?.hikeDate || new Date())}
+                            {formatDateToStandard(review?.createdAt || review?.hikeDate || new Date())}
                         </CustomText>
                     </View>
                 </View>
@@ -206,7 +215,7 @@ const PostCard: React.FC<PostCardProps> = ({
                     <View style={styles.headerRatingBadge}>
                         <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
                         <CustomText variant="label" style={styles.headerRatingText}>
-                            {review.overallRating || review.rate?.toFixed(1) || '--'}
+                            {review?.overallRating ? review.overallRating.toFixed(1) : '--'}
                         </CustomText>
                     </View>
 
@@ -246,13 +255,13 @@ const PostCard: React.FC<PostCardProps> = ({
                 <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                            {review.trail?.name || review.trailName || "Mountain Name"}
+                            {review.trail?.name || (review as any).trailName || "Mountain Name"}
                         </CustomText>
 
                         <View style={styles.locationRow}>
                             <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
                             <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
-                                {review.trail?.location || review.location || "Philippines"}
+                                {review.trail?.location || (review as any).location || "Philippines"}
                             </CustomText>
                         </View>
                     </View>
@@ -377,7 +386,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 </View>
             )}
 
-            <ImagePreviewModal visible={isPreviewVisible} images={imagesList} onClose={() => setIsPreviewVisible(false)} />
+            <ImagePreviewModal visible={isPreviewVisible} images={imagesList as any} onClose={() => setIsPreviewVisible(false)} />
         </View>
     );
 };
@@ -724,8 +733,8 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(PostCard, (prevProps, nextProps) => {
-    const prevLiked = prevProps.isLiked ? prevProps.isLiked(prevProps.review) : false;
-    const nextLiked = nextProps.isLiked ? nextProps.isLiked(nextProps.review) : false;
+    const prevLiked = prevProps.isLiked && prevProps.review ? prevProps.isLiked(prevProps.review as Review) : false;
+    const nextLiked = nextProps.isLiked && nextProps.review ? nextProps.isLiked(nextProps.review as Review) : false;
 
     return prevProps.review === nextProps.review &&
         prevProps.variant === nextProps.variant &&

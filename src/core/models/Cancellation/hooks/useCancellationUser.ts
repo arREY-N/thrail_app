@@ -1,9 +1,9 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, useBookingDelete } from "@/src/core/models/Booking/Booking";
 import { Cancellation, CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { createCancellationRequest, newCancellation } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 
