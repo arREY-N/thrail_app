@@ -61,15 +61,15 @@ def build_18_feature_vector(entity_dict: Dict[str, Any]) -> np.ndarray:
         vec[10] = 3.0 / 9.0
 
     # 4. Duration Dimension (Dimension 11)
-    hours = float(entity_dict.get('difficulty_hours', 3.0))
+    hours = float(entity_dict.get('difficulty_hours', 3.0)) #remove duration dimension
     vec[11] = float(np.clip(hours / 12.0, 0.0, 1.0))
 
     # 5. Length / Elevation Index Dimension (Dimension 12)
-    length_km = float(entity_dict.get('difficulty_length', 5.0))
-    gain_m = float(entity_dict.get('difficulty_gain', 300.0))
-    length_norm = min(length_km / 30.0, 1.0)
-    gain_norm = min(gain_m / 2000.0, 1.0)
-    vec[12] = float((length_norm + gain_norm) / 2.0)
+    length_km = float(entity_dict.get('difficulty_length', 5.0)) # no fallback on length if no value flaged as error
+    gain_m = float(entity_dict.get('difficulty_gain', 300.0)) # no fallback on gain if no value flaged as error
+    length_norm = min(length_km / 30.0, 1.0) # divide to max length of longest trail or maountain to normalize to 1
+    gain_norm = min(gain_m / 2000.0, 1.0) # divide to max elevation of highest trail or maountain to normalize to 1
+    vec[12] = float((length_norm + gain_norm) / 2.0) # divide gain to get the normalize value of 1
 
     # 6. Tourism Infrastructure Flags (Dimensions 13-17)
     for idx, infra in enumerate(TOURISM_INFRASTRUCTURE):
