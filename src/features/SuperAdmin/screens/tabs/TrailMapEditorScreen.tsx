@@ -126,7 +126,7 @@ const TrailMapEditorScreen = ({
         setIsDirty(false);
     };
 
-    const trailName = activeTrail?.general?.name || activeTrail?.name || 'Trail Route Map';
+    const trailName = activeTrail?.general?.name || 'Trail Route Map';
     const pointCount = offlinePoints.length;
 
     // Header Back Action Button
