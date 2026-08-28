@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 import { STAT_GLOSSARY, getFeatureIcon } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 import { IconLibrary } from '@/src/types/ui.types';
 
