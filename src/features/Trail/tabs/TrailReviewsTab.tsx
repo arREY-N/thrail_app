@@ -7,7 +7,7 @@ import { Colors } from '@/src/constants/colors';
 
 import PostCard from '@/src/components/PostCard';
 
-import { IReview } from '@/src/core/models/Review/interfaces/Review.types';
+import { IReview } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export interface TrailReviewsTabProps {
