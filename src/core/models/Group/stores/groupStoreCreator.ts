@@ -1,7 +1,6 @@
-import { newGroup } from "@/src/core/models/Group/GroupFactory";
-import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/IGroup";
-
-import { GroupRepo } from "@/src/core/init/repositories";
+import { Group, IGroupMember } from "@/src/core/models/Group/interfaces/Group.types";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
+import { newGroup } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
@@ -25,7 +24,7 @@ export interface GroupState {
     loadMoreMessages: (groupId: string) => void;  // Triggers pagination
     markGroupAsVisited: (groupId: string, userSummary: IUserSummary) => Promise<void>; // Marks the group as visited for the user
 
-    fetchGroupById: (groupId: string) => Promise<void>;
+    fetchGroupById: (groupId: string) => Promise<Group | void>;
 
     setGroups: (groups: Group[]) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
@@ -48,24 +47,27 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     messagePrevCounts: {},
     hasReachedEndByGroup: {},
 
-    fetchGroupById: async (groupId: string): Promise<void> => {
+    fetchGroupById: async (groupId: string): Promise<Group | void> => {
         try {
             set({ isFetching: true, error: null });
-            
+
             const group = await GroupRepo.fetchGroup(groupId);
-            
-            set({ 
+
+            set({
                 isFetching: false,
-                groups: upsertItem(get().groups, group)
+                groups: upsertItem(get().groups, group),
             });
+
+            return group;
         } catch (error) {
+            set({ isFetching: false, error: error instanceof Error ? error.message : "Failed to fetch group" });
             throw error;
         }
     },
 
     subscribeToGroup: (groupId) => {
         // If already listening, do not duplicate
-        if(get().activeListeners[groupId]) return;
+        if (get().activeListeners[groupId]) return;
 
         // Default to loading the 30 most recent messages
         const limitCount = get().messageLimits[groupId] || 30;
@@ -80,22 +82,22 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
                 // Ignore cache snapshots to prevent premature true detection.
                 hasReachedEndByGroup: {
                     ...state.hasReachedEndByGroup,
-                    [groupId]: fromCache 
+                    [groupId]: fromCache
                         ? (state.hasReachedEndByGroup[groupId] ?? false)
                         : messages.length < limitCount,
                 },
             }))
         );
-        
+
         set((state) => ({
-            activeListeners: { 
+            activeListeners: {
                 ...state.activeListeners,
-                [groupId]: unsubscribe
+                [groupId]: unsubscribe,
             },
             messageLimits: {
                 ...state.messageLimits,
-                [groupId]: limitCount
-            }
+                [groupId]: limitCount,
+            },
         }));
     },
 
@@ -140,12 +142,12 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         set((state) => ({
             messageLimits: {
                 ...state.messageLimits,
-                [groupId]: newLimit
+                [groupId]: newLimit,
             },
             activeListeners: {
                 ...state.activeListeners,
-                [groupId]: newUnsubscribe
-            }
+                [groupId]: newUnsubscribe,
+            },
         }));
     },
 
@@ -157,16 +159,16 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     unsubscribeFromGroup: (groupId) => {
         const unsubscribe = get().activeListeners[groupId];
 
-        if(unsubscribe){
+        if (unsubscribe) {
             unsubscribe();
             set((state) => {
                 const newListeners = { ...state.activeListeners };
                 delete newListeners[groupId];
                 return {
                     ...state,
-                    activeListeners: newListeners
-                }
-            })
+                    activeListeners: newListeners,
+                };
+            });
         }
     },
 
@@ -174,16 +176,16 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
 
     setMessagesByGroup: (groupId, messages) => set((state) => {
         const current = state.messagesByGroup[groupId];
-        if(current === messages) {
+        if (current === messages) {
             return state;
         }
 
         return {
             messagesByGroup: {
                 ...state.messagesByGroup,
-                [groupId]: messages
-            }
-        }
+                [groupId]: messages,
+            },
+        };
     }),
 
     sendMessage: async (groupId, message) => {
@@ -196,15 +198,18 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
 
     createGroup: async (group: Group) => {
         try {
+            set({ isLoading: true, error: null });
             await GroupRepo.writeGroup(group);
+            set({ isLoading: false });
         } catch (error) {
+            set({ isLoading: false, error: error instanceof Error ? error.message : "Failed to create group" });
             throw error;
         }
     },
 
     checkGroupExists: async (groupId: string): Promise<Group | null> => {
         try {
-            const group = await GroupRepo.fetchGroup(groupId);  
+            const group = await GroupRepo.fetchGroup(groupId);
             return group;
         } catch (error) {
             console.log("Failed to check group existence:", error);
@@ -214,15 +219,17 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
 
     joinGroup: async (group: Group, member: IGroupMember): Promise<void> => {
         try {
+            set({ isLoading: true, error: null });
             const created = newGroup({
                 ...group,
                 members: [...(group.members || []), member],
                 participantsIds: [...(group.participantsIds || []), member.id],
-            })
+            });
 
             await GroupRepo.writeGroup(created);
-
+            set({ isLoading: false });
         } catch (error) {
+            set({ isLoading: false, error: error instanceof Error ? error.message : "Failed to join group" });
             console.log("Failed to join group:", error);
             throw error;
         }

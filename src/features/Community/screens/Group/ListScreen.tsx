@@ -24,7 +24,7 @@ import { Layout } from '@/src/constants/layout';
 import { getInitials, getShortTimeElapsed } from '@/src/utils/dateFormatter';
 
 import { IGroup } from '@/src/core/models/Group/Group';
-import { IUser } from '@/src/core/models/User/User';
+import { User } from '@/src/core/models/User/User';
 import { useListScreen } from './hooks/useListScreen';
 
 /**
@@ -42,7 +42,7 @@ export type GroupWithLegacyName = IGroup & { GroupName?: string };
  */
 export interface ListScreenProps {
     groups: GroupWithLegacyName[];
-    currentUser: IUser | null;
+    currentUser: User | null;
     onEnterRoom: (id: string) => void;
     onBackPress: () => void;
 }
@@ -54,7 +54,7 @@ export interface ListScreenProps {
  * @param currentUser - The current logged-in user
  * @returns A formatted string representing the group name
  */
-export const formatGroupName = (group: GroupWithLegacyName, currentUser?: IUser | null): string => {
+export const formatGroupName = (group: GroupWithLegacyName, currentUser?: User | null): string => {
     if (group?.type === 'chat') {
         const participants = group.members || [];
         const otherUser = participants.find(p => p.id !== currentUser?.id) || participants[0];

@@ -17,8 +17,8 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IUserBooking } from '@/src/core/models/Booking/Booking';
-import { IEmergencyContact, User } from '@/src/core/models/User/User';
+import { Booking, IUserBooking } from '@/src/core/models/Booking/Booking';
+import { User } from '@/src/core/models/User/User';
 import { calculateAge, formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -39,7 +39,7 @@ import { calculateAge, formatDateToStandard, getInitials } from '@/src/utils/dat
  */
 export interface HikerProfileCardProps {
     user: IUserBooking<Date>;
-    emergencyContact: IEmergencyContact;
+    emergencyContact: Booking['emergencyContact'];
     hikerProfile?: User | null;
     personalStatus: 'verified' | 'expired' | 'unverified';
     emergencyStatus: 'verified' | 'expired' | 'unverified';
@@ -89,7 +89,6 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
 
     // ConfirmationModal States for Phone Verification
     const [confirmVerifyVisible, setConfirmVerifyVisible] = useState(false);
-    const [pendingVerifyType, setPendingVerifyType] = useState<'personal' | 'emergency' | null>(null);
     const [pendingVerifyAction, setPendingVerifyAction] = useState<(() => void) | null>(null);
     const [confirmTitle, setConfirmTitle] = useState('');
     const [confirmMessage, setConfirmMessage] = useState('');
@@ -112,7 +111,6 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
         currentStatus: 'verified' | 'expired' | 'unverified', 
         onToggle: () => void
     ) => {
-        setPendingVerifyType(type);
         setPendingVerifyAction(() => onToggle);
         
         const isPersonal = type === 'personal';
@@ -139,7 +137,6 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
             pendingVerifyAction();
         }
         setConfirmVerifyVisible(false);
-        setPendingVerifyType(null);
         setPendingVerifyAction(null);
     };
 

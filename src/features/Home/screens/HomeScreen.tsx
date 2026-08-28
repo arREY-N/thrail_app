@@ -4,7 +4,7 @@
  */
 
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import {
   Platform,
   RefreshControl,
@@ -33,12 +33,8 @@ import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
 
-import { IOffer } from "@/src/core/models/Offer/interfaces/Offer.types";
-import { ITrail } from "@/src/core/models/Trail/Trail.types";
-import {
-  fetchTrailWeatherBadges,
-  TrailWeatherBadge,
-} from "@/src/core/utility/weatherHelpers";
+import { IOffer } from "@/src/core/models/Offer/Offer";
+import { ITrail } from "@/src/core/models/Trail/Trail";
 
 /**
  * Props for the HomeScreen component.
@@ -101,7 +97,6 @@ export interface HomeScreenProps {
  * @param getItemRating - Function retrieving trail rating by ID.
  * @param onMountainPress - Callback when card is pressed.
  * @param onDownloadPress - Callback when trail download icon is pressed.
- * @param mountainWeatherMap - Weather badge map keyed by trail ID.
  * @param getTrailOffersCount - Helper returning count of upcoming active offers for a trail ID.
  * @param isRefreshing - Active pull-to-refresh state boolean.
  */
@@ -118,7 +113,6 @@ interface ListSectionProps {
   getItemRating: (id: string) => number;
   onMountainPress: (id: string) => void;
   onDownloadPress: (id: string) => void;
-  mountainWeatherMap: Record<string, TrailWeatherBadge>;
   getTrailOffersCount: (trailId: string) => number;
 }
 
@@ -141,7 +135,6 @@ const ListSection: React.FC<ListSectionProps> = ({
   getItemRating,
   onMountainPress,
   onDownloadPress,
-  mountainWeatherMap,
   getTrailOffersCount,
 }) => {
   const hasData = data && data.length > 0;
@@ -217,7 +210,6 @@ const ListSection: React.FC<ListSectionProps> = ({
                 width: cardWidth,
                 marginRight: 16,
               }}
-              weatherBadge={mountainWeatherMap[item.id] ?? null}
               offersCount={getTrailOffersCount(item.id)}
             />
           ))}
@@ -318,45 +310,33 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     latitude,
     longitude,
   );
-  const [mountainWeatherMap, setMountainWeatherMap] = useState<
-    Record<string, TrailWeatherBadge>
-  >({});
   const { width } = useWindowDimensions();
   const { isDesktop, isTablet } = useBreakpoints();
   const isWideScreen = isDesktop || isTablet;
 
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
-  const cardWidth =
-    Platform.OS === "web"
-      ? isDesktop
-        ? 500
-        : 360
-      : Math.min(width * 0.85, 360);
+  const cardWidth = Math.min(width * 0.85, 360);
 
   const hasAnyTrails =
     recommendedTrails.length > 0 ||
     discoverTrails.length > 0 ||
     trailsWithOffers.length > 0;
 
-  const reloadMountainWeatherBadges = useCallback(() => {
-    const allVisibleTrails = [
-      ...recommendedTrails,
-      ...discoverTrails,
-      ...trailsWithOffers,
-    ];
-    if (allVisibleTrails.length === 0) return;
+  // const reloadMountainWeatherBadges = useCallback(() => {
+  //     const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
+  //     if (allVisibleTrails.length === 0) return;
 
-    const uniqueTrails = Array.from(new Set(allVisibleTrails.map((t) => t.id)))
-      .map((id) => allVisibleTrails.find((t) => t.id === id))
-      .filter((t): t is ITrail => t !== undefined);
+  //     const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
+  //         .map(id => allVisibleTrails.find(t => t.id === id))
+  //         .filter((t): t is ITrail => t !== undefined);
 
-    fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
-  }, [recommendedTrails, discoverTrails, trailsWithOffers]);
+  //     fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
+  // }, [recommendedTrails, discoverTrails, trailsWithOffers]);
 
-  useEffect(() => {
-    reloadMountainWeatherBadges();
-  }, [reloadMountainWeatherBadges]);
+  // useEffect(() => {
+  //     reloadMountainWeatherBadges();
+  // }, [reloadMountainWeatherBadges]);
 
   // Helper to calculate upcoming offers count for each card
   const getTrailOffersCount = (trailId: string) => {
@@ -371,7 +351,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-      {<CustomHeader title="Home" showDefaultIcons={true} />}
+      <CustomHeader title="Home" showDefaultIcons={true} />
 
       <ResponsiveScrollView
         style={styles.container}
@@ -389,7 +369,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
               refreshing={isRefreshing}
               onRefresh={async () => {
                 await refetch();
-                await reloadMountainWeatherBadges();
                 if (onRefreshPress) {
                   await onRefreshPress();
                 }
@@ -423,7 +402,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           getItemRating={getItemRating}
           onMountainPress={onMountainPress}
           onDownloadPress={onDownloadPress}
-          mountainWeatherMap={mountainWeatherMap}
           getTrailOffersCount={getTrailOffersCount}
         />
 
@@ -439,7 +417,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           getItemRating={getItemRating}
           onMountainPress={onMountainPress}
           onDownloadPress={onDownloadPress}
-          mountainWeatherMap={mountainWeatherMap}
           getTrailOffersCount={getTrailOffersCount}
         />
 
@@ -455,12 +432,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             getItemRating={getItemRating}
             onMountainPress={onMountainPress}
             onDownloadPress={onDownloadPress}
-            mountainWeatherMap={mountainWeatherMap}
             getTrailOffersCount={getTrailOffersCount}
           />
         )}
       </ResponsiveScrollView>
-      {Platform.OS !== "web" && <CustomFAB onPress={onGroupPress} />}
+
+      <CustomFAB onPress={onGroupPress} />
     </ScreenWrapper>
   );
 };
@@ -473,15 +450,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 32,
-    gap: Platform.OS === "web" ? 24 : 16,
+    gap: 16,
   },
   scrollContentWide: {
-    maxWidth: 1120,
+    maxWidth: 860,
     width: "100%",
     alignSelf: "center",
   },
   sectionContainer: {
-    gap: Platform.OS === "web" ? 8 : 0,
     marginTop: 0,
   },
   sectionHeader: {
@@ -493,7 +469,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    marginBottom: Platform.OS === "web" ? 0 : 8,
+    marginBottom: 8,
   },
   viewAllText: {
     color: Colors.PRIMARY,
@@ -501,8 +477,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   horizontalList: {
-    paddingTop: Platform.OS === "web" ? 8 : 0,
-    paddingBottom: Platform.OS === "web" ? 8 : 4,
+    paddingBottom: 4,
     paddingHorizontal: 16,
   },
   scrollViewStyle: {

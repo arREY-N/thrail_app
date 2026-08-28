@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { ITrail } from '@/src/core/models/Trail/Trail.types';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 import { STAT_GLOSSARY, getFeatureIcon } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 import { IconLibrary } from '@/src/types/ui.types';
 
@@ -34,8 +34,8 @@ export interface StatItemProps {
 }
 
 export const StatItem: React.FC<StatItemProps> = ({ id, iconLib, icon, label, value, color, isActive, onPress }) => (
-    <TouchableOpacity 
-        style={[styles.statItem, isActive && styles.statItemActive]} 
+    <TouchableOpacity
+        style={[styles.statItem, isActive && styles.statItemActive]}
         onPress={() => onPress(id)}
         activeOpacity={0.6}
     >
@@ -54,10 +54,10 @@ export interface GlossaryTooltipProps {
 
 export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({ activeStat, trail }) => {
     if (!activeStat) return null;
-    
-    let pointerPosition: import('react-native').ViewStyle = { left: '50%', marginLeft: -8 }; 
+
+    let pointerPosition: import('react-native').ViewStyle = { left: '50%', marginLeft: -8 };
     const baseData = STAT_GLOSSARY[activeStat];
-    
+
     if (baseData.col === 0) pointerPosition = { left: '16.6%', marginLeft: -8 };
     if (baseData.col === 2) pointerPosition = { left: '83.3%', marginLeft: -8 };
 
@@ -73,7 +73,7 @@ export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({ activeStat, tr
             <View style={[styles.tooltipPointer, pointerPosition]} />
             <View style={styles.tooltipBody}>
                 <CustomText variant="label" style={styles.tooltipTitle}>{baseData.title}</CustomText>
-                
+
                 {descriptionText ? (
                     <CustomText style={styles.tooltipText}>{descriptionText}</CustomText>
                 ) : (
@@ -127,7 +127,7 @@ export const StyledListItem: React.FC<StyledListItemProps> = ({ text, index, typ
         bulletBg = { backgroundColor: Colors.TRAIL_LGU_BULLET_BG };
         bulletText = { color: Colors.TRAIL_LGU_BULLET_TEXT };
     } else { // guide
-        bgStyle = { backgroundColor: Colors.TRAIL_RULES_BG }; 
+        bgStyle = { backgroundColor: Colors.TRAIL_RULES_BG };
         borderStyle = { borderColor: Colors.TRAIL_RULES_BORDER };
         bulletBg = { backgroundColor: Colors.TRAIL_RULES_BULLET_BG };
         bulletText = { color: Colors.TRAIL_RULES_BULLET_TEXT };
@@ -147,20 +147,20 @@ const styles = StyleSheet.create({
     // Header
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: Colors.TEXT_PRIMARY, marginBottom: 0 },
-    
+
     // Stats
     statItem: { alignItems: 'center', flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12 },
     statItemActive: { backgroundColor: Colors.TRAIL_ACTIVE_STAT_BG },
     iconCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
     statValue: { fontWeight: '900', fontSize: 15, color: Colors.TEXT_PRIMARY, marginBottom: 2 },
     statLabel: { color: Colors.TEXT_SECONDARY, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-    
+
     // Tooltip
     tooltipWrapper: { marginTop: -4, paddingHorizontal: 12, position: 'relative', zIndex: 1 },
     tooltipPointer: { position: 'absolute', top: -7, width: 14, height: 14, backgroundColor: Colors.TRAIL_TOOLTIP_BG, transform: [{ rotate: '45deg' }], borderTopWidth: 1, borderLeftWidth: 1, borderColor: Colors.TRAIL_TOOLTIP_BORDER, zIndex: 2 },
     tooltipBody: { backgroundColor: Colors.TRAIL_TOOLTIP_BG, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.TRAIL_TOOLTIP_BORDER, zIndex: 1 },
     tooltipTitle: { fontWeight: 'bold', color: Colors.PRIMARY, marginBottom: 8 },
-    tooltipText: { color: Colors.TEXT_SECONDARY, lineHeight: 26, fontSize: 14, textAlign: 'justify', letterSpacing: 0.2},
+    tooltipText: { color: Colors.TEXT_SECONDARY, lineHeight: 26, fontSize: 14, textAlign: 'justify', letterSpacing: 0.2 },
     tooltipPointRow: { flexDirection: 'row', marginBottom: 4, flexWrap: 'wrap' },
     tooltipPointLabel: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY, fontSize: 14 },
     tooltipPointText: { color: Colors.TEXT_SECONDARY, fontSize: 14 },

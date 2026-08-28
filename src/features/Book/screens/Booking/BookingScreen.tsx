@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform,  StyleSheet, View  } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
@@ -15,7 +15,7 @@ import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
 import StatusScreen from '@/src/features/Book/screens/Booking/StatusScreen';
 
 export interface BookingScreenProps {
-    offers?: Array<{ id: string; date?: string | Date; [key: string]: unknown }>;
+    offers?: { id: string; date?: string | Date; [key: string]: unknown }[];
     onBackPress: () => void;
     onSetOffer?: (offer: unknown) => void;
     onCompleteOffer: (data: { hikerDetails: Record<string, any> }) => Promise<boolean>;

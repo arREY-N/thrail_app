@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Dimensions, Modal, Platform, SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,37 +7,39 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking';
-import { useTrailsStore } from '@/src/core/stores/trailStores/trailsStore';
-import { formatDate } from '@/src/core/utility/date';
+import { Booking } from '@/src/core/models/Booking/Booking';
+import { useTrailsStore } from '@/src/core/models/Trail/Trail';
+import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface UpcomingHikesModalProps {
     visible: boolean;
     onClose: () => void;
-    bookings: IBooking[];
-    activeBooking: IBooking | null;
-    onSelectBooking: (booking: IBooking) => void;
+    bookings: Booking[];
+    activeBooking: Booking | null;
+    onSelectBooking: (booking: Booking) => void;
 }
 
-const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({ 
-    visible, 
-    onClose, 
-    bookings, 
+const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
+    visible,
+    onClose,
+    bookings,
     activeBooking,
-    onSelectBooking 
+    onSelectBooking
 }) => {
     const insets = useSafeAreaInsets();
     const trailsDb = useTrailsStore(s => s.data); // Fetch to cross-reference locations
 
     // ✅ Animation States (Matching CustomFilterModal)
     const [renderModal, setRenderModal] = useState(visible);
-    const animValue = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.timing(animValue, {
                 toValue: 1,
                 duration: 300,
@@ -60,7 +62,7 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
         bookings.forEach((b) => {
             const date = new Date(b.offer?.date || new Date());
             const monthYear = date.toLocaleString('en-US', { month: 'long', year: 'numeric' }); // e.g., "May 2026"
-            
+
             if (!grouped[monthYear]) {
                 grouped[monthYear] = [];
             }
@@ -77,14 +79,14 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
     if (!renderModal) return null;
 
     return (
-        <Modal 
-            transparent={true} 
-            visible={renderModal} 
-            animationType="none" 
+        <Modal
+            transparent={true}
+            visible={renderModal}
+            animationType="none"
             onRequestClose={onClose}
         >
             <View style={styles.modalContainer}>
-                
+
                 {/* 🌑 Background Fade Overlay */}
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
                     <TouchableOpacity style={styles.backdropTouch} activeOpacity={1} onPress={onClose} />
@@ -122,7 +124,7 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollBody}
                         stickySectionHeadersEnabled={false}
-                        
+
                         // 🗓️ Month Divider Header
                         renderSectionHeader={({ section: { title } }) => (
                             <View style={styles.sectionHeader}>
@@ -130,29 +132,29 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                                 <View style={styles.sectionLine} />
                             </View>
                         )}
-                        
+
                         // 🎟️ Booking Cards
                         renderItem={({ item }) => {
                             const isActive = activeBooking?.id === item.id;
-                            
+
                             // Cross-reference trail database for location/province
                             const fullTrail = trailsDb.find(t => t.id === item.trail?.id);
                             const provinceStr = fullTrail?.general?.province?.join(', ');
                             const location = provinceStr || fullTrail?.general?.address || 'Location TBA';
 
                             return (
-                                <TouchableOpacity 
-                                    style={[styles.card, isActive && styles.cardActive]} 
+                                <TouchableOpacity
+                                    style={[styles.card, isActive && styles.cardActive]}
                                     onPress={() => onSelectBooking(item)}
                                     activeOpacity={0.7}
                                 >
                                     <View style={styles.cardInfo}>
                                         <View style={styles.row}>
-                                            <CustomIcon 
-                                                library={isActive ? "Feather" : "FontAwesome6"} 
-                                                name={isActive ? "check-circle" : "mountain"} 
-                                                size={16} 
-                                                color={isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                                            <CustomIcon
+                                                library={isActive ? "Feather" : "FontAwesome6"}
+                                                name={isActive ? "check-circle" : "mountain"}
+                                                size={16}
+                                                color={isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                                             />
                                             <CustomText variant="body" style={[styles.title, isActive && styles.titleActive]} numberOfLines={1}>
                                                 {item.trail?.name}
@@ -162,11 +164,11 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                                             <CustomIcon library="Feather" name="map-pin" size={10} color={Colors.TEXT_SECONDARY} /> {location}
                                         </CustomText>
                                         <CustomText variant="caption" style={styles.subtitle} numberOfLines={1}>
-                                            {formatDate(item.offer.date)} • {item.business?.name}
+                                            {formatDateToStandard(item.offer.date)} • {item.business?.name}
                                         </CustomText>
                                     </View>
-                                    
-                                    <TouchableOpacity 
+
+                                    <TouchableOpacity
                                         style={styles.detailsBtn}
                                         activeOpacity={0.7}
                                         onPress={() => {
@@ -202,31 +204,32 @@ const styles = StyleSheet.create({
     modalContainer: { flex: 1, justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Colors.MODAL_OVERLAY || 'rgba(0, 0, 0, 0.5)' },
     backdropTouch: { flex: 1 },
-    modalContent: { 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
+    modalContent: {
+        backgroundColor: Colors.WHITE,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         maxHeight: '75%',
-        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12,...GlobalStyles.dropShadow(),},
+        shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, ...GlobalStyles.dropShadow(),
+    },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 0 },
     headerTitle: { fontSize: 18, color: Colors.TEXT_PRIMARY, marginBottom: 0 },
     closeBtn: { padding: 4, backgroundColor: Colors.GRAY_ULTRALIGHT, borderRadius: 16 },
     scrollBody: { paddingHorizontal: 24, paddingBottom: 24 },
-    
+
     // Timeline Header
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 12 },
     sectionTitle: { color: Colors.TEXT_SECONDARY, letterSpacing: 1, fontWeight: 'bold', textTransform: 'uppercase', marginRight: 12 },
     sectionLine: { flex: 1, height: 1, backgroundColor: Colors.GRAY_LIGHT },
-    
+
     // Booking Cards
-    card: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        paddingVertical: 16, 
+    card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 16,
         paddingHorizontal: 16,
         backgroundColor: Colors.WHITE,
-        borderWidth: 1, 
+        borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 16,
         marginBottom: 12
@@ -241,11 +244,11 @@ const styles = StyleSheet.create({
     titleActive: { color: Colors.PRIMARY },
     locationText: { color: Colors.TEXT_SECONDARY, fontWeight: '600', marginBottom: 2 },
     subtitle: { color: Colors.TEXT_SECONDARY },
-    
+
     // Details Button
     detailsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingLeft: 8 },
     detailsText: { color: Colors.PRIMARY, fontWeight: '700' },
-    
+
     // Empty State
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
     emptyText: { textAlign: 'center', marginTop: 12, color: Colors.TEXT_SECONDARY }

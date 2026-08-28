@@ -1,5 +1,5 @@
 import { IFormField } from "@/src/core/interface/formFieldInterface";
-import { SignUp } from "@/src/core/models/User/SignUp";
+import { SignUp } from "@/src/core/models/User/User";
 
 export function validate<T>(
     object: any, 

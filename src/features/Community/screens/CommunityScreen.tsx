@@ -35,7 +35,7 @@ import { useCommunity } from '../hooks/useCommunity';
  */
 const FadeInView: React.FC<{ children: React.ReactNode, itemId: string, animatedIds: Set<string> }> = ({ children, itemId, animatedIds }) => {
     const hasAnimated = animatedIds.has(itemId);
-    const fadeAnim = useRef(new Animated.Value(hasAnimated ? 1 : 0)).current;
+    const [fadeAnim] = useState(() => new Animated.Value(hasAnimated ? 1 : 0));
 
     useEffect(() => {
         if (!hasAnimated) {
@@ -125,7 +125,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
     // Header animated scroll visibility states
     const [headerVisible, setHeaderVisible] = useState<boolean>(true);
     const lastOffsetY = useRef<number>(0);
-    const animatedHeaderHeight = useRef(new Animated.Value(1)).current; // 1 = visible, 0 = hidden
+    const [animatedHeaderHeight] = useState(() => new Animated.Value(1)); // 1 = visible, 0 = hidden
 
     useEffect(() => {
         Animated.timing(animatedHeaderHeight, {
@@ -133,7 +133,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
             duration: 200,
             useNativeDriver: true,
         }).start();
-    }, [headerVisible]);
+    }, [headerVisible, animatedHeaderHeight]);
 
     const translateY = animatedHeaderHeight.interpolate({
         inputRange: [0, 1],
@@ -248,37 +248,28 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         );
     }, [isLoading, isError, onReload, searchQuery]);
 
-    const handleScroll = useCallback(
-        Animated.event(
-            [],
-            {
-                useNativeDriver: false,
-                listener: (event: any) => {
-                    const currentOffsetY = event.nativeEvent.contentOffset.y;
-                    if (currentOffsetY <= 50) {
-                        setHeaderVisible(true);
-                        lastOffsetY.current = currentOffsetY;
-                        return;
-                    }
-                    const diff = currentOffsetY - lastOffsetY.current;
-                    
-                    // Ignore layout size reflow changes / jumps
-                    if (Math.abs(diff) > 100) {
-                        lastOffsetY.current = currentOffsetY;
-                        return;
-                    }
+    const handleScroll = useCallback((event: any) => {
+        const currentOffsetY = event.nativeEvent.contentOffset.y;
+        if (currentOffsetY <= 50) {
+            setHeaderVisible(true);
+            lastOffsetY.current = currentOffsetY;
+            return;
+        }
+        const diff = currentOffsetY - lastOffsetY.current;
+        
+        // Ignore layout size reflow changes / jumps
+        if (Math.abs(diff) > 100) {
+            lastOffsetY.current = currentOffsetY;
+            return;
+        }
 
-                    if (diff > 15 && headerVisible) {
-                        setHeaderVisible(false);
-                    } else if (diff < -15 && !headerVisible) {
-                        setHeaderVisible(true);
-                    }
-                    lastOffsetY.current = currentOffsetY;
-                }
-            }
-        ),
-        [headerVisible]
-    );
+        if (diff > 15 && headerVisible) {
+            setHeaderVisible(false);
+        } else if (diff < -15 && !headerVisible) {
+            setHeaderVisible(true);
+        }
+        lastOffsetY.current = currentOffsetY;
+    }, [headerVisible]);
 
     const handleLoadMore = useCallback(() => {
         if (hasMore && !isFetchingMore && !isError && onLoadMore) {

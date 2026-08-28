@@ -3,26 +3,28 @@
  * @description Expo Router tab controller page for the Community feed. Coordinates reviews state hooks, global navigation triggers, and scroll pagination/reload logic.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useReview from '@/src/core/hook/review/useReview';
+import { useReview, useReviewList } from '@/src/core/models/Review/Review';
 import CommunityScreen from '@/src/features/Community/screens/CommunityScreen';
 
 /**
  * community tab router component - Arrowless layout composition matching Expo Router rules.
  * Manages responsive pagination states and error callbacks for the community review feed.
  */
-export default function community(){
+export default function Community() {
+    const {
+        onWriteReviewPress,
+        likeReview,
+        isLiked,
+    } = useReview();
+
     const {
         reviews,
         isLoading,
-        onWriteReviewPress,
-        isOwned,
-        likeReview,
-        isLiked,
-        refreshFeed
-    } = useReview();
+        refresh,
+    } = useReviewList();
 
     const {
         onGroupPress,
@@ -86,7 +88,7 @@ export default function community(){
         setHasMore(true); // Reset hasMore state to allow further pagination
         setLoadCount(0); // Reset load count to start pagination from the beginning
         setDisplayedReviewsCount(10); // Reset displayed reviews count to initial value
-        refreshFeed(); // Trigger a fresh refetch of the feed data from the database
+        refresh(); // Trigger a fresh refetch of the feed data from the database
     };
 
     const slicedReviews = reviews.slice(0, displayedReviewsCount);
@@ -98,8 +100,8 @@ export default function community(){
             onWriteReviewPress={onWriteReviewPress}
             likeReview={likeReview}
             isLiked={isLiked}
-            onRefresh={refreshFeed}
-            onLeaderboardPress={onLeaderBoardPress} 
+            onRefresh={refresh}
+            onLeaderboardPress={onLeaderBoardPress}
             onGroupPress={onGroupPress}
             onNotificationPress={onNotificationPress}
             onBookingPress={onBookingPress}

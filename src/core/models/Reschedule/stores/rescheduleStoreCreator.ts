@@ -1,5 +1,5 @@
-import { RescheduleRepo } from "@/src/core/init/repositories";
-import { Reschedule } from "@/src/core/models/Reschedule/interfaces/IReschedule";
+import { Reschedule } from "@/src/core/models/Reschedule/interfaces/Reschedule.types";
+import { RescheduleRepo } from "@/src/core/models/Reschedule/repositories/RescheduleRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 
@@ -28,7 +28,7 @@ const init = {
     businessReschedules: [],
     allReschedules: [],
     userReschedules: [],
-}
+};
 
 export const rescheduleStoreCreator: StateCreator<RescheduleState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
@@ -116,5 +116,5 @@ export const rescheduleStoreCreator: StateCreator<RescheduleState, [["zustand/im
         } finally {
             set({ isWriting: false });
         }
-    }
-})
+    },
+});

@@ -1,41 +1,38 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack } from "expo-router";
 
-import useAdminOffer from "@/src/core/hook/admin/useAdminOffer";
-import useAdminNavigation from "@/src/core/hook/navigation/useAdminNavigation";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import getSearchParam from "@/src/core/utility/getSearchParam";
 
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useAdminNavigation } from "@/src/core/models/Admin/Admin";
+import { useBookingListenerAdminList, useBookingsStore } from "@/src/core/models/Booking/Booking";
+
+import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
 import OfferListScreen from "@/src/features/Admin/screens/Offer/OfferListScreen";
 
-export default function adminOfferList() {
-    const { businessId: rawId } = useLocalSearchParams();
-    const id = getSearchParam(rawId);
-
+export default function AdminOfferList() {
     const { onBackPress } = useAppNavigation();
 
-    const {
-        onWriteOffer,
-    } = useAdminNavigation({ businessId: id });
+    const { onWriteOffer } = useAdminNavigation();
 
-    const { 
+    useBookingListenerAdminList();
+
+    const {
         isLoading,
         error,
         businessOffers,
-        onViewOfferBookings,
-    } = useAdminOffer();
+        onViewOfferBookings
+    } = useOfferAdminList();
 
     const bookingByOffer = useBookingsStore(s => s.bookingByOffer);
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            
-            <OfferListScreen 
+
+            <OfferListScreen
                 offers={businessOffers}
                 bookingByOffer={bookingByOffer}
                 isLoading={isLoading}
-                onAddOffer={onWriteOffer} 
+                onAddOffer={onWriteOffer}
                 onEditOffer={onWriteOffer}
                 onViewOfferBookings={onViewOfferBookings}
                 onBackPress={onBackPress}

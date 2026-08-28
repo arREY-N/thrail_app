@@ -1,5 +1,4 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
 import { StyleSheet, View } from "react-native";
 
 import CustomButton from "@/src/components/CustomButton";
@@ -10,23 +9,22 @@ import CustomText from "@/src/components/CustomText";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 
-import { useGroup } from "@/src/core/hook/group/useGroup";
-import useGroupLocation from "@/src/core/hook/group/useGroupLocation";
-import useWriteHike from "@/src/core/hook/hike/useHikeWrite";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
-import { useGroupList } from "@/src/core/hook/group/useGroupList";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+
+import { useHikeWrite } from "@/src/core/models/Hike/Hike";
+import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
-export default function hikeView() {
+export default function HikeView() {
     const { hikeId: rawId, trailId: rawTrail, groupId: rawGroup, bookingId: rawBooking, lon: paramLon, lat: paramLat } = useLocalSearchParams();
-    
+
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
     const groupId = getSearchParam(rawGroup);
-    const bookingId = getSearchParam(rawBooking); 
+    const bookingId = getSearchParam(rawBooking);
 
     const { onBackPress } = useAppNavigation();
     const { profile } = useAuthHook();
@@ -51,15 +49,15 @@ export default function hikeView() {
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = useWriteHike({ hikeId, trailId, bookingId, groupId }); 
+    } = useHikeWrite({ hikeId, trailId, bookingId, groupId });
 
     const resolvedBookingId = bookingId || (hike?.mode === 'booked' ? hike.bookingId : undefined);
-    
-    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g => 
+
+    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
         g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
     )?.id) || undefined;
 
-    const { currentGroup } = useGroup(resolvedGroupId || '');
+    const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
     const {
         location: groupLocations,
         onEmergencyPress,
@@ -70,9 +68,9 @@ export default function hikeView() {
     if (isLoading && !hike) {
         return (
             <ScreenWrapper style={undefined}>
-                <CustomHeader title="Hike Tracker" onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined} />
+                <CustomHeader title="Hike Tracker" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
                 <View style={styles.centerContainer}>
-                    <CustomLoading visible={true} message="Preparing your trail data..." children={undefined} />
+                    <CustomLoading visible={true} message="Preparing your trail data..." />
                 </View>
             </ScreenWrapper>
         );
@@ -81,17 +79,17 @@ export default function hikeView() {
     if (hike && hike.status !== 'unhiked' && hike.trail.id !== 'diy' && ((hikeId && hike.id !== hikeId) || (trailId !== undefined && hike.trail.id !== trailId))) {
         return (
             <ScreenWrapper style={undefined}>
-                <CustomHeader title="Active Session Found" onBackPress={onBackPress} rightActions={undefined} style={undefined} children={undefined} />
+                <CustomHeader title="Active Session Found" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
                 <View style={styles.mismatchContainer}>
                     <View style={styles.mismatchIconBox}>
                         <CustomIcon library="Feather" name="alert-circle" size={48} color={Colors.WARNING} />
                     </View>
                     <CustomText variant="h2" style={styles.mismatchTitle}>Hike in Progress</CustomText>
                     <CustomText style={styles.mismatchDesc}>
-                        You are currently tracking an active session at <CustomText style={{ fontWeight: 'bold' }}>{hike.trail?.name}</CustomText>. 
+                        You are currently tracking an active session at <CustomText style={{ fontWeight: 'bold' }}>{hike.trail?.name}</CustomText>.
                         Please complete or reset your current hike before starting a new one.
                     </CustomText>
-                    <CustomButton title="Return to Dashboard" onPress={onBackPress} style={{ marginTop: 32 }} textStyle={undefined} disabled={undefined} children={undefined} />
+                    <CustomButton title="Return to Dashboard" onPress={onBackPress} style={{ marginTop: 32 }} textStyle={undefined} disabled={undefined} />
                 </View>
             </ScreenWrapper>
         );
@@ -105,24 +103,24 @@ export default function hikeView() {
 
             <HikeRecordingScreen
                 fullOffer={fullOffer}
-                hike={hike} 
-                booking={booking || null}  
+                hike={hike}
+                booking={booking || null}
                 currentGroup={currentGroup || null}
                 hikerLocations={(groupLocations as any) || []}
                 error={hikeError || groupError}
-                
-                baseElapsedTime={elapsedTime} 
+
+                baseElapsedTime={elapsedTime}
                 timerStartTime={timerStartTime}
                 totalDistance={totalDistance}
                 totalElevationGain={totalElevationGain}
-                
+
                 isLoading={isLoading}
                 lon={paramLon}
                 lat={paramLat}
-                
+
                 shareLocationEnabled={shareLocationEnabled}
                 setShareLocationEnabled={setShareLocationEnabled}
-                
+
                 onStartHike={onStartHike}
                 onPauseHike={onPauseHike}
                 onResumeHike={onResumeHike}
@@ -130,30 +128,11 @@ export default function hikeView() {
                 onResetHike={onResetHike}
                 onAddReview={() => hike && onAddReview(trailId || hike.trail.id)}
                 onBackPress={onBackPress}
-                
+
                 onTriggerBackendSOS={onEmergencyPress}
                 onOpenSOSCamera={onSendPicture}
                 emergencyContactNumber={booking?.emergencyContact?.contactNumber || ""}
             />
-            
-            {/* <TestView 
-                hike={hike} 
-                booking={booking}
-                error={error}
-                onStartHike={onStartHike}
-                onPauseHike={onPauseHike}
-                onCompleteHike={onCompleteHike}
-                onResumeHike={onResumeHike}
-                onResetHike={onResetHike}
-                onAddReview={onAddReview}
-                elapsedTime={formatTime(elapsedTime)}
-                hikeId={hikeId}
-                trailId={trailId}
-                lon={paramLon}
-                lat={paramLat}
-                onEmergencyPress={onEmergencyPress}
-                isLoading={isLoading}
-            />         */}
         </>
     )
 }
@@ -187,114 +166,3 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     }
 });
-
-// export type HikeViewParams = {
-//     hike: Hike | null;
-//     booking?: Booking | null;
-//     error?: string | null;
-//     elapsedTime: string;
-//     hikeId?: string;
-//     trailId?: string;
-//     lon?: string | string[];
-//     lat?: string | string[];
-//     isLoading: boolean;
-
-//     onStartHike: ({hikeId, trailId}: { hikeId?: string; trailId?: string }) => void;
-//     onPauseHike: () => void;
-//     onCompleteHike: () => void;
-//     onResumeHike: () => void;
-//     onResetHike: () => void;
-//     onAddReview: (trailId: string) => void;
-//     onEmergencyPress: () => void;
-// }
-
-// export const TestView = (params: HikeViewParams) => {
-//     const { 
-//         hike, 
-//         booking, 
-//         error,
-//         elapsedTime,
-//         hikeId,
-//         trailId,
-//         isLoading,
-//         onStartHike,
-//         onPauseHike,
-//         onCompleteHike,
-//         onResumeHike,
-//         onResetHike,
-//         onEmergencyPress,
-//         onAddReview,
-//     } = params;
-
-//     if(!hike) {
-//         return <Text>Loading hike...</Text>;
-//     }
-
-//     console.log(hike);
-
-//     return(
-//         <ScrollView>
-//             { isLoading && <Text>Loading...</Text>}
-//             { error && <Text style={{color: 'red'}}>Error: {error}</Text>}
-//             <Text>Elapsed Time: {elapsedTime} ms</Text>
-//             <Text>Hike View</Text>
-//             <Text>Trail: { hike.trail.name || 'Trail not found' }</Text>
-//             <Text>Hike Review: {hike.review || 'No review available'} </Text>
-//             <Text>Predicted difficulty: { hike.predictedDifficulty }</Text>
-//             <Text>Hike status: { hike.status }</Text>
-//             <Pressable onPress={() => onEmergencyPress()}>
-//                 <Text>EMERGENCY BUTTON</Text>
-//             </Pressable>
-//             {booking && (
-//                 <View>
-//                     <Text>Booking ID: {booking.id}</Text>
-//                     <Text>Organizer: {booking.business.name}</Text>
-//                     <Text>Booking Status: {booking.status}</Text>
-//                     <Text>Date: {formatDate(booking.offer.date)}</Text>
-//                 </View>
-//             )}
-
-//             <View style={{borderWidth: 1, padding: 10, margin: 10}}>
-//                 { (hike.status !== 'unhiked' && hike.startTime) && <Text>{String(hike.startTime)}</Text>}
-//                 { (hike.status === 'unhiked') && 
-//                     <Pressable onPress={() => onStartHike({hikeId, trailId})}>
-//                         <Text>START HIKE</Text>
-//                     </Pressable>
-//                 }
-
-//                 { (hike.status === 'paused') &&
-//                     <View>
-//                         <Pressable onPress={() => onResumeHike()}>
-//                             <Text>RESUME HIKE</Text>
-//                         </Pressable>
-//                         <Pressable onPress={() => onResetHike()}>
-//                             <Text>RESET HIKE</Text>
-//                         </Pressable>
-//                         <Pressable onPress={() => onCompleteHike()}>
-//                             <Text>COMPLETE HIKE</Text>
-//                         </Pressable>
-//                     </View>
-//                 }
-
-//                 { hike.status === 'started' &&
-//                     <View>
-//                         <Pressable onPress={() => onPauseHike()}>
-//                             <Text>PAUSE HIKE</Text>
-//                         </Pressable>
-//                         <Pressable onPress={() => onCompleteHike()}>
-//                             <Text>COMPLETE HIKE</Text>
-//                         </Pressable>
-//                     </View>
-
-//                 }
-
-//                 { hike.status === 'completed' && (trailId || hike.trail.id) &&
-//                     <Pressable onPress={() => onAddReview(trailId || hike.trail.id)}>
-//                         <Text>ADD REVIEW</Text>
-//                     </Pressable>
-//                 }
-//             </View>
-//             <NavigationScreen lon={params.lon} lat={params.lat}/>
-//         </ScrollView>
-//     )
-// }

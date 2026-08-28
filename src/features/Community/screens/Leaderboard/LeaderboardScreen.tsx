@@ -17,14 +17,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
-// import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
 import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { RankedUsers } from '@/src/core/models/Leaderboard/interfaces/ILeaderboard';
+import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import LeaderboardRankCard from '@/src/features/Community/screens/Leaderboard/components/LeaderboardRankCard';
 import MetricFilterTabs, { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import MountainPodium from '@/src/features/Community/screens/Leaderboard/components/MountainPodium';
@@ -106,7 +105,7 @@ const LeaderboardScreen = ({
                 currentUserId={currentUserData?.userId}
             />
         ),
-        [activeMetric]
+        [activeMetric, currentUserData?.userId]
     );
 
     return (

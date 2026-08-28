@@ -59,19 +59,6 @@ const renderSubtitleContent = (subtitle: string) => {
 };
 
 /**
- * Gets a contextual default sub-icon if none is explicitly specified.
- */
-const getDefaultSubIcon = (title: string): { name: string; library: IconLibrary } => {
-    const lower = title.toLowerCase();
-    if (lower.includes('user')) return { name: 'user-check', library: 'Feather' };
-    if (lower.includes('guide') || lower.includes('tour')) return { name: 'check-circle', library: 'Feather' };
-    if (lower.includes('trail')) return { name: 'navigation', library: 'Feather' };
-    if (lower.includes('mountain')) return { name: 'flag', library: 'Feather' };
-    if (lower.includes('top') || lower.includes('province')) return { name: 'award', library: 'Feather' };
-    return { name: 'info', library: 'Feather' };
-};
-
-/**
  * MetricCard component displaying unified platform metrics.
  * 
  * @param props - Component properties.
@@ -80,20 +67,16 @@ const getDefaultSubIcon = (title: string): { name: string; library: IconLibrary 
 const MetricCard = ({ metrics }: Props): React.JSX.Element => {
     const { isDesktop } = useBreakpoints();
 
-    if (!metrics || metrics.length === 0) return <></>;
+    if (!metrics || metrics.length === 0) {
+        return <View />;
+    }
 
-    const allHaveSubtitle = metrics.length > 0 && metrics.every(item => Boolean(item.subtitle));
-
-    // Desktop Layout: 4 items side-by-side with padded inset vertical dividers
     if (isDesktop) {
         return (
             <View style={styles.containerCard}>
                 <View style={styles.desktopRow}>
                     {metrics.map((item, index) => {
                         const isLast = index === metrics.length - 1;
-                        const defaultSub = getDefaultSubIcon(item.title);
-                        const subIconName = item.subIcon || defaultSub.name;
-                        const subIconLib = item.subLibrary || defaultSub.library;
                         const isTextCount = typeof item.count === 'string' && isNaN(Number(item.count));
 
                         const CellContainer = item.onPress ? TouchableOpacity : View;
@@ -109,7 +92,7 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
                                         <CustomIcon
                                             library={item.library}
                                             name={item.icon}
-                                            size={15}
+                                            size={14}
                                             color={Colors.TEXT_SECONDARY}
                                         />
                                         <CustomText variant="caption" style={styles.titleText} numberOfLines={1}>
@@ -117,35 +100,27 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
                                         </CustomText>
                                     </View>
 
-                                    {/* Main Metric Count & Subtitle */}
-                                    <View style={[
-                                        styles.countAndSubRow,
-                                        allHaveSubtitle && styles.countAndSubColumn
-                                    ]}>
-                                        <CustomText
-                                            variant="h1"
-                                            style={[
-                                                styles.countText, 
-                                                isTextCount && styles.countTextString,
-                                                !allHaveSubtitle && { marginBottom: 0 }
-                                            ]}
-                                            numberOfLines={1}
-                                        >
-                                            {typeof item.count === 'number' ? item.count.toLocaleString() : item.count}
-                                        </CustomText>
-                                        {item.subtitle ? (
-                                            <View style={styles.trendRow}>
-                                                {renderSubtitleContent(item.subtitle)}
-                                            </View>
-                                        ) : null}
-                                    </View>
+                                    {/* Main Metric Value */}
+                                    <CustomText
+                                        variant={isTextCount ? "body" : "h2"}
+                                        style={[
+                                            styles.countText,
+                                            isTextCount && styles.countTextString
+                                        ]}
+                                        numberOfLines={1}
+                                    >
+                                        {item.count}
+                                    </CustomText>
+
+                                    {/* Subtitle / Micro Trend Line */}
+                                    {item.subtitle ? (
+                                        <View style={styles.trendRow}>
+                                            {renderSubtitleContent(item.subtitle)}
+                                        </View>
+                                    ) : null}
                                 </CellContainer>
 
-                                {/* Inset Vertical Divider Line */}
-                                {!isLast && <View style={[
-                                    styles.verticalDividerDesktop,
-                                    allHaveSubtitle && styles.verticalDividerDesktopTall
-                                ]} />}
+                                {!isLast && <View style={styles.verticalDividerDesktop} />}
                             </React.Fragment>
                         );
                     })}
@@ -154,7 +129,7 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
         );
     }
 
-    // Mobile Layout: 2x2 grid with inset vertical & horizontal dividers
+    // --- Mobile Layout: 2x2 Grid with Inset Divider Lines ---
     const topRow = metrics.slice(0, 2);
     const bottomRow = metrics.slice(2, 4);
 
@@ -163,9 +138,6 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
             {/* Top Row: Metric 0 & Metric 1 */}
             <View style={styles.mobileRow}>
                 {topRow.map((item, index) => {
-                    const defaultSub = getDefaultSubIcon(item.title);
-                    const subIconName = item.subIcon || defaultSub.name;
-                    const subIconLib = item.subLibrary || defaultSub.library;
                     const isTextCount = typeof item.count === 'string' && isNaN(Number(item.count));
 
                     const CellContainer = item.onPress ? TouchableOpacity : View;
@@ -187,33 +159,28 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
                                         {item.title}
                                     </CustomText>
                                 </View>
-                                {/* Main Metric Count & Subtitle */}
-                                <View style={[
-                                    styles.countAndSubRow,
-                                    allHaveSubtitle && styles.countAndSubColumn
-                                ]}>
-                                    <CustomText
-                                        variant="h1"
-                                        style={[
-                                            styles.countText, 
-                                            isTextCount && styles.countTextString,
-                                            !allHaveSubtitle && { marginBottom: 0 }
-                                        ]}
-                                        numberOfLines={1}
-                                    >
-                                        {typeof item.count === 'number' ? item.count.toLocaleString() : item.count}
-                                    </CustomText>
-                                    {item.subtitle ? (
-                                        <View style={styles.trendRow}>
-                                            {renderSubtitleContent(item.subtitle)}
-                                        </View>
-                                    ) : null}
-                                </View>
+
+                                <CustomText
+                                    variant={isTextCount ? "body" : "h3"}
+                                    style={[
+                                        styles.countText,
+                                        isTextCount && styles.countTextString
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {item.count}
+                                </CustomText>
+
+                                {item.subtitle ? (
+                                    <View style={styles.trendRow}>
+                                        {renderSubtitleContent(item.subtitle)}
+                                    </View>
+                                ) : null}
                             </CellContainer>
-                            {index === 0 && <View style={[
-                                styles.verticalDividerMobile,
-                                allHaveSubtitle && styles.verticalDividerMobileTall
-                            ]} />}
+
+                            {index === 0 && topRow.length > 1 && (
+                                <View style={styles.verticalDividerMobile} />
+                            )}
                         </React.Fragment>
                     );
                 })}
@@ -226,9 +193,6 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
             {bottomRow.length > 0 && (
                 <View style={styles.mobileRow}>
                     {bottomRow.map((item, index) => {
-                        const defaultSub = getDefaultSubIcon(item.title);
-                        const subIconName = item.subIcon || defaultSub.name;
-                        const subIconLib = item.subLibrary || defaultSub.library;
                         const isTextCount = typeof item.count === 'string' && isNaN(Number(item.count));
 
                         const CellContainer = item.onPress ? TouchableOpacity : View;
@@ -250,33 +214,28 @@ const MetricCard = ({ metrics }: Props): React.JSX.Element => {
                                             {item.title}
                                         </CustomText>
                                     </View>
-                                    {/* Main Metric Count & Subtitle */}
-                                    <View style={[
-                                        styles.countAndSubRow,
-                                        allHaveSubtitle && styles.countAndSubColumn
-                                    ]}>
-                                        <CustomText
-                                            variant="h1"
-                                            style={[
-                                                styles.countText, 
-                                                isTextCount && styles.countTextString,
-                                                !allHaveSubtitle && { marginBottom: 0 }
-                                            ]}
-                                            numberOfLines={1}
-                                        >
-                                            {typeof item.count === 'number' ? item.count.toLocaleString() : item.count}
-                                        </CustomText>
-                                        {item.subtitle ? (
-                                            <View style={styles.trendRow}>
-                                                {renderSubtitleContent(item.subtitle)}
-                                            </View>
-                                        ) : null}
-                                    </View>
+
+                                    <CustomText
+                                        variant={isTextCount ? "body" : "h3"}
+                                        style={[
+                                            styles.countText,
+                                            isTextCount && styles.countTextString
+                                        ]}
+                                        numberOfLines={1}
+                                    >
+                                        {item.count}
+                                    </CustomText>
+
+                                    {item.subtitle ? (
+                                        <View style={styles.trendRow}>
+                                            {renderSubtitleContent(item.subtitle)}
+                                        </View>
+                                    ) : null}
                                 </CellContainer>
-                                {index === 0 && bottomRow.length > 1 && <View style={[
-                                    styles.verticalDividerMobile,
-                                    allHaveSubtitle && styles.verticalDividerMobileTall
-                                ]} />}
+
+                                {index === 0 && bottomRow.length > 1 && (
+                                    <View style={styles.verticalDividerMobile} />
+                                )}
                             </React.Fragment>
                         );
                     })}

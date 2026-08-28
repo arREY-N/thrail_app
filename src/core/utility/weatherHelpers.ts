@@ -1,8 +1,3 @@
-// FILE: src/core/utility/weatherHelpers.ts
-// ACTION: CREATE
-// REASON: Keep weather-specific presentation logic isolated and grouped together rather than crowding general formatting utilities.
-
-import { fetchWeatherFromApi } from "../repositories/weatherRepository";
 import { DailyForecast, HikingSafetyStatus, ProcessedWeatherData } from "../types/weather";
 
 export const formatForecastDay = (isoDateString: string, index: number): string => {
@@ -272,45 +267,4 @@ export const resolveCoordsForTrail = (
     return null;
 };
 
-/**
- * Fetches weather badges for a list of trails in parallel.
- * Returns a map of `{ [trailId]: { icon, temperature } }` for every trail
- * that has known coordinates and a successful weather fetch.
- *
- * @param trails - Array of trail objects with `id` and `general.name`
- * @returns A map from trail ID to weather badge data
- *
- * @example
- * const badgeMap = await fetchTrailWeatherBadges(trails);
- * <MountainCard weatherBadge={badgeMap[trail.id] ?? null} />
- */
-export const fetchTrailWeatherBadges = async (
-    trails: Array<{ id: string; general?: { name?: string } }>
-): Promise<Record<string, TrailWeatherBadge>> => {
-    if (!trails || trails.length === 0) return {};
 
-    const targets = trails.reduce<Array<{ id: string; lat: number; lon: number }>>((acc, trail) => {
-        const coords = resolveCoordsForTrail(trail);
-        if (coords) acc.push({ id: trail.id, ...coords });
-        return acc;
-    }, []);
-
-    if (targets.length === 0) return {};
-
-    const results = await Promise.allSettled(
-        targets.map(({ lat, lon }) => fetchWeatherFromApi(lat, lon)),
-    );
-
-    const badgeMap: Record<string, TrailWeatherBadge> = {};
-    results.forEach((result, index) => {
-        if (result.status === "fulfilled" && result.value) {
-            const { icon } = getWeatherInfoUI(result.value.weatherCode);
-            badgeMap[targets[index].id] = {
-                icon,
-                temperature: result.value.temperature,
-            };
-        }
-    });
-
-    return badgeMap;
-};

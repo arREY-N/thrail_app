@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import CustomLoading from '@/src/components/CustomLoading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useAuthHook } from '@/src/core/models/User/User';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 

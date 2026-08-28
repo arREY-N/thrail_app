@@ -1,3 +1,5 @@
+<!-- MARKED FOR CLEANUP / DELETION: Root-level feature documentation file to be removed to maintain single-root facade rule -->
+
 # Booking Feature
 
 ```

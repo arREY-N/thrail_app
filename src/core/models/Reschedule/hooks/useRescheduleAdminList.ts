@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore.web";
+import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export const useRescheduleAdminList = () => {
@@ -11,7 +11,7 @@ export const useRescheduleAdminList = () => {
 
     useEffect(() => {
         const fetch = async () => {
-            if(role !== 'admin' || !profile?.id || !businessId) {
+            if (role !== 'admin' || !profile?.id || !businessId) {
                 return;
             }
 
@@ -19,11 +19,11 @@ export const useRescheduleAdminList = () => {
         };
 
         fetch();
-    }, [profile?.id, businessId, role])
+    }, [profile?.id, businessId, role]);
 
     return {
         businessReschedules,
         isFetching,
-        error
-    }
-}
+        error,
+    };
+};

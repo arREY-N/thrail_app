@@ -1,8 +1,8 @@
 import { useBookingsStore } from "@/src/core/models/Booking/Booking";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { useNotificationsStore } from "@/src/core/stores/notificationsStore";
-import { useReviewStore } from "@/src/core/stores/reviewStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useNotificationsStore } from "@/src/core/models/Notification/Notification";
+import { useReviewStore } from "@/src/core/models/Review/Review";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { useEffect } from "react";
 
 

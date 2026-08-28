@@ -1,39 +1,42 @@
 import LoadingScreen from "@/src/app/loading";
+import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useTrailOffer } from "@/src/core/hook/offer/useTrailOffer";
-import { useBookingUser } from "@/src/core/models/Booking/hooks/useBookingUser";
+import { useOfferTrails } from "@/src/core/models/Offer/Offer";
+import getSearchParam from "@/src/core/utility/getSearchParam";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
 import { useLocalSearchParams } from "expo-router";
 
-export default function listOffer(){
-    const { trailId } = useLocalSearchParams();
+export default function ListOffer() {
+    const { trailId: rawId } = useLocalSearchParams();
+    const trailId = getSearchParam(rawId);
+
     const { onBackPress } = useAppNavigation();
 
-    const { 
-        onTerms, 
-        onPrivacy 
+    const {
+        onTerms,
+        onPrivacy
     } = useLandingNavigation();
 
     const {
-        isLoading: trailIsLoading,
-        error: offerError,
         trailOffers,
-    } = useTrailOffer({ trailId: trailId as any });
+        error: offerError,
+        isLoading
+    } = useOfferTrails(trailId);
 
-    const { 
+    const {
         error: bookError,
         onUpdatePress,
         onCompleteBook,
         onSetOffer,
-    } = useBookingUser();
+    } = CreateBookingFlow();
 
-    
-    if(trailIsLoading) return <LoadingScreen/>;
+
+    if (isLoading) return <LoadingScreen />;
 
     return (
         <>
-            <BookingScreen 
+            <BookingScreen
                 {...{
                     offers: trailOffers,
                     error: (offerError || bookError),
@@ -45,7 +48,7 @@ export default function listOffer(){
                     onTermsPress: onTerms,
                     onPrivacyPress: onPrivacy,
                 } as any}
-            />  
+            />
         </>
     );
 }

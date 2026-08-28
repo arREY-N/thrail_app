@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 
 export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpayment', 'Fully Paid', 'Completed', 'Rejected'];
 
@@ -15,7 +15,7 @@ export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpaymen
  * @param bookings - The array of booking objects to filter and sort.
  * @returns An object containing the active filter, sorting order state, setter functions, and filtered/sorted bookings.
  */
-export default function useBookingFilters(bookings: IBooking[]) {
+export default function useBookingFilters(bookings: Booking[]) {
     const [activeFilter, setActiveFilter] = useState('All');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 

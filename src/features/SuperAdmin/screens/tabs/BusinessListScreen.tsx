@@ -3,7 +3,7 @@
  * @description Superadmin presentation screen for managing tour business accounts, equipped with unified SaaS metric cards, expandable header search, status filter tabs, spinning reload animation, mobile pull-to-refresh, initial-based business avatars, structured permit details, and 3-column web grid layout.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -19,7 +19,7 @@ import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminCard from '@/src/features/SuperAdmin/components/SuperadminCard';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
-import useBusinessList, { BusinessStatusFilter } from '@/src/features/SuperAdmin/hooks/useBusinessList';
+import { useBusinessList, BusinessStatusFilter } from '@/src/features/SuperAdmin/hooks/useBusinessList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
 
@@ -71,7 +71,7 @@ const BusinessListScreen: React.FC<BusinessListScreenProps> = ({
     // Spinning animation & pull-to-refresh state
     const [isReloading, setIsReloading] = useState<boolean>(false);
     const [refreshing, setRefreshing] = useState<boolean>(false);
-    const spinAnim = useRef<Animated.Value>(new Animated.Value(0)).current;
+    const [spinAnim] = useState(() => new Animated.Value(0));
 
     const {
         searchQuery,

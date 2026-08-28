@@ -1,11 +1,5 @@
 #!/bin/sh
 
-# ==============================================================================
-# DEVELOPER SETUP INSTRUCTIONS
-# 1. Run: git config core.hooksPath .githooks
-# 2. Ensure .env.preview and .env.production exist in your root directory.
-# ==============================================================================
-
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 echo "🔄 Git Hook Triggered: Switched to $current_branch"
 

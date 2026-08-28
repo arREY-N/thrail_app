@@ -1,23 +1,17 @@
-import React from 'react';
+import { Redirect } from 'expo-router';
 import { View } from 'react-native';
-import { Redirect, router } from 'expo-router';
 
 import CustomLoading from "@/src/components/CustomLoading";
-import { useForgotPassword } from "@/src/core/hook/user/useForgotPassword";
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useForgotPassword } from "@/src/core/models/User/User";
 import ForgotPasswordScreen from "@/src/features/Auth/screens/ForgotPasswordScreen";
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-export default function forgotPassword(){
+export default function ForgotPassword() {
     const { isLargeScreen } = useBreakpoints();
-    const controller = useForgotPassword();
+    const { onBackPress } = useAppNavigation();
 
-    const handleBack = () => {
-        if (router.canGoBack()) {
-            router.back();
-        } else {
-            controller.onLanding();
-        }
-    };
+    const controller = useForgotPassword();
 
     if (isLargeScreen) {
         return <Redirect href="/(auth)/landing?mode=forgot" />;
@@ -30,12 +24,12 @@ export default function forgotPassword(){
                 error={controller.error}
                 success={controller.success}
                 onLogIn={controller.onLogIn}
-                onBackPress={handleBack}
+                onBackPress={onBackPress}
             />
 
-            <CustomLoading 
+            <CustomLoading
                 message="Sending reset email..."
-                visible={controller.loading}            
+                visible={controller.loading}
             />
         </View>
     );

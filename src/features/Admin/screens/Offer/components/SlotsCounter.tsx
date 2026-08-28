@@ -9,7 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 
 /**
  * Props for the SlotsCounter component.
@@ -19,7 +19,7 @@ import { IBooking } from '@/src/core/models/Booking/Booking';
  * @param maxPax - Maximum number of allowed participants.
  */
 export interface SlotsCounterProps {
-    bookings: IBooking[];
+    bookings: Booking[];
     minPax: number;
     maxPax: number;
 }

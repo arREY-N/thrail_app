@@ -3,7 +3,7 @@
  * @description Mobile left slide-in navigation drawer for the Superadmin Dashboard shell with animated entrance/exit and backdrop tap-to-dismiss.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -14,7 +14,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
@@ -47,14 +46,15 @@ const Drawer = ({
     onClose,
     children,
 }: Props): React.JSX.Element | null => {
-    const insets = useSafeAreaInsets();
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [slideAnim] = useState(() => new Animated.Value(-DRAWER_WIDTH));
+    const [fadeAnim] = useState(() => new Animated.Value(0));
 
     useEffect(() => {
         if (visible) {
-            setRenderModal(true);
             Animated.parallel([
                 Animated.timing(slideAnim, {
                     toValue: 0,

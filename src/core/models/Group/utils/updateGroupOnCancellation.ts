@@ -1,7 +1,7 @@
-import { newGroup } from "@/src/core/models/Group/GroupFactory";
-import { Group } from "@/src/core/models/Group/interfaces/IGroup";
+import { Group } from "@/src/core/models/Group/interfaces/Group.types";
+import { newGroup } from "@/src/core/models/Group/utils/GroupFactory";
 
-export const updateGroupOnCancellation = (group: Group, removeId: string) => {
+export const updateGroupOnCancellation = (group: Group, removeId: string): Group => {
     return newGroup({
         ...group,
         participantsIds: group.participantsIds.filter(id => id !== removeId),
@@ -11,6 +11,6 @@ export const updateGroupOnCancellation = (group: Group, removeId: string) => {
         offer: {
             ...group.offer,
             reservedPax: group.offer.reservedPax > 0 ? group.offer.reservedPax - 1 : 0,
-        }
-    })
-}
+        },
+    });
+};

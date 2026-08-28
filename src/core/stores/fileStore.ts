@@ -1,5 +1,5 @@
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { FileRepository } from "@/src/core/repositories/fileRepository";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from "react-native";

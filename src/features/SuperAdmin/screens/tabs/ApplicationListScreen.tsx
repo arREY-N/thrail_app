@@ -3,20 +3,20 @@
  * @description Superadmin presentation screen for managing business applications.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomFilterTabs from '@/src/components/CustomFilterTabs';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { IApplication } from '@/src/core/models/Application/Application.types';
+import { IApplication } from '@/src/core/models/Application/Application';
 import { formatDate } from '@/src/core/utility/date';
 import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 import SuperadminCard from '@/src/features/SuperAdmin/components/SuperadminCard';
-import useApplicationList from '@/src/features/SuperAdmin/hooks/useApplicationList';
+import { useApplicationList } from '@/src/features/SuperAdmin/hooks/useApplicationList';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export interface ApplicationListScreenProps {

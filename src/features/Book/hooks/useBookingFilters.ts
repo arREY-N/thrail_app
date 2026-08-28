@@ -1,4 +1,4 @@
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { useMemo, useState } from 'react';
 
 export type TabId = 'upcoming' | 'pending' | 'history';
@@ -8,10 +8,10 @@ export type FilterBy = 'all' | 'action-needed' | 'waiting' | 'partial';
 /**
  * Custom hook to manage booking filters, sorting, and tab selection.
  * 
- * @param {IBooking[]} userBookings - Array of bookings to filter and sort
+ * @param {Booking[]} userBookings - Array of bookings to filter and sort
  * @returns Object containing state and setter functions for filters
  */
-export default function useBookingFilters(userBookings: IBooking[] = []) {
+export default function useBookingFilters(userBookings: Booking[] = []) {
     const [activeTab, setActiveTab] = useState<TabId>('upcoming');
     const [sortBy, setSortBy] = useState<SortBy>('hike-date'); 
     const [filterBy, setFilterBy] = useState<FilterBy>('all'); 

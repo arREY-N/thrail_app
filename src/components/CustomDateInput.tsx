@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { ReactNode, useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
     ListRenderItemInfo,
@@ -37,23 +37,29 @@ const CustomDateInput: React.FC<CustomDateInputProps> = ({
 }) => {
     
     const [activePicker, setActivePicker] = useState<'MM' | 'DD' | 'YYYY' | null>(null);
-    const [mm, setMm] = useState<string>('');
-    const [dd, setDd] = useState<string>('');
-    const [yyyy, setYyyy] = useState<string>('');
+    const [prevValue, setPrevValue] = useState(value);
+    const [mm, setMm] = useState<string>(
+        value instanceof Date && !isNaN(value.getTime()) ? (value.getMonth() + 1).toString().padStart(2, '0') : ''
+    );
+    const [dd, setDd] = useState<string>(
+        value instanceof Date && !isNaN(value.getTime()) ? value.getDate().toString().padStart(2, '0') : ''
+    );
+    const [yyyy, setYyyy] = useState<string>(
+        value instanceof Date && !isNaN(value.getTime()) ? value.getFullYear().toString() : ''
+    );
 
-    useEffect(() => {
+    if (value !== prevValue) {
+        setPrevValue(value);
         if (value instanceof Date && !isNaN(value.getTime())) {
             setMm((value.getMonth() + 1).toString().padStart(2, '0'));
             setDd(value.getDate().toString().padStart(2, '0'));
             setYyyy(value.getFullYear().toString());
-        } else {
-            if (value === null || value === undefined) {
-                setMm('');
-                setDd('');
-                setYyyy('');
-            }
+        } else if (value === null || value === undefined) {
+            setMm('');
+            setDd('');
+            setYyyy('');
         }
-    }, [value]);
+    }
 
     const daysData = useMemo<DropdownOption[]>(() => {
         let daysInMonth = 31;

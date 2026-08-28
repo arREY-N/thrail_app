@@ -1,6 +1,6 @@
+import { IBusinessSummary } from "@/src/core/models/Business/Business";
+import { ITrailSummary } from "@/src/core/models/Trail/Trail";
 import { FieldValue, Timestamp } from "firebase/firestore";
-import { IBusinessSummary } from "../../Business/Business.types";
-import { ITrailSummary } from "../../Trail/Trail.types";
 
 export interface IOfferInfo<T> {
     date: T,
@@ -38,8 +38,9 @@ export interface IOfferBase<T> extends IOfferInfo<T> {
     hikeDate?: Date | Timestamp | FieldValue | null;
 }
 
-export interface IOfferDB extends IOfferBase<Timestamp | FieldValue> {}
-export interface IOffer extends IOfferBase<Date>{}
+export type IOfferDB = IOfferBase<Timestamp | FieldValue>
+export type IOffer = IOfferBase<Date>
+export type Offer = IOffer
 
 export interface IOfferSummary<T> {
     date: T;
@@ -50,5 +51,3 @@ export type OfferParams = {
     id: string,
     businessId: string,
 }
-
-export interface Offer extends IOffer {}

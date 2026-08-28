@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { useEffect, useState } from "react";
 
@@ -11,16 +11,16 @@ export function useCancellationAdminList() {
     const [localError, setLocalError] = useState<string | null>(null);
     const businessCancellations = useCancellationStore(s => s.businessCancellations);
     const isFetching = useCancellationStore(s => s.isFetching);
-    
+
     useEffect(() => {
         const fetch = async () => {
-            if(!businessId) return;
-    
+            if (!businessId) return;
+
             await useCancellationStore.getState().fetchAllBusinessCancellations(businessId);
         }
 
         fetch();
-    },[businessId]);
+    }, [businessId]);
 
     /**
      * Forces a refresh on the admin cancellations list by re-fetching the data from the store. 
@@ -28,7 +28,7 @@ export function useCancellationAdminList() {
      */
     const refreshAdminCancellations = async () => {
         try {
-            if(!businessId) 
+            if (!businessId)
                 throw new Error("Business ID is not available. Cannot refresh cancellations.");
 
             await useCancellationStore.getState().fetchAllBusinessCancellations(businessId, true);
@@ -38,7 +38,7 @@ export function useCancellationAdminList() {
         }
     }
 
-    
+
     return {
         refreshAdminCancellations,
         businessCancellations,

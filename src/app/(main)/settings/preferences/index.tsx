@@ -4,19 +4,17 @@
  */
 import LoadingScreen from '@/src/app/loading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import useUser from '@/src/core/hook/user/useUser';
+import { useUser } from '@/src/core/models/User/User';
+
 import HikingPreferencesScreen from '@/src/features/Settings/screens/HikingPreferencesScreen';
-import React from 'react';
 
 /**
  * PreferencesPage coordinates fetching and displaying user hiking preferences.
  */
-export default function preferences() {
+export default function Preferences() {
     const { onBackPress } = useAppNavigation();
-    const { role, profile } = useAuthHook();
-    
-    const { user, isLoading } = useUser({ role, id: profile?.id });
+
+    const { user, isLoading } = useUser();
 
     if (isLoading || !user) {
         return <LoadingScreen />;
@@ -27,7 +25,7 @@ export default function preferences() {
     };
 
     return (
-        <HikingPreferencesScreen 
+        <HikingPreferencesScreen
             onBackPress={onBackPress}
             onEditPress={onEditPress}
             preferences={user.preferences}

@@ -1,13 +1,10 @@
 import { Stack } from 'expo-router';
 
 import UnauthorizedScreen from '@/src/app/unauthorized';
-import { useAdmin } from '@/src/core/hook/admin/useAdmin';
-import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { useOfferStore } from '@/src/core/models/Offer/stores/offerStore';
-import { useAuthStore } from '@/src/core/stores/authStores/authStore';
-import { useBusinessesStore } from '@/src/core/stores/businessesStore';
+import { useAdminNavigation } from '@/src/core/models/Admin/Admin';
+import { useBusinessAdmin } from '@/src/core/models/Business/Business';
+import { useAuthHook } from '@/src/core/models/User/User';
 import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
 /**
@@ -15,7 +12,7 @@ import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
  * Handles authentication checks, queries business configurations,
  * maps navigation actions, and manages loading/error reload triggers.
  */
-export default function adminHome() {
+export default function AdminHome() {
     const {
         businessId,
         profile,
@@ -24,43 +21,31 @@ export default function adminHome() {
         isLoading,
     } = useAuthHook();
 
+
     const {
         businessAccount,
-    } = useAdmin({ businessId });
+        onRefresh
+    } = useBusinessAdmin();
 
     const { onBackPress } = useAppNavigation();
 
     const {
         onManageAdminsPress,
-        onManageOffersPress,    
+        onManageOffersPress,
         onManageTrailsPress,
-    } = useAdminNavigation({ 
-        userId: profile?.id,
-        businessId: businessId || undefined,
-        role: role || undefined,
-    });
+    } = useAdminNavigation();
 
     const showLoading = isLoading || !businessAccount || !profile;
 
-    // Handle retry press for loading and error states
-    const onRetryPress = () => {
-        useAuthStore.getState().initialize();
-        if (businessId) {
-            useBusinessesStore.getState().load(businessId);
-            useBusinessesStore.getState().loadBusinessAdmins(businessId);
-            useOfferStore.getState().fetchOfferByBusiness(businessId);
-        }
-    };
 
-    // Handle loading and error states
-    if (!isLoading && (!businessId || !profile || !role)) 
-        return <UnauthorizedScreen/>;
+    if (!isLoading && (!businessId || !profile || !role))
+        return <UnauthorizedScreen />;
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <DashboardScreen 
+            <DashboardScreen
                 businessAccount={businessAccount}
                 onManageAdminsPress={onManageAdminsPress}
                 onManageOffersPress={onManageOffersPress}
@@ -69,7 +54,7 @@ export default function adminHome() {
                 error={error as string | null}
                 onBackPress={onBackPress}
                 isLoading={showLoading}
-                onRetryPress={onRetryPress}
+                onRetryPress={onRefresh}
             />
         </>
     );

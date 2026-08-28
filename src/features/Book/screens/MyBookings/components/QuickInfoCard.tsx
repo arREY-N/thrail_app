@@ -5,12 +5,12 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IBooking } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 export interface QuickInfoCardProps {
     /** The booking data */
-    booking: IBooking | any;
+    booking: Booking | any;
 }
 
 /**

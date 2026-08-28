@@ -1,14 +1,12 @@
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useNotifyPermission } from "@/src/core/hook/user/useNotifyPermission";
+import { useAuthHook, useNotifyPermission } from "@/src/core/models/User/User";
+
 import LandingScreen from "@/src/features/Auth/screens/LandingScreen";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import LoadingScreen from "./loading";
 
-export default function index() {
-	console.log("index");
-	
+export default function Index() {
 	useNotifyPermission();
 
 	const { isLargeScreen } = useBreakpoints();
@@ -22,11 +20,11 @@ export default function index() {
 
 		if (profile && profile.onBoardingComplete)
 			return <Redirect href={"/(tabs)" as any} />;
-		else 
+		else
 			return <Redirect href={"/(auth)/preference" as any} />;
 	}
 
-	if(isLoading) return <LoadingScreen/>
+	if (isLoading) return <LoadingScreen />
 
 	if (!isLargeScreen && mode) {
 		if (mode === 'login') return <Redirect href="/(auth)/login" />;

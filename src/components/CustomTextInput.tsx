@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
     Platform,
     StyleProp,
@@ -125,8 +125,10 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     const [internalShowPassword, setInternalShowPassword] = useState(false);
 
     const [localValue, setLocalValue] = useState(value !== null && value !== undefined ? String(value) : '');
+    const [prevValue, setPrevValue] = useState(value);
 
-    useEffect(() => {
+    if (value !== prevValue) {
+        setPrevValue(value);
         if (type === 'coordinate' || type === 'numerical') {
             const parsedParent = parseFloat(value as string);
             const parsedLocal = parseFloat(localValue);
@@ -136,7 +138,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         } else {
             setLocalValue(value !== null && value !== undefined ? String(value) : '');
         }
-    }, [value, type]);
+    }
 
     const showPassword = onTogglePassword ? isPasswordVisible : internalShowPassword;
     const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);

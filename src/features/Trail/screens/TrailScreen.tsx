@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-    Image,
     StyleSheet,
     TouchableOpacity,
     View
@@ -8,17 +7,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomImage from '@/src/components/CustomImage';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
-import { IReview } from '@/src/core/models/Review/Review.types';
-import { ITrail } from '@/src/core/models/Trail/Trail.types';
+import { IReview } from '@/src/core/models/Review/Review';
+import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
@@ -41,11 +39,11 @@ export interface TrailScreenProps {
     isOwned: (review: IReview) => boolean;
 }
 
-const TrailScreen: React.FC<TrailScreenProps> = ({ 
-    trail, 
-    onBackPress, 
-    onDownloadPress, 
-    onHikePress, 
+const TrailScreen: React.FC<TrailScreenProps> = ({
+    trail,
+    onBackPress,
+    onDownloadPress,
+    onHikePress,
     onBookPress,
     onEditPress,
     isSuperadmin,
@@ -68,12 +66,12 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     const heroImage = getHeroImageSource(trail);
     const name = trail?.general?.name || "Unnamed Trail";
 
-    const location = Array.isArray(trail?.general?.province) 
-        ? trail.general.province.join(', ') 
-        : (trail?.general?.province || "Unknown Location");  
+    const location = Array.isArray(trail?.general?.province)
+        ? trail.general.province.join(', ')
+        : (trail?.general?.province || "Unknown Location");
 
     const address = trail?.general?.address || location;
-    
+
     const validReviewsCount = reviews?.length || 1;
     const totalRating = reviews?.reduce((acc, r) => acc + (r?.overallRating || 0), 0) ?? 0;
     const rating = (totalRating / validReviewsCount) || 0;
@@ -90,35 +88,35 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
+
             <TouchableOpacity style={styles.backButton} onPress={onBackPress} activeOpacity={0.7}>
-                <CustomIcon 
-                    library="Feather" 
-                    name="chevron-left" 
-                    size={28} 
-                    color={Colors.WHITE} 
+                <CustomIcon
+                    library="Feather"
+                    name="chevron-left"
+                    size={28}
+                    color={Colors.WHITE}
                 />
             </TouchableOpacity>
 
             {isSuperadmin && (
                 <TouchableOpacity style={styles.editButton} onPress={onEditPress} activeOpacity={0.7}>
-                    <CustomIcon 
-                        library="Feather" 
-                        name="edit-2" 
-                        size={20} 
-                        color={Colors.WHITE} 
+                    <CustomIcon
+                        library="Feather"
+                        name="edit-2"
+                        size={20}
+                        color={Colors.WHITE}
                     />
                 </TouchableOpacity>
             )}
-            
-            <ResponsiveScrollView 
-                showsVerticalScrollIndicator={false} 
+
+            <ResponsiveScrollView
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 style={[styles.container, { marginTop: -insets.top }]}
             >
                 <View style={styles.imageContainer}>
-                    <CustomImage 
-                        source={heroImage} 
+                    <CustomImage
+                        source={heroImage}
                         style={styles.headerImage}
                         resizeMode="cover"
                     />
@@ -128,7 +126,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                     <View style={styles.headerInfo}>
                         <View style={styles.titleRow}>
                             <View style={{ flex: 1 }}>
-                                
+
                                 <CustomText variant="h2" style={styles.title}>
                                     {name}
                                 </CustomText>
@@ -138,11 +136,11 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                                 </CustomText>
 
                                 <View style={styles.ratingRow}>
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="star" 
-                                        size={14} 
-                                        color={Colors.YELLOW} 
+                                    <CustomIcon
+                                        library="Ionicons"
+                                        name="star"
+                                        size={14}
+                                        color={Colors.YELLOW}
                                     />
 
                                     <CustomText style={styles.ratingText}>
@@ -156,13 +154,13 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
                     <View style={styles.tabContainer}>
                         {['Details', 'Offline Map', 'Weather', 'Reviews'].map((tab) => (
-                            <TouchableOpacity 
-                                key={tab} 
+                            <TouchableOpacity
+                                key={tab}
                                 style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
                                 onPress={() => setActiveTab(tab)}
                             >
                                 <CustomText style={[
-                                    styles.tabText, 
+                                    styles.tabText,
                                     activeTab === tab && styles.activeTabText
                                 ]}>
                                     {tab}
@@ -170,28 +168,28 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                             </TouchableOpacity>
                         ))}
                     </View>
-                    
+
                     <View style={styles.divider} />
 
                     {activeTab === 'Details' && (
-                        <TrailDetailsTab 
-                            stats={stats} 
+                        <TrailDetailsTab
+                            stats={stats}
                             trailStats={trailStats}
                             statsLoading={statsLoading}
-                            trail={trail} 
+                            trail={trail}
                         />
                     )}
 
                     {activeTab === 'Weather' && (
-                        <TrailWeatherTab 
-                            latitude={latitude} 
+                        <TrailWeatherTab
+                            latitude={latitude}
                             longitude={longitude}
                             trail={trail}
                         />
                     )}
-                    
+
                     {activeTab === 'Reviews' && (
-                        <TrailReviewsTab 
+                        <TrailReviewsTab
                             reviews={reviews}
                             isLoading={isLoading}
                             likeReview={likeReview}
@@ -204,15 +202,15 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 </View>
             </ResponsiveScrollView>
 
-            <CustomStickyFooter 
-                primaryButton={{ 
-                    title: "Book", 
-                    onPress: () => onBookPress(trail?.id) 
+            <CustomStickyFooter
+                primaryButton={{
+                    title: "Book",
+                    onPress: () => onBookPress(trail?.id)
                 }}
-                secondaryButton={{ 
-                    title: "Hike", 
-                    onPress: () => onHikePress(trail?.id), 
-                    variant: 'outline', 
+                secondaryButton={{
+                    title: "Hike",
+                    onPress: () => onHikePress(trail?.id),
+                    variant: 'outline',
                     style: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
                     textStyle: { color: Colors.PRIMARY }
                 }}
@@ -266,7 +264,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
     },
-    
+
     bodyContainer: {
         flex: 1,
         backgroundColor: Colors.BACKGROUND,

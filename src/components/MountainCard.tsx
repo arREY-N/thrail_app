@@ -36,7 +36,6 @@ import { IconLibrary } from "@/src/types/ui.types";
  * @param onDownload - Callback fired when the download button is pressed.
  * @param onLikePress - Callback fired when the like button is pressed.
  * @param style - Custom style for the card container.
- * @param weatherBadge - Optional weather badge to overlay.
  * @param rating - Optional override for the rating.
  * @param offersCount - Number of active upcoming offers on this trail.
  */
@@ -218,7 +217,7 @@ const MountainCard: React.FC<MountainCardProps> = ({
               </CustomText>
             </View>
           </View>
-          {/* Offers Badge */}
+
           {offersCount > 0 && (
             <View
               style={[
@@ -246,7 +245,7 @@ const MountainCard: React.FC<MountainCardProps> = ({
               </View>
             </View>
           )}
-          {/* Gradient Overlay */}
+
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.75)"]}
             style={styles.gradientOverlayWeb}
@@ -279,7 +278,7 @@ const MountainCard: React.FC<MountainCardProps> = ({
             </View>
           </LinearGradient>
         </View>
-        {/* Standardized Bottom Stats Bar */}
+
         <View
           style={[
             styles.statsContainerWeb,
@@ -607,12 +606,12 @@ const styles = StyleSheet.create({
   },
   cardContainerWebHovered: {
     borderColor: Colors.PRIMARY,
-    transform: [{ translateY: -4 }, { scale: 1.015 }], // 100% Typed React Native hover lift & scale
+    transform: [{ translateY: -4 }, { scale: 1.015 }],
     ...GlobalStyles.dropShadow(6, 0.15, Colors.SHADOW, { radius: 10 }),
   },
   imageContainerWeb: {
     width: "100%",
-    aspectRatio: 16 / 10, // Fixed 16:10 aspect ratio for web cards
+    aspectRatio: 16 / 10,
     position: "relative",
     backgroundColor: Colors.GRAY_LIGHT,
     overflow: "hidden",
@@ -639,9 +638,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12, // Fixed uniform padding
+    paddingVertical: 12,
     backgroundColor: Colors.WHITE,
-    height: 58, // Fixed height ensures all cards align evenly
+    height: 58,
   },
 });
 

@@ -4,7 +4,6 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React from "react";
 import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -21,8 +20,8 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
 import { Layout } from "@/src/constants/layout";
-import { IUser } from "@/src/core/models/User/User.types";
-import { formatDate } from "@/src/core/utility/date";
+import { IUser } from "@/src/core/models/User/User";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";
 import { useProfileForm } from "@/src/features/Settings/hooks/useProfileForm";
@@ -131,10 +130,10 @@ export interface ProfileInfoScreenProps {
 /**
  * View screen displaying and editing hiker/admin profile information.
  */
-const ProfileInfoScreen = ({ 
-    user, 
-    onBackPress, 
-    onEditPress, 
+const ProfileInfoScreen = ({
+    user,
+    onBackPress,
+    onEditPress,
     isEditing = false,
     onCancelPress,
     onSavePress,
@@ -165,7 +164,7 @@ const ProfileInfoScreen = ({
     const personalDetailsFields = [
         { label: "Username", value: user.username ? `@${user.username}` : '' },
         { label: "Phone Number", value: user.phoneNumber },
-        { label: "Birthday", value: user.birthday ? formatDate(user.birthday as Date) : null },
+        { label: "Birthday", value: user.birthday ? formatDateToStandard(user.birthday) : null },
         { label: "Email Address", value: user.email },
         { label: "Address", value: user.address }
     ];
@@ -214,8 +213,8 @@ const ProfileInfoScreen = ({
         handleSave,
     } = useProfileForm({ user, isEditing, onSavePress, onCancelPress, onEditPress });
 
-    const clearanceImages = medicalProfile?.clearanceUri 
-        ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean) 
+    const clearanceImages = medicalProfile?.clearanceUri
+        ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean)
         : [];
 
     const getRoleDisplayName = (role: string) => {
@@ -302,7 +301,7 @@ const ProfileInfoScreen = ({
     const expStyles = getExperienceStyles(user.preferences?.experience);
     const activeColor = getExperienceActiveColor(user.preferences?.experience);
     const showMedicalProfile = user.medicalProfile && (user.medicalProfile.hasCondition || user.medicalProfile.clearanceUri);
-    
+
     /**
      * Dynamic Layout Logic:
      * If user's list of favorite destinations is long (> 4 items), the Hiking Preferences card 
@@ -397,7 +396,7 @@ const ProfileInfoScreen = ({
                 </CustomText>
                 {user.createdAt && (
                     <CustomText variant="caption" style={styles.memberSinceText} numberOfLines={1} adjustsFontSizeToFit>
-                        Member since {formatDate(user.createdAt, 'full')}
+                        Member since {formatDateToStandard(user.createdAt)}
                     </CustomText>
                 )}
             </View>
@@ -406,16 +405,16 @@ const ProfileInfoScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
-            <CustomHeader 
+
+            <CustomHeader
                 title={isEditing ? "Edit Profile" : "Profile Information"}
                 centerTitle={true}
-                onBackPress={isEditing ? undefined : onBackPress} 
+                onBackPress={isEditing ? undefined : onBackPress}
                 leftAction={
                     isEditing ? (
-                        <TouchableOpacity 
-                            onPress={handleCancelPress} 
-                            style={styles.headerCancelButton} 
+                        <TouchableOpacity
+                            onPress={handleCancelPress}
+                            style={styles.headerCancelButton}
                             activeOpacity={0.7}
                         >
                             <CustomText style={styles.cancelText}>Cancel</CustomText>
@@ -424,16 +423,16 @@ const ProfileInfoScreen = ({
                 }
                 rightActions={
                     isEditing ? (
-                        <TouchableOpacity 
-                            onPress={handleSavePress} 
+                        <TouchableOpacity
+                            onPress={handleSavePress}
                             style={[
                                 styles.headerSaveButton,
                                 !isDirty && styles.headerSaveButtonDisabled
-                            ]} 
+                            ]}
                             disabled={!isDirty}
                             activeOpacity={0.7}
                         >
-                            <CustomText 
+                            <CustomText
                                 style={[
                                     styles.saveText,
                                     !isDirty && styles.saveTextDisabled
@@ -443,23 +442,23 @@ const ProfileInfoScreen = ({
                             </CustomText>
                         </TouchableOpacity>
                     ) : (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.headerActionButton}
                             onPress={() => setIsEditModalVisible(true)}
                             activeOpacity={0.7}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="edit-2" 
-                                size={20} 
-                                color={Colors.PRIMARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="edit-2"
+                                size={20}
+                                color={Colors.PRIMARY}
                             />
                         </TouchableOpacity>
                     )
                 }
             />
 
-             <ScrollView 
+            <ScrollView
                 style={styles.contentArea}
                 contentContainerStyle={[
                     styles.scrollContent,
@@ -474,7 +473,7 @@ const ProfileInfoScreen = ({
                     <ErrorMessage error={formError} />
                 )}
                 <View style={!isMobile ? styles.desktopColumns : styles.mobileStack}>
-                    
+
                     {/* LEFT COLUMN */}
                     <View style={[styles.column, isWideScreen && styles.columnWide]}>
                         <View style={styles.card}>
@@ -482,20 +481,20 @@ const ProfileInfoScreen = ({
                                 <CustomIcon library="Feather" name="user" size={18} color={Colors.PRIMARY} />
                                 <CustomText variant="h3" style={styles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Personal Details</CustomText>
                             </View>
-                            
+
                             <View style={styles.cardBody}>
                                 {isEditing ? (
                                     <View style={styles.editForm}>
                                         <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
                                         <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
-                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" />
+                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" dateFormat="MM/DD/YYYY" />
                                         <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={styles.noMarginBottom} />
                                     </View>
                                 ) : (
                                     <View>
                                         <InfoRow label="Username" value={`@${user.username}`} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Phone Number" value={formatPhoneWithPrefix(user.phoneNumber)} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Birthday" value={user.birthday ? formatDate(user.birthday as Date) : null} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Birthday" value={user.birthday ? formatDateToStandard(user.birthday) : null} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Email Address" value={user.email} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Address" value={user.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
                                     </View>
@@ -526,7 +525,7 @@ const ProfileInfoScreen = ({
                                                 )}
                                             </TouchableOpacity>
                                         </View>
-                                        
+
                                         {searchError && <ErrorMessage error={searchError} style={{ marginBottom: 12 }} />}
                                         {searchSuccess && (
                                             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_APPROVED_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
@@ -667,16 +666,16 @@ const ProfileInfoScreen = ({
                                                                 return (
                                                                     <View key={lvl} style={{ flex: 1, alignItems: 'center' }}>
                                                                         <View style={[
-                                                                            styles.segment, 
+                                                                            styles.segment,
                                                                             isActive && { backgroundColor: activeColor },
                                                                             idx === 0 && styles.segmentFirst,
                                                                             idx === LEVELS.length - 1 && styles.segmentLast,
                                                                         ]} />
-                                                                        <CustomText 
-                                                                            numberOfLines={1} 
-                                                                            adjustsFontSizeToFit 
+                                                                        <CustomText
+                                                                            numberOfLines={1}
+                                                                            adjustsFontSizeToFit
                                                                             style={[
-                                                                                styles.segmentLabelText, 
+                                                                                styles.segmentLabelText,
                                                                                 isActive && { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
                                                                                 isCurrent && { color: activeColor }
                                                                             ]}
@@ -714,7 +713,7 @@ const ProfileInfoScreen = ({
                     </View>
 
                 </View>
-                
+
                 <View style={styles.bottomSpacer} />
             </ScrollView>
 
@@ -727,12 +726,12 @@ const ProfileInfoScreen = ({
                 <ImagePreviewModal visible={isImageModalVisible} images={clearanceImages} onClose={() => setIsImageModalVisible(false)} />
             )}
 
-            <EmergencyModal 
-                visible={isEmergencyModalVisible} 
-                onClose={() => setIsEmergencyModalVisible(false)} 
-                mode="emergency_only" 
+            <EmergencyModal
+                visible={isEmergencyModalVisible}
+                onClose={() => setIsEmergencyModalVisible(false)}
+                mode="emergency_only"
             />
-            
+
         </ScreenWrapper>
     );
 };

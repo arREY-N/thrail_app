@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -13,7 +13,7 @@ import OfferCard from '@/src/features/Book/components/OfferCard';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
+import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 export interface OfferData {
     id: string;
@@ -28,9 +28,6 @@ export interface OffersScreenProps {
 }
 
 const OffersScreen: React.FC<OffersScreenProps> = ({ offers = [], selectedOfferId, onContinue }) => {
-    const [selectedDate, setSelectedDate] = useState(() => formatDateToStandard(new Date()));
-    const [localSelectedId, setLocalSelectedId] = useState<string | null>(selectedOfferId || null);
-
     const safeOffers = useMemo(() => Array.isArray(offers) ? offers : [], [offers]);
 
     const uniqueDates = useMemo(() => {
@@ -40,20 +37,20 @@ const OffersScreen: React.FC<OffersScreenProps> = ({ offers = [], selectedOfferI
         return [...new Set(dates)];
     }, [safeOffers]);
 
-    const filteredOffers = useMemo(() => {
-        if (!selectedDate) return [];
-        return safeOffers.filter((offer) => formatDateToStandard(offer?.date) === selectedDate);
-    }, [safeOffers, selectedDate]);
+    const [prevSelectedOfferId, setPrevSelectedOfferId] = useState(selectedOfferId);
+    const [selectedDate, setSelectedDate] = useState<string>(() => {
+        if (selectedOfferId) {
+            const preSelectedOffer = safeOffers.find((o) => o.id === selectedOfferId);
+            if (preSelectedOffer && preSelectedOffer.date) {
+                return formatDateToStandard(preSelectedOffer.date);
+            }
+        }
+        return formatDateToStandard(new Date());
+    });
+    const [localSelectedId, setLocalSelectedId] = useState<string | null>(selectedOfferId || null);
 
-    const isSelectedDatePast = useMemo(() => {
-        if (!selectedDate) return false;
-        const selected = safeParseDateString(selectedDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return selected < today;
-    }, [selectedDate]);
-
-    useEffect(() => {
+    if (selectedOfferId !== prevSelectedOfferId) {
+        setPrevSelectedOfferId(selectedOfferId);
         if (selectedOfferId) {
             setLocalSelectedId(selectedOfferId);
             const preSelectedOffer = safeOffers.find((o) => o.id === selectedOfferId);
@@ -64,7 +61,12 @@ const OffersScreen: React.FC<OffersScreenProps> = ({ offers = [], selectedOfferI
             setLocalSelectedId(null);
             setSelectedDate(formatDateToStandard(new Date()));
         }
-    }, [selectedOfferId, safeOffers]);
+    }
+
+    const filteredOffers = useMemo(() => {
+        if (!selectedDate) return [];
+        return safeOffers.filter((offer) => formatDateToStandard(offer?.date) === selectedDate);
+    }, [safeOffers, selectedDate]);
 
     const handleDateSelect = (date: string) => {
         setSelectedDate(date);

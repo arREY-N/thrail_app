@@ -1,14 +1,13 @@
-import React from 'react';
-import { useLocalSearchParams, Redirect, router } from 'expo-router';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import LandingScreen from '@/src/features/Auth/screens/LandingScreen';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 
 export default function Landing() {
     const { isLargeScreen } = useBreakpoints();
     const { mode } = useLocalSearchParams<{ mode?: 'login' | 'signup' | 'forgot' }>();
-    const { 
-        onLogIn, 
+    const {
+        onLogIn,
         onSignUp,
         onPrivacy,
         onTerms
@@ -27,8 +26,8 @@ export default function Landing() {
     }
 
     return (
-        <LandingScreen 
-            onLogInPress={onLogIn} 
+        <LandingScreen
+            onLogInPress={onLogIn}
             onSignUpPress={onSignUp}
             onPrivacyPress={onPrivacy}
             onTermsPress={onTerms}

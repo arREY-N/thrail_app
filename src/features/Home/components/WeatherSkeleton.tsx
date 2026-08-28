@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
