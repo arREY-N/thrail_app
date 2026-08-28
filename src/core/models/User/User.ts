@@ -37,5 +37,5 @@ export { useUserList } from "@/src/core/models/User/hooks/useUserList";
 export { useUserWrite } from "@/src/core/models/User/hooks/useUserWrite";
 
 // REPOSITORIES
-export { UserRepo, UserRepository } from "@/src/core/models/User/repositories/UserRepository";
+export { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
 
