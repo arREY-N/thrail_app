@@ -17,13 +17,9 @@ export function useRouteGuard() {
         const inProtectedGroup = segments[0] === "(main)" || segments[0] === "(tabs)";
 
         if (!user && inProtectedGroup) {
-            console.log('no user && in protected group')
             router.replace("/(auth)/login");
         } else if (user && inAuthGroup) {
-            console.log('user && in auth group')
             router.replace("/(tabs)");
-        } else {
-            console.log('malay')
         }
     }, [user, isLoading, isHydrated, segments, navigationState?.key, router]);
 }
