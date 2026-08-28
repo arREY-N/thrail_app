@@ -26,6 +26,11 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# Binaries & Executables
+*.exe
+pmtiles.exe
+
+
 # macOS
 .DS_Store
 *.pem
@@ -78,3 +83,9 @@ __pycache__/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 .agents/
+
+# SecureCoder & personal tooling
+.securecoderignore
+.securecoder/
+.ignore
+
