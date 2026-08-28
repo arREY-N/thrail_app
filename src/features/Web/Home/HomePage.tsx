@@ -1,17 +1,15 @@
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useReview from "@/src/core/hook/review/useReview";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
-import { Trail } from "@/src/core/models/Trail/Trail";
+import { Trail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { ScrollView } from "react-native";
 
 import React, { useMemo } from "react";
 
-import useTrailView from "@/src/core/hook/trail/useTrailView";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import { useRecommendationsStore } from "@/src/core/stores/recommendationsStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useRecommendationsStore } from "@/src/core/models/Recommendation/Recommendation";
+import { useReview } from "@/src/core/models/Review/Review";
+import { useAuthStore } from "@/src/core/models/User/User";
 import HomeScreen from "@/src/features/Home/screens/HomeScreen";
 
 interface HomeParams {

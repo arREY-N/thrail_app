@@ -1,6 +1,5 @@
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useNotifyPermission } from "@/src/core/hook/user/useNotifyPermission";
+import { useAuthHook, useNotifyPermission } from "@/src/core/models/User/User";
 import LogInScreen from "@/src/features/Auth/screens/LogInScreen";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { Redirect, useLocalSearchParams } from "expo-router";
