@@ -22,7 +22,6 @@ export { useBookingAdminList } from "@/src/core/models/Booking/hooks/useBookingA
 export { useBookingDelete } from "@/src/core/models/Booking/hooks/useBookingDelete";
 export { useBookingListenerAdminList } from "@/src/core/models/Booking/hooks/useBookingListenerAdminList";
 export { useBookingOfferAdminList } from "@/src/core/models/Booking/hooks/useBookingOfferAdminList";
-export { useBookingUser } from "@/src/core/models/Booking/hooks/useBookingUser";
 export { useBookingUserItem } from "@/src/core/models/Booking/hooks/useBookingUserItem";
 export { useBookingUserList } from "@/src/core/models/Booking/hooks/useBookingUserList";
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform,  ScrollView, StyleSheet, TouchableOpacity, View  } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
@@ -11,7 +11,7 @@ import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/Custo
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
@@ -23,7 +23,7 @@ export interface HikerDetails {
 }
 
 export interface DetailsScreenProps {
-    selectedOffer?: { documents?: string[]; [key: string]: unknown } | null;
+    selectedOffer?: { documents?: string[];[key: string]: unknown } | null;
     savedDetails?: HikerDetails | null;
     savedDocs?: Record<string, string> | null;
     onContinue: (payload: { hikerDetails: HikerDetails; uploadedDocs: Record<string, string> }) => void;
@@ -39,18 +39,18 @@ const getStrictDocKey = (docName: string) => {
     if (lower.includes('bir')) return 'bir';
     if (lower.includes('dti')) return 'dti';
     if (lower.includes('denr')) return 'denr';
-    if (lower.includes('parent') || lower.includes('guardian')) return 'guardianId'; 
+    if (lower.includes('parent') || lower.includes('guardian')) return 'guardianId';
     return 'validId';
 };
 
-const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
-    selectedOffer, 
-    savedDetails, 
-    savedDocs, 
-    onContinue, 
-    isSubmitting, 
-    onTermsPress, 
-    onPrivacyPress 
+const DetailsScreen: React.FC<DetailsScreenProps> = ({
+    selectedOffer,
+    savedDetails,
+    savedDocs,
+    onContinue,
+    isSubmitting,
+    onTermsPress,
+    onPrivacyPress
 }) => {
     const { profile } = useAuthStore();
     const requiredDocuments = selectedOffer?.documents || [];
@@ -97,12 +97,12 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
         const areAllDocsUploaded = activeDocuments.every(doc => !!uploadedDocs[doc]);
         return isBasicInfoFilled && areAllDocsUploaded && isSignatureValid;
     };
-    
+
     return (
         <View style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.constrainer}>
-                    
+
                     <View style={styles.section}>
                         <View style={styles.sectionHeaderRow}>
                             <CustomText variant="h2" style={styles.sectionTitleFlat}>Contact Summary</CustomText>
@@ -162,12 +162,12 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                     )}
 
                     <View style={styles.section}>
-                        <TermsSignature isMinor={isMinor} minorName={profileFullName} expectedName={isMinor ? formData.emergencyName || '' : profileFullName} onValidChange={setIsSignatureValid} onTermsPress={onTermsPress || (() => {})} onPrivacyPress={onPrivacyPress || (() => {})} />
+                        <TermsSignature isMinor={isMinor} minorName={profileFullName} expectedName={isMinor ? formData.emergencyName || '' : profileFullName} onValidChange={setIsSignatureValid} onTermsPress={onTermsPress || (() => { })} onPrivacyPress={onPrivacyPress || (() => { })} />
                     </View>
                 </View>
             </ScrollView>
 
-            <CustomStickyFooter 
+            <CustomStickyFooter
                 primaryButton={{
                     title: isSubmitting ? "Reserving..." : "Reserve",
                     disabled: !isFormValid() || isSubmitting,
@@ -175,7 +175,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                 }}
             />
 
-            <EmergencySetupModal 
+            <EmergencySetupModal
                 visible={showUnifiedModal}
                 onClose={() => setShowUnifiedModal(false)}
                 mode="unified"
@@ -195,11 +195,11 @@ const styles = StyleSheet.create({
     sectionTitleFlat: { marginBottom: 0 },
     sectionTitleFlatDocuments: { marginBottom: 4 },
     sectionSubtitle: { marginBottom: 16, color: Colors.TEXT_SECONDARY },
-    
+
     headerActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_LIGHT, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6 },
     headerActionBtnText: { color: Colors.PRIMARY, fontWeight: 'bold', fontSize: 13 },
-    
-    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT,     ...GlobalStyles.dropShadow(3), },
+
+    premiumCard: { backgroundColor: Colors.WHITE, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3), },
     infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
     iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.GRAY_ULTRALIGHT, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     infoCol: { marginLeft: 16, flex: 1 },

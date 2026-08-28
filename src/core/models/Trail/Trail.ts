@@ -29,7 +29,8 @@ export { useTrail } from "@/src/core/models/Trail/hooks/useTrail";
 export { useTrailItem } from "@/src/core/models/Trail/hooks/useTrailItem";
 export { useTrailList } from "@/src/core/models/Trail/hooks/useTrailList";
 export { useTrailNavigation } from "@/src/core/models/Trail/hooks/useTrailNavigation";
-
+export { useTrailStats } from "@/src/core/models/Trail/hooks/useTrailStats";
+export { useTrailWrite } from "@/src/core/models/Trail/hooks/useTrailWrite";
 // REPOSITORIES
 export { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";
 

@@ -24,7 +24,7 @@ export interface GroupState {
     loadMoreMessages: (groupId: string) => void;  // Triggers pagination
     markGroupAsVisited: (groupId: string, userSummary: IUserSummary) => Promise<void>; // Marks the group as visited for the user
 
-    fetchGroupById: (groupId: string) => Promise<void>;
+    fetchGroupById: (groupId: string) => Promise<Group | void>;
 
     setGroups: (groups: Group[]) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
@@ -47,7 +47,7 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     messagePrevCounts: {},
     hasReachedEndByGroup: {},
 
-    fetchGroupById: async (groupId: string): Promise<void> => {
+    fetchGroupById: async (groupId: string): Promise<Group | void> => {
         try {
             set({ isFetching: true, error: null });
 
@@ -57,6 +57,8 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
                 isFetching: false,
                 groups: upsertItem(get().groups, group),
             });
+
+            return group;
         } catch (error) {
             set({ isFetching: false, error: error instanceof Error ? error.message : "Failed to fetch group" });
             throw error;

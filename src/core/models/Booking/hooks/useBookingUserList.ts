@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export function useBookingUserList() {

@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useRecommendationsStore } from "@/src/core/models/Recommendation/stores/recommendationStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export function useRecommendationItem() {

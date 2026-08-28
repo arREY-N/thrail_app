@@ -1,11 +1,10 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useReview from '@/src/core/hook/review/useReview';
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useHike } from "@/src/core/models/Hike/Hike";
 import { useOfferNavigation } from "@/src/core/models/Offer/Offer";
-import { newReview } from "@/src/core/models/Review/Review";
+import { newReview, useReview } from "@/src/core/models/Review/Review";
 import { useTrailItem, useTrailNavigation } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";

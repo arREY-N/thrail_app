@@ -22,7 +22,6 @@ export { useOfferNavigation } from "@/src/core/models/Offer/hooks/useOfferNaviga
 export { useOfferSimilarList } from "@/src/core/models/Offer/hooks/useOfferSimilarList";
 export { useOfferState } from "@/src/core/models/Offer/hooks/useOfferState";
 export { useOfferTrails } from "@/src/core/models/Offer/hooks/useOfferTrails";
-export { useOfferWrite } from "@/src/core/models/Offer/hooks/useOfferWrite";
 
 // REPOSITORIES
 export { OfferRepo } from "@/src/core/models/Offer/repositories/OfferRepository";

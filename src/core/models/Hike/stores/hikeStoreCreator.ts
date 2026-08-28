@@ -1,8 +1,8 @@
 import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
-import { Location } from "@/src/core/models/Location/Location";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { Location, newLocation } from "@/src/core/models/Location/Location";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -126,7 +126,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             if (get().live && get().shareLocationEnabled) {
                 if (!activeGroupId) throw new Error('Cannot save live coordinates without active group ID');
                 const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                const coordinateWithHikerName = new Location({
+                const coordinateWithHikerName = newLocation({
                     ...coordinate,
                     hikerName: name
                 });
@@ -150,8 +150,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             if (get().shareLocationEnabled) {
                 const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                const lastCoordinate = get().getLastKnownCoordinate() || new Location();
-                const coordinateWithHikerName = new Location({
+                const lastCoordinate = get().getLastKnownCoordinate() || newLocation();
+                const coordinateWithHikerName = newLocation({
                     ...lastCoordinate,
                     hikerName: name
                 });
@@ -213,7 +213,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const lastCoordinate = get().getLastKnownCoordinate();
             if (lastCoordinate) {
                 const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                const coordinateWithHikerName = new Location({
+                const coordinateWithHikerName = newLocation({
                     ...lastCoordinate,
                     hikerName: name
                 });
@@ -274,7 +274,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const hikes = await HikeRepo.fetchAll(userId);
             set({ hikes, isLoading: false });
         } catch (error) {
-            set({ error: "Failed to fetch hikes", isLoading: false });
+            set({ error: (error as Error).message || "Failed to fetch hikes", isLoading: false });
         }
     },
 
@@ -284,7 +284,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const hikes = await HikeRepo.fetchAll(userId);
             set({ hikes, isLoading: false });
         } catch (error) {
-            set({ error: "Failed to refresh hikes", isLoading: false });
+            set({ error: (error as Error).message || "Failed to refresh hikes", isLoading: false });
         }
     },
 
@@ -302,7 +302,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             set({ isLoading: false });
             return hike;
         } catch (error) {
-            set({ error: "Failed to load hike", isLoading: false });
+            set({ error: (error as Error).message || "Failed to load hike", isLoading: false });
             return null;
         }
     },

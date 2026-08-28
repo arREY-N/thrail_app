@@ -1,7 +1,7 @@
 import { Payment } from "@/src/core/models/Payment/interfaces/Payment.types";
 import { PaymentRepo } from "@/src/core/models/Payment/repositories/PaymentRepository";
 import { newPayment } from "@/src/core/models/Payment/utils/PaymentFactory";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { StateCreator } from "zustand";
 
 export interface PaymentState {

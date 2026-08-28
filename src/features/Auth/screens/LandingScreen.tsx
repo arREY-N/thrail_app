@@ -27,9 +27,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { useForgotPassword } from '@/src/core/hook/user/useForgotPassword';
-import { useSignUp } from "@/src/core/models/User/User";
+import { useAuthHook, useForgotPassword, useSignUp } from '@/src/core/models/User/User';
 import ForgotPasswordScreen from '@/src/features/Auth/screens/ForgotPasswordScreen';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';

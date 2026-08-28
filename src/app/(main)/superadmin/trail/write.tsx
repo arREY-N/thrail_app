@@ -8,10 +8,9 @@ import React from 'react';
 
 import LoadingScreen from '@/src/app/loading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
-import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
-import useTrailWrite from '@/src/core/hook/trail/useTrailWrite';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
+import { useTrailWrite } from '@/src/core/models/Trail/Trail';
+import { useAuthHook } from '@/src/core/models/User/User';
 import TrailWriteScreen from '@/src/features/SuperAdmin/screens/tabs/TrailWriteScreen';
 
 /**
@@ -19,7 +18,7 @@ import TrailWriteScreen from '@/src/features/SuperAdmin/screens/tabs/TrailWriteS
  * 
  * @returns {React.ReactElement} The rendered trail write route page.
  */
-export default function write() {
+export default function Write() {
     const { trailId: rawTrailId } = useLocalSearchParams();
     const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 

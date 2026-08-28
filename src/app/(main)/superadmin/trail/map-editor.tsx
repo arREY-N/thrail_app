@@ -8,12 +8,10 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useSuperadminNavigation from "@/src/core/hook/navigation/useSuperadminNavigation";
-import useSuperadminDomain from "@/src/core/hook/superadmin/useSuperadminDomain";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Trail } from "@/src/core/models/Trail/Trail";
-import { IOfflinePoint } from "@/src/core/models/Trail/interfaces/Trail.types";
-import { useTrailsStore } from "@/src/core/models/Trail/stores/trailsStore";
+import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
+import { IOfflinePoint, newTrail, useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
+
 import TrailMapEditorScreen from "@/src/features/SuperAdmin/screens/tabs/TrailMapEditorScreen";
 
 /**
@@ -21,7 +19,7 @@ import TrailMapEditorScreen from "@/src/features/SuperAdmin/screens/tabs/TrailMa
  * 
  * @returns {React.JSX.Element} The rendered trail map editor page.
  */
-export default function mapEditor(): React.JSX.Element {
+export default function MapEditor(): React.JSX.Element {
     const { trailId: rawTrailId } = useLocalSearchParams();
     const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 
@@ -77,7 +75,7 @@ export default function mapEditor(): React.JSX.Element {
         if (!activeTrail) return;
         setIsSaving(true);
         try {
-            const updatedTrail = new Trail({
+            const updatedTrail = newTrail({
                 ...activeTrail,
                 offlinePoints: offlinePoints,
             });

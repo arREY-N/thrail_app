@@ -1,7 +1,7 @@
 import LoadingScreen from "@/src/app/loading";
+import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useBookingUser } from "@/src/core/models/Booking/Booking";
 import { useOfferTrails } from "@/src/core/models/Offer/Offer";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
@@ -29,7 +29,7 @@ export default function ListOffer() {
         onUpdatePress,
         onCompleteBook,
         onSetOffer,
-    } = useBookingUser();
+    } = CreateBookingFlow();
 
 
     if (isLoading) return <LoadingScreen />;

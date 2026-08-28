@@ -1,5 +1,4 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { Role } from "@/src/core/models/User/User";
+import { Role, useAuthHook } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 
 export type UseAdminNavigationParams = {

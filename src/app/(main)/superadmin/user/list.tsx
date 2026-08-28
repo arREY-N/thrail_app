@@ -5,10 +5,8 @@
 
 import React from 'react';
 
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
-import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import useUser from '@/src/core/hook/user/useUser';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
+import { useAuthHook, useUser } from '@/src/core/models/User/User';
 import UserListScreen from '@/src/features/SuperAdmin/screens/tabs/UserListScreen';
 
 /**
@@ -16,21 +14,21 @@ import UserListScreen from '@/src/features/SuperAdmin/screens/tabs/UserListScree
  * 
  * @returns {React.ReactElement} The rendered UserListScreen presentation view.
  */
-export default function listUsers() {
+export default function ListUsers() {
     const { role } = useAuthHook();
     const {
         users,
         isLoading,
         error
-    } = useUser({ role });
+    } = useUser();
 
     const {
         pendingApplication
     } = useSuperadminDomain(null);
 
-    const { 
-        onTabPress, 
-        onBackToSettingsPress 
+    const {
+        onTabPress,
+        onBackToSettingsPress
     } = useSuperadminNavigation();
 
     const pendingCount = pendingApplication?.length || 0;

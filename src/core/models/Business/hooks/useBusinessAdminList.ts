@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useCallback, useEffect, useMemo } from "react";
 
 export function useBusinessAdminList() {

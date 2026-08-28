@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useReview from '@/src/core/hook/review/useReview';
 import { useOfferList } from '@/src/core/models/Offer/Offer';
+import { useReview } from '@/src/core/models/Review/Review';
 import { useTrailList, useTrailNavigation } from '@/src/core/models/Trail/Trail';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
 

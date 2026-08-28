@@ -1,8 +1,7 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBusinessAdmin } from "@/src/core/models/Business/hooks/useBusinessAdmin";
 import { useBusinessState } from "@/src/core/models/Business/hooks/useBusinessState";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
-import { User, getUsersByEmail } from "@/src/core/models/User/User";
+import { User, getUsersByEmail, useAuthHook } from "@/src/core/models/User/User";
 
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { useMemo, useState } from "react";

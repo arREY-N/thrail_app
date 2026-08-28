@@ -1,8 +1,8 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingAdminList } from "@/src/core/models/Booking/Booking";
 import { useBusinessAdminList } from "@/src/core/models/Business/hooks/useBusinessAdminList";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
 import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useCallback, useEffect, useMemo } from "react";
 
 /**

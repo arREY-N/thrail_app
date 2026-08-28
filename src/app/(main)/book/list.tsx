@@ -1,19 +1,15 @@
-import { useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
-
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
-import { Booking, useBookingDelete, useBookingUser, useBookingUserList } from "@/src/core/models/Booking/Booking";
-
-
+import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
+import { Booking, useBookingDelete, useBookingUserList } from "@/src/core/models/Booking/Booking";
 import { useCancellationUser } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
+import { useLocalSearchParams } from "expo-router";
 
 export default function ListBook() {
     const { bookingId, view } = useLocalSearchParams();
@@ -50,7 +46,7 @@ export default function ListBook() {
 
     const {
         onPayOffer,
-    } = useBookingUser();
+    } = CreateBookingFlow();
 
     const displayBookings: Booking[] = [...(bookings || [])];
 
@@ -71,39 +67,21 @@ export default function ListBook() {
     }
 
     return (
-        <ScrollView>
-            {deleteError && (
-                <View style={{ padding: 10, margin: 10, backgroundColor: Colors.ERROR, borderRadius: 5 }}>
-                    <Text style={{ color: Colors.WHITE }}>{deleteError}</Text>
-                </View>
-            )}
-            {displayBookings.length > 0 && displayBookings.map(b => (
-                <View key={b.id} style={{ padding: 10, margin: 10, borderWidth: 1, borderColor: Colors.GRAY, borderRadius: 5 }}>
-                    <Text>ID: {b.id}</Text>
-                    <Text>Trail: {b.trail.name}</Text>
-                    <Text>Date: {b.offer.date.toDateString()}</Text>
-                    <Text>Status: {b.status}</Text>
-                    <Pressable onPress={() => cancelPendingBooking(b)}>
-                        <Text style={{ color: 'red' }}>Cancel Booking</Text>
-                    </Pressable>
-                </View>
-            ))}
-            <MyBookingsScreen
-                userBookings={displayBookings as any}
-                isLoading={isFetching}
-                error={subscriptionError || deleteError as any}
-                onBackPress={onBackPress}
-                onCancelBookingPress={cancelBooking as any}
-                onRefundBookingPress={onRefundBooking as any}
-                onRescheduleBooking={onRescheduleBooking as any}
-                onPayOffer={onPayOffer as any}
-                getBookOffer={getOffer as any}
-                availableFutureOffers={[newOffer(), newOffer()]}
-                initialBookingId={bookingId as any}
-                initialView={view as any}
-                onTermsPress={onTermsPress}
-                onPrivacyPress={onPrivacyPress}
-            />
-        </ScrollView>
+        <MyBookingsScreen
+            userBookings={displayBookings as any}
+            isLoading={isFetching}
+            error={subscriptionError || deleteError as any}
+            onBackPress={onBackPress}
+            onCancelBookingPress={cancelBooking as any}
+            onRefundBookingPress={onRefundBooking as any}
+            onRescheduleBooking={onRescheduleBooking as any}
+            onPayOffer={onPayOffer as any}
+            getBookOffer={getOffer as any}
+            availableFutureOffers={[newOffer(), newOffer()]}
+            initialBookingId={bookingId as any}
+            initialView={view as any}
+            onTermsPress={onTermsPress}
+            onPrivacyPress={onPrivacyPress}
+        />
     );
 }

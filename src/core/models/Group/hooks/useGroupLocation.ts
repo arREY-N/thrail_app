@@ -1,9 +1,9 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
+import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newMessage } from "@/src/core/models/Message/Message";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { useState } from "react";
 import { Platform } from "react-native";

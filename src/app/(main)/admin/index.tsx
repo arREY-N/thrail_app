@@ -2,9 +2,9 @@ import { Stack } from 'expo-router';
 
 import UnauthorizedScreen from '@/src/app/unauthorized';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { useAdminNavigation } from '@/src/core/models/Admin/Admin';
 import { useBusinessAdmin } from '@/src/core/models/Business/Business';
+import { useAuthHook } from '@/src/core/models/User/User';
 import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
 /**

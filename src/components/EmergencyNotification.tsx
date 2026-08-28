@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string */
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -14,7 +13,7 @@ import EmergencyModal from '@/src/components/EmergencyModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { useAuthStore } from '@/src/core/models/User/User';
 
 /**
  * EmergencyNotification — A component that displays a notification banner if the user
@@ -22,7 +21,7 @@ import { useAuthStore } from '@/src/core/stores/authStores/authStore';
  */
 const EmergencyNotification: React.FC = () => {
     const profile = useAuthStore(s => s.profile);
-    
+
     const [showNotifBanner, setShowNotifBanner] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
     const [toastVisible, setToastVisible] = useState(false);
@@ -32,14 +31,14 @@ const EmergencyNotification: React.FC = () => {
     useEffect(() => {
         const checkEmergency = async () => {
             if (!profile) return;
-            
+
             if (!profile.emergencyContact?.name) {
                 // 24-HOUR SKIP LOGIC
                 /*
                 const skipTime = await AsyncStorage.getItem('skipEmergencyModal');
                 if (skipTime && Date.now() < parseInt(skipTime, 10)) return;
                 */
-                
+
                 setShowNotifBanner(true);
                 Animated.spring(slideAnim, {
                     toValue: 50,
@@ -80,24 +79,24 @@ const EmergencyNotification: React.FC = () => {
     return (
         <>
             {showNotifBanner && (
-                <Animated.View 
+                <Animated.View
                     style={[
-                        styles.notifBanner, 
-                        { 
+                        styles.notifBanner,
+                        {
                             transform: [
                                 { translateY: slideAnim }
-                            ] 
+                            ]
                         }
                     ]}
                 >
                     <View style={styles.notifBannerContent}>
                         <View style={styles.notifHeader}>
                             <View style={styles.iconBox}>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="shield" 
-                                    size={20} 
-                                    color={Colors.WHITE} 
+                                <CustomIcon
+                                    library="Feather"
+                                    name="shield"
+                                    size={20}
+                                    color={Colors.WHITE}
                                 />
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
@@ -110,16 +109,16 @@ const EmergencyNotification: React.FC = () => {
                             </View>
                         </View>
                         <View style={styles.notifActions}>
-                            <TouchableOpacity 
-                                onPress={handleSkipEmergency} 
+                            <TouchableOpacity
+                                onPress={handleSkipEmergency}
                                 style={styles.notifBtnOutline}
                             >
                                 <CustomText style={styles.notifBtnTextOutline}>
                                     Skip for Now
                                 </CustomText>
                             </TouchableOpacity>
-                            <TouchableOpacity 
-                                onPress={handleFillUp} 
+                            <TouchableOpacity
+                                onPress={handleFillUp}
                                 style={styles.notifBtnPrimary}
                             >
                                 <CustomText style={styles.notifBtnTextPrimary}>
@@ -131,14 +130,14 @@ const EmergencyNotification: React.FC = () => {
                 </Animated.View>
             )}
 
-            <EmergencyModal 
+            <EmergencyModal
                 visible={showEmergencyModal}
                 onClose={() => setShowEmergencyModal(false)}
                 onSkip={handleSkipEmergency}
                 mode="emergency_only"
             />
 
-            <CustomToast 
+            <CustomToast
                 visible={toastVisible}
                 message={toastMessage}
                 onHide={() => setToastVisible(false)}
@@ -149,74 +148,74 @@ const EmergencyNotification: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    notifBanner: { 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        zIndex: 100, 
+    notifBanner: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
         alignItems: 'center',
         paddingHorizontal: 16,
     },
     notifBannerContent: {
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 20, 
-        padding: 16, 
+        backgroundColor: Colors.WHITE,
+        borderRadius: 20,
+        padding: 16,
         width: '100%',
         maxWidth: Layout.MAX_WIDTH - 32,
         ...GlobalStyles.dropShadow(3),
     },
-    notifHeader: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        marginBottom: 16 
+    notifHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16
     },
-    iconBox: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        backgroundColor: Colors.ERROR, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    iconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.ERROR,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    notifTitle: { 
-        fontSize: 15, 
-        fontWeight: 'bold', 
-        color: Colors.TEXT_PRIMARY 
+    notifTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY
     },
-    notifMessage: { 
-        fontSize: 13, 
-        color: Colors.TEXT_SECONDARY, 
-        marginTop: 2, 
-        lineHeight: 18 
+    notifMessage: {
+        fontSize: 13,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+        lineHeight: 18
     },
-    notifActions: { 
-        flexDirection: 'row', 
-        gap: 12 
+    notifActions: {
+        flexDirection: 'row',
+        gap: 12
     },
-    notifBtnOutline: { 
-        flex: 1, 
-        paddingVertical: 10, 
-        borderRadius: 12, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        alignItems: 'center' 
+    notifBtnOutline: {
+        flex: 1,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        alignItems: 'center'
     },
-    notifBtnPrimary: { 
-        flex: 1, 
-        paddingVertical: 10, 
-        borderRadius: 12, 
-        backgroundColor: Colors.PRIMARY, 
-        alignItems: 'center' 
+    notifBtnPrimary: {
+        flex: 1,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: Colors.PRIMARY,
+        alignItems: 'center'
     },
-    notifBtnTextOutline: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: 'bold', 
-        fontSize: 13 
+    notifBtnTextOutline: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: 'bold',
+        fontSize: 13
     },
-    notifBtnTextPrimary: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold', 
-        fontSize: 13 
+    notifBtnTextPrimary: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+        fontSize: 13
     }
 });
 

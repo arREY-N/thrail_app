@@ -2,9 +2,8 @@ import { Stack } from "expo-router";
 import React, { useEffect, useState } from 'react';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useLeaderboard } from "@/src/core/models/Leaderboard/hooks/useLeaderboard";
-import { RankedUsers } from "@/src/core/models/Leaderboard/interfaces/ILeaderboard";
+import { RankedUsers, useLeaderboard } from "@/src/core/models/Leaderboard/Leaderboard";
+import { useAuthHook } from "@/src/core/models/User/User";
 import LeaderboardScreen from "@/src/features/Community/screens/Leaderboard/LeaderboardScreen";
 import { LeaderboardMetric } from "@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs";
 import { useLeaderboardView } from "@/src/features/Community/screens/Leaderboard/hooks/useLeaderboardView";

@@ -1,7 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useState } from 'react';
-// import useUserWrite from "@/src/core/hook/user/useUserWrite";
 
 import { Stack } from "expo-router";
 

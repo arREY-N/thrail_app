@@ -5,7 +5,7 @@
 
 import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useAuthHook } from '@/src/core/models/User/User';
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useBusiness } from "@/src/core/models/Business/Business";

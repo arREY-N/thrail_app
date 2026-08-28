@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
 
