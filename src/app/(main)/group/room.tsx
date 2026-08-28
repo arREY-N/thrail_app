@@ -8,9 +8,8 @@ import React, { useEffect, useState } from "react";
 import { Keyboard, Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import useDevicePermissions from "@/src/core/hook/user/useDevicePermissions";
 import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
+import { useAuthHook, useDevicePermissions } from "@/src/core/models/User/User";
 
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";

@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export const useRescheduleAdminList = () => {

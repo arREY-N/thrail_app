@@ -1,5 +1,5 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect, useState } from "react";
 
 /**
@@ -33,7 +33,7 @@ export function useCancellationAdminItem(cancellationId: string, businessId?: st
             }
         };
         fetch();
-    }, [cancellationId, activeBusinessId]);
+    }, [cancellationId, activeBusinessId, cancellationItem]);
 
     return {
         cancellationItem,

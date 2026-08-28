@@ -14,7 +14,7 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { useAuthStore } from '@/src/core/stores/authStores/authStore';
+import { useAuthStore } from '@/src/core/models/User/stores/authStore';
 import { formatDate } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import TrailMap from "@/src/features/Map/TrailMap";
@@ -34,7 +34,7 @@ interface HikeRecordingScreenProps {
     hikerLocations: { id: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string }[];
     error: string | null;
     fullOffer?: Offer | null;
-    
+
     baseElapsedTime: number;
     timerStartTime: number;
     totalDistance: number;
@@ -60,7 +60,7 @@ interface HikeRecordingScreenProps {
 
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     hike, booking, currentGroup, hikerLocations, error, fullOffer,
-    baseElapsedTime, timerStartTime, totalDistance, totalElevationGain, 
+    baseElapsedTime, timerStartTime, totalDistance, totalElevationGain,
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
@@ -68,7 +68,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const mapRef = useRef<any>(null);
-    
+
     const [localError, setLocalError] = useState<string | null>(error);
     useEffect(() => setLocalError(error), [error]);
 
@@ -80,11 +80,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showBackConfirm, setShowBackConfirm] = useState(false);
     const [showOtherHikers, setShowOtherHikers] = useState(true);
     const [showMapOptions, setShowMapOptions] = useState(false);
-    
+
     const [liveTime, setLiveTime] = useState(baseElapsedTime);
 
     const { profile } = useAuthStore();
-    
+
     const isStarted = hike.status === "started";
     const isPaused = hike.status === "paused";
     const isCompleted = hike.status === "completed";
@@ -101,12 +101,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
         if (isStarted && timerStartTime > 0) {
-            setLiveTime(Date.now() - timerStartTime); 
+            setLiveTime(Date.now() - timerStartTime);
             interval = setInterval(() => {
                 setLiveTime(Date.now() - timerStartTime);
             }, 1000);
         } else {
-            setLiveTime(baseElapsedTime); 
+            setLiveTime(baseElapsedTime);
         }
         return () => clearInterval(interval);
     }, [isStarted, timerStartTime, baseElapsedTime]);
@@ -132,7 +132,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     const handleGroupSOS = () => {
-        if (onTriggerBackendSOS) onTriggerBackendSOS(); 
+        if (onTriggerBackendSOS) onTriggerBackendSOS();
         setShowSosMenu(false);
         setShowCameraPrompt(true);
     };
@@ -193,7 +193,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const sortedMembers = useMemo(() => {
         if (!currentGroup) return [];
         const seenIds = new Set<string>();
-        
+
         const allMembers = [...(currentGroup.admins || []), ...(currentGroup.members || [])].filter(member => {
             if (seenIds.has(member.id)) return false;
             seenIds.add(member.id);
@@ -246,11 +246,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     return (
         <View style={styles.container}>
-            <TrailMap 
-                ref={mapRef} 
-                initialLon={lon} 
-                initialLat={lat} 
-                bottomInset={210} 
+            <TrailMap
+                ref={mapRef}
+                initialLon={lon}
+                initialLat={lat}
+                bottomInset={210}
                 hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
@@ -259,7 +259,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 <TouchableOpacity onPress={handleSafeBackPress} style={styles.glassPillRound}>
                     <CustomIcon library="Feather" name="chevron-left" size={24} color={Colors.TEXT_PRIMARY} />
                 </TouchableOpacity>
-                
+
                 <View style={styles.glassPillCenter}>
                     <CustomText style={styles.headerTitle} numberOfLines={1}>{hike.trail?.name || "Independent Route"}</CustomText>
                     <View style={styles.liveStatusRow}>
@@ -354,8 +354,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomIcon library="Feather" name="play" size={18} color={Colors.PRIMARY} />
                                 <CustomText style={styles.lightGreenBtnText}>Resume</CustomText>
                             </TouchableOpacity>
-                            
-                            <AnimatedPressable 
+
+                            <AnimatedPressable
                                 style={[styles.animatedFinishBtn, { flex: 1 }]}
                                 onPressIn={() => animateProgress(completeAnim, 1500, 1)}
                                 onPressOut={() => { completeAnim.stopAnimation(); animateProgress(completeAnim, 200, 0); }}
@@ -369,8 +369,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     )}
 
                     {isCompleted && (
-                        <TouchableOpacity 
-                            style={[styles.lightGreenBtn, isLoading && { opacity: 0.7 }]} 
+                        <TouchableOpacity
+                            style={[styles.lightGreenBtn, isLoading && { opacity: 0.7 }]}
                             disabled={isLoading}
                             onPress={onAddReview}
                         >
@@ -394,12 +394,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             <CustomIcon library="Feather" name="alert-triangle" size={32} color={Colors.ERROR} />
                             <CustomText variant="h3" style={{ marginTop: 12 }}>Emergency Protocol</CustomText>
                             <CustomText variant="caption" style={{ textAlign: 'center', marginTop: 4 }}>
-                                {isGuidedHike 
+                                {isGuidedHike
                                     ? "If you have cellular data, use the App Alert. If signal is weak, use SMS or 911."
                                     : "Ensure you are in a safe location. Connect with local emergency services immediately."}
                             </CustomText>
                         </View>
-                        
+
                         {isGuidedHike ? (
                             <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleGroupSOS}>
                                 <CustomIcon library="Feather" name="radio" size={18} color={Colors.WHITE} />
@@ -413,7 +413,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 </TouchableOpacity>
                             ) : null
                         )}
-                        
+
                         <TouchableOpacity style={styles.sheetBtnOutline} onPress={handleSendSMS}>
                             <CustomIcon library="Feather" name="message-square" size={18} color={Colors.TEXT_PRIMARY} />
                             <CustomText style={styles.sheetBtnTextDark}>Send Emergency SMS</CustomText>
@@ -422,7 +422,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.ERROR} />
                             <CustomText style={styles.sheetBtnTextDanger}>Call Local Emergency (911)</CustomText>
                         </TouchableOpacity>
-                        
+
                         <TouchableOpacity style={styles.sheetCancelBtn} onPress={() => setShowSosMenu(false)}>
                             <CustomText style={styles.sheetCancelText}>Cancel</CustomText>
                         </TouchableOpacity>
@@ -433,13 +433,13 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             <ConfirmationModal
                 visible={showBackConfirm}
                 onClose={() => setShowBackConfirm(false)}
-                onConfirm={() => { setShowBackConfirm(false); onBackPress(); } }
+                onConfirm={() => { setShowBackConfirm(false); onBackPress(); }}
                 title="Leave Session?"
                 message="Are you sure you want to leave this screen? Your hike recording will safely continue tracking in the background."
                 confirmText="Yes, Leave"
                 cancelText="Cancel"
                 isDestructive={false}
-                iconName="shield" children={undefined}            />
+                iconName="shield" children={undefined} />
 
             <Modal visible={showTrailInfo} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
@@ -450,7 +450,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
                             </TouchableOpacity>
                         </View>
-                        
+
                         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }}>
                             {isGuidedHike ? (
                                 <>
@@ -492,7 +492,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 </View>
                             )}
                         </ScrollView>
-                        
+
                         <TouchableOpacity style={[styles.sheetBtnPrimary, { marginTop: 16 }]} onPress={() => setShowTrailInfo(false)}>
                             <CustomText style={styles.sheetBtnTextPrimary}>Understood</CustomText>
                         </TouchableOpacity>
@@ -503,12 +503,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             <ConfirmationModal
                 visible={showCameraPrompt}
                 onClose={() => setShowCameraPrompt(false)}
-                onConfirm={() => { setShowCameraPrompt(false); onOpenSOSCamera?.(); } }
+                onConfirm={() => { setShowCameraPrompt(false); onOpenSOSCamera?.(); }}
                 title="Alert Sent Successfully"
                 message="Please take a quick photo of the emergency to help your guide assess the situation."
                 confirmText="Open Camera"
                 cancelText="Skip"
-                iconName="camera" children={undefined}            />
+                iconName="camera" children={undefined} />
 
             <Modal visible={showMapOptions} transparent animationType="slide">
                 <View style={styles.modalOverlayBottom}>
@@ -519,13 +519,13 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
                             </TouchableOpacity>
                         </View>
-                        
+
                         <View style={styles.optionRow}>
                             <View style={styles.optionInfo}>
                                 <CustomText style={styles.optionTitle}>Show Team on Map</CustomText>
                                 <CustomText variant="caption">View other hikers in your booking on the map</CustomText>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => setShowOtherHikers(!showOtherHikers)}
                                 style={[styles.toggleBtn, showOtherHikers ? styles.toggleBtnActive : styles.toggleBtnInactive]}
                             >
@@ -540,7 +540,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomText style={styles.optionTitle}>Share My Location</CustomText>
                                 <CustomText variant="caption">Allow other group members to see your live position</CustomText>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => setShareLocationEnabled?.(!shareLocationEnabled)}
                                 style={[styles.toggleBtn, shareLocationEnabled ? styles.toggleBtnActive : styles.toggleBtnInactive]}
                             >
@@ -567,7 +567,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 const locData = locationMap.get(member.id);
                                 const isInactive = locData ? (Date.now() - new Date(locData.timestamp).getTime() > 10000) : true;
                                 const locationLink = `https://www.google.com/maps/search/?api=1&query=${locData?.latitude},${locData?.longitude}`;
-                                
+
                                 return (
                                     <View key={index} style={styles.memberCard}>
                                         <View style={[styles.memberAvatar, isInactive && { backgroundColor: Colors.GRAY_MEDIUM }]}>
@@ -576,9 +576,9 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
                                             <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp as any)}` : 'Waiting for signal...'}</CustomText>
-                                            { locData && (
-                                                <TouchableOpacity 
-                                                    style={styles.trackHikerBtn} 
+                                            {locData && (
+                                                <TouchableOpacity
+                                                    style={styles.trackHikerBtn}
                                                     onPress={() => handleHikerLocationPress(member, locData)}
                                                 >
                                                     <CustomIcon library="Feather" name="map-pin" size={11} color={Colors.PRIMARY} />
@@ -603,11 +603,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
-    
+
     floatingHeaderContainer: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 50 },
     glassPillRound: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     glassPillCenter: { flexShrink: 1, minHeight: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
-    
+
     headerTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
     liveStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     statusText: { fontSize: 10, fontWeight: '800', color: Colors.TEXT_SECONDARY },
@@ -626,17 +626,17 @@ const styles = StyleSheet.create({
     metricDivider: { width: 1, height: '80%', backgroundColor: Colors.GRAY_LIGHT },
     metricValue: { fontSize: 18, fontWeight: "900", color: Colors.TEXT_PRIMARY, letterSpacing: -0.5 },
     metricLabel: { color: Colors.TEXT_SECONDARY, fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginTop: 4 },
-    
+
     actionRow: { flexDirection: "row", gap: 12, width: '100%', maxWidth: Layout.MAX_WIDTH },
-    
+
     lightGreenBtn: { flex: 1, backgroundColor: Colors.STATUS_APPROVED_BG, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     lightGreenBtnText: { color: Colors.PRIMARY, fontWeight: "bold", fontSize: 16 },
-    
+
     pauseBtn: { flex: 1, backgroundColor: Colors.YELLOW, height: 56, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     pauseBtnText: { color: Colors.WHITE, fontWeight: "bold", fontSize: 16 },
 
     animatedFinishBtn: { height: 56, borderRadius: 16, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.ERROR, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, overflow: 'hidden', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
-    progressFillFinish: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: Colors.ERROR_BG }, 
+    progressFillFinish: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: Colors.ERROR_BG },
     btnContent: { zIndex: 2 },
     actionTextFinish: { color: Colors.ERROR, fontWeight: "bold", fontSize: 16 },
 

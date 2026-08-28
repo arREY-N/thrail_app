@@ -1,6 +1,6 @@
 import { Notification } from "@/src/core/models/Notification/interfaces/Notification.types";
 import { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 

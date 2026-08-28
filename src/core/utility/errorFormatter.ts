@@ -7,16 +7,17 @@ import { Alert, Platform } from "react-native";
  * @param hook - A string that represents the name of the hook where the error was caught. Default is 'Unknown Access'.
  */
 export const catchError = (error: Error, errorState: string = 'error state', hook: string = 'Unknown Access'): void => {
-    if (!__DEV__) return;
-
-    const title = "🔨 UI Task Required"
-    const message = (`Error caught; access \`${errorState}\` via \`${hook}\` \n\n${error}`);
+    const title = "Task Required"
+    const message = (`Error caught; access \`${errorState}\` via \`${hook}\` \n\n${error}. Update the UI to properly catch the error. This warning is for development only, the error will cause a crash if unhandled in production code.`);
 
     if (Platform.OS === 'web') {
         window.alert(`${title}\n\n${message}`);
     } else {
         Alert.alert(title, message, [{ text: "Got it" }]);
     }
+
+    if (__DEV__)
+        throw Error;
 }
 
 export const logger = (location: string, message: string, object?: any) => {
@@ -28,7 +29,7 @@ export const logger = (location: string, message: string, object?: any) => {
 export const refactorCatcher = (message: string) => {
     if (!__DEV__) return;
 
-    const title = "🔨 UI Task Required"
+    const title = "Task Required"
 
     if (Platform.OS === 'web') {
         window.alert(`${title}\n\n${message}`);

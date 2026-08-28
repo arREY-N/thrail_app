@@ -20,7 +20,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
 import { Layout } from "@/src/constants/layout";
-import { IUser } from "@/src/core/models/User/interfaces/User.types";
+import { IUser } from "@/src/core/models/User/User";
 import { formatDate } from "@/src/core/utility/date";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";

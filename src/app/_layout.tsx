@@ -1,6 +1,6 @@
 
 import LoadingScreen from "@/src/app/loading";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
+import { useAuthHook } from "@/src/core/models/User/User";
 import {
 	AntDesign,
 	Feather,
@@ -15,7 +15,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import MaintenanceScreen from "@/src/app/maintenance";
+import { MaintenanceScreen } from "@/src/app/maintenance";
 import useMaintenance from "@/src/core/hook/useMaintenance";
 import * as WebBrowser from "expo-web-browser";
 

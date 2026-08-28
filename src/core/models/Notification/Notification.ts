@@ -4,25 +4,24 @@ export * from "@/src/core/models/Notification/interfaces/Notification.types";
 // FACTORY & CONVERTER
 export {
     newNotification,
-    notificationConverter,
+    notificationConverter
 } from "@/src/core/models/Notification/utils/NotificationFactory";
 
 // STORES
 export {
-    useNotificationStore,
-    useNotificationsStore,
+    useNotificationsStore, useNotificationStore
 } from "@/src/core/models/Notification/stores/notificationStore";
 
 // HOOKS
 export {
     requestNotificationPermission,
-    useNotification,
-    useNotifications,
+    useNotifications
 } from "@/src/core/models/Notification/hooks/useNotification";
 export {
     useNotificationItem,
-    useViewNotification,
+    useViewNotification
 } from "@/src/core/models/Notification/hooks/useViewNotification";
 
 // REPOSITORIES
-export { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";
+export { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";
+

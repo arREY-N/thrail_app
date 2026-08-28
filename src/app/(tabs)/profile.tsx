@@ -1,9 +1,10 @@
 import EmergencyNotification from '@/src/components/EmergencyNotification';
+import { SignOutFlow } from '@/src/core/flows/SignOutFlow';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
-import useReview from '@/src/core/hook/review/useReview';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
 import { useStats } from '@/src/core/hook/useStats';
+import { useReview } from '@/src/core/models/Review/Review';
+import { useAuthHook } from '@/src/core/models/User/User';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 
 /**
@@ -20,8 +21,11 @@ export default function Profile() {
     const {
         profile,
         role,
-        onSignOutPress,
     } = useAuthHook();
+
+    const {
+        signOut
+    } = SignOutFlow();
 
     const {
         onAdminPress,
@@ -43,7 +47,7 @@ export default function Profile() {
     return (
         <View style={{ flex: 1 }}>
             <ProfileScreen
-                onSignOutPress={onSignOutPress}
+                onSignOutPress={signOut}
                 onApplyPress={onApplyPress}
                 onAdminPress={onAdminPress}
                 onSettingsPress={onSettingsPress}

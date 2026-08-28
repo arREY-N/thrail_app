@@ -8,8 +8,8 @@ import { Keyboard, Platform } from 'react-native';
 
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { IMessage } from '@/src/core/models/Message/Message.types';
-import { IUser } from '@/src/core/models/User/interfaces/User.types';
+import { IMessage } from '@/src/core/models/Message/Message';
+import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { CustomMessage } from '@/src/features/Community/screens/Group/RoomScreen';
 

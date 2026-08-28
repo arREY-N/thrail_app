@@ -1,7 +1,18 @@
-import { db } from "@/src/core/config/Firebase";
-import { User } from "@/src/core/models/User/interfaces/User.types";
-import { userConverter } from "@/src/core/models/User/utils/UserFactory";
-import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { auth, db, functions, provider } from '@/src/core/config/Firebase';
+import { getAuthErrorMessage } from '@/src/core/error/autherror';
+import { CredentialResponse, SignUp, UserCredential } from '@/src/core/models/User/interfaces/SignUp.types';
+import { LogIn, User } from '@/src/core/models/User/interfaces/User.types';
+import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { FirebaseError } from 'firebase/app';
+import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
+import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { httpsCallable } from "firebase/functions";
+
+GoogleSignin.configure({
+    webClientId: '672035725620-l5sdrcnscegfqmh43o6sj7rpcsggj7vi.apps.googleusercontent.com',
+    offlineAccess: true,
+});
 
 const createUsersCollection = (db: Firestore) => {
     return collection(db, 'users').withConverter(userConverter);
@@ -88,6 +99,163 @@ export const UserRepository = (db: Firestore) => ({
             throw new Error(`An error occurred while fetching user with email ${email}`);
         }
     },
+
+    async checkUserCredentials(userCredentials: UserCredential): Promise<void> {
+        const checkCredentials = httpsCallable(functions, 'checkEmail');
+        try {
+            const response = await checkCredentials(userCredentials);
+
+            let unavailable = []
+
+            if (!(response as CredentialResponse).data.emailAvailable) unavailable.push('Email');
+            if (!(response as CredentialResponse).data.usernameAvailable) unavailable.push('Username');
+
+            if (unavailable.length > 0)
+                throw new Error(`${unavailable.join(', ')} already in use`);
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    async checkEmail(email: string): Promise<boolean> {
+        const checkCredentials = httpsCallable(functions, 'checkEmail');
+        try {
+            const response = await checkCredentials({ email, username: 'checkExistingEmailOnly' });
+
+            if ((response as CredentialResponse).data.emailAvailable) return false;
+
+            return true;
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    async signUp(accountData: SignUp): Promise<User> {
+        const { email, password } = accountData;
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                email,
+                password,
+            );
+
+            const user = newUser(accountData);
+            user.id = userCredential.user.uid;
+
+            await setDoc(
+                doc(createUsersCollection(db), userCredential.user.uid),
+                user,
+                { merge: true }
+            );
+
+            return user;
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    async signUpWithGoogle(): Promise<void> {
+        try {
+            await GoogleSignin.hasPlayServices();
+
+            const response = await GoogleSignin.signIn();
+
+            console.log('Google Sign-In response:', response);
+            if (response.type === 'cancelled')
+                throw new Error('Google sign-in was cancelled by the user');
+
+            const { idToken } = response.data;
+
+            const googleCredential = GoogleAuthProvider.credential(idToken);
+
+            const { user } = await signInWithCredential(getAuth(), googleCredential);
+
+            const userDoc = doc(createUsersCollection(db), user.uid);
+            const snap = await getDoc(userDoc);
+
+            if (snap.exists()) {
+                console.log('User already exists in Firestore');
+                return;
+            }
+
+            const created = newUser({
+                id: user.uid,
+                email: user.email ?? '',
+                firstname: user.displayName?.split(' ')[0] ?? '',
+                lastname: user.displayName?.split(' ')[1] ?? '',
+                phoneNumber: user.phoneNumber ?? '',
+                username: `${user.displayName?.split(' ')[0] ?? ''}_${user.uid.slice(0, 4)}`
+            });
+
+            await setDoc(
+                doc(createUsersCollection(db), created.id),
+                created,
+                { merge: true }
+            );
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    async webSignUpWithGoogle(): Promise<void> {
+        try {
+            const result = await signInWithPopup(auth, provider);
+
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+
+            const token = credential?.accessToken;
+
+            if (!token)
+                throw new Error('Failed to retrieve access token from Google');
+
+            const user = result.user;
+
+            const userDoc = doc(createUsersCollection(db), user.uid);
+            const snap = await getDoc(userDoc);
+
+            if (snap.exists()) {
+                console.log('User already exists in Firestore');
+                return;
+            }
+
+            const created = newUser({
+                id: user.uid,
+                email: user.email ?? '',
+                firstname: user.displayName?.split(' ')[0] ?? '',
+                lastname: user.displayName?.split(' ')[1] ?? '',
+                phoneNumber: user.phoneNumber ?? '',
+                username: `${user.displayName?.split(' ')[0] ?? ''}_${user.uid.slice(0, 4)}`
+            });
+
+            await setDoc(
+                doc(createUsersCollection(db), created.id),
+                created,
+                { merge: true }
+            );
+
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    async logIn(data: LogIn): Promise<void> {
+        try {
+            await signInWithEmailAndPassword(
+                auth,
+                data.email,
+                data.password
+            );
+        } catch (err) {
+            console.log(err);
+            throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    }
 });
 
 export const UserRepo = UserRepository(db);

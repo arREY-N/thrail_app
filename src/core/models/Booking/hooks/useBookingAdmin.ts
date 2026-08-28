@@ -1,10 +1,10 @@
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { Offer } from "@/src/core/models/Offer/Offer";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 import { Alert } from "react-native";

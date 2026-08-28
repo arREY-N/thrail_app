@@ -5,5 +5,3 @@ import { immer } from "zustand/middleware/immer";
 export const useUserStore = create<UserState>()(
     immer(userStoreCreator)
 );
-
-export const useUsersStore = useUserStore;

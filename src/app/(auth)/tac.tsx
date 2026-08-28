@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 
 import CustomLoading from "@/src/components/CustomLoading";
-import useSignUp from "@/src/core/hook/auth/useSignUp";
+import { useSignUp } from "@/src/core/models/User/User";
 import TACScreen from "@/src/features/Auth/screens/TACScreen";
 
 export default function Tac() {

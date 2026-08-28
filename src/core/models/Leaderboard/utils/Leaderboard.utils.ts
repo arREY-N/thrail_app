@@ -1,7 +1,8 @@
 import { Hike, HikeRepo } from "@/src/core/models/Hike/Hike";
 import { Leaderboard, RankedUserInfo, RankedUsers, UserHikingRecords } from "@/src/core/models/Leaderboard/interfaces/Leaderboard.types";
 import { newLeaderboard } from "@/src/core/models/Leaderboard/utils/LeaderboardFactory";
-import { UserRepository } from "@/src/core/repositories/userRepository";
+import { UserRepo } from "@/src/core/models/User/User";
+
 
 export const generateLeaderboardId = (date: Date): string => {
     const year = date.getFullYear();
@@ -79,7 +80,7 @@ export const setUserRanking = (userRecords: UserHikingRecords<Date>[]): RankedUs
 
 export async function generateLeaderboard(date: Date): Promise<Leaderboard> {
     const userHikingRecords: UserHikingRecords<Date>[] = [];
-    const users = await UserRepository.fetchAll();
+    const users = await UserRepo.fetchAll();
 
     for (const user of users) {
         const userId = user.id;

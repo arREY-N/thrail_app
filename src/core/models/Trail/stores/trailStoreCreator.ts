@@ -3,7 +3,7 @@ import { IRecommendedTrail } from "@/src/core/models/Recommendation/Recommendati
 import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";
 import { newTrail } from "@/src/core/models/Trail/utils/TrailFactory";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import NetInfo from "@react-native-community/netinfo";
 import { Platform } from "react-native";
 import { StateCreator } from "zustand";

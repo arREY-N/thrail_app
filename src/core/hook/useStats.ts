@@ -1,7 +1,5 @@
-import useReview from "@/src/core/hook/review/useReview";
 import { Hike, useHikeList } from "@/src/core/models/Hike/Hike";
-
-
+import { useReview } from "@/src/core/models/Review/Review";
 
 export function useStats() {
     const { myReviews } = useReview();

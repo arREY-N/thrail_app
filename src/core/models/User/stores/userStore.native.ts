@@ -16,5 +16,3 @@ export const useUserStore = create<UserState>()(
         }
     )
 );
-
-export const useUsersStore = useUserStore;

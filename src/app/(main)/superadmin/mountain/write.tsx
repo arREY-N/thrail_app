@@ -7,10 +7,10 @@ import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 import LoadingScreen from '@/src/app/loading';
-import useMountainWrite from '@/src/core/hook/mountain/useMountainWrite';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
-import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import { useMountainWrite } from '@/src/core/models/Mountain/Mountain';
+import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
+import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
 import getSearchParam from '@/src/core/utility/getSearchParam';
 import MountainWriteScreen from '@/src/features/SuperAdmin/screens/tabs/MountainWriteScreen';
 
@@ -19,7 +19,7 @@ import MountainWriteScreen from '@/src/features/SuperAdmin/screens/tabs/Mountain
  * 
  * @returns {React.ReactElement} Rendered MountainWriteScreen presentation view or loading overlay.
  */
-export default function writeMountain() {
+export default function WriteMountain() {
     const { mountainId: rawId } = useLocalSearchParams();
     const mountainId = getSearchParam(rawId);
 

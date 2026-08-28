@@ -1,4 +1,4 @@
-import usePreference from "@/src/core/hook/user/usePreference";
+import { usePreference } from "@/src/core/models/User/User";
 import PreferenceScreen from "@/src/features/Auth/screens/PreferenceScreen";
 
 export default function Preference() {

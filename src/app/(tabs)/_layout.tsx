@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
 import { useAppSubscriptions } from "@/src/core/hook/useAppSubscriptions";
-import useRouteGuard from "@/src/core/hook/user/useRouteGuard";
+import { useRouteGuard } from "@/src/core/models/User/User";
 
 export const unstable_settings = {
     initialRouteName: 'index',

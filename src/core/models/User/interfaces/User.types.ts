@@ -50,6 +50,8 @@ export interface IUserBase<T> extends IUserSummary {
     role: Role;
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;
+    profileImage: string;
+    phoneVerifiedAt: T
 }
 
 export type IUserDB = IUserBase<Timestamp | FieldValue>;

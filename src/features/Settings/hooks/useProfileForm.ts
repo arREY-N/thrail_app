@@ -3,8 +3,8 @@
  * @description Hook managing profile edit states, validation, search inputs, and saving operations.
  */
 
-import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/interfaces/User.types";
+import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
 import { useEffect, useState } from 'react';
 
 export interface UseProfileFormParams {
@@ -36,7 +36,7 @@ export function useProfileForm({
     const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
     const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
 
-    const { findUser } = useEmergencyContact();
+    const { findUser } = EmergencyContactFlow();
     const [searchEmail, setSearchEmail] = useState<string>('');
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);

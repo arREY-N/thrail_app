@@ -1,4 +1,4 @@
-import { DifficultyFactors, DifficultyRating, FavoredFactors, IHikeSurvey } from "@/src/core/models/Review/Review";
+import { DifficultyRating, IHikeSurvey } from "@/src/core/models/Review/Review";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type Status = 'unhiked' | 'started' | 'paused' | 'completed';

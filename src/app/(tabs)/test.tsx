@@ -1,6 +1,6 @@
 import CustomLoading from "@/src/components/CustomLoading";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { useBookingAdminList, useBookingUserList } from "@/src/core/models/Booking/Booking";
+import { useAuthHook } from "@/src/core/models/User/User";
 
 import {
     useCancellationAdmin,

@@ -1,8 +1,7 @@
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
 import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 import { Message, newMessage } from "@/src/core/models/Message/Message";
-import { UserLogic } from "@/src/core/models/User/User";
+import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { useCallback } from "react";
 
 export function useGroupRoom(groupId: string) {

@@ -3,11 +3,11 @@
  * @description Controller page for the Superadmin Dashboard. Composes useSuperadminDomain and useAppNavigation to pass real-time platform statistics and navigation handlers to DashboardScreen.
  */
 
-import React from 'react';
 import { Stack } from 'expo-router';
+import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useSuperadminDomain from '@/src/core/hook/superadmin/useSuperadminDomain';
+import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
 import DashboardScreen from '@/src/features/SuperAdmin/screens/DashboardScreen';
 
 /**
@@ -36,7 +36,7 @@ export default function superadminDashboard() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            
+
             <DashboardScreen
                 businesses={businesses}
                 trails={trails}

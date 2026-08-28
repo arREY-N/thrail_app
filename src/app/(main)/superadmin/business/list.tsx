@@ -3,10 +3,9 @@
  * @description Business list controller for Superadmin. Renders BusinessListScreen tab presentation component.
  */
 
-import React from 'react';
 
-import useSuperadminNavigation from '@/src/core/hook/navigation/useSuperadminNavigation';
-import useSuperadmin from '@/src/core/hook/superadmin/useSuperadmin';
+import useSuperadmin from '@/src/core/models/Superadmin/hooks/useSuperadmin';
+import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
 import BusinessListScreen from '@/src/features/SuperAdmin/screens/tabs/BusinessListScreen';
 
 export default function listBusiness() {

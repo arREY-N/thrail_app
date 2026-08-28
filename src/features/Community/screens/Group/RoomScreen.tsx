@@ -47,8 +47,8 @@ import { Colors } from '@/src/constants/colors';
 import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import { IMessage } from '@/src/core/models/Message/Message.types';
-import { IUser } from '@/src/core/models/User/interfaces/User.types';
+import { IMessage } from '@/src/core/models/Message/Message';
+import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { useRoomScreen } from './hooks/useRoomScreen';
 

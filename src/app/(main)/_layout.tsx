@@ -1,8 +1,7 @@
 
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import useRouteGuard from "@/src/core/hook/user/useRouteGuard";
+import LoadingScreen from "@/src/app/loading";
+import { useAuthHook, useRouteGuard } from "@/src/core/models/User/User";
 import { Stack } from "expo-router";
-import LoadingScreen from "../loading";
 
 export const unstable_settings = {
     initialRouteName: 'index',
