@@ -16,8 +16,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useTrailStats } from '@/src/core/hook/trail/useTrailStats';
-import { IReview } from '@/src/core/models/Review/interfaces/Review.types';
-import { ITrail } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { IReview } from '@/src/core/models/Review/Review';
+import { ITrail } from '@/src/core/models/Trail/Trail';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
