@@ -14,7 +14,7 @@ recommendation_engine/
 ├── core/                        <-- CORE RECOMMENDATION MODULES
 │   ├── recommender.py           <-- HybridRecommender engine
 │   ├── distance_strategies.py   <-- Strategy Pattern metrics (Gower, Euclidean, Cosine, 23 Configs)
-│   ├── profile_manager.py       <-- 18-Feature mapping, P_e/P_d anchors, BCF updates
+│   ├── profile_manager.py       <-- 17-Feature mapping, P_e/P_d anchors, BCF updates
 │   └── gower_engine.py          <-- Legacy Gower engine utility
 │
 ├── data/                        <-- MOCK DATASETS
@@ -33,6 +33,9 @@ recommendation_engine/
 ├── tests/                       <-- AUTOMATED TESTS & API CLIENT
 │   ├── test_tars_recommender.py <-- Unit test suite
 │   └── test_client.py           <-- API test client
+│
+├── docs/                        <-- ARCHITECTURAL PLANS & GUIDELINES
+│   └── DUAL_ANCHOR_CATEGORIZATION_PLAN.md <-- Dual-Anchor Partitioning Plan (Top 3 Pe vs Top 2 Pd)
 │
 ├── app.py                       <-- FastAPI Entry Point
 ├── requirements.txt             <-- Dependencies list
@@ -140,18 +143,18 @@ jupyter notebook benchmarks/recommendation_scratchpad.ipynb
 
 ## 6. Mathematical Specifications Summary
 
-1. **18-Feature Dataset Vector Mapping ($p=18$)**:
-   Maps trail profile and user profile into a normalized 18-dimensional vector $[v_1 \dots v_{18}] \in [0, 1]^{18}$ covering 5 provinces, 5 mountain affinities, LASCO rating requirement, duration, length/elevation index, and 5 tourism infrastructures.
+1. **17-Feature Dataset Vector Mapping ($p=17$)**:
+   Maps trail profile and user profile into a normalized 17-dimensional vector $[v_1 \dots v_{17}] \in [0, 1]^{17}$ covering 5 provinces, 5 mountain affinities, LASCO rating requirement, length/elevation index, and 5 tourism infrastructures (Duration dimension removed).
 
 2. **Two-Anchor Profiles ($P_e$ and $P_d$)**:
    - $P_e$ (Easy Profile): Onboarding baseline prediction.
    - $P_d$ (Difficult Profile): Reverse-engineered upper intensity boundary prediction.
 
 3. **Alpha Tuner Parameter ($\alpha$)**:
-   $$\alpha = \begin{cases} 1 - \frac{u}{2m} & \text{if } u \le m \\ 1.0 & \text{if } u > m \end{cases}$$
+   $$\alpha = \begin{cases} 1 - \frac{m}{2u} & \text{if } u \le m \\ 0.5 & \text{if } u > m \end{cases}$$
 
 4. **Recommendation Score Equation**:
-   $$R_{tu} = \frac{\alpha (CB_{tu}) + (1 - \alpha) (CF_{tuv})}{\sqrt{18}}$$
+   $$R_{tu} = \frac{\alpha (CB_{tu}) + (1 - \alpha) (CF_{tuv})}{\sqrt{17}}$$
 
 5. **Profile Update Function & Beta Corrector Factor ($\beta$) Matrix**:
    $$P_{xu} = P_{xo} + \frac{1}{k} \sum_{i=1}^k \beta_i (H_{xi} - P_{xo})$$

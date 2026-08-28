@@ -1,23 +1,72 @@
 """
 @file profile_manager.py
-@description 18-Feature Dataset Vector Mapping, Two-Anchor Profile Generator (Easy P_e and Difficult P_d),
+@description 17-Feature Dataset Vector Mapping (Duration dimension removed),
+             Two-Anchor Profile Generator (Easy P_e and Difficult P_d),
              and Profile Update Function with Beta Corrector Factor (BCF) matrix.
+             Dynamically derives max length and gain boundaries directly from the dataset.
 """
 
+import os
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple, Optional, Union
 
 PROVINCES = ['cavite', 'laguna', 'batangas', 'rizal', 'quezon']
 MOUNTAINS = ['mt1', 'mt2', 'mt3', 'mt4', 'mt5']
 TOURISM_INFRASTRUCTURE = ['tourism_1', 'tourism_2', 'tourism_3', 'tourism_4', 'tourism_5']
 
-NUM_FEATURES = 18
+NUM_FEATURES = 17
 
-def build_18_feature_vector(entity_dict: Dict[str, Any]) -> np.ndarray:
+_BOUNDS_CACHE: Optional[Tuple[float, float]] = None
+
+
+def get_dataset_bounds(source: Optional[Union[str, pd.DataFrame]] = None) -> Tuple[float, float]:
     """
-    @function build_18_feature_vector
-    @description Maps item or user profile dictionary into normalized 18-dimensional vector in [0, 1]^18.
+    @function get_dataset_bounds
+    @description Dynamically retrieves the maximum trail length and elevation gain from the database/CSV dataset.
+    """
+    global _BOUNDS_CACHE
+    if source is None and _BOUNDS_CACHE is not None:
+        return _BOUNDS_CACHE
+
+    df: Optional[pd.DataFrame] = None
+    if isinstance(source, pd.DataFrame):
+        df = source
+    elif isinstance(source, str) and os.path.exists(source):
+        df = pd.read_csv(source)
+    else:
+        # Resolve default trails_mock.csv path
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        default_csv = os.path.join(base_dir, "data", "trails_mock.csv")
+        if os.path.exists(default_csv):
+            df = pd.read_csv(default_csv)
+
+    if df is not None and not df.empty:
+        len_col = 'difficulty_length' if 'difficulty_length' in df.columns else ('length' if 'length' in df.columns else None)
+        gain_col = 'difficulty_gain' if 'difficulty_gain' in df.columns else ('gain' if 'gain' in df.columns else None)
+
+        max_len = float(df[len_col].dropna().max()) if len_col else 1.0
+        max_gain = float(df[gain_col].dropna().max()) if gain_col else 1.0
+        _BOUNDS_CACHE = (max_len, max_gain)
+        return max_len, max_gain
+
+    return 1.0, 1.0
+
+
+def build_17_feature_vector(
+    entity_dict: Dict[str, Any],
+    max_length: Optional[float] = None,
+    max_gain: Optional[float] = None
+) -> np.ndarray:
+    """
+    @function build_17_feature_vector
+    @description Maps item or user profile dictionary into normalized 17-dimensional vector in [0, 1]^17.
+                 Features:
+                 - 0..4: 5 Provinces (Cavite, Laguna, Batangas, Rizal, Quezon)
+                 - 5..9: 5 Mountain Affinities (Mt1, Mt2, Mt3, Mt4, Mt5)
+                 - 10: LASCO Rating requirement (normalized to [0, 1])
+                 - 11: Length / Elevation Gain Index (normalized dynamically via dataset bounds)
+                 - 12..16: 5 Tourism Infrastructure Flags (binary 0.0 or 1.0)
     """
     vec = np.zeros(NUM_FEATURES, dtype=np.float32)
 
@@ -60,28 +109,53 @@ def build_18_feature_vector(entity_dict: Dict[str, Any]) -> np.ndarray:
     else:
         vec[10] = 3.0 / 9.0
 
-    # 4. Duration Dimension (Dimension 11)
-    hours = float(entity_dict.get('difficulty_hours', 3.0)) #remove duration dimension
-    vec[11] = float(np.clip(hours / 12.0, 0.0, 1.0))
+    # 4. Length / Elevation Index Dimension (Dimension 11) - (Duration removed)
+    is_trail_entity = any(k in entity_dict for k in ['id', 'name', 'mountain', 'difficulty_classification'])
+    raw_length = entity_dict.get('difficulty_length', entity_dict.get('length'))
+    raw_gain = entity_dict.get('difficulty_gain', entity_dict.get('gain'))
 
-    # 5. Length / Elevation Index Dimension (Dimension 12)
-    length_km = float(entity_dict.get('difficulty_length', 5.0)) # no fallback on length if no value flaged as error
-    gain_m = float(entity_dict.get('difficulty_gain', 300.0)) # no fallback on gain if no value flaged as error
-    length_norm = min(length_km / 30.0, 1.0) # divide to max length of longest trail or maountain to normalize to 1
-    gain_norm = min(gain_m / 2000.0, 1.0) # divide to max elevation of highest trail or maountain to normalize to 1
-    vec[12] = float((length_norm + gain_norm) / 2.0) # divide gain to get the normalize value of 1
+    if is_trail_entity or (raw_length is not None or raw_gain is not None):
+        # Strict validation for trail entities: No fallback, flag null/missing as explicit error
+        if raw_length is None or str(raw_length).strip().lower() in ['none', 'null', 'nan', '']:
+            raise ValueError("Trail record error: 'difficulty_length' / 'length' is missing or null. No fallback allowed.")
+        if raw_gain is None or str(raw_gain).strip().lower() in ['none', 'null', 'nan', '']:
+            raise ValueError("Trail record error: 'difficulty_gain' / 'gain' is missing or null. No fallback allowed.")
 
-    # 6. Tourism Infrastructure Flags (Dimensions 13-17)
+        try:
+            length_km = float(raw_length)
+            gain_m = float(raw_gain)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Trail record error: invalid numeric value for length/gain: length='{raw_length}', gain='{raw_gain}'. Error: {e}")
+
+        # Dynamically extract max values from dataset and normalize
+        if max_length is None or max_gain is None:
+            ds_max_l, ds_max_g = get_dataset_bounds()
+            max_length = max_length or ds_max_l
+            max_gain = max_gain or ds_max_g
+
+        length_norm = min(length_km / max(1.0, max_length), 1.0)
+        gain_norm = min(gain_m / max(1.0, max_gain), 1.0)
+
+        denominator = gain_norm if gain_norm > 0 else 1.0
+        vec[11] = float(np.clip((length_norm + gain_norm) / denominator, 0.0, 1.0))
+    else:
+        # User onboarding profile: physical stamina preference aligns directly with experience level
+        vec[11] = vec[10]
+
+    # 5. Tourism Infrastructure Flags (Dimensions 12-16)
     for idx, infra in enumerate(TOURISM_INFRASTRUCTURE):
         val = entity_dict.get(infra, entity_dict.get(f"tourism_{idx+1}", False))
         if isinstance(val, bool):
-            vec[13 + idx] = 1.0 if val else 0.0
+            vec[12 + idx] = 1.0 if val else 0.0
         elif str(val).lower() in ['true', '1', 'yes']:
-            vec[13 + idx] = 1.0
+            vec[12 + idx] = 1.0
         else:
-            vec[13 + idx] = 0.0
+            vec[12 + idx] = 0.0
 
     return vec
+
+# Backwards compatibility alias
+build_18_feature_vector = build_17_feature_vector
 
 
 class TwoAnchorProfileManager:
@@ -91,14 +165,17 @@ class TwoAnchorProfileManager:
                  and Profile Updates via Beta Corrector Factor (BCF) matrix.
     """
     @staticmethod
-    def create_anchor_profiles(preferences: Dict[str, Any]) -> Tuple[np.ndarray, np.ndarray]:
-        p_e = build_18_feature_vector(preferences)
+    def create_anchor_profiles(
+        preferences: Dict[str, Any],
+        max_length: Optional[float] = None,
+        max_gain: Optional[float] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        p_e = build_17_feature_vector(preferences, max_length=max_length, max_gain=max_gain)
         p_d = p_e.copy()
 
-        # Reverse-engineer P_d: Shift difficulty/stamina dimensions (10, 11, 12) upward
+        # Reverse-engineer P_d: Shift difficulty/physical dimensions (10, 11) upward
         p_d[10] = float(np.clip(p_e[10] + 0.35, 0.0, 1.0))
         p_d[11] = float(np.clip(p_e[11] + 0.35, 0.0, 1.0))
-        p_d[12] = float(np.clip(p_e[12] + 0.35, 0.0, 1.0))
 
         return p_e, p_d
 

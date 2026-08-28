@@ -10,13 +10,22 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Tuple, Optional
 
+UNIFORM_WEIGHTS = np.ones(17, dtype=np.float32)
+GROUP_BALANCED_WEIGHTS = np.array([
+    0.6, 0.6, 0.6, 0.6, 0.6,   # Dims 0..4: Provinces
+    0.5, 0.5, 0.5, 0.5, 0.5,   # Dims 5..9: Mountain Affinities
+    3.5, 3.5,                  # Dims 10..11: Difficulty & Stamina (Heavy Weight)
+    0.9, 0.9, 0.9, 0.9, 0.9    # Dims 12..16: Tourism Facilities
+], dtype=np.float32)
+
+
 class DistanceStrategy(ABC):
     """
     @class DistanceStrategy
     @description Abstract base class for distance calculation strategies.
     """
     @abstractmethod
-    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         """
         @function calculate_distance
         @description Calculates scalar distance between two 1D vectors vec_a and vec_b.
@@ -25,7 +34,7 @@ class DistanceStrategy(ABC):
         pass
 
     @abstractmethod
-    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
         @function calculate_matrix
         @description Calculates pairwise distance matrix between rows of matrix_a and matrix_b.
@@ -36,9 +45,9 @@ class DistanceStrategy(ABC):
 class GowerDistanceStrategy(DistanceStrategy):
     """
     @class GowerDistanceStrategy
-    @description Calculates Gower's Distance GD = 1 - (1/p) * sum(S_ij).
+    @description Calculates Gower's Distance GD = 1 - sum(w_i * S_ij) / sum(w_i).
     """
-    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         vec_a = np.asarray(vec_a, dtype=np.float32)
         vec_b = np.asarray(vec_b, dtype=np.float32)
         p = len(vec_a)
@@ -46,11 +55,17 @@ class GowerDistanceStrategy(DistanceStrategy):
             return 1.0
         
         sim_scores = 1.0 - np.abs(vec_a - vec_b)
-        avg_sim = float(np.mean(sim_scores))
+        if weights is not None:
+            w = np.asarray(weights, dtype=np.float32)[:p]
+            w_sum = np.sum(w)
+            avg_sim = float(np.sum(w * sim_scores) / (w_sum if w_sum > 0 else 1.0))
+        else:
+            avg_sim = float(np.mean(sim_scores))
+        
         gower_dist = 1.0 - avg_sim
         return float(np.clip(gower_dist, 0.0, 1.0))
 
-    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         n_a = len(matrix_a)
         if matrix_b is None or is_symmetric:
             matrix_b = matrix_a
@@ -92,20 +107,26 @@ class GowerDistanceStrategy(DistanceStrategy):
 class EuclideanDistanceStrategy(DistanceStrategy):
     """
     @class EuclideanDistanceStrategy
-    @description Calculates normalized Euclidean Distance ED = sqrt(sum((a_i - b_i)^2)) / sqrt(p).
+    @description Calculates normalized weighted Euclidean Distance ED = sqrt(sum(w_i * (a_i - b_i)^2)) / sqrt(sum(w_i)).
     """
-    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         vec_a = np.asarray(vec_a, dtype=np.float32)
         vec_b = np.asarray(vec_b, dtype=np.float32)
         p = len(vec_a)
         if p == 0:
             return 1.0
         
-        diff_sq = np.sum((vec_a - vec_b) ** 2)
-        ed = np.sqrt(diff_sq) / np.sqrt(p)
+        diff_sq = (vec_a - vec_b) ** 2
+        if weights is not None:
+            w = np.asarray(weights, dtype=np.float32)[:p]
+            w_sum = np.sum(w)
+            denom = np.sqrt(w_sum) if w_sum > 0 else 1.0
+            ed = np.sqrt(np.sum(w * diff_sq)) / denom
+        else:
+            ed = np.sqrt(np.sum(diff_sq)) / np.sqrt(p)
         return float(np.clip(ed, 0.0, 1.0))
 
-    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         n_a = len(matrix_a)
         if matrix_b is None or is_symmetric:
             matrix_b = matrix_a
@@ -124,7 +145,7 @@ class EuclideanDistanceStrategy(DistanceStrategy):
                         dist_matrix[i, j] = 0.0
                         skipped_count += 1
                         continue
-                    d = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    d = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     dist_matrix[i, j] = d
                     dist_matrix[j, i] = d
                     computed_count += 1
@@ -132,7 +153,7 @@ class EuclideanDistanceStrategy(DistanceStrategy):
         else:
             for i in range(n_a):
                 for j in range(n_b):
-                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     computed_count += 1
 
         stats = {
@@ -147,23 +168,38 @@ class EuclideanDistanceStrategy(DistanceStrategy):
 class CosineDistanceStrategy(DistanceStrategy):
     """
     @class CosineDistanceStrategy
-    @description Calculates Cosine Distance CD = 1 - (sum(a_i * b_i) / (norm(a) * norm(b))).
+    @description Calculates weighted Cosine Distance CD = 1 - (sum(w_i * a_i * b_i) / (norm_w(a) * norm_w(b))).
     """
-    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         vec_a = np.asarray(vec_a, dtype=np.float32)
         vec_b = np.asarray(vec_b, dtype=np.float32)
-        norm_a = np.linalg.norm(vec_a)
-        norm_b = np.linalg.norm(vec_b)
-        
-        if norm_a == 0 or norm_b == 0:
+        p = len(vec_a)
+        if p == 0:
             return 1.0
-        
-        dot_product = np.dot(vec_a, vec_b)
-        cosine_sim = dot_product / (norm_a * norm_b)
+
+        if weights is not None:
+            w = np.asarray(weights, dtype=np.float32)[:p]
+            sqrt_w = np.sqrt(np.maximum(w, 0.0))
+            wa = vec_a * sqrt_w
+            wb = vec_b * sqrt_w
+            norm_a = np.linalg.norm(wa)
+            norm_b = np.linalg.norm(wb)
+            if norm_a == 0 or norm_b == 0:
+                return 1.0
+            dot_product = np.dot(wa, wb)
+            cosine_sim = dot_product / (norm_a * norm_b)
+        else:
+            norm_a = np.linalg.norm(vec_a)
+            norm_b = np.linalg.norm(vec_b)
+            if norm_a == 0 or norm_b == 0:
+                return 1.0
+            dot_product = np.dot(vec_a, vec_b)
+            cosine_sim = dot_product / (norm_a * norm_b)
+
         cosine_dist = 1.0 - float(cosine_sim)
         return float(np.clip(cosine_dist, 0.0, 1.0))
 
-    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         n_a = len(matrix_a)
         if matrix_b is None or is_symmetric:
             matrix_b = matrix_a
@@ -182,7 +218,7 @@ class CosineDistanceStrategy(DistanceStrategy):
                         dist_matrix[i, j] = 0.0
                         skipped_count += 1
                         continue
-                    d = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    d = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     dist_matrix[i, j] = d
                     dist_matrix[j, i] = d
                     computed_count += 1
@@ -190,7 +226,7 @@ class CosineDistanceStrategy(DistanceStrategy):
         else:
             for i in range(n_a):
                 for j in range(n_b):
-                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     computed_count += 1
 
         stats = {
@@ -221,17 +257,17 @@ class EnsembleDistanceStrategy(DistanceStrategy):
         self.ed_engine = EuclideanDistanceStrategy()
         self.cd_engine = CosineDistanceStrategy()
 
-    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    def calculate_distance(self, vec_a: np.ndarray, vec_b: np.ndarray, weights: Optional[np.ndarray] = None) -> float:
         dist = 0.0
         if self.w_gd > 0:
-            dist += self.w_gd * self.gd_engine.calculate_distance(vec_a, vec_b)
+            dist += self.w_gd * self.gd_engine.calculate_distance(vec_a, vec_b, weights=weights)
         if self.w_ed > 0:
-            dist += self.w_ed * self.ed_engine.calculate_distance(vec_a, vec_b)
+            dist += self.w_ed * self.ed_engine.calculate_distance(vec_a, vec_b, weights=weights)
         if self.w_cd > 0:
-            dist += self.w_cd * self.cd_engine.calculate_distance(vec_a, vec_b)
+            dist += self.w_cd * self.cd_engine.calculate_distance(vec_a, vec_b, weights=weights)
         return float(np.clip(dist, 0.0, 1.0))
 
-    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False) -> Tuple[np.ndarray, Dict[str, Any]]:
+    def calculate_matrix(self, matrix_a: np.ndarray, matrix_b: Optional[np.ndarray] = None, is_symmetric: bool = False, weights: Optional[np.ndarray] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         n_a = len(matrix_a)
         if matrix_b is None or is_symmetric:
             matrix_b = matrix_a
@@ -250,7 +286,7 @@ class EnsembleDistanceStrategy(DistanceStrategy):
                         dist_matrix[i, j] = 0.0
                         skipped_count += 1
                         continue
-                    d = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    d = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     dist_matrix[i, j] = d
                     dist_matrix[j, i] = d
                     computed_count += 1
@@ -258,7 +294,7 @@ class EnsembleDistanceStrategy(DistanceStrategy):
         else:
             for i in range(n_a):
                 for j in range(n_b):
-                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j])
+                    dist_matrix[i, j] = self.calculate_distance(matrix_a[i], matrix_b[j], weights=weights)
                     computed_count += 1
 
         stats = {
