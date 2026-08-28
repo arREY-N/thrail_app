@@ -28,7 +28,7 @@ export const useCommunity = (reviews: Review[]) => {
             const query = searchQuery.toLowerCase().trim();
             
             filtered = filtered.filter(r => {
-                const reviewText = String(r.review || r.content || '').toLowerCase();
+                const reviewText = String(r.review || '').toLowerCase();
                 const userText = String(r.user?.username || r.user?.firstname || '').toLowerCase();
                 const mountainText = String(r.trail?.name || '').toLowerCase();
                 const locationText = String(r.trail?.location || '').toLowerCase();
