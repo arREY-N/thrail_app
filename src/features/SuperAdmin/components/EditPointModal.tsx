@@ -26,7 +26,7 @@ import CustomTextInput from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IOfflinePoint } from '@/src/core/models/Trail/interfaces/Trail.types';
+import { IOfflinePoint } from '@/src/core/models/Trail/Trail';
 import { PIN_TYPES, PinType } from '@/src/features/Map/map.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
