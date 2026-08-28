@@ -5,10 +5,10 @@ import useAdminNavigation from "@/src/core/hook/navigation/useAdminNavigation";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import OfferListScreen from "@/src/features/Admin/screens/Offer/OfferListScreen";
 
-export default function adminOfferList() {
+export default function AdminOfferList() {
     const { businessId: rawId } = useLocalSearchParams();
     const id = getSearchParam(rawId);
 
@@ -18,7 +18,7 @@ export default function adminOfferList() {
         onWriteOffer,
     } = useAdminNavigation({ businessId: id });
 
-    const { 
+    const {
         isLoading,
         error,
         businessOffers,
@@ -30,12 +30,12 @@ export default function adminOfferList() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            
-            <OfferListScreen 
+
+            <OfferListScreen
                 offers={businessOffers}
                 bookingByOffer={bookingByOffer}
                 isLoading={isLoading}
-                onAddOffer={onWriteOffer} 
+                onAddOffer={onWriteOffer}
                 onEditOffer={onWriteOffer}
                 onViewOfferBookings={onViewOfferBookings}
                 onBackPress={onBackPress}

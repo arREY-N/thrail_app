@@ -7,7 +7,7 @@ import { Colors } from '@/src/constants/colors';
 
 import PostCard from '@/src/components/PostCard';
 
-import { IReview } from '@/src/core/models/Review/Review.types';
+import { IReview } from '@/src/core/models/Review/interfaces/Review.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export interface TrailReviewsTabProps {
@@ -30,7 +30,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
     const renderPostCard = useCallback(({ item }: ListRenderItemInfo<IReview>) => (
-        <PostCard 
+        <PostCard
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
@@ -49,7 +49,7 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
                     { maxWidth: contentMaxWidth as any, alignSelf: 'center', width: '100%' }
                 ]}
                 showsVerticalScrollIndicator={false}
-                scrollEnabled={false} 
+                scrollEnabled={false}
                 nestedScrollEnabled={true}
 
                 renderItem={renderPostCard}

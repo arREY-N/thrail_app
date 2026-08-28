@@ -8,8 +8,8 @@ import { Keyboard, Platform } from 'react-native';
 
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { IMessage } from '@/src/core/models/Message/Message.types';
-import { IUser } from '@/src/core/models/User/User.types';
+import { IMessage } from '@/src/core/models/Message/Message';
+import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { CustomMessage } from '@/src/features/Community/screens/Group/RoomScreen';
 
@@ -94,7 +94,7 @@ export const useRoomScreen = ({
 
     useEffect(() => {
         if (!messages || !currentUser) return;
-        const unreadMessages = messages.filter(m => 
+        const unreadMessages = messages.filter(m =>
             m.senderId !== currentUser.id && !(m.readBy || []).some(u => u.id === currentUser.id)
         );
         if (unreadMessages.length > 0) unreadMessages.forEach(rawMsg => markAsRead(rawMsg));
@@ -114,7 +114,7 @@ export const useRoomScreen = ({
 
             if (text && text.startsWith('[Attachment]:')) {
                 const url = text.replace('[Attachment]:', '').trim();
-                if (isImageUrl(url)) { image = url; text = ''; } 
+                if (isImageUrl(url)) { image = url; text = ''; }
                 else { isDocument = true; fileUrl = url; text = ''; }
             } else if (isImageUrl(text)) { image = text.trim(); text = ''; }
 
@@ -129,19 +129,19 @@ export const useRoomScreen = ({
                 image: image,
                 isDocument: isDocument,
                 fileUrl: fileUrl,
-                isEmergency: isEmergency 
+                isEmergency: isEmergency
             } as CustomMessage;
         }).sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
     }, [messages]);
 
     useEffect(() => {
         if (!formattedFirebaseMessages) return;
-        
+
         // Add a visual delay so the user gets clear feedback that more messages are being fetched
         const timer = setTimeout(() => {
             setIsLoadingEarlier(false);
         }, 600);
-        
+
         return () => clearTimeout(timer);
     }, [formattedFirebaseMessages]);
 
@@ -155,11 +155,11 @@ export const useRoomScreen = ({
             );
         });
         const combined = [...activePending, ...formattedFirebaseMessages];
-        
+
         if (hasReachedEnd && combined.length > 0) {
             if (!combined.some(m => m._id === 'system-beginning-of-chat')) {
-                const groupCreatedAt = currentGroup?.createdAt 
-                    ? safeParseDateString(currentGroup.createdAt) 
+                const groupCreatedAt = currentGroup?.createdAt
+                    ? safeParseDateString(currentGroup.createdAt)
                     : new Date(0);
 
                 combined.push({
@@ -171,7 +171,7 @@ export const useRoomScreen = ({
                 } as CustomMessage);
             }
         }
-        
+
         // Sort the entire array descending (newest first) after combining all messages
         return combined.sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
     }, [pendingMessages, formattedFirebaseMessages, hasReachedEnd, currentGroup]);
@@ -197,12 +197,12 @@ export const useRoomScreen = ({
         if (newMessages.length > 0) {
             const msgToSend = newMessages[0];
             const pendingId = `pending-${Date.now()}`;
-            
+
             const pendingMsg: CustomMessage = {
                 ...msgToSend,
                 _id: pendingId,
                 pending: true,
-                isError: false, 
+                isError: false,
             };
             setPendingMessages(prev => [pendingMsg, ...prev]);
 

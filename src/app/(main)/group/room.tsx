@@ -7,12 +7,11 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Keyboard, Text, View } from "react-native";
 
-import { useGroup } from "@/src/core/hook/group/useGroup";
-import useGroupRoom from "@/src/core/hook/group/useGroupRoom";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import useDevicePermissions from "@/src/core/hook/user/useDevicePermissions";
-import { useGroupStore } from "@/src/core/models/Group/Group";
+import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
+
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
@@ -22,7 +21,7 @@ import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
  * GroupRoom screen component container.
  * Subscribes to room message snapshots and initializes attachment actions.
  */
-export default function groupRoom() {
+export default function GroupRoom() {
     const { roomId: rawId } = useLocalSearchParams();
     const roomId = getSearchParam(rawId);
 
@@ -31,10 +30,10 @@ export default function groupRoom() {
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const { statuses: permissionStatuses, requestPermission: onRequestPermission } = useDevicePermissions();
 
-    const {  
-        currentGroup,
-    } = useGroup(roomId);
- 
+    const {
+        group: currentGroup,
+    } = useGroupItem(roomId);
+
     const {
         messages,
         sendMessage,
@@ -99,7 +98,7 @@ export default function groupRoom() {
      */
     const displayMessages = React.useMemo(() => {
         if (!currentGroup?.lastMessage || !currentGroup.lastMessage.id) return messages;
-        
+
         const hasLatest = messages.some(m => m.id === currentGroup.lastMessage!.id);
         if (!hasLatest) {
             return [currentGroup.lastMessage as any, ...messages];
@@ -107,7 +106,7 @@ export default function groupRoom() {
         return messages;
     }, [messages, currentGroup?.lastMessage]);
 
-    if(!currentGroup) {
+    if (!currentGroup) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <Text>No group found</Text>
@@ -117,7 +116,7 @@ export default function groupRoom() {
 
     const headerTitle = formatGroupName(currentGroup, profile);
 
-    return(
+    return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
@@ -127,8 +126,8 @@ export default function groupRoom() {
                 sendMessage={sendMessage}
                 currentUser={profile}
                 markAsRead={markAsRead}
-                headerTitle={headerTitle}   
-                onBackPress={onBackPress}         
+                headerTitle={headerTitle}
+                onBackPress={onBackPress}
                 onAttachPhotoPress={handleAttachPhotoPress}
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}

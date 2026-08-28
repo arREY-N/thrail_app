@@ -1,6 +1,6 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
-import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
+import { useOfferStore } from "@/src/core/models/Offer/Offer";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -8,7 +8,7 @@ export default function useAdminOffer() {
     const { businessId } = useAuthHook();
 
     const loadBusinessOffers = useOfferStore(s => s.fetchOfferByBusiness);
-    const businessOffers = useOfferStore(s => s.businessOffers); 
+    const businessOffers = useOfferStore(s => s.businessOffers);
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
@@ -35,7 +35,7 @@ export default function useAdminOffer() {
             const status = (offer.status || '').toLowerCase();
             const offerDate = new Date(offer.date || offer.hikeDate || 0);
             offerDate.setHours(0, 0, 0, 0);
-            
+
             const isUpcomingOrToday = offerDate >= today;
             return isUpcomingOrToday && status !== 'cancelled' && status !== 'rescheduled';
         }).map(o => o.id);
@@ -66,7 +66,7 @@ export default function useAdminOffer() {
     return {
         isLoading: useOfferStore(s => s.isLoading),
         error: useOfferStore(s => s.error) || localError,
-        businessOffers, 
+        businessOffers,
         onViewOfferBookings
     }
 }

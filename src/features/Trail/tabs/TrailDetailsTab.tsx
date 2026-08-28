@@ -8,7 +8,7 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
-import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail.types';
+import { ITrail, ITrailStats } from '@/src/core/models/Trail/interfaces/Trail.types';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { ROUTE_GLOSSARY, getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
@@ -42,15 +42,15 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const guidelines = getArray<string>(trail?.general?.guidelines, []);
     const tips = getArray<string>(trail?.general?.safety_tips, []);
     const lguRules = getArray<string>(trail?.general?.lgu_rules, []);
-    const criticalInfo = trail?.general?.critical_info || null; 
-    
+    const criticalInfo = trail?.general?.critical_info || null;
+
     const slope = trail?.difficulty?.slope ? `${trail.difficulty.slope}%` : "--";
     const obstacles = trail?.difficulty?.obstacles ? `${trail.difficulty.obstacles}m` : "--";
     const qualityTags = getArray<string>(trail?.difficulty?.quality, []);
     const routeType = trail?.difficulty?.circularity || "Route Type";
 
     const hasDifficultyData = slope !== "--" || obstacles !== "--" || qualityTags.length > 0;
-    
+
     const tourismFeaturesActive = isFeatureEnabled(trail?.tourism?.shelter, (trail as LegacyTrail)?.shelter) ||
         isFeatureEnabled(trail?.tourism?.clean_water, (trail as LegacyTrail)?.clean_water) ||
         isFeatureEnabled(trail?.tourism?.resting, (trail as LegacyTrail)?.resting) ||
@@ -68,22 +68,22 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
     const rawClass = trail?.difficulty?.classification?.toLowerCase();
     const classification = rawClass === 'minor' ? 'Minor' : rawClass === 'major' ? 'Major' : '--';
-    
+
     const status = trail?.general?.active ? 'Open' : 'Closed';
     const statusIcon = getStatusIconInfo(status);
-    
+
     const description = trail?.general?.description || "No description available for this trail.";
     const CHARACTER_LIMIT = 200;
     const shouldTruncate = description.length > CHARACTER_LIMIT;
-    const displayedDescription = isDescriptionExpanded || !shouldTruncate 
-        ? description 
+    const displayedDescription = isDescriptionExpanded || !shouldTruncate
+        ? description
         : `${description.substring(0, CHARACTER_LIMIT).trim()}...`;
 
     const officialPlaceholder = require('@/src/assets/images/Mt.Tagapo.jpg');
     const routeMapImageSource = trail?.routeMapImage ? { uri: trail.routeMapImage } : officialPlaceholder;
 
     const handleStatPress = (id: string) => {
-        setActiveStat(prev => prev === id ? null : id); 
+        setActiveStat(prev => prev === id ? null : id);
     };
 
     const isRow1Active = ['distance', 'peak', 'gain'].includes(activeStat || "");
@@ -91,7 +91,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 
     return (
         <View style={styles.tabContent}>
-            
+
             {/* 1. Critical Info */}
             {criticalInfo && (
                 <View style={styles.criticalCard}>
@@ -177,7 +177,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 <View style={styles.qualityTagsRow}>
                                     {qualityTags.map((q, i) => (
                                         <View key={i} style={styles.qualityPill}>
-                                            <CustomIcon library="Feather" name="hash" size={12} color={Colors.PRIMARY} style={{marginRight: 4}} />
+                                            <CustomIcon library="Feather" name="hash" size={12} color={Colors.PRIMARY} style={{ marginRight: 4 }} />
                                             <CustomText style={styles.qualityPillText}>{q}</CustomText>
                                         </View>
                                     ))}
@@ -212,8 +212,8 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                 <SectionHeader iconLib="Feather" iconName="map" title="Trail Route Map" />
                 <View style={styles.mapCard}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.85} onPress={() => setIsMapPreviewVisible(true)}>
-                        <CustomImage 
-                            source={routeMapImageSource} 
+                        <CustomImage
+                            source={routeMapImageSource}
                             style={styles.mapImage}
                             resizeMode="cover"
                         />
@@ -226,7 +226,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 
                         <View style={styles.mapOverlay}>
                             <CustomText variant="caption" style={styles.mapOverlayText}>Tap to Expand</CustomText>
-                            <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.WHITE} style={{marginLeft: 6}} />
+                            <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.WHITE} style={{ marginLeft: 6 }} />
                         </View>
 
                         {showRouteInfo && (
@@ -269,9 +269,9 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                 </View>
             )}
 
-            <ImagePreviewModal 
-                visible={isMapPreviewVisible} 
-                imageUrl={routeMapImageSource as any} 
+            <ImagePreviewModal
+                visible={isMapPreviewVisible}
+                imageUrl={routeMapImageSource as any}
                 onClose={() => setIsMapPreviewVisible(false)}
             />
 

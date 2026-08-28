@@ -12,7 +12,6 @@ import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import { formatRouteType, getHeroImageSource, isUsingMapFallback } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
 
@@ -24,7 +23,6 @@ import { IconLibrary } from "@/src/types/ui.types";
  * @param onDownload - Callback fired when the download button is pressed.
  * @param onLikePress - Callback fired when the like button is pressed.
  * @param style - Custom style for the card container.
- * @param weatherBadge - Optional weather badge to overlay.
  * @param rating - Optional override for the rating.
  * @param offersCount - Number of active upcoming offers on this trail.
  */
@@ -34,7 +32,6 @@ interface MountainCardProps {
     onDownload?: () => void;
     onLikePress?: () => void;
     style?: StyleProp<ViewStyle>;
-    weatherBadge?: React.ReactNode | TrailWeatherBadge | null;
     rating?: number | string;
     offersCount?: number;
 }
@@ -121,7 +118,6 @@ const MountainCard: React.FC<MountainCardProps> = ({
     onDownload,
     onLikePress,
     style,
-    weatherBadge,
     rating,
     offersCount = 0,
 }) => {

@@ -1,8 +1,7 @@
 import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
-import { Recommendation } from "@/src/core/models/Recommendation/Recommendation";
-import { Trail } from "@/src/core/models/Trail/Trail";
-import { useRecommendationsStore } from "@/src/core/stores/recommendationsStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { Recommendation, useRecommendationsStore } from "@/src/core/models/Recommendation/Recommendation";
+import { Trail, useTrailsStore } from "@/src/core/models/Trail/Trail";
+
 import { useEffect } from "react";
 
 export interface IRecommendationDomain extends IBaseDomainHook {
@@ -16,7 +15,7 @@ export interface IRecommendationDomain extends IBaseDomainHook {
 
 export type UseRecommendationParams = {
     userId?: string,
-    recommendationId?: string, 
+    recommendationId?: string,
 }
 
 /**
@@ -27,7 +26,7 @@ export type UseRecommendationParams = {
  */
 export default function useRecommendation(params: UseRecommendationParams = {}): IRecommendationDomain {
     const { userId, recommendationId, } = params;
-    
+
     const loadRecommendation = useRecommendationsStore(s => s.load);
     const loadRecommendedTrails = useTrailsStore(s => s.setRecommendedTrail);
 
@@ -38,12 +37,12 @@ export default function useRecommendation(params: UseRecommendationParams = {}):
     const recommendedTrails = useTrailsStore(s => s.recommendedTrail);
 
     useEffect(() => {
-        if(userId) loadRecommendation(userId)
-    }, [userId])
+        if (userId) loadRecommendation(userId)
+    }, [userId, loadRecommendation])
 
     useEffect(() => {
-        if(recommendation) loadRecommendedTrails(recommendation.trails);
-    }, [recommendation])
+        if (recommendation) loadRecommendedTrails(recommendation.trails);
+    }, [recommendation, loadRecommendedTrails])
 
     return {
         recommendation,

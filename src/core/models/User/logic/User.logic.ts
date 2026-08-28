@@ -1,6 +1,8 @@
+// DEPRECATED / MARKED FOR DELETION
+// Replaced by src/core/models/User/utils/User.logic.ts
+
 import { IUserBooking } from "@/src/core/models/Booking/Booking";
-import { User } from "@/src/core/models/User/User";
-import { IUserSummary } from "@/src/core/models/User/User.types";
+import { IUserSummary, User } from "@/src/core/models/User/interfaces/User.types";
 
 export const UserLogic = {
     toSummary(user: User): IUserSummary {
@@ -10,7 +12,7 @@ export const UserLogic = {
             firstname: user.firstname,
             lastname: user.lastname,
             email: user.email,
-        }
+        };
     },
     toBookingSummary(user: User): IUserBooking<Date> {
         return {
@@ -21,6 +23,6 @@ export const UserLogic = {
             email: user.email,
             phoneNumber: user.phoneNumber,
             birthday: user.birthday,
-        }
-    }
-}
+        };
+    },
+};

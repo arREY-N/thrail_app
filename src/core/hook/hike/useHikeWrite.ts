@@ -1,13 +1,9 @@
 import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
 import { Booking, useBookingsStore } from "@/src/core/models/Booking/Booking";
 
-import { Hike } from "@/src/core/models/Hike/Hike";
+import { Hike, newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
-
-import { TrailLogic } from "@/src/core/models/Trail/logic/Trail.logic";
-
-import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { TrailLogic, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -47,31 +43,31 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
     const [localError, setLocalError] = useState<string | null>(null);
 
-    const error = useHikesStore(s => s.error);
+    const error = useHikeStore(s => s.error);
     const bookings = useBookingsStore(s => s.userBookings);
-    const isLoading = useHikesStore(s => s.isLoading);
+    const isLoading = useHikeStore(s => s.isLoading);
     const trails = useTrailsStore(s => s.data);
-    const hikes = useHikesStore(s => s.hikes);
+    const hikes = useHikeStore(s => s.hikes);
 
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const [fullOffer, setFullOffer] = useState<Offer | null>(null);
 
-    const currentHike = useHikesStore(s => s.currentHike);
-    const elapsedTime = useHikesStore(s => s.elapsedTime);
-    const timerStartTime = useHikesStore(s => s.timerStartTime);
-    const totalDistance = useHikesStore(s => s.totalDistance);
-    const totalElevationGain = useHikesStore(s => s.totalElevationGain);
-    const active = useHikesStore(s => s.active);
-    const shareLocationEnabled = useHikesStore(s => s.shareLocationEnabled);
+    const currentHike = useHikeStore(s => s.currentHike);
+    const elapsedTime = useHikeStore(s => s.elapsedTime);
+    const timerStartTime = useHikeStore(s => s.timerStartTime);
+    const totalDistance = useHikeStore(s => s.totalDistance);
+    const totalElevationGain = useHikeStore(s => s.totalElevationGain);
+    const active = useHikeStore(s => s.active);
+    const shareLocationEnabled = useHikeStore(s => s.shareLocationEnabled);
 
-    const shareLocation = useHikesStore(s => s.startShareLocation);
-    const stopSharingLocation = useHikesStore(s => s.stopShareLocation);
-    const setShareLocationEnabled = useHikesStore(s => s.setShareLocationEnabled);
+    const shareLocation = useHikeStore(s => s.startShareLocation);
+    const stopSharingLocation = useHikeStore(s => s.stopShareLocation);
+    const setShareLocationEnabled = useHikeStore(s => s.setShareLocationEnabled);
 
-    const updateCurrentHike = useHikesStore(s => s.updateCurrentHike);
-    const updateHikeStore = useHikesStore(s => s.updateHikeStore);
-    const create = useHikesStore(s => s.create);
-    const startHike = useHikesStore(s => s.startHike);
+    const updateCurrentHike = useHikeStore(s => s.updateCurrentHike);
+    const updateHikeStore = useHikeStore(s => s.updateHikeStore);
+    const create = useHikeStore(s => s.create);
+    const startHike = useHikeStore(s => s.startHike);
 
     const createBooking = useBookingsStore(s => s.create);
 
@@ -117,7 +113,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
         // ✅ FIX 1: Safely handle the "new_diy_session" so the app doesn't hang
         if (hikeId === 'new_diy_session') {
             console.log('starting new DIY hike session');
-            found = new Hike({
+            found = newHike({
                 trail: {
                     id: "diy",
                     name: "Free Roam (DIY)",
@@ -152,7 +148,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
             const trail = trails.find(t => t.id === trailId);
             if (trail) {
                 const isBooked = !!bookingId;
-                found = new Hike({
+                found = newHike({
                     trail: TrailLogic.toSummary(trail),
                     status: 'unhiked',
                     mode: isBooked ? 'booked' : 'direct',
@@ -181,7 +177,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
                 timerStartTime: 0,
                 totalDistance: 0,
                 totalElevationGain: 0,
-                currentHike: new Hike()
+                currentHike: newHike()
             });
             setLocalError("Hiking details not found. Proceed with caution!");
         } else {
@@ -288,7 +284,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
 
         updateHikeStore({ active: false });
 
-        const completedHike = new Hike({
+        const completedHike = newHike({
             ...currentHike,
             status: 'completed',
             endTime: new Date(),
@@ -333,7 +329,7 @@ export default function useWriteHike(params: IUseWriteHikeParams = {}): IUseWrit
     }
 
     return {
-        hike: currentHike || new Hike(),
+        hike: currentHike || newHike(),
         error: error || localError,
         isLoading,
         booking,

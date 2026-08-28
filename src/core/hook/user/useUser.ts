@@ -1,10 +1,10 @@
 import { IBaseDomainHook } from "@/src/core/interface/domainHookInterface";
 import { User } from "@/src/core/models/User/User";
-import { Role } from "@/src/core/models/User/User.types";
+import { Role } from "@/src/core/models/User/interfaces/User.types";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useEffect } from "react";
 
-export interface IUserDomain extends IBaseDomainHook{
+export interface IUserDomain extends IBaseDomainHook {
     /** Access all users available, for galleries */
     users: User[];
     /** Access single user */
@@ -14,7 +14,7 @@ export interface IUserDomain extends IBaseDomainHook{
 export type UserDomainParams = {
     /** Role of the logged in user, default is user*/
     role?: Role | null;
-    
+
     /** ID of specific user to view */
     id?: string;
 }
@@ -24,7 +24,7 @@ export type UserDomainParams = {
  * the id of user to be viewed
  * @returns {IUserDomain} Access to user objects 
 */
-export default function useUser(params: UserDomainParams = { role: 'user' }): IUserDomain{
+export default function useUser(params: UserDomainParams = { role: 'user' }): IUserDomain {
     const { role, id } = params;
 
     const loadAllUsers = useUsersStore(s => s.fetchAll);
@@ -35,7 +35,7 @@ export default function useUser(params: UserDomainParams = { role: 'user' }): IU
     const error = useUsersStore(s => s.error);
 
     useEffect(() => {
-        if(role === 'superadmin'){
+        if (role === 'superadmin') {
             loadAllUsers();
         }
     }, [role]);

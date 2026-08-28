@@ -1,6 +1,6 @@
 import { Admin } from "@/src/core/models/Admin/Admin";
+import { useBusinessesStore } from '@/src/core/models/Business/Business';
 import { User } from "@/src/core/models/User/User";
-import { useBusinessesStore } from "@/src/core/stores/businessesStore";
 import { useUsersStore } from "@/src/core/stores/usersStore";
 import { useEffect, useState } from "react";
 
@@ -21,7 +21,7 @@ export interface IUseAdminWrite {
     success: string;
 }
 
-export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWrite{
+export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWrite {
     const { userId } = params;
 
     const loadUserByEmail = useUsersStore(s => s.loadUserByEmail);
@@ -29,7 +29,7 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
     const createBusinessAdmin = useBusinessesStore(s => s.createBusinessAdmin);
 
     const users = useUsersStore(s => s.data);
-    const searchedStore  = useUsersStore(s => s.searched);
+    const searchedStore = useUsersStore(s => s.searched);
     const businessAdmins = useBusinessesStore(s => s.businessAdmins);
 
     const businessAccount = useBusinessesStore(s => s.current);
@@ -42,13 +42,13 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
 
     useEffect(() => {
         console.log(userId, businessAccount?.owner.id);
-        if(userId && businessAccount?.owner.id === userId){
+        if (userId && businessAccount?.owner.id === userId) {
             setIsOwner(true);
         } else {
             setIsOwner(false);
         }
     }, [userId, businessAccount?.owner.id])
-    
+
     useEffect(() => {
         setSearched(searchedStore);
     }, [searchedStore])
@@ -57,17 +57,17 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
         setLocalError('');
         setSuccess('');
         const cached = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
-        if(cached) {
+        if (cached) {
             setSearched([cached]);
         } else {
             const response = await loadUserByEmail(email);
 
-            setSearched( response.length > 0 ? response : []);
+            setSearched(response.length > 0 ? response : []);
         }
     }
 
     const onReloadPress = async () => {
-        if(businessAccount)
+        if (businessAccount)
             await reloadBusinessAdmins(businessAccount.id);
     }
 
@@ -75,10 +75,10 @@ export default function useAdminWrite(params: UseAdminWriteParams): IUseAdminWri
         setLocalError('');
         setSuccess('');
         try {
-            if(!businessAccount) throw new Error('Business account must be logged in to make new admins');
-            
-            await createBusinessAdmin({user, businessId: businessAccount.id})
-            
+            if (!businessAccount) throw new Error('Business account must be logged in to make new admins');
+
+            await createBusinessAdmin({ user, businessId: businessAccount.id })
+
             setSuccess(`Successfully promoted ${user.firstname || user.username} to Admin!`);
             setSearched([]);
         } catch (error) {

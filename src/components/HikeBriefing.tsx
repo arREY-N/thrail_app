@@ -1,7 +1,6 @@
 import { GlobalStyles } from "@/src/constants/globalStyles";
-import { ITrailStats } from "@/src/core/models/Trail/Trail.types";
+import { ITrailStats } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
 import {
     ActivityIndicator,
     StyleSheet,

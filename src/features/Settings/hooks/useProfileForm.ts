@@ -4,8 +4,9 @@
  */
 
 import { useState } from 'react';
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User.types";
+
 import { useEmergencyContact } from "@/src/core/hook/user/useEmergencyContact";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
 import { safeParseDateString } from "@/src/utils/dateFormatter";
 
 export interface UseProfileFormParams {
@@ -65,7 +66,7 @@ export function useProfileForm({
         }
     }
 
-    const isDirty = 
+    const isDirty =
         username !== (user.username || '') ||
         phoneNumber !== (user.phoneNumber || '') ||
         (birthday?.getTime() !== (user.birthday ? safeParseDateString(user.birthday).getTime() : undefined)) ||

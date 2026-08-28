@@ -1,7 +1,7 @@
+import { IBookingBase, IPayment } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { User } from "@/src/core/models/User/User";
-import { IBookingBase, IPayment } from "../interfaces/IBooking";
 
 export const BookingLogic = {
     toPay(draft: IBookingBase<Date>, payment: IPayment<Date>) {

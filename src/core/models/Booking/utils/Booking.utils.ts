@@ -1,4 +1,4 @@
-import { Booking } from "@/src/core/models/Booking/interfaces/IBooking";
+import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { Cancellation } from "@/src/core/models/Cancellation/Cancellation";
 
 export const updateBookingOnCancellation = (

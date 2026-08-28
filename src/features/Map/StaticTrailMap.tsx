@@ -23,7 +23,7 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { IOfflinePoint } from '@/src/core/models/Trail/Trail.types';
+import { IOfflinePoint } from '@/src/core/models/Trail/interfaces/Trail.types';
 import EditPointModal from '@/src/features/SuperAdmin/components/EditPointModal';
 import PointDetailsModal from '@/src/features/SuperAdmin/components/PointDetailsModal';
 import { PIN_TYPES, PinType } from './map.types';

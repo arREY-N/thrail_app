@@ -10,7 +10,7 @@ import CustomFilterTabs from '@/src/components/CustomFilterTabs';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
-import { IApplication } from '@/src/core/models/Application/Application.types';
+import { IApplication } from '@/src/core/models/Application/Application';
 import { formatDate } from '@/src/core/utility/date';
 import MetricCard from '@/src/features/SuperAdmin/components/MetricCard';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';

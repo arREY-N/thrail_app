@@ -5,7 +5,7 @@ import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-nat
 import { Booking, BookingStatus, newBooking, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -71,22 +71,22 @@ export interface BookingDetailsScreenProps {
  * 
  * @param {BookingDetailsScreenProps} props - Component props
  */
-const BookingDetailsScreen = ({ 
-    booking, 
+const BookingDetailsScreen = ({
+    booking,
     getBookOffer,
-    onBackPress, 
-    onProceedToPayment, 
-    onReschedule, 
+    onBackPress,
+    onProceedToPayment,
+    onReschedule,
     onViewReceipt,
     onCancelConfirm,
     onRefundConfirm,
     onUpdatePress,
-    availableFutureOffers = [] 
+    availableFutureOffers = []
 }: BookingDetailsScreenProps) => {
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
-    const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null); 
+    const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
-    
+
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState<boolean>(true);
     
@@ -144,18 +144,18 @@ const BookingDetailsScreen = ({
         return sum;
     }, 0) || 0;
     const remainingBalance = totalAmount - amountPaid;
-    
+
     const user = booking?.user;
     const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
 
     const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(displayStatus as string);
     const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus as string);
-    
+
     const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus as string);
     const canRefund = isConfirmed;
     const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus as string);
-    
+
     const showMenuIcon = !isCancelled && (canCancel || canRefund || canReschedule);
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
 
@@ -184,62 +184,62 @@ const BookingDetailsScreen = ({
     const getFooterConfig = () => {
         if (canReschedule) {
             return {
-                primaryButton: { 
-                    title: "Reschedule", 
-                    variant: "primary" as const, 
+                primaryButton: {
+                    title: "Reschedule",
+                    variant: "primary" as const,
                     style: { borderRadius: 12 },
-                    onPress: () => setShowRescheduleModal(true) 
+                    onPress: () => setShowRescheduleModal(true)
                 }
             };
         }
 
         if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
             return {
-                primaryButton: { 
-                    title: "Complete Payment", 
-                    variant: "primary" as const, 
-                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
-                    onPress: () => onProceedToPayment(booking) 
+                primaryButton: {
+                    title: "Complete Payment",
+                    variant: "primary" as const,
+                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
+                    onPress: () => onProceedToPayment(booking)
                 }
             };
         }
 
         if (displayStatus === 'downpayment') {
             return {
-                secondaryButton: { 
-                    title: "View Receipt", 
-                    variant: "outline" as const, 
+                secondaryButton: {
+                    title: "View Receipt",
+                    variant: "outline" as const,
                     style: { borderColor: Colors.PRIMARY, borderRadius: 12 },
                     textStyle: { color: Colors.PRIMARY },
-                    onPress: () => onViewReceipt(booking) 
+                    onPress: () => onViewReceipt(booking)
                 },
-                primaryButton: { 
-                    title: "Pay Balance", 
-                    variant: "primary" as const, 
-                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY }, 
-                    onPress: () => onProceedToPayment(booking) 
+                primaryButton: {
+                    title: "Pay Balance",
+                    variant: "primary" as const,
+                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
+                    onPress: () => onProceedToPayment(booking)
                 }
             };
         }
 
         if (isConfirmed || (isCancelled && hasHistoricalPayments)) {
             return {
-                primaryButton: { 
-                    title: "View Receipt", 
-                    variant: "primary" as const, 
+                primaryButton: {
+                    title: "View Receipt",
+                    variant: "primary" as const,
                     style: { borderRadius: 12 },
-                    onPress: () => onViewReceipt(booking) 
+                    onPress: () => onViewReceipt(booking)
                 }
             };
         }
 
-        return null; 
+        return null;
     };
 
     const renderDocumentRow = (docObj: any, idx: number) => {
         const docName = docObj.name || Object.keys(docObj)[0] || 'Document';
         const rawValid = docObj.valid !== undefined ? docObj.valid : Object.values(docObj)[0];
-        
+
         let validState = 'pending';
         if (rawValid === 'approved' || rawValid === true) validState = 'approved';
         if (rawValid === 'rejected' || rawValid === false) validState = 'rejected';
@@ -250,7 +250,7 @@ const BookingDetailsScreen = ({
         if (isRejected && !isCancelled) {
             return (
                 <View key={idx} style={styles.uploadCardWrapper}>
-                    <DocumentUploadCard 
+                    <DocumentUploadCard
                         docName={docName}
                         docKey={getStrictDocKey(docName)}
                         isUploaded={docObj.file}
@@ -262,12 +262,12 @@ const BookingDetailsScreen = ({
                                 valid: 'pending'
                             };
                             setLocalDocs(updatedDocs);
-                            setLocalStatus('pending-docs'); 
-                            
+                            setLocalStatus('pending-docs');
+
                             try {
                                 const updatedBookingData = newBooking({
                                     ...booking,
-                                    status: 'pending-docs', 
+                                    status: 'pending-docs',
                                     documents: updatedDocs
                                 } as unknown as Partial<Booking>);
                                 await updateBookingInStore(updatedBookingData, false);
@@ -309,9 +309,9 @@ const BookingDetailsScreen = ({
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
                 <CustomHeader title="Booking Details" centerTitle={true} onBackPress={onBackPress} />
-                <CustomLoading 
-                    visible={true} 
-                    message="Loading itinerary..." 
+                <CustomLoading
+                    visible={true}
+                    message="Loading itinerary..."
                 />
             </ScreenWrapper>
         );
@@ -319,10 +319,10 @@ const BookingDetailsScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Booking Details" 
-                centerTitle={true} 
-                onBackPress={onBackPress} 
+            <CustomHeader
+                title="Booking Details"
+                centerTitle={true}
+                onBackPress={onBackPress}
                 rightActions={
                     showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
@@ -332,13 +332,13 @@ const BookingDetailsScreen = ({
                 }
             />
 
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
+            <ScrollView
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
             >
                 <View style={styles.constrainer}>
-                    
+
                     <HeroHeader booking={enhancedBooking} />
 
                     <QuickInfoCard booking={enhancedBooking} />
@@ -357,14 +357,14 @@ const BookingDetailsScreen = ({
                     )}
 
                     {((Array.isArray(localDocs) && localDocs.length > 0) || (localDocs && !Array.isArray(localDocs) && Object.keys(localDocs).length > 0)) && (
-                        <AccordionItem 
-                            title="Required Documents" 
+                        <AccordionItem
+                            title="Required Documents"
                             icon="file-text"
                             defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
                         >
-                            {Array.isArray(localDocs) 
+                            {Array.isArray(localDocs)
                                 ? localDocs.map((doc: unknown, idx: number) => renderDocumentRow(doc, idx))
-                                : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({name: key, valid: val}, idx))
+                                : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({ name: key, valid: val }, idx))
                             }
                         </AccordionItem>
                     )}
@@ -455,10 +455,10 @@ const BookingDetailsScreen = ({
 
                     <View style={styles.spacing} />
 
-                    <PaymentSummaryCard 
-                        totalAmount={totalAmount} 
-                        amountPaid={amountPaid} 
-                        remainingBalance={remainingBalance} 
+                    <PaymentSummaryCard
+                        totalAmount={totalAmount}
+                        amountPaid={amountPaid}
+                        remainingBalance={remainingBalance}
                         payments={booking?.payment || []}
                     />
 
@@ -467,14 +467,14 @@ const BookingDetailsScreen = ({
 
             {footerConfig && (
                 <View style={styles.floatingFooterContainer}>
-                    <CustomStickyFooter 
+                    <CustomStickyFooter
                         primaryButton={footerConfig.primaryButton}
                         secondaryButton={footerConfig.secondaryButton}
                     />
                 </View>
             )}
 
-            <ReasonModal 
+            <ReasonModal
                 visible={!!activeReasonModal}
                 actionType={activeReasonModal}
                 onClose={() => setActiveReasonModal(null)}
@@ -487,10 +487,10 @@ const BookingDetailsScreen = ({
                 }}
             />
 
-            <RescheduleModal 
-                visible={showRescheduleModal} 
-                onClose={() => setShowRescheduleModal(false)} 
-                availableFutureOffers={availableFutureOffers} 
+            <RescheduleModal
+                visible={showRescheduleModal}
+                onClose={() => setShowRescheduleModal(false)}
+                availableFutureOffers={availableFutureOffers}
                 onConfirm={(selectedOffer: any) => {
                     setShowRescheduleModal(false);
                     setTimeout(() => {
@@ -500,7 +500,7 @@ const BookingDetailsScreen = ({
                             onReschedule(booking, selectedOffer.originalData);
                         }
                     }, 300);
-                }} 
+                }}
             />
 
             <Modal transparent={true} visible={showActionMenu} animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
@@ -511,11 +511,11 @@ const BookingDetailsScreen = ({
                             <CustomText variant="h3" style={styles.actionSheetTitle}>Booking Options</CustomText>
 
                             {canReschedule && (
-                                <TouchableOpacity 
-                                    style={styles.actionItem} 
-                                    onPress={() => { 
-                                        setShowActionMenu(false); 
-                                        setTimeout(() => setShowRescheduleModal(true), 300); 
+                                <TouchableOpacity
+                                    style={styles.actionItem}
+                                    onPress={() => {
+                                        setShowActionMenu(false);
+                                        setTimeout(() => setShowRescheduleModal(true), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgPrimary}>
@@ -524,13 +524,13 @@ const BookingDetailsScreen = ({
                                     <CustomText style={styles.actionItemText}>Reschedule Booking</CustomText>
                                 </TouchableOpacity>
                             )}
-                            
+
                             {canCancel && (
-                                <TouchableOpacity 
-                                    style={styles.actionItem} 
-                                    onPress={() => { 
-                                        setShowActionMenu(false); 
-                                        setTimeout(() => setActiveReasonModal('cancel'), 300); 
+                                <TouchableOpacity
+                                    style={styles.actionItem}
+                                    onPress={() => {
+                                        setShowActionMenu(false);
+                                        setTimeout(() => setActiveReasonModal('cancel'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
@@ -541,11 +541,11 @@ const BookingDetailsScreen = ({
                             )}
 
                             {canRefund && (
-                                <TouchableOpacity 
-                                    style={styles.actionItem} 
-                                    onPress={() => { 
-                                        setShowActionMenu(false); 
-                                        setTimeout(() => setActiveReasonModal('refund'), 300); 
+                                <TouchableOpacity
+                                    style={styles.actionItem}
+                                    onPress={() => {
+                                        setShowActionMenu(false);
+                                        setTimeout(() => setActiveReasonModal('refund'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
@@ -568,212 +568,212 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH,
         alignSelf: 'center',
     },
-    scrollContent: { 
-        paddingBottom: 100 
+    scrollContent: {
+        paddingBottom: 100
     },
-    spacing: { 
-        height: 16 
+    spacing: {
+        height: 16
     },
-    spacingBottom: { 
-        marginBottom: 16 
+    spacingBottom: {
+        marginBottom: 16
     },
-    paddingHorizontal: { 
-        paddingHorizontal: 16 
+    paddingHorizontal: {
+        paddingHorizontal: 16
     },
-    headerOptionsBtn: { 
-        paddingHorizontal: 8 
+    headerOptionsBtn: {
+        paddingHorizontal: 8
     },
-    infoBanner: { 
-        flexDirection: 'row', 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        padding: 16, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        gap: 12 
+    infoBanner: {
+        flexDirection: 'row',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        gap: 12
     },
-    infoBannerText: { 
-        flex: 1, 
-        color: Colors.TEXT_SECONDARY, 
-        lineHeight: 20 
+    infoBannerText: {
+        flex: 1,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 20
     },
-    bulletRow: { 
-        flexDirection: 'row', 
-        alignItems: 'flex-start', 
-        marginBottom: 10, 
-        gap: 12 
+    bulletRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+        gap: 12
     },
-    tinyDot: { 
-        width: 6, 
-        height: 6, 
-        borderRadius: 3, 
-        backgroundColor: Colors.PRIMARY, 
-        marginTop: 8 
+    tinyDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.PRIMARY,
+        marginTop: 8
     },
-    bulletText: { 
-        flex: 1, 
-        lineHeight: 22 
+    bulletText: {
+        flex: 1,
+        lineHeight: 22
     },
-    documentRowContainer: { 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
-        paddingVertical: 12 
+    documentRowContainer: {
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        paddingVertical: 12
     },
-    uploadCardWrapper: { 
-        paddingVertical: 8, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT 
+    uploadCardWrapper: {
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT
     },
-    documentRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
+    documentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
-    docNameRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 10 
+    docNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10
     },
-    documentText: { 
-        color: Colors.TEXT_PRIMARY, 
-        fontWeight: '500' 
+    documentText: {
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: '500'
     },
-    statusGroup: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 12 
+    statusGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12
     },
-    documentStatusText: { 
-        fontWeight: 'bold', 
-        textTransform: 'uppercase', 
-        fontSize: 10, 
-        letterSpacing: 0.5 
+    documentStatusText: {
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        fontSize: 10,
+        letterSpacing: 0.5
     },
-    attendeeBlock: { 
-        marginVertical: 4 
+    attendeeBlock: {
+        marginVertical: 4
     },
-    attendeeLabel: { 
-        color: Colors.TEXT_SECONDARY, 
-        marginBottom: 4, 
-        textTransform: 'uppercase', 
-        fontSize: 11, 
-        letterSpacing: 0.5 
+    attendeeLabel: {
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        fontSize: 11,
+        letterSpacing: 0.5
     },
-    attendeeValue: { 
-        fontWeight: 'bold', 
-        color: Colors.TEXT_PRIMARY, 
-        fontSize: 16 
+    attendeeValue: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 16
     },
-    attendeeSubValue: { 
-        color: Colors.TEXT_SECONDARY, 
-        marginTop: 2 
+    attendeeSubValue: {
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2
     },
-    divider: { 
-        height: 1, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        marginVertical: 16 
+    divider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        marginVertical: 16
     },
-    timelineContainer: { 
-        borderLeftWidth: 1, 
-        borderLeftColor: Colors.GRAY_LIGHT, 
-        marginLeft: 8, 
-        paddingLeft: 16, 
-        marginTop: 8 
+    timelineContainer: {
+        borderLeftWidth: 1,
+        borderLeftColor: Colors.GRAY_LIGHT,
+        marginLeft: 8,
+        paddingLeft: 16,
+        marginTop: 8
     },
-    timelineDay: { 
-        marginBottom: 20 
+    timelineDay: {
+        marginBottom: 20
     },
-    dayLabelText: { 
-        fontWeight: 'bold', 
-        color: Colors.PRIMARY, 
-        marginBottom: 12 
+    dayLabelText: {
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+        marginBottom: 12
     },
-    timelineRow: { 
-        flexDirection: 'row', 
-        marginBottom: 16, 
-        position: 'relative' 
+    timelineRow: {
+        flexDirection: 'row',
+        marginBottom: 16,
+        position: 'relative'
     },
-    timelineDot: { 
-        position: 'absolute', 
-        left: -20.5, 
-        top: 6, 
-        width: 8, 
-        height: 8, 
-        borderRadius: 4, 
-        backgroundColor: Colors.PRIMARY 
+    timelineDot: {
+        position: 'absolute',
+        left: -20.5,
+        top: 6,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: Colors.PRIMARY
     },
-    timelineContent: { 
-        flex: 1 
+    timelineContent: {
+        flex: 1
     },
-    timelineTime: { 
-        fontWeight: 'bold', 
-        fontSize: 13, 
-        color: Colors.TEXT_PRIMARY 
+    timelineTime: {
+        fontWeight: 'bold',
+        fontSize: 13,
+        color: Colors.TEXT_PRIMARY
     },
-    timelineSubEvent: { 
-        lineHeight: 20, 
-        marginTop: 2 
+    timelineSubEvent: {
+        lineHeight: 20,
+        marginTop: 2
     },
-    floatingFooterContainer: { 
-        paddingBottom: 20, 
-        paddingHorizontal: 10, 
-        backgroundColor: 'transparent' 
+    floatingFooterContainer: {
+        paddingBottom: 20,
+        paddingHorizontal: 10,
+        backgroundColor: 'transparent'
     },
-    modalOverlay: { 
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
-        justifyContent: 'flex-end', 
-        alignItems: 'center' 
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+        alignItems: 'center'
     },
-    actionSheetWrapper: { 
-        width: '100%', 
-        maxWidth: 768 
+    actionSheetWrapper: {
+        width: '100%',
+        maxWidth: 768
     },
-    actionSheet: { 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
-        padding: 24, 
-        paddingBottom: 40 
+    actionSheet: {
+        backgroundColor: Colors.WHITE,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40
     },
-    actionSheetHandle: { 
-        width: 40, 
-        height: 4, 
-        backgroundColor: Colors.GRAY_LIGHT, 
-        borderRadius: 2, 
-        alignSelf: 'center', 
-        marginBottom: 16 
+    actionSheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: Colors.GRAY_LIGHT,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 16
     },
-    actionSheetTitle: { 
-        marginBottom: 20 
+    actionSheetTitle: {
+        marginBottom: 20
     },
-    actionItem: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        paddingVertical: 16, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
-        gap: 16 
+    actionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        gap: 16
     },
-    actionIconBgPrimary: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        backgroundColor: Colors.STATUS_APPROVED_BG, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    actionIconBgPrimary: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    actionIconBgError: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
-        backgroundColor: Colors.ERROR_BG, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    actionIconBgError: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.ERROR_BG,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    actionItemText: { 
-        fontSize: 16, 
-        fontWeight: '600' 
+    actionItemText: {
+        fontSize: 16,
+        fontWeight: '600'
     }
 });
 
