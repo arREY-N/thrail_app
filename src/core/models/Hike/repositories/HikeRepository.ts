@@ -3,7 +3,6 @@ import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { hikeConverter } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, locationConverter } from "@/src/core/models/Location/Location";
 import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, onSnapshot, setDoc, Timestamp, Unsubscribe } from "firebase/firestore";
-
 const createHikesCollection = (db: Firestore, userId: string) => {
     return collection(db, "users", userId, "hikes").withConverter(hikeConverter);
 };
@@ -91,9 +90,7 @@ export const HikeRepository = (db: Firestore) => ({
             const docId = lastTimestamp.getTime().toString();
             const coordRef = doc(collection(db, "users", userId, "hikes", hikeId, "coordinates"), docId);
 
-            const coordinatesData = coordinates.map(coord =>
-                typeof coord.toFirestore === "function" ? coord.toFirestore() : coord
-            );
+            const coordinatesData = coordinates.map(locationConverter.toFirestore);
 
             await setDoc(
                 coordRef,
