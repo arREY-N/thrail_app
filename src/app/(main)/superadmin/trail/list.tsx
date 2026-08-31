@@ -27,8 +27,8 @@ export default function ListTrail() {
 
     const {
         trails,
-        isLoading,
-        error
+        trailLoading,
+        trailError
     } = useTrailList();
 
     const {
@@ -37,13 +37,13 @@ export default function ListTrail() {
 
     const pendingCount = pendingApplication?.length || 0;
 
-    if (isLoading) return <LoadingScreen />;
+    if (trailLoading) return <LoadingScreen />;
 
     return (
         <TrailListScreen
             trails={trails}
-            isLoading={isLoading}
-            error={error}
+            isLoading={trailLoading}
+            error={trailError}
             pendingCount={pendingCount}
             onTabPress={onTabPress}
             onBackToSettings={isSuperadmin ? onBackToSettingsPress : onBackPress}

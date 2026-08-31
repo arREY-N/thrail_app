@@ -1,6 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { useAuthStore } from "@/src/core/models/User/User";
 import { Stack, useSegments } from "expo-router";
 
 export const unstable_settings = {

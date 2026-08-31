@@ -15,7 +15,7 @@ export interface IUseMountainWriteParams {
 
 export type IUseMountainWrite = IBaseWriteHook<Mountain>
 
-export function useMountainWrite(params: IUseMountainWriteParams): IUseMountainWrite {
+export function useMountainWrite(params: IUseMountainWriteParams) {
     const { mountainId } = params;
 
     const mountains = useMountainsStore(s => s.data);
@@ -34,7 +34,6 @@ export function useMountainWrite(params: IUseMountainWriteParams): IUseMountainW
     };
 
     const create = useMountainsStore(s => s.create);
-    const edit = useMountainsStore(s => s.edit);
     const remove = useMountainsStore(s => s.delete);
 
     const onSubmitPress = async () => {

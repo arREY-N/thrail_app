@@ -41,7 +41,7 @@ export default function ListBook() {
     const {
         isDeleting,
         error: deleteError,
-        cancelPendingBooking,
+        // cancelPendingBooking,
     } = useBookingDelete();
 
     const {

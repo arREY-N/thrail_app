@@ -1,5 +1,5 @@
 import { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 export function useOfferList() {
     const offers = useOfferStore(s => s.data);
@@ -15,10 +15,15 @@ export function useOfferList() {
         fetch();
     }, [])
 
+    const onRefreshOffers = useCallback(async () => {
+        await useOfferStore.getState().fetchAll();
+    }, []);
+
     return {
         offers,
         isFetching,
         error,
-        isLoading
+        isLoading,
+        onRefreshOffers
     };
 }

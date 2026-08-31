@@ -9,8 +9,7 @@ import React from 'react';
 import LoadingScreen from '@/src/app/loading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useMountainWrite } from '@/src/core/models/Mountain/Mountain';
-import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
-import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import getSearchParam from '@/src/core/utility/getSearchParam';
 import MountainWriteScreen from '@/src/features/SuperAdmin/screens/tabs/MountainWriteScreen';
 
