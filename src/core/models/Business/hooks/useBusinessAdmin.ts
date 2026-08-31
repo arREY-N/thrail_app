@@ -1,5 +1,6 @@
 import { useBookingAdminList } from "@/src/core/models/Booking/Booking";
 import { useBusinessAdminList } from "@/src/core/models/Business/hooks/useBusinessAdminList";
+import { useBusinessState } from "@/src/core/models/Business/hooks/useBusinessState";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
 import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
@@ -12,6 +13,8 @@ import { useCallback, useEffect, useMemo } from "react";
  */
 export function useBusinessAdmin() {
     const { profile, businessId, role } = useAuthHook();
+    const { isLoading } = useBusinessState();
+
     const businessAccount = useBusinessesStore(s => s.current);
 
     const { businessAdmins } = useBusinessAdminList();
@@ -42,6 +45,7 @@ export function useBusinessAdmin() {
         businessBookings,
         profile,
         role,
-        businessId
-    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId])
+        businessId,
+        isLoading
+    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isLoading])
 }

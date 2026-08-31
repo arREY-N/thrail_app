@@ -3,13 +3,13 @@ import { useTrailList } from "@/src/core/models/Trail/Trail";
 import { useMemo } from "react";
 
 export function useTrailOffers() {
-    const { trails, isLoading: trailIsLoading } = useTrailList();
+    const { trails, trailLoading } = useTrailList();
 
     const { offers, isLoading: offerIsLoading } = useOfferList();
 
-    const isLoading = useMemo(() => {
-        return trailIsLoading || offerIsLoading;
-    }, [trailIsLoading, offerIsLoading]);
+    const trailOfferIsLoading = useMemo(() => {
+        return trailLoading || offerIsLoading;
+    }, [trailLoading, offerIsLoading]);
 
     const trailsWithOffers = useMemo(() => {
         const now = new Date();
@@ -23,6 +23,6 @@ export function useTrailOffers() {
         trailsWithOffers,
         offers,
         trails,
-        isLoading,
+        trailOfferIsLoading,
     }
 }

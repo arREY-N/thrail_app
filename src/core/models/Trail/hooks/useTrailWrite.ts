@@ -112,11 +112,11 @@ export function useTrailWrite(params: TrailParams = {}): IUseTrailWrite {
 
             setTrail(prev => {
                 return section === 'root'
-                    ? new Trail({
+                    ? newTrail({
                         ...prev,
                         [id]: finalValue
                     })
-                    : new Trail({
+                    : newTrail({
                         ...prev,
                         [section]: { ...(prev[section] as object), [id]: finalValue }
                     })
@@ -144,8 +144,7 @@ export function useTrailWrite(params: TrailParams = {}): IUseTrailWrite {
 
     const onRemovePress = async (trailId: string) => {
         if (trailId) await remove(trailId);
-        // TODO fix routing location post-deletion
-        router.replace('../trail/list');
+        router.replace('/');
     }
 
     return {
