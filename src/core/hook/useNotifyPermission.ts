@@ -1,7 +1,5 @@
 import { requestNotificationPermission } from '@/src/core/models/Notification/Notification';
-import { useAuthHook } from '@/src/core/models/User/hooks/useAuthHook';
-import { NotificationToken } from '@/src/core/models/User/interfaces/User.types';
-import { useUserStore } from '@/src/core/models/User/stores/userStore';
+import { NotificationToken, useAuthHook, useUserStore } from '@/src/core/models/User/User';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
