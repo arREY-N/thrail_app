@@ -3,7 +3,7 @@ import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
 import { ReviewLogic } from "@/src/core/models/Review/utils/Review.logic";
 import { newReview } from "@/src/core/models/Review/utils/ReviewFactory";
-import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { newTrail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { produce } from "immer";
@@ -65,7 +65,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                 return newReview();
             }
 
-            const trail = trails.find(t => t.id === trailId);
+            const trail = trailId === 'diy' || trailId === 'diy_session' ? newTrail() : trails.find(t => t.id === trailId);
 
             if (!trail) {
                 setLocalError(`No trail found with id ${trailId}`);
@@ -127,6 +127,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
 
     const onUpdatePress = (payload: { section: string; id: string; value: unknown }) => {
         try {
+            const { section, id, value } = payload;
             setReview(prev =>
                 produce(prev, (draft) => {
                     if (section === 'root') {
