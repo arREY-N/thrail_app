@@ -3,8 +3,7 @@
  * @description Screen shown when the requested page or route cannot be found.
  */
 
-import { Stack, useRouter } from 'expo-router';
-import React from 'react';
+import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -15,33 +14,23 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { Layout } from '@/src/constants/layout';
 import { auth } from '@/src/core/config/Firebase';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 /**
  * Component representing the Not Found Screen.
  */
-export default function notFound() {
-    const router = useRouter();
-    const { isMobile } = useBreakpoints();
+export default function NotFound() {
     const isLoggedIn = !!auth.currentUser;
 
-    const handleBackAction = () => {
-        if (isLoggedIn) {
-            router.replace('/(tabs)' as any);
-        } else {
-            router.replace('/' as any);
-        }
-    };
-
+    const { onBackPress } = useAppNavigation();
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <Stack.Screen options={{ headerShown: false }} />
-            
-            <CustomHeader 
-                title="Page Not Found" 
-                onBackPress={handleBackAction}
+
+            <CustomHeader
+                title="Page Not Found"
+                onBackPress={onBackPress}
             />
 
             <ResponsiveScrollView
@@ -72,7 +61,7 @@ export default function notFound() {
                     <View style={styles.buttonContainer}>
                         <CustomButton
                             title={isLoggedIn ? "Go to Home" : "Back to Login"}
-                            onPress={handleBackAction}
+                            onPress={onBackPress}
                             variant="primary"
                         />
                     </View>

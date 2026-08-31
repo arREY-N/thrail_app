@@ -14,7 +14,7 @@ import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
-import { useHikeWrite } from "@/src/core/models/Hike/Hike";
+import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
@@ -31,7 +31,7 @@ export default function HikeView() {
     const { groups } = useGroupList(profile?.id || "");
 
     const {
-        hike,
+        currentHike,
         booking,
         fullOffer,
         error: hikeError,
@@ -49,9 +49,9 @@ export default function HikeView() {
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = useHikeWrite({ hikeId, trailId, bookingId, groupId });
+    } = CreateHikeFlow({ hikeId, trailId, bookingId, groupId });
 
-    const resolvedBookingId = bookingId || (hike?.mode === 'booked' ? hike.bookingId : undefined);
+    const resolvedBookingId = bookingId || (currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
 
     const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
         g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
@@ -65,7 +65,7 @@ export default function HikeView() {
         error: groupError,
     } = useGroupLocation(resolvedGroupId || '');
 
-    if (isLoading && !hike) {
+    if (isLoading && !currentHike) {
         return (
             <ScreenWrapper style={undefined}>
                 <CustomHeader title="Hike Tracker" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
@@ -76,7 +76,7 @@ export default function HikeView() {
         );
     }
 
-    if (hike && hike.status !== 'unhiked' && hike.trail.id !== 'diy' && ((hikeId && hike.id !== hikeId) || (trailId !== undefined && hike.trail.id !== trailId))) {
+    if (currentHike && currentHike.status !== 'unhiked' && currentHike.trail.id !== 'diy' && ((hikeId && currentHike.id !== hikeId) || (trailId !== undefined && currentHike.trail.id !== trailId))) {
         return (
             <ScreenWrapper style={undefined}>
                 <CustomHeader title="Active Session Found" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
@@ -86,7 +86,7 @@ export default function HikeView() {
                     </View>
                     <CustomText variant="h2" style={styles.mismatchTitle}>Hike in Progress</CustomText>
                     <CustomText style={styles.mismatchDesc}>
-                        You are currently tracking an active session at <CustomText style={{ fontWeight: 'bold' }}>{hike.trail?.name}</CustomText>.
+                        You are currently tracking an active session at <CustomText style={{ fontWeight: 'bold' }}>{currentHike.trail?.name}</CustomText>.
                         Please complete or reset your current hike before starting a new one.
                     </CustomText>
                     <CustomButton title="Return to Dashboard" onPress={onBackPress} style={{ marginTop: 32 }} textStyle={undefined} disabled={undefined} />
@@ -95,7 +95,7 @@ export default function HikeView() {
         );
     }
 
-    if (!hike) return null;
+    if (!currentHike) return null;
 
     return (
         <>
@@ -103,7 +103,7 @@ export default function HikeView() {
 
             <HikeRecordingScreen
                 fullOffer={fullOffer}
-                hike={hike}
+                hike={currentHike}
                 booking={booking || null}
                 currentGroup={currentGroup || null}
                 hikerLocations={(groupLocations as any) || []}
@@ -126,7 +126,7 @@ export default function HikeView() {
                 onResumeHike={onResumeHike}
                 onCompleteHike={onCompleteHike}
                 onResetHike={onResetHike}
-                onAddReview={() => hike && onAddReview(trailId || hike.trail.id)}
+                onAddReview={() => currentHike && onAddReview(trailId || currentHike.trail.id)}
                 onBackPress={onBackPress}
 
                 onTriggerBackendSOS={onEmergencyPress}

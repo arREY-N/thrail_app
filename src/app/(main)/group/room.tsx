@@ -9,7 +9,7 @@ import { Keyboard, Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
-import { useAuthHook, useDevicePermissions } from "@/src/core/models/User/User";
+import { useAuthHook } from "@/src/core/models/User/User";
 
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
@@ -27,7 +27,7 @@ export default function GroupRoom() {
     const { profile } = useAuthHook();
     const { onBackPress } = useAppNavigation();
     const [isUploading, setIsUploading] = useState<boolean>(false);
-    const { statuses: permissionStatuses, requestPermission: onRequestPermission } = useDevicePermissions();
+    // const { statuses: permissionStatuses, requestPermission: onRequestPermission } = useDevicePermissions();
 
     const {
         group: currentGroup,

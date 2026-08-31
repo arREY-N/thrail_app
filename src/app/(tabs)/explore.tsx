@@ -15,7 +15,7 @@ export default function Explore() {
 
     const {
         trails,
-        isLoading,
+        trailLoading,
     } = useTrailList();
 
     const {
@@ -51,7 +51,7 @@ export default function Explore() {
             trails={trails}
             onViewMountain={onViewTrail}
             onGroupPress={onGroupPress}
-            isLoading={isLoading}
+            isLoading={trailLoading}
             initialCategory={initialCategory}
             offers={offers}
         />

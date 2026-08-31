@@ -6,7 +6,7 @@
 import React from 'react';
 
 import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
-import { useAuthHook, useUser } from '@/src/core/models/User/User';
+import { useUser } from '@/src/core/models/User/User';
 import UserListScreen from '@/src/features/SuperAdmin/screens/tabs/UserListScreen';
 
 /**
@@ -15,7 +15,6 @@ import UserListScreen from '@/src/features/SuperAdmin/screens/tabs/UserListScree
  * @returns {React.ReactElement} The rendered UserListScreen presentation view.
  */
 export default function ListUsers() {
-    const { role } = useAuthHook();
     const {
         users,
         isLoading,

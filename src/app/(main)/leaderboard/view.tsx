@@ -30,7 +30,7 @@ export default function Leaderboard(): React.JSX.Element {
 
     useEffect(() => {
         getMonthLeaderboard(new Date());
-    }, []);
+    }, [getMonthLeaderboard]);
 
     const userRankings: RankedUsers<Date>[] = backendLeaderboard?.userRankings ?? [];
 

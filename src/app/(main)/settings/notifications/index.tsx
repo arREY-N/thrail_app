@@ -2,16 +2,15 @@
  * @file index.tsx
  * @description Controller for the notifications settings page.
  */
-import React from 'react';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import NotificationSettingsScreen from '@/src/features/Settings/screens/NotificationSettingsScreen';
 
 /**
  * NotificationsPage coordinates notification preference toggles.
  */
-export default function notifications() {
+export default function Notifications() {
     const { onBackPress } = useAppNavigation();
-    
+
     // TODO: [Backend] Retrieve initial notification preferences from user profile
     const masterPush = true;
     const weatherCyclone = true;
@@ -61,9 +60,9 @@ export default function notifications() {
         // TODO: [Backend] Handle updating mountain packages toggle state in Firestore
         console.log('Mountain packages setting changed:', value);
     };
-    
+
     return (
-        <NotificationSettingsScreen 
+        <NotificationSettingsScreen
             onBackPress={onBackPress}
             masterPush={masterPush}
             weatherCyclone={weatherCyclone}
