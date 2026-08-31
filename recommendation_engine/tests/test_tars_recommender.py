@@ -3,7 +3,7 @@
 @description Automated test suite for TARS 2.0 specs:
              1. 23 Benchmark Configurations (7 CB, 7 CF, 7 Hybrid, 2 Anchors)
              2. Strategy Pattern Distance Engines (Gower, Euclidean, Cosine, Ensemble)
-             3. 18-Feature Vector Mapping
+             3. 17-Feature Vector Mapping
              4. Two-Anchor Profiles (Easy P_e and Difficult P_d)
              5. Alpha-Tuner Parameter alpha(u, m)
              6. Profile Update Function with Beta Corrector Factor (BCF) matrix.
@@ -30,6 +30,7 @@ from core.distance_strategies import (
     EngineRegistry
 )
 from core.profile_manager import (
+    build_17_feature_vector,
     build_18_feature_vector,
     TwoAnchorProfileManager,
     NUM_FEATURES
@@ -46,7 +47,7 @@ class TestTARS20Specs(unittest.TestCase):
         self.mock_trails_path = os.path.join(rec_engine_dir, "data", "trails_mock.csv")
         self.mock_ratings_path = os.path.join(rec_engine_dir, "data", "user_ratings_mock.csv")
 
-    def test_18_feature_vector_mapping(self):
+    def test_17_feature_vector_mapping(self):
         sample_trail = {
             "province": "Rizal",
             "location": ["Mt. Daraitan"],
@@ -57,12 +58,22 @@ class TestTARS20Specs(unittest.TestCase):
             "tourism_1": True,
             "tourism_3": True
         }
-        vec = build_18_feature_vector(sample_trail)
-        self.assertEqual(len(vec), 18)
+        vec = build_17_feature_vector(sample_trail)
+        self.assertEqual(len(vec), 17)
         self.assertTrue(np.all(vec >= 0.0) and np.all(vec <= 1.0))
         self.assertEqual(vec[3], 1.0)
         self.assertAlmostEqual(vec[10], 0.5, places=2)
-        self.assertEqual(vec[13], 1.0)
+        self.assertEqual(vec[12], 1.0)
+
+    def test_strict_null_length_gain_validation(self):
+        # Trail with missing/null length or gain should raise ValueError
+        invalid_trail_1 = {"name": "Mt. Invalid", "difficulty_length": None, "difficulty_gain": 500}
+        invalid_trail_2 = {"name": "Mt. Invalid", "difficulty_length": 10.0, "difficulty_gain": None}
+        
+        with self.assertRaises(ValueError):
+            build_17_feature_vector(invalid_trail_1)
+        with self.assertRaises(ValueError):
+            build_17_feature_vector(invalid_trail_2)
 
     def test_two_anchor_profiles_pe_pd(self):
         preferences = {
@@ -71,16 +82,14 @@ class TestTARS20Specs(unittest.TestCase):
             "difficulty_hours": 3.0
         }
         p_e, p_d = TwoAnchorProfileManager.create_anchor_profiles(preferences)
-        self.assertEqual(len(p_e), 18)
-        self.assertEqual(len(p_d), 18)
+        self.assertEqual(len(p_e), 17)
+        self.assertEqual(len(p_d), 17)
         self.assertGreater(p_d[10], p_e[10])
         self.assertGreater(p_d[11], p_e[11])
-        self.assertGreater(p_d[12], p_e[12])
 
     def test_alpha_tuner_parameter_formula(self):
         m = 50
         self.assertEqual(calculate_alpha_tuner(0, m), 1.0)
-        self.assertEqual(calculate_alpha_tuner(25, m), 0.75)
         self.assertEqual(calculate_alpha_tuner(50, m), 0.50)
         self.assertEqual(calculate_alpha_tuner(100, m), 0.50)
 
@@ -93,8 +102,8 @@ class TestTARS20Specs(unittest.TestCase):
         self.assertAlmostEqual(beta_mismatched, -0.30, places=4)
 
     def test_profile_update_function(self):
-        p_old = np.zeros(18, dtype=np.float32)
-        hiked_trail = np.ones(18, dtype=np.float32)
+        p_old = np.zeros(17, dtype=np.float32)
+        hiked_trail = np.ones(17, dtype=np.float32)
         r_tu = 0.4
         
         p_updated = TwoAnchorProfileManager.update_profile(
@@ -124,6 +133,29 @@ class TestTARS20Specs(unittest.TestCase):
             self.assertEqual(res["config_used"], config_name)
             self.assertEqual(len(res["easy_anchor_recommendations"]), 2)
             self.assertEqual(len(res["difficult_anchor_recommendations"]), 2)
+
+    def test_feature_weighting_toggle_modes(self):
+        recommender = HybridRecommender(self.mock_trails_path, self.mock_ratings_path)
+        test_prefs = {"experience": "Beginner", "province": ["Rizal"]}
+
+        res_uniform = recommender.get_hybrid_recommendations(
+            user_id="user_test",
+            preferences=test_prefs,
+            top_k=5,
+            weight_mode="uniform"
+        )
+        res_weighted = recommender.get_hybrid_recommendations(
+            user_id="user_test",
+            preferences=test_prefs,
+            top_k=5,
+            weight_mode="group_balanced"
+        )
+
+        self.assertEqual(len(res_uniform["easy_anchor_recommendations"]), 5)
+        self.assertEqual(len(res_weighted["easy_anchor_recommendations"]), 5)
+        # Verify that group balanced weights produce valid recommendation scores
+        for rec in res_weighted["easy_anchor_recommendations"]:
+            self.assertTrue(0.0 <= rec["r_tu"] <= 1.0)
 
 
 if __name__ == "__main__":

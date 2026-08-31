@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { FALLBACK_COORDINATES } from '@/src/constants/constants';
 
@@ -14,15 +15,20 @@ export const useLocation = (props?: UseLocationProps) => {
     const [coords, setCoords] = useState<{latitude: number, longitude: number} | null>(
         propLatitude !== undefined && propLongitude !== undefined 
             ? { latitude: propLatitude, longitude: propLongitude } 
-            : null
+            : Platform.OS === 'web'
+                ? FALLBACK_COORDINATES
+                : null
     );
     const [resolvedName, setResolvedName] = useState<string | null>(propLocationName || null);
     const [geocodedName, setGeocodedName] = useState<string | null>(null);
-    const [isLocating, setIsLocating] = useState<boolean>(!propLatitude || !propLocationName);
+    const [isLocating, setIsLocating] = useState<boolean>(
+        Platform.OS === 'web' ? false : (!propLatitude || !propLocationName)
+    );
 
     // 1. Fetch coords if completely missing
     useEffect(() => {
         if (propLatitude !== undefined && propLongitude !== undefined) return;
+        if (Platform.OS === 'web') return;
 
         let isMounted = true;
         (async () => {
@@ -45,7 +51,7 @@ export const useLocation = (props?: UseLocationProps) => {
                         longitude: location.coords.longitude 
                     });
                 }
-            } catch (err) {
+            } catch {
                 if (isMounted) setCoords(FALLBACK_COORDINATES);
             }
         })();
@@ -55,6 +61,7 @@ export const useLocation = (props?: UseLocationProps) => {
 
     // 2. Reverse Geocode if we have coords
     useEffect(() => {
+        if (Platform.OS === 'web') return;
         const effLat = propLatitude !== undefined ? propLatitude : coords?.latitude;
         const effLon = propLongitude !== undefined ? propLongitude : coords?.longitude;
 
@@ -79,7 +86,7 @@ export const useLocation = (props?: UseLocationProps) => {
                     } else if (isMounted) {
                         if (!propLocationName) setResolvedName("Current Location");
                     }
-                } catch (err) {
+                } catch {
                     if (isMounted) {
                         if (!propLocationName) setResolvedName("Current Location");
                         setGeocodedName("Location unavailable");

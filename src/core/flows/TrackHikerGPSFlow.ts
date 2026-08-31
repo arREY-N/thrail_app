@@ -16,31 +16,44 @@ import { exportHikeData } from "@/src/core/utility/hikeStorage";
 import { LOCATION_TASK } from "@/src/core/utility/locationTask";
 
 
-// ✅ Background task must be defined outside the hook at the top level
-TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-    const addCoordinate = useHikeStore.getState().addCoordinate;
+// ✅ Background task must be defined outside the hook at the top level (mobile only)
+if (Platform.OS !== "web") {
+    TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
+        const addCoordinate = useHikeStore.getState().addCoordinate;
 
-    if (error) return;
-    const { locations } = data;
-    const location = locations[0];
+        if (error) {
+            console.error("[TrackHikerGPSFlow] Background location task error:", error);
+            return;
+        }
+        try {
+            const { locations } = data;
+            if (!locations || locations.length === 0) return;
+            const location = locations[0];
 
-    const lat = location.coords.latitude;
-    const lon = location.coords.longitude;
-    const alt = location.coords.altitude ?? 0;
-    const timestamp = new Date(location.timestamp).toISOString();
-    console.log('calling from background task');
-    //await saveToCSV(lat, lon, alt, timestamp);
-    addCoordinate(newLocation({
-        latitude: lat,
-        longitude: lon,
-        altitude: alt,
-        timestamp: new Date(timestamp),
-        status: 'APP_BACKGROUNDED',
-    }));
+            const lat = location.coords.latitude;
+            const lon = location.coords.longitude;
+            const alt = location.coords.altitude ?? 0;
+            const timestamp = new Date(location.timestamp).toISOString();
+            console.log('calling from background task');
+            await addCoordinate(newLocation({
+                latitude: lat,
+                longitude: lon,
+                altitude: alt,
+                timestamp: new Date(timestamp),
+                status: 'APP_BACKGROUNDED',
+            }));
+        } catch (err) {
+            console.error("[TrackHikerGPSFlow] Failed to log background coordinate:", err);
+        }
+    });
+}
 
-    // await saveToCSV(lat, lon, alt, timestamp);
-});
 
+let globalActiveInstances = 0;
+let globalAppStateSub: any = null;
+let globalNetInfoSub: any = null;
+let globalLastAppState = "active";
+const onlineListeners = new Set<(online: boolean) => void>();
 
 /**
  * A comprehensive hook that manages real-time and background GPS tracking for hikers.
@@ -76,8 +89,6 @@ export const TrackHikerGPSFlow = () => {
 
     const locationSubscription = useRef<Location.LocationSubscription | null>(null);
     const gpsTimeoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const appStateSubscription = useRef<any>(null);
-    const unsubscribeNetwork = useRef<any>(null);
     const isGpsLost = useRef(false);
     const GPS_TIMEOUT_MS = 180000;
 
@@ -87,6 +98,7 @@ export const TrackHikerGPSFlow = () => {
 x     * Will ONLY record data and draw the red line if the global store says active === true.
      */
     const initForegroundGps = async () => {
+        if (Platform.OS === "web") return;
         if (locationSubscription.current) return;
 
         try {
@@ -97,7 +109,7 @@ x     * Will ONLY record data and draw the red line if the global store says act
                         await Location.enableNetworkProviderAsync();
                         isGpsEnabled = await Location.hasServicesEnabledAsync();
                     } catch (e) {
-                        console.log("Failed to enable network provider:", e);
+                        console.warn("Failed to enable network provider:", e);
                     }
                 }
             }
@@ -146,14 +158,9 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     const alt = location.coords.altitude ?? 0;
                     const timestamp = new Date(location.timestamp).toISOString();
 
-                    // console.log(
-                    //   `📍 Location Updated: ${lat}, ${lon}, ${alt}m at ${timestamp}`,
-                    // );
-
                     if (isGpsLost.current) {
                         isGpsLost.current = false;
                         setGpsError(null);
-                        // saveToCSV("GPS_SIGNAL_RESTORED", "", "", timestamp);
                         addCoordinate(newLocation({
                             latitude: lat,
                             longitude: lon,
@@ -167,8 +174,6 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     gpsTimeoutTimer.current = setTimeout(() => {
                         isGpsLost.current = true;
                         setGpsError("GPS signal lost. Searching for satellites...");
-                        // const lostTimestamp = new Date().toISOString();
-                        // saveToCSV("GPS_SIGNAL_LOST", "", "", lostTimestamp);
                         addCoordinate(newLocation({
                             latitude: lat,
                             longitude: lon,
@@ -183,9 +188,8 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     // Always update the Blue Dot position
                     setUserLocation([lon, lat]);
                     setRouteCoordinates((prev) => [...prev, [lon, lat]]);
-                    // saveToCSV(lat, lon, alt, timestamp); // ✅ includes altitude
 
-                    console.log('logging from useHikerGPS');
+                    console.log('logging from TrackHikerGPSFlow');
                     // Global Store Integration
                     addCoordinate(newLocation({
                         latitude: lat,
@@ -198,7 +202,7 @@ x     * Will ONLY record data and draw the red line if the global store says act
             );
         } catch (err: any) {
             console.error("Failed to start location tracking:", err);
-            setGpsError("Failed to initialize GPS: " + err.message);
+            setGpsError("Failed to initialize GPS: " + (err?.message || String(err)));
         }
     };
 
@@ -207,6 +211,7 @@ x     * Will ONLY record data and draw the red line if the global store says act
      * Starts the TaskManager so tracking continues when screen is off.
      */
     const startBackgroundTracking = async () => {
+        if (Platform.OS === "web") return;
         try {
             if (Platform.OS === "android" && Platform.Version >= 33) {
                 await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -226,9 +231,11 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     },
                 });
                 console.log("✅ Background task started");
+            } else {
+                console.warn("Background location permission was not granted.");
             }
         } catch (err) {
-            console.log("Background tracking failed", err);
+            console.error("Background tracking failed to start:", err);
         }
     };
 
@@ -236,60 +243,81 @@ x     * Will ONLY record data and draw the red line if the global store says act
      * Stops the background TaskManager.
      */
     const stopBackgroundTracking = async () => {
+        if (Platform.OS === "web") return;
         try {
             await Location.stopLocationUpdatesAsync(LOCATION_TASK);
             console.log("✅ Background task stopped");
         } catch (err) {
-            // Safely ignore if not running
+            console.warn("Failed to stop background tracking task:", err);
         }
     };
 
     // Set up listeners on mount and clean up on unmount
     useEffect(() => {
-        unsubscribeNetwork.current = NetInfo.addEventListener((state) => {
-            setIsOnline(!!state.isInternetReachable);
-        });
+        if (Platform.OS === "web") return;
 
-        appStateSubscription.current = AppState.addEventListener(
-            "change",
-            (nextState) => {
-                if (nextState === "background" || nextState === "inactive") {
-                    const timestamp = new Date().toISOString();
-                    addCoordinate(newLocation({
-                        latitude: 0,
-                        longitude: 0,
-                        altitude: 0,
-                        timestamp: new Date(timestamp),
-                        status: 'APP_BACKGROUNDED',
-                    }));
-                }
-                if (nextState === "active") {
-                    const timestamp = new Date().toISOString();
-                    addCoordinate(newLocation({
-                        latitude: 0,
-                        longitude: 0,
-                        altitude: 0,
-                        timestamp: new Date(timestamp),
-                        status: 'APP_RESUMED',
-                    }));
+        const handleOnlineChange = (online: boolean) => setIsOnline(online);
+        onlineListeners.add(handleOnlineChange);
 
-                    // Automatically retry initialization if the user turned on location in settings
-                    if (!locationSubscription.current) {
-                        initForegroundGps();
+        globalActiveInstances++;
+
+        if (globalActiveInstances === 1) {
+            globalNetInfoSub = NetInfo.addEventListener((state) => {
+                const reach = !!state.isInternetReachable;
+                onlineListeners.forEach((fn) => fn(reach));
+            });
+
+            globalAppStateSub = AppState.addEventListener(
+                "change",
+                (nextState) => {
+                    const addCoord = useHikeStore.getState().addCoordinate;
+
+                    if ((nextState === "background" || nextState === "inactive") && globalLastAppState === "active") {
+                        globalLastAppState = nextState;
+                        const timestamp = new Date().toISOString();
+                        addCoord(newLocation({
+                            latitude: 0,
+                            longitude: 0,
+                            altitude: 0,
+                            timestamp: new Date(timestamp),
+                            status: 'APP_BACKGROUNDED',
+                        }));
                     }
-                }
-            },
-        );
-
+                    if (nextState === "active" && globalLastAppState !== "active") {
+                        globalLastAppState = "active";
+                        const timestamp = new Date().toISOString();
+                        addCoord(newLocation({
+                            latitude: 0,
+                            longitude: 0,
+                            altitude: 0,
+                            timestamp: new Date(timestamp),
+                            status: 'APP_RESUMED',
+                        }));
+                    }
+                },
+            );
+        }
 
         return () => {
-            if (appStateSubscription.current) appStateSubscription.current.remove();
+            onlineListeners.delete(handleOnlineChange);
+            globalActiveInstances = Math.max(0, globalActiveInstances - 1);
+
+            if (globalActiveInstances === 0) {
+                if (globalAppStateSub) {
+                    globalAppStateSub.remove();
+                    globalAppStateSub = null;
+                }
+                if (globalNetInfoSub) {
+                    globalNetInfoSub();
+                    globalNetInfoSub = null;
+                }
+            }
+
             if (locationSubscription.current) {
                 locationSubscription.current.remove();
                 locationSubscription.current = null;
             }
             if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
-            if (unsubscribeNetwork.current) unsubscribeNetwork.current();
             stopBackgroundTracking();
         };
     }, []);

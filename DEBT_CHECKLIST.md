@@ -48,10 +48,10 @@ Below is the master allocation table separating tasks by developer responsibilit
 | ID | Severity | Item Description | Status / Note |
 |---|---|---|---|
 | **C-03** | 🔴 CRITICAL | Duplicate `TaskManager.defineTask` registration | Consolidate background GPS task definition |
-| **H-01** | 🟠 HIGH | `useHikerGPS` AppState/NetInfo listener accumulation | Convert to singleton / lifecycle guard |
-| **H-04** | 🟠 HIGH | Background GPS `addCoordinate` fire-and-forget loss | Ensure durable background writing & error catching |
-| **H-08** | 🟠 HIGH | `TrailMap.native.tsx` untyped `any` props | Add strict types for map props & camera ref |
-| **H-09** | 🟠 HIGH | Dev weather override block in `weatherRepository.ts` | Clean up override logic before client builds |
+| **H-01** | 🟠 HIGH | `useHikerGPS` AppState/NetInfo listener accumulation | ✅ **Resolved** — Convert to singleton / lifecycle guard (Implemented global active instance listener guard in `TrackHikerGPSFlow.ts`) |
+| **H-04** | 🟠 HIGH | Background GPS `addCoordinate` fire-and-forget loss | ✅ **Resolved** — Ensure durable background writing & error catching (Switched `locationTask.ts` to `getState()`, safe profile checks & background write error handling) |
+| **H-08** | 🟠 HIGH | `TrailMap.native.tsx` untyped `any` props | ✅ **Resolved** — Add strict types for map props & camera ref (Added strict `TrailMapProps`, `TrailMapRef`, `HikerLocation` interfaces & component display name) |
+| **H-09** | 🟠 HIGH | Dev weather override block in `weatherRepository.ts` | ✅ **Resolved** — Clean up override logic before client builds (Removed hardcoded `applyDevOverrides` mock logic, returning live Open-Meteo & cached data) |
 | **L-03** | 🟢 LOW | `pmtiles.exe` (58 MB) committed binary | Remove executable from repo & track in `.gitignore` |
 | **L-06** | 🟢 LOW | Release build using debug keystore | Configure production signing configs in Gradle |
 | **L-07** | 🟢 LOW | ProGuard / R8 minification disabled in release | Enable `enableMinifyInReleaseBuilds` & test build |
@@ -136,7 +136,9 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### H-01 — `useHikerGPS.ts` AppState/NetInfo Listener Accumulation
 - **Assigned To:** Raven
-- **File(s):** `src/core/hook/trail/useHikerGPS.ts`
+- **File(s):** `src/core/flows/TrackHikerGPSFlow.ts`
+- **Status:** ✅ **Resolved**
+- **Description:** Implemented global module-scoped active instance count and shared listener reference for `AppState` and `NetInfo` in `TrackHikerGPSFlow.ts`, ensuring multiple hook callers (`TrailMap.native.tsx`, `useCurrentHike.ts`) share a single set of background/resume event listeners.
 
 #### H-02 — `PostCard.tsx` Subscribes to Full Trail List
 - **Assigned To:** Emman
@@ -150,7 +152,9 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### H-04 — Background Task `addCoordinate` Fire-and-Forget Loss
 - **Assigned To:** Raven
-- **File(s):** `src/core/stores/hikeStores/hikeStoreCreator.ts`, `src/core/hook/trail/useHikerGPS.ts`
+- **File(s):** `src/core/models/Hike/stores/hikeStoreCreator.ts`, `src/core/utility/locationTask.ts`, `src/core/flows/TrackHikerGPSFlow.ts`
+- **Status:** ✅ **Resolved**
+- **Description:** Updated `locationTask.ts` to access live `getState()`, safely guarded `addCoordinate` against null profiles/hikes without throwing uncaught errors, and wrapped batch coordinate writes and live location sharing in try/catch blocks.
 
 #### H-05 — `rememberMe` Stub & Feature Removal
 - **Assigned To:** Reyn (Core Logic) / Emman (UI Component)
@@ -171,10 +175,14 @@ Below is the master allocation table separating tasks by developer responsibilit
 #### H-08 — `TrailMap.native.tsx` Untyped `any` Props
 - **Assigned To:** Raven
 - **File(s):** `src/features/Map/TrailMap.native.tsx`
+- **Status:** ✅ **Resolved**
+- **Description:** Added canonical TypeScript `TrailMapProps`, `TrailMapRef`, and `HikerLocation` interfaces, replaced `any` parameters across camera ref and region change handlers, and attached `TrailMap.displayName`.
 
 #### H-09 — Dev Weather Override Block
 - **Assigned To:** Raven
 - **File(s):** `src/core/repositories/weatherRepository.ts`
+- **Status:** ✅ **Resolved**
+- **Description:** Removed hardcoded `applyDevOverrides` mock logic from `weatherRepository.ts` so live Open-Meteo API forecasts and cached entries are returned without developer condition overrides.
 
 #### H-10 — Inconsistent Immer vs Zustand Mutation Patterns
 - **Assigned To:** Reyn
