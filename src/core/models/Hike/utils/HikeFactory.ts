@@ -4,6 +4,8 @@ import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 
 export const newHike = (init?: Partial<Hike>): Hike => {
+    if (init?.mode === 'booked' && !init.bookingId) throw new Error('Booking ID is required for booked mode');
+    if (init?.trail && !init.trail.id) throw new Error('Trail ID is required');
     return {
         id: '',
         hikeDate: new Date(),
