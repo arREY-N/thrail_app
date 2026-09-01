@@ -312,6 +312,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 isLoading: false,
                 error: (error as Error).message || "Failed signing up with Google",
             })
+            throw error;
         }
     },
 
