@@ -2,6 +2,7 @@ import { Hike, IHike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -328,17 +329,24 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         try {
             if (!userId) throw new Error("User ID is required to create hike");
 
-            const toUploadHike = get().currentHike || hike;
-            if (!toUploadHike) throw new Error("No hike data provided to create");
+            const baseHike = get().currentHike || hike;
+
+            if (!baseHike) throw new Error("No hike data provided to create");
+
+            const toUploadHike: Hike = {
+                ...baseHike,
+                distance: get().totalDistance,
+                elevation: get().totalElevationGain,
+                duration: get().elapsedTime
+            };
 
             const response = await HikeRepo.write(toUploadHike, userId);
 
-            set((state) => {
-                const index = state.hikes.findIndex(h => h.id === response.id);
-                if (index !== -1) { state.hikes[index] = response; }
-                else { state.hikes.push(response); }
-                state.isLoading = false;
-            });
+            set({
+                isLoading: false,
+                currentHike: response,
+                hikes: upsertItem(get().hikes, response)
+            })
         } catch (error) {
             console.error(error);
             set({ error: "Failed to create hike", isLoading: false });
