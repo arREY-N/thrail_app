@@ -1,4 +1,11 @@
-import { DailyForecast, HikingSafetyStatus, ProcessedWeatherData } from "../types/weather";
+import {
+    DailyForecast,
+    DetailedWeatherSafetyReport,
+    HikingSafetyStatus,
+    HourlyForecastItem,
+    ProcessedWeatherData,
+    WeatherSafetyChecklistItem,
+} from "../types/weather";
 
 export const formatForecastDay = (isoDateString: string, index: number): string => {
     if (index === 0) return "Today";
@@ -100,6 +107,166 @@ export const getHumidityLabel = (humidity: number): string => {
     return "Very Humid";
 };
 
+/**
+ * Categorizes Heat Index (°C) based on official PAGASA classification standards.
+ */
+export const getPAGASAHeatIndexInfo = (heatIndex: number | undefined | null): {
+    category: string;
+    description: string;
+    alertLevel: 'normal' | 'warning' | 'danger';
+} => {
+    if (heatIndex == null || isNaN(heatIndex)) {
+        return { category: 'Comfortable', description: 'Normal trail conditions.', alertLevel: 'normal' };
+    }
+    if (heatIndex < 27) {
+        return { category: 'Comfortable', description: 'Optimal hiking temperature.', alertLevel: 'normal' };
+    }
+    if (heatIndex <= 32) {
+        return { category: 'Caution', description: 'Fatigue possible with prolonged trail activity.', alertLevel: 'normal' };
+    }
+    if (heatIndex <= 41) {
+        return { category: 'Extreme Caution', description: 'Heat cramps & exhaustion possible. Carry 2.5L+ water.', alertLevel: 'warning' };
+    }
+    if (heatIndex <= 51) {
+        return { category: 'Danger (Heat Stroke Risk)', description: 'Heat exhaustion likely. Avoid midday exposed ridges.', alertLevel: 'danger' };
+    }
+    return { category: 'Extreme Danger', description: 'Heat stroke imminent. Halt high-altitude outdoor exertion.', alertLevel: 'danger' };
+};
+
+/**
+ * Classifies precipitation into PAGASA Heavy Rainfall Warning tiers.
+ */
+export const getPAGASARainfallWarning = (
+    prob: number = 0,
+    accumulatedMm: number = 0,
+    weatherCode: number = 0
+): {
+    warningLevel: 'NORMAL' | 'YELLOW' | 'ORANGE' | 'RED';
+    badge: string;
+    description: string;
+    alertLevel: 'normal' | 'warning' | 'danger';
+} => {
+    const isSevereStorm = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
+
+    if (isSevereStorm || accumulatedMm >= 15 || prob >= 85) {
+        return {
+            warningLevel: 'RED',
+            badge: '🔴 PAGASA Red Warning',
+            description: 'Torrential rain & thunderstorm hazard. Swollen rivers & mudslides.',
+            alertLevel: 'danger',
+        };
+    }
+    if (accumulatedMm >= 7.5 || prob >= 70) {
+        return {
+            warningLevel: 'ORANGE',
+            badge: '🟠 PAGASA Orange Alert',
+            description: 'Intense rain. Flash flood & slippery trail hazard.',
+            alertLevel: 'danger',
+        };
+    }
+    if (accumulatedMm >= 2.5 || prob >= 40) {
+        return {
+            warningLevel: 'YELLOW',
+            badge: '🟡 PAGASA Yellow Advisory',
+            description: 'Moderate rain expected. Trails are muddy and slick.',
+            alertLevel: 'warning',
+        };
+    }
+    return {
+        warningLevel: 'NORMAL',
+        badge: '🟢 Fair Conditions',
+        description: 'Light/No rain. Favorable hiking conditions.',
+        alertLevel: 'normal',
+    };
+};
+
+/**
+ * Formats wind metrics with Beaufort scale rating and gust analysis.
+ */
+export const getBeaufortWindInfo = (
+    speedKmH: number = 0,
+    gustsKmH: number = 0,
+    directionDeg: number = 0
+): {
+    scale: string;
+    gustText: string;
+    directionText: string;
+    alertLevel: 'normal' | 'warning' | 'danger';
+} => {
+    const directionText = getWindDirection(directionDeg);
+    const gustText = gustsKmH > speedKmH ? `Gusts up to ${Math.round(gustsKmH)} km/h` : 'Steady breeze';
+
+    if (speedKmH >= 60 || gustsKmH >= 75) {
+        return {
+            scale: 'Gale / Storm Force',
+            gustText,
+            directionText,
+            alertLevel: 'danger',
+        };
+    }
+    if (speedKmH >= 40 || gustsKmH >= 50) {
+        return {
+            scale: 'Strong Breeze',
+            gustText,
+            directionText,
+            alertLevel: 'warning',
+        };
+    }
+    if (speedKmH >= 20) {
+        return {
+            scale: 'Moderate Breeze',
+            gustText,
+            directionText,
+            alertLevel: 'normal',
+        };
+    }
+    return {
+        scale: 'Gentle Breeze',
+        gustText,
+        directionText,
+        alertLevel: 'normal',
+    };
+};
+
+/**
+ * Formats mountain summit visibility and cloud coverage.
+ */
+export const getSummitVisibilityInfo = (
+    visibilityMeters: number = 10000,
+    cloudCoverPercent: number = 0
+): {
+    visibilityKm: string;
+    cloudText: string;
+    description: string;
+    alertLevel: 'normal' | 'warning' | 'danger';
+} => {
+    const km = (visibilityMeters / 1000).toFixed(1);
+    const cloudText = `${Math.round(cloudCoverPercent)}% Cover`;
+
+    if (visibilityMeters < 2000) {
+        return {
+            visibilityKm: `${km} km`,
+            cloudText,
+            description: 'Dense fog & poor summit visibility. Stay strictly on marked trails.',
+            alertLevel: 'danger',
+        };
+    }
+    if (visibilityMeters < 6000 || cloudCoverPercent >= 80) {
+        return {
+            visibilityKm: `${km} km`,
+            cloudText,
+            description: 'Overcast & hazy. Moderate view distance.',
+            alertLevel: 'warning',
+        };
+    }
+    return {
+        visibilityKm: `${km} km`,
+        cloudText,
+        description: 'Clear summit visibility and optimal scenic views.',
+        alertLevel: 'normal',
+    };
+};
+
 export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyStatus => {
     const { windSpeed, precipitationProbability, weatherCode, uvIndex } = data;
     
@@ -118,6 +285,251 @@ export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyS
     }
 
     return "SAFE";
+};
+
+/**
+ * Generates an actionable, detailed safety advisory report based on weather metrics.
+ * Converts raw weather conditions into tailored trail advice and dynamic gear checklists.
+ *
+ * @param data - The processed weather data (can be null/undefined)
+ * @param locationOrTrailName - Optional mountain or location name for personalized headlines
+ * @returns Comprehensive safety report with status, risks, and checklist
+ */
+export const getDetailedWeatherSafety = (
+    data: ProcessedWeatherData | null | undefined,
+    locationOrTrailName?: string
+): DetailedWeatherSafetyReport => {
+    if (!data) {
+        return {
+            status: "SAFE",
+            badgeText: "CHECKING CONDITIONS",
+            headline: "Checking weather conditions...",
+            description: "Fetching the latest meteorological data for this trail.",
+            keyRisks: [],
+            checklist: [
+                { id: 'hydration-default', label: 'Carry sufficient drinking water (1.5L - 2L)', category: 'hydration', icon: 'water-outline', library: 'Ionicons' },
+                { id: 'first-aid-default', label: 'Pack trail snacks and personal first-aid kit', category: 'safety', icon: 'medkit-outline', library: 'Ionicons' },
+            ],
+            rainRiskLevel: 'low',
+            windRiskLevel: 'low',
+            uvRiskLevel: 'low',
+            precipitationChance: 0,
+            windSpeed: 0,
+            uvIndex: 0,
+        };
+    }
+
+    const {
+        weatherCode,
+        windSpeed,
+        windGusts,
+        precipitationProbability,
+        uvIndex,
+        uvIndexMax,
+        visibility,
+    } = data;
+
+    const precipChance = precipitationProbability ?? 0;
+    const effectiveUv = uvIndexMax || uvIndex || 0;
+    const effectiveGusts = windGusts || windSpeed || 0;
+
+    const isSevereCode = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
+    const isRainCode = (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
+    const isFogCode = weatherCode === 45 || weatherCode === 48 || (visibility != null && visibility < 2000);
+
+    // 1. Rain Risk Level
+    let rainRiskLevel: 'low' | 'moderate' | 'high' | 'severe' = 'low';
+    if (isSevereCode || precipChance >= 75) {
+        rainRiskLevel = 'severe';
+    } else if (precipChance >= 50 || isRainCode) {
+        rainRiskLevel = 'high';
+    } else if (precipChance >= 30) {
+        rainRiskLevel = 'moderate';
+    }
+
+    // 2. Wind Risk Level
+    let windRiskLevel: 'low' | 'moderate' | 'high' = 'low';
+    if (windSpeed >= 60 || effectiveGusts >= 70) {
+        windRiskLevel = 'high';
+    } else if (windSpeed >= 40 || effectiveGusts >= 50) {
+        windRiskLevel = 'moderate';
+    }
+
+    // 3. UV Risk Level
+    let uvRiskLevel: 'low' | 'moderate' | 'high' | 'extreme' = 'low';
+    if (effectiveUv >= 11) {
+        uvRiskLevel = 'extreme';
+    } else if (effectiveUv >= 8) {
+        uvRiskLevel = 'high';
+    } else if (effectiveUv >= 6) {
+        uvRiskLevel = 'moderate';
+    }
+
+    // 4. Overall Safety Status
+    let status: HikingSafetyStatus = "SAFE";
+    if (rainRiskLevel === 'severe' || windRiskLevel === 'high' || effectiveUv >= 13) {
+        status = "DANGER";
+    } else if (rainRiskLevel === 'high' || rainRiskLevel === 'moderate' || windRiskLevel === 'moderate' || uvRiskLevel === 'extreme' || uvRiskLevel === 'high') {
+        status = "CAUTION";
+    }
+
+    // 5. Key Risks
+    const keyRisks: string[] = [];
+    if (rainRiskLevel === 'severe') {
+        keyRisks.push('Torrential downpour and potential flash floods');
+        if (weatherCode >= 95) keyRisks.push('Severe thunderstorm and lightning hazards on exposed peaks');
+    } else if (rainRiskLevel === 'high' || rainRiskLevel === 'moderate') {
+        keyRisks.push(`High chance of rain (${precipChance}%) with slippery, muddy trails`);
+    }
+
+    if (windRiskLevel === 'high') {
+        keyRisks.push(`High wind gusts up to ${Math.round(effectiveGusts)} km/h on open ridges`);
+    } else if (windRiskLevel === 'moderate') {
+        keyRisks.push(`Breezy to gusty winds (${Math.round(windSpeed)} km/h)`);
+    }
+
+    if (uvRiskLevel === 'extreme') {
+        keyRisks.push(`Extreme UV Index (Peak ${Math.round(effectiveUv)}) - Severe heat exhaustion risk`);
+    } else if (uvRiskLevel === 'high') {
+        keyRisks.push(`High UV Index (Peak ${Math.round(effectiveUv)}) - Sunburn risk`);
+    }
+
+    if (isFogCode) {
+        keyRisks.push('Low visibility and dense fog on higher elevations');
+    }
+
+    // 6. Actionable Checklist
+    const checklist: WeatherSafetyChecklistItem[] = [];
+
+    // Rain / Wet ground items
+    if (rainRiskLevel === 'severe' || rainRiskLevel === 'high') {
+        checklist.push({
+            id: 'waterproof-cover',
+            label: 'Pack waterproof backpack rain cover & dry bags',
+            category: 'gear',
+            icon: 'bag-personal-outline',
+            library: 'MaterialCommunityIcons',
+        });
+        checklist.push({
+            id: 'rainwear',
+            label: 'Bring a lightweight rain jacket or durable poncho',
+            category: 'gear',
+            icon: 'weather-pouring',
+            library: 'MaterialCommunityIcons',
+        });
+        checklist.push({
+            id: 'traction-shoes',
+            label: 'Wear high-traction trail shoes with deep lugs for mud',
+            category: 'gear',
+            icon: 'shoe-sneaker',
+            library: 'MaterialCommunityIcons',
+        });
+        checklist.push({
+            id: 'trekking-pole',
+            label: 'Trekking poles recommended for slippery descents',
+            category: 'gear',
+            icon: 'walk',
+            library: 'Ionicons',
+        });
+    } else if (rainRiskLevel === 'moderate') {
+        checklist.push({
+            id: 'light-rainwear',
+            label: 'Keep an emergency rain poncho handy in your pack',
+            category: 'gear',
+            icon: 'weather-rainy',
+            library: 'MaterialCommunityIcons',
+        });
+    }
+
+    // Storm / Severe safety items
+    if (status === 'DANGER') {
+        checklist.push({
+            id: 'guide-consult',
+            label: 'Consult with tour guide or LGU desk before starting',
+            category: 'advisory',
+            icon: 'shield-alert-outline',
+            library: 'MaterialCommunityIcons',
+        });
+        checklist.push({
+            id: 'ridge-safety',
+            label: 'Avoid exposed ridges & summits during lightning',
+            category: 'safety',
+            icon: 'flash-outline',
+            library: 'Ionicons',
+        });
+    }
+
+    // Sun & Hydration items
+    if (uvRiskLevel === 'extreme' || uvRiskLevel === 'high') {
+        checklist.push({
+            id: 'extra-water',
+            label: 'Carry 2.5L – 3L drinking water with electrolyte salts',
+            category: 'hydration',
+            icon: 'water-outline',
+            library: 'Ionicons',
+        });
+        checklist.push({
+            id: 'sun-protection',
+            label: 'Apply SPF 50+ sunscreen, wear wide-brim hat & arm sleeves',
+            category: 'gear',
+            icon: 'sunny-outline',
+            library: 'Ionicons',
+        });
+    } else {
+        checklist.push({
+            id: 'normal-water',
+            label: 'Carry at least 1.5L – 2L of water for the hike',
+            category: 'hydration',
+            icon: 'water-outline',
+            library: 'Ionicons',
+        });
+    }
+
+    // Default trail essentials
+    checklist.push({
+        id: 'phone-battery',
+        label: 'Ensure phone is fully charged & sealed in waterproof pouch',
+        category: 'safety',
+        icon: 'battery-charging-outline',
+        library: 'Ionicons',
+    });
+
+    // 7. Headline & Description
+    const targetLabel = locationOrTrailName ? locationOrTrailName : 'Your Destination';
+    let badgeText = 'SAFE CONDITIONS';
+    let headline = `Favorable Conditions for ${targetLabel}`;
+    let description = `Weather conditions are optimal for outdoor activities. Standard hiking preparation is advised.`;
+
+    if (status === 'DANGER') {
+        badgeText = 'WEATHER HAZARD';
+        headline = `Severe Weather Alert for ${targetLabel}`;
+        description = isSevereCode 
+            ? `Thunderstorms and heavy downpours are forecast. Check with local guides or organizers for possible advisories.`
+            : `High wind gusts (${Math.round(windSpeed)} km/h) or extreme rainfall make trail conditions hazardous.`;
+    } else if (status === 'CAUTION') {
+        badgeText = 'WEATHER ADVISORY';
+        headline = rainRiskLevel === 'high' || rainRiskLevel === 'moderate'
+            ? `Rain Expected at ${targetLabel} (${precipChance}% chance)`
+            : `Weather Advisory for ${targetLabel}`;
+        description = rainRiskLevel === 'high' || rainRiskLevel === 'moderate'
+            ? `Wet weather is anticipated. Trails may be muddy and slippery. Prepare waterproof gear before departing.`
+            : `Heightened UV index or windy conditions expected. Take appropriate sun protection and hydration precautions.`;
+    }
+
+    return {
+        status,
+        badgeText,
+        headline,
+        description,
+        keyRisks,
+        checklist,
+        rainRiskLevel,
+        windRiskLevel,
+        uvRiskLevel,
+        precipitationChance: precipChance,
+        windSpeed,
+        uvIndex: effectiveUv,
+    };
 };
 
 // ─── CONSOLIDATED WEATHER DISPLAY HELPERS ─────────────────────────────────────
@@ -265,6 +677,72 @@ export const resolveCoordsForTrail = (
         if (name.includes(keyword)) return coords;
     }
     return null;
+};
+
+/**
+ * Retrieves the 24-hour hourly forecast for a selected day.
+ * If live hourly forecast data is present, filters by day.
+ * Otherwise, generates a smooth 24-hour projection curve using the day's high, low, code, and rain probability.
+ */
+export const getHourlyForecastForDay = (
+    weatherData: ProcessedWeatherData | null | undefined,
+    selectedDayIndex: number = 0
+): HourlyForecastItem[] => {
+    if (!weatherData) return [];
+
+    const activeDay = weatherData.forecast?.at(selectedDayIndex) ?? weatherData.forecast?.at(0);
+    const targetDate = activeDay?.date ? activeDay.date.slice(0, 10) : "";
+
+    // 1. If real hourly forecast exists in weatherData, filter for this day
+    if (weatherData.hourlyForecast && weatherData.hourlyForecast.length > 0) {
+        const filtered = targetDate 
+            ? weatherData.hourlyForecast.filter(h => h.datePrefix === targetDate || h.time.startsWith(targetDate))
+            : [];
+        if (filtered.length > 0) return filtered;
+
+        // If filtering by date string didn't match directly, slice by 24h chunk
+        const startIdx = selectedDayIndex * 24;
+        const chunk = weatherData.hourlyForecast.slice(startIdx, startIdx + 24);
+        if (chunk.length > 0) return chunk;
+    }
+
+    // 2. Resilient fallback generator: if cached data hasn't refreshed or API omitted hourly
+    const high = activeDay?.temperatureMax ?? (weatherData.temperature ? weatherData.temperature + 3 : 30);
+    const low = activeDay?.temperatureMin ?? (weatherData.temperature ? weatherData.temperature - 3 : 24);
+    const code = activeDay?.weatherCode ?? weatherData.weatherCode ?? 0;
+    const precipMax = activeDay?.precipitationProbabilityMax ?? weatherData.precipitationProbability ?? 0;
+    const currentHour = new Date().getHours();
+    const isToday = selectedDayIndex === 0;
+
+    const items: HourlyForecastItem[] = [];
+    for (let h = 0; h < 24; h++) {
+        // Temperature diurnal curve: lowest around 5 AM, highest around 2 PM
+        const tempRad = ((h - 5) / 24) * 2 * Math.PI;
+        const normalized = 0.5 * (1 - Math.cos(tempRad));
+        const hourTemp = Math.round(low + (high - low) * normalized);
+
+        // Afternoon rain peak (tropical convective pattern)
+        const rainFactor = (h >= 12 && h <= 18) ? 1.0 : (h >= 6 && h <= 21 ? 0.7 : 0.3);
+        const hourPrecip = Math.round(precipMax * rainFactor);
+
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h % 12 === 0 ? 12 : h % 12;
+        const hourLabel = (isToday && h === currentHour) ? 'Now' : `${displayH} ${ampm}`;
+
+        items.push({
+            time: `${targetDate || '2026-09-03'}T${h < 10 ? '0' + h : h}:00`,
+            datePrefix: targetDate,
+            hourLabel,
+            temperature: hourTemp,
+            apparentTemperature: hourTemp + (hourTemp > 28 ? 2 : 0),
+            weatherCode: code,
+            precipitationProbability: hourPrecip,
+            windSpeed: activeDay?.windSpeedMax ?? weatherData.windSpeed ?? 15,
+            uvIndex: (h >= 10 && h <= 15) ? (activeDay?.uvIndexMax ?? 8) : 0,
+        });
+    }
+
+    return items;
 };
 
 

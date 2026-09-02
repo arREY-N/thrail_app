@@ -60,7 +60,11 @@ const TrailWeatherTab: React.FC<TrailWeatherTabProps> = ({ latitude, longitude, 
 
     return (
         <View style={styles.tabContent}>
-            <WeatherWidget latitude={resolvedCoords.lat} longitude={resolvedCoords.lon} />
+            <WeatherWidget
+                latitude={resolvedCoords.lat}
+                longitude={resolvedCoords.lon}
+                trailName={trail?.general?.name}
+            />
         </View>
     );
 };

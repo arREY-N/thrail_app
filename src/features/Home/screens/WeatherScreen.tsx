@@ -21,13 +21,23 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { formatLastUpdatedLabel, formatWeatherDisplay, getWeatherInfoUI } from '@/src/core/utility/weatherHelpers';
+import {
+    formatLastUpdatedLabel,
+    formatWeatherDisplay,
+    getBeaufortWindInfo,
+    getHourlyForecastForDay,
+    getPAGASAHeatIndexInfo,
+    getPAGASARainfallWarning,
+    getSummitVisibilityInfo,
+    getWeatherInfoUI,
+} from '@/src/core/utility/weatherHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useLocation } from '@/src/hooks/useLocation';
 import { useWeather } from '@/src/hooks/useWeather';
 import { IconLibrary } from '@/src/types/ui.types';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
+import { WeatherSafetyCard } from '@/src/components/WeatherSafetyCard';
 
 /**
  * Standardized alert levels for weather metrics.
@@ -117,10 +127,39 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
     const display = formatWeatherDisplay(weatherData);
     const hasData = display.hasData;
 
-    // Raw numeric values kept only for alert-level color thresholds
-    const windRaw = weatherData?.windSpeed;
-    const precipRaw = weatherData?.precipitationProbability;
-    const uvRaw = weatherData?.uvIndex;
+    const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+
+    const activeDay = weatherData?.forecast?.at(selectedDayIndex) ?? weatherData?.forecast?.at(0);
+    const isTodaySelected = selectedDayIndex === 0;
+
+    const activeHourlyList = getHourlyForecastForDay(weatherData, selectedDayIndex);
+
+    // Active metrics computed based on selected day
+    const activeWindRaw = isTodaySelected ? (weatherData?.windSpeed ?? 0) : (activeDay?.windSpeedMax ?? 0);
+    const activePrecipRaw = isTodaySelected ? (weatherData?.precipitationProbability ?? 0) : (activeDay?.precipitationProbabilityMax ?? 0);
+    const activeUvRaw = isTodaySelected ? (weatherData?.uvIndex ?? 0) : (activeDay?.uvIndexMax ?? 0);
+
+    const pagasaRain = getPAGASARainfallWarning(
+        activePrecipRaw,
+        isTodaySelected ? (weatherData?.precipitationSum ?? 0) : 0,
+        isTodaySelected ? (weatherData?.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0)
+    );
+
+    const heatIndexVal = isTodaySelected
+        ? (weatherData?.apparentTemperature != null ? weatherData.apparentTemperature : weatherData?.temperature)
+        : activeDay?.temperatureMax;
+    const pagasaHeat = getPAGASAHeatIndexInfo(heatIndexVal);
+
+    const beaufortWind = getBeaufortWindInfo(
+        activeWindRaw,
+        isTodaySelected ? (weatherData?.windGusts ?? 0) : activeWindRaw,
+        weatherData?.windDirection ?? 0
+    );
+
+    const visibilityInfo = getSummitVisibilityInfo(
+        weatherData?.visibility ?? 10000,
+        weatherData?.cloudCover ?? 0
+    );
 
     if (((loading || isLocating) && !weatherData) || refreshing) {
         return <WeatherSkeleton onBackPress={onBackPress} />;
@@ -224,7 +263,13 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 )}
                             </View>
                         </View>
-                        <View style={styles.fullWidthCard}>
+
+                        {/* Outdoor Safety Advisory & Actionable Checklist */}
+                        <WeatherSafetyCard
+                            weatherData={weatherData}
+                            trailName={displayName}
+                            showChecklist={true}
+                        />                        <View style={styles.fullWidthCard}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
                                     library="Ionicons" 
@@ -232,7 +277,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                     size={20} 
                                     color={Colors.PRIMARY} 
                                 />
-                                <CustomText variant="label" style={styles.cardHeaderTitle}>7-Day Forecast</CustomText>
+                                <CustomText variant="label" style={styles.cardHeaderTitle}>{'7-Day Forecast'}</CustomText>
                             </View>
                             
                             <ScrollView 
@@ -248,53 +293,120 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                             key={idx} 
                                             day={dayName} 
                                             icon={icon} 
-                                            lib={library as IconLibrary}
+                                            lib={library as IconLibrary} 
                                             low={Math.round(day.temperatureMin)} 
                                             high={Math.round(day.temperatureMax)} 
                                             isToday={idx === 0}
+                                            isSelected={selectedDayIndex === idx}
+                                            onPress={() => setSelectedDayIndex(idx)}
                                         />
                                     );
                                 })}
                             </ScrollView>
                         </View>
 
+                        {/* 24-Hour Hourly Forecast Section */}
+                        {activeHourlyList.length > 0 && (
+                            <View style={styles.fullWidthCard}>
+                                <View style={styles.cardHeader}>
+                                    <CustomIcon 
+                                        library="Ionicons" 
+                                        name="time-outline" 
+                                        size={20} 
+                                        color={Colors.PRIMARY} 
+                                    />
+                                    <CustomText variant="label" style={styles.cardHeaderTitle}>
+                                        {isTodaySelected 
+                                            ? 'Hourly Forecast (Today)' 
+                                            : `Hourly Forecast (${new Date(activeDay?.date || '').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })})`}
+                                    </CustomText>
+                                </View>
+                                
+                                <ScrollView 
+                                    horizontal 
+                                    showsHorizontalScrollIndicator={false} 
+                                    contentContainerStyle={styles.hourlyScrollContent}
+                                >
+                                    {activeHourlyList.map((hour, hIdx) => {
+                                        const { icon, library } = getWeatherInfoUI(hour.weatherCode);
+                                        return (
+                                            <HourlyItem 
+                                                key={hIdx}
+                                                hourLabel={hour.hourLabel}
+                                                icon={icon}
+                                                lib={library as IconLibrary}
+                                                temperature={hour.temperature}
+                                                precipChance={hour.precipitationProbability}
+                                                isNow={hour.hourLabel === 'Now'}
+                                            />
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
+                        )}
+
                         <View style={styles.bentoGrid}>
                             <BentoBox 
-                                title="Wind" 
-                                value={display.windSpeed} 
-                                unit="km/h" 
-                                desc="Current speed" 
-                                icon="wind" 
+                                title="Heat Index" 
+                                value={display.feelsLike ?? display.temperature} 
+                                unit="°C" 
+                                subValue={pagasaHeat.category}
+                                desc={pagasaHeat.description} 
+                                icon="thermometer" 
                                 lib="Feather" 
-                                alertLevel={getMetricAlertLevel('wind', windRaw)} 
+                                alertLevel={pagasaHeat.alertLevel} 
                                 isDesktop={isDesktop}
                             />
                             <BentoBox 
                                 title="Precipitation" 
-                                value={display.precipChance} 
+                                value={isTodaySelected ? display.precipChance : String(activePrecipRaw)} 
                                 unit="%" 
-                                desc="Chance of rain" 
+                                subValue={weatherData?.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.warningLevel}` : `${pagasaRain.warningLevel} Warning`}
+                                desc={pagasaRain.description} 
                                 icon="rainy-outline" 
                                 lib="Ionicons" 
-                                alertLevel={getMetricAlertLevel('precip', precipRaw)} 
+                                alertLevel={pagasaRain.alertLevel} 
+                                isDesktop={isDesktop}
+                            />
+                            <BentoBox 
+                                title="Wind & Gusts" 
+                                value={isTodaySelected ? display.windSpeed : String(activeWindRaw)} 
+                                unit="km/h" 
+                                subValue={beaufortWind.gustText}
+                                desc={`${beaufortWind.directionText} • ${beaufortWind.scale}`} 
+                                icon="wind" 
+                                lib="Feather" 
+                                alertLevel={beaufortWind.alertLevel} 
                                 isDesktop={isDesktop}
                             />
                             <BentoBox 
                                 title="UV Index" 
-                                value={display.uvIndex} 
-                                subValue={weatherData?.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : undefined}
+                                value={isTodaySelected ? display.uvIndex : String(Math.round(activeUvRaw))} 
                                 unit="" 
-                                desc={getUVIndexReminder(uvRaw)}
-                                icon="thermometer-outline"  
-                                lib="Ionicons" 
-                                alertLevel={getMetricAlertLevel('uv', uvRaw)} 
+                                subValue={weatherData?.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : 'Low Risk'}
+                                desc={getUVIndexReminder(activeUvRaw)} 
+                                icon="sun"  
+                                lib="Feather" 
+                                alertLevel={getMetricAlertLevel('uv', activeUvRaw)} 
                                 isDesktop={isDesktop}
                             />
                             <BentoBox 
-                                title="Humidity" 
+                                title="Visibility" 
+                                value={weatherData?.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
+                                unit="km" 
+                                subValue={visibilityInfo.cloudText}
+                                desc={visibilityInfo.description} 
+                                icon="eye-outline" 
+                                lib="Ionicons" 
+                                alertLevel={visibilityInfo.alertLevel} 
+                                isDesktop={isDesktop}
+                            />
+                            <BentoBox 
+                                title="Atmospheric Air" 
                                 value={display.humidity} 
-                                unit="%" 
-                                desc="Relative humidity" 
+                                unit="% RH" 
+                                subValue={weatherData?.surfacePressure ? `${weatherData.surfacePressure} hPa` : '1013 hPa'}
+                                desc={weatherData?.surfacePressure && weatherData.surfacePressure < 1008 ? 'Low Pressure Area (LPA) activity.' : 'Stable tropical atmospheric pressure.'} 
                                 icon="water-outline" 
                                 lib="Ionicons" 
                                 isDesktop={isDesktop}
@@ -309,7 +421,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                     size={20} 
                                     color={Colors.PRIMARY} 
                                 />
-                                <CustomText variant="label" style={styles.cardHeaderTitle}>Sun</CustomText>
+                                <CustomText variant="label" style={styles.cardHeaderTitle}>{'Sun'}</CustomText>
                             </View>
                             
                             <View style={styles.sunTimeRow}>
@@ -322,7 +434,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                     />
                                     <View>
                                         <CustomText style={styles.sunTimeText}>{display.sunrise}</CustomText>
-                                        <CustomText variant="caption" style={styles.sunLabel}>Sunrise</CustomText>
+                                        <CustomText variant="caption" style={styles.sunLabel}>{'Sunrise'}</CustomText>
                                     </View>
                                 </View>
                                 
@@ -337,7 +449,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                     />
                                     <View style={{ alignItems: 'flex-end' }}>
                                         <CustomText style={styles.sunTimeText}>{display.sunset}</CustomText>
-                                        <CustomText variant="caption" style={styles.sunLabel}>Sunset</CustomText>
+                                        <CustomText variant="caption" style={styles.sunLabel}>{'Sunset'}</CustomText>
                                     </View>
                                 </View>
                             </View>
@@ -356,11 +468,20 @@ interface ForecastItemProps {
     low: number;
     high: number;
     isToday: boolean;
+    isSelected: boolean;
+    onPress: () => void;
 }
 
-const ForecastItem = ({ day, icon, lib, low, high, isToday }: ForecastItemProps) => (
-    <View style={[styles.fItem, isToday && styles.fItemToday]}>        
-        <CustomText variant="label" style={[styles.fDay, isToday && styles.fDayToday]}>
+const ForecastItem = ({ day, icon, lib, low, high, isToday, isSelected, onPress }: ForecastItemProps) => (
+    <TouchableOpacity 
+        style={[
+            styles.fItem, 
+            isSelected ? styles.fItemSelected : (isToday ? styles.fItemToday : undefined)
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+    >        
+        <CustomText variant="label" style={[styles.fDay, (isSelected || isToday) && styles.fDayActive]}>
             {isToday ? "Today" : day}
         </CustomText>
         <View style={styles.fIconWrapper}>
@@ -368,7 +489,7 @@ const ForecastItem = ({ day, icon, lib, low, high, isToday }: ForecastItemProps)
                 library={lib} 
                 name={icon} 
                 size={26} 
-                color={Colors.PRIMARY} 
+                color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
             />
         </View>
         <View style={styles.fTempRow}>
@@ -376,6 +497,51 @@ const ForecastItem = ({ day, icon, lib, low, high, isToday }: ForecastItemProps)
             <CustomText style={styles.fTempSeparator}>/</CustomText>
             <CustomText variant="caption" style={styles.fTempLow}>{low}°</CustomText>
         </View> 
+    </TouchableOpacity>
+);
+
+interface HourlyItemProps {
+    hourLabel: string;
+    icon: string;
+    lib: IconLibrary;
+    temperature: number;
+    precipChance: number;
+    isNow: boolean;
+}
+
+const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isNow }: HourlyItemProps) => (
+    <View style={[styles.hourlyItem, isNow && styles.hourlyItemNow]}>
+        <CustomText variant="caption" style={[styles.hourTimeText, isNow && styles.hourTimeNow]}>
+            {hourLabel}
+        </CustomText>
+        <View style={styles.hourlyIconWrapper}>
+            <CustomIcon 
+                library={lib} 
+                name={icon} 
+                size={22} 
+                color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
+            />
+        </View>
+        <CustomText variant="label" style={styles.hourlyTempText}>
+            {temperature}°
+        </CustomText>
+        <View style={styles.hourlyPrecipRow}>
+            <CustomIcon 
+                library="Ionicons" 
+                name="water-outline" 
+                size={10} 
+                color={precipChance > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} 
+            />
+            <CustomText 
+                variant="caption" 
+                style={[
+                    styles.hourlyPrecipText, 
+                    precipChance > 30 && { color: Colors.ERROR, fontWeight: '700' }
+                ]}
+            >
+                {precipChance}%
+            </CustomText>
+        </View>
     </View>
 );
 
@@ -408,28 +574,43 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     return (
         <View style={[styles.bentoBox, isDesktop && styles.bentoBoxDesktop]}>
             <View style={styles.bentoHeader}>
-                <CustomIcon library={lib} name={icon} size={20} color={iconColor} />
-                <CustomText variant="label" style={styles.bentoTitle}>{title}</CustomText>
+                <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
+                <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
+                    {title}
+                </CustomText>
             </View>
 
             <View style={styles.bentoMiddle}>
-                <CustomText style={[styles.bentoValue, { color: valueColor }]}>
-                    {value !== undefined ? value : '--'}
-                </CustomText>
-                {unit ? (
-                    <CustomText style={[styles.bentoUnit, { color: valueColor }]}>
-                        {unit}
+                <View style={styles.bentoMainRow}>
+                    <CustomText style={[styles.bentoValue, { color: valueColor }]} numberOfLines={1}>
+                        {value !== undefined ? value : '--'}
                     </CustomText>
-                ) : null}
+                    {unit ? (
+                        <CustomText style={[styles.bentoUnit, { color: valueColor }]}>
+                            {unit}
+                        </CustomText>
+                    ) : null}
+                </View>
+
                 {subValue ? (
-                    <CustomText style={styles.bentoSubValue}>
-                        {subValue}
-                    </CustomText>
+                    <View style={[
+                        styles.bentoSubBadge, 
+                        alertLevel === 'danger' ? styles.badgeDanger : alertLevel === 'warning' ? styles.badgeWarning : styles.badgeNormal
+                    ]}>
+                        <CustomText 
+                            style={[styles.bentoSubValue, alertLevel !== 'normal' && styles.bentoSubValueAlert]} 
+                            numberOfLines={1}
+                        >
+                            {subValue}
+                        </CustomText>
+                    </View>
                 ) : null}
             </View>
 
             <View style={styles.bentoBottom}>
-                <CustomText variant="caption" style={styles.bentoDesc}>{desc}</CustomText>
+                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={2}>
+                    {desc}
+                </CustomText>
             </View>
         </View>
     );
@@ -594,13 +775,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12, 
         borderRadius: 16, 
         gap: 4, 
-        minWidth: 70,
-        borderWidth: 1.5,
-        borderColor: 'transparent',
+        minWidth: 70, 
+        borderWidth: 1.5, 
+        borderColor: 'transparent', 
     },
     fItemToday: {
         backgroundColor: Colors.WHITE,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    fItemSelected: {
+        backgroundColor: Colors.WHITE,
         borderColor: Colors.PRIMARY,
+        ...GlobalStyles.dropShadow(2, 0.1, Colors.PRIMARY),
     },
     fIconWrapper: { 
         height: 36, 
@@ -609,6 +795,10 @@ const styles = StyleSheet.create({
     },
     fDay: { 
         color: Colors.TEXT_SECONDARY 
+    },
+    fDayActive: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
     },
     fDayToday: {
         color: Colors.PRIMARY,
@@ -631,23 +821,75 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY 
     },
 
+    hourlyScrollContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 4,
+    },
+    hourlyItem: {
+        alignItems: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingVertical: 14,
+        paddingHorizontal: 10,
+        borderRadius: 16,
+        gap: 6,
+        minWidth: 64,
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    hourlyItemNow: {
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
+        ...GlobalStyles.dropShadow(2, 0.08, Colors.PRIMARY),
+    },
+    hourTimeText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    hourTimeNow: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
+    hourlyIconWrapper: {
+        height: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    hourlyTempText: {
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    hourlyPrecipRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+    },
+    hourlyPrecipText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+
     bentoGrid: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
         justifyContent: 'space-between', 
-        gap: 16 
+        gap: 12, 
     },
     bentoBox: { 
         backgroundColor: Colors.WHITE, 
-        borderRadius: 20, 
-        padding: 16, 
-        width: '47.5%', 
-        minHeight: 140, 
+        borderRadius: 18, 
+        padding: 14, 
+        width: '48%', 
+        minHeight: 155, 
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'space-between',
         borderWidth: 1, 
         borderColor: Colors.GRAY_ULTRALIGHT, 
-        ...GlobalStyles.dropShadow(3) 
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
 
     bentoBoxDesktop: {
@@ -656,43 +898,68 @@ const styles = StyleSheet.create({
     bentoHeader: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        gap: 8 
+        gap: 6,
     },
     bentoTitle: { 
-        color: Colors.TEXT_SECONDARY 
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        flex: 1,
     },
     bentoMiddle: {
-        flex: 1,
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 4,
+        marginVertical: 4,
+    },
+    bentoMainRow: {
         flexDirection: 'row',
-        alignItems: 'flex-end', 
-        justifyContent: 'flex-start',
-        marginTop: 16,
+        alignItems: 'baseline',
+        gap: 3,
     },
     bentoValue: { 
-        fontSize: 32, 
+        fontSize: 26, 
         fontWeight: '900', 
+        lineHeight: 30,
         includeFontPadding: false,
     },
-    bentoSubValue: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        marginLeft: 6,
-        fontWeight: '700',
-        alignSelf: 'flex-end',
-        marginBottom: 4,
-    },
     bentoUnit: {
-        fontSize: 16,
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    bentoSubBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        maxWidth: '100%',
+        marginTop: 2,
+    },
+    badgeNormal: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    badgeWarning: {
+        backgroundColor: '#FEF3C7',
+    },
+    badgeDanger: {
+        backgroundColor: '#FEE2E2',
+    },
+    bentoSubValue: {
+        fontSize: 10,
+        color: Colors.TEXT_PRIMARY,
         fontWeight: '600',
-        marginLeft: 4,
-        marginBottom: 4, 
+    },
+    bentoSubValueAlert: {
+        fontWeight: '700',
     },
     bentoBottom: {
-        marginTop: 16,
-        justifyContent: 'flex-end',
+        marginTop: 2,
     },
     bentoDesc: { 
-        color: Colors.TEXT_SECONDARY 
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+        lineHeight: 14,
     },
 
     sunTimeRow: { 

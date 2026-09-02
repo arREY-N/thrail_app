@@ -1,5 +1,5 @@
 import { db } from "@/src/core/config/Firebase";
-import { Group } from "@/src/core/models/Group/interfaces/Group.types";
+import { Group, IWeatherAlert } from "@/src/core/models/Group/interfaces/Group.types";
 import { groupConverter } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message, messageConverter } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
@@ -158,6 +158,43 @@ export const GroupRepository = (db: Firestore) => ({
             // Non-critical — swallow silently if group has no lastMessage yet
         }
     },
+
+    listenToLatestWeatherAlert(groupId: string, onUpdate: (alert: IWeatherAlert | null) => void): Unsubscribe {
+        const q = query(
+            collection(db, 'groups', groupId, 'alerts'),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+
+        return onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                onUpdate(null);
+                return;
+            }
+            const docData = snapshot.docs[0].data();
+            const alert: IWeatherAlert = {
+                id: snapshot.docs[0].id,
+                groupId: docData.groupId || groupId,
+                trailName: docData.trailName || '',
+                phase: docData.phase || 'T-24',
+                status: docData.status || 'SAFE',
+                headline: docData.headline || '',
+                message: docData.message || '',
+                metrics: docData.metrics || {
+                    temperature: 0,
+                    precipitationProbability: 0,
+                    weatherCode: 0,
+                    windSpeed: 0,
+                    uvIndex: 0,
+                },
+                checklist: docData.checklist || [],
+                createdAt: docData.createdAt?.toDate ? docData.createdAt.toDate() : new Date(),
+            };
+            onUpdate(alert);
+        }, (error) => {
+            console.error('Error in listenToLatestWeatherAlert:', error);
+        });
+    },
 });
 
-export const GroupRepo = GroupRepository(db);
+export const GroupRepo = GroupRepository(db);

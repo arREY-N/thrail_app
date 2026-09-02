@@ -5,12 +5,16 @@ const { HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
-const cors = require('cors')({origin: true});
-const { FieldPath } = admin.firestore;
-const { CloudTasksClient } = require('@google-cloud/tasks');
 const { DateTime } = require('luxon');
+const { CloudTasksClient } = require('@google-cloud/tasks');
 
-const tasksClient = new CloudTasksClient();
+let _tasksClient = null;
+function getTasksClient() {
+    if (!_tasksClient) {
+        _tasksClient = new CloudTasksClient();
+    }
+    return _tasksClient;
+}
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const paymongoWebhookSecret = defineSecret('PAYMONGO_WEBHOOK_SECRET'); // Optional
@@ -110,7 +114,7 @@ exports.onAddBooking = functions.firestore
     .onCreate(async (snapshot, context) => {
         try {
             const data = snapshot.data();
-            const { userId, bookingId } = context.params;
+            const { userId } = context.params;
 
             const businessId = data.business?.id;
             if (!businessId) {
@@ -175,15 +179,12 @@ exports.onAddBooking = functions.firestore
             });
 
 
-            const validTokens = tokens.filter((t, i) => {
-                const res = response.responses[i];
-                if (res?.success) return true;
-
-                const error = res?.error?.code;
-                return ![
-                    'messaging/registration-token-not-registered',
-                    'messaging/invalid-registration-token'
-                ].includes(error);
+            // Cleanup invalid tokens if any failed
+            const tokensToRemove = uniqueTokens.filter((token, idx) => {
+                const res = response.responses.at(idx);
+                if (!res || res.success) return false;
+                const error = res.error?.code;
+                return error === 'messaging/registration-token-not-registered' || error === 'messaging/invalid-registration-token';
             });
         } catch (error) {
             throw new HttpsError('internal', 'Error processing new booking: ' + error.message);
@@ -270,7 +271,7 @@ exports.onBookingStatusChange = functions.firestore
                 const project = JSON.parse(process.env.FIREBASE_CONFIG).projectId;
                 const location = 'us-central1'; 
                 const queue = 'booking-reminders';
-                const queuePath = tasksClient.queuePath(project, location, queue);
+                const queuePath = getTasksClient().queuePath(project, location, queue);
 
                 const url = `https://${location}-${project}.cloudfunctions.net/sendUserReminder`;
                 
@@ -295,7 +296,7 @@ exports.onBookingStatusChange = functions.firestore
                             seconds: Math.floor(reminderDateWeek.toSeconds()),
                         },
                     };
-                    await tasksClient.createTask({ parent: queuePath, task: weekTask });
+                    await getTasksClient().createTask({ parent: queuePath, task: weekTask });
                 }
 
                 if (reminderDateDay > DateTime.now()) {
@@ -310,7 +311,7 @@ exports.onBookingStatusChange = functions.firestore
                             seconds: Math.floor(reminderDateDay.toSeconds()),
                         },
                     };
-                    await tasksClient.createTask({ parent: queuePath, task: dayTask });
+                    await getTasksClient().createTask({ parent: queuePath, task: dayTask });
                 }
             }
         } catch (error) {
@@ -385,8 +386,9 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 .update({ fcmTokens: validTokens });
         }
 
-        res.status(200).send('Success')
+        res.status(200).send('Success');
     } catch (error) {
+        console.error('Error in sendUserReminder: ', error);
         res.status(500).send('Internal server error');
     }
 });
@@ -503,7 +505,7 @@ exports.createBusiness = https.onCall(async (request) => {
             const appRef = db.collection('applications').doc(appId);
             const userRef = db.collection('users').doc(userId);
 
-            const [busSnap, appSnap, userSnap] = await Promise.all([
+            const [, appSnap, userSnap] = await Promise.all([
                 transaction.get(busRef),
                 transaction.get(appRef),
                 transaction.get(userRef)
@@ -636,7 +638,7 @@ function handlePaymongoError(err) {
         let errorBody;
         try {
             errorBody = JSON.parse(jsonStr);
-        } catch (e) {
+        } catch (_e) {
             // Check for HTML/Network level errors (503, 500, 502)
             if (jsonStr.includes('503') || jsonStr.includes('500') || jsonStr.includes('<html>')) {
                 throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
@@ -1098,5 +1100,411 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         }
         
         throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);
+    }
+});// ─── GROUP-CENTRIC PROGRESSIVE T-MINUS WEATHER ALERT ENGINE ──────────────────
+// Monitors active hike groups (/groups/{groupId}) across the T-minus schedule:
+// T-168h (7 days), T-72h (3 days), T-24h (1 day with 3-hr watch), T-3h (Departure)
+// Saves alerts to /groups/{groupId}/alerts/{alertId} and sends notifications to group.participantsIds
+
+const MOUNTAIN_COORDINATES = {
+    tagapo: { lat: 14.3392772, lon: 121.2325293 },
+    marami: { lat: 14.1986108, lon: 120.6858334 },
+    batulao: { lat: 14.0399434, lon: 120.8023782 },
+    makiling: { lat: 14.1352241, lon: 121.1944517 },
+    maculot: { lat: 13.9208682, lon: 121.0516961 },
+    daraitan: { lat: 14.6152778, lon: 121.4344444 },
+    pulag: { lat: 16.5986, lon: 120.8986 },
+    ulap: { lat: 16.3267, lon: 120.6406 },
+    pinatubo: { lat: 15.1433, lon: 120.3506 },
+    pico: { lat: 14.2144, lon: 120.6483 },
+};
+
+function resolveMountainCoords(trailName, customCoords) {
+    if (customCoords && typeof customCoords.latitude === 'number' && typeof customCoords.longitude === 'number') {
+        return { lat: customCoords.latitude, lon: customCoords.longitude };
+    }
+    if (customCoords && typeof customCoords.lat === 'number' && typeof customCoords.lon === 'number') {
+        return { lat: customCoords.lat, lon: customCoords.lon };
+    }
+    const lower = (trailName || '').toLowerCase();
+    for (const [key, coords] of Object.entries(MOUNTAIN_COORDINATES)) {
+        if (lower.includes(key)) return coords;
+    }
+    return null;
+}
+
+function evaluateWeatherSafety(weatherData, trailName, phase) {
+    const weatherCode = weatherData.current?.weather_code ?? weatherData.daily?.weathercode?.[0] ?? 0;
+    const precipProb = weatherData.daily?.precipitation_probability_max?.[0] ?? weatherData.hourly?.precipitation_probability?.[0] ?? 0;
+    const windSpeed = weatherData.current?.wind_speed_10m ?? weatherData.daily?.windspeed_10m_max?.[0] ?? 0;
+    const uvIndex = weatherData.daily?.uv_index_max?.[0] ?? weatherData.current?.uv_index ?? 0;
+
+    const isSevereCode = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
+    const isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
+    const isHighWind = windSpeed >= 40;
+    const isExtremeUv = uvIndex >= 11;
+
+    let status = 'SAFE';
+    if (isSevereCode || precipProb >= 70 || windSpeed >= 60 || uvIndex >= 13) {
+        status = 'DANGER';
+    } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8) {
+        status = 'CAUTION';
+    }
+
+    const checklist = [];
+    if (status === 'DANGER') {
+        checklist.push({ id: 'guide-consult', label: 'Consult organizer / guide regarding possible itinerary adjustment', category: 'advisory', icon: 'shield-alert-outline', library: 'MaterialCommunityIcons' });
+        checklist.push({ id: 'ridge-safety', label: 'Avoid exposed ridges & peaks during lightning or torrential squalls', category: 'safety', icon: 'flash-outline', library: 'Ionicons' });
+    }
+
+    if (isRain || precipProb >= 40) {
+        checklist.push({ id: 'waterproof-cover', label: 'Pack waterproof bag rain cover and dry bags for electronics', category: 'gear', icon: 'bag-personal-outline', library: 'MaterialCommunityIcons' });
+        checklist.push({ id: 'rainwear', label: 'Bring durable lightweight rain poncho / waterproof jacket', category: 'gear', icon: 'weather-pouring', library: 'MaterialCommunityIcons' });
+        checklist.push({ id: 'traction-shoes', label: 'Wear high-traction trail shoes with deep lugs for mud', category: 'gear', icon: 'shoe-sneaker', library: 'MaterialCommunityIcons' });
+        checklist.push({ id: 'trekking-pole', label: 'Trekking poles recommended for slippery descent control', category: 'gear', icon: 'walk', library: 'Ionicons' });
+    }
+
+    if (isExtremeUv) {
+        checklist.push({ id: 'extra-water', label: 'Bring at least 2.5L - 3L hydration + electrolyte salts', category: 'hydration', icon: 'water-outline', library: 'Ionicons' });
+        checklist.push({ id: 'sun-protection', label: 'Apply SPF 50+ sunscreen, wear wide-brim hat & arm sleeves', category: 'gear', icon: 'sunny-outline', library: 'Ionicons' });
+    } else {
+        checklist.push({ id: 'standard-water', label: 'Pack standard 1.5L - 2L trail hydration', category: 'hydration', icon: 'water-outline', library: 'Ionicons' });
+    }
+
+    checklist.push({ id: 'charged-phone', label: 'Keep phone sealed in waterproof pouch with powerbank', category: 'safety', icon: 'battery-charging-outline', library: 'Ionicons' });
+
+    let phasePrefix = '';
+    if (phase === 'T-168') phasePrefix = '7-Day Forecast';
+    else if (phase === 'T-72') phasePrefix = '3-Day Advisory';
+    else if (phase === 'T-24') phasePrefix = 'Eve-of-Hike Update';
+    else if (phase === 'T-3') phasePrefix = 'Final Departure Alert';
+
+    let headline = `${phasePrefix}: ${trailName}`;
+    let message = `Weather is clear and optimal for your upcoming hike at ${trailName}.`;
+
+    if (status === 'DANGER') {
+        headline = `⚠️ Severe Weather Warning: ${trailName} (${phasePrefix})`;
+        message = isSevereCode 
+            ? `Thunderstorms and heavy downpours forecast at ${trailName}. Please check group chat and coordinate with guides.`
+            : `Severe weather conditions (${precipProb}% rain, ${Math.round(windSpeed)} km/h wind) expected. High hazard on exposed terrain.`;
+    } else if (status === 'CAUTION') {
+        headline = `🌧️ Weather Advisory: ${trailName} (${phasePrefix})`;
+        message = isRain 
+            ? `Rain expected (${precipProb}% chance) at ${trailName}. Pack waterproof rain covers and traction footwear.`
+            : `Breezy winds (${Math.round(windSpeed)} km/h) or high UV index expected. Prepare appropriate sun protection.`;
+    }
+
+    return {
+        status,
+        headline,
+        message,
+        metrics: {
+            temperature: Math.round(weatherData.current?.temperature_2m ?? 0),
+            precipitationProbability: precipProb,
+            weatherCode,
+            windSpeed: Math.round(windSpeed),
+            uvIndex: Math.round(uvIndex),
+        },
+        checklist,
+    };
+}
+
+async function processGroupWeatherAlert(db, groupDoc) {
+    const group = groupDoc.data();
+    const groupId = groupDoc.id;
+    const trailName = group.trail?.name || group.trail?.general?.name || 'Scheduled Mountain';
+    const nowManila = DateTime.now().setZone('Asia/Manila');
+
+    let hikeDate = null;
+    const rawDate = group.offer?.date || group.offer?.startDate || group.date;
+    if (rawDate?.toDate) {
+        hikeDate = DateTime.fromJSDate(rawDate.toDate()).setZone('Asia/Manila');
+    } else if (typeof rawDate === 'string') {
+        hikeDate = DateTime.fromISO(rawDate).setZone('Asia/Manila');
+    }
+
+    if (!hikeDate || !hikeDate.isValid) {
+        return null;
+    }
+
+    const diffHours = hikeDate.diff(nowManila, 'hours').hours;
+
+    // Determine T-minus stage
+    let currentPhase = null;
+    let maxRecheckHours = 24;
+
+    if (diffHours >= 0 && diffHours <= 3) {
+        currentPhase = 'T-3';
+        maxRecheckHours = 4;
+    } else if (diffHours > 3 && diffHours <= 24) {
+        currentPhase = 'T-24';
+        maxRecheckHours = 3; // 3-hour watch
+    } else if (diffHours > 24 && diffHours <= 72) {
+        currentPhase = 'T-72';
+        maxRecheckHours = 20;
+    } else if (diffHours > 72 && diffHours <= 168) {
+        currentPhase = 'T-168';
+        maxRecheckHours = 20;
+    } else {
+        // Outside 7-day window or past hike
+        return null;
+    }
+
+    // Check last alert in /groups/{groupId}/alerts
+    const lastAlertSnap = await db.collection('groups').doc(groupId).collection('alerts')
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+
+    if (!lastAlertSnap.empty) {
+        const lastAlert = lastAlertSnap.docs[0].data();
+        const lastAlertTime = lastAlert.createdAt?.toDate ? DateTime.fromJSDate(lastAlert.createdAt.toDate()) : null;
+        if (lastAlertTime) {
+            const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
+            if (lastAlert.phase === currentPhase && hoursSinceLastAlert < maxRecheckHours) {
+                // Already alerted for this phase within throttle window
+                return null;
+            }
+        }
+    }
+
+    // Resolve mountain coordinates
+    const coords = resolveMountainCoords(trailName, group.trail?.coordinates || group.trail?.general?.coordinates);
+    if (!coords) {
+        console.log(`[checkGroupWeatherAlerts] No coordinates resolved for ${trailName}`);
+        return null;
+    }
+
+    const roundLat = coords.lat.toFixed(4);
+    const roundLon = coords.lon.toFixed(4);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=precipitation_probability,weathercode&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=7`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.error(`[checkGroupWeatherAlerts] Open-Meteo API failed for ${trailName}`);
+        return null;
+    }
+
+    const weatherData = await res.json();
+    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase);
+
+    // Save alert document to /groups/{groupId}/alerts/{alertId}
+    const alertRef = await db.collection('groups').doc(groupId).collection('alerts').add({
+        groupId,
+        trailName,
+        phase: currentPhase,
+        status: evaluation.status,
+        headline: evaluation.headline,
+        message: evaluation.message,
+        metrics: evaluation.metrics,
+        checklist: evaluation.checklist,
+        createdAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[checkGroupWeatherAlerts] Created alert ${alertRef.id} for group ${groupId} (${currentPhase}: ${evaluation.status})`);
+
+    // Target ONLY participants of the group
+    const participantIds = Array.isArray(group.participantsIds) && group.participantsIds.length > 0
+        ? group.participantsIds
+        : (group.members || []).map(m => m.id).filter(Boolean);
+
+    if (participantIds.length === 0) {
+        return { alertId: alertRef.id, recipientsCount: 0 };
+    }
+
+    // Write in-app notifications for all participants
+    const userDocs = await Promise.all(
+        participantIds.map(id => db.collection('users').doc(id).get())
+    );
+
+    const tokenList = [];
+    const notificationPromises = [];
+
+    for (const uDoc of userDocs) {
+        if (!uDoc.exists) continue;
+        const uId = uDoc.id;
+        const uData = uDoc.data();
+
+        // 1. In-app notification
+        notificationPromises.push(
+            db.collection('users').doc(uId).collection('notifications').add({
+                title: evaluation.headline,
+                message: evaluation.message,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type: 'weather_alert',
+                    groupId,
+                    alertId: alertRef.id,
+                    trailName,
+                    phase: currentPhase,
+                    severity: evaluation.status,
+                    precipitationProbability: evaluation.metrics.precipitationProbability,
+                    uvIndex: evaluation.metrics.uvIndex,
+                }
+            })
+        );
+
+        // 2. Collect tokens
+        const userTokens = uData.fcmTokens || [];
+        userTokens.forEach(t => {
+            const tok = typeof t === 'string' ? t : t.token;
+            if (tok) tokenList.push({ userId: uId, token: tok });
+        });
+    }
+
+    await Promise.all(notificationPromises);
+
+    // Multicast push notifications
+    const uniqueTokens = [...new Set(tokenList.map(t => t.token))];
+    if (uniqueTokens.length > 0) {
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: uniqueTokens,
+            notification: {
+                title: evaluation.headline,
+                body: evaluation.message,
+            },
+            data: {
+                type: 'weather_alert',
+                groupId,
+                alertId: alertRef.id,
+                trailName,
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'weather_alerts',
+                    clickAction: 'fcm.ACTION.HELLO',
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                        sound: 'default',
+                        priority: 10,
+                    },
+                },
+            },
+        });
+
+        // Cleanup stale tokens
+        const tokensToRemove = [];
+        response.responses.forEach((r, idx) => {
+            if (!r.success) {
+                const errCode = r.error?.code;
+                if (errCode === 'messaging/registration-token-not-registered' || errCode === 'messaging/invalid-registration-token') {
+                    tokensToRemove.push(uniqueTokens[idx]);
+                }
+            }
+        });
+
+        if (tokensToRemove.length > 0) {
+            for (const uDoc of userDocs) {
+                if (!uDoc.exists) continue;
+                const existingTokens = uDoc.data().fcmTokens || [];
+                const cleaned = existingTokens.filter(t => {
+                    const tokStr = typeof t === 'string' ? t : t.token;
+                    return !tokensToRemove.includes(tokStr);
+                });
+                if (cleaned.length !== existingTokens.length) {
+                    await db.collection('users').doc(uDoc.id).update({ fcmTokens: cleaned });
+                }
+            }
+        }
+    }
+
+    return {
+        alertId: alertRef.id,
+        phase: currentPhase,
+        status: evaluation.status,
+        recipientsCount: participantIds.length,
+    };
+}
+
+// Scheduled Cron: Runs hourly to check groups across T-168, T-72, T-24, and T-3
+exports.checkHikeWeatherAlerts = functions.pubsub
+    .schedule('0 * * * *')
+    .timeZone('Asia/Manila')
+    .onRun(async () => {
+        console.log('[checkHikeWeatherAlerts] Running Group T-minus weather monitor...');
+        const db = admin.firestore();
+
+        try {
+            const activeGroupsSnap = await db.collection('groups')
+                .where('status', '==', 'active')
+                .get();
+
+            if (activeGroupsSnap.empty) {
+                console.log('[checkHikeWeatherAlerts] No active groups found.');
+                return null;
+            }
+
+            console.log(`[checkHikeWeatherAlerts] Evaluating ${activeGroupsSnap.size} active groups...`);
+            for (const doc of activeGroupsSnap.docs) {
+                await processGroupWeatherAlert(db, doc);
+            }
+
+            console.log('[checkHikeWeatherAlerts] Completed cycle.');
+            return null;
+        } catch (err) {
+            console.error('[checkHikeWeatherAlerts] Error in weather monitoring cron:', err);
+            return null;
+        }
+    });
+
+// HTTP Test Endpoint: Allows 1-click test for any group or custom trail
+exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
+    try {
+        const db = admin.firestore();
+        const groupId = req.query.groupId || req.body.groupId;
+        const trailName = req.query.trail || req.body.trail || 'Mt. Daraitan';
+        const userId = req.query.userId || req.body.userId;
+
+        if (groupId) {
+            const groupDoc = await db.collection('groups').doc(groupId).get();
+            if (!groupDoc.exists) {
+                res.status(404).json({ error: `Group ${groupId} not found.` });
+                return;
+            }
+            const result = await processGroupWeatherAlert(db, groupDoc);
+            res.status(200).json({ success: true, result });
+            return;
+        }
+
+        // Direct test by trail & user
+        const coords = resolveMountainCoords(trailName, null) || MOUNTAIN_COORDINATES.batulao;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1`;
+        
+        const weatherRes = await fetch(url);
+        const weatherData = await weatherRes.json();
+        const evaluation = evaluateWeatherSafety(weatherData, trailName, 'T-24');
+
+        if (userId) {
+            await db.collection('users').doc(userId).collection('notifications').add({
+                title: evaluation.headline,
+                message: evaluation.message,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type: 'weather_alert',
+                    trailName,
+                    phase: 'T-24',
+                    severity: evaluation.status,
+                    precipitationProbability: evaluation.metrics.precipitationProbability,
+                    uvIndex: evaluation.metrics.uvIndex,
+                },
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            trailName,
+            evaluation,
+            note: userId ? `Notification added to user ${userId}` : 'No userId provided; evaluation returned only.',
+        });
+    } catch (err) {
+        console.error('[testGroupWeatherAlert] Error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
