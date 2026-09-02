@@ -1,9 +1,10 @@
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
 import { newHike, useHikesStore, useHikeState, useHikeStore } from "@/src/core/models/Hike/Hike";
+import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
-import { newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
-import { useAuthHook } from "@/src/core/models/User/User";
+import { ITrailSummary, newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
+import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -34,6 +35,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     const updateCurrentHike = useHikeStore(s => s.updateCurrentHike);
     const shareLocation = useHikeStore(s => s.startShareLocation);
     const stopSharingLocation = useHikeStore(s => s.stopShareLocation);
+    const coordinates = useHikeStore(s => s.coordinates);
 
     const create = useHikeStore(s => s.create);
     const updateHikeStore = useHikeStore(s => s.updateHikeStore);
@@ -147,9 +149,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             return;
         }
 
-        console.log('Resuming hike with id: ', currentHike?.id);
         if (!currentHike || currentHike.status !== 'paused') {
-            console.log("Current hike status: ", currentHike?.status);
             setLocalError("No paused hike to resume");
             return;
         }
@@ -175,17 +175,39 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             return;
         }
 
+        if (!profile) {
+            setLocalError("User profile is required to complete hike");
+            return;
+        }
+
         stopBackgroundTracking();
 
         updateHikeStore({
             active: false,
-            elapsedTime: 0,
-            timerStartTime: undefined,
         })
+
+        let location: ITrailSummary = currentHike.trail;
+        if (currentHike.trail.id === 'diy' || currentHike.trail.id === 'diy_session' || currentHike.trail.id === '') {
+            const coor = coordinates[0];
+
+            if (!coor.latitude || !coor.longitude) {
+                return;
+            };
+
+            const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
+
+            location = {
+                id: currentHike.trail.id,
+                location: locationName?.location || 'Location Unknown',
+                name: locationName?.name || 'Location Unknown',
+            }
+        }
 
         updateCurrentHike({
             status: 'completed',
-            endTime: new Date()
+            endTime: new Date(),
+            user: UserLogic.toSummary(profile),
+            trail: location
         });
 
         await create(profile!.id);
@@ -233,7 +255,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
             await shareLocation(groupId);
         } catch (error) {
-            console.log(error);
+            catchError(error as Error)
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
         }
     }
@@ -243,13 +265,12 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             if (!groupId) throw new Error("Group ID is required to share location");
             stopSharingLocation(groupId);
         } catch (error) {
-            console.log(error);
+            catchError(error as Error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while stopping location sharing.");
         }
     }
 
     useEffect(() => {
-        console.log("adjust time: ", currentHike?.status !== 'started')
         if (currentHike?.status !== 'started') {
             return;
         }

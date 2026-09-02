@@ -1,13 +1,12 @@
 import { auth, db } from "@/src/core/config/Firebase";
 import { SignUp } from "@/src/core/models/User/interfaces/SignUp.types";
 import { Role, User } from "@/src/core/models/User/interfaces/User.types";
-import { newSignUp, userConverter } from "@/src/core/models/User/utils/UserFactory";
-
-
 import { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
+import { newSignUp, userConverter } from "@/src/core/models/User/utils/UserFactory";
 import { Property } from "@/src/core/types/Property";
 import { editProperty } from "@/src/core/utility/editProperty";
 import { logger } from "@/src/core/utility/errorFormatter";
+
 import { validateInfo, validateSignUp } from "@/src/core/utility/validate";
 import {
     onIdTokenChanged,
@@ -94,7 +93,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 if (!get().user) {
                     set({ isLoading: true });
                 }
-                console.log("init");
+                logger("authStoreCreator", "init");
                 const currentUnsub = get()._unsubscribe;
 
                 if (currentUnsub) {
@@ -102,16 +101,16 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                     set({ _unsubscribe: null });
                 }
 
-                console.log('line 90')
+                logger("authStoreCreator", 'line 90')
 
                 if (firebaseUser) {
 
                     try {
-                        console.log("with user");
+                        logger("authStoreCreator", "with user");
 
                         const idTokenResult = await firebaseUser.getIdTokenResult(false);
 
-                        console.log('worked');
+                        logger("authStoreCreator", 'worked');
 
                         const businessId =
                             (idTokenResult.claims as CustomClaims).businessId ||
@@ -133,7 +132,6 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                             ref,
                             (snap) => {
                                 if (snap.exists()) {
-                                    console.log('snap exists');
                                     set({
                                         user: cleanedUser,
                                         role: snap.data().role,
@@ -143,10 +141,10 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                                     });
                                 } else {
                                     if (!snap.metadata.fromCache) {
-                                        console.log("User document does not exist on server");
+                                        logger("authStoreCreator", "User document does not exist on server");
                                         set({ isLoading: false, error: "User document does not exist" });
                                     } else {
-                                        console.log("Profile loading from cache temporarily empty...");
+                                        logger("authStoreCreator", "Profile loading from cache temporarily empty...");
 
                                         // FIX: If we have a fallback profile restored safely via Zustand's AsyncStorage 
                                         // rehydration layer, turn off the loading spinner so the hiker can see their cached data layout!
@@ -157,7 +155,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                                 }
                             },
                             (error) => {
-                                console.log("Firestore snapshot handled error: ", error);
+                                logger("authStoreCreator", "Firestore snapshot handled error: ", error);
                                 if (get().profile) {
                                     set({ isLoading: false });
                                 }
@@ -170,7 +168,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                         return;
                     }
                 } else {
-                    console.log("no user");
+                    logger("authStoreCreator", "no user");
                     const currentUnsub = get()._unsubscribe;
 
                     if (currentUnsub) {
@@ -202,7 +200,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
             await UserRepo.logIn({ email, password });
             set({ isChecking: false, error: null });
         } catch (err) {
-            console.log(err);
+            logger("authStoreCreator", "LogIn Error", err);
             set({
                 error: (err as Error).message ?? "Error logging in",
                 isLoading: false,
@@ -246,7 +244,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         set({ isChecking: true, error: null });
         try {
             validateSignUp(get().account);
-            console.log(get().account);
+            logger("authStoreCreator", "account", get().account);
             if (__DEV__) {
                 logger('authStoreCreator', 'credential bypassed, only for development mode');
                 set({ isChecking: false, error: null });
@@ -314,6 +312,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 isLoading: false,
                 error: (error as Error).message || "Failed signing up with Google",
             })
+            throw error;
         }
     },
 
@@ -335,7 +334,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
             await sendPasswordResetEmail(auth, email, actionCodeSettings);
             set({ isLoading: false, error: null });
         } catch (error) {
-            console.log("Forgot password error:", error);
+            logger("authStoreCreator", "Forgot password error", error);
             set({ isLoading: false, error: (error as Error).message || "Failed to initiate password reset" });
         }
     },
