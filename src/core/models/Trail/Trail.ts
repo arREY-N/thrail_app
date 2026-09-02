@@ -13,6 +13,9 @@ export {
     getIndexedMountains,
     getStatsForMountain
 } from "@/src/core/models/Trail/utils/GeoJSONProcessor";
+export {
+    getTrailImage
+} from "@/src/core/models/Trail/utils/GetTrailImage";
 export { TrailLogic } from "@/src/core/models/Trail/utils/Trail.logic";
 export {
     default as computeTotalLength,
