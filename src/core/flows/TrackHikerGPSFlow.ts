@@ -95,7 +95,7 @@ export const TrackHikerGPSFlow = () => {
     /**
      * MODE 1: FOREGROUND PRE-WARMING
      * Gets GPS lock and updates the blue dot on the map.
-     * Will ONLY record data and draw the red line if the global store says active === true.
+x     * Will ONLY record data and draw the red line if the global store says active === true.
      */
     const initForegroundGps = async () => {
         if (Platform.OS === "web") return;

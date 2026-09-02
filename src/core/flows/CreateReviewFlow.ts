@@ -1,9 +1,7 @@
-import { HikeRepo, useHikeStore } from "@/src/core/models/Hike/Hike";
-import { Review } from "@/src/core/models/Review/interfaces/Review.types";
-import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
-import { ReviewLogic } from "@/src/core/models/Review/utils/Review.logic";
-import { newReview } from "@/src/core/models/Review/utils/ReviewFactory";
-import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { HikeRepo, useHikesStore, useHikeStore } from "@/src/core/models/Hike/Hike";
+import { getReverseGeocode } from "@/src/core/models/Location/Location";
+import { newReview, Review, ReviewLogic, useReviewStore } from "@/src/core/models/Review/Review";
+import { ITrailSummary, newTrail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { produce } from "immer";
@@ -39,6 +37,10 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
     const create = useReviewStore(s => s.create);
     const trails = useTrailsStore(s => s.data);
     const hikes = useHikeStore(s => s.hikes);
+    const coordinates = useHikesStore(s => s.coordinates);
+    const elapsedTime = useHikeStore(s => s.elapsedTime);
+    const totalDistance = useHikeStore(s => s.totalDistance);
+    const totalElevationGain = useHikeStore(s => s.totalElevationGain);
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -65,16 +67,16 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                 return newReview();
             }
 
-            const trail = trails.find(t => t.id === trailId);
+            const trail = trailId === 'diy' || trailId === 'diy_session' ? newTrail({ id: 'diy' }) : trails.find(t => t.id === trailId);
 
             if (!trail) {
                 setLocalError(`No trail found with id ${trailId}`);
                 return newReview();
             }
 
-            newReviewItem.distance = distance || 0;
-            newReviewItem.duration = duration || 0;
-            newReviewItem.elevation = elevation || 0;
+            newReviewItem.distance = totalDistance || 0;
+            newReviewItem.duration = elapsedTime || 0;
+            newReviewItem.elevation = totalElevationGain || 0;
 
             return ReviewLogic.setReviewObject({
                 user: profile,
@@ -127,6 +129,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
 
     const onUpdatePress = (payload: { section: string; id: string; value: unknown }) => {
         try {
+            const { section, id, value } = payload;
             setReview(prev =>
                 produce(prev, (draft) => {
                     if (section === 'root') {
@@ -147,14 +150,34 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
             if (!profile)
                 throw new Error('User must be logged in');
 
+            const isNew = review.id === '';
+
+            let location: ITrailSummary = review.trail;
+
+            if (isNew && (review.trail.id === 'diy' || review.trail.id === 'diy_session' || review.trail.id === '')) {
+                const coor = coordinates[0];
+
+                if (!coor.latitude || !coor.longitude) {
+                    return;
+                };
+
+                const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
+
+                location = {
+                    id: review.trail.id,
+                    location: locationName?.location || 'Location Unknown',
+                    name: locationName?.name || 'Location Unknown',
+                }
+            }
+
             const finalReviewToSave = produce(review, draft => {
                 draft.user = UserLogic.toSummary(profile);
+                draft.trail = location
             });
 
-            console.log('To save:', finalReviewToSave);
             await create(finalReviewToSave)
 
-            router.back();
+            router.replace('/');
         } catch (error) {
             setLocalError((error as Error).message)
         }

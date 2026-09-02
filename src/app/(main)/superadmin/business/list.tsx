@@ -4,11 +4,10 @@
  */
 
 
-import useSuperadmin from '@/src/core/models/Superadmin/hooks/useSuperadmin';
-import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
+import { useSuperadmin, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import BusinessListScreen from '@/src/features/SuperAdmin/screens/tabs/BusinessListScreen';
 
-export default function listBusiness() {
+export default function ListBusiness() {
     const {
         applications,
         businesses,

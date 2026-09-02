@@ -27,7 +27,6 @@ export { useDevicePermissions } from "@/src/core/models/User/hooks/useDevicePerm
 export { useEditProfile } from "@/src/core/models/User/hooks/useEditProfile";
 export { useForgotPassword } from "@/src/core/models/User/hooks/useForgotPassword";
 export { useHikerProfile } from "@/src/core/models/User/hooks/useHikerProfile";
-export { useNotifyPermission } from "@/src/core/models/User/hooks/useNotifyPermission";
 export { usePreference } from "@/src/core/models/User/hooks/usePreference";
 export { useRouteGuard } from "@/src/core/models/User/hooks/useRouteGuard";
 export { useSignUp } from "@/src/core/models/User/hooks/useSignUp";

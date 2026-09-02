@@ -18,7 +18,6 @@ export { useHikeItem } from "@/src/core/models/Hike/hooks/useHikeItem";
 export { useHikeList } from "@/src/core/models/Hike/hooks/useHikeList";
 export { useHikeNavigation } from "@/src/core/models/Hike/hooks/useHikeNavigation";
 export { useHikeState } from "@/src/core/models/Hike/hooks/useHikeState";
-export { useHikeWrite } from "@/src/core/models/Hike/hooks/useHikeWrite";
 
 // REPOSITORIES
 export { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";

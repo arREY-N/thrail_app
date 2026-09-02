@@ -1,8 +1,8 @@
-import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
+import { Hike, IHike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
-import { useAuthStore } from "@/src/core/models/User/User";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -21,6 +21,12 @@ export interface HikeState {
     isLoading: boolean;
     error: string | null;
     gpsError: string | null;
+
+    profile: {
+        id: string,
+        firstname: string,
+        lastname: string,
+    } | null;
 
     currentHike: Hike | null;
     elapsedTime: number;
@@ -48,7 +54,7 @@ export interface HikeState {
     load: (id: string, userId: string) => Promise<Hike | null>;
     create: (userId: string, hike?: Hike) => Promise<void>;
     remove: (id: string, userId: string) => Promise<void>;
-    startHike: (userId: string) => Promise<void>;
+    startHike: (hike: IHike, profile: { id: string, firstname: string, lastname: string }) => Promise<void>;
 
     startShareLocation: (groupId: string) => Promise<void>;
     stopShareLocation: (groupId: string) => void;
@@ -72,13 +78,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     activeListeners: {},
     activeGroupId: null,
     shareLocationEnabled: true,
+    profile: null,
 
     addCoordinate: async (coordinate: Location) => {
         try {
-            const profile = useAuthStore.getState().profile;
             const currentHike = get().currentHike;
             const activeGroupId = get().activeGroupId;
             const active = get().active;
+            const profile = get().profile;
 
             if (!active || (currentHike && currentHike.status === 'paused')) {
                 set({
@@ -157,7 +164,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             if (!get().currentHike) throw new Error("No active hike to share location for");
             if (get().live) return;
 
-            const profile = useAuthStore.getState().profile;
+            const profile = get().profile;
             if (!profile) throw new Error("User profile not found.");
 
             if (get().shareLocationEnabled) {
@@ -190,7 +197,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     stopShareLocation: (groupId: string) => {
         try {
-            const profile = useAuthStore.getState().profile;
+            const profile = get().profile;
             if (profile?.id) {
                 HikeRepo.deleteLocation(profile.id, groupId).catch((error) => {
                     console.error('Error deleting location on stopShareLocation: ', error);
@@ -216,7 +223,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         set({ shareLocationEnabled: enabled });
 
         const activeGroupId = get().activeGroupId;
-        const profile = useAuthStore.getState().profile;
+        const profile = get().profile;
         if (!profile?.id || !activeGroupId) return;
 
         if (!enabled) {
@@ -244,19 +251,16 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         if (state.currentHike) { Object.assign(state.currentHike, patch); }
     }),
 
-    startHike: async (userId: string) => {
+    startHike: async (hike: IHike, profile: { id: string, firstname: string, lastname: string }) => {
         set({ isLoading: true });
         try {
-            const hike = get().currentHike;
-            if (!hike) throw new Error("No hike loaded to start");
-
             const active = newHike({
                 ...hike,
                 status: 'started',
                 startTime: new Date(),
             });
 
-            const updated = await HikeRepo.write(active, userId);
+            const updated = await HikeRepo.write(active, profile.id);
 
             set({
                 currentHike: updated,
@@ -266,6 +270,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 timerStartTime: Date.now(),
                 totalDistance: 0,
                 totalElevationGain: 0,
+                profile,
             });
         } catch (error) {
             console.error(error);
@@ -324,17 +329,24 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         try {
             if (!userId) throw new Error("User ID is required to create hike");
 
-            const toUploadHike = get().currentHike ?? hike;
-            if (!toUploadHike) throw new Error("No hike data provided to create");
+            const baseHike = get().currentHike || hike;
+
+            if (!baseHike) throw new Error("No hike data provided to create");
+
+            const toUploadHike: Hike = {
+                ...baseHike,
+                distance: get().totalDistance,
+                elevation: get().totalElevationGain,
+                duration: get().elapsedTime
+            };
 
             const response = await HikeRepo.write(toUploadHike, userId);
 
-            set((state) => {
-                const index = state.hikes.findIndex(h => h.id === response.id);
-                if (index !== -1) { state.hikes[index] = response; }
-                else { state.hikes.push(response); }
-                state.isLoading = false;
-            });
+            set({
+                isLoading: false,
+                currentHike: response,
+                hikes: upsertItem(get().hikes, response)
+            })
         } catch (error) {
             console.error(error);
             set({ error: "Failed to create hike", isLoading: false });

@@ -3,13 +3,10 @@
  * @description Mountains database list page controller for Superadmin. Composes auth, mountain domain, and navigation hooks to render MountainListScreen inside SuperadminShell.
  */
 
-import React from 'react';
-
-import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
-
 import { useMountainList } from '@/src/core/models/Mountain/Mountain';
-import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import MountainListScreen from '@/src/features/SuperAdmin/screens/tabs/MountainListScreen';
+import React from 'react';
 
 /**
  * Superadmin mountains list page controller component.

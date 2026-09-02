@@ -8,7 +8,8 @@ import UnauthorizedScreen from "@/src/app/unauthorized";
 
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useAdminAccount, useAdminNavigation } from "@/src/core/models/Admin/Admin";
+import { useAdminNavigation } from "@/src/core/models/Admin/Admin";
+import { useBusinessAdmin } from "@/src/core/models/Business/Business";
 import PersonnelListScreen from "@/src/features/Admin/screens/Personnel/PersonnelListScreen";
 import { Stack } from 'expo-router';
 
@@ -27,7 +28,7 @@ export default function PersonnelList() {
         profile,
         businessId,
         role,
-    } = useAdminAccount();
+    } = useBusinessAdmin();
 
     const { onAddAdminPress } = useAdminNavigation();
 

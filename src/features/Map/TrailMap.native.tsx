@@ -63,7 +63,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     isOnline,
     exportHikeData,
     initForegroundGps,
-    startBackgroundTracking,
+    // startBackgroundTracking,
     stopBackgroundTracking,
   } = TrackHikerGPSFlow();
 
@@ -208,7 +208,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     centerOnCoordinate,
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
-    startBackgroundTracking,
+    // startBackgroundTracking,
     stopBackgroundTracking,
   }));
 

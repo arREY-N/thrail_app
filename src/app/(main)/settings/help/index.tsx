@@ -4,14 +4,13 @@
  */
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import HelpSupportScreen from '@/src/features/Settings/screens/HelpSupportScreen';
-import React from 'react';
 
 /**
  * HelpSupportPage coordinates FAQs and support request submissions.
  */
-export default function help() {
+export default function Help() {
     const { onBackPress } = useAppNavigation();
-    
+
     // TODO: [Backend] Handle fetching FAQs from Firestore
     const faqs = [
         { q: "How do I download offline maps?", a: "Offline maps are downloaded automatically when you view a trail's details while connected to the internet." },
@@ -23,7 +22,7 @@ export default function help() {
     };
 
     return (
-        <HelpSupportScreen 
+        <HelpSupportScreen
             faqs={faqs}
             onSubmitRequest={handleSubmitRequest}
             onBackPress={onBackPress}

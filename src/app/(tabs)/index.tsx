@@ -3,15 +3,8 @@
  * @description Controller for the Home Tab. Connects domain hooks and navigation to the pure HomeScreen UI.
  */
 
-import { View } from 'react-native';
 
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useHomeRefresh } from '@/src/core/hook/useHomeRefresh';
-import { useTrailOffers } from '@/src/core/hook/useTrailOffers';
-import { useRecommendationItem } from '@/src/core/models/Recommendation/Recommendation';
-import { useReview } from '@/src/core/models/Review/Review';
-import { useTrailList } from '@/src/core/models/Trail/Trail';
-import { useAuthHook } from '@/src/core/models/User/User';
+import { HomeFlow } from '@/src/core/flows/HomeFlow';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 /**
@@ -22,67 +15,50 @@ import HomeScreen from '@/src/features/Home/screens/HomeScreen';
  */
 export default function Home() {
     const {
+        getItemRating,
         onDownloadPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
         onSeeMoreDiscoverPress,
         onSeeMoreOffersPress,
-        onGroupPress
-    } = useAppNavigation();
-
-    const {
-        getItemRating,
-    } = useReview();
-
-    const {
-        error: discoverError,
-        discoverTrails,
-        onViewTrail
-    } = useTrailList();
-
-    const { isNewAccount } = useAuthHook();
-
-    const {
-        isLoading: recommendationLoading,
-        error: recommendationError,
-    } = useRecommendationItem();
-
-    const {
-        isRefreshing,
-        onRefreshPress,
-    } = useHomeRefresh();
-
-    const {
+        onGroupPress,
+        trailError,
+        trails,
+        onViewTrail,
+        isNewAccount,
+        recommendationError,
+        recommendationIsLoading,
         offers,
         trailsWithOffers,
-        isLoading,
-    } = useTrailOffers();
+        trailOfferIsLoading,
+        trailLoading,
+        isRefreshing,
+        onRefreshPress,
+    } = HomeFlow();
 
     return (
-        <View style={{ flex: 1 }}>
-            <HomeScreen
-                onWeatherPress={onWeatherPress}
-                onSeeMoreRecommendationsPress={onSeeMoreRecommendationsPress}
-                onSeeMoreDiscoverPress={onSeeMoreDiscoverPress}
-                onSeeMoreOffersPress={onSeeMoreOffersPress}
-                recommendedTrails={[]}
-                isRecommendationsLoading={recommendationLoading}
-                recommendationsError={recommendationError}
-                isNewAccount={isNewAccount}
-                discoverTrails={discoverTrails}
-                discoverError={discoverError}
-                trailsWithOffers={trailsWithOffers}
-                isOffersLoading={isLoading}
-                onMountainPress={onViewTrail}
-                onDownloadPress={onDownloadPress}
-                onGroupPress={onGroupPress}
-                getItemRating={getItemRating}
-                isLoading={isLoading}
-                offers={offers}
-                isRefreshing={isRefreshing}
-                onRefreshPress={onRefreshPress}
-            />
-        </View>
+        <HomeScreen
+            onWeatherPress={onWeatherPress}
+            onSeeMoreRecommendationsPress={onSeeMoreRecommendationsPress}
+            onSeeMoreDiscoverPress={onSeeMoreDiscoverPress}
+            onSeeMoreOffersPress={onSeeMoreOffersPress}
+            recommendedTrails={[]}
+            isRecommendationsLoading={recommendationIsLoading}
+            recommendationsError={recommendationError}
+            isNewAccount={isNewAccount}
+            discoverTrails={trails}
+            discoverError={trailError}
+            trailsWithOffers={trailsWithOffers}
+            isOffersLoading={trailOfferIsLoading}
+            onMountainPress={onViewTrail}
+            onDownloadPress={onDownloadPress}
+            onGroupPress={onGroupPress}
+            getItemRating={getItemRating}
+            isLoading={trailLoading}
+            offers={offers}
+            isRefreshing={isRefreshing}
+            onRefreshPress={onRefreshPress}
+        />
     );
 };
 

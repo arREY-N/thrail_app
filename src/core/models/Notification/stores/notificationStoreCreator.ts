@@ -1,6 +1,6 @@
 import { Notification } from "@/src/core/models/Notification/interfaces/Notification.types";
 import { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { useAuthStore } from "@/src/core/models/User/User";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -9,7 +9,7 @@ export interface NotificationState {
     isLoading: boolean;
     error: string | null;
 
-    subscribeToNotifications: () => Unsubscribe | null;
+    subscribeToNotifications: (userId: string) => Unsubscribe | null;
     unsubscribeFromNotifications: () => void;
     readNotification: (notificationId: string) => Promise<void>;
 }
@@ -28,21 +28,15 @@ export const notificationStoreCreator: StateCreator<
 > = (set, get) => ({
     ...init,
 
-    subscribeToNotifications: () => {
+    subscribeToNotifications: (userId: string) => {
         if (activeNotificationsUnsubscribe) {
             activeNotificationsUnsubscribe();
             activeNotificationsUnsubscribe = null;
         }
 
         try {
-            const { profile } = useAuthStore.getState();
-
-            if (!profile) {
-                return null;
-            }
-
             const unsub = NotificationRepo.listenToNotifications(
-                profile.id,
+                userId,
                 (notifications) => set({
                     notifications,
                 })

@@ -1,9 +1,11 @@
 import { Slot } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import HomeSidebar from "@/src/features/Web/Home/HomePageNavBar";
+import { useAppSubscriptions } from "@/src/core/hook/useAppSubscriptions";
+import { HomeSidebar } from "@/src/features/Web/Home/HomePageNavBar";
 
 export default function WebTabLayout() {
+  useAppSubscriptions();
   return (
     <View style={styles.webContainer}>
       {/* Left Sidebar Navigation */}
