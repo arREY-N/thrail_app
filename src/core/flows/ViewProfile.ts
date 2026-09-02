@@ -4,7 +4,6 @@ import { useProfileNavigation } from "@/src/core/hook/navigation/useProfileNavig
 import { Hike, useHikeList } from "@/src/core/models/Hike/Hike";
 import { newReview, Review, useReview, useReviewList } from "@/src/core/models/Review/Review";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
-import { logger } from "@/src/core/utility/errorFormatter";
 import { formatDistance, formatTime } from "@/src/core/utility/statsFormatter";
 import { useMemo, useState } from "react";
 
@@ -41,20 +40,22 @@ export function ViewProfile() {
         const userSummary = UserLogic.toSummary(profile);
 
         const userReviews = reviews.filter(r => r.user.id === profile.id);
-        const formattedHikes = (hikes || []).map(h => newReview({ ...h, user: userSummary }))
+        const formattedHikes = (hikes || []).map(h => newReview({ ...h, user: userSummary }));
 
-        return [
-            ...userReviews,
-            ...formattedHikes
-        ].sort((a, b) => {
+        const idMap = new Map<string, Review>();
+        [...formattedHikes, ...userReviews].forEach(item => {
+            if (item.id) idMap.set(item.id, item);
+        });
+
+        return Array.from(idMap.values()).sort((a, b) => {
             const dateA = a.hikeDate ? new Date(a.hikeDate).getTime() : 0;
             const dateB = b.hikeDate ? new Date(b.hikeDate).getTime() : 0;
             return dateB - dateA;
         });
-    }, [hikes, profile, reviews])
+    }, [hikes, profile, reviews]);
+
 
     const computedStats = useMemo(() => {
-        logger('useStates', 'Computin stats', hikes.length);
         const totalHikesCount = hikes.length;
         const lastHikeName = totalHikesCount > 0 ? (hikes[0].trail?.name || '') : '';
         let maxDist = 0; let maxDistTrail = '0';
