@@ -67,7 +67,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                 return newReview();
             }
 
-            const trail = trailId === 'diy' || trailId === 'diy_session' ? newTrail() : trails.find(t => t.id === trailId);
+            const trail = trailId === 'diy' || trailId === 'diy_session' ? newTrail({ id: 'diy' }) : trails.find(t => t.id === trailId);
 
             if (!trail) {
                 setLocalError(`No trail found with id ${trailId}`);
