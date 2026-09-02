@@ -12,7 +12,7 @@ export interface BookingState {
     loadById: (bookingId: string) => Promise<void>;
     loadAll: (role: string) => Promise<void>;
     load: (userId: string) => Promise<void>;
-    refresh: (userId?: string | null) => Promise<void>;
+    refresh: (userId: string | null, role: 'user' | 'admin' | 'superadmin', businessId?: string) => Promise<void>;
     subscribeToBusinessBookings: (offerId: string, businessId: string) => Promise<void>;
     unsubscribeFromBusinessBookings: (offerId: string) => void;
     subscribeToUserBookings: (userId: string) => Unsubscribe;
@@ -202,16 +202,44 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
         }
     },
 
-    refresh: async (userId?: string | null) => {
+    refresh: async (userId: string | null, role: 'user' | 'admin' | 'superadmin', businessId?: string) => {
         try {
             set({ isLoading: true, error: null });
             if (!userId) {
                 throw new Error("User ID is required for refreshing bookings");
             }
 
-            const userBookings = await BookingRepo.fetchUserBookings(userId);
+            if (!role) {
+                throw new Error("Current user's role must be provided");
+            }
 
-            set({ userBookings });
+            let bookings: Booking[];
+
+            if (role === 'user') {
+                bookings = await BookingRepo.fetchUserBookings(userId);
+            }
+
+            if (role === 'admin') {
+                if (!businessId) {
+                    throw new Error("Business ID is required for refreshing bookings");
+                }
+
+                bookings = await BookingRepo.fetchAllBusinessBookings(businessId)
+            }
+
+            if (role === 'superadmin') {
+                bookings = await BookingRepo.fetchAll();
+            }
+
+            set((state) => {
+                if (role === 'user') {
+                    state.userBookings = bookings;
+                } else if (role === 'admin') {
+                    state.businessBookings = bookings;
+                } else if (role === 'superadmin') {
+                    state.data = bookings;
+                }
+            })
         } catch (err) {
             throw err;
         } finally {
