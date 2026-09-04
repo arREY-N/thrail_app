@@ -1212,7 +1212,7 @@ function evaluateWeatherSafety(weatherData, trailName, phase) {
     };
 }
 
-async function processGroupWeatherAlert(db, groupDoc) {
+async function processGroupWeatherAlert(db, groupDoc, force = false) {
     const group = groupDoc.data();
     const groupId = groupDoc.id;
     const trailName = group.trail?.name || group.trail?.general?.name || 'Scheduled Mountain';
@@ -1226,47 +1226,51 @@ async function processGroupWeatherAlert(db, groupDoc) {
         hikeDate = DateTime.fromISO(rawDate).setZone('Asia/Manila');
     }
 
-    if (!hikeDate || !hikeDate.isValid) {
-        return null;
-    }
-
-    const diffHours = hikeDate.diff(nowManila, 'hours').hours;
+    let diffHours = hikeDate && hikeDate.isValid ? hikeDate.diff(nowManila, 'hours').hours : null;
 
     // Determine T-minus stage
     let currentPhase = null;
     let maxRecheckHours = 24;
 
-    if (diffHours >= 0 && diffHours <= 3) {
-        currentPhase = 'T-3';
-        maxRecheckHours = 4;
-    } else if (diffHours > 3 && diffHours <= 24) {
-        currentPhase = 'T-24';
-        maxRecheckHours = 3; // 3-hour watch
-    } else if (diffHours > 24 && diffHours <= 72) {
-        currentPhase = 'T-72';
-        maxRecheckHours = 20;
-    } else if (diffHours > 72 && diffHours <= 168) {
-        currentPhase = 'T-168';
-        maxRecheckHours = 20;
-    } else {
-        // Outside 7-day window or past hike
-        return null;
+    if (diffHours != null) {
+        if (diffHours >= 0 && diffHours <= 3) {
+            currentPhase = 'T-3';
+            maxRecheckHours = 4;
+        } else if (diffHours > 3 && diffHours <= 24) {
+            currentPhase = 'T-24';
+            maxRecheckHours = 3;
+        } else if (diffHours > 24 && diffHours <= 72) {
+            currentPhase = 'T-72';
+            maxRecheckHours = 20;
+        } else if (diffHours > 72 && diffHours <= 168) {
+            currentPhase = 'T-168';
+            maxRecheckHours = 20;
+        }
+    }
+
+    if (!currentPhase) {
+        if (force) {
+            currentPhase = 'T-168';
+        } else {
+            return { skipped: true, reason: 'Hike date is outside the 7-day forecast window or date is invalid.', hikeDate: rawDate };
+        }
     }
 
     // Check last alert in /groups/{groupId}/alerts
-    const lastAlertSnap = await db.collection('groups').doc(groupId).collection('alerts')
-        .orderBy('createdAt', 'desc')
-        .limit(1)
-        .get();
+    if (!force) {
+        const lastAlertSnap = await db.collection('groups').doc(groupId).collection('alerts')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
 
-    if (!lastAlertSnap.empty) {
-        const lastAlert = lastAlertSnap.docs[0].data();
-        const lastAlertTime = lastAlert.createdAt?.toDate ? DateTime.fromJSDate(lastAlert.createdAt.toDate()) : null;
-        if (lastAlertTime) {
-            const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
-            if (lastAlert.phase === currentPhase && hoursSinceLastAlert < maxRecheckHours) {
-                // Already alerted for this phase within throttle window
-                return null;
+        if (!lastAlertSnap.empty) {
+            const lastAlert = lastAlertSnap.docs[0].data();
+            const lastAlertTime = lastAlert.createdAt?.toDate ? DateTime.fromJSDate(lastAlert.createdAt.toDate()) : null;
+            if (lastAlertTime) {
+                const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
+                if (lastAlert.phase === currentPhase && hoursSinceLastAlert < maxRecheckHours) {
+                    return { skipped: true, reason: `Already alerted for ${currentPhase} within the last ${Math.round(hoursSinceLastAlert)} hours. Use force=true to override.`, phase: currentPhase };
+                }
             }
         }
     }
@@ -1376,7 +1380,7 @@ async function processGroupWeatherAlert(db, groupDoc) {
             android: {
                 priority: 'high',
                 notification: {
-                    channelId: 'weather_alerts',
+                    channelId: 'default',
                     clickAction: 'fcm.ACTION.HELLO',
                 },
             },
@@ -1463,14 +1467,18 @@ exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
         const groupId = req.query.groupId || req.body.groupId;
         const trailName = req.query.trail || req.body.trail || 'Mt. Daraitan';
         const userId = req.query.userId || req.body.userId;
+        const force = req.query.force === 'true' || req.body.force === true;
 
         if (groupId) {
             const groupDoc = await db.collection('groups').doc(groupId).get();
             if (!groupDoc.exists) {
-                res.status(404).json({ error: `Group ${groupId} not found.` });
+                res.status(404).json({
+                    error: `Group ${groupId} not found in this Firebase project (${process.env.GCLOUD_PROJECT}).`,
+                    tip: 'Check if this group was created in staging (thrail-sandbox) vs production (thrail).'
+                });
                 return;
             }
-            const result = await processGroupWeatherAlert(db, groupDoc);
+            const result = await processGroupWeatherAlert(db, groupDoc, force);
             res.status(200).json({ success: true, result });
             return;
         }
