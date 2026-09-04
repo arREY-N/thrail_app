@@ -50,23 +50,29 @@ export type AlertLevel = 'normal' | 'warning' | 'danger';
 const getMetricAlertLevel = (type: 'wind' | 'precip' | 'uv', value: number | undefined | null): AlertLevel => {
     if (value === undefined || value === null) return 'normal';
     if (type === 'wind') return value >= 60 ? 'danger' : value >= 40 ? 'warning' : 'normal';
-    if (type === 'precip') return value >= 70 ? 'danger' : value >= 50 ? 'warning' : 'normal';
+    if (type === 'precip') return value >= 85 ? 'warning' : value >= 50 ? 'warning' : 'normal';
     if (type === 'uv') return value >= 11 ? 'danger' : value >= 8 ? 'warning' : 'normal';
     return 'normal';
 };
 
 /**
  * Helper to generate a supportive safety reminder based on the UV index value.
- * 
- * @param value - The numerical UV index value.
- * @returns The safety description string.
+ * Context-aware: notes cloud filtering when overcast or rainy.
  */
-const getUVIndexReminder = (value: number | undefined | null): string => {
+const getUVIndexReminder = (
+    value: number | undefined | null,
+    cloudCover?: number | null,
+    weatherCode?: number | null
+): string => {
     if (value === undefined || value === null) return "No UV data available";
+    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || (weatherCode != null && weatherCode >= 51);
+    if (isCloudyOrRainy) {
+        return "Clouds reduce direct solar UV.";
+    }
     if (value <= 2) return "Low risk.";
     if (value <= 5) return "Moderate risk.";
-    if (value <= 7) return "High risk.";
-    if (value <= 10) return "Very high risk.";
+    if (value <= 7) return "High risk (sunscreen advised).";
+    if (value <= 10) return "Very high risk (avoid midday sun).";
     return "Extreme risk.";
 };
 
@@ -250,11 +256,15 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                             {displayName}
                                         </CustomText>
                                     </View>
-                                    {geocodedName !== displayName && (
+                                    {isLocating ? (
                                         <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
-                                            {geocodedName || "Fetching exact location..."}
+                                            Fetching exact location...
                                         </CustomText>
-                                    )}
+                                    ) : geocodedName && geocodedName !== displayName ? (
+                                        <CustomText variant="caption" style={styles.geocodedLabel} numberOfLines={1}>
+                                            {geocodedName}
+                                        </CustomText>
+                                    ) : null}
                                 </View>
                                 {lastUpdatedLabel && (
                                     <CustomText variant="caption" style={styles.lastUpdatedLabel}>
@@ -384,7 +394,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 value={isTodaySelected ? display.uvIndex : String(Math.round(activeUvRaw))} 
                                 unit="" 
                                 subValue={weatherData?.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : 'Low Risk'}
-                                desc={getUVIndexReminder(activeUvRaw)} 
+                                desc={getUVIndexReminder(activeUvRaw, weatherData?.cloudCover, isTodaySelected ? weatherData?.weatherCode : activeDay?.weatherCode)} 
                                 icon="sun"  
                                 lib="Feather" 
                                 alertLevel={getMetricAlertLevel('uv', activeUvRaw)} 

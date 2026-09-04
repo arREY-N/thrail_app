@@ -1144,10 +1144,13 @@ function evaluateWeatherSafety(weatherData, trailName, phase) {
     const isHighWind = windSpeed >= 40;
     const isExtremeUv = uvIndex >= 11;
 
+    const dailyRainMm = weatherData.daily?.precipitation_sum?.[0] ?? 0;
+    const isTorrential = dailyRainMm >= 100;
+
     let status = 'SAFE';
-    if (isSevereCode || precipProb >= 70 || windSpeed >= 60 || uvIndex >= 13) {
+    if (isSevereCode || isTorrential || windSpeed >= 60 || uvIndex >= 13) {
         status = 'DANGER';
-    } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8) {
+    } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8 || precipProb >= 40) {
         status = 'CAUTION';
     }
 

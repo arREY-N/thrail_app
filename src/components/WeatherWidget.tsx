@@ -20,7 +20,6 @@ import {
     getPAGASAHeatIndexInfo,
     getPAGASARainfallWarning,
     getSummitVisibilityInfo,
-    getUVLabel,
     getWeatherInfoUI,
 } from '../core/utility/weatherHelpers';
 import { useWeather } from '../hooks/useWeather';
@@ -37,6 +36,92 @@ interface SafetyTheme {
     text: string;
     icon: string;
 }
+
+const getUVIndexReminder = (
+    value: number | undefined | null,
+    cloudCover?: number | null,
+    weatherCode?: number | null
+): string => {
+    if (value === undefined || value === null) return "No UV data available";
+    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || (weatherCode != null && weatherCode >= 51);
+    if (isCloudyOrRainy) {
+        return "Clouds reduce direct solar UV.";
+    }
+    if (value <= 2) return "Low risk.";
+    if (value <= 5) return "Moderate risk.";
+    if (value <= 7) return "High risk (sunscreen advised).";
+    if (value <= 10) return "Very high risk (avoid midday sun).";
+    return "Extreme risk.";
+};
+
+interface BentoBoxProps {
+    title: string;
+    value: string | number | undefined;
+    unit: string;
+    desc: string;
+    icon: string;
+    lib: IconLibrary;
+    alertLevel?: 'normal' | 'warning' | 'danger';
+    subValue?: string;
+}
+
+const BentoBox: React.FC<BentoBoxProps> = ({ 
+    title, 
+    value, 
+    unit, 
+    desc, 
+    icon, 
+    lib, 
+    alertLevel = 'normal', 
+    subValue 
+}) => {
+    const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
+    const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
+
+    return (
+        <View style={styles.bentoBox}>
+            <View style={styles.bentoHeader}>
+                <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
+                <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
+                    {title}
+                </CustomText>
+            </View>
+
+            <View style={styles.bentoMiddle}>
+                <View style={styles.bentoMainRow}>
+                    <CustomText style={[styles.bentoValue, { color: valueColor }]} numberOfLines={1}>
+                        {value !== undefined ? value : '--'}
+                    </CustomText>
+                    {unit ? (
+                        <CustomText style={[styles.bentoUnit, { color: valueColor }]}>
+                            {unit}
+                        </CustomText>
+                    ) : null}
+                </View>
+
+                {subValue ? (
+                    <View style={[
+                        styles.bentoSubBadge, 
+                        alertLevel === 'danger' ? styles.badgeDanger : alertLevel === 'warning' ? styles.badgeWarning : styles.badgeNormal
+                    ]}>
+                        <CustomText 
+                            style={[styles.bentoSubValue, alertLevel !== 'normal' && styles.bentoSubValueAlert]} 
+                            numberOfLines={1}
+                        >
+                            {subValue}
+                        </CustomText>
+                    </View>
+                ) : null}
+            </View>
+
+            <View style={styles.bentoBottom}>
+                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={2}>
+                    {desc}
+                </CustomText>
+            </View>
+        </View>
+    );
+};
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     latitude,
@@ -252,57 +337,66 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 </View>
             )}
 
-            <View style={styles.gridContainer}>
-                <View style={styles.gridRow}>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Feather" name="thermometer" size={20} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'Heat Index'}</CustomText>
-                        <CustomText style={styles.gridValue}>{Math.round(heatVal ?? 0)}°C</CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>{pagasaHeat.category}</CustomText>
-                    </View>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Ionicons" name="rainy-outline" size={22} color={pagasaRain.alertLevel === 'danger' ? Colors.ERROR : Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'Rain & Storm'}</CustomText>
-                        <CustomText style={[styles.gridValue, pagasaRain.alertLevel === 'danger' && { color: Colors.ERROR }]}>
-                            {activePrecip}%
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>
-                            {isTodaySelected && weatherData.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ` : ''}{pagasaRain.warningLevel !== 'NORMAL' ? pagasaRain.badge : 'Fair'}
-                        </CustomText>
-                    </View>
-                </View>
-                
-                <View style={styles.gridRow}>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Feather" name="wind" size={20} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'Wind & Gusts'}</CustomText>
-                        <CustomText style={styles.gridValue}>{activeWind} km/h</CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>{beaufortWind.gustText}</CustomText>
-                    </View>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Feather" name="sun" size={20} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'UV Index'}</CustomText>
-                        <CustomText style={styles.gridValue}>{Math.round(activeUv)}</CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>{isTodaySelected && weatherData.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : getUVLabel(activeUv)}</CustomText>
-                    </View>
-                </View>
-                
-                <View style={styles.gridRow}>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Ionicons" name="eye-outline" size={22} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'Summit Visibility'}</CustomText>
-                        <CustomText style={styles.gridValue}>
-                            {weatherData.visibility != null ? `${(weatherData.visibility / 1000).toFixed(1)} km` : '--'}
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>{visibilityInfo.cloudText}</CustomText>
-                    </View>
-                    <View style={styles.gridItem}>
-                        <CustomIcon library="Ionicons" name="water-outline" size={22} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.gridLabel}>{'Atmospheric Air'}</CustomText>
-                        <CustomText style={styles.gridValue}>{weatherData.humidity}% RH</CustomText>
-                        <CustomText variant="caption" style={styles.gridSubtext} numberOfLines={1}>{weatherData.surfacePressure ? `${weatherData.surfacePressure} hPa` : '1013 hPa'}</CustomText>
-                    </View>
-                </View>
+            <View style={styles.bentoGrid}>
+                <BentoBox 
+                    title="Heat Index" 
+                    value={Math.round(heatVal ?? 0)} 
+                    unit="°C" 
+                    subValue={pagasaHeat.category}
+                    desc={pagasaHeat.description} 
+                    icon="thermometer" 
+                    lib="Feather" 
+                    alertLevel={pagasaHeat.alertLevel} 
+                />
+                <BentoBox 
+                    title="Precipitation" 
+                    value={activePrecip} 
+                    unit="%" 
+                    subValue={weatherData.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
+                    desc={pagasaRain.description} 
+                    icon="rainy-outline" 
+                    lib="Ionicons" 
+                    alertLevel={pagasaRain.alertLevel} 
+                />
+                <BentoBox 
+                    title="Wind & Gusts" 
+                    value={activeWind} 
+                    unit="km/h" 
+                    subValue={beaufortWind.gustText}
+                    desc={`${beaufortWind.directionText} • ${beaufortWind.scale}`} 
+                    icon="wind" 
+                    lib="Feather" 
+                    alertLevel={beaufortWind.alertLevel} 
+                />
+                <BentoBox 
+                    title="UV Index" 
+                    value={Math.round(activeUv)} 
+                    unit="" 
+                    subValue={weatherData.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : 'Low Risk'}
+                    desc={getUVIndexReminder(activeUv, weatherData.cloudCover, isTodaySelected ? weatherData.weatherCode : activeDay?.weatherCode)} 
+                    icon="sun"  
+                    lib="Feather" 
+                    alertLevel={activeUv >= 11 ? 'danger' : activeUv >= 8 ? 'warning' : 'normal'} 
+                />
+                <BentoBox 
+                    title="Visibility" 
+                    value={weatherData.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
+                    unit="km" 
+                    subValue={visibilityInfo.cloudText}
+                    desc={visibilityInfo.description} 
+                    icon="eye-outline" 
+                    lib="Ionicons" 
+                    alertLevel={visibilityInfo.alertLevel} 
+                />
+                <BentoBox 
+                    title="Atmospheric Air" 
+                    value={weatherData.humidity} 
+                    unit="% RH" 
+                    subValue={weatherData.surfacePressure ? `${weatherData.surfacePressure} hPa` : '1013 hPa'}
+                    desc={weatherData.surfacePressure && weatherData.surfacePressure < 1008 ? 'Low Pressure Area (LPA) activity.' : 'Stable tropical atmospheric pressure.'} 
+                    icon="water-outline" 
+                    lib="Ionicons" 
+                />
             </View>
 
             <View style={styles.sunRow}>
@@ -537,39 +631,91 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
     },
     
-    gridContainer: {
-        gap: 12,
+    bentoGrid: { 
+        flexDirection: 'row', 
+        flexWrap: 'wrap', 
+        justifyContent: 'space-between', 
+        gap: 12, 
         marginBottom: 24,
     },
-    gridRow: {
-        flexDirection: 'row',
-        gap: 12,
+    bentoBox: { 
+        backgroundColor: Colors.WHITE, 
+        borderRadius: 18, 
+        padding: 14, 
+        width: '48%', 
+        minHeight: 155, 
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_ULTRALIGHT, 
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
-    gridItem: {
-        flex: 1,
-        backgroundColor: Colors.WHITE,
-        paddingVertical: 18,
-        paddingHorizontal: 12,
-        borderRadius: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }),
+    bentoHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 6,
     },
-    gridLabel: {
+    bentoTitle: { 
         color: Colors.TEXT_SECONDARY,
-        marginTop: 8,
-        marginBottom: 2,
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        flex: 1,
     },
-    gridValue: {
-        fontSize: 22,
-        fontWeight: '900',
+    bentoMiddle: {
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 4,
+        marginVertical: 4,
+    },
+    bentoMainRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 3,
+    },
+    bentoValue: { 
+        fontSize: 26, 
+        fontWeight: '900', 
+        lineHeight: 30,
+        includeFontPadding: false,
+    },
+    bentoUnit: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    bentoSubBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        maxWidth: '100%',
+        marginTop: 2,
+    },
+    badgeNormal: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    badgeWarning: {
+        backgroundColor: '#FEF3C7',
+    },
+    badgeDanger: {
+        backgroundColor: '#FEE2E2',
+    },
+    bentoSubValue: {
+        fontSize: 10,
         color: Colors.TEXT_PRIMARY,
-        textAlign: 'center',
+        fontWeight: '600',
     },
-    gridSubtext: {
-        marginTop: 4,
-        textAlign: 'center',
+    bentoSubValueAlert: {
+        fontWeight: '700',
+    },
+    bentoBottom: {
+        marginTop: 2,
+    },
+    bentoDesc: { 
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+        lineHeight: 14,
     },
     
     sunRow: {

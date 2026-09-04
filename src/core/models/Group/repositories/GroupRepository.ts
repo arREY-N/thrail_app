@@ -192,7 +192,8 @@ export const GroupRepository = (db: Firestore) => ({
             };
             onUpdate(alert);
         }, (error) => {
-            console.error('Error in listenToLatestWeatherAlert:', error);
+            console.warn('Weather alerts not available or permissions pending:', error.message);
+            onUpdate(null);
         });
     },
 });
