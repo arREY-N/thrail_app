@@ -1,31 +1,34 @@
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export const timestampToISO = (ts: Timestamp | FieldValue | Date | undefined | null): string => {
-    if(ts && typeof (ts as any).toDate === 'function'){
+    if (ts && typeof (ts as any).toDate === 'function') {
         return (ts as Timestamp).toDate().toISOString().split('T')[0];
     }
     return "";
 }
 
 export const formatDate = (
-    date: Date | null | undefined, 
+    date: Date | string | number | Timestamp | null | undefined,
     options: 'full' | 'short' | 'time' = 'full'
 ): string => {
-    if (!date || isNaN(date.getTime())) return 'N/A';
-
+    if (!date) return 'N/A';
+    const parsedDate = date instanceof Date
+        ? date
+        : typeof (date as any)?.toDate === 'function'
+            ? (date as Timestamp).toDate()
+            : new Date(date as string | number);
+    if (isNaN(parsedDate.getTime())) return 'N/A';
     const configs = {
         full: { month: 'short', day: 'numeric', year: 'numeric' },
         short: { month: '2-digit', day: '2-digit', year: '2-digit' },
         time: { hour: '2-digit', minute: '2-digit', hour12: true }
-    } as const; 
-
+    } as const;
     const config = configs[options];
-
-    return new Intl.DateTimeFormat('en-US', config).format(date);
+    return new Intl.DateTimeFormat('en-US', config).format(parsedDate);
 };
 
-export const toDate = (value: Timestamp | FieldValue | any ) : Date => {
-    if(value instanceof Timestamp) return value.toDate();
+export const toDate = (value: Timestamp | FieldValue | any): Date => {
+    if (value instanceof Timestamp) return value.toDate();
 
     const date = new Date(value);
     return isNaN(date.getTime()) ? new Date() : date;
@@ -36,7 +39,7 @@ export const formatSunTime = (isoString: string): string => {
     if (!isoString) return "--";
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return "--";
-    
+
     return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',

@@ -10,6 +10,14 @@ export const useGroupStore = create<GroupState>()(
         {
             name: 'group-storage',
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                groups: state.groups.length > 0 ? state.groups : [],
+                messagesByGroup: Object.fromEntries(
+                    Object.entries(state.messagesByGroup).map(([getPropsBuilder, msgs]) => [
+                        getPropsBuilder, msgs.slice(-30)
+                    ])
+                ),
+            })
         }
     )
 );

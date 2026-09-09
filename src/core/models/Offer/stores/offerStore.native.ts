@@ -10,6 +10,12 @@ export const useOfferStore = create<OfferState>()(
         {
             name: 'offer-storage',
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                data: state.data.length > 0 ? state.data : [],
+                businessOffers: state.businessOffers.length > 0 ? state.businessOffers : [],
+                trailOffers: state.trailOffers.length > 0 ? state.trailOffers : [],
+                current: state.current,
+            })
         }
     )
 )

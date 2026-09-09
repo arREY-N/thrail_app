@@ -14,7 +14,7 @@ export {
 } from "@/src/core/models/User/utils/UserFactory";
 
 // UTILITIES
-export { getUsersByEmail } from "@/src/core/models/User/utils/getUser";
+export { getUser, getUsersByEmail } from "@/src/core/models/User/utils/getUser";
 export { UserLogic } from "@/src/core/models/User/utils/User.logic";
 
 // STORES
