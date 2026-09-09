@@ -16,7 +16,7 @@ export function useOfferList() {
     }, [])
 
     const onRefreshOffers = useCallback(async () => {
-        await useOfferStore.getState().fetchAll();
+        await useOfferStore.getState().refresh()
     }, []);
 
     return {
