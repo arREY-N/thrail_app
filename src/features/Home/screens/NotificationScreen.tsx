@@ -54,9 +54,14 @@ interface NotificationIconData {
  */
 const getIcon = (title: string): NotificationIconData => {
     const t = title.toLowerCase();
+    if (t.includes('weather') || t.includes('rain') || t.includes('cyclone') || t.includes('storm')) {
+        return { name: 'weather-pouring', lib: 'MaterialCommunityIcons', color: Colors.WEATHER_CAUTION_MAIN };
+    }
     if (t.includes('update')) return { name: 'download-cloud', lib: 'Feather', color: Colors.PRIMARY };
     if (t.includes('welcome')) return { name: 'star', lib: 'Feather', color: '#FFC107' };
-    if (t.includes('alert') || t.includes('warning')) return { name: 'alert-circle', lib: 'Feather', color: '#FF5252' };
+    if (t.includes('alert') || t.includes('warning') || t.includes('danger') || t.includes('hazard')) {
+        return { name: 'alert-circle', lib: 'Feather', color: Colors.WEATHER_DANGER_MAIN };
+    }
     return { name: 'bell', lib: 'Feather', color: Colors.PRIMARY };
 };
 

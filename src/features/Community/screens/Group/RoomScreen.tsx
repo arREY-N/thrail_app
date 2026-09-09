@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import GroupWeatherAlertBanner from '@/src/components/GroupWeatherAlertBanner';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -560,6 +561,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
 
             <View style={[styles.container, { alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
+                    <GroupWeatherAlertBanner groupId={currentGroup?.id} />
                     <Chat
                         disableKeyboardProvider={true}
                         colorScheme='light'

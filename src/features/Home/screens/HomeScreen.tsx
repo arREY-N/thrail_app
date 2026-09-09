@@ -32,6 +32,8 @@ import { useWeather } from "@/src/hooks/useWeather";
 import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
+import { WeatherSafetyCard } from "@/src/components/WeatherSafetyCard";
+import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
 
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { ITrail } from "@/src/core/models/Trail/Trail";
@@ -349,6 +351,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     ).length;
   };
 
+  const safetyReport = React.useMemo(() => {
+    if (!weatherData) return null;
+    return getDetailedWeatherSafety(weatherData, geocodedName || locationName);
+  }, [weatherData, geocodedName, locationName]);
+
   return (
     <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
       <CustomHeader title="Home" showDefaultIcons={true} />
@@ -388,6 +395,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           onReload={refetch}
           locationName={geocodedName || locationName}
         />
+
+        {safetyReport && safetyReport.status !== 'SAFE' && (
+          <WeatherSafetyCard
+            report={safetyReport}
+            compact={true}
+            onPress={onWeatherPress}
+          />
+        )}
 
         <ListSection
           title="Recommendations"

@@ -19,9 +19,18 @@ export const fetchWeatherFromApi = async (
   const now = Date.now();
 
   if (cachedData) {
-    const { data, timestamp } = JSON.parse(cachedData);
-    if (now - timestamp < CACHE_EXPIRY_MS) {
-      return { ...data, isStale: false };
+    try {
+      const { data, timestamp } = JSON.parse(cachedData);
+      if (
+        data &&
+        Array.isArray(data.hourlyForecast) &&
+        data.hourlyForecast.length > 0 &&
+        now - timestamp < CACHE_EXPIRY_MS
+      ) {
+        return { ...data, isStale: false };
+      }
+    } catch {
+      // Invalid cache entry, refetch
     }
   }
 
@@ -45,6 +54,27 @@ export const fetchWeatherFromApi = async (
       t.startsWith(rawData.current.time.slice(0, 13)),
     );
     const hIdx = currentHourIndex !== -1 ? currentHourIndex : 0;
+    const formatHourLabel = (timeStr: string, isCurrentHour: boolean): string => {
+      if (isCurrentHour) return "Now";
+      const parts = timeStr.split("T");
+      if (parts.length < 2) return timeStr;
+      const [h] = parts[1].split(":").map(Number);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const displayH = h % 12 === 0 ? 12 : h % 12;
+      return `${displayH} ${ampm}`;
+    };
+
+    const hourlyForecast = (rawData.hourly.time || []).map((t, idx) => ({
+      time: t,
+      datePrefix: t.slice(0, 10),
+      hourLabel: formatHourLabel(t, idx === hIdx),
+      temperature: Math.round(rawData.hourly.temperature_2m?.at(idx) ?? 0),
+      apparentTemperature: Math.round(rawData.hourly.apparent_temperature?.at(idx) ?? 0),
+      weatherCode: rawData.hourly.weathercode?.at(idx) ?? 0,
+      precipitationProbability: rawData.hourly.precipitation_probability?.at(idx) ?? 0,
+      windSpeed: Math.round(rawData.hourly.windspeed_10m?.at(idx) ?? 0),
+      uvIndex: rawData.hourly.uv_index?.at(idx) ?? 0,
+    }));
 
     const transformed: ProcessedWeatherData = {
       temperature: Math.round(rawData.current.temperature_2m),
@@ -56,23 +86,26 @@ export const fetchWeatherFromApi = async (
       uvIndex: rawData.current.uv_index ?? 0,
       uvIndexMax: rawData.daily.uv_index_max[0] ?? 0,
       precipitationProbability:
-        rawData.hourly.precipitation_probability[hIdx] ?? 0,
+        rawData.hourly.precipitation_probability?.at(hIdx) ?? 0,
       precipitationSum: rawData.daily.precipitation_sum[0] ?? 0,
       apparentTemperature: rawData.current.apparent_temperature ?? 0,
-      visibility: rawData.hourly.visibility[hIdx] ?? 0,
+      visibility: rawData.hourly.visibility?.at(hIdx) ?? 0,
+      cloudCover: rawData.current.cloud_cover ?? 0,
+      surfacePressure: Math.round(rawData.current.surface_pressure ?? 1013),
       sunrise: rawData.daily.sunrise[0] ?? "",
       sunset: rawData.daily.sunset[0] ?? "",
       isStale: false,
       lastUpdated: new Date().toISOString(),
       forecast: rawData.daily.time.map((dateStr, i) => ({
         date: dateStr,
-        temperatureMax: Math.round(rawData.daily.temperature_2m_max[i]),
-        temperatureMin: Math.round(rawData.daily.temperature_2m_min[i]),
-        weatherCode: rawData.daily.weathercode[i],
-        uvIndexMax: rawData.daily.uv_index_max[i] ?? 0,
-        precipitationProbabilityMax: rawData.daily.precipitation_probability_max[i] ?? 0,
-        windSpeedMax: rawData.daily.windspeed_10m_max[i] ?? 0,
+        temperatureMax: Math.round(rawData.daily.temperature_2m_max?.at(i) ?? 0),
+        temperatureMin: Math.round(rawData.daily.temperature_2m_min?.at(i) ?? 0),
+        weatherCode: rawData.daily.weathercode?.at(i) ?? 0,
+        uvIndexMax: rawData.daily.uv_index_max?.at(i) ?? 0,
+        precipitationProbabilityMax: rawData.daily.precipitation_probability_max?.at(i) ?? 0,
+        windSpeedMax: rawData.daily.windspeed_10m_max?.at(i) ?? 0,
       })),
+      hourlyForecast,
     };
 
     // Save to cache

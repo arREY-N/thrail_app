@@ -19,6 +19,7 @@ export { useGroupItem } from "@/src/core/models/Group/hooks/useGroupItem";
 export { useGroupList } from "@/src/core/models/Group/hooks/useGroupList";
 export { useGroupLocation } from "@/src/core/models/Group/hooks/useGroupLocation";
 export { useGroupRoom } from "@/src/core/models/Group/hooks/useGroupRoom";
+export { useGroupWeatherAlert } from "@/src/core/models/Group/hooks/useGroupWeatherAlert";
 
 // REPOSITORIES
 export { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";

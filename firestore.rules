@@ -61,6 +61,10 @@ service cloud.firestore {
           request.auth.uid == userId &&
           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.participantsIds;
       }
+
+      match /alerts/{alertId} {
+        allow read: if request.auth != null;
+      }
     }
 
     match /users/{userId}/hikes/{hikeId}{
