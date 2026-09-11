@@ -92,29 +92,27 @@ const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive
 
 /**
  * Props for the SettingsScreen component
+ * @param role - The active role of the current user
+ * @param onBackPress - Callback to navigate back
+ * @param onProfileInfoPress - Callback to navigate to profile information screen
+ * @param onSecurityPress - Callback to navigate to Security Settings
+ * @param onAdminPress - Callback to navigate to admin dashboard
+ * @param onSuperadminPress - Callback to navigate to superadmin dashboard
+ * @param onApplyPress - Callback to navigate to business application form
+ * @param onPrivacySettingsPress - Callback to navigate to Permissions Settings
+ * @param onAboutPress - Callback to navigate to About Screen
+ * @param onSignOutPress - Callback for initiating user sign out
  */
 export interface SettingsScreenProps {
-    /** The active role of the current user */
     role?: string;
-    /** Callback to navigate back */
     onBackPress: () => void;
-    /** Callback to navigate to profile information screen */
     onProfileInfoPress: () => void;
-    /** Callback to navigate to Security Settings */
     onSecurityPress: () => void;
-    /** Callback to navigate to admin dashboard */
     onAdminPress: () => void;
-    /** Callback to navigate to superadmin dashboard */
     onSuperadminPress: () => void;
-    /** Callback to navigate to business application form */
     onApplyPress?: () => void;
-    /** Callback to navigate to Privacy & Permissions Settings */
     onPrivacySettingsPress: () => void;
-    /** Callback to navigate to Notifications Settings */
-    onNotificationsPress: () => void;
-    /** Callback to navigate to About Screen */
     onAboutPress: () => void;
-    /** Callback for initiating user sign out */
     onSignOutPress: () => void;
 }
 
@@ -131,12 +129,11 @@ const SettingsScreen = ({
     onSuperadminPress,
     onApplyPress,
     
-    onNotificationsPress,
     onPrivacySettingsPress,
     
     onAboutPress,
     onSignOutPress
-}: SettingsScreenProps) => {
+}: SettingsScreenProps): React.JSX.Element => {
 
     const [showSignOutModal, setShowSignOutModal] = useState<boolean>(false);
     const { isMobile } = useBreakpoints();
@@ -191,8 +188,7 @@ const SettingsScreen = ({
 
                 <View style={styles.section}>
                     <SectionHeader title="Access & Control" />
-                    <SettingsItem icon="bell" title="Notifications" onPress={onNotificationsPress} />
-                    <SettingsItem icon="lock" title="Privacy & Permissions" onPress={onPrivacySettingsPress} />
+                    <SettingsItem icon="lock" title="Permissions" onPress={onPrivacySettingsPress} />
                 </View>
 
                 <View style={styles.section}>
