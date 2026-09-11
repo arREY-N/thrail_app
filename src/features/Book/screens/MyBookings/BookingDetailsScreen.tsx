@@ -1,68 +1,83 @@
+/**
+ * @file BookingDetailsScreen.tsx
+ * @description Comprehensive details screen for a user's booking, handling rejected document re-uploads, payment triggers, reschedule, and cancellation.
+ */
+
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { Booking, BookingStatus, newBooking, useBookingsStore } from "@/src/core/models/Booking/Booking";
-import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
-
-import { useTrailsStore } from "@/src/core/models/Trail/Trail";
-
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import DocumentUploadCard from '@/src/components/DocumentUploadCard';
+import CustomToast from '@/src/components/CustomToast';
+import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
+import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { calculateVerificationValidity, formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
+import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
+import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
+import { IEmergencyContact, User, UserRepo } from '@/src/core/models/User/User';
 import { formatTime } from '@/src/utils/dateFormatter';
 
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
+import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
 import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
+import RequiredDocumentsSection from '@/src/features/Book/screens/MyBookings/components/RequiredDocumentsSection';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
-
-/**
- * Maps document names to strict keys for the upload card.
- * @param {string} docName - The name of the document
- * @returns {string} The strict document key
- */
-const getStrictDocKey = (docName: string): string => {
-    if (!docName) return 'validId';
-    const lower = docName.toLowerCase();
-    if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
-    if (lower.includes('bir')) return 'bir';
-    if (lower.includes('dti')) return 'dti';
-    if (lower.includes('denr')) return 'denr';
-    return 'validId';
-};
+import {
+    getResubmitButtonTitle,
+    getResubmitModalContent,
+    RESUBMIT_TOASTS,
+} from '@/src/features/Book/screens/MyBookings/utils/bookingResubmitMessages';
 
 export interface BookingDetailsScreenProps {
     /** The booking data */
     booking: Booking;
     /** Function to fetch full offer details */
-    getBookOffer: (id: string) => Promise<IOffer>;
+    getBookOffer: (id: string) => Promise<IOffer | null>;
     /** Callback for back button press */
     onBackPress: () => void;
     /** Callback when user proceeds to payment */
     onProceedToPayment: (booking: Booking) => void;
     /** Callback for reschedule confirmation */
-    onReschedule?: (booking: Booking, offerData: unknown) => void;
+    onReschedule?: (booking: Booking, newOffer: IOffer) => void;
     /** Callback to view receipt */
     onViewReceipt: (booking: Booking) => void;
     /** Callback for cancellation confirmation */
     onCancelConfirm: (booking: Booking, reason: string) => void;
     /** Callback for refund confirmation */
     onRefundConfirm: (booking: Booking, reason: string) => void;
+    /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
+    onResubmitDocuments?: (
+        booking: Booking,
+        updatedDocs: Requirements[],
+        updatedPhone?: string,
+        updatedEmergency?: IEmergencyContact
+    ) => Promise<boolean>;
+    /** Callback when updating contact details on rejected bookings */
+    onUpdateContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
     /** Optional callback for update press */
     onUpdatePress?: () => void;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
+    /** The authenticated user profile passed from controller */
+    currentUserProfile?: User | null;
+    /** Callback to self-heal phone verification on profile */
+    onSyncBookingVerification?: (booking: Booking) => Promise<void>;
+    /** Async user search passed to emergency setup modal */
+    onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
 
 /**
@@ -80,26 +95,52 @@ const BookingDetailsScreen = ({
     onViewReceipt,
     onCancelConfirm,
     onRefundConfirm,
-    onUpdatePress,
+    onResubmitDocuments,
+    onUpdateContacts,
+    currentUserProfile,
+    onSyncBookingVerification,
+    onSearchUser,
     availableFutureOffers = []
 }: BookingDetailsScreenProps) => {
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
     const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
+    const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
     const [isLoadingOffer, setIsLoadingOffer] = useState<boolean>(true);
     
+    const [localDocs, setLocalDocs] = useState<Requirements[]>(booking?.documents || []);
+    const [localStatus, setLocalStatus] = useState<BookingStatus | undefined>(booking?.status);
+
+    const [stagedReplacements, setStagedReplacements] = useState<Record<number, string>>({});
+    const [isSubmittingDocs, setIsSubmittingDocs] = useState<boolean>(false);
+    const [confirmResubmitModalVisible, setConfirmResubmitModalVisible] = useState<boolean>(false);
+
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string; type: 'error' | 'success' }>({
+        visible: false,
+        message: '',
+        type: 'error',
+    });
+
+    const [localUserPhone, setLocalUserPhone] = useState<string>(booking?.user?.phoneNumber || '');
+    const [localEmergencyContact, setLocalEmergencyContact] = useState<IEmergencyContact | undefined>(booking?.emergencyContact);
+    const [hasStagedContactChanges, setHasStagedContactChanges] = useState<boolean>(false);
+    const [linkedEmergencyVerifiedAt, setLinkedEmergencyVerifiedAt] = useState<Date | null>(null);
+    const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+
     const [prevBooking, setPrevBooking] = useState(booking);
-    const [localDocs, setLocalDocs] = useState<any>(booking?.documents || []);
-    const [localStatus, setLocalStatus] = useState<BookingStatus | string | undefined>(booking?.status);
-
-    const updateBookingInStore = useBookingsStore(s => s.create);
-
     if (booking !== prevBooking) {
         setPrevBooking(booking);
         setLocalDocs(booking?.documents || []);
         setLocalStatus(booking?.status);
+        setStagedReplacements({});
+        setHasAttemptedSubmit(false);
+        setToastConfig({ visible: false, message: '', type: 'error' });
+        setLocalUserPhone(booking?.user?.phoneNumber || '');
+        setLocalEmergencyContact(booking?.emergencyContact);
+        setHasStagedContactChanges(false);
     }
 
     useEffect(() => {
@@ -129,10 +170,10 @@ const BookingDetailsScreen = ({
         fetchOfferDetails();
     }, [booking?.offer, getBookOffer]);
 
-    let displayStatus = localStatus;
+    let displayStatus: BookingStatus | undefined = localStatus;
     if (localStatus === 'cancelled' || localStatus === 'for-cancellation') {
         const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded' || (p.status as string) === 'refund');
+        const hasRefund = payments.some(p => p.status === 'refunded');
         if (hasRefund) {
             displayStatus = 'refunded';
         }
@@ -146,15 +187,101 @@ const BookingDetailsScreen = ({
     const remainingBalance = totalAmount - amountPaid;
 
     const user = booking?.user;
-    const emergencyContact = booking?.emergencyContact;
     const cancellationReason = booking?.cancellationReason;
 
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected'].includes(displayStatus as string);
-    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus as string);
+    // Determine effective user phone verification:
+    // If the booking itself has a valid timestamp and phone matches localUserPhone, use it.
+    // If missing on booking, fallback to currentUserProfile.phoneVerifiedAt if phone matches.
+    const effectiveUserPhoneVerifiedAt = useMemo(() => {
+        const bookingClean = cleanPhoneNumber(booking?.user?.phoneNumber || '');
+        const currentClean = cleanPhoneNumber(localUserPhone);
 
-    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus as string);
+        if (booking?.user?.phoneVerifiedAt && bookingClean === currentClean) {
+            return booking.user.phoneVerifiedAt;
+        }
+
+        if (currentUserProfile?.phoneVerifiedAt && currentUserProfile?.phoneNumber) {
+            const profileClean = cleanPhoneNumber(currentUserProfile.phoneNumber);
+            if (currentClean && currentClean === profileClean) {
+                return currentUserProfile.phoneVerifiedAt;
+            }
+        }
+
+        return null;
+    }, [booking?.user, localUserPhone, currentUserProfile]);
+
+    // Resolve linked emergency contact user profile if linked via userId
+    useEffect(() => {
+        let isMounted = true;
+
+        const resolveLinkedEmergencyContact = async () => {
+            if (localEmergencyContact?.userId && !localEmergencyContact.phoneVerifiedAt) {
+                try {
+                    const contactUser = await UserRepo.fetchById(localEmergencyContact.userId);
+                    if (isMounted && contactUser) {
+                        const contactPhoneClean = cleanPhoneNumber(contactUser.phoneNumber || '');
+                        const emergencyPhoneClean = cleanPhoneNumber(localEmergencyContact.contactNumber || '');
+
+                        if (contactPhoneClean && contactPhoneClean === emergencyPhoneClean && contactUser.phoneVerifiedAt) {
+                            setLinkedEmergencyVerifiedAt(contactUser.phoneVerifiedAt);
+                            return;
+                        }
+                    }
+                } catch {
+                    // Fail silently, fallback to null
+                }
+            }
+            if (isMounted) {
+                setLinkedEmergencyVerifiedAt(null);
+            }
+        };
+
+        resolveLinkedEmergencyContact();
+        return () => {
+            isMounted = false;
+        };
+    }, [localEmergencyContact?.userId, localEmergencyContact?.phoneVerifiedAt, localEmergencyContact?.contactNumber]);
+
+    const effectiveEmergencyPhoneVerifiedAt = useMemo(() => {
+        const contactClean = cleanPhoneNumber(localEmergencyContact?.contactNumber || '');
+
+        if (localEmergencyContact?.phoneVerifiedAt) {
+            return localEmergencyContact.phoneVerifiedAt;
+        }
+
+        if (linkedEmergencyVerifiedAt) {
+            return linkedEmergencyVerifiedAt;
+        }
+
+        if (currentUserProfile?.emergencyContact?.phoneVerifiedAt && currentUserProfile?.emergencyContact?.contactNumber) {
+            const profileContactClean = cleanPhoneNumber(currentUserProfile.emergencyContact.contactNumber);
+            if (contactClean && contactClean === profileContactClean) {
+                return currentUserProfile.emergencyContact.phoneVerifiedAt;
+            }
+        }
+
+        return null;
+    }, [localEmergencyContact, linkedEmergencyVerifiedAt, currentUserProfile]);
+
+    const userPhoneValidity = calculateVerificationValidity(effectiveUserPhoneVerifiedAt);
+    const emergencyPhoneValidity = calculateVerificationValidity(effectiveEmergencyPhoneVerifiedAt);
+    const userExpiryText = formatVerificationExpiry(effectiveUserPhoneVerifiedAt);
+    const emergencyExpiryText = formatVerificationExpiry(effectiveEmergencyPhoneVerifiedAt);
+
+    // Trigger flow-level verification synchronization if provided
+    useEffect(() => {
+        if (onSyncBookingVerification && booking) {
+            onSyncBookingVerification(booking);
+        }
+    }, [booking, onSyncBookingVerification]);
+
+
+    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected', 'expired'].includes(displayStatus || '');
+    const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus || '');
+
+    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus || '');
     const canRefund = isConfirmed;
-    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus as string);
+    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus || '');
 
     const showMenuIcon = !isCancelled && (canCancel || canRefund || canReschedule);
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
@@ -164,10 +291,7 @@ const BookingDetailsScreen = ({
     const reminders = fullOffer?.reminders || [];
     const schedule = fullOffer?.schedule || [];
 
-    const trails = useTrailsStore(s => s.data);
-    const fullTrail = trails.find(t => t.id === booking?.trail?.id);
-
-    const enhancedBooking: unknown = {
+    const enhancedBooking = {
         ...booking,
         status: displayStatus,
         offer: {
@@ -177,11 +301,142 @@ const BookingDetailsScreen = ({
         },
         trail: {
             ...booking?.trail,
-            location: fullTrail?.general?.address || fullTrail?.general?.province?.join(', ') || 'N/A'
+            location: booking?.trail?.location || 'N/A'
         }
     };
 
+    const isPhoneRejection = Boolean(cancellationReason && /phone|contact|unreachable/i.test(cancellationReason));
+    const isRejectedReservation = !isCancelled && displayStatus === 'reservation-rejected';
+
+    const originalRejectedIndices = useMemo(() => {
+        return (booking?.documents || [])
+            .map((doc, index) => (doc.valid === 'rejected' ? index : -1))
+            .filter((index): index is number => index !== -1);
+    }, [booking?.documents]);
+
+    const totalRejectedCount = originalRejectedIndices.length;
+    const stagedCount = originalRejectedIndices.filter((idx) => Boolean(stagedReplacements[idx])).length;
+    const remainingRejectedCount = totalRejectedCount - stagedCount;
+
+    const docsReady = totalRejectedCount === 0 || remainingRejectedCount === 0;
+    const contactReady = !isPhoneRejection || hasStagedContactChanges || localUserPhone !== booking?.user?.phoneNumber;
+    const canResubmitAll = isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges) && docsReady && contactReady;
+
+    const handleExecuteResubmit = async () => {
+        setConfirmResubmitModalVisible(false);
+        setIsSubmittingDocs(true);
+
+        try {
+            const updatedDocs: Requirements[] = localDocs.map((doc, idx) => {
+                const stagedUrl = stagedReplacements[idx];
+                if (stagedUrl) {
+                    return {
+                        name: doc.name || 'Document',
+                        file: stagedUrl,
+                        valid: 'pending' as const
+                    };
+                }
+                return doc;
+            });
+
+            let success = false;
+
+            if (onResubmitDocuments) {
+                success = await onResubmitDocuments(
+                    booking,
+                    updatedDocs,
+                    localUserPhone,
+                    localEmergencyContact
+                );
+            }
+
+            if (success) {
+                setLocalDocs(updatedDocs);
+                setLocalStatus('pending-docs');
+                setStagedReplacements({});
+                setHasStagedContactChanges(false);
+                setToastConfig({
+                    visible: true,
+                    message: RESUBMIT_TOASTS.RESUBMIT_SUCCESS,
+                    type: 'success',
+                });
+            } else {
+                setToastConfig({
+                    visible: true,
+                    message: RESUBMIT_TOASTS.RESUBMIT_ERROR,
+                    type: 'error',
+                });
+            }
+        } catch (err: unknown) {
+            console.error('Error in handleExecuteResubmit:', err);
+            setToastConfig({
+                visible: true,
+                message: err instanceof Error ? err.message : RESUBMIT_TOASTS.RESUBMIT_ERROR,
+                type: 'error',
+            });
+        } finally {
+            setIsSubmittingDocs(false);
+        }
+    };
+
+    const handleResubmitPress = () => {
+        if (!canResubmitAll) {
+            setHasAttemptedSubmit(true);
+            let msg: string = RESUBMIT_TOASTS.DOCS_REPLACE_REQUIRED(remainingRejectedCount);
+            if (isPhoneRejection && !contactReady && totalRejectedCount > 0 && remainingRejectedCount > 0) {
+                msg = RESUBMIT_TOASTS.BOTH_UPDATE_REQUIRED;
+            } else if (isPhoneRejection && !contactReady) {
+                msg = RESUBMIT_TOASTS.CONTACT_UPDATE_REQUIRED;
+            } else if (remainingRejectedCount === 1) {
+                msg = RESUBMIT_TOASTS.DOC_REPLACE_REQUIRED;
+            }
+            setToastConfig({
+                visible: true,
+                message: msg,
+                type: 'error',
+            });
+            return;
+        }
+
+        setConfirmResubmitModalVisible(true);
+    };
+
     const getFooterConfig = () => {
+        if (isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges)) {
+            const buttonTitle = getResubmitButtonTitle(
+                isSubmittingDocs,
+                canResubmitAll,
+                stagedCount,
+                totalRejectedCount,
+                isPhoneRejection && !contactReady
+            );
+
+            return {
+                primaryButton: {
+                    title: buttonTitle,
+                    variant: "primary" as const,
+                    disabled: isSubmittingDocs,
+                    style: {
+                        borderRadius: 12,
+                        backgroundColor: canResubmitAll
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
+                        borderColor: canResubmitAll
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
+                        borderWidth: 1.5,
+                    },
+                    textStyle: {
+                        color: canResubmitAll
+                            ? Colors.WHITE
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                        fontWeight: 'bold' as const,
+                    },
+                    onPress: handleResubmitPress,
+                }
+            };
+        }
+
         if (canReschedule) {
             return {
                 primaryButton: {
@@ -236,72 +491,11 @@ const BookingDetailsScreen = ({
         return null;
     };
 
-    const renderDocumentRow = (docObj: any, idx: number) => {
-        const docName = docObj.name || Object.keys(docObj)[0] || 'Document';
-        const rawValid = docObj.valid !== undefined ? docObj.valid : Object.values(docObj)[0];
 
-        let validState = 'pending';
-        if (rawValid === 'approved' || rawValid === true) validState = 'approved';
-        if (rawValid === 'rejected' || rawValid === false) validState = 'rejected';
-
-        const isApproved = validState === 'approved';
-        const isRejected = validState === 'rejected';
-
-        if (isRejected && !isCancelled) {
-            return (
-                <View key={idx} style={styles.uploadCardWrapper}>
-                    <DocumentUploadCard
-                        docName={docName}
-                        docKey={getStrictDocKey(docName)}
-                        isUploaded={docObj.file}
-                        isRejected={true}
-                        onUploadSuccess={async (url: string) => {
-                            const updatedDocs = [...localDocs];
-                            updatedDocs[idx] = {
-                                file: url,
-                                valid: 'pending'
-                            };
-                            setLocalDocs(updatedDocs);
-                            setLocalStatus('pending-docs');
-
-                            try {
-                                const updatedBookingData = newBooking({
-                                    ...booking,
-                                    status: 'pending-docs',
-                                    documents: updatedDocs
-                                } as unknown as Partial<Booking>);
-                                await updateBookingInStore(updatedBookingData, false);
-                            } catch (e) {
-                                console.error("Failed to save re-uploaded doc to DB", e);
-                            }
-                        }}
-                    />
-                </View>
-            );
-        }
-
-        let iconName = isApproved ? "check-circle" : (isRejected ? "x-circle" : "clock");
-        let iconColor = isApproved ? Colors.SUCCESS : (isRejected ? Colors.ERROR : Colors.WARNING);
-        let statusText = isApproved ? "Approved" : (isRejected ? "Rejected" : "Pending Review");
-
-        return (
-            <View key={idx} style={styles.documentRowContainer}>
-                <View style={styles.documentRow}>
-                    <View style={styles.docNameRow}>
-                        <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
-                        <CustomText variant="body" style={styles.documentText}>
-                            {docName}
-                        </CustomText>
-                    </View>
-                    <View style={styles.statusGroup}>
-                        <CustomText variant="caption" style={[styles.documentStatusText, { color: iconColor }]}>
-                            {statusText}
-                        </CustomText>
-                    </View>
-                </View>
-            </View>
-        );
-    };
+    const resubmitModalContent = getResubmitModalContent(
+        totalRejectedCount,
+        hasStagedContactChanges || isPhoneRejection
+    );
 
     const footerConfig = getFooterConfig();
 
@@ -356,37 +550,48 @@ const BookingDetailsScreen = ({
                         </View>
                     )}
 
-                    {((Array.isArray(localDocs) && localDocs.length > 0) || (localDocs && !Array.isArray(localDocs) && Object.keys(localDocs).length > 0)) && (
-                        <AccordionItem
-                            title="Required Documents"
-                            icon="file-text"
-                            defaultOpen={displayStatus === 'for-reservation' || displayStatus === 'pending-docs' || displayStatus === 'reservation-rejected'}
-                        >
-                            {Array.isArray(localDocs)
-                                ? localDocs.map((doc: unknown, idx: number) => renderDocumentRow(doc, idx))
-                                : Object.entries(localDocs).map(([key, val], idx) => renderDocumentRow({ name: key, valid: val }, idx))
-                            }
-                        </AccordionItem>
-                    )}
+                    <RequiredDocumentsSection
+                        localDocs={localDocs}
+                        originalRejectedIndices={originalRejectedIndices}
+                        stagedReplacements={stagedReplacements}
+                        displayStatus={displayStatus}
+                        isCancelled={isCancelled}
+                        onUploadSuccess={(idx, url, docName) => {
+                            setStagedReplacements(prev => ({
+                                ...prev,
+                                [idx]: url,
+                            }));
+                            setLocalDocs(prevDocs =>
+                                prevDocs.map((doc, i) => {
+                                    if (i === idx) {
+                                        return {
+                                            name: doc.name || docName,
+                                            file: url,
+                                            valid: 'pending' as const,
+                                        };
+                                    }
+                                    return doc;
+                                })
+                            );
+                            setHasAttemptedSubmit(false);
+                            setToastConfig(prev => ({ ...prev, visible: false }));
+                        }}
+                        onPreviewDoc={(url) => setPreviewDocUrl(url || null)}
+                    />
 
-                    {(user || emergencyContact) && (
-                        <AccordionItem title="Personal Information" icon="user" defaultOpen={false}>
-                            {user && (
-                                <View style={styles.attendeeBlock}>
-                                    <CustomText variant="caption" style={styles.attendeeLabel}>Full Name</CustomText>
-                                    <CustomText variant="body" style={styles.attendeeValue}>{user.firstname} {user.lastname}</CustomText>
-                                    <CustomText variant="caption" style={styles.attendeeSubValue}>{user.email}</CustomText>
-                                </View>
-                            )}
-                            {user && emergencyContact && <View style={styles.divider} />}
-                            {emergencyContact && (
-                                <View style={styles.attendeeBlock}>
-                                    <CustomText variant="caption" style={styles.attendeeLabel}>Emergency Contact</CustomText>
-                                    <CustomText variant="body" style={styles.attendeeValue}>{emergencyContact.name}</CustomText>
-                                    <CustomText variant="caption" style={styles.attendeeSubValue}>{emergencyContact.contactNumber}</CustomText>
-                                </View>
-                            )}
-                        </AccordionItem>
+                    {(user || localEmergencyContact) && (
+                        <PersonalInformationSection
+                            user={user}
+                            localUserPhone={localUserPhone}
+                            localEmergencyContact={localEmergencyContact}
+                            userPhoneValidity={userPhoneValidity}
+                            emergencyPhoneValidity={emergencyPhoneValidity}
+                            userExpiryText={userExpiryText}
+                            emergencyExpiryText={emergencyExpiryText}
+                            displayStatus={displayStatus}
+                            isCancelled={isCancelled}
+                            onEditContactsPress={() => setShowContactsModal(true)}
+                        />
                     )}
 
                     {inclusions.length > 0 && (
@@ -491,16 +696,71 @@ const BookingDetailsScreen = ({
                 visible={showRescheduleModal}
                 onClose={() => setShowRescheduleModal(false)}
                 availableFutureOffers={availableFutureOffers}
-                onConfirm={(selectedOffer: any) => {
+                onConfirm={(selectedOffer: IOffer | 'explore') => {
                     setShowRescheduleModal(false);
                     setTimeout(() => {
                         if (selectedOffer === 'explore') {
-                            router.replace('/explore' as any);
-                        } else if (onReschedule) {
-                            onReschedule(booking, selectedOffer.originalData);
+                            router.replace('/explore');
+                        } else if (onReschedule && typeof selectedOffer === 'object') {
+                            onReschedule(booking, selectedOffer);
                         }
                     }, 300);
                 }}
+            />
+
+            <EmergencySetupModal
+                visible={showContactsModal}
+                onClose={() => setShowContactsModal(false)}
+                mode="unified"
+                initialUserPhone={localUserPhone}
+                initialEmergencyContact={localEmergencyContact}
+                currentUserProfile={currentUserProfile}
+                onSearchUser={onSearchUser}
+                onSaveUnifiedContacts={async (data) => {
+                    setShowContactsModal(false);
+                    setLocalUserPhone(data.phone);
+                    setLocalEmergencyContact(data.emergencyContact);
+
+                    if (displayStatus === 'reservation-rejected') {
+                        setHasStagedContactChanges(true);
+                        setToastConfig({
+                            visible: true,
+                            message: RESUBMIT_TOASTS.STAGED_CONTACTS_SUCCESS,
+                            type: 'success',
+                        });
+                        return;
+                    }
+
+                    if (onUpdateContacts) {
+                        const ok = await onUpdateContacts(booking, data.phone, data.emergencyContact);
+                        if (ok) {
+                            setToastConfig({
+                                visible: true,
+                                message: 'Contact details updated successfully.',
+                                type: 'success',
+                            });
+                        } else {
+                            setToastConfig({
+                                visible: true,
+                                message: 'Failed to update contact details.',
+                                type: 'error',
+                            });
+                        }
+                    }
+                }}
+            />
+
+            <ConfirmationModal
+                visible={confirmResubmitModalVisible}
+                onClose={() => !isSubmittingDocs && setConfirmResubmitModalVisible(false)}
+                onConfirm={handleExecuteResubmit}
+                title={resubmitModalContent.title}
+                message={resubmitModalContent.message}
+                confirmText={resubmitModalContent.confirmText}
+                cancelText={resubmitModalContent.cancelText}
+                iconName={resubmitModalContent.iconName}
+                iconLibrary={resubmitModalContent.iconLibrary}
+                iconColor={resubmitModalContent.iconColor}
             />
 
             <Modal transparent={true} visible={showActionMenu} animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
@@ -558,6 +818,40 @@ const BookingDetailsScreen = ({
                     </View>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Confirmation Modal before submitting documents / contact details */}
+            <ConfirmationModal
+                visible={confirmResubmitModalVisible}
+                onClose={() => !isSubmittingDocs && setConfirmResubmitModalVisible(false)}
+                onConfirm={handleExecuteResubmit}
+                title={resubmitModalContent.title}
+                message={resubmitModalContent.message}
+                confirmText={resubmitModalContent.confirmText}
+                cancelText={resubmitModalContent.cancelText}
+                iconName={resubmitModalContent.iconName}
+                iconLibrary={resubmitModalContent.iconLibrary}
+                iconColor={resubmitModalContent.iconColor}
+            />
+
+            {/* Custom Toast above Sticky Footer for document validation feedback */}
+            <CustomToast
+                visible={toastConfig.visible}
+                message={toastConfig.message}
+                type={toastConfig.type}
+                mode="dismissible"
+                position="sticky_footer"
+                onHide={() => {
+                    setToastConfig(prev => ({ ...prev, visible: false }));
+                    setHasAttemptedSubmit(false);
+                }}
+            />
+
+            {/* Modal Image Preview for uploaded/approved documents */}
+            <ImagePreviewModal
+                visible={Boolean(previewDocUrl)}
+                images={previewDocUrl ? [previewDocUrl] : []}
+                onClose={() => setPreviewDocUrl(null)}
+            />
         </ScreenWrapper>
     );
 };
@@ -613,65 +907,6 @@ const styles = StyleSheet.create({
     bulletText: {
         flex: 1,
         lineHeight: 22
-    },
-    documentRowContainer: {
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 12
-    },
-    uploadCardWrapper: {
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT
-    },
-    documentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    docNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10
-    },
-    documentText: {
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '500'
-    },
-    statusGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12
-    },
-    documentStatusText: {
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        fontSize: 10,
-        letterSpacing: 0.5
-    },
-    attendeeBlock: {
-        marginVertical: 4
-    },
-    attendeeLabel: {
-        color: Colors.TEXT_SECONDARY,
-        marginBottom: 4,
-        textTransform: 'uppercase',
-        fontSize: 11,
-        letterSpacing: 0.5
-    },
-    attendeeValue: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 16
-    },
-    attendeeSubValue: {
-        color: Colors.TEXT_SECONDARY,
-        marginTop: 2
-    },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 16
     },
     timelineContainer: {
         borderLeftWidth: 1,
@@ -773,8 +1008,8 @@ const styles = StyleSheet.create({
     },
     actionItemText: {
         fontSize: 16,
-        fontWeight: '600'
-    }
+        fontWeight: '600',
+    },
 });
 
 export default BookingDetailsScreen;
