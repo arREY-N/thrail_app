@@ -1,6 +1,8 @@
 import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { BookingRepo } from "@/src/core/models/Booking/repositories/BookingRepository";
+import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -270,10 +272,18 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
     create: async (booking: Booking, isAdmin = false, isUpdate = false) => {
         try {
-            const existing = [get().userBookings, get().offerBookings, get().businessBookings].flat().find(b => b.offer.id === booking.offer.id);
-
-            if (existing && existing.status !== 'reservation-rejected' && !isUpdate) {
-                throw new Error("Booking for this offer already exists and is currently in progress.");
+            if (!isAdmin && !isUpdate) {
+                const bookingDateStr = formatDateToStandard(booking.offer?.date);
+                const existing = get().userBookings.find(
+                    b => !BookingLogic.isInactiveStatus(b.status) &&
+                        b.id !== booking.id &&
+                        (b.offer?.id === booking.offer?.id || 
+                        (bookingDateStr && formatDateToStandard(b.offer?.date) === bookingDateStr))
+                );
+            
+                if (existing) {
+                    throw new Error("You already have an active booking on this date.");
+                }
             }
 
             set({ isLoading: true, error: null });
