@@ -50,13 +50,19 @@ export const formatLocalPhoneNumber = (text?: string): string => {
 
 export const cleanPhoneNumber = (formattedText?: string): string => {
     if (!formattedText) return '';
-    let cleanNumber = formattedText.replace(/\s+/g, '');
-    
-    if (cleanNumber.length === 10) {
-        cleanNumber = '0' + cleanNumber;
+    let digits = formattedText.replace(/\D/g, '');
+
+    if (digits.startsWith('63')) {
+        digits = digits.substring(2);
+    } else if (digits.startsWith('0')) {
+        digits = digits.substring(1);
     }
-    
-    return cleanNumber;
+
+    if (digits.length === 10) {
+        return '0' + digits;
+    }
+
+    return digits;
 };
 
 export const formatCoordinate = (text?: string): string => {
@@ -72,7 +78,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     label?: string;
     placeholder?: string;
     value?: string | Date | null | number;
-    onChangeText?: (text: any) => void;
+    onChangeText?: ((text: string) => void) | ((date: Date) => void) | ((date: Date | null) => void) | ((value: string | Date | null) => void);
     secureTextEntry?: boolean;
     keyboardType?: TextInputProps['keyboardType'];
     isPasswordVisible?: boolean;
@@ -82,6 +88,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     inputStyle?: StyleProp<TextStyle>;
     icon?: string;
     iconLibrary?: IconLibrary;
+    iconColor?: string;
     prefix?: string;
     children?: ReactNode;
     showTodayButton?: boolean;
@@ -108,6 +115,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     inputStyle,
     icon, 
     iconLibrary = 'Feather', 
+    iconColor,
     prefix, 
     children,
     showTodayButton,
@@ -132,7 +140,9 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         if (type === 'coordinate' || type === 'numerical') {
             const parsedParent = parseFloat(value as string);
             const parsedLocal = parseFloat(localValue);
-            if (parsedParent !== parsedLocal && !(isNaN(parsedParent) && isNaN(parsedLocal))) {
+            if (isNaN(parsedParent) && isNaN(parsedLocal)) {
+                // both are NaN, consider them equal
+            } else if (parsedParent !== parsedLocal) {
                 setLocalValue(value !== null && value !== undefined ? String(value) : '');
             }
         } else {
@@ -140,43 +150,38 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         }
     }
 
-    const showPassword = onTogglePassword ? isPasswordVisible : internalShowPassword;
-    const togglePassword = onTogglePassword ? onTogglePassword : () => setInternalShowPassword(!internalShowPassword);
-
     const handleTextChange = (text: string) => {
+        let processedText = text;
+
         if (type === 'phone') {
-            const formatted = formatLocalPhoneNumber(text);
-            setLocalValue(formatted);
-            onChangeText?.(formatted);
+            processedText = formatLocalPhoneNumber(text);
         } else if (type === 'coordinate') {
-            const formatted = formatCoordinate(text);
-            setLocalValue(formatted);
-            onChangeText?.(formatted);
+            processedText = formatCoordinate(text);
         } else if (type === 'numerical') {
-            let cleaned = text.replace(/[^0-9.]/g, '');
-            setLocalValue(cleaned);
-            onChangeText?.(cleaned);
-        } else {
-            setLocalValue(text);
-            onChangeText?.(text);
+            processedText = text.replace(/[^0-9]/g, '');
+        }
+
+        setLocalValue(processedText);
+        if (onChangeText) {
+            (onChangeText as (val: string) => void)(processedText);
         }
     };
 
-    let finalKeyboardType = keyboardType || 'default';
-    
-    if (type === 'phone') {
-        finalKeyboardType = 'number-pad';
-    } else if (type === 'coordinate' || type === 'numerical') {
-        finalKeyboardType = 'numbers-and-punctuation'; 
-    } else if (secureTextEntry && showPassword && Platform.OS === 'android') {
-        finalKeyboardType = 'visible-password';
-    }
+    const finalKeyboardType = keyboardType 
+        || (type === 'phone' ? 'phone-pad' : (type === 'coordinate' ? 'decimal-pad' : (type === 'numerical' ? 'numeric' : 'default')));
+
+    const showPassword = isPasswordVisible !== undefined ? isPasswordVisible : internalShowPassword;
+    const togglePassword = onTogglePassword || (() => setInternalShowPassword(!internalShowPassword));
 
     if (type === 'date') {
         return (
             <CustomDateInput 
                 value={value as Date | null | undefined} 
-                onChangeText={onChangeText as any}
+                onChangeText={(date: Date) => {
+                    if (onChangeText) {
+                        (onChangeText as (val: Date | string) => void)(date);
+                    }
+                }}
                 label={label}
             > 
                 {children}
@@ -187,8 +192,12 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     if (type === 'calendar') {
         return (
             <CustomCalendarInput 
-                value={value as any} 
-                onChangeText={onChangeText as any}
+                value={value as Date | null | undefined} 
+                onChangeText={(date: string | Date) => {
+                    if (onChangeText) {
+                        (onChangeText as (val: string | Date) => void)(date);
+                    }
+                }}
                 label={label}
                 placeholder={placeholder}
                 showTodayButton={showTodayButton}
@@ -228,7 +237,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                             name={icon} 
                             library={iconLibrary} 
                             size={20} 
-                            color={Colors.TEXT_SECONDARY} 
+                            color={iconColor || (isFocused ? Colors.PRIMARY : Colors.TEXT_SECONDARY)} 
                         />
                     </View>
                 )}
@@ -334,7 +343,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         height: '100%',
         ...Platform.select({
-            web: { outlineStyle: 'none' } as any
+            web: { outlineStyle: 'none' as unknown as TextStyle['outlineStyle'] }
         })
     },
     eyeIcon: {
