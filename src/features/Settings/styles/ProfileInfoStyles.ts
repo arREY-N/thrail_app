@@ -3,10 +3,10 @@
  * @description Stylesheet declaration for the ProfileInfoScreen view.
  */
 
-import { StyleSheet } from 'react-native';
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
     contentArea: {
@@ -127,25 +127,41 @@ export const styles = StyleSheet.create({
     inlineRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        flexWrap: 'wrap',
+    },
+    inlineLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 24,
+        flexShrink: 1,
+        marginRight: 16,
     },
     inlineLabel: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 13,
         fontWeight: '500',
-        flexShrink: 1,
-        marginRight: 16,
     },
     inlineValue: {
         color: Colors.TEXT_PRIMARY,
         fontSize: 14,
         fontWeight: '700',
-        flex: 1,
         textAlign: 'right',
+    },
+    inlineValueContainer: {
+        flex: 1,
+        alignItems: 'flex-end',
+        justifyContent: 'flex-start',
+        marginTop: -2,
+    },
+    inlineValueBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 24,
+        gap: 8,
+        justifyContent: 'flex-end',
     },
     stackedRow: {
         flexDirection: 'column',
@@ -165,6 +181,13 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         fontSize: 15,
         fontWeight: '700',
+    },
+    validityCountdownSubtext: {
+        fontSize: 11,
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        marginTop: 2,
+        textAlign: 'right',
     },
     noMargin: {
         marginBottom: 0,
