@@ -64,23 +64,25 @@ const WeatherSection = ({
     // 1. Loading / Locating / Refreshing State
     if ((loading && !weatherData) || isRefreshing) {
         return (
-            <View style={styles.container}>
-                <View style={styles.headerMetaRow}>
-                    <View style={styles.skeletonLocRow}>
-                        <SkeletonEffect style={styles.skeletonIconSmall} />
-                        <SkeletonEffect style={styles.skeletonLocText} />
+            <View style={styles.wrapper}>
+                <View style={styles.container}>
+                    <View style={styles.headerMetaRow}>
+                        <View style={styles.skeletonLocRow}>
+                            <SkeletonEffect style={styles.skeletonIconSmall} />
+                            <SkeletonEffect style={styles.skeletonLocText} />
+                        </View>
+                        <SkeletonEffect style={styles.skeletonUpdatedText} />
                     </View>
-                    <SkeletonEffect style={styles.skeletonUpdatedText} />
-                </View>
 
-                <View style={styles.contentRow}>
-                    <View style={styles.leftCol}>
-                        <SkeletonEffect style={styles.skeletonTemp} />
-                        <SkeletonEffect style={styles.skeletonConditionText} />
-                    </View>
-                    <View style={styles.rightCol}>
-                        <SkeletonEffect style={styles.skeletonHeroIcon} />
-                        <SkeletonEffect style={styles.skeletonHiLoText} />
+                    <View style={styles.contentRow}>
+                        <View style={styles.leftCol}>
+                            <SkeletonEffect style={styles.skeletonTemp} />
+                            <SkeletonEffect style={styles.skeletonConditionText} />
+                        </View>
+                        <View style={styles.rightCol}>
+                            <SkeletonEffect style={styles.skeletonHeroIcon} />
+                            <SkeletonEffect style={styles.skeletonHiLoText} />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -90,11 +92,13 @@ const WeatherSection = ({
     // 2. Error / Connection Failed State
     if (error && !weatherData) {
         return (
-            <View style={[styles.container, styles.centerStateContainer]}>
-                <CustomIcon library="Ionicons" name="cloud-offline-outline" size={32} color={Colors.ERROR} />
-                <CustomText variant="caption" style={styles.errorText}>
-                    Unable to load weather data.
-                </CustomText>
+            <View style={styles.wrapper}>
+                <View style={[styles.container, styles.centerStateContainer]}>
+                    <CustomIcon library="Ionicons" name="cloud-offline-outline" size={32} color={Colors.ERROR} />
+                    <CustomText variant="caption" style={styles.errorText}>
+                        Unable to load weather data.
+                    </CustomText>
+                </View>
             </View>
         );
     }
@@ -102,107 +106,116 @@ const WeatherSection = ({
     // 3. Unavailable / No Data State
     if (!weatherData && !loading && !error) {
         return (
-            <View style={[styles.container, styles.centerStateContainer]}>
-                <CustomIcon library="Ionicons" name="location-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                <CustomText variant="caption" style={styles.emptyStateText}>
-                    Location services disabled or weather stats unavailable.
-                </CustomText>
+            <View style={styles.wrapper}>
+                <View style={[styles.container, styles.centerStateContainer]}>
+                    <CustomIcon library="Ionicons" name="location-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                    <CustomText variant="caption" style={styles.emptyStateText}>
+                        Location services disabled or weather stats unavailable.
+                    </CustomText>
+                </View>
             </View>
         );
     }
 
     return (
-        <Pressable
-            onPress={onPress}
-            style={({ hovered }) => [
-                styles.container,
-                hovered && styles.containerHovered,
-            ]}
-        >
-            {/* Top Header Row: Location Pin + Location Name (Left) & Quiet Relative Time (Right) */}
-            <View style={styles.headerMetaRow}>
-                <View style={styles.locationContainer}>
-                    <CustomIcon
-                        library="FontAwesome6"
-                        name="location-dot"
-                        size={13}
-                        color={Colors.PRIMARY}
-                    />
-                    <CustomText style={styles.locationText} numberOfLines={1}>
-                        {displayLocationText}
-                    </CustomText>
-                </View>
-
-                {lastUpdatedLabel && (
-                    <CustomText style={styles.updatedText}>
-                        {lastUpdatedLabel}
-                    </CustomText>
-                )}
-            </View>
-
-            {/* Symmetrical 2-Column Main Content */}
-            <View style={styles.contentRow}>
-                {/* Left Column: Top Temp (28°C) & Bottom Condition (Partly Cloudy) */}
-                <View style={styles.leftCol}>
-                    <View style={styles.tempBlock}>
-                        <CustomText style={styles.tempValueText}>
-                            {display.hasData ? display.temperature : '--'}
-                        </CustomText>
-                        <CustomText style={styles.tempUnitText}>°C</CustomText>
-                    </View>
-
-                    <View style={styles.bottomAlignWrapper}>
-                        {display.hasData && (
-                            <CustomText style={styles.conditionText} numberOfLines={1}>
-                                {display.condition}
-                            </CustomText>
-                        )}
-                    </View>
-                </View>
-
-                {/* Right Column: Top Weather Icon & Bottom Day/Night Readings */}
-                <View style={styles.rightCol}>
-                    <View style={styles.iconAlignWrapper}>
+        <View style={styles.wrapper}>
+            <Pressable
+                onPress={onPress}
+                style={({ hovered }) => [
+                    styles.container,
+                    hovered && styles.containerHovered,
+                ]}
+            >
+                {/* Top Header Row: Location Pin + Location Name (Left) & Quiet Relative Time (Right) */}
+                <View style={styles.headerMetaRow}>
+                    <View style={styles.locationContainer}>
                         <CustomIcon
-                            library={display.library as IconLibrary}
-                            name={display.hasData ? display.icon : 'partly-sunny-outline'}
-                            size={48}
-                            color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
+                            library="FontAwesome6"
+                            name="location-dot"
+                            size={13}
+                            color={Colors.PRIMARY}
                         />
+                        <CustomText style={styles.locationText} numberOfLines={1}>
+                            {displayLocationText}
+                        </CustomText>
                     </View>
 
-                    <View style={styles.bottomAlignWrapper}>
-                        {display.hasData && (
-                            <View style={styles.dayNightRow}>
-                                <View style={styles.hiLoItem}>
-                                    <CustomIcon library="Ionicons" name="sunny" size={13} color={Colors.WEATHER_SUN} />
-                                    <CustomText style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
-                                </View>
+                    {lastUpdatedLabel && (
+                        <CustomText style={styles.updatedText}>
+                            {lastUpdatedLabel}
+                        </CustomText>
+                    )}
+                </View>
 
-                                <CustomText style={styles.hiLoDivider}>•</CustomText>
+                {/* Symmetrical 2-Column Main Content */}
+                <View style={styles.contentRow}>
+                    {/* Left Column: Top Temp (28°C) & Bottom Condition (Partly Cloudy) */}
+                    <View style={styles.leftCol}>
+                        <View style={styles.tempBlock}>
+                            <CustomText style={styles.tempValueText}>
+                                {display.hasData ? display.temperature : '--'}
+                            </CustomText>
+                            <CustomText style={styles.tempUnitText}>°C</CustomText>
+                        </View>
 
-                                <View style={styles.hiLoItem}>
-                                    <CustomIcon library="Ionicons" name="moon" size={13} color={Colors.WEATHER_MOON} />
-                                    <CustomText style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
+                        <View style={styles.bottomAlignWrapper}>
+                            {display.hasData && (
+                                <CustomText style={styles.conditionText} numberOfLines={1}>
+                                    {display.condition}
+                                </CustomText>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Right Column: Top Weather Icon & Bottom Day/Night Readings */}
+                    <View style={styles.rightCol}>
+                        <View style={styles.iconAlignWrapper}>
+                            <CustomIcon
+                                library={display.library as IconLibrary}
+                                name={display.hasData ? display.icon : 'partly-sunny-outline'}
+                                size={48}
+                                color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
+                            />
+                        </View>
+
+                        <View style={styles.bottomAlignWrapper}>
+                            {display.hasData && (
+                                <View style={styles.dayNightRow}>
+                                    <View style={styles.hiLoItem}>
+                                        <CustomIcon library="Ionicons" name="sunny" size={13} color={Colors.WEATHER_SUN} />
+                                        <CustomText style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
+                                    </View>
+
+                                    <CustomText style={styles.hiLoDivider}>•</CustomText>
+
+                                    <View style={styles.hiLoItem}>
+                                        <CustomIcon library="Ionicons" name="moon" size={13} color={Colors.WEATHER_MOON} />
+                                        <CustomText style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
+                                    </View>
                                 </View>
-                            </View>
-                        )}
+                            )}
+                        </View>
                     </View>
                 </View>
-            </View>
-        </Pressable>
+            </Pressable>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    wrapper: {
+        width: '100%',
+        paddingHorizontal: 16,
+        paddingTop: 8,
+    },
     container: {
-        marginHorizontal: 16,
-        marginTop: 8,
-        // marginBottom: 16,
+        width: '100%',
         paddingHorizontal: 20,
         paddingVertical: 18,
         backgroundColor: Colors.WHITE,
         borderRadius: 24,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
         elevation: 3,
         ...GlobalStyles.dropShadow(3),
         ...(Platform.OS === 'web' && { cursor: 'pointer' as const }),
