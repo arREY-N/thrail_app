@@ -41,6 +41,12 @@ const createAntiCircularPattern = (feature) => ({
   message: `Circular dependency risk: Internal files of "${feature}" must NOT import from their own facade file (${feature}.ts). Import directly from concrete internal files instead.`,
 });
 
+// Helper to generate strict type safety restriction against `any` types
+const createTypeSafetyRestriction = () => ({
+  selector: 'TSAnyKeyword',
+  message: 'Type safety violation: The use of "any" is prohibited. Use explicit TypeScript types or interfaces instead.',
+});
+
 // Specific rule sets for each feature model's internal files
 const featureInternalRules = featureDirs.map((feature) => {
   const otherFeatures = featureDirs.filter((f) => f !== feature);
@@ -79,4 +85,15 @@ module.exports = defineConfig([
   },
   // 2. Feature Internal Rules: Allows internal imports within same feature, blocks own facade & other features' internals
   ...featureInternalRules,
+  // 3. Strict Type Safety: Prohibit explicit "any" types across all TypeScript files
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-restricted-syntax': [
+        'warn',
+        createTypeSafetyRestriction(),
+      ],
+    },
+  },
 ]);
