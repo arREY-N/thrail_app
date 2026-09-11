@@ -1,5 +1,5 @@
 import CustomTextInput from '@/src/components/CustomTextInput';
-import useSuperadmin from '@/src/core/models/Superadmin/hooks/useSuperadmin';
+import { useSuperadmin } from '@/src/core/models/Superadmin/Superadmin';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import CustomHeader from "@/src/components/CustomHeader";
@@ -7,13 +7,20 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 
-export default function approveBusiness() {
+interface SuperadminApproveController {
+    application?: Record<string, string>;
+    applicationLoading: boolean;
+    onApproveApplicationPress: (data: Record<string, string>) => void;
+    onRejectApplicationPress?: () => void;
+}
+
+export default function ApproveBusiness() {
     const {
-        application,
+        application = {},
         applicationLoading,
         onApproveApplicationPress,
-        onRejectApplicationPress
-    } = useSuperadmin({ role: null }) as any;
+        onRejectApplicationPress = () => {}
+    } = useSuperadmin({ role: null }) as unknown as SuperadminApproveController;
 
     const { onBackPress } = useAppNavigation();
 
@@ -32,7 +39,7 @@ export default function approveBusiness() {
                 onRejectApplicationPress={onRejectApplicationPress}
             />
         </ScreenWrapper>
-    )
+    );
 }
 
 const TESTAPPLICATIONAPPROVE = ({
@@ -54,7 +61,7 @@ const TESTAPPLICATIONAPPROVE = ({
 
                 <View style={styles.application} key={application.id}>
                     <Text>Business Name: {application.businessName}</Text>
-                    <Text>Applicant's Email: {application.email}</Text>
+                    <Text>Applicant&apos;s Email: {application.email}</Text>
                     <Pressable onPress={() => onApproveApplicationPress({
                         userId: application.userId,
                         appId: application.id,
@@ -73,7 +80,7 @@ const TESTAPPLICATIONAPPROVE = ({
                         label={'Why is the application rejected?'}
                         placeholder={'Missing documents, incomplete information, etc.'}
                         value={application.message || ''}
-                        onChangeText={(text) => console.log(text)}
+                        onChangeText={(text: string) => console.log(text)}
                     />
                 </View>
             </View>

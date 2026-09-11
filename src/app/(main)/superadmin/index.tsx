@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
+import { useSuperadminDomain } from '@/src/core/models/Superadmin/Superadmin';
 import DashboardScreen from '@/src/features/SuperAdmin/screens/DashboardScreen';
 
 /**
@@ -15,7 +15,7 @@ import DashboardScreen from '@/src/features/SuperAdmin/screens/DashboardScreen';
  * 
  * @returns {React.ReactElement} The rendered DashboardScreen wrapped with Expo Router Stack screen options.
  */
-export default function superadminDashboard() {
+export default function SuperadminDashboard() {
     const {
         businesses,
         trails,

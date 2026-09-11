@@ -5,10 +5,8 @@
 
 import React from 'react';
 
-import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
-
 import { useMountainList } from '@/src/core/models/Mountain/Mountain';
-import useSuperadminDomain from '@/src/core/models/Superadmin/hooks/useSuperadminDomain';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import MountainListScreen from '@/src/features/SuperAdmin/screens/tabs/MountainListScreen';
 
 /**

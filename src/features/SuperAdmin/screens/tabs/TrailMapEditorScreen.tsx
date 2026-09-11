@@ -29,7 +29,6 @@ import StaticTrailMap from '@/src/features/Map/StaticTrailMap';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Interface representing the properties of the TrailMapEditorScreen component.
@@ -80,7 +79,6 @@ const TrailMapEditorScreen = ({
     onBackToSettings,
 }: TrailMapEditorScreenProps): React.JSX.Element => {
     const { isMobile } = useBreakpoints();
-    const insets = useSafeAreaInsets();
     const [isDirty, setIsDirty] = useState<boolean>(false);
     const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
 
@@ -258,7 +256,7 @@ const TrailMapEditorScreen = ({
                 visible={toastState.visible}
                 onHide={() => setToastState((prev) => ({ ...prev, visible: false }))}
                 type={toastState.type}
-                bottomOffset={isMobile ? 84 + insets.bottom : 24}
+                position="floating"
             />
         </View>
     );

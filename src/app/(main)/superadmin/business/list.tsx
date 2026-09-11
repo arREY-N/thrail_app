@@ -4,11 +4,11 @@
  */
 
 
-import useSuperadmin from '@/src/core/models/Superadmin/hooks/useSuperadmin';
-import useSuperadminNavigation from '@/src/core/models/Superadmin/hooks/useSuperadminNavigation';
+import { Application } from '@/src/core/models/Application/Application';
+import { useSuperadmin, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import BusinessListScreen from '@/src/features/SuperAdmin/screens/tabs/BusinessListScreen';
 
-export default function listBusiness() {
+export default function ListBusiness() {
     const {
         applications,
         businesses,
@@ -22,7 +22,7 @@ export default function listBusiness() {
         onBackToSettingsPress
     } = useSuperadminNavigation();
 
-    const pendingCount = applications ? applications.filter((a: any) => a.status === 'pending').length : 0;
+    const pendingCount = applications ? applications.filter((a: Application) => a.status === 'pending').length : 0;
 
     return (
         <BusinessListScreen
