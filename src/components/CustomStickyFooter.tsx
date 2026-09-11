@@ -29,9 +29,14 @@ interface FooterButtonConfig {
 interface CustomStickyFooterProps {
     primaryButton?: FooterButtonConfig;
     secondaryButton?: FooterButtonConfig;
+    layout?: 'row' | 'column';
 }
 
-const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ primaryButton, secondaryButton }) => {
+const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ 
+    primaryButton, 
+    secondaryButton,
+    layout = 'row'
+}) => {
     const insets = useSafeAreaInsets();
     const safeBottomPadding = Math.max(insets.bottom, 16);
 
@@ -40,8 +45,16 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ primaryButton, 
     return (
         <View style={[styles.footer, { paddingBottom: safeBottomPadding }]}>
             {secondaryButton ? (
-                <View style={styles.buttonRow}>
-                    <View style={styles.buttonWrapper}>
+                layout === 'column' ? (
+                    <View style={styles.buttonColumn}>
+                        <CustomButton 
+                            title={primaryButton.title}
+                            onPress={primaryButton.onPress}
+                            variant={primaryButton.variant || 'primary'}
+                            style={primaryButton.style}
+                            textStyle={primaryButton.textStyle}
+                            disabled={primaryButton.disabled}
+                        />
                         <CustomButton 
                             title={secondaryButton.title}
                             onPress={secondaryButton.onPress}
@@ -51,17 +64,30 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ primaryButton, 
                             disabled={secondaryButton.disabled}
                         />
                     </View>
-                    <View style={styles.buttonWrapper}>
-                        <CustomButton 
-                            title={primaryButton.title}
-                            onPress={primaryButton.onPress}
-                            variant={primaryButton.variant || 'primary'}
-                            style={primaryButton.style}
-                            textStyle={primaryButton.textStyle}
-                            disabled={primaryButton.disabled}
-                        />
+                ) : (
+                    <View style={styles.buttonRow}>
+                        <View style={styles.buttonWrapper}>
+                            <CustomButton 
+                                title={secondaryButton.title}
+                                onPress={secondaryButton.onPress}
+                                variant={secondaryButton.variant || 'outline'}
+                                style={secondaryButton.style}
+                                textStyle={secondaryButton.textStyle}
+                                disabled={secondaryButton.disabled}
+                            />
+                        </View>
+                        <View style={styles.buttonWrapper}>
+                            <CustomButton 
+                                title={primaryButton.title}
+                                onPress={primaryButton.onPress}
+                                variant={primaryButton.variant || 'primary'}
+                                style={primaryButton.style}
+                                textStyle={primaryButton.textStyle}
+                                disabled={primaryButton.disabled}
+                            />
+                        </View>
                     </View>
-                </View>
+                )
             ) : (
                 <CustomButton 
                     title={primaryButton.title}
@@ -97,11 +123,15 @@ const styles = StyleSheet.create({
     },
     buttonRow: { 
         flexDirection: 'row', 
-        gap: 16 
+        gap: 16, 
+    },
+    buttonColumn: {
+        width: '100%',
+        gap: 12,
     },
     buttonWrapper: { 
-        flex: 1 
-    }
+        flex: 1, 
+    },
 });
 
 export default CustomStickyFooter;
