@@ -35,6 +35,7 @@ import WeatherSection from '@/src/features/Home/components/WeatherSection';
 
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { ITrail } from '@/src/core/models/Trail/Trail';
+import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 /**
  * Props for the HomeScreen component.
@@ -331,10 +332,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     //     reloadMountainWeatherBadges();
     // }, [reloadMountainWeatherBadges]);
 
-    // Helper to calculate upcoming offers count for each card
+    // Helper to calculate upcoming active offers count for each card
     const getTrailOffersCount = (trailId: string) => {
-        const now = new Date();
-        return offers.filter(o => o.trail?.id === trailId && o.date && new Date(o.date).getTime() > now.getTime()).length;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return offers.filter(o => {
+            if (o.trail?.id !== trailId || !o.date) return false;
+            const offerDate = o.date instanceof Date ? new Date(o.date) : safeParseDateString(o.date as string);
+            offerDate.setHours(0, 0, 0, 0);
+            return offerDate >= today;
+        }).length;
     };
 
     return (
