@@ -26,6 +26,7 @@ export default function HomeLayout() {
             <Tabs.Screen name="hike" />
             <Tabs.Screen name="community" />
             <Tabs.Screen name="profile" />
+            <Tabs.Screen name="test" />
         </Tabs>
     );
 }
