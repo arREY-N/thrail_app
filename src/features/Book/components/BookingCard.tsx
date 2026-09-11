@@ -42,16 +42,20 @@ const BookingCard: React.FC<BookingCardProps> = ({
     }
 
     const isDead = [
+        'cancelled',
         'refund', 
+        'refunded', 
         'cancellation-rejected', 
-        'reschedule-rejected'
+        'reschedule-rejected',
+        'finished',
+        'expired'
     ].includes(displayStatus || '');
 
     if (isPast && !isDead) {
         if (['completed', 'paid', 'rescheduled'].includes(displayStatus || '')) {
             displayStatus = 'finished'; 
         } else {
-            displayStatus = 'reservation-rejected'; 
+            displayStatus = 'expired'; 
         }
     }
 
