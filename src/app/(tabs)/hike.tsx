@@ -31,8 +31,6 @@ export default function Hike() {
         <View style={{ flex: 1 }}>
             <StatusBar style="dark" />
 
-            {/* <StatusBar style="dark" translucent backgroundColor="transparent" /> */}
-
             {isFocused && (
                 <NavigationScreen
                     upcomingBookings={upcomingBookings}
