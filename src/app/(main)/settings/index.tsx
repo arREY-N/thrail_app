@@ -18,7 +18,6 @@ export default function Settings() {
         // onBackPress,
         onProfilePress,
         onSecuritySettingsPress,
-        onNotificationSettingsPress,
         onPrivacySettingsPress,
         onAboutSettingsPress,
         onUserViewPress
@@ -47,7 +46,6 @@ export default function Settings() {
             onApplyPress={onApplyPress}
 
             onPrivacySettingsPress={onPrivacySettingsPress}
-            onNotificationsPress={onNotificationSettingsPress}
 
             onAboutPress={onAboutSettingsPress}
 
