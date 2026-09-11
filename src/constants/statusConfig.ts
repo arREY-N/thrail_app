@@ -48,8 +48,8 @@ export const STATUS_UI_CONFIG = {
         icon: 'check-circle'
     },
     'reservation-rejected': {
-        userLabel: 'REJECTED DOCS', userType: 'ERROR',  
-        adminLabel: 'REJECTED DOCS', adminType: 'ERROR',
+        userLabel: 'REJECTED BOOKING', userType: 'ERROR',  
+        adminLabel: 'REJECTED BOOKING', adminType: 'ERROR',
         icon: 'alert-circle'
     },
     'for-reschedule': {
