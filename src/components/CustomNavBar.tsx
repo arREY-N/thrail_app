@@ -78,6 +78,17 @@ const getTabConfig = (routeName: string, isFocused: boolean): TabConfig => {
                     />,
                 label: 'Profile',
             };
+        case 'test':
+            return {
+                icon: 
+                    <CustomIcon
+                        library="Feather"
+                        name="tool"
+                        size={iconSize}
+                        color={iconColor}
+                    />,
+                label: 'Test',
+            };
         default:
             return {
                 icon: 
@@ -200,7 +211,7 @@ const styles = StyleSheet.create({
             offset: { width: 0, height: -4 },
             radius: 6
         }),
-    } as any,
+    },
     tabItem: {
         flex: 1,
         alignItems: 'center',
