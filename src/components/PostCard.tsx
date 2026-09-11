@@ -22,30 +22,60 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import { useTrailsStore } from "@/src/core/models/Trail/Trail";
-import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
-import { formatDateToStandard, formatDuration } from "@/src/utils/dateFormatter";
-
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview, Review } from '@/src/core/models/Review/Review';
+import { Trail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
+import { formatDateToStandard, formatDuration } from "@/src/utils/dateFormatter";
+import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
+
+/**
+ * Shape of legacy untyped review fields preserved for backwards compatibility.
+ */
+interface LegacyReviewFields {
+    trailId?: string;
+    mountainId?: string;
+    trailName?: string;
+    mountainName?: string;
+    rate?: number;
+    content?: string;
+    location?: string;
+}
+
+/**
+ * Internal tag model for difficulty, maintenance, and factor chips.
+ */
+interface TagItem {
+    id: string;
+    type: 'difficulty' | 'maintenance' | 'factor-diff' | 'factor-fav';
+    value?: string;
+    label?: string;
+    style?: {
+        bg: string;
+        border: string;
+        text: string;
+        icon: string;
+    };
+}
 
 /**
  * Props for the PostCard component.
  * 
- * @param review - The review or post object containing data.
+ * @param review - The canonical Review or IReview object containing post data.
+ * @param trailData - Optional pre-resolved Trail data to bypass store lookup.
  * @param onLike - Callback fired when the like button is pressed.
  * @param isLiked - Helper function to check if the current user has liked the post.
  * @param onEdit - Callback fired when the edit button is pressed (only visible in 'profile' variant).
  * @param variant - The visual variant of the post card ('community' or 'profile').
  */
-interface PostCardProps {
-    review: Review | IReview;
+interface PostCardProps<T extends IReview = Review> {
+    review: T;
+    trailData?: Trail;
     onLike?: () => void;
-    isLiked?: (review: Review) => boolean;
+    isLiked?: (review: T) => boolean;
     onEdit?: () => void;
     variant?: 'community' | 'profile';
 }
@@ -54,13 +84,14 @@ interface PostCardProps {
  * PostCard — A comprehensive card component used to display user reviews,
  * photos, stats, and tags within the community feed or user profile.
  */
-const PostCard: React.FC<PostCardProps> = ({ 
+const PostCard = <T extends IReview = Review>({ 
     review, 
+    trailData: propTrailData,
     onLike, 
     isLiked, 
     onEdit, 
     variant = 'community' 
-}) => {
+}: PostCardProps<T>): React.JSX.Element | null => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
     const scrollRef = useRef<ScrollView>(null);
@@ -71,48 +102,33 @@ const PostCard: React.FC<PostCardProps> = ({
         scrollProps
     } = useScrollFades();
 
-    const liked = useMemo(() => isLiked && review ? isLiked(review as Review) : false, [review, isLiked]);
+    const liked = useMemo(() => isLiked && review ? isLiked(review) : false, [review, isLiked]);
 
-    const legacyTrailId = review?.trail?.id;
-    const legacyTrailName = review?.trail?.name;
+    const legacy = (review ?? {}) as LegacyReviewFields;
+    const legacyTrailId = review?.trail?.id || legacy.trailId || legacy.mountainId;
+    const legacyTrailName = review?.trail?.name || legacy.trailName || legacy.mountainName;
 
-    const trailData = useTrailsStore(
-        useCallback(
-            (s) => {
-                if (!legacyTrailId && !legacyTrailName) return undefined;
-                return s.data.find(
-                    (t) =>
-                        (legacyTrailId && t.id === legacyTrailId) ||
-                        (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
-                );
-            },
-            [legacyTrailId, legacyTrailName]
-        )
+    const storeTrailData = useTrailsStore(
+        useCallback((s) => {
+            if (propTrailData || !review) return undefined;
+            return s.data.find(t => 
+                (legacyTrailId && t.id === legacyTrailId) || 
+                (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
+            );
+        }, [propTrailData, review, legacyTrailId, legacyTrailName])
     );
 
-    const hasTags = Boolean(
-        review && (
-            (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') ||
-            (review.trailMaintenance && review.trailMaintenance !== 'undefined') ||
-            (review.difficultyFactors && review.difficultyFactors.length > 0) ||
-            (review.favoredFactors && review.favoredFactors.length > 0)
-        )
-    );
-
-    // Enable drag-to-scroll functionality on Web platforms
-    useWebDragScroll(scrollRef, hasTags);
-
-    if (!review) return null;
+    const trailData = propTrailData ?? storeTrailData;
 
     const fallbackImage = getHeroImageSource(trailData);
-    const imagesList = review?.image?.length > 0 ? review.image : [fallbackImage];
+    const imagesList = (review?.image && review.image.length > 0) ? review.image : [fallbackImage];
     const displayImage = imagesList[0];
 
     const getImgSource = (img: string | ImageSourcePropType): ImageSourcePropType => {
         return typeof img === 'string' ? { uri: img } : img;
     };
 
-    const getInitials = (name: string): string => {
+    const getInitials = (name?: string): string => {
         if (!name) return '?';
         const parts = name.trim().split(' ');
         if (parts.length > 1) {
@@ -122,9 +138,10 @@ const PostCard: React.FC<PostCardProps> = ({
     };
 
     const formatStat = (val: unknown, type: string): string => {
-        if (val === undefined || val === null || val === '--' || isNaN(Number(val))) return '--';
-
+        if (val === undefined || val === null || val === '--') return '--';
+        
         const numVal = Number(val);
+        if (isNaN(numVal)) return '--';
 
         if (type === 'distance') {
             if (numVal < 1000) return `${Math.round(numVal)} m`;
@@ -170,22 +187,29 @@ const PostCard: React.FC<PostCardProps> = ({
         }
     };
 
-    const allTags: any[] = [];
-    if (review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
+    const allTags: TagItem[] = [];
+    if (review?.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
         allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
     }
-    if (review.trailMaintenance && review.trailMaintenance !== 'undefined') {
+    if (review?.trailMaintenance && review.trailMaintenance !== 'undefined') {
         allTags.push({ id: `maint-main`, type: 'maintenance', label: getMaintenanceStyle(review.trailMaintenance).label, style: getMaintenanceStyle(review.trailMaintenance) });
     }
-    review.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
-    review.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
+    review?.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
+    review?.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
+
+    const hasTags = allTags.length > 0;
+
+    // Enable drag-to-scroll functionality on Web platforms
+    useWebDragScroll(scrollRef, hasTags);
+
+    if (!review) return null;
 
     const likeCount = Array.isArray(review.likes)
         ? review.likes.length
         : Number(review.likes) || 0;
-
-    const reviewText = review?.review || "";
-    const maxLength = 110;
+    
+    const reviewText = review?.review || legacy.content || "";
+    const maxLength = 110; 
     const isLong = reviewText.length > maxLength;
     const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
     const displayText = isExpanded ? reviewText : truncatedText;
@@ -215,7 +239,7 @@ const PostCard: React.FC<PostCardProps> = ({
                     <View style={styles.headerRatingBadge}>
                         <CustomIcon library="Ionicons" name="star" size={14} color={Colors.YELLOW} />
                         <CustomText variant="label" style={styles.headerRatingText}>
-                            {review?.overallRating ? review.overallRating.toFixed(1) : '--'}
+                            {review?.overallRating ? review.overallRating.toFixed(1) : (legacy.rate ? legacy.rate.toFixed(1) : '--')}
                         </CustomText>
                     </View>
 
@@ -255,13 +279,13 @@ const PostCard: React.FC<PostCardProps> = ({
                 <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                            {review.trail?.name || (review as any).trailName || "Mountain Name"}
+                            {review.trail?.name || legacy.trailName || "Mountain Name"}
                         </CustomText>
 
                         <View style={styles.locationRow}>
                             <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
                             <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
-                                {review.trail?.location || (review as any).location || "Philippines"}
+                                {review.trail?.location || legacy.location || "Philippines"}
                             </CustomText>
                         </View>
                     </View>
@@ -312,7 +336,7 @@ const PostCard: React.FC<PostCardProps> = ({
                         {...scrollProps}
                     >
                         {allTags.map(tag => {
-                            if (tag.type === 'difficulty') {
+                            if (tag.type === 'difficulty' && tag.style) {
                                 return (
                                     <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
                                         <CustomIcon library="MaterialCommunityIcons" name={tag.style.icon} size={14} color={tag.style.text} />
@@ -320,7 +344,7 @@ const PostCard: React.FC<PostCardProps> = ({
                                     </View>
                                 );
                             }
-                            if (tag.type === 'maintenance') {
+                            if (tag.type === 'maintenance' && tag.style) {
                                 return (
                                     <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
                                         <CustomIcon library="Feather" name={tag.style.icon} size={12} color={tag.style.text} />
@@ -386,26 +410,28 @@ const PostCard: React.FC<PostCardProps> = ({
                 </View>
             )}
 
-            <ImagePreviewModal visible={isPreviewVisible} images={imagesList as any} onClose={() => setIsPreviewVisible(false)} />
+            <ImagePreviewModal visible={isPreviewVisible} images={imagesList as (string | { uri: string })[]} onClose={() => setIsPreviewVisible(false)} />
         </View>
     );
 };
 
-const StatItem = ({
-    label,
-    value,
-    icon,
-    lib,
-    iconColor = Colors.PRIMARY,
-    style
-}: {
-    label: string,
-    value: string,
-    icon: string,
-    lib: IconLibrary,
-    iconColor?: string,
-    style?: StyleProp<ViewStyle>
-}) => (
+interface StatItemProps {
+    label: string;
+    value: string;
+    icon: string;
+    lib: IconLibrary;
+    iconColor?: string;
+    style?: StyleProp<ViewStyle>;
+}
+
+const StatItem = ({ 
+    label, 
+    value, 
+    icon, 
+    lib, 
+    iconColor = Colors.PRIMARY, 
+    style 
+}: StatItemProps): React.JSX.Element => (
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
             <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
@@ -733,10 +759,11 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(PostCard, (prevProps, nextProps) => {
-    const prevLiked = prevProps.isLiked && prevProps.review ? prevProps.isLiked(prevProps.review as Review) : false;
-    const nextLiked = nextProps.isLiked && nextProps.review ? nextProps.isLiked(nextProps.review as Review) : false;
+    const prevLiked = prevProps.isLiked && prevProps.review ? prevProps.isLiked(prevProps.review) : false;
+    const nextLiked = nextProps.isLiked && nextProps.review ? nextProps.isLiked(nextProps.review) : false;
 
-    return prevProps.review === nextProps.review &&
-        prevProps.variant === nextProps.variant &&
-        prevLiked === nextLiked;
-});
+    return prevProps.review === nextProps.review && 
+           prevProps.trailData === nextProps.trailData &&
+           prevProps.variant === nextProps.variant &&
+           prevLiked === nextLiked;
+}) as typeof PostCard;
