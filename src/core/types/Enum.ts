@@ -12,4 +12,5 @@ export enum BookingStatus{
     APPROVED = 'Approved',
     CANCELLED = 'Cancelled',
     EXPIRED = 'Expired',
+    REFUNDED = 'Refunded',
 }
