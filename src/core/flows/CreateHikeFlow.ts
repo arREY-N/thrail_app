@@ -1,5 +1,7 @@
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
+import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/Group/Group";
 import { newHike, useHikesStore, useHikeState, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
@@ -19,6 +21,8 @@ export type IUseWriteHikeParams = {
 export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     const { hikeId, trailId, bookingId, groupId } = params;
     const { profile } = useAuthHook();
+
+    const { onBackPress } = useAppNavigation();
 
     const { startBackgroundTracking, stopBackgroundTracking } = TrackHikerGPSFlow();
 
@@ -92,6 +96,23 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             })
             : null
     )
+
+    const resolvedBookingId = bookingId || (currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
+
+    const { groups } = useGroupList(profile?.id || "");
+
+    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
+        g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+    )?.id) || undefined;
+
+    const { group } = useGroupItem(resolvedGroupId || '');
+
+    const {
+        location: groupLocations,
+        onEmergencyPress,
+        onSendPicture,
+        error: groupError,
+    } = useGroupLocation(resolvedGroupId || '');
 
     const onStartHike = async () => {
         if (!profile?.id) {
@@ -303,6 +324,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     }, [updateHikeStore]);
 
     return {
+        currentGroup: group,
         currentHike,
         booking,
         fullOffer: offer,
@@ -315,7 +337,12 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         totalElevationGain: useHikeStore(s => s.totalElevationGain),
         shareLocationEnabled: useHikeStore(s => s.shareLocationEnabled),
 
-        onEmergencyPress: () => { },
+        groupLocations,
+        onEmergencyPress,
+        onSendPicture,
+        groupError,
+
+        onBackPress,
         onStartHike,
         onAddReview,
         onPauseHike,

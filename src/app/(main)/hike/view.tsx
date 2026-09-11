@@ -9,13 +9,10 @@ import CustomText from "@/src/components/CustomText";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
 import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
-import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
 const SCREEN_OPTIONS = { headerShown: false };
@@ -28,10 +25,6 @@ export default function HikeView() {
     const groupId = getSearchParam(rawGroup);
     const bookingId = getSearchParam(rawBooking);
 
-    const { onBackPress } = useAppNavigation();
-    const { profile } = useAuthHook();
-    const { groups } = useGroupList(profile?.id || "");
-
     const {
         currentHike,
         booking,
@@ -43,29 +36,21 @@ export default function HikeView() {
         totalElevationGain,
         isLoading,
         shareLocationEnabled,
+        currentGroup,
         setShareLocationEnabled,
 
+        onBackPress,
         onStartHike,
         onAddReview,
         onPauseHike,
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = CreateHikeFlow({ hikeId, trailId, bookingId, groupId });
-
-    const resolvedBookingId = bookingId || (currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
-
-    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
-        g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
-    )?.id) || undefined;
-
-    const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
-    const {
-        location: groupLocations,
+        groupLocations,
         onEmergencyPress,
         onSendPicture,
         error: groupError,
-    } = useGroupLocation(resolvedGroupId || '');
+    } = CreateHikeFlow({ hikeId, trailId, bookingId, groupId });
 
     if (isLoading && !currentHike) {
         return (
