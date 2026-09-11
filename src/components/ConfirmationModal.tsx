@@ -29,6 +29,7 @@ interface ConfirmationModalProps {
     isDestructive?: boolean;
     iconName?: string;
     iconLibrary?: IconLibrary;
+    iconColor?: string;
     children?: ReactNode;
 }
 
@@ -43,6 +44,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     isDestructive = false,
     iconName,
     iconLibrary = "Feather",
+    iconColor,
     children
 }) => {
 
@@ -50,7 +52,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     const textColor: string = isDestructive ? Colors.TEXT_PRIMARY : Colors.TEXT_INVERSE;
     const primaryButtonVariant: 'destructive' | 'primary' = isDestructive ? "destructive" : "primary";
     const cancelButtonVariant: 'secondary' = "secondary"; 
-    const defaultIconColor: string = isDestructive ? Colors.ERROR : Colors.TEXT_INVERSE;
+    const resolvedIconColor: string = iconColor || (isDestructive ? Colors.ERROR : Colors.TEXT_INVERSE);
 
     return (
         <Modal
@@ -73,7 +75,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 library={iconLibrary} 
                                 name={iconName} 
                                 size={36} 
-                                color={defaultIconColor} 
+                                color={resolvedIconColor} 
                             />
                         </View>
                     )}
