@@ -1,6 +1,12 @@
+/**
+ * @file BookingScreen.tsx
+ * @description Wizard controller screen managing the multi-step booking flow (Offers -> Details -> Confirmation Status).
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
@@ -8,43 +14,76 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { TEdit } from '@/src/core/interface/domainHookInterface';
+import { Booking, BookingLogic } from '@/src/core/models/Booking/Booking';
+import { Offer } from '@/src/core/models/Offer/Offer';
+import { IEmergencyContact } from '@/src/core/models/User/User';
+import { toDateOrNull } from '@/src/core/utility/date';
+import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
-import DetailsScreen from '@/src/features/Book/screens/Booking/DetailsScreen';
+import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
+import { UserSearchResult } from '@/src/components/EmergencyModal';
 import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
-import StatusScreen from '@/src/features/Book/screens/Booking/StatusScreen';
+import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/Booking/StatusScreen';
 
 export interface BookingScreenProps {
-    offers?: { id: string; date?: string | Date; [key: string]: unknown }[];
+    offers?: Offer[];
+    bookedOfferIds?: string[];
+    userBookings?: Booking[];
+    error?: string | null;
     onBackPress: () => void;
-    onSetOffer?: (offer: unknown) => void;
-    onCompleteOffer: (data: { hikerDetails: Record<string, any> }) => Promise<boolean>;
-    onUpdatePress?: (payload: { section: string; id: string; value: unknown }) => void;
+    onSetOffer?: (offer: Offer) => void;
+    onCompleteOffer: (data?: {
+        hikerDetails?: {
+            phone?: string;
+            emergencyContact?: IEmergencyContact;
+        } | null;
+        uploadedDocs?: Record<string, string> | null;
+    }) => Promise<boolean>;
+    onUpdatePress?: (params: TEdit<Booking>) => void;
     onTermsPress?: () => void;
     onPrivacyPress?: () => void;
+    onViewBookingDetails?: (bookingId?: string) => void;
+    onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
 
 export interface BookingDataState {
     selectedOfferId: string | null;
-    hikerDetails: Record<string, any> | null;
+    hikerDetails: HikerBookingDetails | null;
     uploadedDocs: Record<string, string> | null;
 }
 
-const BookingScreen: React.FC<BookingScreenProps> = ({
+/**
+ * BookingScreen — Multi-step wizard screen for selecting offers, uploading documents,
+ * entering contact info, signing terms, and submitting hike reservations.
+ *
+ * @param {BookingScreenProps} props - Component props
+ * @returns {React.JSX.Element} The rendered component
+ */
+const BookingScreen = ({
     offers = [],
+    bookedOfferIds,
+    userBookings,
+    error,
     onBackPress,
     onSetOffer,
     onCompleteOffer,
     onUpdatePress,
     onTermsPress,
-    onPrivacyPress
-}) => {
+    onPrivacyPress,
+    onViewBookingDetails,
+    onSearchUser,
+}: BookingScreenProps): React.JSX.Element => {
 
     const [currentView, setCurrentView] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitPhase, setSubmitPhase] = useState('idle');
-
-    const [isBookingSuccess, setIsBookingSuccess] = useState(false); 
+    const [bookingStatusOutcome, setBookingStatusOutcome] = useState<BookingStatusOutcome>('success');
+    const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
+    const [isDetailsDirty, setIsDetailsDirty] = useState(false);
+    const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const pendingStepRef = useRef<number | null>(null);
 
     const [bookingData, setBookingData] = useState<BookingDataState>({
         selectedOfferId: null,
@@ -52,8 +91,41 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
         uploadedDocs: null,
     });
 
-    const safeOffers = Array.isArray(offers) ? offers : [];
+    const safeOffers = React.useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
     const lineFillPercentage = ((currentView - 1) / 2) * 100;
+
+    const computedBookedOfferIds = React.useMemo(() => {
+        if (bookedOfferIds) return bookedOfferIds;
+        if (userBookings && Array.isArray(userBookings)) {
+            const activeBookings = userBookings.filter((b) => !BookingLogic.isInactiveStatus(b.status));
+            return activeBookings.map((b) => b.offer?.id).filter(Boolean) as string[];
+        }
+        return [];
+    }, [bookedOfferIds, userBookings]);
+
+    const createdBookingId = React.useMemo(() => {
+        if (userBookings && Array.isArray(userBookings)) {
+            const match = userBookings.find(
+                (b) => b.offer?.id === bookingData.selectedOfferId && !BookingLogic.isInactiveStatus(b.status)
+            );
+            return match?.id || null;
+        }
+        return null;
+    }, [userBookings, bookingData.selectedOfferId]);
+
+    const computedConflictOfferIds = React.useMemo(() => {
+        if (userBookings && Array.isArray(userBookings)) {
+            const activeBookings = userBookings.filter((b) => !BookingLogic.isInactiveStatus(b.status));
+            const bookedDatesSet = new Set(
+                activeBookings.map((b) => formatDateToStandard(b.offer?.date)).filter(Boolean)
+            );
+
+            return safeOffers
+                .filter((o) => bookedDatesSet.has(formatDateToStandard(o.date)))
+                .map((o) => o.id);
+        }
+        return [];
+    }, [userBookings, safeOffers]);
     
     const completeOfferRef = useRef(onCompleteOffer);
     useEffect(() => {
@@ -65,7 +137,6 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
         bookingDataRef.current = bookingData;
     }, [bookingData]);
 
-
     const resetStateAndGoBack = () => {
         setCurrentView(1);
         setBookingData({
@@ -73,7 +144,9 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
             hikerDetails: null,
             uploadedDocs: null,
         });
-        setIsBookingSuccess(false);
+        setBookingStatusOutcome('success');
+        setBookingErrorMessage(null);
+        setIsDetailsDirty(false);
         onBackPress();
     };
 
@@ -81,7 +154,12 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
         if (currentView === 3) {
             resetStateAndGoBack();
         } else if (currentView === 2) {
-            setCurrentView(1);
+            if (isDetailsDirty) {
+                pendingStepRef.current = 1;
+                setShowDiscardModal(true);
+            } else {
+                setCurrentView(1);
+            }
         } else {
             resetStateAndGoBack();
         }
@@ -90,32 +168,73 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
     const handleStepNavigation = (step: number) => {
         if (currentView === 3) return;
         if (step > currentView || isSubmitting) return;
+        if (currentView === 2 && step === 1 && isDetailsDirty) {
+            pendingStepRef.current = 1;
+            setShowDiscardModal(true);
+            return;
+        }
         setCurrentView(step);
     };
 
-    const handleReserve = (detailsData: { hikerDetails: Record<string, any>; uploadedDocs: Record<string, string> }) => {
+    const handleConfirmDiscard = () => {
+        setShowDiscardModal(false);
+        setIsDetailsDirty(false);
+        const targetStep = pendingStepRef.current ?? 1;
+        pendingStepRef.current = null;
+        setCurrentView(targetStep);
+    };
+
+    const handleRetryBooking = () => {
+        setCurrentView(2);
+        setSubmitPhase('idle');
+        setIsSubmitting(false);
+    };
+
+    const handleChangeDate = () => {
+        setCurrentView(1);
+        setSubmitPhase('idle');
+        setIsSubmitting(false);
+    };
+
+    const handleViewBooking = (targetId?: string) => {
+        if (onViewBookingDetails) {
+            onViewBookingDetails(targetId || createdBookingId || undefined);
+        }
+    };
+
+    const handleReserve = (payload: { 
+        hikerDetails: HikerBookingDetails; 
+        uploadedDocs: Record<string, string>; 
+    }) => {
         setIsSubmitting(true);
 
-        const normalizedHikerDetails: Record<string, any> = {
-            ...detailsData.hikerDetails,
-            phone: cleanPhoneNumber(detailsData.hikerDetails?.phone || ''),
-            emergencyPhone: cleanPhoneNumber(detailsData.hikerDetails?.emergencyPhone || ''),
+        const cleanedPhone = cleanPhoneNumber(payload.hikerDetails.phone || '');
+        const cleanedEmergencyContact: IEmergencyContact = {
+            name: payload.hikerDetails.emergencyContact?.name || '',
+            contactNumber: cleanPhoneNumber(payload.hikerDetails.emergencyContact?.contactNumber || ''),
+            email: payload.hikerDetails.emergencyContact?.email || '',
+            userId: payload.hikerDetails.emergencyContact?.userId || '',
+            phoneVerifiedAt: payload.hikerDetails.emergencyContact?.phoneVerifiedAt
+                ? toDateOrNull(payload.hikerDetails.emergencyContact.phoneVerifiedAt)
+                : null,
+        };
+
+        const normalizedHikerDetails: HikerBookingDetails = {
+            phone: cleanedPhone,
+            emergencyContact: cleanedEmergencyContact,
         };
 
         if (onUpdatePress) {
             onUpdatePress({
                 section: 'root',
                 id: 'emergencyContact',
-                value: {
-                    name: normalizedHikerDetails.emergencyName || '',
-                    contactNumber: normalizedHikerDetails.emergencyPhone || '',
-                },
+                value: cleanedEmergencyContact,
             });
 
-            const formattedDocsArray = Object.keys(detailsData.uploadedDocs || {}).map((docName) => ({
+            const formattedDocsArray = Object.keys(payload.uploadedDocs || {}).map((docName) => ({
                 name: docName,
-                file: detailsData.uploadedDocs[docName],
-                valid: 'pending' 
+                file: payload.uploadedDocs[docName],
+                valid: 'pending' as const
             }));
 
             onUpdatePress({
@@ -127,7 +246,7 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
 
         setBookingData((prev) => ({
             ...prev,
-            ...detailsData,
+            ...payload,
             hikerDetails: normalizedHikerDetails,
         }));
         
@@ -136,20 +255,34 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
 
     useEffect(() => {
         if (submitPhase === 'ready_to_submit') {
-            
             const timer = setTimeout(async () => {
                 let successFlag = false; 
+                let capturedError: string | null = null;
                 
                 try {
                     successFlag = await completeOfferRef.current({
-                        hikerDetails: bookingDataRef.current.hikerDetails || {},
+                        hikerDetails: bookingDataRef.current.hikerDetails || undefined,
+                        uploadedDocs: bookingDataRef.current.uploadedDocs || undefined,
                     });
                 } catch (backendError) {
                     console.error("Booking Error:", backendError);
                     successFlag = false;
+                    capturedError = backendError instanceof Error ? backendError.message : String(backendError);
                 }
 
-                setIsBookingSuccess(successFlag);
+                if (successFlag) {
+                    setBookingStatusOutcome('success');
+                    setBookingErrorMessage(null);
+                } else {
+                    const errLower = (capturedError || '').toLowerCase();
+                    if (errLower.includes('already have an active booking') || errLower.includes('conflict') || errLower.includes('duplicate')) {
+                        setBookingStatusOutcome('conflict');
+                    } else {
+                        setBookingStatusOutcome('error');
+                    }
+                    setBookingErrorMessage(capturedError);
+                }
+
                 setCurrentView(3);
                 setIsSubmitting(false);
                 setSubmitPhase('idle');
@@ -220,6 +353,11 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
                     <OffersScreen
                         offers={safeOffers}
                         selectedOfferId={bookingData.selectedOfferId}
+                        bookedOfferIds={computedBookedOfferIds}
+                        conflictOfferIds={computedConflictOfferIds}
+                        userBookings={userBookings}
+                        error={error}
+                        onViewBookingDetails={onViewBookingDetails}
                         onContinue={(offerId) => {
                             const selectedOffer = safeOffers.find(
                                 (o) => o.id === offerId
@@ -230,12 +368,12 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
                                 if (selectedOffer.date) {
                                     if (selectedOffer.date instanceof Date) {
                                         properDate = selectedOffer.date;
-                                    } else if (typeof (selectedOffer.date as any).toDate === 'function') {
-                                        properDate = (selectedOffer.date as any).toDate();
-                                    } else if ((selectedOffer.date as any).seconds) {
-                                        properDate = new Date((selectedOffer.date as any).seconds * 1000);
+                                    } else if (typeof selectedOffer.date === 'object' && selectedOffer.date !== null && 'toDate' in selectedOffer.date && typeof (selectedOffer.date as { toDate: () => Date }).toDate === 'function') {
+                                        properDate = (selectedOffer.date as { toDate: () => Date }).toDate();
+                                    } else if (typeof selectedOffer.date === 'object' && selectedOffer.date !== null && 'seconds' in selectedOffer.date) {
+                                        properDate = new Date(Number((selectedOffer.date as { seconds: number }).seconds) * 1000);
                                     } else {
-                                        properDate = new Date(selectedOffer.date as string | number);
+                                        properDate = new Date(String(selectedOffer.date));
                                     }
                                 }
                                 onSetOffer({ ...selectedOffer, date: properDate });
@@ -259,24 +397,47 @@ const BookingScreen: React.FC<BookingScreenProps> = ({
                         savedDocs={bookingData.uploadedDocs}
                         isSubmitting={isSubmitting}
                         onContinue={handleReserve}
+                        onProgressChange={setIsDetailsDirty}
                         onTermsPress={onTermsPress}
                         onPrivacyPress={onPrivacyPress}
+                        onSearchUser={onSearchUser}
                     />
                 )}
 
                 {currentView === 3 && (
                     <StatusScreen
-                        onReturn={() => {
-                            resetStateAndGoBack();
-                        }}
+                        status={bookingStatusOutcome}
+                        errorMessage={bookingErrorMessage || error}
+                        bookingId={createdBookingId}
                         bookedOffer={safeOffers.find(
                             (o) => o.id === bookingData.selectedOfferId
                         )}
                         hikerDetails={bookingData.hikerDetails}
-                        isSuccess={isBookingSuccess} 
+                        uploadedDocs={bookingData.uploadedDocs}
+                        onReturn={resetStateAndGoBack}
+                        onViewBooking={handleViewBooking}
+                        onRetry={handleRetryBooking}
+                        onChangeDate={handleChangeDate}
                     />
                 )}
             </View>
+
+            {/* Discard / Leave Progress Confirmation Modal */}
+            <ConfirmationModal 
+                visible={showDiscardModal}
+                onClose={() => {
+                    setShowDiscardModal(false);
+                    pendingStepRef.current = null;
+                }}
+                onConfirm={handleConfirmDiscard}
+                title="Leave Reservation?"
+                message="You have entered reservation details and uploaded requirements. Are you sure you want to leave and discard your progress?"
+                confirmText="Yes, Leave"
+                cancelText="Stay Here"
+                isDestructive={true}
+                iconName="alert-triangle"
+                iconLibrary="Feather"
+            />
         </ScreenWrapper>
     );
 };
@@ -294,10 +455,6 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 16,
         backgroundColor: Colors.BACKGROUND,
-        
-        
-        
-        
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,
