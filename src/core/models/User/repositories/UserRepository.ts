@@ -6,7 +6,7 @@ import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
-import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 
 GoogleSignin.configure({
@@ -254,6 +254,40 @@ export const UserRepository = (db: Firestore) => ({
         } catch (err) {
             console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
+        }
+    },
+
+    /**
+     * Updates phone verification timestamp for personal phone or emergency contact.
+     *
+     * @param userId - ID of the user document to update.
+     * @param contactType - Whether to update the personal phone or emergency contact.
+     * @param verifiedAt - New verification date or null to reset.
+     */
+    async updateVerification(
+        userId: string,
+        contactType: 'personal' | 'emergency',
+        verifiedAt: Date | null
+    ): Promise<void> {
+        try {
+            if (!userId) throw new Error('User ID is required');
+            const userRef = doc(db, 'users', userId);
+            const tsValue = verifiedAt instanceof Date && !isNaN(verifiedAt.getTime())
+                ? Timestamp.fromDate(verifiedAt)
+                : null;
+
+            if (contactType === 'personal') {
+                await updateDoc(userRef, {
+                    phoneVerifiedAt: tsValue,
+                });
+            } else {
+                await updateDoc(userRef, {
+                    'emergencyContact.phoneVerifiedAt': tsValue,
+                });
+            }
+        } catch (err: unknown) {
+            if (err instanceof Error) throw err;
+            throw new Error('Failed to update user verification');
         }
     }
 });

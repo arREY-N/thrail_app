@@ -6,7 +6,7 @@ import {
     IUserDB,
     User,
 } from "@/src/core/models/User/interfaces/User.types";
-import { toDate } from "@/src/core/utility/date";
+import { toDate, toDateOrNull } from "@/src/core/utility/date";
 import {
     FirestoreDataConverter,
     QueryDocumentSnapshot,
@@ -28,8 +28,8 @@ export const newEmergencyContact = (init?: Partial<IEmergencyContact>): IEmergen
     contactNumber: '',
     email: '',
     userId: '',
-    phoneVerifiedAt: null,
     ...init,
+    phoneVerifiedAt: toDateOrNull(init?.phoneVerifiedAt),
 });
 
 export const newMedicalProfile = (init?: Partial<IMedicalProfile>): IMedicalProfile => ({
@@ -70,7 +70,7 @@ export const newUser = (init?: Partial<User>): User => {
         role: 'user',
         fcmTokens: [],
         emergencyContact: newEmergencyContact(init?.emergencyContact),
-        phoneVerifiedAt: init?.phoneVerifiedAt ? toDate(init.phoneVerifiedAt) : new Date(),
+        phoneVerifiedAt: init?.phoneVerifiedAt ? toDate(init.phoneVerifiedAt) : null,
         profileImage: '',
         ...init,
         ...(init?.birthday ? { birthday: toDate(init.birthday) } : {}),
@@ -99,7 +99,7 @@ const userFromFirestore = (id: string, data: IUserDB): User => {
         updatedAt: toDate(data.updatedAt),
         preferences: newPreference(data.preferences),
         profileImage: data.profileImage || '',
-        phoneVerifiedAt: data.phoneVerifiedAt ? toDate(data.phoneVerifiedAt) : new Date(),
+        phoneVerifiedAt: data.phoneVerifiedAt ? toDate(data.phoneVerifiedAt) : null,
         medicalProfile: {
             ...data.medicalProfile,
             hasCondition: !!data.medicalProfile?.hasCondition,
@@ -135,8 +135,16 @@ const userToFirestore = (user: User): IUserDB => {
         preferences: user.preferences,
         medicalProfile: user.medicalProfile,
         role: user.role,
-        emergencyContact: user.emergencyContact,
-        phoneVerifiedAt: user.phoneVerifiedAt instanceof Date ? Timestamp.fromDate(user.phoneVerifiedAt) : user.phoneVerifiedAt,
+        emergencyContact: user.emergencyContact ? {
+            name: user.emergencyContact.name,
+            contactNumber: user.emergencyContact.contactNumber,
+            userId: user.emergencyContact.userId || '',
+            email: user.emergencyContact.email || '',
+            phoneVerifiedAt: user.emergencyContact.phoneVerifiedAt instanceof Date
+                ? Timestamp.fromDate(user.emergencyContact.phoneVerifiedAt)
+                : (user.emergencyContact.phoneVerifiedAt || null),
+        } : user.emergencyContact,
+        phoneVerifiedAt: user.phoneVerifiedAt instanceof Date ? Timestamp.fromDate(user.phoneVerifiedAt) : (user.phoneVerifiedAt || null),
         profileImage: user.profileImage,
     };
 
