@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -17,6 +17,7 @@ import CustomLoading from '@/src/components/CustomLoading';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -35,6 +36,12 @@ import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
+import { 
+    getDynamicRejectionSuggestions, 
+    getVerificationWarningMessage, 
+    REVIEW_MODALS, 
+    REVIEW_TOASTS 
+} from '@/src/features/Admin/utils/reviewMessages';
 
 /**
  * Props for ReviewScreen component.
@@ -56,12 +63,12 @@ export interface ReviewScreenProps {
     booking: Booking;
     offers: Offer[];
     onBackPress: () => void;
-    onApprove: (docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
-    onConfirmPayment: () => Promise<void>;
-    onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null) => Promise<void>;
-    onReschedule: (offerData: Offer) => void | Promise<void>;
+    onApprove: (docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null, booking?: Booking) => Promise<void>;
+    onConfirmPayment: (booking?: Booking) => Promise<void>;
+    onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null, booking?: Booking) => Promise<void>;
+    onReschedule: (offerData: Offer, booking?: Booking) => void | Promise<void>;
     onRefund: (booking: Booking, refundType: RefundType) => Promise<Booking | undefined | void> | void;
-    onCancelUnpaid?: () => Promise<void>;
+    onCancelUnpaid?: (booking?: Booking) => Promise<void>;
     error?: string;
     hikerProfile?: User | null;
 }
@@ -104,7 +111,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
-        availableOffers
+        availableOffers,
+        approvalGuard,
+        syncGlobalVerification,
     } = useReviewLogic(booking, offers);
 
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
@@ -112,18 +121,44 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [isConfirmPaymentVisible, setIsConfirmPaymentVisible] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-    const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<any>(null);
+    const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<{ id: string; label: string; subLabel?: string; originalData: Offer } | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
 
     const [isProcessingAction, setIsProcessingAction] = useState(false);
+    const [isRejectingBooking, setIsRejectingBooking] = useState(false);
 
-    const totalAmountPaid = booking?.payment?.reduce((sum: number, p: any) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const [toastConfig, setToastConfig] = useState<{
+        visible: boolean;
+        message: string;
+        type: 'info' | 'warning' | 'error' | 'success';
+    }>({
+        visible: false,
+        message: '',
+        type: 'info',
+    });
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+    const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+
+    const isRejecting = hasRejections || isRejectingBooking || rejectionReason.trim().length > 0;
+
+    const hasUnverifiedPhone = personalStatus !== 'verified' || (emergencyStatus !== 'verified' && !!booking?.emergencyContact);
+    const isSecondaryVisible = isRejecting 
+        ? true 
+        : (hasInteracted || hasUnverifiedPhone || docStates.length === 0);
+
+    const dynamicSuggestions = useMemo(
+        () => getDynamicRejectionSuggestions(docStates.length, hasRejections),
+        [docStates.length, hasRejections]
+    );
+
+    const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
 
     const handleViewFile = async (url: string, index: number) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
 
         setViewedDocs((prev: Record<number, boolean>) => ({ ...prev, [index]: true }));
+        setHasInteracted(true);
 
         if (url.toLowerCase().includes('.pdf')) {
             if (await Linking.canOpenURL(url)) {
@@ -136,21 +171,211 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     const handleFinalDecision = async () => {
         setIsConfirmVisible(false);
-        const allApproved = docStates.every((d: DocState) => d.valid === 'approved');
+        const allApproved = !isRejecting && docStates.every((d: DocState) => d.valid === 'approved');
 
         setIsProcessingAction(true);
         try {
+            if (booking?.user?.id) {
+                await syncGlobalVerification(booking.user.id, 'personal', personalVerifiedAt);
+                await syncGlobalVerification(booking.user.id, 'emergency', emergencyVerifiedAt);
+                const linkedUserId = booking.emergencyContact?.userId;
+                if (linkedUserId) {
+                    await syncGlobalVerification(linkedUserId, 'personal', emergencyVerifiedAt);
+                }
+            }
+
             if (allApproved) {
-                await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt);
+                await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt, booking);
                 setActiveTab('payment');
             } else {
-                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt);
+                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt, booking);
             }
         } finally {
             setIsProcessingAction(false);
         }
     };
 
+    const handleRejectionReasonChange = useCallback((reason: string) => {
+        setRejectionReason(reason);
+        if (hasAttemptedSubmit) {
+            setHasAttemptedSubmit(false);
+        }
+    }, [hasAttemptedSubmit, setRejectionReason]);
+
+    const handlePrimaryPress = useCallback(() => {
+        if (isRejecting) {
+            const hasReason = rejectionReason.trim().length > 0;
+            if (!hasReason) {
+                setHasAttemptedSubmit(true);
+                setToastConfig({
+                    visible: true,
+                    message: REVIEW_TOASTS.REASON_REQUIRED,
+                    type: 'error',
+                });
+                return;
+            }
+            setIsConfirmVisible(true);
+            return;
+        }
+
+        if (isDecisionIncomplete) {
+            const pendingCount = docStates.filter((d: DocState) => d.valid === 'pending').length;
+            setHasAttemptedSubmit(true);
+            setToastConfig({
+                visible: true,
+                message: REVIEW_TOASTS.DOCS_INCOMPLETE(pendingCount),
+                type: 'error',
+            });
+            return;
+        }
+
+        setIsConfirmVisible(true);
+    }, [isRejecting, rejectionReason, isDecisionIncomplete, docStates]);
+
+    const handleSecondaryPress = useCallback(() => {
+        if (isRejecting) {
+            setDocStates(prev => prev.map(d => d.valid === 'rejected' ? { ...d, valid: 'pending' as const } : d));
+            setRejectionReason('');
+            setIsRejectingBooking(false);
+            setHasAttemptedSubmit(false);
+            setToastConfig(prev => ({ ...prev, visible: false }));
+            return;
+        }
+
+        setHasInteracted(true);
+        setIsRejectingBooking(true);
+        setHasAttemptedSubmit(false);
+    }, [isRejecting, setDocStates, setRejectionReason]);
+
+    const primaryButtonConfig = useMemo(() => {
+        if (isRejecting) {
+            const hasReason = rejectionReason.trim().length > 0;
+            return {
+                title: "Submit Rejection",
+                variant: 'destructive' as const,
+                disabled: isProcessingAction,
+                style: hasReason ? {
+                    backgroundColor: Colors.ERROR,
+                    borderColor: Colors.ERROR,
+                } : (hasAttemptedSubmit ? {
+                    backgroundColor: Colors.STATUS_CANCELLED_BG,
+                    borderColor: Colors.STATUS_CANCELLED_TEXT,
+                    borderWidth: 1.5,
+                } : {
+                    backgroundColor: Colors.GRAY_ULTRALIGHT,
+                    borderColor: Colors.GRAY_LIGHT,
+                    borderWidth: 1.5,
+                }),
+                textStyle: hasReason ? {
+                    color: Colors.WHITE,
+                    fontWeight: 'bold' as const,
+                } : (hasAttemptedSubmit ? {
+                    color: Colors.STATUS_CANCELLED_TEXT,
+                    fontWeight: 'bold' as const,
+                } : {
+                    color: Colors.TEXT_SECONDARY,
+                    fontWeight: 'bold' as const,
+                }),
+                onPress: handlePrimaryPress,
+            };
+        }
+
+        // Approval flow
+        const isReady = !isDecisionIncomplete && docStates.length > 0;
+        return {
+            title: "Approve Booking",
+            variant: 'primary' as const,
+            disabled: isProcessingAction,
+            style: isReady ? {
+                backgroundColor: Colors.PRIMARY,
+                borderColor: Colors.PRIMARY,
+            } : (hasAttemptedSubmit ? {
+                backgroundColor: Colors.STATUS_CANCELLED_BG,
+                borderColor: Colors.STATUS_CANCELLED_TEXT,
+                borderWidth: 1.5,
+            } : {
+                backgroundColor: Colors.GRAY_ULTRALIGHT,
+                borderColor: Colors.GRAY_LIGHT,
+                borderWidth: 1.5,
+            }),
+            textStyle: isReady ? {
+                color: Colors.WHITE,
+                fontWeight: 'bold' as const,
+            } : (hasAttemptedSubmit ? {
+                color: Colors.STATUS_CANCELLED_TEXT,
+                fontWeight: 'bold' as const,
+            } : {
+                color: Colors.TEXT_SECONDARY,
+                fontWeight: 'bold' as const,
+            }),
+            onPress: handlePrimaryPress,
+        };
+    }, [isRejecting, rejectionReason, isProcessingAction, hasAttemptedSubmit, isDecisionIncomplete, docStates.length, handlePrimaryPress]);
+
+    const secondaryButtonConfig = useMemo(() => {
+        if (isRejecting) {
+            return {
+                title: "Cancel Rejection",
+                variant: 'outline' as const,
+                disabled: isProcessingAction,
+                textStyle: { color: Colors.TEXT_PRIMARY },
+                style: {
+                    borderColor: Colors.GRAY_LIGHT,
+                    backgroundColor: Colors.WHITE,
+                },
+                onPress: handleSecondaryPress,
+            };
+        }
+
+        if (!isSecondaryVisible) {
+            return undefined;
+        }
+
+        return {
+            title: "Reject Booking",
+            variant: 'outline' as const,
+            disabled: isProcessingAction,
+            textStyle: { color: Colors.ERROR },
+            style: {
+                borderColor: Colors.GRAY_LIGHT,
+                backgroundColor: Colors.WHITE,
+            },
+            onPress: handleSecondaryPress,
+        };
+    }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
+
+    const confirmModalConfig = useMemo(() => {
+        if (isRejecting) {
+            return {
+                title: REVIEW_MODALS.REJECT.title,
+                message: REVIEW_MODALS.REJECT.message,
+                confirmText: REVIEW_MODALS.REJECT.confirmText,
+                cancelText: REVIEW_MODALS.REJECT.cancelText,
+                iconName: "alert-triangle",
+                isDestructive: true,
+            };
+        }
+
+        if (approvalGuard?.requiresOverride) {
+            return {
+                title: REVIEW_MODALS.SAFETY_OVERRIDE.title,
+                message: getVerificationWarningMessage(personalStatus, emergencyStatus),
+                confirmText: REVIEW_MODALS.SAFETY_OVERRIDE.confirmText,
+                cancelText: REVIEW_MODALS.SAFETY_OVERRIDE.cancelText,
+                iconName: "alert-triangle",
+                isDestructive: false,
+            };
+        }
+
+        return {
+            title: REVIEW_MODALS.APPROVE.title,
+            message: REVIEW_MODALS.APPROVE.message,
+            confirmText: REVIEW_MODALS.APPROVE.confirmText,
+            cancelText: REVIEW_MODALS.APPROVE.cancelText,
+            iconName: "check-circle",
+            isDestructive: false,
+        };
+    }, [isRejecting, approvalGuard?.requiresOverride, personalStatus, emergencyStatus]);
 
     if (isLoading || !booking || !booking.user) {
         return (
@@ -203,6 +428,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 emergencyStatus={emergencyStatus}
                                 personalMonthsRemaining={personalMonthsRemaining}
                                 emergencyMonthsRemaining={emergencyMonthsRemaining}
+                                personalVerifiedAt={personalVerifiedAt}
+                                emergencyVerifiedAt={emergencyVerifiedAt}
                                 onTogglePersonalVerify={togglePersonalVerify}
                                 onToggleEmergencyVerify={toggleEmergencyVerify}
                                 statusText={adminStatusConfig.label}
@@ -242,14 +469,30 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 <DocumentTab
                                     booking={booking}
                                     docStates={docStates}
-                                    setDocStates={setDocStates as unknown as React.Dispatch<React.SetStateAction<DocState[]>>}
+                                    setDocStates={(newStates: DocState[]) => {
+                                        setDocStates(newStates);
+                                        if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
+                                    }}
                                     viewedDocs={viewedDocs}
                                     isReviewComplete={isReviewComplete}
                                     isRejectedStatus={isRejectedStatus}
                                     isCancelledStatus={isCancelledStatus}
                                     hasRejections={hasRejections}
+                                    showRejectionReason={isRejecting}
                                     rejectionReason={rejectionReason}
-                                    setRejectionReason={setRejectionReason}
+                                    setRejectionReason={handleRejectionReasonChange}
+                                    suggestions={dynamicSuggestions}
+                                    onAttachmentRequired={() => {
+                                        setToastConfig({
+                                            visible: true,
+                                            message: REVIEW_TOASTS.ATTACHMENT_REQUIRED,
+                                            type: 'error',
+                                        });
+                                    }}
+                                    onInteraction={() => {
+                                        setHasInteracted(true);
+                                        if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
+                                    }}
                                     onViewFile={handleViewFile}
                                 />
                             )}
@@ -274,29 +517,35 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             {!isReviewComplete && activeTab === 'documents' && (
                 <View style={styles.footerWrapper}>
                     <CustomStickyFooter
-                        primaryButton={{
-                            title: "Submit Document Review",
-                            onPress: () => {
-                                if (isDecisionIncomplete || (hasRejections && !rejectionReason.trim())) {
-                                    return Alert.alert(
-                                        "Incomplete",
-                                        "Please approve or reject all documents and provide a reason if rejecting."
-                                    );
-                                }
-                                setIsConfirmVisible(true);
-                            },
-                            disabled: isDecisionIncomplete || (hasRejections && !rejectionReason.trim())
-                        }}
+                        primaryButton={primaryButtonConfig}
+                        secondaryButton={secondaryButtonConfig}
                     />
                 </View>
             )}
+
+            {/* Custom Toast above Sticky Footer */}
+            <CustomToast
+                visible={toastConfig.visible}
+                message={toastConfig.message}
+                type={toastConfig.type}
+                mode="dismissible"
+                position="sticky_footer"
+                onHide={() => {
+                    setToastConfig(prev => ({ ...prev, visible: false }));
+                    setHasAttemptedSubmit(false);
+                }}
+            />
 
             <ConfirmationModal
                 visible={isConfirmVisible}
                 onClose={() => setIsConfirmVisible(false)}
                 onConfirm={handleFinalDecision}
-                title="Process Decision"
-                message={hasRejections ? "Reject this booking and request corrections?" : "Documents are valid. Approve to proceed to payment?"}
+                title={confirmModalConfig.title}
+                message={confirmModalConfig.message}
+                confirmText={confirmModalConfig.confirmText}
+                cancelText={confirmModalConfig.cancelText}
+                iconName={confirmModalConfig.iconName}
+                isDestructive={confirmModalConfig.isDestructive}
             />
 
             <ConfirmationModal
@@ -306,28 +555,30 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     setIsConfirmPaymentVisible(false);
                     setIsProcessingAction(true);
                     try {
-                        await onConfirmPayment();
+                        await onConfirmPayment(booking);
                     } finally {
                         setIsProcessingAction(false);
                     }
                 }}
-                title="Complete Booking"
-                message="Are you sure you want to mark this transaction as verified and complete?"
+                title={REVIEW_MODALS.CONFIRM_PAYMENT.title}
+                message={REVIEW_MODALS.CONFIRM_PAYMENT.message}
+                confirmText={REVIEW_MODALS.CONFIRM_PAYMENT.confirmText}
+                cancelText={REVIEW_MODALS.CONFIRM_PAYMENT.cancelText}
             />
 
             <ConfirmationModal
                 visible={showCancelUnpaidModal}
                 onClose={() => setShowCancelUnpaidModal(false)}
-                title="Cancel Booking?"
-                message="Are you sure you want to cancel this unpaid booking? This will clear the slot."
-                confirmText="Yes, Cancel"
-                cancelText="Keep Booking"
+                title={REVIEW_MODALS.CANCEL_UNPAID.title}
+                message={REVIEW_MODALS.CANCEL_UNPAID.message}
+                confirmText={REVIEW_MODALS.CANCEL_UNPAID.confirmText}
+                cancelText={REVIEW_MODALS.CANCEL_UNPAID.cancelText}
                 onConfirm={async () => {
                     setShowCancelUnpaidModal(false);
                     if (onCancelUnpaid) {
                         setIsProcessingAction(true);
                         try {
-                            await onCancelUnpaid();
+                            await onCancelUnpaid(booking);
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -343,14 +594,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title="Select New Offer"
                 options={availableOffers}
                 selectedValue={selectedRescheduleOffer?.id}
-                onSelect={(selected: any) => {
-                    setSelectedRescheduleOffer(selected);
+                onSelect={(selected) => {
+                    const offerOption = selected as { id: string; label: string; subLabel?: string; originalData: Offer };
+                    setSelectedRescheduleOffer(offerOption);
                     setShowRescheduleModal(false);
                     setTimeout(async () => {
                         if (onReschedule) {
                             setIsProcessingAction(true);
                             try {
-                                await onReschedule(selected.originalData);
+                                await onReschedule(offerOption.originalData, booking);
                             } finally {
                                 setIsProcessingAction(false);
                             }
