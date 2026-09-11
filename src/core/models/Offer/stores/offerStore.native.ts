@@ -12,4 +12,4 @@ export const useOfferStore = create<OfferState>()(
             storage: createJSONStorage(() => AsyncStorage),
         }
     )
-)
+);
