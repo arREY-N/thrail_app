@@ -33,7 +33,7 @@ export function EmergencyContactFlow() {
         }
     }
 
-    const setEmergencyContact = async (emergencyContact: IEmergencyContact, user?: User) => {
+    const setEmergencyContact = async (emergencyContact: IEmergencyContact, user?: Partial<User> | null) => {
         try {
             console.log("Setting emergency contact:", emergencyContact);
 
@@ -60,7 +60,7 @@ export function EmergencyContactFlow() {
                         await checkGroupExists(id);
                         console.log("Existing group found for emergency contact:");
                     }
-                } catch (error) {
+                } catch {
                     const safeProfile = {
                         id: profile.id || '',
                         username: profile.username || '',
@@ -80,7 +80,7 @@ export function EmergencyContactFlow() {
                         type: 'chat',
                         id: groupId[0],
                         members: [safeProfile, safeUser],
-                        participantsIds: [profile.id, user.id],
+                        participantsIds: [profile.id, user.id || ''],
                     });
 
                     createGroup(contactChat);
