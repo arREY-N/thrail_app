@@ -1,3 +1,8 @@
+/**
+ * @file (main)/book/list.tsx
+ * @description Controller route for viewing, filtering, rescheduling, cancelling, and paying for user bookings.
+ */
+
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
@@ -8,11 +13,20 @@ import { Booking, useBookingDelete, useBookingUserList } from "@/src/core/models
 import { useCancellationUser } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
+import { useAuthHook } from "@/src/core/models/User/User";
+import getSearchParam from "@/src/core/utility/getSearchParam";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function ListBook() {
-    const { bookingId, view } = useLocalSearchParams();
+    const { bookingId: rawBookingId, view: rawView } = useLocalSearchParams();
+    const bookingId = getSearchParam(rawBookingId);
+    const rawViewStr = getSearchParam(rawView);
+    const view = (rawViewStr === 'overview' || rawViewStr === 'payment' || rawViewStr === 'receipt' || rawViewStr === 'list') 
+        ? rawViewStr 
+        : undefined;
+
+    const { profile } = useAuthHook();
 
     const {
         onBackPress
@@ -41,11 +55,14 @@ export default function ListBook() {
     const {
         isDeleting,
         error: deleteError,
-        cancelPendingBooking,
     } = useBookingDelete();
 
     const {
         onPayOffer,
+        onResubmitDocuments,
+        onUpdateBookingContacts,
+        onSyncBookingVerification,
+        findUser,
     } = CreateBookingFlow();
 
     const displayBookings: Booking[] = [...(bookings || [])];
@@ -61,27 +78,32 @@ export default function ListBook() {
     if (isDeleting) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomLoading visible={true} message="Cancelling your booking..." />;
+                <CustomLoading visible={true} message="Cancelling your booking..." />
             </ScreenWrapper>
         );
     }
 
     return (
         <MyBookingsScreen
-            userBookings={displayBookings as any}
+            userBookings={displayBookings}
             isLoading={isFetching}
-            error={subscriptionError || deleteError as any}
+            error={subscriptionError || deleteError || undefined}
             onBackPress={onBackPress}
-            onCancelBookingPress={cancelBooking as any}
-            onRefundBookingPress={onRefundBooking as any}
-            onRescheduleBooking={onRescheduleBooking as any}
-            onPayOffer={onPayOffer as any}
-            getBookOffer={getOffer as any}
+            onCancelBookingPress={cancelBooking}
+            onRefundBookingPress={onRefundBooking}
+            onResubmitDocuments={onResubmitDocuments}
+            onUpdateBookingContacts={onUpdateBookingContacts}
+            onRescheduleBooking={onRescheduleBooking}
+            onPayOffer={onPayOffer}
+            getBookOffer={getOffer}
             availableFutureOffers={[newOffer(), newOffer()]}
-            initialBookingId={bookingId as any}
-            initialView={view as any}
+            initialBookingId={bookingId}
+            initialView={view}
             onTermsPress={onTermsPress}
             onPrivacyPress={onPrivacyPress}
+            currentUserProfile={profile}
+            onSyncBookingVerification={onSyncBookingVerification}
+            onSearchUser={findUser}
         />
     );
 }
