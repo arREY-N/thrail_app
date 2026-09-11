@@ -81,10 +81,6 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start', 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT,
-        
-        
-        
-        
         ...GlobalStyles.dropShadow(3),
     },
     column: { 
