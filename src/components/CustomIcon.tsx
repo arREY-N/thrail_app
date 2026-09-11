@@ -34,7 +34,7 @@ const CustomIcon: React.FC<CustomIconProps> = ({
 }) => {
 
     const commonProps = {
-        name: name as any,
+        name: name as never,
         size,
         color,
         style,
