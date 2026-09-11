@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string */
 import React, { useEffect, useState } from 'react';
 import {
     Animated,
@@ -14,6 +13,7 @@ import EmergencyModal from '@/src/components/EmergencyModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { EmergencyContactFlow } from '@/src/core/flows/EmergencyContactFlow';
 import { useAuthStore } from '@/src/core/models/User/User';
 
 /**
@@ -22,6 +22,7 @@ import { useAuthStore } from '@/src/core/models/User/User';
  */
 const EmergencyNotification: React.FC = () => {
     const profile = useAuthStore(s => s.profile);
+    const { findUser, setEmergencyContact } = EmergencyContactFlow();
 
     const [showNotifBanner, setShowNotifBanner] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
@@ -75,6 +76,14 @@ const EmergencyNotification: React.FC = () => {
     const handleFillUp = () => {
         hideBanner();
         setShowEmergencyModal(true);
+    };
+
+    const handleCloseEmergencyModal = () => {
+        setShowEmergencyModal(false);
+        if (!profile?.emergencyContact?.name) {
+            setToastMessage("Setup skipped. We will remind you later.");
+            setToastVisible(true);
+        }
     };
 
     return (
@@ -133,9 +142,12 @@ const EmergencyNotification: React.FC = () => {
 
             <EmergencyModal
                 visible={showEmergencyModal}
-                onClose={() => setShowEmergencyModal(false)}
+                onClose={handleCloseEmergencyModal}
                 onSkip={handleSkipEmergency}
                 mode="emergency_only"
+                currentUserProfile={profile}
+                onSearchUser={findUser}
+                onSaveEmergencyContact={setEmergencyContact}
             />
 
             <CustomToast
@@ -143,6 +155,7 @@ const EmergencyNotification: React.FC = () => {
                 message={toastMessage}
                 onHide={() => setToastVisible(false)}
                 type="info"
+                position="tabbar"
             />
         </>
     );
