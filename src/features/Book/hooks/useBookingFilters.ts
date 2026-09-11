@@ -37,7 +37,7 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
                 : (dateVal && typeof dateVal === 'object' && 'toDate' in dateVal ? (dateVal as import('firebase/firestore').Timestamp).toDate() : new Date((dateVal as Date | string | number) || 0));
             
             const isPast = hikeDate.getTime() < today.getTime();
-            const isDead = ['cancelled', 'refund', 'refunded', 'cancellation-rejected', 'reschedule-rejected', 'finished'].includes(status);
+            const isDead = ['cancelled', 'refund', 'refunded', 'cancellation-rejected', 'reschedule-rejected', 'finished', 'expired'].includes(status);
             
             if (isDead || isPast) {
                 return activeTab === 'history';
@@ -62,18 +62,25 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
             filtered = filtered.filter(b => b.status === 'downpayment');
         }
 
+        const getMs = (val: unknown): number => {
+            if (val instanceof Date) return val.getTime();
+            if (val && typeof val === 'object' && 'toDate' in val && typeof (val as { toDate: () => Date }).toDate === 'function') {
+                return (val as { toDate: () => Date }).toDate().getTime();
+            }
+            if (typeof val === 'string' || typeof val === 'number') {
+                return new Date(val).getTime();
+            }
+            return 0;
+        };
+
         filtered.sort((a, b) => {
             if (sortBy === 'hike-date') {
-                const dateAVal = a.offer?.date;
-                const dateBVal = b.offer?.date;
-                const dateA = (dateAVal instanceof Date ? dateAVal : (dateAVal && typeof dateAVal === 'object' && 'toDate' in dateAVal ? (dateAVal as any).toDate() : new Date((dateAVal as Date | string | number) || 0))).getTime();
-                const dateB = (dateBVal instanceof Date ? dateBVal : (dateBVal && typeof dateBVal === 'object' && 'toDate' in dateBVal ? (dateBVal as any).toDate() : new Date((dateBVal as Date | string | number) || 0))).getTime();
+                const dateA = getMs(a.offer?.date);
+                const dateB = getMs(b.offer?.date);
                 return activeTab === 'history' ? dateB - dateA : dateA - dateB; 
             } else if (sortBy === 'booked-date') {
-                const getMs = (val: any) => val instanceof Date ? val.getTime() : (val?.toDate ? val.toDate().getTime() : new Date(val || 0).getTime());
                 return getMs(b.createdAt) - getMs(a.createdAt); 
             } else if (sortBy === 'last-updated') {
-                const getMs = (val: any) => val instanceof Date ? val.getTime() : (val?.toDate ? val.toDate().getTime() : new Date(val || 0).getTime());
                 const timeA = getMs(a.updatedAt || a.createdAt);
                 const timeB = getMs(b.updatedAt || b.createdAt);
                 return timeB - timeA; 
