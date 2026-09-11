@@ -24,7 +24,7 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
-import { safeParseDateString } from '@/src/utils/dateFormatter';
+import { DateInput, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import useOfferFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useOfferFilters';
 import OfferCard from '@/src/features/Admin/screens/Offer/components/OfferCard';
@@ -135,7 +135,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const getOfferStatusDetails = (offer: Record<string, unknown>) => {
         const status = (offer.status || '').toString().toLowerCase();
-        const offerDate = safeParseDateString((offer.date || offer.hikeDate) as any);
+        const offerDate = safeParseDateString((offer.date || offer.hikeDate) as DateInput);
         offerDate.setHours(0, 0, 0, 0);
         
         const today = new Date();
@@ -178,7 +178,9 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
             return status === 'pending-docs' || 
                    status === 'for-reservation' || 
                    status === 'paid' || 
-                   status === 'downpayment';
+                   status === 'downpayment' ||
+                   status === 'for-cancellation' ||
+                   status === 'for-reschedule';
         }).length;
     };
 
@@ -203,9 +205,9 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         }
     ];
 
-    const handleApplyFilters = (values: Record<string, any>) => {
-        setSortBy(values.sortBy);
-        setFilterTrailNames(values.filterTrailNames || []);
+    const handleApplyFilters = (values: Record<string, unknown>) => {
+        setSortBy(values.sortBy as string);
+        setFilterTrailNames((values.filterTrailNames as string[]) || []);
     };
 
     return (
