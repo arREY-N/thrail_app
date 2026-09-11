@@ -1,5 +1,5 @@
 import LoadingScreen from "@/src/app/loading";
-import { useAuthHook } from "@/src/core/models/User/User";
+import { IUser, useAuthHook } from "@/src/core/models/User/User";
 import { useState } from 'react';
 
 import { Stack } from "expo-router";
@@ -26,7 +26,7 @@ export default function ViewUser() {
         setIsEditing(false);
     };
 
-    const onSavePress = async (updatedFields: any) => {
+    const onSavePress = async (updatedFields: Partial<IUser>) => {
         console.log("Saving fields in placeholder:", updatedFields);
         // TODO: [Backend] Connect this to useEditProfile hook
         setIsEditing(false);
