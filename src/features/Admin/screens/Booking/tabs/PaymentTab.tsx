@@ -12,6 +12,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 
 /**
  * Props for PaymentTab component.
@@ -23,7 +24,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
  * @param onConfirmPaymentClick - Callback when admin triggers payment completion verification.
  */
 export interface PaymentTabProps {
-    booking: any;
+    booking: Booking;
     currentStatus: string;
     isApprovedStatus: boolean;
     isRejectedStatus: boolean;
@@ -42,7 +43,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     isCancelledStatus,
     onConfirmPaymentClick 
 }) => {
-    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded');
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
 
     const getLockedMessage = () => {
@@ -72,16 +73,16 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     };
     const lockedMessage = getLockedMessage();
 
-    const totalPaid = booking?.payment?.reduce((sum: number, p: any) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
     const price = booking?.offer?.price || 0;
-    const remainingBalance = price - totalPaid;
+    const totalPaid = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const remainingBalance = Math.max(0, price - totalPaid);
 
     const renderGatewayBadge = (gatewayName: string) => {
         const name = (gatewayName || 'PayMongo').toLowerCase();
         let bgColor = Colors.GRAY_ULTRALIGHT;
         let textColor = Colors.TEXT_SECONDARY;
         let iconName = 'credit-card';
-        let displayName = 'PayMongo';
+        let displayName = gatewayName;
 
         if (name.includes('gcash')) {
             bgColor = Colors.STATUS_PENDING_BG;
@@ -101,7 +102,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
         return (
             <View style={[styles.gatewayBadge, { backgroundColor: bgColor }]}>
-                <CustomIcon library="Feather" name={iconName as any} size={12} color={textColor} />
+                <CustomIcon library="Feather" name={iconName} size={12} color={textColor} />
                 <CustomText style={[styles.gatewayText, { color: textColor }]}>
                     {displayName}
                 </CustomText>
@@ -167,7 +168,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
                             return (
                                 <View style={[styles.paymentStatusBadge, { backgroundColor: badgeBg }]}>
-                                    <CustomIcon library="Feather" name={badgeIcon as any} size={12} color={badgeText} />
+                                    <CustomIcon library="Feather" name={badgeIcon} size={12} color={badgeText} />
                                     <CustomText style={[styles.paymentStatusBadgeText, { color: badgeText }]}>
                                         {badgeLabel.toUpperCase()}
                                     </CustomText>
@@ -218,7 +219,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                         Transaction Summary
                     </CustomText>
                     
-                    {booking?.payment?.map((paymentRecord: any, idx: number) => {
+                    {booking?.payment?.map((paymentRecord: IPayment<Date>, idx: number) => {
                         const statusColor = paymentRecord.status === 'captured' 
                             ? Colors.SUCCESS 
                             : (paymentRecord.status === 'refunded' ? Colors.ERROR : Colors.STATUS_PENDING_TEXT);
