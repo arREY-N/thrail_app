@@ -278,75 +278,31 @@ thrail_app/
 │   │   ├── error/
 │   │   │   └── autherror.ts
 │   │   │
-│   │   ├── hook/                  ← Legacy hooks (non-refactored)
+│   │   ├── flows/                 ← Multi-domain async workflows
+│   │   │   ├── CreateBookingFlow.ts
+│   │   │   ├── CreateOfferFlow.ts
+│   │   │   ├── CreateReviewFlow.ts
+│   │   │   ├── DeleteUserFlow.ts
+│   │   │   ├── EmergencyContactFlow.ts
+│   │   │   ├── HikeTempFlow.ts
+│   │   │   ├── SignOutFlow.ts
+│   │   │   └── TrackHikerGPSFlow.ts
+│   │   │
+│   │   ├── hook/                  ← App-level & legacy hooks
 │   │   │   ├── useAppSubscriptions.ts
 │   │   │   ├── useHomeRefresh.ts
 │   │   │   ├── useMaintenance.ts
 │   │   │   ├── useStats.ts
 │   │   │   ├── useTrailOffers.ts
-│   │   │   ├── admin/
-│   │   │   │   ├── useAdmin.ts
-│   │   │   │   ├── useAdminOffer.ts
-│   │   │   │   └── useAdminWrite.ts
 │   │   │   ├── apply/
 │   │   │   │   ├── useApply.ts
 │   │   │   │   └── useApplyWrite.ts
-│   │   │   ├── auth/
-│   │   │   │   └── useSignUp.ts
-│   │   │   ├── hike/
-│   │   │   │   ├── useCurrentHike.ts
-│   │   │   │   ├── useHike.ts
-│   │   │   │   └── useHikeWrite.ts
-│   │   │   ├── mountain/
-│   │   │   │   ├── useMountain.ts
-│   │   │   │   └── useMountainWrite.ts
-│   │   │   ├── navigation/
-│   │   │   │   ├── useAdminNavigation.ts
-│   │   │   │   ├── useAppNavigation.ts
-│   │   │   │   ├── useLandingNavigation.ts
-│   │   │   │   ├── useProfileNavigation.ts
-│   │   │   │   └── useSuperadminNavigation.ts
-│   │   │   ├── notification/
-│   │   │   │   ├── useNotification.ts
-│   │   │   │   └── useViewNotification.ts
-│   │   │   ├── offer/
-│   │   │   │   ├── useOfferDomain.ts
-│   │   │   │   ├── useOfferWrite.ts
-│   │   │   │   └── useTrailOffer.ts
-│   │   │   ├── recommendation/
-│   │   │   │   └── useRecommendation.ts
-│   │   │   ├── review/
-│   │   │   │   ├── useReview.ts
-│   │   │   │   ├── useReviewWrite.ts
-│   │   │   │   └── useWriteReview.ts
-│   │   │   ├── superadmin/
-│   │   │   │   ├── useApplication.ts
-│   │   │   │   ├── useManageApplication.ts
-│   │   │   │   ├── useSuperadmin.ts
-│   │   │   │   ├── useSuperadminDomain.ts
-│   │   │   │   └── useSuperadminWrite.ts
-│   │   │   ├── trail/
-│   │   │   │   ├── useHikerGPS.ts
-│   │   │   │   ├── useTrail.ts
-│   │   │   │   ├── useTrailDomain.ts
-│   │   │   │   ├── useTrailStats.ts
-│   │   │   │   ├── useTrailView.ts
-│   │   │   │   └── useTrailWrite.ts
-│   │   │   ├── user/
-│   │   │   │   ├── useApply.ts
-│   │   │   │   ├── useAuthHook.ts
-│   │   │   │   ├── useDeleteProfile.ts
-│   │   │   │   ├── useDevicePermissions.ts
-│   │   │   │   ├── useEditProfile.ts
-│   │   │   │   ├── useEmergencyContact.ts
-│   │   │   │   ├── useForgotPassword.ts
-│   │   │   │   ├── useNotifyPermission.ts
-│   │   │   │   ├── usePreference.ts
-│   │   │   │   ├── useRouteGuard.ts
-│   │   │   │   ├── useUser.ts
-│   │   │   │   └── useUserWrite.ts
-│   │   │   └── weather/
-│   │   │       └── useWeather.ts
+│   │   │   └── navigation/
+│   │   │       ├── useAdminNavigation.ts
+│   │   │       ├── useAppNavigation.ts
+│   │   │       ├── useLandingNavigation.ts
+│   │   │       ├── useProfileNavigation.ts
+│   │   │       └── useSuperadminNavigation.ts
 │   │   │
 │   │   ├── interface/             ← Shared TypeScript interfaces
 │   │   │   ├── domainHookInterface.ts
@@ -394,6 +350,9 @@ thrail_app/
 │   │   │   │   │   └── applicationStoreCreator.ts
 │   │   │   │   └── utils/
 │   │   │   │       └── ApplicationFactory.ts
+│   │   │   │
+│   │   │   ├── Auth/
+│   │   │   │   └── Auth.ts                ← Facade stub
 │   │   │   │
 │   │   │   ├── Booking/
 │   │   │   │   ├── Booking.ts             ← Facade
@@ -702,6 +661,16 @@ thrail_app/
 │   │   │   │       ├── Review.logic.ts
 │   │   │   │       └── ReviewFactory.ts
 │   │   │   │
+│   │   │   ├── Superadmin/
+│   │   │   │   ├── Superadmin.ts          ← Facade
+│   │   │   │   └── hooks/
+│   │   │   │       ├── useApplication.ts
+│   │   │   │       ├── useManageApplication.ts
+│   │   │   │       ├── useSuperadmin.ts
+│   │   │   │       ├── useSuperadminDomain.ts
+│   │   │   │       ├── useSuperadminNavigation.ts
+│   │   │   │       └── useSuperadminWrite.ts
+│   │   │   │
 │   │   │   ├── Trail/
 │   │   │   │   ├── Trail.ts               ← Facade
 │   │   │   │   ├── TrailFeature.md
@@ -760,9 +729,7 @@ thrail_app/
 │   │   │       └── upsert.ts
 │   │   │
 │   │   ├── repositories/         ← Legacy flat repositories
-│   │   │   ├── authRepository.ts
 │   │   │   ├── fileRepository.ts
-│   │   │   ├── mountainRepository.ts
 │   │   │   ├── paymentRepository.ts
 │   │   │   ├── userRepository.ts
 │   │   │   └── weatherRepository.ts
@@ -772,12 +739,7 @@ thrail_app/
 │   │   │   ├── fileStore.ts
 │   │   │   ├── paymentsStore.ts
 │   │   │   ├── usersStore.ts
-│   │   │   ├── weatherStore.ts
-│   │   │   └── authStores/
-│   │   │       ├── authStore.native.ts
-│   │   │       ├── authStore.ts
-│   │   │       ├── authStore.web.ts
-│   │   │       └── authStoreCreator.ts
+│   │   │   └── weatherStore.ts
 │   │   │
 │   │   ├── test/
 │   │   │   └── firebase-postinstall-mock.js
@@ -968,8 +930,7 @@ thrail_app/
 │   │   │   │   ├── AboutScreen.tsx
 │   │   │   │   ├── HelpSupportScreen.tsx
 │   │   │   │   ├── HikingPreferencesScreen.tsx
-│   │   │   │   ├── NotificationSettingsScreen.tsx
-│   │   │   │   ├── PrivacyPermissionsScreen.tsx
+│   │   │   │   ├── PermissionsScreen.tsx
 │   │   │   │   ├── ProfileInfoScreen.tsx
 │   │   │   │   ├── SecurityScreen.tsx
 │   │   │   │   └── SettingsScreen.tsx
@@ -1074,20 +1035,21 @@ thrail_app/
 | Layer | Location | Description |
 | --- | --- | --- |
 | **Controllers** | `src/app/` | Expo Router file-based routes — thin wrappers that call screens |
-| **Screens** | `src/features/*/screens/` | Feature-grouped UI screens |
+| **Screens** | `src/features/*/screens/` | Feature-grouped pure UI screens |
 | **Components** | `src/components/` | Mandatory shared component library (`Custom*`) |
 | **Feature Hooks** | `src/features/*/hooks/` | UI-specific logic co-located with screens |
-| **Domain Hooks** | `src/core/models/*/hooks/` | Data-access hooks (co-located, new pattern) |
-| **Legacy Hooks** | `src/core/hook/` | Older hooks (pre-refactor) |
-| **Facades** | `src/core/models/*/{Domain}.ts` | Public API for each domain model |
+| **Domain Hooks** | `src/core/models/*/hooks/` | Co-located data hooks exported via `{Domain}.ts` facade |
+| **Flows** | `src/core/flows/` | Multi-store & cross-domain async business workflows |
+| **App Hooks** | `src/core/hook/` | App-level & system hooks (navigation, subscriptions, maintenance) |
+| **Facades** | `src/core/models/*/{Domain}.ts` | Single public API for each feature domain |
 | **Interfaces** | `src/core/models/*/interfaces/` | TypeScript type definitions per domain |
-| **Stores** | `src/core/models/*/stores/` | Zustand stores (native/web/creator split) |
-| **Repositories** | `src/core/models/*/repositories/` | Firestore data access layer |
+| **Stores** | `src/core/models/*/stores/` | Zustand stores (native/web/creator platform split) |
+| **Repositories** | `src/core/models/*/repositories/` | Decentralized Firestore data access layer |
 | **Factories** | `src/core/models/*/utils/*Factory.ts` | Object creation & Firestore converters |
 | **Utilities** | `src/core/utility/` | Shared pure functions |
 | **Constants** | `src/constants/` | Design tokens, colors, layout values |
-| **Legacy Stores** | `src/core/stores/` | Older flat stores (pre-refactor) |
-| **Legacy Repos** | `src/core/repositories/` | Older flat repositories (pre-refactor) |
+| **Legacy Stores** | `src/core/stores/` | Older flat stores (deprecated) |
+| **Legacy Repos** | `src/core/repositories/` | Older flat repositories (deprecated) |
 | **Cloud Functions** | `functions/` | Firebase Cloud Functions (payment, etc.) |
 | **Recommendation** | `recommendation_engine/` | Python TARS recommendation service |
 | **Agent Skills** | `.agents/skills/` | AI agent instruction files |
