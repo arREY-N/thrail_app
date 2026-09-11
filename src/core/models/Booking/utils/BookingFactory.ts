@@ -1,5 +1,5 @@
 import { Booking, IBookingDB } from "@/src/core/models/Booking/interfaces/Booking.types";
-import { toDate } from "@/src/core/utility/date";
+import { toDate, toDateOrNull } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
 export const newBooking = (init?: Partial<Booking>): Booking => {
@@ -36,6 +36,7 @@ export const newBooking = (init?: Partial<Booking>): Booking => {
         emergencyContact: {
             name: "",
             contactNumber: "",
+            phoneVerifiedAt: null,
         },
         documents: [],
         ...init
@@ -55,13 +56,21 @@ const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
         user: {
             ...data.user,
             birthday: toDate(data.user.birthday),
-            phoneVerifiedAt: data.user.phoneVerifiedAt ? toDate(data.user.phoneVerifiedAt) : null,
+            phoneVerifiedAt: toDateOrNull(data.user.phoneVerifiedAt),
         },
-        payment: data.payment.map(p => ({
+        payment: (data.payment || []).map(p => ({
             ...p,
             refundableUntil: toDate(p.refundableUntil),
             createdAt: toDate(p.createdAt),
         })),
+        emergencyContact: data.emergencyContact ? {
+            ...data.emergencyContact,
+            phoneVerifiedAt: toDateOrNull(data.emergencyContact.phoneVerifiedAt),
+        } : {
+            name: "",
+            contactNumber: "",
+            phoneVerifiedAt: null,
+        },
         documents: data.documents || [],
     };
 };
@@ -71,31 +80,43 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
 
     const data: IBookingDB = {
         id: booking.id,
-        createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(booking.createdAt),
+        createdAt: isNew ? serverTimestamp() : (booking.createdAt instanceof Date && !isNaN(booking.createdAt.getTime()) ? Timestamp.fromDate(booking.createdAt) : serverTimestamp()),
         updatedAt: serverTimestamp(),
         status: booking.status,
         offer: {
             ...booking.offer,
-            date: booking.offer.date ? Timestamp.fromDate(booking.offer.date) : Timestamp.now(),
+            date: booking.offer.date instanceof Date && !isNaN(booking.offer.date.getTime()) ? Timestamp.fromDate(booking.offer.date) : Timestamp.now(),
         },
         user: {
-            birthday: booking.user.birthday ? Timestamp.fromDate(booking.user.birthday) : Timestamp.now(),
+            birthday: booking.user.birthday instanceof Date && !isNaN(booking.user.birthday.getTime()) ? Timestamp.fromDate(booking.user.birthday) : Timestamp.now(),
             phoneNumber: booking.user.phoneNumber,
             id: booking.user.id,
             username: booking.user.username,
             firstname: booking.user.firstname,
             lastname: booking.user.lastname,
             email: booking.user.email,
+            phoneVerifiedAt: booking.user.phoneVerifiedAt instanceof Date && !isNaN(booking.user.phoneVerifiedAt.getTime())
+                ? Timestamp.fromDate(booking.user.phoneVerifiedAt)
+                : null,
         },
         business: booking.business,
         trail: booking.trail,
         payment: (booking.payment || []).map(p => ({
             ...p,
-            refundableUntil: p.refundableUntil ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
-            createdAt: p.createdAt ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
+            refundableUntil: p.refundableUntil instanceof Date && !isNaN(p.refundableUntil.getTime()) ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
+            createdAt: p.createdAt instanceof Date && !isNaN(p.createdAt.getTime()) ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
         })),
-        emergencyContact: booking.emergencyContact,
-        documents: booking.documents,
+        emergencyContact: booking.emergencyContact ? {
+            ...booking.emergencyContact,
+            phoneVerifiedAt: booking.emergencyContact.phoneVerifiedAt instanceof Date && !isNaN(booking.emergencyContact.phoneVerifiedAt.getTime())
+                ? Timestamp.fromDate(booking.emergencyContact.phoneVerifiedAt)
+                : null,
+        } : {
+            name: "",
+            contactNumber: "",
+            phoneVerifiedAt: null,
+        },
+        documents: booking.documents || [],
     };
 
     if (booking.cancelledBy && booking.cancellationReason) {

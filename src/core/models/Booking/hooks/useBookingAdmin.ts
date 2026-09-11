@@ -6,6 +6,7 @@ import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
+import { toDateOrNull } from "@/src/core/utility/date";
 import { useState } from "react";
 import { Alert } from "react-native";
 
@@ -34,18 +35,27 @@ export function useBookingAdmin() {
                 // throw new Error('Missing booking information');
             }
 
+            const resolvedPersonalVerified = personalVerifiedAt !== undefined 
+                ? toDateOrNull(personalVerifiedAt) 
+                : toDateOrNull(booking.user.phoneVerifiedAt);
+
+            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined 
+                ? toDateOrNull(emergencyVerifiedAt) 
+                : toDateOrNull(booking.emergencyContact?.phoneVerifiedAt);
+
             const approvedBook = newBooking({
                 ...booking,
                 user: {
                     ...booking.user,
-                    phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : booking.user.phoneVerifiedAt,
+                    phoneVerifiedAt: resolvedPersonalVerified,
                 },
                 emergencyContact: booking.emergencyContact ? {
                     ...booking.emergencyContact,
-                    phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : booking.emergencyContact.phoneVerifiedAt,
+                    phoneVerifiedAt: resolvedEmergencyVerified,
                 } : {
                     name: "",
                     contactNumber: "",
+                    phoneVerifiedAt: null,
                 },
                 documents: validatedDocuments,
                 status: 'for-payment',
@@ -126,18 +136,27 @@ export function useBookingAdmin() {
             if (!reason) throw new Error('Rejection reason is required');
             if (!profile) throw new Error('Admin must be logged in to reject a booking');
 
+            const resolvedPersonalVerified = personalVerifiedAt !== undefined 
+                ? toDateOrNull(personalVerifiedAt) 
+                : toDateOrNull(booking.user.phoneVerifiedAt);
+
+            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined 
+                ? toDateOrNull(emergencyVerifiedAt) 
+                : toDateOrNull(booking.emergencyContact?.phoneVerifiedAt);
+
             const rejectedBook = newBooking({
                 ...booking,
                 user: {
                     ...booking.user,
-                    phoneVerifiedAt: personalVerifiedAt !== undefined ? personalVerifiedAt : booking.user.phoneVerifiedAt,
+                    phoneVerifiedAt: resolvedPersonalVerified,
                 },
                 emergencyContact: booking.emergencyContact ? {
                     ...booking.emergencyContact,
-                    phoneVerifiedAt: emergencyVerifiedAt !== undefined ? emergencyVerifiedAt : booking.emergencyContact.phoneVerifiedAt,
+                    phoneVerifiedAt: resolvedEmergencyVerified,
                 } : {
                     name: "",
                     contactNumber: "",
+                    phoneVerifiedAt: null,
                 },
                 documents: validatedDocuments,
                 status: 'reservation-rejected',
