@@ -19,7 +19,28 @@ service cloud.firestore {
       allow create: 
       	if request.auth != null
         && request.auth.uid == userId;
-      allow update, delete: 
+      allow update: 
+      	if request.auth != null 
+        && (
+            request.auth.uid == userId
+            || (
+                (request.auth.token.role == 'admin' || request.auth.token.role == 'superadmin')
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phoneVerifiedAt', 'emergencyContact', 'updatedAt'])
+                && (
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['emergencyContact'])
+                    || (
+                        request.resource.data.emergencyContact.get('name', null) == resource.data.emergencyContact.get('name', null)
+                        && request.resource.data.emergencyContact.get('contactNumber', null) == resource.data.emergencyContact.get('contactNumber', null)
+                        && request.resource.data.emergencyContact.get('relationship', null) == resource.data.emergencyContact.get('relationship', null)
+                    )
+                )
+                && (
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt'])
+                    || request.resource.data.updatedAt is timestamp
+                )
+            )
+        );
+      allow delete: 
       	if request.auth != null 
         && request.auth.uid == userId;
 
