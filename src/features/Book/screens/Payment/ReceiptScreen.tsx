@@ -31,7 +31,7 @@ const ReceiptScreen = ({
     const paymentMethod = latestPayment?.gateway || 'Online Payment';
     
     const totalAmount = bookingData?.offer?.price || 0;
-    const isRefunded = (bookingData?.status as string) === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
+    const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
     
     const totalPaid = capturedPayments.length > 0 
         ? capturedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0) 
@@ -49,7 +49,10 @@ const ReceiptScreen = ({
     
     let datePaid = 'Recently';
     if (latestPayment?.createdAt) {
-        const paymentDateObj = (latestPayment.createdAt as any).toDate ? (latestPayment.createdAt as any).toDate() : new Date(latestPayment.createdAt);
+        const createdVal: unknown = latestPayment.createdAt;
+        const paymentDateObj = (createdVal && typeof createdVal === 'object' && 'toDate' in createdVal && typeof (createdVal as { toDate: () => Date }).toDate === 'function')
+            ? (createdVal as { toDate: () => Date }).toDate()
+            : new Date(latestPayment.createdAt);
         datePaid = paymentDateObj.toLocaleDateString('en-PH', { 
             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
         });
