@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Keyboard, Platform, Pressable, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -141,10 +141,9 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         : null;
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View style={styles.container}>
-                <TrailMap 
-                    ref={mapRef}
+        <View style={styles.container}>
+            <TrailMap 
+                ref={mapRef}
                     initialLon={selectedTrail?.geography?.startLong} 
                     initialLat={selectedTrail?.geography?.startLat}
                     bottomInset={275} 
@@ -342,7 +341,6 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 />
 
             </View>
-        </TouchableWithoutFeedback>
     );
 };
 

@@ -65,6 +65,18 @@ export interface DailyForecast {
     windSpeedMax: number;
 }
 
+export interface HourlyForecastItem {
+    time: string;
+    datePrefix: string;
+    hourLabel: string;
+    temperature: number;
+    apparentTemperature: number;
+    weatherCode: number;
+    precipitationProbability: number;
+    windSpeed: number;
+    uvIndex: number;
+}
+
 export interface ProcessedWeatherData {
     temperature: number;
     weatherCode: number;
@@ -78,9 +90,35 @@ export interface ProcessedWeatherData {
     precipitationSum: number;
     apparentTemperature: number;
     visibility: number;
+    cloudCover?: number;
+    surfacePressure?: number;
     sunrise: string;
     sunset: string;
     isStale: boolean;
     forecast: DailyForecast[];
+    hourlyForecast?: HourlyForecastItem[];
     lastUpdated?: string;
+}
+
+export interface WeatherSafetyChecklistItem {
+    id: string;
+    label: string;
+    category: 'gear' | 'safety' | 'hydration' | 'advisory';
+    icon: string;
+    library: string;
+}
+
+export interface DetailedWeatherSafetyReport {
+    status: HikingSafetyStatus;
+    badgeText: string;
+    headline: string;
+    description: string;
+    keyRisks: string[];
+    checklist: WeatherSafetyChecklistItem[];
+    rainRiskLevel: 'low' | 'moderate' | 'high' | 'severe';
+    windRiskLevel: 'low' | 'moderate' | 'high';
+    uvRiskLevel: 'low' | 'moderate' | 'high' | 'extreme';
+    precipitationChance: number;
+    windSpeed: number;
+    uvIndex: number;
 }

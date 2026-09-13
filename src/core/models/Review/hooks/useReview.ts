@@ -1,4 +1,4 @@
-
+import { useReviewList } from "@/src/core/models/Review/hooks/useReviewList";
 import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
 import { newReview } from "@/src/core/models/Review/utils/ReviewFactory";
@@ -13,12 +13,12 @@ export type ReviewDomainParams = {
 
 export function useReview() {
     const { profile } = useAuthHook();
-
-    const reviews = useReviewStore(s => s.reviews);
+    const { reviews } = useReviewList();
     const like = useReviewStore(s => s.likeReview);
     const isLoading = useReviewStore(s => s.isLoading);
     const error = useReviewStore(s => s.error);
     const refreshFeed = useReviewStore(s => s.refresh);
+
     const [localError, setLocalError] = useState<string | null>(null);
 
     const onWriteReviewPress = (id?: string) => {
@@ -38,7 +38,7 @@ export function useReview() {
         return review.user.id === profile?.id;
     }
 
-    const likeReview = (review: Review) => {
+    const likeReview = async (review: Review) => {
         try {
             if (!profile)
                 throw new Error('User must be logged in to like a review')
@@ -47,8 +47,7 @@ export function useReview() {
                 ? review.likes.filter(u => u.id !== profile.id)
                 : [...review.likes, UserLogic.toSummary(profile)]
 
-            like(newReview({ ...review, likes: updated }))
-
+            await like(newReview({ ...review, likes: updated }))
         } catch (error) {
             console.error(error);
             setLocalError((error as Error).message)

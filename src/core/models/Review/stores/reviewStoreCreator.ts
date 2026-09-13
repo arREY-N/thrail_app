@@ -1,5 +1,6 @@
 import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { ReviewRepo } from "@/src/core/models/Review/repositories/ReviewRepository";
+import { upsertItem } from "@/src/core/models/utils/upsert";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -164,17 +165,10 @@ export const reviewStoreCreator: StateCreator<
         set({ isLoading: true, error: null });
         try {
             const newReviewItem = await ReviewRepo.write(review);
-            set((state) => {
-                if (review.id) {
-                    const index = state.reviews.findIndex(r => r.id === review.id);
-                    if (index !== -1) state.reviews[index] = newReviewItem;
-                } else {
-                    state.reviews.push(newReviewItem);
-                }
-
-                state.reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-                state.isLoading = false;
-            });
+            set({
+                reviews: upsertItem(get().reviews, newReviewItem).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+                isLoading: false,
+            })
         } catch (err) {
             console.error(err);
             set({ error: (err as Error).message ?? 'Failed to create review', isLoading: false });

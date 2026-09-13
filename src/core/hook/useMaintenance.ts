@@ -25,7 +25,6 @@ export default function useMaintenance() {
 
                 if (isSubscribed && docSnap.exists()) {
                     const data = docSnap.data();
-                    console.log("Document data:", data);
                     setUrl(data.url ?? null);
                     setIsMaintenance(data.maintenance ?? false);
                 }

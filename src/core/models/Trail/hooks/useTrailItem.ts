@@ -1,22 +1,31 @@
 import { useTrailStore } from "@/src/core/models/Trail/stores/trailStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 export function useTrailItem(trailId?: string | null) {
-    const trail = useTrailStore(s => (trailId ? s.data.find(t => t.id === trailId) : s.current) || null);
-    const isLoading = useTrailStore(s => s.isLoading);
-    const error = useTrailStore(s => s.error);
+    const { profile } = useAuthHook();
+
+    const trail = useTrailStore(s => s.data.find(t => t.id === trailId) ?? null);
+    const trailLoading = useTrailStore(s => s.isLoading);
+    const trailError = useTrailStore(s => s.error);
 
     useEffect(() => {
-        if (!trailId) return;
+        if (!trailId || !profile?.id) return;
         const fetch = async () => {
             await useTrailStore.getState().load(trailId);
         };
         fetch();
-    }, [trailId]);
+    }, [profile?.id, trailId]);
+
+    const onRefreshTrail = async (trailId: string) => {
+        if (!profile?.id) return;
+        await useTrailStore.getState().load(trailId);
+    }
 
     return {
         trail,
-        isLoading,
-        error,
+        trailLoading,
+        trailError,
+        onRefreshTrail,
     };
 }

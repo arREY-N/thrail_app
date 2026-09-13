@@ -60,7 +60,12 @@ export const userStoreCreator: StateCreator<
 
         try {
             const users = await UserRepo.fetchAll();
-            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname));
+            if (users.length === 0) {
+                set({ isLoading: false, error: 'No users found' });
+                return;
+            }
+
+            const sorted = users.sort((a: User, b: User) => a.firstname?.localeCompare(b.firstname));
 
             set({
                 data: sorted,

@@ -1,9 +1,10 @@
 import { Hike, IHikeDB } from "@/src/core/models/Hike/interfaces/Hike.types";
-import { toNumerical, toTextual } from "@/src/core/models/Review/Review";
 import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
 
 export const newHike = (init?: Partial<Hike>): Hike => {
+    if (init?.mode === 'booked' && !init.bookingId) throw new Error('Booking ID is required for booked mode');
+    if (init?.trail && !init.trail.id) throw new Error('Trail ID is required');
     return {
         id: '',
         hikeDate: new Date(),
@@ -20,14 +21,15 @@ export const newHike = (init?: Partial<Hike>): Hike => {
             name: '',
             location: '',
         },
-        overallRating: 0,
-        trailMaintenance: 'Easy',
-        difficultyFactors: [],
-        favoredFactors: [],
-        review: '',
-        image: [],
-        predictedDifficulty: 'Easy',
-        perceivedDifficulty: 'undefined',
+        user: {
+            id: "",
+            username: "",
+            firstname: "",
+            lastname: "",
+            email: ""
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
         ...init,
         ...(init?.hikeDate ? { hikeDate: toDate(init.hikeDate) } : {}),
         ...(init?.startTime ? { startTime: toDate(init.startTime) } : {}),
@@ -40,14 +42,20 @@ const hikeFromFirestore = (id: string, data: IHikeDB): Hike => {
         ...data,
         id,
         hikeDate: toDate(data.hikeDate),
-        predictedDifficulty: toTextual(data.predictedDifficulty),
-        perceivedDifficulty: (data.perceivedDifficulty && data.perceivedDifficulty > 0) ? toTextual(data.perceivedDifficulty) : 'undefined',
         startTime: data.startTime ? toDate(data.startTime) : undefined,
         endTime: data.endTime ? toDate(data.endTime) : undefined,
-        trailMaintenance: toTextual(data.trailMaintenance),
         distance: data.distance || 0,
         duration: data.duration || 0,
         elevation: data.elevation || 0,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+        user: data.user ? data.user : {
+            id: "",
+            username: "",
+            firstname: "",
+            lastname: "",
+            email: ""
+        }
     };
 };
 
@@ -56,19 +64,20 @@ const hikeToFirestore = (hike: Hike): IHikeDB => {
         id: hike.id,
         hikeDate: hike.hikeDate ? Timestamp.fromDate(toDate(hike.hikeDate)) : Timestamp.fromDate(new Date()),
         trail: hike.trail,
-        predictedDifficulty: toNumerical(hike.predictedDifficulty),
         mode: hike.mode,
         status: hike.status,
-        trailMaintenance: toNumerical(hike.trailMaintenance),
-        overallRating: hike.overallRating,
-        difficultyFactors: hike.difficultyFactors,
-        favoredFactors: hike.favoredFactors,
-        review: hike.review,
-        image: hike.image,
-        perceivedDifficulty: hike.perceivedDifficulty !== 'undefined' ? toNumerical(hike.perceivedDifficulty) : 0,
         distance: hike.distance || 0,
         duration: hike.duration || 0,
         elevation: hike.elevation || 0,
+        user: hike.user ? hike.user : {
+            id: "",
+            username: "",
+            firstname: "",
+            lastname: "",
+            email: ""
+        },
+        createdAt: hike.createdAt ? Timestamp.fromDate(toDate(hike.createdAt)) : Timestamp.fromDate(new Date()),
+        updatedAt: hike.updatedAt ? Timestamp.fromDate(toDate(hike.updatedAt)) : Timestamp.fromDate(new Date()),
     };
 
     if (hike.mode === 'booked' && hike.bookingId) {

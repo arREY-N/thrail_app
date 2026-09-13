@@ -22,7 +22,7 @@ export default function Community() {
 
     const {
         reviews,
-        isLoading,
+        reviewIsLoading,
         refresh,
     } = useReviewList();
 
@@ -96,7 +96,7 @@ export default function Community() {
     return (
         <CommunityScreen
             reviews={slicedReviews}
-            isLoading={isLoading}
+            isLoading={reviewIsLoading}
             onWriteReviewPress={onWriteReviewPress}
             likeReview={likeReview}
             isLiked={isLiked}

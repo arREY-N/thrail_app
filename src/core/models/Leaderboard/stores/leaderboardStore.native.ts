@@ -10,6 +10,10 @@ export const useLeaderboardStore = create<LeaderboardState>()(
         {
             name: "leaderboard-storage",
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                data: state.data.length > 0 ? state.data : [],
+                current: state.current,
+            })
         }
     )
 );

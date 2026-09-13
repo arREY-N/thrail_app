@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 
-export default function receipt(){
+export default function Receipt() {
     const { paymentId } = useLocalSearchParams();
     const router = useRouter();
 
@@ -12,15 +12,15 @@ export default function receipt(){
     const payment = usePaymentsStore((s) => s.current);
     useEffect(() => {
         loadPayment(paymentId);
-    }, [paymentId])
+    }, [loadPayment, paymentId])
 
     const onHomePress = () => {
         router.replace('/(tabs)' as any)
     }
 
-    if(!payment) return <LoadingScreen/>
+    if (!payment) return <LoadingScreen />
 
-    return(
+    return (
         <TESTRECEIPT
             payment={payment}
             onHomePress={onHomePress}
@@ -37,10 +37,10 @@ const TESTRECEIPT = ({
     onHomePress: () => void;
 }) => {
     const { receipt, offer, user, business } = payment;
-    
-    return(
+
+    return (
         <View>
-            { payment && 
+            {payment &&
                 <View>
                     <Text>PAYMENT RECEIPT</Text>
                     <Text>Reference No: {receipt.referenceCode || payment.id}</Text>

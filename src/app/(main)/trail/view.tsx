@@ -2,7 +2,7 @@ import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useHike } from "@/src/core/models/Hike/Hike";
 import { useOfferNavigation } from "@/src/core/models/Offer/Offer";
-import { newReview, useReview } from "@/src/core/models/Review/Review";
+import { useReview, useReviewList } from "@/src/core/models/Review/Review";
 import { useTrailItem, useTrailNavigation } from "@/src/core/models/Trail/Trail";
 import { useAuthHook } from "@/src/core/models/User/User";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
@@ -31,13 +31,16 @@ export default function ViewTrail() {
     } = useTrailNavigation();
 
     const {
-        reviews,
-        isLoading,
         onWriteReviewPress,
         isOwned,
         likeReview,
         isLiked,
     } = useReview();
+
+    const {
+        reviews,
+        reviewIsLoading
+    } = useReviewList();
 
     const {
         onSeeTrailOffers
@@ -59,11 +62,11 @@ export default function ViewTrail() {
                 isSuperadmin={isSuperadmin}
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
-                isLoading={isLoading}
-                likeReview={(review) => likeReview(newReview(review))}
+                isLoading={reviewIsLoading}
+                likeReview={likeReview}
                 onWriteReviewPress={(review) => onWriteReviewPress(review.id)}
-                isOwned={(review) => isOwned(newReview(review))}
-                isLiked={(review) => isLiked(newReview(review))}
+                isOwned={isOwned}
+                isLiked={isLiked}
             />
         </View>
     )

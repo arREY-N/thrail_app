@@ -19,3 +19,6 @@ export { useLocationList } from "@/src/core/models/Location/hooks/useLocationLis
 
 // REPOSITORIES
 export { LocationRepo, LocationRepository } from "@/src/core/models/Location/repositories/LocationRepository";
+
+// utils
+export { getReverseGeocode } from "@/src/core/models/Location/utils/GetLocationName";

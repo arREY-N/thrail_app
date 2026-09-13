@@ -33,6 +33,8 @@ export const newReview = (init?: Partial<Review>): Review => {
         distance: 0,
         duration: 0,
         elevation: 0,
+        status: 'unhiked',
+        mode: 'direct',
         ...init,
         ...(init?.createdAt ? { createdAt: toDate(init.createdAt) } : {}),
         ...(init?.updatedAt ? { updatedAt: toDate(init.updatedAt) } : {}),
@@ -60,6 +62,8 @@ const reviewFromFirestore = (id: string, data: IReviewDB): Review => {
         distance: data.distance || 0,
         duration: data.duration || 0,
         elevation: data.elevation || 0,
+        status: data.status || 'unhiked',
+        mode: data.mode || 'direct',
     };
 };
 
@@ -85,6 +89,8 @@ const reviewToFirestore = (review: Review): IReviewDB => {
         distance: review.distance || 0,
         duration: review.duration || 0,
         elevation: review.elevation || 0,
+        status: review.status || 'unhiked',
+        mode: review.mode || 'direct',
     };
 };
 

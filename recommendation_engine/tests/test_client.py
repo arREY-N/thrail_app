@@ -89,8 +89,8 @@ if __name__ == "__main__":
     # 4. Test POST /api/profile/update
     update_payload = {
         "user_id": "user_001",
-        "p_old_easy": [0.0] * 18,
-        "p_old_difficult": [0.35] * 18,
+        "p_old_easy": [0.0] * 17,
+        "p_old_difficult": [0.35] * 17,
         "hiked_trails": [
             {"province": "Rizal", "difficulty_lascoRating": 4, "difficulty_hours": 4.5, "difficulty_length": 8.0, "difficulty_gain": 600.0}
         ],

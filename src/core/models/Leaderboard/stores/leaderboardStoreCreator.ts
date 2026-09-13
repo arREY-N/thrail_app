@@ -1,8 +1,8 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { Leaderboard } from "@/src/core/models/Leaderboard/interfaces/Leaderboard.types";
 import { LeaderboardRepo } from "@/src/core/models/Leaderboard/repositories/LeaderboardRepository";
-import { newLeaderboard } from "@/src/core/models/Leaderboard/utils/LeaderboardFactory";
 import { generateLeaderboard } from "@/src/core/models/Leaderboard/utils/Leaderboard.utils";
+import { newLeaderboard } from "@/src/core/models/Leaderboard/utils/LeaderboardFactory";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
 

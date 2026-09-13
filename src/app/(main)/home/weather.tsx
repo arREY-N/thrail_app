@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 
 import WeatherScreen from "@/src/features/Home/screens/WeatherScreen";
 
-export default function weather() {
+export default function Weather() {
     const router = useRouter();
 
     const locationWeather = useWeatherStore((state: Record<string, any>) => state.locationWeather);
@@ -13,7 +13,7 @@ export default function weather() {
     };
 
     return (
-        <WeatherScreen 
+        <WeatherScreen
             {...{
                 locationWeather: locationWeather,
                 onBackPress: handleBack,

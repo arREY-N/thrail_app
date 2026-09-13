@@ -36,6 +36,7 @@ export interface OfferState {
     findSimilarOffers: (offerId: string) => Promise<void>;
 
     newOffer: (offer: Offer) => Promise<Offer | null>;
+    refresh: () => Promise<void>
 }
 
 const init = {
@@ -352,7 +353,6 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         set({ isLoading: true, error: null })
         try {
             const offers = await OfferRepo.fetchAll();
-
             set({
                 data: offers,
                 isLoading: false,

@@ -2,12 +2,12 @@ import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useNotificationsStore } from "@/src/core/models/Notification/Notification";
 import { useReviewStore } from "@/src/core/models/Review/Review";
 import { useTrailsStore } from "@/src/core/models/Trail/Trail";
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 
 export const useAppSubscriptions = () => {
-    const profile = useAuthStore(s => s.profile);
+    const { profile } = useAuthHook();
 
     const subscribeToReviews = useReviewStore(s => s.subscribeToReviews);
     const subscribeToNotifications = useNotificationsStore(s => s.subscribeToNotifications);
@@ -17,7 +17,7 @@ export const useAppSubscriptions = () => {
     useEffect(() => {
         if (!profile?.id) return;
         const unsubReview = subscribeToReviews();
-        const unsubNotifications = subscribeToNotifications();
+        const unsubNotifications = subscribeToNotifications(profile.id);
         const unsubUserBookings = subscribeToUserBookings(profile.id);
         fetchAllTrails();
         return () => {

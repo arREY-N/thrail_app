@@ -28,3 +28,32 @@ export interface IGroupBase<T> {
 export type IGroupDB = IGroupBase<Timestamp | FieldValue>;
 export type Group = IGroupBase<Date>;
 export type IGroup = Group;
+
+export interface IWeatherAlertBase<T> {
+    id: string;
+    groupId: string;
+    trailName: string;
+    phase: 'T-168' | 'T-72' | 'T-24' | 'T-3';
+    status: 'SAFE' | 'CAUTION' | 'DANGER';
+    headline: string;
+    message: string;
+    metrics: {
+        temperature: number;
+        precipitationProbability: number;
+        weatherCode: number;
+        windSpeed: number;
+        uvIndex: number;
+    };
+    checklist: {
+        id: string;
+        label: string;
+        category: 'gear' | 'safety' | 'hydration' | 'advisory';
+        icon: string;
+        library: string;
+    }[];
+    createdAt: T;
+}
+
+export type IWeatherAlertDB = IWeatherAlertBase<Timestamp | FieldValue>;
+export type WeatherAlert = IWeatherAlertBase<Date>;
+export type IWeatherAlert = WeatherAlert;

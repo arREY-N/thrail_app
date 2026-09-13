@@ -13,6 +13,9 @@ export {
     getIndexedMountains,
     getStatsForMountain
 } from "@/src/core/models/Trail/utils/GeoJSONProcessor";
+export {
+    getTrailImage
+} from "@/src/core/models/Trail/utils/GetTrailImage";
 export { TrailLogic } from "@/src/core/models/Trail/utils/Trail.logic";
 export {
     default as computeTotalLength,
@@ -25,7 +28,6 @@ export {
 } from "@/src/core/models/Trail/stores/trailStore";
 
 // HOOKS
-export { useTrail } from "@/src/core/models/Trail/hooks/useTrail";
 export { useTrailItem } from "@/src/core/models/Trail/hooks/useTrailItem";
 export { useTrailList } from "@/src/core/models/Trail/hooks/useTrailList";
 export { useTrailNavigation } from "@/src/core/models/Trail/hooks/useTrailNavigation";

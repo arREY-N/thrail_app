@@ -1,48 +1,38 @@
+import CustomLoading from '@/src/components/CustomLoading';
+import CustomText from '@/src/components/CustomText';
 import EmergencyNotification from '@/src/components/EmergencyNotification';
-import { SignOutFlow } from '@/src/core/flows/SignOutFlow';
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
-import { useStats } from '@/src/core/hook/useStats';
-import { useReview } from '@/src/core/models/Review/Review';
-import { useAuthHook } from '@/src/core/models/User/User';
+import { ViewProfile } from '@/src/core/flows/ViewProfile';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 
 /**
  * Controller component for the Profile tab.
  * Gathers user data, hike logs, reviews, and computes summary statistics.
- */import { View } from 'react-native';
+ */import { Pressable, View } from 'react-native';
 
 export default function Profile() {
     const {
-        onSettingsPress,
-        onGroupPress
-    } = useAppNavigation();
-
-    const {
+        hikeLog,
+        computedStats,
         profile,
         role,
-    } = useAuthHook();
-
-    const {
-        signOut
-    } = SignOutFlow();
-
-    const {
+        onGroupPress,
+        onSettingsPress,
+        signOut,
         onAdminPress,
         onSuperadminPress,
-        onApplyPress,
-    } = useProfileNavigation();
-
-    const {
-        myReviews,
         likeReview,
         isLiked,
         onWriteReviewPress,
-    } = useReview();
+        onApplyPress,
+        isLoading,
+        onSeeMore,
+    } = ViewProfile();
 
-    const {
-        computedStats
-    } = useStats();
+    if (isLoading) return (
+        <CustomLoading
+            message="Loading Profile"
+        />
+    )
 
     return (
         <View style={{ flex: 1 }}>
@@ -53,61 +43,19 @@ export default function Profile() {
                 onSettingsPress={onSettingsPress}
                 onSuperadminPress={onSuperadminPress}
                 stats={computedStats}
-                hikeLog={myReviews}
+                hikeLog={hikeLog}
                 profile={profile ?? undefined}
                 role={role ?? undefined}
                 onLikeReview={likeReview}
-                isLiked={(review) => Boolean(isLiked(review))}
+                isLiked={isLiked}
                 onEditReview={onWriteReviewPress}
                 onGroupPress={onGroupPress}
             />
+            <Pressable onPress={onSeeMore} style={{ position: 'absolute', bottom: 100, right: 20 }}>
+                <CustomText style={{ fontSize: 20, color: 'blue' }}>See More</CustomText>
+            </Pressable>
 
             <EmergencyNotification />
         </View>
     );
 }
-
-/* 
-const TESTLEADERBOARD = ({
-    generateMonthlyLeaderboard,
-    leaderboard,
-    getMonthLeaderboard,
-    error,
-}) => {
-    return (
-        <View>
-            <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-06-01'))}>
-                    <Text>Test Generator for June</Text>
-                </Pressable>
-                <View style={{ height: 20 }} />
-                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-07-01'))}>
-                    <Text>Test Generator for July</Text>
-                </Pressable>
-                <View style={{ height: 20 }} />
-                <Pressable onPress={() => generateMonthlyLeaderboard(new Date('2026-08-01'))}>
-                    <Text>Test Generator for Now</Text>
-                </Pressable>
-                <View style={{ height: 20 }} />
-                <Pressable onPress={() => getMonthLeaderboard()}>
-                    <Text>Fetch Current Leaderboard</Text>
-                </Pressable>
-
-                { error && <Text>{error}</Text>}
-
-                { leaderboard && (
-                    <View style={{ marginTop: 20 }}>
-                        <Text>Leaderboard for {leaderboard.date.toLocaleDateString('en-US', { month: 'short'})}</Text>
-                        {leaderboard.userRankings.map((user, index) => (
-                            <View key={user.userId} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
-                                <Text>{index + 1}. {user.username}</Text>
-                                <Text>{user.totalDistance.toFixed(2)} m</Text>
-                            </View>
-                        ))}
-
-                    </View>
-                )}
-
-        </View>
-    );
-}
-*/

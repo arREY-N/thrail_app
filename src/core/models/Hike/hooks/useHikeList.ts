@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 export function useHikeList() {
     const hikes = useHikeStore(s => s.hikes);
-    const isLoading = useHikeStore(s => s.isLoading);
+    const hikeIsLoading = useHikeStore(s => s.isLoading);
     const error = useHikeStore(s => s.error);
     const { profile } = useAuthHook();
 
@@ -18,7 +18,7 @@ export function useHikeList() {
 
     return {
         hikes,
-        isLoading,
+        hikeIsLoading,
         error,
     };
 }

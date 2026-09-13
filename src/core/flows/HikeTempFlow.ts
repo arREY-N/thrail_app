@@ -17,7 +17,7 @@ export function HikeTempFlow() {
 
     const { bookings } = useBookingUserList();
 
-    const { isLoading: hikeLoading } = useHikeState();
+    const { hikeLoading } = useHikeState();
     const { viewHike } = useHikeNavigation();
 
     const { trails } = useTrailList();

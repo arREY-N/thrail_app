@@ -1,35 +1,33 @@
 import { useTrailStore } from "@/src/core/models/Trail/stores/trailStore";
-import { router } from "expo-router";
-import { useEffect, useMemo } from "react";
+import { useAuthHook } from "@/src/core/models/User/User";
+import { useCallback, useEffect } from "react";
 
 export function useTrailList() {
+    const { profile } = useAuthHook();
+
     const trails = useTrailStore(s => s.data);
-    const error = useTrailStore(s => s.error);
-    const isLoading = useTrailStore(s => s.isLoading);
-    const discoverTrails = useMemo(() => {
-        return trails.slice(0, 3);
-    }, [trails]);
+    const trailError = useTrailStore(s => s.error);
+    const trailLoading = useTrailStore(s => s.isLoading);
 
     useEffect(() => {
+        if (!profile?.id) return;
+
         const fetch = async () => {
             await useTrailStore.getState().fetchAll();
         };
 
         fetch();
-    }, []);
+    }, [profile?.id]);
 
-    const onViewTrail = (trailId: string) => {
-        router.push({
-            pathname: '/(main)/trail/view',
-            params: { trailId }
-        });
-    };
+    const onRefreshTrails = useCallback(async () => {
+        if (!profile?.id) return;
+        await useTrailStore.getState().fetchAll();
+    }, [profile?.id]);
 
     return {
         trails,
-        error,
-        isLoading,
-        discoverTrails,
-        onViewTrail
+        trailError,
+        trailLoading,
+        onRefreshTrails
     };
 }

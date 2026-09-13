@@ -1,6 +1,8 @@
 import { Hike, useHikeStore } from "@/src/core/models/Hike/Hike";
-import { Review, useReviewStore } from "@/src/core/models/Review/Review";
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { Review } from "@/src/core/models/Review/interfaces/Review.types";
+import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
+
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect, useState } from "react";
 
 export type UseWriteReviewParams = {
@@ -9,7 +11,8 @@ export type UseWriteReviewParams = {
 
 export default function useWriteReview(params: UseWriteReviewParams) {
     const { hikeId } = params;
-    const profile = useAuthStore(s => s.profile);
+    const { profile } = useAuthHook();
+
     const isLoading = useReviewStore(s => s.isLoading);
     const hikes = useHikeStore(s => s.hikes);
 
@@ -37,6 +40,13 @@ export default function useWriteReview(params: UseWriteReviewParams) {
         } catch (error) {
             setLocalError((error as Error).message || 'An error occurred while loading the review');
         }
-    }, [hikeId])
+    }, [hikeId, hikes, profile])
+
+    return {
+        localError,
+        isLoading,
+        review,
+        hike
+    }
 
 }

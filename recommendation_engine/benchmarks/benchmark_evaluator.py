@@ -17,7 +17,7 @@ if REC_ENGINE_DIR not in sys.path:
 
 from core.distance_strategies import EngineRegistry
 from core.recommender import HybridRecommender, calculate_alpha_tuner
-from core.profile_manager import TwoAnchorProfileManager, build_18_feature_vector
+from core.profile_manager import TwoAnchorProfileManager, build_17_feature_vector, build_18_feature_vector
 
 TRAILS_CSV = os.path.join(REC_ENGINE_DIR, "data", "trails_mock.csv")
 RATINGS_CSV = os.path.join(REC_ENGINE_DIR, "data", "user_ratings_mock.csv")

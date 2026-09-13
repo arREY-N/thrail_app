@@ -32,6 +32,8 @@ import ForgotPasswordScreen from '@/src/features/Auth/screens/ForgotPasswordScre
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
+const HERO_IMAGE = require('@/src/assets/images/Mt.Tagapo.jpg');
+
 /**
  * Props for the LandingScreen component.
  * @param onLogInPress - Callback when Log In button is pressed.
@@ -95,7 +97,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                 {/* Left Panel — full-height hero image with bottom-left branding */}
                 <View style={styles.leftPanel}>
                     <CustomImage
-                        source={require('@/src/assets/images/Mt.Tagapo.jpg')}
+                        source={HERO_IMAGE}
                         style={styles.splitHeroImage}
                         resizeMode="cover"
                     />
@@ -177,7 +179,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
 
             <View style={[styles.imageWrapper, isLandscapeMode && { height: heroImageHeight }]}>
                 <CustomImage
-                    source={require('@/src/assets/images/Mt.Tagapo.jpg')}
+                    source={HERO_IMAGE}
                     style={styles.heroImage}
                     resizeMode="cover"
                 />

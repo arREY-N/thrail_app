@@ -4,12 +4,7 @@
  */
 
 import React from 'react';
-import {
-    Platform,
-    Pressable,
-    StyleSheet,
-    View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -18,7 +13,10 @@ import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { ProcessedWeatherData } from '@/src/core/types/weather';
-import { formatLastUpdatedLabel, formatWeatherDisplay } from '@/src/core/utility/weatherHelpers';
+import {
+    formatLastUpdatedLabel,
+    formatWeatherDisplay,
+} from '@/src/core/utility/weatherHelpers';
 import { IconLibrary } from '@/src/types/ui.types';
 
 /**
@@ -54,7 +52,7 @@ const WeatherSection = ({
     locationName,
     error,
     onPress,
-    onReload,
+    onReload: _onReload,
     isRefreshing = false,
 }: WeatherSectionProps): React.JSX.Element => {
     const display = formatWeatherDisplay(weatherData);
@@ -117,6 +115,7 @@ const WeatherSection = ({
         );
     }
 
+    // 4. Main Content State
     return (
         <View style={styles.wrapper}>
             <Pressable
@@ -383,4 +382,3 @@ const styles = StyleSheet.create({
 });
 
 export default WeatherSection;
-

@@ -1,11 +1,6 @@
 id,name,province,mountain,difficulty_lascoRating,difficulty_classification,difficulty_length,difficulty_gain,difficulty_slope,difficulty_obstacles,difficulty_hours,difficulty_circularity,tourism_shelter,tourism_resting,tourism_clean_water,tourism_river,tourism_lake,tourism_waterfall,tourism_network_connection,general_rating,general_reviewCount
 trail_001,Mt. Daraitan,Rizal,Mt. Daraitan,4,minor,8.0,600,15,50,4.5,loop,True,True,True,True,False,True,False,4.5,24
 trail_002,Mt. Batulao,Batangas,Mt. Batulao,3,minor,12.0,400,10,20,4.0,loop,True,True,False,False,False,False,True,4.2,42
-trail_003,Mt. Maculot,Batangas,Mt. Maculot,4,minor,6.0,500,20,60,3.5,out-and-back,True,True,False,False,False,False,True,4.0,18
-trail_004,Mt. Makiling,Laguna,Mt. Makiling,6,major,16.0,900,25,120,7.0,out-and-back,False,True,True,True,False,False,False,4.6,35
-trail_005,Mt. Pico de Loro,Cavite,Mt. Pico de Loro,3,minor,9.5,350,8,30,4.0,loop,True,True,False,False,False,False,True,4.4,29
-trail_006,Mt. Talamitam,Batangas,Mt. Talamitam,3,minor,7.5,300,10,15,3.0,out-and-back,True,True,False,False,False,False,True,4.1,15
-trail_007,Mt. Gulugod Baboy,Batangas,Mt. Gulugod Baboy,2,minor,5.0,250,8,10,2.5,loop,True,True,True,False,True,False,True,4.7,50
-trail_008,Mt. Cristobal,Laguna,Mt. Cristobal,7,major,14.0,1100,28,150,8.0,out-and-back,False,False,True,False,False,False,False,4.3,12
-trail_009,Mt. Sembrano,Rizal,Mt. Sembrano,5,minor,11.0,650,18,70,5.0,out-and-back,True,True,True,False,False,True,False,4.4,22
-trail_010,Mt. Kalisungan,Laguna,Mt. Kalisungan,4,minor,8.5,480,14,40,4.0,loop,True,True,False,False,False,False,True,4.2,16
+trail_003,Mt. Makiling,Laguna,Mt. Makiling,6,major,16.0,900,25,120,7.0,out-and-back,False,True,True,True,False,False,False,4.6,35
+trail_004,Mt. Tagapo,Rizal,Mt. Tagapo,2,minor,5.0,350,10,15,3.0,out-and-back,True,True,True,False,False,False,True,4.3,18
+trail_005,Mt. Kulis,Rizal,Mt. Kulis,2,minor,4.0,250,8,10,2.5,loop,True,True,False,False,False,False,True,4.4,28

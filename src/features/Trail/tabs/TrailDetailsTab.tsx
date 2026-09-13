@@ -12,6 +12,8 @@ import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { ROUTE_GLOSSARY, getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
+const OFFICIAL_PLACEHOLDER_IMAGE = require('@/src/assets/images/Mt.Tagapo.jpg');
+
 export interface TrailDetailsTabProps {
     stats: { distance: string | number; elevation: string | number };
     trailStats?: ITrailStats | null;
@@ -79,8 +81,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
         ? description
         : `${description.substring(0, CHARACTER_LIMIT).trim()}...`;
 
-    const officialPlaceholder = require('@/src/assets/images/Mt.Tagapo.jpg');
-    const routeMapImageSource = trail?.routeMapImage ? { uri: trail.routeMapImage } : officialPlaceholder;
+    const routeMapImageSource = trail?.routeMapImage ? { uri: trail.routeMapImage } : OFFICIAL_PLACEHOLDER_IMAGE;
 
     const handleStatPress = (id: string) => {
         setActiveStat(prev => prev === id ? null : id);

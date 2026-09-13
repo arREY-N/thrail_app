@@ -27,20 +27,25 @@ export const timestampToISO = (ts: Timestamp | FieldValue | Date | undefined | n
 };
 
 export const formatDate = (
-    date: Date | null | undefined, 
+    date: Date | string | number | Timestamp | unknown,
     options: 'full' | 'short' | 'time' = 'full'
 ): string => {
-    if (!date || isNaN(date.getTime())) return 'N/A';
-
+    if (!date) return 'N/A';
+    const parsedDate = date instanceof Date
+        ? date
+        : isTimestampLike(date)
+            ? date.toDate()
+            : isSecondsLike(date)
+                ? new Date(date.seconds * 1000)
+                : new Date(date as string | number);
+    if (isNaN(parsedDate.getTime())) return 'N/A';
     const configs = {
         full: { month: 'short', day: 'numeric', year: 'numeric' },
         short: { month: '2-digit', day: '2-digit', year: '2-digit' },
         time: { hour: '2-digit', minute: '2-digit', hour12: true }
-    } as const; 
-
+    } as const;
     const config = configs[options];
-
-    return new Intl.DateTimeFormat('en-US', config).format(date);
+    return new Intl.DateTimeFormat('en-US', config).format(parsedDate);
 };
 
 export const toDate = (value: Timestamp | FieldValue | Date | string | number | unknown): Date => {
@@ -74,7 +79,7 @@ export const formatSunTime = (isoString: string): string => {
     if (!isoString) return "--";
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return "--";
-    
+
     return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',

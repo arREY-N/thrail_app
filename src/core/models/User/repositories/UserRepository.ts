@@ -164,7 +164,6 @@ export const UserRepository = (db: Firestore) => ({
 
             const response = await GoogleSignin.signIn();
 
-            console.log('Google Sign-In response:', response);
             if (response.type === 'cancelled')
                 throw new Error('Google sign-in was cancelled by the user');
 
@@ -178,7 +177,6 @@ export const UserRepository = (db: Firestore) => ({
             const snap = await getDoc(userDoc);
 
             if (snap.exists()) {
-                console.log('User already exists in Firestore');
                 return;
             }
 

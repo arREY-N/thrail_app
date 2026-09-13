@@ -25,14 +25,11 @@ export const useNotifications = () => {
 };
 
 export const requestNotificationPermission = async () => {
-    console.log("Requesting notification permission...");
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
         const { status } = await Notifications.requestPermissionsAsync();
-        console.log("Notification permission:", status);
 
         if (status === 'granted') {
             const token = (await Notifications.getDevicePushTokenAsync()).data;
-            console.log("Device Push Token:", token);
             return token;
         }
     }

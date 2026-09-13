@@ -6,7 +6,7 @@ export type ApplicationParams = {
     applicationId?: string,
 }
 
-export function useSuperadminApply(params: ApplicationParams = {}) {
+export function useApplication(params: ApplicationParams = {}) {
     const [rejectionLetter, setRejectionLetter] = useState<string | null>(null);
 
     const loadApplication = useApplicationsStore(s => s.load);
