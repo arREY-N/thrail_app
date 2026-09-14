@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     StyleSheet,
     TouchableOpacity,
@@ -27,23 +27,10 @@ const WeatherSafetyCard: React.FC<WeatherSafetyCardProps> = ({
     weatherData,
     trailName,
     compact = false,
-    showChecklist = true,
+    showChecklist = false,
     onPress,
 }) => {
     const report = propReport ?? getDetailedWeatherSafety(weatherData, trailName);
-    const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
-
-    const toggleItem = (id: string) => {
-        setCheckedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    };
 
     const isDanger = report.status === 'DANGER';
     const isCaution = report.status === 'CAUTION';
@@ -127,7 +114,7 @@ const WeatherSafetyCard: React.FC<WeatherSafetyCardProps> = ({
                         {report.badgeText}
                     </CustomText>
                 </View>
-                {report.precipitationChance > 0 && (
+                {report.precipitationChance >= 20 && (
                     <View style={styles.metricPill}>
                         <CustomIcon library="Ionicons" name="rainy-outline" size={14} color={Colors.TEXT_SECONDARY} />
                         <CustomText variant="caption" style={styles.metricText}>
@@ -150,55 +137,19 @@ const WeatherSafetyCard: React.FC<WeatherSafetyCardProps> = ({
                 <View style={styles.risksContainer}>
                     {report.keyRisks.map((risk, index) => (
                         <View key={index} style={[styles.riskChip, { borderColor: theme.border }]}>
-                            <CustomIcon
-                                library="Ionicons"
-                                name="warning-outline"
-                                size={14}
-                                color={theme.text}
-                            />
+                            <View style={styles.riskIconWrapper}>
+                                <CustomIcon
+                                    library="Ionicons"
+                                    name="warning-outline"
+                                    size={14}
+                                    color={theme.text}
+                                />
+                            </View>
                             <CustomText variant="caption" style={[styles.riskText, { color: theme.text }]}>
                                 {risk}
                             </CustomText>
                         </View>
                     ))}
-                </View>
-            )}
-
-            {/* Actionable Gear & Safety Checklist */}
-            {showChecklist && report.checklist.length > 0 && (
-                <View style={styles.checklistSection}>
-                    <View style={styles.checklistHeader}>
-                        <CustomIcon library="Ionicons" name="checkbox-outline" size={18} color={Colors.PRIMARY} />
-                        <CustomText variant="label" style={styles.checklistTitle}>
-                            {'Recommended Gear & Safety Checklist'}
-                        </CustomText>
-                    </View>
-
-                    <View style={styles.checklistItems}>
-                        {report.checklist.map((item) => {
-                            const isChecked = checkedIds.has(item.id);
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={[styles.checklistItem, isChecked && styles.checklistItemChecked]}
-                                    activeOpacity={0.7}
-                                    onPress={() => toggleItem(item.id)}
-                                >
-                                    <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                                        {isChecked && (
-                                            <CustomIcon library="Feather" name="check" size={14} color={Colors.WHITE} />
-                                        )}
-                                    </View>
-                                    <CustomText
-                                        variant="caption"
-                                        style={[styles.checklistLabel, isChecked && styles.checklistLabelChecked]}
-                                    >
-                                        {item.label}
-                                    </CustomText>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
                 </View>
             )}
         </View>
@@ -211,12 +162,18 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         padding: 16,
         gap: 12,
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'hidden',
         ...GlobalStyles.dropShadow(2, 0.08),
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
+        width: '100%',
     },
     badge: {
         flexDirection: 'row',
@@ -248,87 +205,42 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
         lineHeight: 24,
+        width: '100%',
     },
     description: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 14,
         lineHeight: 20,
+        width: '100%',
     },
     risksContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
+        flexDirection: 'column',
         gap: 8,
         marginTop: 2,
+        width: '100%',
     },
     riskChip: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         backgroundColor: Colors.WHITE,
         borderWidth: 1,
         borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        gap: 8,
+        width: '100%',
+        maxWidth: '100%',
+    },
+    riskIconWrapper: {
+        marginTop: 2,
+        flexShrink: 0,
     },
     riskText: {
+        flex: 1,
+        flexShrink: 1,
         fontWeight: '600',
         fontSize: 12,
-    },
-    checklistSection: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 12,
-        padding: 14,
-        gap: 10,
-        marginTop: 4,
-    },
-    checklistHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    checklistTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
-    },
-    checklistItems: {
-        gap: 8,
-    },
-    checklistItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 8,
-        borderRadius: 8,
-        backgroundColor: Colors.BACKGROUND,
-        gap: 10,
-    },
-    checklistItemChecked: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-    },
-    checkbox: {
-        width: 20,
-        height: 20,
-        borderRadius: 6,
-        borderWidth: 1.5,
-        borderColor: Colors.PRIMARY,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: Colors.WHITE,
-    },
-    checkboxChecked: {
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-    },
-    checklistLabel: {
-        flex: 1,
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 13,
         lineHeight: 18,
-    },
-    checklistLabelChecked: {
-        color: Colors.TEXT_SECONDARY,
-        textDecorationLine: 'line-through',
     },
     compactContainer: {
         borderRadius: 14,
@@ -336,11 +248,13 @@ const styles = StyleSheet.create({
         padding: 12,
         marginHorizontal: 16,
         marginBottom: 12,
+        width: 'auto',
     },
     compactRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        width: '100%',
     },
     compactIconWrapper: {
         width: 36,
@@ -348,9 +262,11 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
     },
     compactTextWrapper: {
         flex: 1,
+        flexShrink: 1,
         gap: 2,
     },
     compactHeadline: {

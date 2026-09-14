@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+    RefreshControl,
     StyleSheet,
     TouchableOpacity,
     View
@@ -17,6 +18,8 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
+import { useWeatherStore } from '@/src/core/stores/weatherStore';
+import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
@@ -86,6 +89,28 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     const latitude = trail?.geography?.startLat ?? null;
     const longitude = trail?.geography?.startLong ?? null;
 
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            let coords: { lat: number; lon: number } | null = null;
+            if (typeof latitude === 'number' && typeof longitude === 'number') {
+                coords = { lat: latitude, lon: longitude };
+            } else {
+                coords = resolveCoordsForTrail(trail ?? {});
+            }
+
+            if (coords) {
+                await useWeatherStore.getState().loadWeather(coords.lat, coords.lon, true);
+            }
+        } catch (e) {
+            console.warn('Weather refresh failed:', e);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [latitude, longitude, trail]);
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
@@ -113,6 +138,16 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 style={[styles.container, { marginTop: -insets.top }]}
+                bounces={true}
+                overScrollMode="auto"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={onRefresh}
+                        colors={[Colors.PRIMARY]}
+                        tintColor={Colors.PRIMARY}
+                    />
+                }
             >
                 <View style={styles.imageContainer}>
                     <CustomImage

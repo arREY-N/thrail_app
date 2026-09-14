@@ -88,6 +88,7 @@ export interface ProcessedWeatherData {
     uvIndexMax: number;
     precipitationProbability: number;
     precipitationSum: number;
+    precipitationRate?: number;
     apparentTemperature: number;
     visibility: number;
     cloudCover?: number;

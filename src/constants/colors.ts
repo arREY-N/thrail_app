@@ -140,7 +140,7 @@ export const Colors = {
     ERROR_BG:         Palette.Red50,
     ERROR_BORDER:     Palette.Red100,
     SUCCESS:          Palette.Green700,
-    WARNING:          Palette.Red700,
+    WARNING:          Palette.Amber500,
 
     // Pills & Chips
     CHIP_PRIMARY_BG:    Palette.Green50,
