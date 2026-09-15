@@ -88,6 +88,7 @@ export const fetchWeatherFromApi = async (
       precipitationProbability:
         rawData.hourly.precipitation_probability?.at(hIdx) ?? 0,
       precipitationSum: rawData.daily.precipitation_sum[0] ?? 0,
+      precipitationRate: rawData.current.precipitation ?? 0,
       apparentTemperature: rawData.current.apparent_temperature ?? 0,
       visibility: rawData.hourly.visibility?.at(hIdx) ?? 0,
       cloudCover: rawData.current.cloud_cover ?? 0,

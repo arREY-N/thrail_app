@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -22,6 +22,7 @@ import {
     getSummitVisibilityInfo,
     getWeatherInfoUI,
 } from '../core/utility/weatherHelpers';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useWeather } from '../hooks/useWeather';
 
 interface WeatherWidgetProps {
@@ -63,6 +64,8 @@ interface BentoBoxProps {
     lib: IconLibrary;
     alertLevel?: 'normal' | 'warning' | 'danger';
     subValue?: string;
+    isDesktop?: boolean;
+    isTablet?: boolean;
 }
 
 const BentoBox: React.FC<BentoBoxProps> = ({ 
@@ -73,13 +76,19 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     icon, 
     lib, 
     alertLevel = 'normal', 
-    subValue 
+    subValue,
+    isDesktop,
+    isTablet
 }) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
-    const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
+    const valueColor = Colors.TEXT_PRIMARY;
 
     return (
-        <View style={styles.bentoBox}>
+        <View style={[
+            styles.bentoBox,
+            isTablet && styles.bentoBoxTablet,
+            isDesktop && styles.bentoBoxDesktop
+        ]}>
             <View style={styles.bentoHeader}>
                 <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
                 <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
@@ -129,20 +138,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     trailName,
     showSafetyCard = true,
 }) => {
-    const { weatherData: data, error, refetch } = useWeather(latitude, longitude);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    const { weatherData: data, error } = useWeather(latitude, longitude);
+    const { isDesktop, isTablet } = useBreakpoints();
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
 
     const lastUpdatedLabel = useMemo(
         () => formatLastUpdatedLabel(data?.lastUpdated),
         [data?.lastUpdated]
     );
-
-    const handleRefresh = useCallback(async () => {
-        setIsRefreshing(true);
-        await refetch();
-        setIsRefreshing(false);
-    }, [refetch]);
 
     if (error && !data) {
         return (
@@ -153,7 +156,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         );
     }
 
-    if (isRefreshing || !data) {
+    if (!data) {
         return <WeatherWidgetSkeleton />;
     }
 
@@ -204,7 +207,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     const pagasaRain = getPAGASARainfallWarning(
         activePrecip,
         isTodaySelected ? (weatherData.precipitationSum ?? 0) : 0,
-        isTodaySelected ? (weatherData.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0)
+        isTodaySelected ? (weatherData.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0),
+        isTodaySelected ? weatherData.precipitationRate : undefined
     );
 
     const heatVal = isTodaySelected
@@ -241,6 +245,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     </CustomText>
                 )}
 
+                {lastUpdatedLabel && (
+                    <CustomText variant="caption" style={styles.lastUpdatedText}>
+                        Updated {lastUpdatedLabel}
+                    </CustomText>
+                )}
+
                 <View style={styles.pillWrapper}>
                     <View style={[styles.safetyBanner, { backgroundColor: theme.bg }]}>
                         <CustomIcon library="Feather" name={theme.icon} size={18} color={theme.text} />
@@ -251,13 +261,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 </View>
             </View>
 
-            {/* Prominent Actionable Gear Checklist & Safety Card */}
+            {/* Prominent Actionable Safety Card */}
             {showSafetyCard && (
                 <View style={styles.safetyCardWrapper}>
                     <WeatherSafetyCard
                         weatherData={weatherData}
                         trailName={trailName}
-                        showChecklist={true}
                     />
                 </View>
             )}
@@ -347,6 +356,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     icon="thermometer" 
                     lib="Feather" 
                     alertLevel={pagasaHeat.alertLevel} 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
                 <BentoBox 
                     title="Precipitation" 
@@ -357,6 +368,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     icon="rainy-outline" 
                     lib="Ionicons" 
                     alertLevel={pagasaRain.alertLevel} 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
                 <BentoBox 
                     title="Wind & Gusts" 
@@ -367,6 +380,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     icon="wind" 
                     lib="Feather" 
                     alertLevel={beaufortWind.alertLevel} 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
                 <BentoBox 
                     title="UV Index" 
@@ -377,16 +392,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     icon="sun"  
                     lib="Feather" 
                     alertLevel={activeUv >= 11 ? 'danger' : activeUv >= 8 ? 'warning' : 'normal'} 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
                 <BentoBox 
                     title="Visibility" 
                     value={weatherData.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
                     unit="km" 
-                    subValue={visibilityInfo.cloudText}
+                    subValue={visibilityInfo.badge}
                     desc={visibilityInfo.description} 
                     icon="eye-outline" 
                     lib="Ionicons" 
                     alertLevel={visibilityInfo.alertLevel} 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
                 <BentoBox 
                     title="Atmospheric Air" 
@@ -396,6 +415,8 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     desc={weatherData.surfacePressure && weatherData.surfacePressure < 1008 ? 'Low Pressure Area (LPA) activity.' : 'Stable tropical atmospheric pressure.'} 
                     icon="water-outline" 
                     lib="Ionicons" 
+                    isDesktop={isDesktop}
+                    isTablet={isTablet}
                 />
             </View>
 
@@ -416,13 +437,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     </View>
                 </View>
             </View>
-
-            <TouchableOpacity style={styles.refreshRow} onPress={handleRefresh} activeOpacity={0.6}>
-                <CustomIcon library="Feather" name="refresh-cw" size={14} color={Colors.TEXT_SECONDARY} />
-                <CustomText variant="caption" style={styles.refreshText}>
-                    {lastUpdatedLabel ? `Updated ${lastUpdatedLabel}` : 'Tap to refresh'}
-                </CustomText>
-            </TouchableOpacity>
         </View>
     );
 };
@@ -499,6 +513,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     safetyCardWrapper: {
+        width: '100%',
         marginBottom: 24,
     },
     
@@ -651,6 +666,12 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_ULTRALIGHT, 
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
+    bentoBoxTablet: {
+        width: '31%',
+    },
+    bentoBoxDesktop: {
+        width: '23.5%',
+    },
     bentoHeader: { 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -749,18 +770,10 @@ const styles = StyleSheet.create({
         height: 40,
         backgroundColor: Colors.GRAY_LIGHT,
     },
-    
-    refreshRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        marginTop: 20,
-        paddingVertical: 10,
-    },
-    refreshText: {
-        color: Colors.TEXT_SECONDARY,
+    lastUpdatedText: {
         fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 4,
     },
 });
 

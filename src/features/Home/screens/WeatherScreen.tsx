@@ -148,7 +148,8 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
     const pagasaRain = getPAGASARainfallWarning(
         activePrecipRaw,
         isTodaySelected ? (weatherData?.precipitationSum ?? 0) : 0,
-        isTodaySelected ? (weatherData?.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0)
+        isTodaySelected ? (weatherData?.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0),
+        isTodaySelected ? weatherData?.precipitationRate : undefined
     );
 
     const heatIndexVal = isTodaySelected
@@ -274,12 +275,12 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                             </View>
                         </View>
 
-                        {/* Outdoor Safety Advisory & Actionable Checklist */}
+                        {/* Outdoor Safety Advisory */}
                         <WeatherSafetyCard
                             weatherData={weatherData}
                             trailName={displayName}
-                            showChecklist={true}
-                        />                        <View style={styles.fullWidthCard}>
+                        />
+                        <View style={styles.fullWidthCard}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
                                     library="Ionicons" 
@@ -404,7 +405,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 title="Visibility" 
                                 value={weatherData?.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
                                 unit="km" 
-                                subValue={visibilityInfo.cloudText}
+                                subValue={visibilityInfo.badge}
                                 desc={visibilityInfo.description} 
                                 icon="eye-outline" 
                                 lib="Ionicons" 
@@ -579,7 +580,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     subValue 
 }) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
-    const valueColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.TEXT_PRIMARY;
+    const valueColor = Colors.TEXT_PRIMARY;
 
     return (
         <View style={[styles.bentoBox, isDesktop && styles.bentoBoxDesktop]}>

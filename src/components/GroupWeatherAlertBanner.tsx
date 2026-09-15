@@ -41,7 +41,6 @@ function getPhaseLabel(phase: string): string {
 export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId }) => {
     const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
-    const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
 
     if (isLoading || !latestAlert) {
         return null;
@@ -83,18 +82,6 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
     const toggleExpand = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setIsExpanded(prev => !prev);
-    };
-
-    const toggleCheck = (id: string) => {
-        setCheckedItems(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
     };
 
     const phaseTitle = getPhaseLabel(latestAlert.phase);
@@ -156,56 +143,12 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                 </View>
             </TouchableOpacity>
 
-            {/* Expandable Details & Checklist */}
+            {/* Expandable Details */}
             {isExpanded && (
                 <View style={styles.expandedContent}>
                     <CustomText variant="body" style={styles.fullMessage}>
                         {latestAlert.message}
                     </CustomText>
-
-                    {latestAlert.checklist && latestAlert.checklist.length > 0 && (
-                        <View style={styles.checklistSection}>
-                            <CustomText variant="label" style={styles.checklistHeader}>
-                                {'Recommended Trail Preparation:'}
-                            </CustomText>
-
-                            {latestAlert.checklist.map((item) => {
-                                const isChecked = checkedItems.has(item.id);
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        activeOpacity={0.7}
-                                        onPress={() => toggleCheck(item.id)}
-                                        style={[
-                                            styles.checkItemRow,
-                                            isChecked && styles.checkItemRowChecked,
-                                        ]}
-                                    >
-                                        <View style={[styles.checkbox, isChecked && styles.checkboxActive]}>
-                                            {isChecked && (
-                                                <CustomIcon
-                                                    library="Ionicons"
-                                                    name="checkmark"
-                                                    size={14}
-                                                    color={Colors.WHITE}
-                                                />
-                                            )}
-                                        </View>
-
-                                        <CustomText
-                                            variant="caption"
-                                            style={[
-                                                styles.checkItemLabel,
-                                                isChecked && styles.checkItemLabelChecked,
-                                            ]}
-                                        >
-                                            {item.label}
-                                        </CustomText>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    )}
                 </View>
             )}
         </View>
@@ -280,56 +223,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         lineHeight: 18,
         color: Colors.TEXT_PRIMARY,
-        marginBottom: 10,
-    },
-    checklistSection: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 10,
-        padding: 10,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    checklistHeader: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 8,
-    },
-    checkItemRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 6,
-        borderRadius: 8,
-        marginBottom: 4,
-    },
-    checkItemRowChecked: {
-        backgroundColor: '#F8FAFC',
-    },
-    checkbox: {
-        width: 18,
-        height: 18,
-        borderRadius: 5,
-        borderWidth: 1.5,
-        borderColor: Colors.GRAY_MEDIUM,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    checkboxActive: {
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-    },
-    checkItemLabel: {
-        flex: 1,
-        fontSize: 12,
-        color: Colors.TEXT_PRIMARY,
-    },
-    checkItemLabelChecked: {
-        color: Colors.TEXT_SECONDARY,
-        textDecorationLine: 'line-through',
     },
 });
 
