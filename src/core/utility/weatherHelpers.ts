@@ -154,51 +154,58 @@ export const getPAGASARainfallWarning = (
     description: string;
     alertLevel: 'normal' | 'warning' | 'danger';
 } => {
-    const isSevereStorm = [65, 75, 82, 85, 86, 96, 99].includes(weatherCode);
-    const isThunderstorm = weatherCode === 95;
+    // Effective rain rate (mm/h)
     const rate = hourlyRateMm ?? 0;
+    const isExtremeHailStorm = weatherCode === 99;
+    const isThunderstorm = weatherCode === 95 || weatherCode === 96;
+    const isHeavyRainCode = weatherCode === 65 || weatherCode === 82;
 
-    // 1. RED WARNING: Torrential rain (PAGASA > 30 mm/h, severe storm code, or heavy flood 24h total >= 100 mm with active rain)
-    if (isSevereStorm || rate >= 30 || (accumulatedMm >= 100 && prob >= 50)) {
+    // 1. RED WARNING: Torrential rain (PAGASA > 30 mm/h, extreme hail storm with intense rain >= 15 mm/h, or heavy flood accumulation >= 100 mm with active rain)
+    if (rate >= 30 || (isExtremeHailStorm && rate >= 15) || (accumulatedMm >= 100 && prob >= 60 && rate >= 10)) {
         return {
             warningLevel: 'RED',
             badge: 'Red Warning',
-            description: 'Torrential rain & severe storm hazard. Swollen rivers & mudslides.',
+            description: 'Torrential rain (>30 mm/h). Severe flooding and landslide hazards. Evacuate dangerous areas.',
             alertLevel: 'danger',
         };
     }
 
     // 2. ORANGE WARNING: Intense rainfall (PAGASA 15 - 30 mm/h, or 24h total 50 - 99 mm with active rain)
-    if (rate >= 15 || (accumulatedMm >= 50 && prob >= 50)) {
+    if (rate >= 15 || (accumulatedMm >= 50 && prob >= 50 && rate >= 5) || (isExtremeHailStorm && rate >= 7.5)) {
         return {
             warningLevel: 'ORANGE',
             badge: 'Orange Alert',
-            description: 'Intense rain. Flooding threatening low-lying trails & river crossings.',
+            description: 'Intense rain (15–30 mm/h). Flooding threatening low-lying trails and river crossings. Prepare.',
             alertLevel: 'danger',
         };
     }
 
-    // 3. YELLOW WARNING: Heavy rainfall (PAGASA 7.5 - 15 mm/h, thunderstorm, or 24h total 25 - 49 mm with active rain)
-    if (rate >= 7.5 || isThunderstorm || (accumulatedMm >= 25 && prob >= 50)) {
+    // 3. YELLOW WARNING: Heavy rainfall (PAGASA 7.5 - 15 mm/h, heavy rain code 65/82, thunderstorm with rain, or 24h total 25 - 49 mm with active rain)
+    if (
+        rate >= 7.5 || 
+        isHeavyRainCode ||
+        (isThunderstorm && (rate >= 2.5 || prob >= 50)) || 
+        (accumulatedMm >= 25 && prob >= 50)
+    ) {
         return {
             warningLevel: 'YELLOW',
-            badge: 'Yellow Advisory',
-            description: 'Heavy rain & lightning risk. Trails are slick; exercise caution.',
+            badge: 'Yellow Warning',
+            description: 'Heavy rain (7.5–15 mm/h) or thunderstorm risk. Flooding possible in low areas; trails are slick.',
             alertLevel: 'warning',
         };
     }
 
     // 4. LIGHT / MODERATE / PASSING SHOWERS (< 7.5 mm/h or < 25 mm daily accumulation)
-    if (prob >= 60) {
+    if (prob >= 60 || rate >= 2.5) {
         return {
             warningLevel: 'NORMAL',
             badge: 'Rain Likely',
-            description: 'Passing or scattered showers expected. Trails may be slippery.',
+            description: 'Passing or moderate showers expected. Trails may be slippery.',
             alertLevel: 'warning',
         };
     }
 
-    if (prob >= 30) {
+    if (prob >= 30 || rate > 0) {
         return {
             warningLevel: 'NORMAL',
             badge: 'Passing Showers',
@@ -241,6 +248,7 @@ export const getBeaufortWindInfo = (
     directionText: string;
     alertLevel: 'normal' | 'warning' | 'danger';
     observedDescription: string;
+    description: string;
 } => {
     const directionText = getWindDirection(directionDeg);
     const effectiveSpeed = Math.round(speedKmH);
@@ -258,84 +266,67 @@ export const getBeaufortWindInfo = (
         }
     }
 
+    let scale = 'Calm';
+    let alertLevel: 'normal' | 'warning' | 'danger' = 'normal';
+    let observedDescription = 'Air is completely still. Smoke rises vertically; no breeze felt on skin.';
+
     if (effectiveSpeed >= 118 || effectiveGusts >= 130) {
-        return {
-            scale: 'Typhoon Force',
-            gustText,
-            directionText,
-            alertLevel: 'danger',
-            observedDescription: 'Severe destructive winds. Halt all outdoor activity.',
-        };
+        scale = 'Typhoon Force';
+        alertLevel = 'danger';
+        observedDescription = 'Violent destructive winds. Immediate shelter required; cancel all outdoor activity.';
+    } else if (effectiveSpeed >= 89 || effectiveGusts >= 103) {
+        scale = 'Storm Force';
+        alertLevel = 'danger';
+        observedDescription = 'Violent destructive winds. Trees uprooted; dangerous structural and fall hazard.';
+    } else if (effectiveSpeed >= 75 || effectiveGusts >= 88) {
+        scale = 'Strong Gale';
+        alertLevel = 'danger';
+        observedDescription = 'Severe danger. High fall hazard; impossible to hike safely on open summits.';
+    } else if (effectiveSpeed >= 62 || effectiveGusts >= 75) {
+        scale = 'Gale Winds';
+        alertLevel = 'danger';
+        observedDescription = 'Dangerous wind force. Twigs break; difficult to maintain footing and balance.';
+    } else if (effectiveSpeed >= 50 || effectiveGusts >= 63) {
+        scale = 'Near Gale';
+        alertLevel = 'warning';
+        observedDescription = 'Strong resistance. Whole trees in motion; strenuous walking along open ridgelines.';
+    } else if (effectiveSpeed >= 39 || effectiveGusts >= 50) {
+        scale = 'Strong Breeze';
+        alertLevel = 'warning';
+        observedDescription = 'Stiff resistance. Large branches sway; extra effort required walking forward.';
+    } else if (effectiveSpeed >= 29) {
+        scale = 'Fresh Breeze';
+        alertLevel = 'normal';
+        observedDescription = 'Brisk wind. Swaying branches; pulls on loose hats and pack straps.';
+    } else if (effectiveSpeed >= 20) {
+        scale = 'Moderate Breeze';
+        alertLevel = 'normal';
+        observedDescription = 'Noticeable resistance. Moves small branches; tugs lightly at clothing.';
+    } else if (effectiveSpeed >= 12) {
+        scale = 'Gentle Breeze';
+        alertLevel = 'normal';
+        observedDescription = 'Pleasant, refreshing breeze. Leaves and small twigs in constant motion.';
+    } else if (effectiveSpeed >= 6) {
+        scale = 'Light Breeze';
+        alertLevel = 'normal';
+        observedDescription = 'Wind felt softly on exposed face and skin. Leaves rustle gently.';
+    } else if (effectiveSpeed >= 1) {
+        scale = 'Light Air';
+        alertLevel = 'normal';
+        observedDescription = 'Barely perceptible. Smoke drifts gently; no movement in trees.';
     }
-    if (effectiveSpeed >= 88 || effectiveGusts >= 103) {
-        return {
-            scale: 'Storm Force',
-            gustText,
-            directionText,
-            alertLevel: 'danger',
-            observedDescription: 'Trees uprooted, considerable structural hazard.',
-        };
-    }
-    if (effectiveSpeed >= 76 || effectiveGusts >= 88) {
-        return {
-            scale: 'Strong Gale',
-            gustText,
-            directionText,
-            alertLevel: 'danger',
-            observedDescription: 'Large branches break off. Extremely dangerous on ridges.',
-        };
-    }
-    if (effectiveSpeed >= 63 || effectiveGusts >= 75) {
-        return {
-            scale: 'Gale Winds',
-            gustText,
-            directionText,
-            alertLevel: 'danger',
-            observedDescription: 'Twigs break off trees. High risk on exposed summits.',
-        };
-    }
-    if (effectiveSpeed >= 51 || effectiveGusts >= 63) {
-        return {
-            scale: 'Near Gale',
-            gustText,
-            directionText,
-            alertLevel: 'warning',
-            observedDescription: 'Whole trees in motion. Inconvenience walking against wind.',
-        };
-    }
-    if (effectiveSpeed >= 40 || effectiveGusts >= 50) {
-        return {
-            scale: 'Strong Winds',
-            gustText,
-            directionText,
-            alertLevel: 'warning',
-            observedDescription: 'Large branches in motion. Difficult walking conditions.',
-        };
-    }
-    if (effectiveSpeed >= 30) {
-        return {
-            scale: 'Fresh Winds',
-            gustText,
-            directionText,
-            alertLevel: 'normal',
-            observedDescription: 'Small trees in leaf begin to sway.',
-        };
-    }
-    if (effectiveSpeed >= 20) {
-        return {
-            scale: 'Moderate Winds',
-            gustText,
-            directionText,
-            alertLevel: 'normal',
-            observedDescription: 'Small branches moved. Dust and loose debris raised.',
-        };
-    }
+
+    const description = directionText
+        ? `${directionText} • ${observedDescription}`
+        : observedDescription;
+
     return {
-        scale: 'Light Winds',
+        scale,
         gustText,
         directionText,
-        alertLevel: 'normal',
-        observedDescription: 'Wind felt on face. Leaves rustle gently.',
+        alertLevel,
+        observedDescription,
+        description,
     };
 };
 
@@ -415,8 +406,8 @@ export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyS
         hourlyForecast,
     } = data;
     
-    // Severe weather conditions: Torrential downpours, squalls, severe thunderstorm with hail
-    const isSevereWeather = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
+    // Severe weather conditions: Severe thunderstorm, lightning, squalls
+    const isSevereWeather = [95, 96, 99].includes(weatherCode);
     const effectiveGusts = windGusts || windSpeed || 0;
     const heatIndex = Math.round(apparentTemperature ?? temperature ?? 0);
     const currentPrecipRate = precipitationRate ?? 0;
@@ -431,7 +422,7 @@ export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyS
             if ((h.precipitationProbability ?? 0) > maxUpcomingPrecipProb) {
                 maxUpcomingPrecipProb = h.precipitationProbability;
             }
-            if ([65, 75, 82, 85, 86, 95, 96, 99].includes(h.weatherCode)) {
+            if ([95, 96, 99].includes(h.weatherCode)) {
                 hasUpcomingStorm = true;
             }
             if ((h.weatherCode >= 51 && h.weatherCode <= 67) || (h.weatherCode >= 80 && h.weatherCode <= 82)) {
@@ -533,7 +524,8 @@ export const getDetailedWeatherSafety = (
     // Scan near-term window (next 3 hours) for upcoming rain or storm changes
     let maxUpcomingPrecipChance = currentPrecipChance;
     let upcomingRainCode = false;
-    let upcomingSevereCode = false;
+    let upcomingThunderstorm = false;
+    let upcomingSevereStorm = false;
 
     if (hourlyForecast && hourlyForecast.length > 0) {
         const nextHours = hourlyForecast.slice(0, 3);
@@ -544,25 +536,30 @@ export const getDetailedWeatherSafety = (
             if ((h.weatherCode >= 51 && h.weatherCode <= 67) || (h.weatherCode >= 80 && h.weatherCode <= 82)) {
                 upcomingRainCode = true;
             }
-            if ([65, 75, 82, 85, 86, 95, 96, 99].includes(h.weatherCode)) {
-                upcomingSevereCode = true;
+            if (h.weatherCode === 95 || h.weatherCode === 96) {
+                upcomingThunderstorm = true;
+            }
+            if (h.weatherCode === 99) {
+                upcomingSevereStorm = true;
             }
         }
     }
 
-    const isTorrentialCode = [65, 75, 82, 85, 86, 96, 99].includes(weatherCode) || upcomingSevereCode;
-    const isThunderstorm = weatherCode === 95;
+    const isTorrentialRain = currentPrecipRate >= 30;
+    const isExtremeHailStorm = weatherCode === 99 || upcomingSevereStorm;
+    const isThunderstorm = weatherCode === 95 || weatherCode === 96 || upcomingThunderstorm;
+    const isHeavyRainCode = weatherCode === 65 || weatherCode === 82;
     const isRainCode = (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82) || upcomingRainCode;
     const isFogCode = weatherCode === 45 || weatherCode === 48 || (visibility != null && visibility < 2000);
-    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || isRainCode || isThunderstorm || isTorrentialCode;
+    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || isRainCode || isThunderstorm || isTorrentialRain;
 
-    // 1. Rain Risk Level (Evaluated per hourly rate & near-term probability; prevents false alarms on isolated drizzle/shower codes with negligible probability)
+    // 1. Rain Risk Level (Evaluated per hourly rate & near-term probability; strictly aligns with PAGASA Color-Coded Warning brackets)
     let rainRiskLevel: 'low' | 'moderate' | 'high' | 'severe' = 'low';
-    if (isTorrentialCode || currentPrecipRate >= 30 || (dailyRainMm >= 100 && maxUpcomingPrecipChance >= 50)) {
+    if (isTorrentialRain || (isExtremeHailStorm && currentPrecipRate >= 15) || (dailyRainMm >= 100 && maxUpcomingPrecipChance >= 60 && currentPrecipRate >= 10)) {
         rainRiskLevel = 'severe';
-    } else if (isThunderstorm || currentPrecipRate >= 15 || maxUpcomingPrecipChance >= 70) {
+    } else if (isThunderstorm || currentPrecipRate >= 7.5 || isHeavyRainCode || maxUpcomingPrecipChance >= 70) {
         rainRiskLevel = 'high';
-    } else if (maxUpcomingPrecipChance >= 50 || currentPrecipRate >= 7.5 || (isRainCode && (maxUpcomingPrecipChance >= 40 || currentPrecipRate >= 2.5))) {
+    } else if (maxUpcomingPrecipChance >= 50 || currentPrecipRate >= 2.5 || (isRainCode && (maxUpcomingPrecipChance >= 40 || currentPrecipRate >= 1.0))) {
         rainRiskLevel = 'moderate';
     } else {
         rainRiskLevel = 'low';
@@ -611,9 +608,15 @@ export const getDetailedWeatherSafety = (
     const keyRisks: string[] = [];
     if (rainRiskLevel === 'severe') {
         keyRisks.push('Torrential downpour and potential flash floods');
-        if (weatherCode >= 95 || isThunderstorm) keyRisks.push('Severe thunderstorm and lightning hazards on exposed peaks');
+        if (isExtremeHailStorm || isThunderstorm) keyRisks.push('Severe thunderstorm and lightning hazards on exposed peaks');
     } else if (rainRiskLevel === 'high') {
-        keyRisks.push(`Heavy rain expected (${maxUpcomingPrecipChance}%) with slippery, waterlogged trails`);
+        if (currentPrecipRate >= 15) {
+            keyRisks.push(`Intense rainfall expected (${maxUpcomingPrecipChance}%) with trail flooding & slick mud`);
+        } else if (currentPrecipRate >= 7.5 || isHeavyRainCode) {
+            keyRisks.push(`Heavy rain expected (${maxUpcomingPrecipChance}%) with slippery, waterlogged trails`);
+        } else {
+            keyRisks.push(`Rain showers likely (${maxUpcomingPrecipChance}%) with slippery, muddy trails`);
+        }
         if (isThunderstorm) keyRisks.push('Thunderstorm & lightning hazard on high ridgelines');
     } else if (rainRiskLevel === 'moderate') {
         keyRisks.push(`Rain showers expected (${maxUpcomingPrecipChance}%) with slippery, muddy trails`);
@@ -780,19 +783,25 @@ export const getDetailedWeatherSafety = (
             headline = `Gale-Force Wind Hazard for ${targetLabel}`;
             description = `Dangerous wind gusts (${Math.round(effectiveGusts)} km/h) along open ridges. High risk of falls and flying debris.`;
         } else {
-            headline = `Severe Storm Hazard for ${targetLabel}`;
-            description = isTorrentialCode || isThunderstorm
-                ? `Thunderstorms or torrential rainfall forecast. Swollen rivers and mudslides threaten trails. Consult local guides before proceeding.`
-                : `Severe weather hazards detected on trail. Exercise utmost caution.`;
+            headline = `Torrential Storm Hazard for ${targetLabel}`;
+            description = isExtremeHailStorm
+                ? `Severe convective storm with violent hail forecast. High danger of lightning and severe flash floods. Cancel outdoor activities.`
+                : `Torrential rainfall (>30 mm/h) forecast. Swollen rivers and severe mudslides threaten trails. Evacuate or cancel mountain activities.`;
         }
     } else if (status === 'CAUTION') {
-        if (hasRainHazard && hasHeatHazard) {
+        if (isThunderstorm) {
+            badgeText = 'WEATHER ADVISORY';
+            headline = `Thunderstorm Advisory for ${targetLabel}`;
+            description = `Thunderstorms with rain showers forecast. Elevated lightning risk on exposed ridges and trails will be slick. Avoid open summits and seek safe shelter.`;
+        } else if (hasRainHazard && hasHeatHazard) {
             badgeText = 'WEATHER ADVISORY';
             headline = `Rain & Humid Heat Advisory for ${targetLabel}`;
             description = `Rain showers (${maxUpcomingPrecipChance}%) coupled with warm humidity (${heatIndex}°C feels-like). Trails are slick—pack waterproof gear and drink plenty of fluids.`;
         } else if (hasRainHazard) {
             badgeText = 'RAIN ADVISORY';
-            headline = `Rain Expected at ${targetLabel} (${maxUpcomingPrecipChance}% chance)`;
+            headline = currentPrecipRate >= 7.5
+                ? `Heavy Rain Advisory for ${targetLabel}`
+                : `Rain Expected at ${targetLabel} (${maxUpcomingPrecipChance}% chance)`;
             description = `Wet weather is anticipated. Trails may be muddy and slippery. Prepare waterproof gear and wear high-traction footwear.`;
         } else if (hasHeatHazard) {
             badgeText = 'HEAT ADVISORY';
@@ -1008,18 +1017,40 @@ export const getHourlyForecastForDay = (
 
     const activeDay = weatherData.forecast?.at(selectedDayIndex) ?? weatherData.forecast?.at(0);
     const targetDate = activeDay?.date ? activeDay.date.slice(0, 10) : "";
+    const isToday = selectedDayIndex === 0;
 
     // 1. If real hourly forecast exists in weatherData, filter for this day
     if (weatherData.hourlyForecast && weatherData.hourlyForecast.length > 0) {
-        const filtered = targetDate 
+        let filtered = targetDate 
             ? weatherData.hourlyForecast.filter(h => h.datePrefix === targetDate || h.time.startsWith(targetDate))
             : [];
-        if (filtered.length > 0) return filtered;
 
         // If filtering by date string didn't match directly, slice by 24h chunk
-        const startIdx = selectedDayIndex * 24;
-        const chunk = weatherData.hourlyForecast.slice(startIdx, startIdx + 24);
-        if (chunk.length > 0) return chunk;
+        if (filtered.length === 0) {
+            const startIdx = selectedDayIndex * 24;
+            filtered = weatherData.hourlyForecast.slice(startIdx, startIdx + 24);
+        }
+
+        if (filtered.length > 0) {
+            // Option B: For "Today", only show current hour ("Now") and onwards until the end of today (11 PM)
+            if (isToday) {
+                const nowIdx = filtered.findIndex(h => h.hourLabel === 'Now');
+                if (nowIdx !== -1) {
+                    return filtered.slice(nowIdx);
+                }
+                const currentHour = new Date().getHours();
+                const fromCurrentHour = filtered.filter(h => {
+                    const parts = h.time.split("T");
+                    if (parts.length < 2) return true;
+                    const hourNum = parseInt(parts[1].split(":")[0], 10);
+                    return hourNum >= currentHour;
+                });
+                if (fromCurrentHour.length > 0) {
+                    return fromCurrentHour;
+                }
+            }
+            return filtered;
+        }
     }
 
     // 2. Resilient fallback generator: if cached data hasn't refreshed or API omitted hourly
@@ -1028,10 +1059,10 @@ export const getHourlyForecastForDay = (
     const code = activeDay?.weatherCode ?? weatherData.weatherCode ?? 0;
     const precipMax = activeDay?.precipitationProbabilityMax ?? weatherData.precipitationProbability ?? 0;
     const currentHour = new Date().getHours();
-    const isToday = selectedDayIndex === 0;
 
+    const startH = isToday ? currentHour : 0;
     const items: HourlyForecastItem[] = [];
-    for (let h = 0; h < 24; h++) {
+    for (let h = startH; h < 24; h++) {
         // Temperature diurnal curve: lowest around 5 AM, highest around 2 PM
         const tempRad = ((h - 5) / 24) * 2 * Math.PI;
         const normalized = 0.5 * (1 - Math.cos(tempRad));

@@ -32,7 +32,6 @@ import { useWeather } from "@/src/hooks/useWeather";
 import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
-import { WeatherSafetyCard } from "@/src/components/WeatherSafetyCard";
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
 
 import { IOffer } from '@/src/core/models/Offer/Offer';
@@ -396,15 +395,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           onPress={onWeatherPress}
           onReload={refetch}
           locationName={geocodedName || locationName}
+          safetyReport={safetyReport}
         />
-
-        {safetyReport && safetyReport.status !== 'SAFE' && (
-          <WeatherSafetyCard
-            report={safetyReport}
-            compact={true}
-            onPress={onWeatherPress}
-          />
-        )}
 
         <ListSection
           title="Recommendations"

@@ -367,28 +367,31 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 lib="Feather" 
                                 alertLevel={pagasaHeat.alertLevel} 
                                 isDesktop={isDesktop}
+                                isTablet={isTablet}
                             />
                             <BentoBox 
                                 title="Precipitation" 
                                 value={isTodaySelected ? display.precipChance : String(activePrecipRaw)} 
                                 unit="%" 
-                                subValue={weatherData?.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.warningLevel}` : `${pagasaRain.warningLevel} Warning`}
+                                subValue={weatherData?.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
                                 desc={pagasaRain.description} 
                                 icon="rainy-outline" 
                                 lib="Ionicons" 
                                 alertLevel={pagasaRain.alertLevel} 
                                 isDesktop={isDesktop}
+                                isTablet={isTablet}
                             />
                             <BentoBox 
                                 title="Wind & Gusts" 
                                 value={isTodaySelected ? display.windSpeed : String(activeWindRaw)} 
                                 unit="km/h" 
                                 subValue={beaufortWind.gustText}
-                                desc={`${beaufortWind.directionText} • ${beaufortWind.scale}`} 
+                                desc={beaufortWind.description} 
                                 icon="wind" 
                                 lib="Feather" 
                                 alertLevel={beaufortWind.alertLevel} 
                                 isDesktop={isDesktop}
+                                isTablet={isTablet}
                             />
                             <BentoBox 
                                 title="UV Index" 
@@ -400,6 +403,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 lib="Feather" 
                                 alertLevel={getMetricAlertLevel('uv', activeUvRaw)} 
                                 isDesktop={isDesktop}
+                                isTablet={isTablet}
                             />
                             <BentoBox 
                                 title="Visibility" 
@@ -411,16 +415,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 lib="Ionicons" 
                                 alertLevel={visibilityInfo.alertLevel} 
                                 isDesktop={isDesktop}
-                            />
-                            <BentoBox 
-                                title="Atmospheric Air" 
-                                value={display.humidity} 
-                                unit="% RH" 
-                                subValue={weatherData?.surfacePressure ? `${weatherData.surfacePressure} hPa` : '1013 hPa'}
-                                desc={weatherData?.surfacePressure && weatherData.surfacePressure < 1008 ? 'Low Pressure Area (LPA) activity.' : 'Stable tropical atmospheric pressure.'} 
-                                icon="water-outline" 
-                                lib="Ionicons" 
-                                isDesktop={isDesktop}
+                                isTablet={isTablet}
                             />
                         </View>
 
@@ -522,36 +517,38 @@ interface HourlyItemProps {
 
 const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isNow }: HourlyItemProps) => (
     <View style={[styles.hourlyItem, isNow && styles.hourlyItemNow]}>
-        <CustomText variant="caption" style={[styles.hourTimeText, isNow && styles.hourTimeNow]}>
+        <CustomText variant="label" style={[styles.hourTimeText, isNow && styles.hourTimeNow]}>
             {hourLabel}
         </CustomText>
         <View style={styles.hourlyIconWrapper}>
             <CustomIcon 
                 library={lib} 
                 name={icon} 
-                size={22} 
+                size={26} 
                 color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
             />
         </View>
-        <CustomText variant="label" style={styles.hourlyTempText}>
-            {temperature}°
-        </CustomText>
-        <View style={styles.hourlyPrecipRow}>
-            <CustomIcon 
-                library="Ionicons" 
-                name="water-outline" 
-                size={10} 
-                color={precipChance > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} 
-            />
-            <CustomText 
-                variant="caption" 
-                style={[
-                    styles.hourlyPrecipText, 
-                    precipChance > 30 && { color: Colors.ERROR, fontWeight: '700' }
-                ]}
-            >
-                {precipChance}%
+        <View style={styles.hourlyBottomCol}>
+            <CustomText variant="label" style={styles.hourlyTempText}>
+                {temperature}°
             </CustomText>
+            <View style={styles.hourlyPrecipRow}>
+                <CustomIcon 
+                    library="Ionicons" 
+                    name="water-outline" 
+                    size={11} 
+                    color={precipChance > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} 
+                />
+                <CustomText 
+                    variant="caption" 
+                    style={[
+                        styles.hourlyPrecipText, 
+                        precipChance > 30 && { color: Colors.ERROR, fontWeight: '700' }
+                    ]}
+                >
+                    {precipChance}%
+                </CustomText>
+            </View>
         </View>
     </View>
 );
@@ -565,6 +562,7 @@ interface BentoBoxProps {
     lib: IconLibrary;
     alertLevel?: AlertLevel;
     isDesktop: boolean;
+    isTablet?: boolean;
     subValue?: string;
 }
 
@@ -577,13 +575,15 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     lib, 
     alertLevel = 'normal', 
     isDesktop, 
+    isTablet = false,
     subValue 
 }) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
     const valueColor = Colors.TEXT_PRIMARY;
+    const isMultiColumn = isDesktop || isTablet;
 
     return (
-        <View style={[styles.bentoBox, isDesktop && styles.bentoBoxDesktop]}>
+        <View style={[styles.bentoBox, isTablet && styles.bentoBoxTablet, isDesktop && styles.bentoBoxDesktop]}>
             <View style={styles.bentoHeader}>
                 <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
                 <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
@@ -591,7 +591,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
                 </CustomText>
             </View>
 
-            <View style={styles.bentoMiddle}>
+            <View style={[styles.bentoMiddle, !isMultiColumn && styles.bentoMiddleMobile]}>
                 <View style={styles.bentoMainRow}>
                     <CustomText style={[styles.bentoValue, { color: valueColor }]} numberOfLines={1}>
                         {value !== undefined ? value : '--'}
@@ -783,10 +783,12 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         paddingVertical: 16, 
-        paddingHorizontal: 12, 
+        paddingHorizontal: 10, 
         borderRadius: 16, 
-        gap: 4, 
-        minWidth: 70, 
+        gap: 6, 
+        width: 86, 
+        minHeight: 124,
+        justifyContent: 'space-between',
         borderWidth: 1.5, 
         borderColor: 'transparent', 
     },
@@ -841,37 +843,42 @@ const styles = StyleSheet.create({
     hourlyItem: {
         alignItems: 'center',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 14,
+        paddingVertical: 16,
         paddingHorizontal: 10,
         borderRadius: 16,
         gap: 6,
-        minWidth: 64,
-        borderWidth: 1,
+        width: 86,
+        minHeight: 124,
+        justifyContent: 'space-between',
+        borderWidth: 1.5,
         borderColor: 'transparent',
     },
     hourlyItemNow: {
         backgroundColor: Colors.WHITE,
         borderColor: Colors.PRIMARY,
-        ...GlobalStyles.dropShadow(2, 0.08, Colors.PRIMARY),
+        ...GlobalStyles.dropShadow(2, 0.1, Colors.PRIMARY),
     },
     hourTimeText: {
         color: Colors.TEXT_SECONDARY,
-        fontWeight: '600',
-        fontSize: 12,
     },
     hourTimeNow: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
     hourlyIconWrapper: {
-        height: 28,
+        height: 36,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    hourlyBottomCol: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
     },
     hourlyTempText: {
         color: Colors.TEXT_PRIMARY,
         fontWeight: '700',
-        fontSize: 15,
+        fontSize: 14,
     },
     hourlyPrecipRow: {
         flexDirection: 'row',
@@ -879,7 +886,7 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     hourlyPrecipText: {
-        fontSize: 11,
+        fontSize: 10,
         color: Colors.TEXT_SECONDARY,
     },
 
@@ -892,9 +899,9 @@ const styles = StyleSheet.create({
     bentoBox: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 18, 
-        padding: 14, 
-        width: '48%', 
-        minHeight: 155, 
+        padding: 16, 
+        width: '100%', 
+        minHeight: 120, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -902,9 +909,13 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_ULTRALIGHT, 
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
-
+    bentoBoxTablet: {
+        width: '48%', 
+        minHeight: 150,
+    },
     bentoBoxDesktop: {
-        width: '23.5%',
+        width: '23.5%', 
+        minHeight: 155,
     },
     bentoHeader: { 
         flexDirection: 'row', 
@@ -913,7 +924,7 @@ const styles = StyleSheet.create({
     },
     bentoTitle: { 
         color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -923,6 +934,12 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: 4,
+        marginVertical: 4,
+    },
+    bentoMiddleMobile: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginVertical: 4,
     },
     bentoMainRow: {
@@ -937,13 +954,13 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
     },
     bentoUnit: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '700',
     },
     bentoSubBadge: {
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
         maxWidth: '100%',
         marginTop: 2,
     },
@@ -957,7 +974,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEE2E2',
     },
     bentoSubValue: {
-        fontSize: 10,
+        fontSize: 14,
         color: Colors.TEXT_PRIMARY,
         fontWeight: '600',
     },
@@ -969,8 +986,8 @@ const styles = StyleSheet.create({
     },
     bentoDesc: { 
         color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
-        lineHeight: 14,
+        fontSize: 14,
+        lineHeight: 20,
     },
 
     sunTimeRow: { 

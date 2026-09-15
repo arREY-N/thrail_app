@@ -82,6 +82,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
 }) => {
     const iconColor = alertLevel === 'danger' ? Colors.ERROR : alertLevel === 'warning' ? Colors.WARNING : Colors.PRIMARY;
     const valueColor = Colors.TEXT_PRIMARY;
+    const isMultiColumn = isDesktop || isTablet;
 
     return (
         <View style={[
@@ -96,7 +97,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
                 </CustomText>
             </View>
 
-            <View style={styles.bentoMiddle}>
+            <View style={[styles.bentoMiddle, !isMultiColumn && styles.bentoMiddleMobile]}>
                 <View style={styles.bentoMainRow}>
                     <CustomText style={[styles.bentoValue, { color: valueColor }]} numberOfLines={1}>
                         {value !== undefined ? value : '--'}
@@ -271,41 +272,51 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 </View>
             )}
 
-            <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                style={styles.forecastScroll}
-                contentContainerStyle={styles.forecastContent}
-            >
-                {weatherData.forecast?.map((day, index) => {
-                    const { icon, library } = getWeatherInfoUI(day.weatherCode);
-                    const isToday = index === 0;
-                    const isSelected = selectedDayIndex === index;
-                    return (
-                        <TouchableOpacity 
-                            key={index} 
-                            style={[
-                                styles.forecastItem, 
-                                isSelected ? styles.forecastItemSelected : (isToday ? styles.forecastItemToday : undefined)
-                            ]}
-                            onPress={() => setSelectedDayIndex(index)}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText variant="label" style={[styles.forecastDate, (isSelected || isToday) && styles.forecastDateActive]}>
-                                {isToday ? "Today" : formatForecastDay(day.date, index)}
-                            </CustomText>
-                            <View style={styles.fIconWrapper}>
-                                <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
-                            </View>
-                            <View style={styles.forecastTempRow}>
-                                <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>
-                                <CustomText style={styles.fTempSeparator}> / </CustomText>
-                                <CustomText variant="caption" style={styles.forecastTempLow}>{Math.round(day.temperatureMin)}°</CustomText>
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
+            {/* 7-Day Forecast Section */}
+            {weatherData.forecast && weatherData.forecast.length > 0 && (
+                <View style={styles.forecastSection}>
+                    <View style={styles.forecastSectionHeader}>
+                        <CustomIcon library="Ionicons" name="calendar-outline" size={18} color={Colors.PRIMARY} />
+                        <CustomText variant="label" style={styles.forecastSectionTitle}>
+                            {'7-Day Forecast'}
+                        </CustomText>
+                    </View>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.forecastContent}
+                    >
+                        {weatherData.forecast.map((day, index) => {
+                            const { icon, library } = getWeatherInfoUI(day.weatherCode);
+                            const isToday = index === 0;
+                            const isSelected = selectedDayIndex === index;
+                            return (
+                                <TouchableOpacity 
+                                    key={index} 
+                                    style={[
+                                        styles.forecastItem, 
+                                        isSelected ? styles.forecastItemSelected : (isToday ? styles.forecastItemToday : undefined)
+                                    ]}
+                                    onPress={() => setSelectedDayIndex(index)}
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomText variant="label" style={[styles.forecastDate, (isSelected || isToday) && styles.forecastDateActive]}>
+                                        {isToday ? "Today" : formatForecastDay(day.date, index)}
+                                    </CustomText>
+                                    <View style={styles.fIconWrapper}>
+                                        <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
+                                    </View>
+                                    <View style={styles.forecastTempRow}>
+                                        <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>
+                                        <CustomText style={styles.fTempSeparator}> / </CustomText>
+                                        <CustomText variant="caption" style={styles.forecastTempLow}>{Math.round(day.temperatureMin)}°</CustomText>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+            )}
 
             {/* Hourly Forecast Row for Selected Day */}
             {activeHourlyList.length > 0 && (
@@ -328,16 +339,20 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                             const isNow = hour.hourLabel === 'Now';
                             return (
                                 <View key={hIdx} style={[styles.hourlyPill, isNow && styles.hourlyPillNow]}>
-                                    <CustomText variant="caption" style={[styles.hourlyTime, isNow && styles.hourlyTimeNow]}>
+                                    <CustomText variant="label" style={[styles.hourlyTime, isNow && styles.hourlyTimeNow]}>
                                         {hour.hourLabel}
                                     </CustomText>
-                                    <CustomIcon library={library as IconLibrary} name={icon} size={22} color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
-                                    <CustomText variant="label" style={styles.hourlyTemp}>{hour.temperature}°</CustomText>
-                                    <View style={styles.hourlyPrecip}>
-                                        <CustomIcon library="Ionicons" name="water-outline" size={10} color={hour.precipitationProbability > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} />
-                                        <CustomText variant="caption" style={[styles.hourlyPrecipText, hour.precipitationProbability > 30 && { color: Colors.ERROR, fontWeight: '700' }]}>
-                                            {hour.precipitationProbability}%
-                                        </CustomText>
+                                    <View style={styles.hourlyIconWrapper}>
+                                        <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
+                                    </View>
+                                    <View style={styles.hourlyBottomCol}>
+                                        <CustomText variant="label" style={styles.hourlyTemp}>{hour.temperature}°</CustomText>
+                                        <View style={styles.hourlyPrecip}>
+                                            <CustomIcon library="Ionicons" name="water-outline" size={11} color={hour.precipitationProbability > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} />
+                                            <CustomText variant="caption" style={[styles.hourlyPrecipText, hour.precipitationProbability > 30 && { color: Colors.ERROR, fontWeight: '700' }]}>
+                                                {hour.precipitationProbability}%
+                                            </CustomText>
+                                        </View>
                                     </View>
                                 </View>
                             );
@@ -376,7 +391,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     value={activeWind} 
                     unit="km/h" 
                     subValue={beaufortWind.gustText}
-                    desc={`${beaufortWind.directionText} • ${beaufortWind.scale}`} 
+                    desc={beaufortWind.description} 
                     icon="wind" 
                     lib="Feather" 
                     alertLevel={beaufortWind.alertLevel} 
@@ -404,17 +419,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                     icon="eye-outline" 
                     lib="Ionicons" 
                     alertLevel={visibilityInfo.alertLevel} 
-                    isDesktop={isDesktop}
-                    isTablet={isTablet}
-                />
-                <BentoBox 
-                    title="Atmospheric Air" 
-                    value={weatherData.humidity} 
-                    unit="% RH" 
-                    subValue={weatherData.surfacePressure ? `${weatherData.surfacePressure} hPa` : '1013 hPa'}
-                    desc={weatherData.surfacePressure && weatherData.surfacePressure < 1008 ? 'Low Pressure Area (LPA) activity.' : 'Stable tropical atmospheric pressure.'} 
-                    icon="water-outline" 
-                    lib="Ionicons" 
                     isDesktop={isDesktop}
                     isTablet={isTablet}
                 />
@@ -517,23 +521,43 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     
-    forecastScroll: {
-        flexGrow: 0,
-        marginBottom: 32,
+    forecastSection: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }),
+    },
+    forecastSectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    forecastSectionTitle: {
+        color: Colors.TEXT_SECONDARY,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        fontSize: 12,
     },
     forecastContent: {
-        flexGrow: 1,
-        justifyContent: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 12,
+        paddingVertical: 4,
     },
     forecastItem: {
         alignItems: 'center',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         paddingVertical: 16,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         borderRadius: 16,
-        gap: 8,
-        minWidth: 70,
+        gap: 6,
+        width: 86,
+        minHeight: 124,
+        justifyContent: 'space-between',
         borderWidth: 1.5,
         borderColor: 'transparent',
     },
@@ -603,33 +627,43 @@ const styles = StyleSheet.create({
     hourlyContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         paddingVertical: 4,
     },
     hourlyPill: {
         alignItems: 'center',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 12,
+        paddingVertical: 16,
         paddingHorizontal: 10,
-        borderRadius: 14,
+        borderRadius: 16,
         gap: 6,
-        minWidth: 62,
-        borderWidth: 1,
+        width: 86,
+        minHeight: 124,
+        justifyContent: 'space-between',
+        borderWidth: 1.5,
         borderColor: 'transparent',
     },
     hourlyPillNow: {
         backgroundColor: Colors.WHITE,
         borderColor: Colors.PRIMARY,
-        ...GlobalStyles.dropShadow(2, 0.08, Colors.PRIMARY),
+        ...GlobalStyles.dropShadow(2, 0.1, Colors.PRIMARY),
     },
     hourlyTime: {
         color: Colors.TEXT_SECONDARY,
-        fontWeight: '600',
-        fontSize: 11,
     },
     hourlyTimeNow: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
+    },
+    hourlyIconWrapper: {
+        height: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    hourlyBottomCol: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
     },
     hourlyTemp: {
         color: Colors.TEXT_PRIMARY,
@@ -656,9 +690,9 @@ const styles = StyleSheet.create({
     bentoBox: { 
         backgroundColor: Colors.WHITE, 
         borderRadius: 18, 
-        padding: 14, 
-        width: '48%', 
-        minHeight: 155, 
+        padding: 16, 
+        width: '100%', 
+        minHeight: 120, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -667,10 +701,12 @@ const styles = StyleSheet.create({
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     bentoBoxTablet: {
-        width: '31%',
+        width: '48%',
+        minHeight: 150,
     },
     bentoBoxDesktop: {
         width: '23.5%',
+        minHeight: 155,
     },
     bentoHeader: { 
         flexDirection: 'row', 
@@ -679,7 +715,7 @@ const styles = StyleSheet.create({
     },
     bentoTitle: { 
         color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
+        fontSize: 14,
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -689,6 +725,12 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: 4,
+        marginVertical: 4,
+    },
+    bentoMiddleMobile: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginVertical: 4,
     },
     bentoMainRow: {
@@ -703,13 +745,13 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
     },
     bentoUnit: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '700',
     },
     bentoSubBadge: {
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
         maxWidth: '100%',
         marginTop: 2,
     },
@@ -723,7 +765,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEE2E2',
     },
     bentoSubValue: {
-        fontSize: 10,
+        fontSize: 14,
         color: Colors.TEXT_PRIMARY,
         fontWeight: '600',
     },
@@ -735,8 +777,8 @@ const styles = StyleSheet.create({
     },
     bentoDesc: { 
         color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
-        lineHeight: 14,
+        fontSize: 14,
+        lineHeight: 20,
     },
     
     sunRow: {
