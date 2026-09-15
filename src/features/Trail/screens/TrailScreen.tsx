@@ -188,7 +188,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                     </View>
 
                     <View style={styles.tabContainer}>
-                        {['Details', 'Offline Map', 'Weather', 'Reviews'].map((tab) => (
+                        {['Details', 'Weather', 'Reviews'].map((tab) => (
                             <TouchableOpacity
                                 key={tab}
                                 style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
