@@ -42,6 +42,10 @@ export default function Write(): React.JSX.Element {
         return <LoadingScreen />;
     }
 
+    const uploadPicture = () => {
+        console.log('[TrailWrite] uploadPicture placeholder invoked (Awaiting backend storage service)');
+    };
+
     return (
         <TrailWriteScreen
             controller={controller}
@@ -50,6 +54,7 @@ export default function Write(): React.JSX.Element {
             pendingCount={pendingCount}
             onTabPress={onTabPress}
             onBackToSettings={isSuperadmin ? onBackToSettingsPress : onBackPress}
+            uploadPicture={uploadPicture}
         />
     );
 }
