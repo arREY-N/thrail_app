@@ -138,6 +138,14 @@ export const TrailUIConfig: ITrailFormField[] = [
         required: true
     },
     {
+        section: 'description',
+        id: 'classificationDescription',
+        label: 'Classification Description',
+        type: 'text',
+        placeholder: 'Explain why this trail is classified as minor or major, entry requirements, or endurance needed...',
+        required: false
+    },
+    {
         section: 'difficulty',
         id: 'lascoRating',
         label: 'LASCO Rating (1-9)',
