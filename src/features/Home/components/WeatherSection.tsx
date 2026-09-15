@@ -98,133 +98,209 @@ const WeatherSection = ({
   // 1. Loading / Locating / Refreshing State
   if ((loading && !weatherData) || isRefreshing) {
     return (
-        <View style={styles.wrapper}>
-            <Pressable
-                onPress={onPress}
-                style={({ hovered }) => [
-                    styles.container,
-                    hovered && styles.containerHovered,
-                ]}
-            >
-                {/* Top Header Row: Location Pin + Location Name (Left) & Quiet Relative Time (Right) */}
-                <View style={styles.headerMetaRow}>
-                    <View style={styles.locationContainer}>
-                        <CustomIcon
-                            library="FontAwesome6"
-                            name="location-dot"
-                            size={13}
-                            color={Colors.PRIMARY}
-                        />
-                        <CustomText style={styles.locationText} numberOfLines={1}>
-                            {displayLocationText}
-                        </CustomText>
-                    </View>
+      <View style={styles.wrapper}>
+        <View style={styles.container}>
+          <View style={styles.headerMetaRow}>
+            <View style={styles.skeletonLocRow}>
+              <SkeletonEffect style={styles.skeletonIconSmall} />
+              <SkeletonEffect style={styles.skeletonLocText} />
+            </View>
+            <SkeletonEffect style={styles.skeletonUpdatedText} />
+          </View>
 
-                    {lastUpdatedLabel && (
-                        <CustomText style={styles.updatedText}>
-                            {lastUpdatedLabel}
-                        </CustomText>
-                    )}
-                </View>
-
-                {/* Symmetrical 2-Column Main Content */}
-                <View style={styles.contentRow}>
-                    {/* Left Column: Top Temp (28°C) & Bottom Condition (Partly Cloudy) */}
-                    <View style={styles.leftCol}>
-                        <View style={styles.tempBlock}>
-                            <CustomText style={styles.tempValueText}>
-                                {display.hasData ? display.temperature : '--'}
-                            </CustomText>
-                            <CustomText style={styles.tempUnitText}>°C</CustomText>
-                        </View>
-
-                        <View style={styles.bottomAlignWrapper}>
-                            {display.hasData && (
-                                <CustomText style={styles.conditionText} numberOfLines={1}>
-                                    {display.condition}
-                                </CustomText>
-                            )}
-                        </View>
-                    </View>
-
-                    {/* Right Column: Top Weather Icon & Bottom Day/Night Readings */}
-                    <View style={styles.rightCol}>
-                        <View style={styles.iconAlignWrapper}>
-                            <CustomIcon
-                                library={display.library as IconLibrary}
-                                name={display.hasData ? display.icon : 'partly-sunny-outline'}
-                                size={48}
-                                color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
-                            />
-                        </View>
-
-                        <View style={styles.bottomAlignWrapper}>
-                            {display.hasData && (
-                                <View style={styles.dayNightRow}>
-                                    <View style={styles.hiLoItem}>
-                                        <CustomIcon library="Ionicons" name="sunny" size={13} color={Colors.WEATHER_SUN} />
-                                        <CustomText style={styles.hiLoText}>Day {display.dayTemp}°</CustomText>
-                                    </View>
-
-                                    <CustomText style={styles.hiLoDivider}>•</CustomText>
-
-                                    <View style={styles.hiLoItem}>
-                                        <CustomIcon library="Ionicons" name="moon" size={13} color={Colors.WEATHER_MOON} />
-                                        <CustomText style={styles.hiLoText}>Night {display.nightTemp}°</CustomText>
-                                    </View>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                </View>
-            </Pressable>
+          <View style={styles.contentRow}>
+            <View style={styles.leftCol}>
+              <SkeletonEffect style={styles.skeletonTemp} />
+              <SkeletonEffect style={styles.skeletonConditionText} />
+            </View>
+            <View style={styles.rightCol}>
+              <SkeletonEffect style={styles.skeletonHeroIcon} />
+              <SkeletonEffect style={styles.skeletonHiLoText} />
+            </View>
+          </View>
         </View>
       </View>
+    );
+  }
 
-      {/* Integrated Outdoor Safety Advisory Banner */}
-      {hasSafetyAlert && alertTheme && resolvedSafetyReport && (
-        <View style={styles.alertWrapper}>
-          <View style={styles.alertDivider} />
-          <View
-            style={[
-              styles.alertBanner,
-              {
-                backgroundColor: alertTheme.bg,
-                borderColor: alertTheme.border,
-              },
-            ]}
-          >
+  // 2. Error / Connection Failed State
+  if (error && !weatherData) {
+    return (
+      <View style={styles.wrapper}>
+        <View style={[styles.container, styles.centerStateContainer]}>
+          <CustomIcon
+            library="Ionicons"
+            name="cloud-offline-outline"
+            size={32}
+            color={Colors.ERROR}
+          />
+          <CustomText variant="caption" style={styles.errorText}>
+            Unable to load weather data.
+          </CustomText>
+        </View>
+      </View>
+    );
+  }
+
+  // 3. Unavailable / No Data State
+  if (!weatherData && !loading && !error) {
+    return (
+      <View style={styles.wrapper}>
+        <View style={[styles.container, styles.centerStateContainer]}>
+          <CustomIcon
+            library="Ionicons"
+            name="location-outline"
+            size={32}
+            color={Colors.GRAY_MEDIUM}
+          />
+          <CustomText variant="caption" style={styles.emptyStateText}>
+            Location services disabled or weather stats unavailable.
+          </CustomText>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.wrapper}>
+      <Pressable
+        onPress={onPress}
+        style={({ hovered }) => [
+          styles.container,
+          hovered && styles.containerHovered,
+        ]}
+      >
+        {/* Top Header Row: Location Pin + Location Name (Left) & Quiet Relative Time (Right) */}
+        <View style={styles.headerMetaRow}>
+          <View style={styles.locationContainer}>
+            <CustomIcon
+              library="FontAwesome6"
+              name="location-dot"
+              size={13}
+              color={Colors.PRIMARY}
+            />
+            <CustomText style={styles.locationText} numberOfLines={1}>
+              {displayLocationText}
+            </CustomText>
+          </View>
+
+          {lastUpdatedLabel && (
+            <CustomText style={styles.updatedText}>
+              {lastUpdatedLabel}
+            </CustomText>
+          )}
+        </View>
+
+        {/* Symmetrical 2-Column Main Content */}
+        <View style={styles.contentRow}>
+          {/* Left Column: Top Temp (28°C) & Bottom Condition (Partly Cloudy) */}
+          <View style={styles.leftCol}>
+            <View style={styles.tempBlock}>
+              <CustomText style={styles.tempValueText}>
+                {display.hasData ? display.temperature : "--"}
+              </CustomText>
+              <CustomText style={styles.tempUnitText}>°C</CustomText>
+            </View>
+
+            <View style={styles.bottomAlignWrapper}>
+              {display.hasData && (
+                <CustomText style={styles.conditionText} numberOfLines={1}>
+                  {display.condition}
+                </CustomText>
+              )}
+            </View>
+          </View>
+
+          {/* Right Column: Top Weather Icon & Bottom Day/Night Readings */}
+          <View style={styles.rightCol}>
+            <View style={styles.iconAlignWrapper}>
+              <CustomIcon
+                library={display.library as IconLibrary}
+                name={display.hasData ? display.icon : "partly-sunny-outline"}
+                size={48}
+                color={display.hasData ? Colors.PRIMARY : Colors.GRAY_MEDIUM}
+              />
+            </View>
+
+            <View style={styles.bottomAlignWrapper}>
+              {display.hasData && (
+                <View style={styles.dayNightRow}>
+                  <View style={styles.hiLoItem}>
+                    <CustomIcon
+                      library="Ionicons"
+                      name="sunny"
+                      size={13}
+                      color={Colors.WEATHER_SUN}
+                    />
+                    <CustomText style={styles.hiLoText}>
+                      Day {display.dayTemp}°
+                    </CustomText>
+                  </View>
+
+                  <CustomText style={styles.hiLoDivider}>•</CustomText>
+
+                  <View style={styles.hiLoItem}>
+                    <CustomIcon
+                      library="Ionicons"
+                      name="moon"
+                      size={13}
+                      color={Colors.WEATHER_MOON}
+                    />
+                    <CustomText style={styles.hiLoText}>
+                      Night {display.nightTemp}°
+                    </CustomText>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Integrated Outdoor Safety Advisory Banner */}
+        {hasSafetyAlert && alertTheme && resolvedSafetyReport && (
+          <View style={styles.alertWrapper}>
+            <View style={styles.alertDivider} />
             <View
               style={[
-                styles.alertIconWrapper,
-                { backgroundColor: alertTheme.text + "20" },
+                styles.alertBanner,
+                {
+                  backgroundColor: alertTheme.bg,
+                  borderColor: alertTheme.border,
+                },
               ]}
             >
+              <View
+                style={[
+                  styles.alertIconWrapper,
+                  { backgroundColor: alertTheme.text + "20" },
+                ]}
+              >
+                <CustomIcon
+                  library={alertTheme.iconLib as IconLibrary}
+                  name={alertTheme.icon}
+                  size={18}
+                  color={alertTheme.text}
+                />
+              </View>
+
+              <View style={styles.alertTextWrapper}>
+                <CustomText style={styles.alertDesc} numberOfLines={2}>
+                  {resolvedSafetyReport.keyRisks?.[0] ||
+                    resolvedSafetyReport.description}
+                </CustomText>
+              </View>
+
               <CustomIcon
-                library={alertTheme.iconLib as IconLibrary}
-                name={alertTheme.icon}
+                library="Feather"
+                name="chevron-right"
                 size={18}
                 color={alertTheme.text}
               />
             </View>
-
-            <View style={styles.alertTextWrapper}>
-              <CustomText style={styles.alertDesc} numberOfLines={2}>
-                {resolvedSafetyReport.keyRisks?.[0] ||
-                  resolvedSafetyReport.description}
-              </CustomText>
-            </View>
-
-            <CustomIcon
-              library="Feather"
-              name="chevron-right"
-              size={18}
-              color={alertTheme.text}
-            />
           </View>
-        </View>
-      )}
-    </Pressable>
+        )}
+      </Pressable>
+    </View>
   );
 };
 
