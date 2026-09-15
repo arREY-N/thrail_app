@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 12,
-        backgroundColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
     },
     requiredBadgeText: {
-        color: Colors.TEXT_SECONDARY,
+        color: Colors.PRIMARY,
         fontWeight: '600',
         fontSize: 11,
     },
