@@ -99,6 +99,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     dateFormat?: string;
     iconPosition?: 'left' | 'right';
     rightElement?: ReactNode;
+    suffix?: string;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -117,6 +118,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     iconLibrary = 'Feather', 
     iconColor,
     prefix, 
+    suffix,
     children,
     showTodayButton,
     allowFutureDates,
@@ -126,6 +128,8 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     dateFormat = 'MM/DD/YYYY',
     iconPosition,
     rightElement,
+    onFocus,
+    onBlur,
     ...props
 }) => {
 
@@ -137,16 +141,14 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
 
     if (value !== prevValue) {
         setPrevValue(value);
+        const incomingStr = value !== null && value !== undefined ? String(value) : '';
         if (type === 'coordinate' || type === 'numerical') {
-            const parsedParent = parseFloat(value as string);
-            const parsedLocal = parseFloat(localValue);
-            if (isNaN(parsedParent) && isNaN(parsedLocal)) {
-                // both are NaN, consider them equal
-            } else if (parsedParent !== parsedLocal) {
-                setLocalValue(value !== null && value !== undefined ? String(value) : '');
+            const isMidDecimal = localValue.endsWith('.') && parseFloat(incomingStr) === parseFloat(localValue);
+            if (!isMidDecimal && incomingStr !== localValue) {
+                setLocalValue(incomingStr);
             }
         } else {
-            setLocalValue(value !== null && value !== undefined ? String(value) : '');
+            setLocalValue(incomingStr);
         }
     }
 
@@ -158,7 +160,12 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         } else if (type === 'coordinate') {
             processedText = formatCoordinate(text);
         } else if (type === 'numerical') {
-            processedText = text.replace(/[^0-9]/g, '');
+            let cleaned = text.replace(/[^0-9.]/g, '');
+            const parts = cleaned.split('.');
+            if (parts.length > 2) {
+                cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+            }
+            processedText = cleaned;
         }
 
         setLocalValue(processedText);
@@ -224,6 +231,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             
             <View style={[
                 styles.inputContainer,
+                Boolean(suffix) && styles.inputContainerWithSuffix,
                 { 
                     borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
                     backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
@@ -263,12 +271,34 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     onChangeText={handleTextChange} 
                     secureTextEntry={secureTextEntry && !showPassword}
                     keyboardType={finalKeyboardType} 
+                    inputMode={type === 'numerical' || type === 'coordinate' ? 'decimal' : type === 'phone' ? 'tel' : undefined}
                     autoCorrect={secureTextEntry ? false : undefined}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
+                    onFocus={(e) => {
+                        setIsFocused(true);
+                        onFocus?.(e);
+                    }}
+                    onBlur={(e) => {
+                        setIsFocused(false);
+                        onBlur?.(e);
+                    }}
                     multiline={multiline}
                     {...props} 
                 />
+
+                {suffix && (
+                    <View style={styles.suffixContainer}>
+                        <View style={styles.suffixSeparator} />
+                        <CustomText style={styles.suffixText}>
+                            {suffix}
+                        </CustomText>
+                    </View>
+                )}
+
+                {rightElement && (
+                    <View style={styles.rightElementContainer}>
+                        {rightElement}
+                    </View>
+                )}
 
                 {secureTextEntry && (
                     <TouchableOpacity 
@@ -316,6 +346,10 @@ const styles = StyleSheet.create({
         height: 54,
         paddingHorizontal: 16,
     },
+    inputContainerWithSuffix: {
+        paddingLeft: 12,
+        paddingRight: 10,
+    },
     iconContainer: {
         marginRight: 12,
     },
@@ -337,8 +371,30 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
 
+    suffixContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 6,
+        flexShrink: 0,
+    },
+    suffixSeparator: {
+        width: 1,
+        height: 18,
+        backgroundColor: Colors.GRAY_LIGHT,
+        marginRight: 6,
+    },
+    suffixText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    rightElementContainer: {
+        marginLeft: 8,
+    },
+
     input: {
         flex: 1,
+        minWidth: 0,
         fontSize: 16,
         color: Colors.TEXT_PRIMARY,
         height: '100%',

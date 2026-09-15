@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleProp, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
@@ -8,18 +8,25 @@ export interface SelectionChipProps {
     label: string;
     selected?: boolean;
     onPress: () => void;
+    variant?: 'primary' | 'danger';
+    style?: StyleProp<ViewStyle>;
 }
 
 const SelectionChip = ({ 
     label, 
     selected, 
-    onPress 
+    onPress,
+    variant = 'primary',
+    style,
 }: SelectionChipProps) => {
+    const isDanger = variant === 'danger';
+
     return (
         <TouchableOpacity 
             style={[
                 styles.chip, 
-                selected && styles.chipActive
+                selected && (isDanger ? styles.chipActiveDanger : styles.chipActive),
+                style,
             ]} 
             onPress={onPress}
             activeOpacity={0.7}
@@ -28,7 +35,7 @@ const SelectionChip = ({
                 variant="caption" 
                 style={[
                     styles.chipText, 
-                    selected && styles.chipTextActive
+                    selected && (isDanger ? styles.chipTextActiveDanger : styles.chipTextActive),
                 ]}
             >
                 {label}
@@ -50,12 +57,20 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_APPROVED_BG,
         borderColor: Colors.PRIMARY,
     },
+    chipActiveDanger: {
+        backgroundColor: Colors.ERROR_BG,
+        borderColor: Colors.ERROR,
+    },
     chipText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
     },
     chipTextActive: {
         color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
+    chipTextActiveDanger: {
+        color: Colors.ERROR,
         fontWeight: 'bold',
     },
 });
