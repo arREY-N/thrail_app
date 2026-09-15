@@ -1,6 +1,6 @@
 /**
  * @file write.tsx
- * @description Controller route for trail creation and editing. Composes useTrailWrite hook and delegates presentation to TrailWriteScreen.
+ * @description Controller route for trail creation and editing in Superadmin and Admin views. Composes useTrailWrite hook and delegates presentation to TrailWriteScreen.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -16,9 +16,9 @@ import TrailWriteScreen from '@/src/features/SuperAdmin/screens/tabs/TrailWriteS
 /**
  * Controller page for creating or editing trail domain models.
  * 
- * @returns {React.ReactElement} The rendered trail write route page.
+ * @returns {React.JSX.Element} The rendered trail write route page.
  */
-export default function Write() {
+export default function Write(): React.JSX.Element {
     const { trailId: rawTrailId } = useLocalSearchParams();
     const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 
@@ -27,18 +27,20 @@ export default function Write() {
 
     const {
         onTabPress,
-        onBackToSettingsPress
+        onBackToSettingsPress,
     } = useSuperadminNavigation();
 
     const controller = useTrailWrite({ trailId });
 
     const {
-        pendingApplication
+        pendingApplication,
     } = useSuperadminDomain(null);
 
     const pendingCount = pendingApplication?.length || 0;
 
-    if (!controller.object) return <LoadingScreen />;
+    if (controller.isLoading && trailId && !controller.object.id) {
+        return <LoadingScreen />;
+    }
 
     return (
         <TrailWriteScreen

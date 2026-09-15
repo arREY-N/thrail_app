@@ -1,3 +1,8 @@
+/**
+ * @file MyBookingsScreen.tsx
+ * @description Main container screen for displaying a user's booking list, filtering, payment overview, and receipt views.
+ */
+
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -16,11 +21,13 @@ import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
 import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
-import PaymentScreen from '@/src/features/Book/screens/Payment/PaymentScreen';
+import PaymentScreen, { PaymentResultResponse } from '@/src/features/Book/screens/Payment/PaymentScreen';
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
-import { Booking } from '@/src/core/models/Booking/Booking';
+import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
+import { IEmergencyContact, User } from '@/src/core/models/User/User';
+import { UserSearchResult } from '@/src/components/EmergencyModal';
 
 export interface MyBookingsScreenProps {
     /** Array of user's bookings */
@@ -33,14 +40,23 @@ export interface MyBookingsScreenProps {
     onBackPress: () => void;
     /** Callback when cancel is pressed */
     onCancelBookingPress: (booking: Booking, reason: string) => void;
-    /** Callback when refund is pressed */
+    /** Callback for refund confirmation */
     onRefundBookingPress?: (booking: Booking, reason: string) => void;
+    /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
+    onResubmitDocuments?: (
+        booking: Booking,
+        updatedDocs: Requirements[],
+        updatedPhone?: string,
+        updatedEmergency?: IEmergencyContact
+    ) => Promise<boolean>;
+    /** Callback when updating contact details on rejected bookings */
+    onUpdateBookingContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
     /** Callback to reschedule */
-    onRescheduleBooking?: (booking: Booking, newOffer: unknown) => void;
+    onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => void;
     /** Callback to pay */
-    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<any>;
+    onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
     /** Function to fetch full offer */
-    getBookOffer: (id: string) => Promise<IOffer>;
+    getBookOffer: (id: string) => Promise<IOffer | null>;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
     /** Initial booking ID to open */
@@ -51,6 +67,12 @@ export interface MyBookingsScreenProps {
     onTermsPress: () => void;
     /** Callback for Privacy Policy */
     onPrivacyPress: () => void;
+    /** The authenticated user profile passed from controller */
+    currentUserProfile?: User | null;
+    /** Callback to self-heal phone verification on profile */
+    onSyncBookingVerification?: (booking: Booking) => Promise<void>;
+    /** Async user search passed to emergency setup modal */
+    onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
 
 /**
@@ -65,6 +87,8 @@ const MyBookingsScreen = ({
     onBackPress,
     onCancelBookingPress,
     onRefundBookingPress,
+    onResubmitDocuments,
+    onUpdateBookingContacts,
     onRescheduleBooking,
     onPayOffer,
     getBookOffer,
@@ -72,7 +96,10 @@ const MyBookingsScreen = ({
     initialBookingId,
     initialView,
     onTermsPress,
-    onPrivacyPress
+    onPrivacyPress,
+    currentUserProfile,
+    onSyncBookingVerification,
+    onSearchUser
 }: MyBookingsScreenProps) => {
     const initialKey = `${initialView || 'list'}_${initialBookingId || ''}`;
     const [prevInitialKey, setPrevInitialKey] = useState(initialKey);
@@ -99,17 +126,22 @@ const MyBookingsScreen = ({
         setSortBy,
         filterBy,
         setFilterBy
-    } = useBookingFilters(userBookings); // Handle internal mismatches
+    } = useBookingFilters(userBookings);
 
     const onHeaderBackPress = () => {
         if (currentView === 'overview') {
             setCurrentView('list');
-            setSelectedBookingId(null);
-        } else if (currentView === 'payment' || currentView === 'receipt') {
-            setCurrentView('overview');
-        } else {
-            onBackPress();
+            return;
         }
+        if (currentView === 'payment') {
+            setCurrentView('overview');
+            return;
+        }
+        if (currentView === 'receipt') {
+            setCurrentView('overview');
+            return;
+        }
+        onBackPress();
     };
 
     const onBookingSelectPress = (booking: Booking) => {
@@ -209,9 +241,13 @@ const MyBookingsScreen = ({
                     sections={filterSections}
                     initialValues={{ sortBy, filterBy }}
                     defaultValues={{ sortBy: 'hike-date', filterBy: 'all' }}
-                    onApply={(values: any) => {
-                        setSortBy(values.sortBy);
-                        setFilterBy(values.filterBy);
+                    onApply={(values: Record<string, unknown>) => {
+                        if (typeof values.sortBy === 'string') {
+                            setSortBy(values.sortBy as 'hike-date' | 'booked-date' | 'last-updated');
+                        }
+                        if (typeof values.filterBy === 'string') {
+                            setFilterBy(values.filterBy as 'all' | 'action-needed' | 'waiting' | 'partial');
+                        }
                     }}
                 />
 
@@ -236,6 +272,11 @@ const MyBookingsScreen = ({
                 onBackPress={onHeaderBackPress}
                 onProceedToPayment={onProceedToPaymentPress}
                 onViewReceipt={() => setCurrentView('receipt')}
+                onResubmitDocuments={onResubmitDocuments}
+                onUpdateContacts={onUpdateBookingContacts}
+                currentUserProfile={currentUserProfile}
+                onSyncBookingVerification={onSyncBookingVerification}
+                onSearchUser={onSearchUser}
                 onCancelConfirm={(booking, reason) => {
                     onCancelBookingPress(booking, reason);
                     setCurrentView('list');

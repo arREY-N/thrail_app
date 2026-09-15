@@ -1,43 +1,76 @@
+/**
+ * @file TermsSignature.tsx
+ * @description Digital terms signature input component validating the hiker or legal guardian's name against terms of service and liability waiver.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
+import LegalTermsModal, { LegalTabType } from '@/src/components/LegalTermsModal';
 import { Colors } from '@/src/constants/colors';
 
 export interface TermsSignatureProps {
     expectedName: string;
     isMinor?: boolean;
     minorName?: string;
+    showTitle?: boolean;
     onValidChange: (isValid: boolean) => void;
-    onTermsPress: () => void;
-    onPrivacyPress: () => void;
+    onTermsPress?: () => void;
+    onPrivacyPress?: () => void;
+    onBookingTermsPress?: () => void;
 }
 
-const TermsSignature: React.FC<TermsSignatureProps> = ({ 
+/**
+ * TermsSignature — Renders terms and privacy agreement with a name-based signature input.
+ *
+ * @param {TermsSignatureProps} props - Component props
+ * @returns {React.JSX.Element} The rendered component
+ */
+const TermsSignature = ({ 
     expectedName, 
     isMinor = false, 
     minorName = '',
+    showTitle = true,
     onValidChange,
     onTermsPress,
-    onPrivacyPress
-}) => {
+    onPrivacyPress,
+    onBookingTermsPress,
+}: TermsSignatureProps): React.JSX.Element => {
     const [signature, setSignature] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalTab, setModalTab] = useState<LegalTabType>('terms');
+
+    const cleanExpected = (expectedName || '').trim();
+    const isSignatureMatched = Boolean(
+        cleanExpected.length > 0 && 
+        signature.trim().toLowerCase() === cleanExpected.toLowerCase()
+    );
 
     useEffect(() => {
-        const cleanExpected = (expectedName || '').trim().toLowerCase();
-        const cleanSignature = signature.trim().toLowerCase();
-        
-        const isValid = cleanExpected.length > 0 && cleanExpected === cleanSignature;
-        onValidChange(isValid);
-    }, [signature, expectedName, onValidChange]);
+        onValidChange(isSignatureMatched);
+    }, [isSignatureMatched, onValidChange]);
+
+    const handleOpenModal = (tab: LegalTabType, customCallback?: () => void) => {
+        if (customCallback) {
+            customCallback();
+            return;
+        }
+        setModalTab(tab);
+        setModalVisible(true);
+    };
+
+    const hasExpectedName = cleanExpected.length > 0;
 
     return (
         <View style={styles.container}>
-            <CustomText variant="h2" style={styles.title}>
-                Terms & Conditions
-            </CustomText>
+            {showTitle && (
+                <CustomText variant="h2" style={styles.title}>
+                    Terms & Conditions
+                </CustomText>
+            )}
             
             <CustomText variant="body" style={styles.description}>
                 {isMinor ? (
@@ -50,36 +83,47 @@ const TermsSignature: React.FC<TermsSignatureProps> = ({
                     </CustomText>
                 )}
                 
-                <CustomText style={styles.linkText} onPress={onTermsPress}>
+                <CustomText 
+                    style={styles.linkText} 
+                    onPress={() => handleOpenModal('terms', onTermsPress)}
+                >
                     Terms of Service
                 </CustomText>
-                <CustomText style={styles.description}>
-                    , Waiver of Liability, Cancellation Policy, and our{' '}
-                </CustomText>
-                <CustomText style={styles.linkText} onPress={onPrivacyPress}>
+                <CustomText style={styles.description}>, </CustomText>
+                <CustomText 
+                    style={styles.linkText} 
+                    onPress={() => handleOpenModal('privacy', onPrivacyPress)}
+                >
                     Privacy Policy
+                </CustomText>
+                <CustomText style={styles.description}>, and our </CustomText>
+                <CustomText 
+                    style={styles.linkText} 
+                    onPress={() => handleOpenModal('booking', onBookingTermsPress)}
+                >
+                    Booking & Cancellation Policies
                 </CustomText>
                 <CustomText style={styles.description}>.</CustomText>
             </CustomText>
             
-            <View style={styles.instructionBox}>
-                <View style={styles.iconContainer}>
+            <View style={[styles.instructionBox, !hasExpectedName && isMinor && styles.instructionBoxWarning]}>
+                <View style={[styles.iconContainer, !hasExpectedName && isMinor && styles.iconContainerWarning]}>
                     <CustomIcon 
                         library="Feather" 
-                        name={isMinor ? "shield" : "info"}
-                        size={16} 
-                        color={Colors.PRIMARY} 
+                        name={!hasExpectedName && isMinor ? "alert-circle" : (isMinor ? "shield" : "info")}
+                        size={18} 
+                        color={!hasExpectedName && isMinor ? Colors.STATUS_CANCELLED_TEXT : Colors.PRIMARY} 
                     />
                 </View>
                 <View style={styles.instructionTextWrapper}>
-                    <CustomText variant="caption" style={styles.instructionLabel}>
+                    <CustomText variant="caption" style={[styles.instructionLabel, !hasExpectedName && isMinor && styles.instructionLabelWarning]}>
                         {isMinor 
-                            ? "Parent/Guardian Signature (Type your name exactly):" 
+                            ? (hasExpectedName ? "Parent/Guardian Signature (Type name exactly):" : "Guardian Signature Required:") 
                             : "Type your name exactly as registered:"
                         }
                     </CustomText>
-                    <CustomText style={styles.boldName}>
-                        {expectedName || (isMinor ? '[Enter Guardian Name Above]' : '')}
+                    <CustomText style={[styles.boldName, !hasExpectedName && isMinor && styles.boldNameMissing]}>
+                        {hasExpectedName ? cleanExpected : (isMinor ? 'Please enter Guardian Name in Contact Details above' : '')}
                     </CustomText>
                 </View>
             </View>
@@ -89,7 +133,16 @@ const TermsSignature: React.FC<TermsSignatureProps> = ({
                 value={signature}
                 onChangeText={setSignature}
                 autoCapitalize="words"
+                icon={isSignatureMatched ? "check-circle" : "edit-2"}
+                iconLibrary="Feather"
+                iconColor={isSignatureMatched ? Colors.SUCCESS : undefined}
                 style={styles.inputSpacing}
+            />
+
+            <LegalTermsModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                initialTab={modalTab}
             />
         </View>
     );
@@ -97,16 +150,18 @@ const TermsSignature: React.FC<TermsSignatureProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 0, 
+        width: '100%',
     },
     title: {
+        // fontSize: 20,
+        // fontWeight: 'bold',
+        // color: Colors.TEXT_PRIMARY,
         marginBottom: 8,
-        color: Colors.TEXT_PRIMARY,
     },
     description: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 16,
-        lineHeight: 22,
+        fontSize: 13,
+        lineHeight: 18,
     },
     boldText: {
         fontWeight: 'bold',
@@ -115,20 +170,35 @@ const styles = StyleSheet.create({
     linkText: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
+        fontSize: 13,
         textDecorationLine: 'underline',
     },
     
     instructionBox: {
-        flexDirection: 'row',
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.BACKGROUND,
         padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-        alignItems: 'flex-start',
+        borderRadius: 12,
+        marginVertical: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    instructionBoxWarning: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.STATUS_CANCELLED_BORDER,
     },
     iconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.WHITE,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: 10,
-        marginTop: 2,
+    },
+    iconContainerWarning: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
     },
     instructionTextWrapper: {
         flex: 1,
@@ -136,13 +206,23 @@ const styles = StyleSheet.create({
     },
     instructionLabel: {
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 4,
+        marginBottom: 2,
+    },
+    instructionLabelWarning: {
+        color: Colors.STATUS_CANCELLED_TEXT,
+        fontWeight: '600',
     },
     boldName: {
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
-        fontSize: 16,
-        letterSpacing: 0.5,
+        fontSize: 15,
+        letterSpacing: 0.3,
+    },
+    boldNameMissing: {
+        color: Colors.STATUS_CANCELLED_TEXT,
+        fontStyle: 'italic',
+        fontSize: 13,
+        fontWeight: 'normal',
     },
     
     inputSpacing: {

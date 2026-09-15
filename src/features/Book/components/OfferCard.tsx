@@ -1,19 +1,26 @@
+/**
+ * @file OfferCard.tsx
+ * @description Interactive card displaying hiking offer details, pricing, itinerary, inclusions, and active booking disabled states.
+ */
+
 import React, { useState } from 'react';
-import { 
+import {
     StyleSheet,
     TouchableOpacity,
     View
- } from 'react-native';
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { Offer } from '@/src/core/models/Offer/Offer';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { formatActivityTime } from '@/src/utils/dateFormatter';
 
 export interface OfferData {
+    id?: string;
     business?: { name?: string };
     duration?: string;
     price?: number;
@@ -24,19 +31,35 @@ export interface OfferData {
     inclusions?: string[];
     thingsToBring?: string[];
     reminders?: string[] | string;
+    date?: string | Date;
     [key: string]: unknown;
 }
 
 export interface OfferCardProps {
-    offer: OfferData;
+    offer: Offer | OfferData;
     isSelected: boolean;
     onSelect: () => void;
+    isBooked?: boolean;
+    bookedStatusText?: string;
+    isDateConflict?: boolean;
+    isClosed?: boolean;
 }
 
+/**
+ * OfferCard — Card component that renders guide package pricing, schedules, and reminders,
+ * handling expansion and active booking disabled states.
+ *
+ * @param {OfferCardProps} props - Component props
+ * @returns {React.ReactElement} The rendered component
+ */
 const OfferCard: React.FC<OfferCardProps> = ({ 
     offer, 
     isSelected, 
-    onSelect 
+    onSelect,
+    isBooked = false,
+    bookedStatusText,
+    isDateConflict = false,
+    isClosed = false,
 }) => {
     const { isMobile } = useBreakpoints();
     const isWide = !isMobile;
@@ -65,7 +88,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             setExpandedDays({});
         } else {
             const nextExpanded: Record<number, boolean> = {};
-            offer.schedule?.forEach((_: any, i: number) => {
+            offer.schedule?.forEach((_, i: number) => {
                 nextExpanded[i] = true;
             });
             setExpandedDays(nextExpanded);
@@ -73,10 +96,11 @@ const OfferCard: React.FC<OfferCardProps> = ({
     };
     return (
         <TouchableOpacity 
-            activeOpacity={0.9} 
+            activeOpacity={0.8} 
             style={[
                 styles.offerCard, 
-                isSelected && styles.selectedOfferCard
+                isSelected && styles.selectedOfferCard,
+                (isBooked || isDateConflict || isClosed) && styles.bookedOfferCard
             ]}
             onPress={onSelect}
         >
@@ -127,6 +151,29 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 </View>
 
                 <View style={styles.priceInfo}>
+                    {isBooked ? (
+                        <View style={styles.bookedBadge}>
+                            <CustomIcon library="Feather" name="info" size={10} color={Colors.STATUS_CANCELLED_TEXT} />
+                            <CustomText style={styles.bookedBadgeText}>
+                                {bookedStatusText || "Already Booked"}
+                            </CustomText>
+                        </View>
+                    ) : isDateConflict ? (
+                        <View style={styles.conflictBadge}>
+                            <CustomIcon library="Feather" name="alert-triangle" size={10} color={Colors.STATUS_WARNING_TEXT} />
+                            <CustomText style={styles.conflictBadgeText}>
+                                Date Reserved
+                            </CustomText>
+                        </View>
+                    ) : isClosed ? (
+                        <View style={styles.closedBadge}>
+                            <CustomIcon library="Feather" name="clock" size={10} color={Colors.TEXT_SECONDARY} />
+                            <CustomText style={styles.closedBadgeText}>
+                                Closed for Today
+                            </CustomText>
+                        </View>
+                    ) : null}
+
                     <CustomText 
                         variant="title" 
                         style={styles.priceText}
@@ -200,7 +247,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                             key={dayIdx} 
                                             style={[
                                                 styles.dayContainer,
-                                                isWide && { width: '48.5%', minWidth: 320, marginBottom: 12, flexGrow: 1 }
+                                                isWide && { width: '48.5%', minWidth: 320, flexGrow: 1 }
                                             ]}
                                         >
                                             <TouchableOpacity 
@@ -414,13 +461,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
         padding: 16,
-        marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        
-        
-        
-        
         ...GlobalStyles.dropShadow(3),
     },
     selectedOfferCard: {
@@ -491,13 +533,11 @@ const styles = StyleSheet.create({
     
     expandedContent: {
         marginTop: 24,
-        paddingHorizontal: 8,
+        paddingHorizontal: 0,
         paddingBottom: 8,
         gap: 16, 
     },
-    detailBlock: { 
-        marginBottom: 0,
-    },
+    detailBlock: {},
     detailLabel: { 
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY, 
@@ -661,7 +701,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8F9FA',
         borderRadius: 12, 
         padding: 16,
-        marginTop: 0, 
         borderWidth: 1, 
         borderColor: Colors.PRIMARY,
     },
@@ -691,6 +730,64 @@ const styles = StyleSheet.create({
     warningText: { 
         flex: 1, 
         lineHeight: 22, 
+    },
+    bookedOfferCard: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    bookedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_CANCELLED_BORDER,
+        marginBottom: 4,
+        alignSelf: 'flex-end',
+    },
+    bookedBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.STATUS_CANCELLED_TEXT,
+    },
+    conflictBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_WARNING_BORDER,
+        marginBottom: 4,
+        alignSelf: 'flex-end',
+    },
+    conflictBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.STATUS_WARNING_TEXT,
+    },
+    closedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        marginBottom: 4,
+        alignSelf: 'flex-end',
+    },
+    closedBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.TEXT_SECONDARY,
     },
 });
 

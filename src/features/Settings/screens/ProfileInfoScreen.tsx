@@ -4,14 +4,15 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomFeedbackInput from "@/src/components/CustomFeedbackInput";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
-import CustomTextInput from "@/src/components/CustomTextInput";
+import CustomTextInput, { cleanPhoneNumber } from "@/src/components/CustomTextInput";
 import DocumentUploadCard from "@/src/components/DocumentUploadCard";
 import ErrorMessage from "@/src/components/ErrorMessage";
 import ImagePreviewModal from "@/src/components/ImagePreviewModal";
@@ -20,14 +21,20 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
 import { Layout } from "@/src/constants/layout";
-import { IUser } from "@/src/core/models/User/User";
-import { formatDateToStandard } from "@/src/utils/dateFormatter";
+import {
+    calculateVerificationValidity,
+    formatVerificationExpiry,
+    VerificationValidityInfo
+} from "@/src/core/flows/PhoneVerificationFlow";
+import { IUser, useAuthStore, UserRepo } from "@/src/core/models/User/User";
+import { toDateOrNull } from "@/src/core/utility/date";
 import MountainSelectChip from "@/src/features/Auth/components/MountainSelectChip";
 import SelectionOption from "@/src/features/Auth/components/SelectionOption";
 import { useProfileForm } from "@/src/features/Settings/hooks/useProfileForm";
 import { styles } from "@/src/features/Settings/styles/ProfileInfoStyles";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { IconLibrary } from "@/src/types/ui.types";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
 const MOUNTAIN_OPTIONS = [
     'Mt. Ayaas (Rizal)', 'Mt. Banahaw (Quezon)', 'Mt. Batulao (Batangas)',
@@ -63,11 +70,16 @@ const getInitials = (firstName?: string, lastName?: string): string => {
  * @param value - The value to display (e.g., "@john_doe").
  * @param noMargin - Optional flag to remove the bottom border and margin.
  */
-interface InfoRowProps {
+export type BadgePosition = 'beside_value' | 'beside_label' | 'before_value' | 'below_value';
+
+export interface InfoRowProps {
     label: string;
     value?: string | null;
+    subValue?: string | null;
     noMargin?: boolean;
     forceStack?: boolean;
+    badge?: React.ReactNode;
+    badgePosition?: BadgePosition;
 }
 
 /**
@@ -75,22 +87,56 @@ interface InfoRowProps {
  * Responsive design automatically stacks the label on top and value on bottom
  * if forceStack is enabled by the parent container.
  */
-export const InfoRow = ({ label, value, noMargin, forceStack = false }: InfoRowProps) => {
-    const displayValue = value || 'Not provided';
+export const InfoRow = ({ 
+    label, 
+    value, 
+    subValue, 
+    noMargin, 
+    forceStack = false, 
+    badge,
+    badgePosition = 'beside_value'
+}: InfoRowProps) => {
+    const displayValue = value || (badge ? null : 'Not provided');
 
     if (forceStack) {
         return (
             <View style={[styles.stackedRow, noMargin && styles.noMargin]}>
-                <CustomText style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</CustomText>
-                <CustomText style={styles.stackedValue} numberOfLines={2} adjustsFontSizeToFit>{displayValue}</CustomText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <CustomText style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</CustomText>
+                    {badgePosition !== 'beside_label' && badge}
+                </View>
+                {displayValue ? (
+                    <CustomText style={styles.stackedValue} numberOfLines={2} adjustsFontSizeToFit>{displayValue}</CustomText>
+                ) : null}
+                {subValue ? (
+                    <CustomText variant="caption" style={styles.validityCountdownSubtext}>
+                        {subValue}
+                    </CustomText>
+                ) : null}
             </View>
         );
     }
 
     return (
         <View style={[styles.inlineRow, noMargin && styles.noMargin]}>
-            <CustomText style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</CustomText>
-            <CustomText style={styles.inlineValue} numberOfLines={2} adjustsFontSizeToFit>{displayValue}</CustomText>
+            <View style={styles.inlineLabelContainer}>
+                <CustomText style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</CustomText>
+                {badgePosition === 'beside_label' && badge}
+            </View>
+            <View style={styles.inlineValueContainer}>
+                <View style={styles.inlineValueBadgeRow}>
+                    {badgePosition === 'before_value' && badge}
+                    {displayValue ? (
+                        <CustomText style={styles.inlineValue} numberOfLines={1} adjustsFontSizeToFit>{displayValue}</CustomText>
+                    ) : null}
+                    {badgePosition === 'beside_value' && badge}
+                </View>
+                {subValue ? (
+                    <CustomText variant="caption" style={styles.validityCountdownSubtext}>
+                        {subValue}
+                    </CustomText>
+                ) : null}
+            </View>
         </View>
     );
 };
@@ -156,19 +202,80 @@ const ProfileInfoScreen = ({
         });
     };
 
+    const [freshUser, setFreshUser] = useState<IUser | null>(null);
+    const [linkedEmergencyVerifiedAt, setLinkedEmergencyVerifiedAt] = useState<Date | null>(null);
+
+    const effectiveUser = freshUser || user;
+
+    useEffect(() => {
+        let isMounted = true;
+        const refreshUserProfile = async () => {
+            if (!user?.id) return;
+            try {
+                const latestUser = await UserRepo.fetchById(user.id);
+                if (isMounted && latestUser) {
+                    setFreshUser(latestUser);
+                    const currentStoreProfile = useAuthStore.getState().profile;
+                    if (currentStoreProfile?.id === user.id) {
+                        useAuthStore.setState({ profile: latestUser });
+                    }
+                }
+            } catch (err) {
+                console.warn('[ProfileInfoScreen] Failed to refresh user profile:', err);
+            }
+        };
+
+        refreshUserProfile();
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.id]);
+
+    const contactUserId = effectiveUser?.emergencyContact?.userId;
+    const contactPhoneVerifiedAt = effectiveUser?.emergencyContact?.phoneVerifiedAt;
+    const contactNumber = effectiveUser?.emergencyContact?.contactNumber;
+
+    useEffect(() => {
+        let isMounted = true;
+        const resolveLinkedEmergency = async () => {
+            if (contactUserId && !contactPhoneVerifiedAt) {
+                try {
+                    const linkedUser = await UserRepo.fetchById(contactUserId);
+                    if (isMounted && linkedUser) {
+                        const linkedPhone = cleanPhoneNumber(linkedUser.phoneNumber || '');
+                        const contactPhone = cleanPhoneNumber(contactNumber || '');
+                        if (linkedPhone && contactPhone && linkedPhone === contactPhone) {
+                            setLinkedEmergencyVerifiedAt(toDateOrNull(linkedUser.phoneVerifiedAt));
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[ProfileInfoScreen] Failed to resolve linked emergency contact:', err);
+                }
+            }
+            if (isMounted) {
+                setLinkedEmergencyVerifiedAt(null);
+            }
+        };
+
+        resolveLinkedEmergency();
+        return () => {
+            isMounted = false;
+        };
+    }, [contactUserId, contactPhoneVerifiedAt, contactNumber]);
+
     const emergencyContactFields = [
-        { label: "Contact Name", value: user.emergencyContact?.name },
-        { label: "Contact Number", value: user.emergencyContact?.contactNumber },
-        { label: "Email Address", value: user.emergencyContact?.email }
+        { label: "Contact Name", value: effectiveUser.emergencyContact?.name },
+        { label: "Contact Number", value: effectiveUser.emergencyContact?.contactNumber },
+        { label: "Email Address", value: effectiveUser.emergencyContact?.email }
     ];
     const personalDetailsFields = [
-        { label: "Username", value: user.username ? `@${user.username}` : '' },
-        { label: "Phone Number", value: user.phoneNumber },
-        { label: "Birthday", value: user.birthday ? formatDateToStandard(user.birthday) : null },
-        { label: "Email Address", value: user.email },
-        { label: "Address", value: user.address }
+        { label: "Username", value: effectiveUser.username ? `@${effectiveUser.username}` : '' },
+        { label: "Phone Number", value: effectiveUser.phoneNumber },
+        { label: "Birthday", value: effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : null },
+        { label: "Email Address", value: effectiveUser.email },
+        { label: "Address", value: effectiveUser.address }
     ];
-
 
     const personalDetailsRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(personalDetailsFields) : false);
     const emergencyContactRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(emergencyContactFields) : false);
@@ -211,7 +318,59 @@ const ProfileInfoScreen = ({
         handleCancelPress,
         handleSavePress,
         handleSave,
-    } = useProfileForm({ user, isEditing, onSavePress, onCancelPress, onEditPress });
+        willResetAnyVerification,
+        findUser,
+        handleSaveEmergencyContact,
+    } = useProfileForm({ user: effectiveUser, isEditing, onSavePress, onCancelPress, onEditPress });
+
+    const effectivePersonalPhoneVerifiedAt = toDateOrNull(effectiveUser.phoneVerifiedAt);
+    const phoneValidity = calculateVerificationValidity(effectivePersonalPhoneVerifiedAt);
+    const personalExpiryText = phoneValidity.status === 'verified'
+        ? formatVerificationExpiry(effectivePersonalPhoneVerifiedAt)
+        : null;
+
+    const effectiveEmergencyPhoneVerifiedAt = toDateOrNull(
+        effectiveUser.emergencyContact?.phoneVerifiedAt || linkedEmergencyVerifiedAt
+    );
+    const emergencyValidity = calculateVerificationValidity(effectiveEmergencyPhoneVerifiedAt);
+    const emergencyExpiryText = emergencyValidity.status === 'verified'
+        ? formatVerificationExpiry(effectiveEmergencyPhoneVerifiedAt)
+        : null;
+
+
+    const renderVerificationBadge = (validity: VerificationValidityInfo, isLinked?: boolean) => {
+        if (validity.status === 'verified') {
+            return (
+                <View style={badgeStyles.verifiedPill}>
+                    <CustomIcon library="Feather" name="check" size={10} color={Colors.STATUS_APPROVED_TEXT} />
+                    <CustomText style={badgeStyles.verifiedPillText}>
+                        Verified
+                    </CustomText>
+                </View>
+            );
+        }
+        if (validity.status === 'expired') {
+            return (
+                <View style={badgeStyles.expiredPill}>
+                    <CustomIcon library="Feather" name="alert-octagon" size={10} color={Colors.VERIFICATION_EXPIRED_TEXT} />
+                    <CustomText style={badgeStyles.expiredPillText}>Expired</CustomText>
+                </View>
+            );
+        }
+        if (isLinked) {
+            return (
+                <View style={badgeStyles.linkedPill}>
+                    <CustomIcon library="Feather" name="link" size={10} color={Colors.STATUS_APPROVED_TEXT} />
+                    <CustomText style={badgeStyles.linkedPillText}>Linked</CustomText>
+                </View>
+            );
+        }
+        return (
+            <View style={badgeStyles.unverifiedPill}>
+                <CustomText style={badgeStyles.unverifiedPillText}>Unverified</CustomText>
+            </View>
+        );
+    };
 
     const clearanceImages = medicalProfile?.clearanceUri
         ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean)
@@ -298,9 +457,9 @@ const ProfileInfoScreen = ({
         );
     };
 
-    const expStyles = getExperienceStyles(user.preferences?.experience);
-    const activeColor = getExperienceActiveColor(user.preferences?.experience);
-    const showMedicalProfile = user.medicalProfile && (user.medicalProfile.hasCondition || user.medicalProfile.clearanceUri);
+    const expStyles = getExperienceStyles(effectiveUser.preferences?.experience);
+    const activeColor = getExperienceActiveColor(effectiveUser.preferences?.experience);
+    const showMedicalProfile = effectiveUser.medicalProfile && (effectiveUser.medicalProfile.hasCondition || effectiveUser.medicalProfile.clearanceUri);
 
     /**
      * Dynamic Layout Logic:
@@ -308,7 +467,7 @@ const ProfileInfoScreen = ({
      * becomes very tall. In this case, we shift the Medical Profile card to the left column 
      * to balance column heights on web dashboards.
      */
-    const isPreferencesLong = (user.preferences?.location?.length || 0) > 4;
+    const isPreferencesLong = (effectiveUser.preferences?.location?.length || 0) > 4;
 
     const renderMedicalProfile = () => {
         if (!(showMedicalProfile || isEditing)) return null;
@@ -383,20 +542,20 @@ const ProfileInfoScreen = ({
             <View style={styles.avatarContainer}>
                 <View style={styles.avatarCircle}>
                     <CustomText style={styles.avatarInitial} numberOfLines={1} adjustsFontSizeToFit>
-                        {getInitials(user.firstname, user.lastname)}
+                        {getInitials(effectiveUser.firstname, effectiveUser.lastname)}
                     </CustomText>
                 </View>
-                <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
-                    <CustomText style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit>{getRoleDisplayName(user.role)}</CustomText>
+                <View style={[styles.roleBadge, { backgroundColor: getRoleColor(effectiveUser.role) }]}>
+                    <CustomText style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit>{getRoleDisplayName(effectiveUser.role)}</CustomText>
                 </View>
             </View>
             <View style={styles.nameContainer}>
                 <CustomText variant="h2" style={styles.profileName} numberOfLines={1} adjustsFontSizeToFit>
-                    {user.firstname} {user.lastname}
+                    {effectiveUser.firstname} {effectiveUser.lastname}
                 </CustomText>
-                {user.createdAt && (
+                {effectiveUser.createdAt && (
                     <CustomText variant="caption" style={styles.memberSinceText} numberOfLines={1} adjustsFontSizeToFit>
-                        Member since {formatDateToStandard(user.createdAt)}
+                        Member since {formatDateToStandard(effectiveUser.createdAt)}
                     </CustomText>
                 )}
             </View>
@@ -472,6 +631,7 @@ const ProfileInfoScreen = ({
                 {isEditing && formError && (
                     <ErrorMessage error={formError} />
                 )}
+
                 <View style={!isMobile ? styles.desktopColumns : styles.mobileStack}>
 
                     {/* LEFT COLUMN */}
@@ -492,11 +652,18 @@ const ProfileInfoScreen = ({
                                     </View>
                                 ) : (
                                     <View>
-                                        <InfoRow label="Username" value={`@${user.username}`} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Phone Number" value={formatPhoneWithPrefix(user.phoneNumber)} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Birthday" value={user.birthday ? formatDateToStandard(user.birthday) : null} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Email Address" value={user.email} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Address" value={user.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Username" value={`@${effectiveUser.username}`} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow 
+                                            label="Phone Number" 
+                                            value={formatPhoneWithPrefix(effectiveUser.phoneNumber)} 
+                                            badge={renderVerificationBadge(phoneValidity)}
+                                            badgePosition="before_value"
+                                            subValue={personalExpiryText}
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
+                                        <InfoRow label="Birthday" value={effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : null} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Email Address" value={effectiveUser.email} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow label="Address" value={effectiveUser.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
                                     </View>
                                 )}
                             </View>
@@ -540,15 +707,22 @@ const ProfileInfoScreen = ({
                                             </View>
                                         )}
 
-                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, name: text }))} />
-                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" prefix="+63" />
-                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text) => setEmergencyContact(prev => ({ ...prev, email: text }))} style={styles.noMarginBottom} />
+                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, name: text }))} />
+                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" prefix="+63" />
+                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, email: text }))} style={styles.noMarginBottom} />
                                     </View>
-                                ) : user.emergencyContact?.name ? (
+                                ) : effectiveUser.emergencyContact?.name ? (
                                     <View>
-                                        <InfoRow label="Contact Name" value={user.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
-                                        <InfoRow label="Contact Number" value={formatPhoneWithPrefix(user.emergencyContact.contactNumber)} forceStack={emergencyContactRequiresStack} />
-                                        <InfoRow label="Email Address" value={user.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
+                                        <InfoRow label="Contact Name" value={effectiveUser.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
+                                        <InfoRow 
+                                            label="Contact Number" 
+                                            value={formatPhoneWithPrefix(effectiveUser.emergencyContact.contactNumber)} 
+                                            badge={renderVerificationBadge(emergencyValidity, !!effectiveUser.emergencyContact.userId)}
+                                            badgePosition="before_value"
+                                            subValue={emergencyExpiryText}
+                                            forceStack={emergencyContactRequiresStack}
+                                        />
+                                        <InfoRow label="Email Address" value={effectiveUser.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
                                     </View>
                                 ) : (
                                     <View style={styles.emptyEmergencyContainer}>
@@ -571,7 +745,7 @@ const ProfileInfoScreen = ({
                     <View style={[styles.column, isWideScreen && styles.columnWide]}>
                         {(!isWideScreen || !isPreferencesLong) && renderMedicalProfile()}
 
-                        {user.onBoardingComplete && user.preferences && (
+                        {effectiveUser.onBoardingComplete && effectiveUser.preferences && (
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
                                     <CustomIcon library="Feather" name="sliders" size={18} color={Colors.PRIMARY} />
@@ -642,7 +816,7 @@ const ProfileInfoScreen = ({
                                             {/* Experience Level Bar */}
                                             {(() => {
                                                 const LEVELS = ['Beginner', 'Regular', 'Experienced'];
-                                                const currentExp = user.preferences.experience || 'Beginner';
+                                                const currentExp = effectiveUser.preferences?.experience || 'Beginner';
                                                 const currentLevelIndex = Math.max(0, LEVELS.findIndex(l => l.toLowerCase() === currentExp.toLowerCase().trim()));
 
                                                 return (
@@ -693,17 +867,17 @@ const ProfileInfoScreen = ({
                                             {/* Unified Gamified Preferences */}
                                             <View style={styles.preferencesSection}>
                                                 <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Preferred Duration</CustomText>
-                                                {renderGamifiedChips(user.preferences.hike_length, "clock")}
+                                                {renderGamifiedChips(effectiveUser.preferences?.hike_length, "clock")}
                                             </View>
 
                                             <View style={styles.preferencesSection}>
                                                 <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Favorite Destinations</CustomText>
-                                                {renderGamifiedChips(user.preferences.location, "map-pin")}
+                                                {renderGamifiedChips(effectiveUser.preferences?.location, "map-pin")}
                                             </View>
 
                                             <View style={[styles.preferencesSection, styles.noMarginBottom]}>
                                                 <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Preferred Provinces</CustomText>
-                                                {renderGamifiedChips(user.preferences.province, "navigation")}
+                                                {renderGamifiedChips(effectiveUser.preferences?.province, "navigation")}
                                             </View>
                                         </View>
                                     )}
@@ -717,9 +891,21 @@ const ProfileInfoScreen = ({
                 <View style={styles.bottomSpacer} />
             </ScrollView>
 
-            {/* Modals remain exactly the same */}
+            {/* Modals */}
             <ConfirmationModal visible={isEditModalVisible} title="Edit Profile" message="Are you sure you want to edit this profile information? You will be redirected to the edit screen." onConfirm={handleConfirmEdit} onClose={() => setIsEditModalVisible(false)} confirmText="Edit" cancelText="Cancel" />
-            <ConfirmationModal visible={isSaveModalVisible} title="Save Changes" message="You have made changes to your profile. Do you want to save them?" onConfirm={() => { setIsSaveModalVisible(false); handleSave(); }} onClose={() => setIsSaveModalVisible(false)} confirmText="Save" cancelText="Keep Editing" />
+            <ConfirmationModal 
+                visible={isSaveModalVisible} 
+                title={willResetAnyVerification ? "Reset Verification Warning" : "Save Changes"} 
+                message={
+                    willResetAnyVerification
+                        ? "Modifying your verified phone number (or emergency contact) will reset its verification status and require tour organizers to re-verify it on your next reservation. Do you wish to proceed and save changes?"
+                        : "You have made changes to your profile. Do you want to save them?"
+                } 
+                onConfirm={() => { setIsSaveModalVisible(false); handleSave(); }} 
+                onClose={() => setIsSaveModalVisible(false)} 
+                confirmText="Save" 
+                cancelText="Keep Editing" 
+            />
             <ConfirmationModal visible={isCancelModalVisible} title="Discard Changes" message="You have unsaved changes. Are you sure you want to discard them?" onConfirm={() => { setIsCancelModalVisible(false); if (onCancelPress) onCancelPress(); }} onClose={() => setIsCancelModalVisible(false)} confirmText="Discard" cancelText="Keep Editing" />
 
             {clearanceImages.length > 0 && (
@@ -730,11 +916,78 @@ const ProfileInfoScreen = ({
                 visible={isEmergencyModalVisible}
                 onClose={() => setIsEmergencyModalVisible(false)}
                 mode="emergency_only"
+                currentUserProfile={user}
+                onSearchUser={findUser}
+                onSaveEmergencyContact={handleSaveEmergencyContact}
             />
 
         </ScreenWrapper>
     );
 };
+
+const badgeStyles = StyleSheet.create({
+    verifiedPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    verifiedPillText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.STATUS_APPROVED_TEXT,
+    },
+    expiredPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.VERIFICATION_EXPIRED_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: Colors.VERIFICATION_EXPIRED_BORDER,
+    },
+    expiredPillText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.VERIFICATION_EXPIRED_TEXT,
+    },
+    unverifiedPill: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    unverifiedPillText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    linkedPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    linkedPillText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.STATUS_APPROVED_TEXT,
+    },
+});
 
 
 

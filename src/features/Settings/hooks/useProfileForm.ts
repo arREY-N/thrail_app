@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
 import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
+import { toDateOrNull } from "@/src/core/utility/date";
 import { safeParseDateString } from "@/src/utils/dateFormatter";
 
 export interface UseProfileFormParams {
@@ -38,7 +39,15 @@ export function useProfileForm({
     const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
     const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
 
-    const { findUser } = EmergencyContactFlow();
+    const { findUser, setEmergencyContact: saveEmergencyContactToDb } = EmergencyContactFlow();
+
+    const handleSaveEmergencyContact = async (contact: IEmergencyContact, linkedUser?: Partial<IUser> | null): Promise<boolean> => {
+        const success = await saveEmergencyContactToDb(contact, linkedUser);
+        if (success) {
+            setEmergencyContact(contact);
+        }
+        return success;
+    };
     const [searchEmail, setSearchEmail] = useState<string>('');
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);
@@ -101,6 +110,8 @@ export function useProfileForm({
                     name: `${foundUser.firstname || ''} ${foundUser.lastname || ''}`.trim(),
                     contactNumber: foundUser.phoneNumber || '',
                     email: foundUser.email || '',
+                    userId: foundUser.id,
+                    phoneVerifiedAt: toDateOrNull(foundUser.phoneVerifiedAt),
                 });
                 setSearchSuccess(`Found and linked ${foundUser.firstname || 'user'}! This contact will unlock automated SOS group chats.`);
             }
@@ -119,6 +130,13 @@ export function useProfileForm({
         }
     };
 
+    const isPhoneChanged = phoneNumber.trim() !== (user.phoneNumber || '').trim();
+    const isEmergencyPhoneChanged = (emergencyContact.contactNumber || '').trim() !== (user.emergencyContact?.contactNumber || '').trim();
+
+    const willResetPersonalVerification = isPhoneChanged && !!user.phoneVerifiedAt;
+    const willResetEmergencyVerification = isEmergencyPhoneChanged && !!user.emergencyContact?.phoneVerifiedAt;
+    const willResetAnyVerification = willResetPersonalVerification || willResetEmergencyVerification;
+
     const handleSave = (): void => {
         if (onSavePress) {
             onSavePress({
@@ -127,8 +145,12 @@ export function useProfileForm({
                 birthday: birthday ?? undefined,
                 address,
                 medicalProfile,
-                emergencyContact,
+                emergencyContact: {
+                    ...emergencyContact,
+                    phoneVerifiedAt: isEmergencyPhoneChanged ? null : (user.emergencyContact?.phoneVerifiedAt ?? null),
+                },
                 preferences,
+                phoneVerifiedAt: isPhoneChanged ? null : (user.phoneVerifiedAt ?? null),
             });
         }
     };
@@ -190,5 +212,10 @@ export function useProfileForm({
         handleCancelPress,
         handleSavePress,
         handleSave,
+        willResetAnyVerification,
+        willResetPersonalVerification,
+        willResetEmergencyVerification,
+        findUser,
+        handleSaveEmergencyContact,
     };
 }

@@ -61,7 +61,7 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 			const trails = await TrailRepo.fetchAll();
 			if (trails && Array.isArray(trails) && trails.length > 0) {
 				const sorted = trails.sort((a, b) =>
-					a.general.name.localeCompare(b.general.name),
+					(a.general?.name || '').localeCompare(b.general?.name || ''),
 				);
 
 				set({
@@ -85,7 +85,7 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 		try {
 			const trails = await TrailRepo.fetchAll();
 			const sorted = trails.sort((a, b) =>
-				a.general.name.localeCompare(b.general.name),
+				(a.general?.name || '').localeCompare(b.general?.name || ''),
 			);
 			set({
 				data: sorted,
@@ -129,10 +129,11 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 				current: trail,
 				isLoading: false,
 			});
-		} catch (err: any) {
-			console.error(err.message);
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Failed loading trail';
+			console.error(msg);
 			set({
-				error: err.message,
+				error: msg,
 				isLoading: false,
 			});
 		}
@@ -143,23 +144,27 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 		const data = get().data;
 
 		try {
-			data.find((t) => {
-				const name = t.general.name.toUpperCase().trim();
-				const save = trail.general.name.toUpperCase().trim();
-
-				if (name.includes(save) && t.id !== trail.id)
-					throw new Error("A trail with the same name already exists.");
+			const hasDuplicate = data.some((t) => {
+				const existingName = (t.general?.name || '').toUpperCase().trim();
+				const save = (trail.general?.name || '').toUpperCase().trim();
+				return existingName === save && t.id !== trail.id;
 			});
+
+			if (hasDuplicate) {
+				throw new Error("A trail with the same name already exists.");
+			}
 
 			console.log("New:", trail);
 
 			let saved = trail;
 			try {
 				saved = await TrailRepo.write(trail);
-			} catch (err: any) {
+			} catch (err: unknown) {
+				const errMessage = err instanceof Error ? err.message : String(err);
+				const errCode = typeof err === 'object' && err !== null && 'code' in err ? String((err as Record<string, unknown>).code) : '';
 				const isPermissionError =
-					err.message?.toLowerCase().includes("permission") ||
-					err.code === "permission-denied";
+					errMessage.toLowerCase().includes("permission") ||
+					errCode === "permission-denied";
 
 				if (isPermissionError) {
 					console.warn("Firestore write failed due to permissions. Saving locally in-memory for testing.", err);
@@ -176,10 +181,11 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 				isLoading: false,
 			});
 			return true;
-		} catch (err: any) {
-			console.error(err.message);
+		} catch (err: unknown) {
+			const errMessage = err instanceof Error ? err.message : 'Failed creating trail';
+			console.error(errMessage);
 			set({
-				error: err.message,
+				error: errMessage,
 				isLoading: false,
 			});
 			return false;
@@ -196,10 +202,11 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 				data: get().data.filter((f) => f.id !== id),
 				isLoading: false,
 			});
-		} catch (err: any) {
-			console.error(err);
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : "Failed to delete trail";
+			console.error(msg);
 			set({
-				error: err.message ?? "Failed to delete trail",
+				error: msg,
 				isLoading: false,
 			});
 		}

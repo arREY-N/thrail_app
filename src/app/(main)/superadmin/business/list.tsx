@@ -4,6 +4,7 @@
  */
 
 
+import { Application } from '@/src/core/models/Application/Application';
 import { useSuperadmin, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
 import BusinessListScreen from '@/src/features/SuperAdmin/screens/tabs/BusinessListScreen';
 
@@ -21,7 +22,7 @@ export default function ListBusiness() {
         onBackToSettingsPress
     } = useSuperadminNavigation();
 
-    const pendingCount = applications ? applications.filter((a: any) => a.status === 'pending').length : 0;
+    const pendingCount = applications ? applications.filter((a: Application) => a.status === 'pending').length : 0;
 
     return (
         <BusinessListScreen

@@ -1,6 +1,6 @@
 /**
- * @file PrivacyPermissionsScreen.tsx
- * @description View for managing privacy toggles and device permissions.
+ * @file PermissionsScreen.tsx
+ * @description View for managing device permissions.
  */
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -13,28 +13,16 @@ import { Layout } from '@/src/constants/layout';
 import { IPermissionState, PermissionKey, PermissionStatus } from '@/src/core/models/Permission/Permission.types';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import React, { useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 /**
- * Props for the PrivacyPermissionsScreen component
+ * Props for the PermissionsScreen component
  * @param onBackPress - Callback to navigate back
- * @param publicProfile - Whether the hiker's profile is public
- * @param shareStats - Whether hiking stats are shared publicly
- * @param activityStatus - Whether the hiker's activity/online status is visible
- * @param onTogglePublicProfile - Callback triggered when the public profile setting is toggled
- * @param onToggleShareStats - Callback triggered when the share stats setting is toggled
- * @param onToggleActivityStatus - Callback triggered when the activity status setting is toggled
  * @param permissionStatuses - Map of permission keys to their current status
  * @param onRequestPermission - Handler to request a permission directly
  */
-export interface PrivacyPermissionsScreenProps {
+export interface PermissionsScreenProps {
     onBackPress: () => void;
-    publicProfile: boolean;
-    shareStats: boolean;
-    activityStatus: boolean;
-    onTogglePublicProfile: (value: boolean) => void;
-    onToggleShareStats: (value: boolean) => void;
-    onToggleActivityStatus: (value: boolean) => void;
     permissionStatuses: Record<PermissionKey, PermissionStatus>;
     onRequestPermission: (key: PermissionKey) => Promise<IPermissionState>;
 }
@@ -250,19 +238,13 @@ const PermissionRow = ({
 };
 
 /**
- * PrivacyPermissionsScreen allows users to configure profile visibility and hardware/device access.
+ * PermissionsScreen allows users to configure hardware and device access permissions.
  */
-const PrivacyPermissionsScreen = ({
+const PermissionsScreen = ({
     onBackPress,
-    publicProfile,
-    shareStats,
-    activityStatus,
-    onTogglePublicProfile,
-    onToggleShareStats,
-    onToggleActivityStatus,
     permissionStatuses,
     onRequestPermission,
-}: PrivacyPermissionsScreenProps) => {
+}: PermissionsScreenProps): React.JSX.Element => {
     const { isMobile } = useBreakpoints();
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const [selectedPermission, setSelectedPermission] = useState<PermissionDetail | null>(null);
@@ -362,60 +344,11 @@ const PrivacyPermissionsScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader title="Privacy & Permissions" centerTitle onBackPress={onBackPress} />
+            <CustomHeader title="Permissions" centerTitle onBackPress={onBackPress} />
             <ScrollView 
                 contentContainerStyle={[styles.content, !isMobile && styles.desktopContent]}
                 showsVerticalScrollIndicator={false}
             >
-
-                <View style={styles.section}>
-                    <CustomText variant="h3" style={styles.sectionTitle}>Privacy Settings</CustomText>
-
-                    <View style={styles.row}>
-                        <View style={styles.iconWrapper}>
-                            <CustomIcon library="Feather" name="eye" size={20} color={Colors.PRIMARY} />
-                        </View>
-                        <View style={styles.textBlock}>
-                            <CustomText variant="body" style={styles.rowTitle}>Public Profile</CustomText>
-                            <CustomText variant="caption" style={styles.rowDesc}>Share your profile and completed trails with the Thrail community.</CustomText>
-                        </View>
-                        <Switch
-                            value={publicProfile}
-                            onValueChange={onTogglePublicProfile}
-                            trackColor={{ true: Colors.PRIMARY }}
-                        />
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={styles.iconWrapper}>
-                            <CustomIcon library="Feather" name="bar-chart-2" size={20} color={Colors.PRIMARY} />
-                        </View>
-                        <View style={styles.textBlock}>
-                            <CustomText variant="body" style={styles.rowTitle}>Share Hiking Stats</CustomText>
-                            <CustomText variant="caption" style={styles.rowDesc}>Feature your total hiking distance and achievements on leaderboards.</CustomText>
-                        </View>
-                        <Switch
-                            value={shareStats}
-                            onValueChange={onToggleShareStats}
-                            trackColor={{ true: Colors.PRIMARY }}
-                        />
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={styles.iconWrapper}>
-                            <CustomIcon library="Feather" name="activity" size={20} color={Colors.PRIMARY} />
-                        </View>
-                        <View style={styles.textBlock}>
-                            <CustomText variant="body" style={styles.rowTitle}>Show Activity Status</CustomText>
-                            <CustomText variant="caption" style={styles.rowDesc}>Show friends and guides when you are currently active on a trail.</CustomText>
-                        </View>
-                        <Switch
-                            value={activityStatus}
-                            onValueChange={onToggleActivityStatus}
-                            trackColor={{ true: Colors.PRIMARY }}
-                        />
-                    </View>
-                </View>
 
                 <View style={styles.section}>
                     <CustomText variant="h3" style={styles.sectionTitle}>Device Permissions</CustomText>
@@ -552,4 +485,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default PrivacyPermissionsScreen;
+export default PermissionsScreen;

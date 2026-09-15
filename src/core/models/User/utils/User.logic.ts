@@ -20,6 +20,7 @@ export const UserLogic = {
             email: user.email,
             phoneNumber: user.phoneNumber,
             birthday: user.birthday,
+            phoneVerifiedAt: user.phoneVerifiedAt ?? null,
         };
     },
 };

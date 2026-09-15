@@ -96,8 +96,17 @@ export const isFeatureEnabled = (nestedValue?: unknown, flatValue?: unknown): bo
 };
 
 export const getArray = <T>(nestedValue?: unknown, flatValue?: unknown): T[] => {
-    if (Array.isArray(nestedValue) && nestedValue.length > 0) return nestedValue as T[];
-    if (Array.isArray(flatValue) && flatValue.length > 0) return flatValue as T[];
+    const filterValid = (arr: unknown[]): T[] => {
+        return arr.filter(item => typeof item !== 'string' || item.trim().length > 0) as T[];
+    };
+    if (Array.isArray(nestedValue) && nestedValue.length > 0) {
+        const cleaned = filterValid(nestedValue);
+        if (cleaned.length > 0) return cleaned;
+    }
+    if (Array.isArray(flatValue) && flatValue.length > 0) {
+        const cleaned = filterValid(flatValue);
+        if (cleaned.length > 0) return cleaned;
+    }
     return [];
 };
 

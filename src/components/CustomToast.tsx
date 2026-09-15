@@ -1,11 +1,16 @@
 /**
  * @file CustomToast.tsx
- * @description Reusable status Toast component for displaying brief non-blocking warnings or reminders.
- * Automatically adapts positioning with safe-area insets on mobile and accepts custom bottomOffset overrides.
+ * @description Reusable status Toast component with multiple visual styles (card badge, left accent, dark),
+ * two distinct modes (simple and dismissible), smart tab-bar offset, and animated countdown timers.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { 
+    Animated, 
+    StyleSheet, 
+    TouchableOpacity, 
+    View 
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -19,10 +24,12 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * 
  * @param message - The message content to show.
  * @param visible - Controls visibility of the toast.
- * @param onHide - Callback when toast should hide itself after duration.
- * @param duration - Duration in milliseconds before auto-hiding (default: 3000).
- * @param type - Visual style type of the toast (default: 'info').
- * @param bottomOffset - Optional custom bottom distance override (e.g. above sticky footers).
+ * @param onHide - Callback when toast should hide itself after duration or close press.
+ * @param duration - Optional explicit duration in milliseconds.
+ * @param type - Semantic status type: 'info' | 'warning' | 'success' | 'error'.
+ * @param mode - 'simple' (no timer/close button, 2200ms) or 'dismissible' (with timer bar & close button, 4000ms).
+ * @param variant - Visual style: 'card' (floating card with icon badge) | 'accent-left' (left color strip) | 'dark' (slate dark pill).
+ * @param bottomOffset - Optional custom bottom distance override.
  */
 export interface CustomToastProps {
     message: string;
@@ -30,21 +37,28 @@ export interface CustomToastProps {
     onHide: () => void;
     duration?: number;
     type?: 'success' | 'warning' | 'info' | 'error';
+    mode?: 'simple' | 'dismissible';
+    variant?: 'card' | 'accent-left' | 'dark';
+    /** Position preset based on screen layout: 'tabbar' (default), 'sticky_footer', or 'floating' */
+    position?: 'tabbar' | 'sticky_footer' | 'floating';
     bottomOffset?: number;
 }
 
 /**
- * CustomToast — Reusable status alert pill floating cleanly above bottom navigation or sticky footers.
+ * CustomToast — Highly versatile, light/dark harmonious status toast component.
  *
- * @param props - Component properties.
+ * @param {CustomToastProps} props - Component properties.
  * @returns {React.JSX.Element | null} The rendered toast component.
  */
 const CustomToast: React.FC<CustomToastProps> = ({
     message,
     visible,
     onHide,
-    duration = 3000,
+    duration,
     type = 'info',
+    mode = 'simple',
+    variant = 'card',
+    position = 'tabbar',
     bottomOffset,
 }) => {
     const insets = useSafeAreaInsets();
@@ -54,35 +68,71 @@ const CustomToast: React.FC<CustomToastProps> = ({
         setShouldRender(true);
     }
 
+    const effectiveDuration = duration !== undefined 
+        ? duration 
+        : (mode === 'dismissible' ? 4000 : 2200);
+
     const [fadeAnim] = useState(() => new Animated.Value(0));
     const [slideAnim] = useState(() => new Animated.Value(20));
+    const [progressAnim] = useState(() => new Animated.Value(1));
     const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const onHideRef = useRef(onHide);
+    useEffect(() => {
+        onHideRef.current = onHide;
+    });
+
+    const [displayMessage, setDisplayMessage] = useState(message);
+    if (message && message !== displayMessage) {
+        setDisplayMessage(message);
+    }
+
+    const prevVisibleRef = useRef<boolean>(false);
+    const prevMessageRef = useRef<string | null>(null);
+
     const handleHide = useCallback(() => {
+        if (hideTimeout.current) {
+            clearTimeout(hideTimeout.current);
+            hideTimeout.current = null;
+        }
+
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 0,
-                duration: 200,
+                duration: 250,
                 useNativeDriver: true,
             }),
             Animated.timing(slideAnim, {
                 toValue: 15,
-                duration: 200,
+                duration: 250,
                 useNativeDriver: true,
             })
         ]).start(() => {
             setShouldRender(false);
-            onHide();
+            onHideRef.current();
         });
-    }, [fadeAnim, slideAnim, onHide]);
+    }, [fadeAnim, slideAnim]);
 
     useEffect(() => {
+        const wasVisible = prevVisibleRef.current;
+        const prevMsg = prevMessageRef.current;
+        prevVisibleRef.current = visible;
+        prevMessageRef.current = visible ? message : null;
+
         if (visible) {
-            if (hideTimeout.current) {
-                clearTimeout(hideTimeout.current);
+            // If already visible with identical message, do not reset progressAnim or restart timer
+            if (wasVisible && prevMsg === message) {
+                return;
             }
 
-            Animated.parallel([
+            if (hideTimeout.current) {
+                clearTimeout(hideTimeout.current);
+                hideTimeout.current = null;
+            }
+
+            progressAnim.setValue(1);
+
+            const animations = [
                 Animated.timing(fadeAnim, {
                     toValue: 1,
                     duration: 250,
@@ -92,22 +142,39 @@ const CustomToast: React.FC<CustomToastProps> = ({
                     toValue: 0,
                     duration: 250,
                     useNativeDriver: true,
-                })
-            ]).start();
+                }),
+            ];
+
+            if (mode === 'dismissible') {
+                animations.push(
+                    Animated.timing(progressAnim, {
+                        toValue: 0,
+                        duration: effectiveDuration,
+                        useNativeDriver: false,
+                    })
+                );
+            }
+
+            Animated.parallel(animations).start();
 
             hideTimeout.current = setTimeout(() => {
                 handleHide();
-            }, duration);
+            }, effectiveDuration);
         } else {
+            if (hideTimeout.current) {
+                clearTimeout(hideTimeout.current);
+                hideTimeout.current = null;
+            }
+
             Animated.parallel([
                 Animated.timing(fadeAnim, {
                     toValue: 0,
-                    duration: 200,
+                    duration: 250,
                     useNativeDriver: true,
                 }),
                 Animated.timing(slideAnim, {
                     toValue: 15,
-                    duration: 200,
+                    duration: 250,
                     useNativeDriver: true,
                 })
             ]).start(() => {
@@ -120,73 +187,147 @@ const CustomToast: React.FC<CustomToastProps> = ({
                 clearTimeout(hideTimeout.current);
             }
         };
-    }, [visible, message, duration, fadeAnim, slideAnim, handleHide]);
+    }, [visible, message, effectiveDuration, mode, fadeAnim, slideAnim, progressAnim, handleHide]);
 
     if (!shouldRender) return null;
 
-    const getToastStyle = () => {
+    // Derive semantic color tokens
+    const getToastColors = () => {
         switch (type) {
             case 'success':
                 return {
-                    bg: 'rgba(46, 125, 50, 0.95)',
                     icon: 'check-circle' as const,
-                    color: Colors.WHITE,
+                    accentColor: Colors.TOAST_SUCCESS_ICON_FG,
+                    iconBg: Colors.TOAST_SUCCESS_ICON_BG,
+                    iconFg: Colors.TOAST_SUCCESS_ICON_FG,
+                    borderColor: Colors.TOAST_SUCCESS_BORDER,
                 };
             case 'warning':
                 return {
-                    bg: 'rgba(239, 108, 0, 0.95)',
                     icon: 'alert-triangle' as const,
-                    color: Colors.WHITE,
+                    accentColor: Colors.TOAST_WARN_ICON_FG,
+                    iconBg: Colors.TOAST_WARN_ICON_BG,
+                    iconFg: Colors.TOAST_WARN_ICON_FG,
+                    borderColor: Colors.TOAST_WARN_BORDER,
                 };
             case 'error':
                 return {
-                    bg: 'rgba(198, 40, 40, 0.95)',
                     icon: 'alert-circle' as const,
-                    color: Colors.WHITE,
+                    accentColor: Colors.TOAST_ERROR_ICON_FG,
+                    iconBg: Colors.TOAST_ERROR_ICON_BG,
+                    iconFg: Colors.TOAST_ERROR_ICON_FG,
+                    borderColor: Colors.TOAST_ERROR_BORDER,
                 };
             default: // info
                 return {
-                    bg: 'rgba(30, 34, 30, 0.95)',
                     icon: 'info' as const,
-                    color: Colors.WHITE,
+                    accentColor: Colors.TOAST_INFO_ICON_FG,
+                    iconBg: Colors.TOAST_INFO_ICON_BG,
+                    iconFg: Colors.TOAST_INFO_ICON_FG,
+                    borderColor: Colors.TOAST_INFO_BORDER,
                 };
         }
     };
 
-    const config = getToastStyle();
+    const colors = getToastColors();
 
-    // Dynamically calculate bottom offset factoring in safe-area insets or explicit overrides
-    const computedBottom = bottomOffset !== undefined
-        ? bottomOffset
-        : Math.max(insets.bottom + 16, 20);
+    // Derive container styling based on variant
+    const isDark = variant === 'dark';
+    const isAccentLeft = variant === 'accent-left';
 
-    const toastWidth = isMobile ? '90%' : 400;
+    const containerBg = isDark ? Colors.TOAST_BG_DARK : Colors.TOAST_BG_LIGHT;
+    const containerBorder = isDark ? Colors.TOAST_BORDER_DARK : Colors.TOAST_BORDER_LIGHT;
+    const textColor = isDark ? Colors.TOAST_TEXT_DARK : Colors.TOAST_TEXT_LIGHT;
+
+    const getComputedBottom = () => {
+        if (bottomOffset !== undefined) return bottomOffset;
+        switch (position) {
+            case 'sticky_footer':
+                return isMobile ? Math.max(insets.bottom + 90, 94) : 94;
+            case 'floating':
+                return isMobile ? Math.max(insets.bottom + 16, 20) : 24;
+            case 'tabbar':
+            default:
+                return isMobile ? Math.max(insets.bottom + 16, 20) : 24;
+        }
+    };
+
+    const computedBottom = getComputedBottom();
+
+    const toastWidth = isMobile ? '90%' : 420;
+
+    const progressWidth = progressAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0%', '100%'],
+    });
 
     return (
         <Animated.View
             style={[
                 styles.toastContainer,
                 {
-                    backgroundColor: config.bg,
+                    backgroundColor: containerBg,
+                    borderColor: containerBorder,
                     opacity: fadeAnim,
                     transform: [{ translateY: slideAnim }],
                     bottom: computedBottom,
                     width: toastWidth,
-                }
+                },
+                isAccentLeft && { borderLeftWidth: 5, borderLeftColor: colors.accentColor }
             ]}
         >
             <View style={styles.toastContent}>
-                <CustomIcon
-                    library="Feather"
-                    name={config.icon}
-                    size={18}
-                    color={config.color}
-                    style={styles.icon}
-                />
-                <CustomText style={[styles.messageText, { color: config.color }]}>
-                    {message}
-                </CustomText>
+                <View style={styles.leftMessageGroup}>
+                    {/* Circular Icon Badge for 'card' & 'dark' variants */}
+                    <View style={[
+                        styles.iconBadge, 
+                        { backgroundColor: isDark ? Colors.TOAST_DARK_ICON_BG : colors.iconBg }
+                    ]}>
+                        <CustomIcon
+                            library="Feather"
+                            name={colors.icon}
+                            size={16}
+                            color={isDark ? colors.accentColor : colors.iconFg}
+                        />
+                    </View>
+
+                    <CustomText style={[styles.messageText, { color: textColor }]}>
+                        {displayMessage}
+                    </CustomText>
+                </View>
+
+                {/* Instant dismiss close button for dismissible mode */}
+                {mode === 'dismissible' && (
+                    <TouchableOpacity 
+                        onPress={handleHide}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.closeButton}
+                        activeOpacity={0.7}
+                    >
+                        <CustomIcon 
+                            library="Feather" 
+                            name="x" 
+                            size={16} 
+                            color={textColor} 
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Countdown animated timer bar for dismissible mode */}
+            {mode === 'dismissible' && (
+                <View style={styles.progressBarTrack}>
+                    <Animated.View 
+                        style={[
+                            styles.progressBarFill, 
+                            { 
+                                backgroundColor: colors.accentColor,
+                                width: progressWidth 
+                            }
+                        ]} 
+                    />
+                </View>
+            )}
         </Animated.View>
     );
 };
@@ -195,20 +336,33 @@ const styles = StyleSheet.create({
     toastContainer: {
         position: 'absolute',
         alignSelf: 'center',
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        borderRadius: 14,
+        borderWidth: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         zIndex: 9999,
         elevation: 8,
-        ...GlobalStyles.dropShadow(3),
+        overflow: 'hidden',
+        ...GlobalStyles.dropShadow(8),
     },
     toastContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
+        justifyContent: 'space-between',
+        gap: 12,
     },
-    icon: {
+    leftMessageGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+    },
+    iconBadge: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
         flexShrink: 0,
     },
     messageText: {
@@ -216,7 +370,24 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         lineHeight: 18,
         flexShrink: 1,
-        textAlign: 'center',
+    },
+    closeButton: {
+        padding: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        opacity: 0.65,
+    },
+    progressBarTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2.5,
+        backgroundColor: Colors.TOAST_PROGRESS_TRACK,
+    },
+    progressBarFill: {
+        height: '100%',
     },
 });
 

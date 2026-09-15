@@ -73,10 +73,12 @@ export const Palette = {
 
     // Transparencies
     BlackAlpha50: 'rgba(0, 0, 0, 0.5)',
+    BlackAlpha05: 'rgba(0, 0, 0, 0.05)',
     WhiteAlpha90: 'rgba(255, 255, 255, 0.9)',
     WhiteAlpha80: 'rgba(255, 255, 255, 0.8)',
     WhiteAlpha70: 'rgba(255, 255, 255, 0.7)',
     WhiteAlpha50: 'rgba(255, 255, 255, 0.5)',
+    WhiteAlpha12: 'rgba(255, 255, 255, 0.12)',
     WhiteAlpha0:  'rgba(255, 255, 255, 0)',
     GrayAlpha25:  '#C4C4C440',
     OffWhiteAlpha75: 'rgba(250, 252, 250, 0.75)',
@@ -244,6 +246,33 @@ export const Colors = {
     STATUS_FULLY_PAID_BG:      Palette.Green50,
     STATUS_FULLY_PAID_TEXT:    Palette.Green700,
     STATUS_FULLY_PAID_BORDER:  Palette.Green100,
+
+    // Toast Semantic Tokens
+    TOAST_BG_LIGHT:         Palette.White,
+    TOAST_BORDER_LIGHT:     Palette.Slate200,
+    TOAST_TEXT_LIGHT:       Palette.Neutral950,
+    TOAST_BG_DARK:          Palette.Neutral900,
+    TOAST_BORDER_DARK:      Palette.Neutral950,
+    TOAST_TEXT_DARK:        Palette.White,
+
+    TOAST_INFO_ICON_BG:     Palette.Green50,
+    TOAST_INFO_ICON_FG:     Palette.Green700,
+    TOAST_INFO_BORDER:      Palette.Green200,
+
+    TOAST_WARN_ICON_BG:     Palette.Red50,
+    TOAST_WARN_ICON_FG:     Palette.Red700,
+    TOAST_WARN_BORDER:      Palette.Red100,
+
+    TOAST_ERROR_ICON_BG:    Palette.Red50,
+    TOAST_ERROR_ICON_FG:    Palette.Red700,
+    TOAST_ERROR_BORDER:     Palette.Red100,
+
+    TOAST_SUCCESS_ICON_BG:  Palette.Green50,
+    TOAST_SUCCESS_ICON_FG:  Palette.Green700,
+    TOAST_SUCCESS_BORDER:   Palette.Green100,
+
+    TOAST_DARK_ICON_BG:     Palette.WhiteAlpha12,
+    TOAST_PROGRESS_TRACK:   Palette.BlackAlpha05,
 
     // Trail Semantic Color Tokens
     TRAIL_CLASSIFICATION_MAJOR_BG:     Palette.Red50,

@@ -1,49 +1,46 @@
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import {
+    calculateVerificationValidity,
+    evaluateApprovalGuard,
+    PhoneVerificationFlow,
+    PhoneVerificationGuardResult
+} from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { UserRepo } from '@/src/core/models/User/User';
+import { toDateOrNull } from '@/src/core/utility/date';
 import { checkIfMinor, formatDateToStandard } from '@/src/utils/dateFormatter';
 import { useEffect, useMemo, useState } from 'react';
 
+const mapDocument = (
+    name: string, 
+    file: string, 
+    valid: string | boolean | undefined, 
+    isApproved: boolean, 
+    isRejected: boolean
+): Requirements => {
+    let validState: 'pending' | 'approved' | 'rejected' = 'pending';
+    if (valid === 'approved' || valid === true) validState = 'approved';
+    if (valid === 'rejected' || valid === false) validState = 'rejected';
+    if (isApproved) validState = 'approved';
+    if (isRejected && validState === 'pending') validState = 'rejected';
+    return { name: name || 'Unnamed Document', file: file || '', valid: validState };
+};
+
+const extractDocs = (
+    b: Booking | null | undefined, 
+    isApproved: boolean, 
+    isRejected: boolean
+): Requirements[] => {
+    if (!b?.documents) return [];
+    return Array.isArray(b.documents) 
+        ? b.documents.map((d, i) => mapDocument(d.name || `Req ${i + 1}`, d.file, d.valid, isApproved, isRejected))
+        : Object.entries(b.documents as unknown as Record<string, Requirements>).map(([k, v]) => 
+            mapDocument(v?.name || k, v?.file || '', v?.valid, isApproved, isRejected)
+        );
+};
+
 export default function useReviewLogic(booking: Booking | null | undefined, offers: Offer[]) {
-    const [activeTab, setActiveTab] = useState<'documents' | 'payment'>('documents'); 
-    const [docStates, setDocStates] = useState<Requirements[]>([]);
-    const [viewedDocs, setViewedDocs] = useState<Record<number, boolean>>({});
-    const [rejectionReason, setRejectionReason] = useState('');
-    
-    const [personalVerifiedAt, setPersonalVerifiedAt] = useState<Date | null>(() => {
-        return booking?.user?.phoneVerifiedAt ? new Date(booking.user.phoneVerifiedAt) : null;
-    });
-    const [emergencyVerifiedAt, setEmergencyVerifiedAt] = useState<Date | null>(() => {
-        return booking?.emergencyContact?.phoneVerifiedAt ? new Date(booking.emergencyContact.phoneVerifiedAt as Date) : null;
-    });
-
-    useEffect(() => {
-        const loadEmergencyVerification = async () => {
-            if (booking?.emergencyContact) {
-                // Use the booking's own verification date if it exists
-                if (booking.emergencyContact.phoneVerifiedAt) {
-                    setEmergencyVerifiedAt(new Date(booking.emergencyContact.phoneVerifiedAt as Date));
-                    return;
-                }
-                // Otherwise check if the emergency contact has a linked user account, and load their global verification
-                if (booking.emergencyContact.userId) {
-                    try {
-                        const contactUser = await UserRepo.fetchById(booking.emergencyContact.userId);
-                        if (contactUser?.emergencyContact?.phoneVerifiedAt) {
-                            setEmergencyVerifiedAt(new Date(contactUser.emergencyContact.phoneVerifiedAt as Date));
-                            return;
-                        }
-                    } catch (e) {
-                        console.error('Error fetching emergency contact profile: ', e);
-                    }
-                }
-                setEmergencyVerifiedAt(null);
-            }
-        };
-        loadEmergencyVerification();
-    }, [booking?.emergencyContact]);
-
     const offerDate = booking?.offer?.date ? new Date(booking.offer.date) : null;
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
@@ -65,36 +62,71 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
     const isCancelledStatus = ['cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(currentStatus);
     const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus;
 
-    const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
+    const [activeTab, setActiveTab] = useState<'documents' | 'payment'>(() => isApprovedStatus ? 'payment' : 'documents'); 
+    const [docStates, setDocStates] = useState<Requirements[]>(() => extractDocs(booking, isApprovedStatus, isRejectedStatus));
+    const [viewedDocs, setViewedDocs] = useState<Record<number, boolean>>(() => {
+        const initialDocs = extractDocs(booking, isApprovedStatus, isRejectedStatus);
+        const initialViewed: Record<number, boolean> = {};
+        initialDocs.forEach((d, i) => { 
+            if (d.valid !== 'pending') initialViewed[i] = true; 
+        });
+        return initialViewed;
+    });
+    const [rejectionReason, setRejectionReason] = useState('');
+    
+    const [personalVerifiedAt, setPersonalVerifiedAt] = useState<Date | null>(() => {
+        return toDateOrNull(booking?.user?.phoneVerifiedAt);
+    });
+    const [emergencyVerifiedAt, setEmergencyVerifiedAt] = useState<Date | null>(() => {
+        return toDateOrNull(booking?.emergencyContact?.phoneVerifiedAt);
+    });
 
+    useEffect(() => {
+        const loadEmergencyVerification = async () => {
+            if (booking?.emergencyContact) {
+                // Use the booking's own verification date if it exists
+                const directVerifiedAt = toDateOrNull(booking.emergencyContact.phoneVerifiedAt);
+                if (directVerifiedAt) {
+                    setEmergencyVerifiedAt(directVerifiedAt);
+                    return;
+                }
+                // Otherwise check if the emergency contact has a linked user account, and load their global verification
+                if (booking.emergencyContact.userId) {
+                    try {
+                        const contactUser = await UserRepo.fetchById(booking.emergencyContact.userId);
+                        const linkedVerifiedAt = toDateOrNull(contactUser?.phoneVerifiedAt ?? contactUser?.emergencyContact?.phoneVerifiedAt);
+                        if (linkedVerifiedAt) {
+                            setEmergencyVerifiedAt(linkedVerifiedAt);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Error fetching emergency contact profile: ', e);
+                    }
+                }
+                setEmergencyVerifiedAt(null);
+            } else {
+                setEmergencyVerifiedAt(null);
+            }
+        };
+        loadEmergencyVerification();
+    }, [booking?.emergencyContact]);
+
+    const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
     const isMinor = checkIfMinor(booking?.user?.birthday);
 
-    const mapDocument = (name: string, file: string, valid: string | boolean | undefined): Requirements => {
-        let validState: 'pending' | 'approved' | 'rejected' = 'pending';
-        if (valid === 'approved' || valid === true) validState = 'approved';
-        if (valid === 'rejected' || valid === false) validState = 'rejected';
-        if (isApprovedStatus) validState = 'approved';
-        if (isRejectedStatus && validState === 'pending') validState = 'rejected';
-        return { name: name || 'Unnamed Document', file: file || '', valid: validState };
-    };
-
-    const [prevBooking, setPrevBooking] = useState(booking);
-    if (booking !== prevBooking) {
-        setPrevBooking(booking);
-        if (booking?.user?.phoneVerifiedAt) {
-            setPersonalVerifiedAt(new Date(booking.user.phoneVerifiedAt));
-        }
-        if (booking?.documents) {
-            const docsArray: Requirements[] = Array.isArray(booking.documents) 
-                ? booking.documents.map((d, i) => mapDocument(d.name || `Req ${i + 1}`, d.file, d.valid))
-                : Object.entries(booking.documents as unknown as Record<string, Requirements>).map(([k, v]) => mapDocument(v?.name || k, v?.file || '', v?.valid));
-            setDocStates(docsArray);
-            const initialViewed: Record<number, boolean> = {};
-            docsArray.forEach((d, i) => { 
-                if (d.valid !== 'pending') initialViewed[i] = true; 
-            });
-            setViewedDocs(initialViewed);
-        }
+    const currentSyncKey = `${booking?.id || ''}_${booking?.status || ''}_${booking?.user?.phoneNumber || ''}_${booking?.emergencyContact?.contactNumber || ''}_${booking?.updatedAt ? new Date(booking.updatedAt).getTime() : 0}`;
+    const [prevSyncKey, setPrevSyncKey] = useState(currentSyncKey);
+    if (currentSyncKey !== prevSyncKey) {
+        setPrevSyncKey(currentSyncKey);
+        setPersonalVerifiedAt(toDateOrNull(booking?.user?.phoneVerifiedAt));
+        setEmergencyVerifiedAt(toDateOrNull(booking?.emergencyContact?.phoneVerifiedAt));
+        const updatedDocs = extractDocs(booking, isApprovedStatus, isRejectedStatus);
+        setDocStates(updatedDocs);
+        const initialViewed: Record<number, boolean> = {};
+        updatedDocs.forEach((d, i) => { 
+            if (d.valid !== 'pending') initialViewed[i] = true; 
+        });
+        setViewedDocs(initialViewed);
         if (isApprovedStatus) {
             setActiveTab('payment');
         }
@@ -122,52 +154,30 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
             : [];
     }, [offers, booking?.offer?.id]);
 
-    const getVerificationStatus = (verifiedAt: Date | null): 'verified' | 'expired' | 'unverified' => {
-        if (!verifiedAt) return 'unverified';
-        const date = new Date(verifiedAt);
-        if (isNaN(date.getTime())) return 'unverified';
-        
-        const now = new Date();
-        const diffTime = now.getTime() - date.getTime();
-        const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
-        
-        if (diffMonths >= 6) {
-            return 'expired';
-        }
-        return 'verified';
-    };
+    const { 
+        syncGlobalVerification, 
+    } = PhoneVerificationFlow();
 
-    const getVerificationMonthsRemaining = (verifiedAt: Date | null) => {
-        if (!verifiedAt) return 0;
-        const date = new Date(verifiedAt);
-        if (isNaN(date.getTime())) return 0;
-        
-        const now = new Date();
-        const diffTime = now.getTime() - date.getTime();
-        const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
-        const monthsRemaining = 6 - diffMonths;
-        return monthsRemaining > 0 ? Math.ceil(monthsRemaining) : 0;
-    };
+    const personalValidity = calculateVerificationValidity(personalVerifiedAt);
+    const emergencyValidity = calculateVerificationValidity(emergencyVerifiedAt);
 
-    const personalStatus = getVerificationStatus(personalVerifiedAt);
-    const emergencyStatus = getVerificationStatus(emergencyVerifiedAt);
-    const personalMonthsRemaining = getVerificationMonthsRemaining(personalVerifiedAt);
-    const emergencyMonthsRemaining = getVerificationMonthsRemaining(emergencyVerifiedAt);
+    const personalStatus = personalValidity.status;
+    const emergencyStatus = emergencyValidity.status;
+    const personalMonthsRemaining = personalValidity.remainingMonths;
+    const emergencyMonthsRemaining = emergencyValidity.remainingMonths;
+
+    const approvalGuard: PhoneVerificationGuardResult = evaluateApprovalGuard(personalStatus, emergencyStatus);
 
     const togglePersonalVerify = () => {
-        if (personalVerifiedAt) {
-            setPersonalVerifiedAt(null);
-        } else {
-            setPersonalVerifiedAt(new Date());
-        }
+        const isCurrentlyValid = personalValidity.isValid;
+        const newDate = isCurrentlyValid ? null : new Date();
+        setPersonalVerifiedAt(newDate);
     };
 
     const toggleEmergencyVerify = () => {
-        if (emergencyVerifiedAt) {
-            setEmergencyVerifiedAt(null);
-        } else {
-            setEmergencyVerifiedAt(new Date());
-        }
+        const isCurrentlyValid = emergencyValidity.isValid;
+        const newDate = isCurrentlyValid ? null : new Date();
+        setEmergencyVerifiedAt(newDate);
     };
 
     return {
@@ -180,6 +190,7 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         personalStatus, emergencyStatus,
         personalMonthsRemaining, emergencyMonthsRemaining,
         togglePersonalVerify, toggleEmergencyVerify,
+        approvalGuard,
         isMinor,
         currentStatus, 
         isApprovedStatus, 
@@ -190,6 +201,7 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         hasRejections, 
         isDecisionIncomplete,
         availableOffers,
-        displayCancellationReason
+        displayCancellationReason,
+        syncGlobalVerification,
     };
 }

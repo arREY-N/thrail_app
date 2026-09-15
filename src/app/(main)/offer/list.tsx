@@ -1,3 +1,8 @@
+/**
+ * @file (main)/offer/list.tsx
+ * @description Controller route for displaying available offers for a specific trail and orchestrating the booking wizard.
+ */
+
 import LoadingScreen from "@/src/app/loading";
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
@@ -5,7 +10,7 @@ import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigatio
 import { useOfferTrails } from "@/src/core/models/Offer/Offer";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 export default function ListOffer() {
     const { trailId: rawId } = useLocalSearchParams();
@@ -20,35 +25,47 @@ export default function ListOffer() {
 
     const {
         trailOffers,
+        isLoading,
         error: offerError,
-        isLoading
     } = useOfferTrails(trailId);
 
     const {
-        error: bookError,
+        userBookings,
         onUpdatePress,
         onCompleteBook,
         onSetOffer,
+        findUser,
+        error: bookingFlowError,
     } = CreateBookingFlow();
 
+    const displayError = offerError || bookingFlowError || null;
+
+    const handleViewBookingDetails = (bookingId?: string) => {
+        if (bookingId) {
+            router.replace({
+                pathname: '/(main)/book/list',
+                params: { bookingId, view: 'overview' },
+            });
+        } else {
+            router.replace('/(main)/book/list');
+        }
+    };
 
     if (isLoading) return <LoadingScreen />;
 
     return (
-        <>
-            <BookingScreen
-                {...{
-                    offers: trailOffers,
-                    error: (offerError || bookError),
-                    onSetOffer: onSetOffer,
-                    onBookNowPress: onCompleteBook,
-                    onBackPress: onBackPress,
-                    onUpdatePress: onUpdatePress,
-                    onCompleteOffer: onCompleteBook,
-                    onTermsPress: onTerms,
-                    onPrivacyPress: onPrivacy,
-                } as any}
-            />
-        </>
+        <BookingScreen 
+            offers={trailOffers}
+            userBookings={userBookings}
+            error={displayError}
+            onSetOffer={onSetOffer}
+            onBackPress={onBackPress}
+            onUpdatePress={onUpdatePress}
+            onCompleteOffer={onCompleteBook}
+            onTermsPress={onTerms}
+            onPrivacyPress={onPrivacy}
+            onViewBookingDetails={handleViewBookingDetails}
+            onSearchUser={findUser}
+        />  
     );
 }

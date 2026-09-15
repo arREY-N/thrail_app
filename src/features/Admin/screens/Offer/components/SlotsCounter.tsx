@@ -34,19 +34,8 @@ const SlotsCounter: React.FC<SlotsCounterProps> = ({
     maxPax 
 }) => {
     // Calculate active bookings that hold reserved slots
-    const activeBookings = bookings.filter(b => {
-        const status = b.status;
-        return status === 'for-reservation' ||
-               status === 'for-payment' ||
-               status === 'paid' ||
-               status === 'downpayment' ||
-               status === 'completed' ||
-               status === 'finished' ||
-               status === 'for-cancellation' ||
-               status === 'cancellation-rejected' ||
-               status === 'for-reschedule' ||
-               status === 'reschedule-rejected';
-    });
+    const inactiveStatuses = ['cancelled', 'refund', 'refunded', 'rescheduled', 'expired'];
+    const activeBookings = bookings.filter(b => !inactiveStatuses.includes(b.status || ''));
 
     const reservedCount = activeBookings.length;
     const isMinMet = reservedCount >= minPax;

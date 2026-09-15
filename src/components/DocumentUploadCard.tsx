@@ -1,3 +1,11 @@
+/**
+ * @file DocumentUploadCard.tsx
+ * @description A universal, accessible document and image upload component for the Thrail application.
+ * Supports multiple visual variants (`card` standalone box and `row` embedded list items),
+ * dynamic status indicators (pending, uploading, success, rejected, retry error, read-only),
+ * full-width un-truncated rejection callout banners, and modal image preview.
+ */
+
 import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -9,40 +17,88 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import useFileUpload from '@/src/core/utility/uploadFile';
 
 /**
+ * Valid strict document storage keys supported by backend file services.
+ */
+export type UploadDocumentType = 'validId' | 'medicalCertificate' | 'bir' | 'dti' | 'denr';
+
+/**
+ * Maps document requirement names to strict keys for storage folder partitions and upload services.
+ *
+ * @param docName - Name of the document requirement (e.g. "Medical Certificate", "Valid ID")
+ * @returns Strict document storage key
+ */
+export const getStrictDocKey = (docName: string): UploadDocumentType => {
+    if (!docName) return 'validId';
+    const lower = docName.toLowerCase();
+    if (lower.includes('medical') || lower.includes('cert')) return 'medicalCertificate';
+    if (lower.includes('bir')) return 'bir';
+    if (lower.includes('dti')) return 'dti';
+    if (lower.includes('denr')) return 'denr';
+    return 'validId';
+};
+
+/**
+ * Returns user-facing subtitle guidance based on the document requirement name.
+ *
+ * @param docName - Name of the document requirement
+ * @returns Descriptive hint or criteria string
+ */
+export const getDocSubtitle = (docName: string): string => {
+    const lower = docName.toLowerCase();
+    if (lower.includes('medical') || lower.includes('cert')) return 'Valid within 6 months of hike date';
+    if (lower.includes('parent') || lower.includes('guardian')) return 'Required for minor safety & verification';
+    return 'Government-issued photo ID';
+};
+
+/**
  * Props for the DocumentUploadCard component.
  */
 interface DocumentUploadCardProps {
-    /** The display name of the document to be uploaded */
+    /** The primary title/name of the document requirement (e.g. "Valid Identification ID") */
     docName: string;
-    /** The key/identifier for the document type */
+    /** The strict document key mapped to storage folder partitions (`validId`, `medicalCertificate`, etc.) */
     docKey?: string;
-    /** Whether the document has been uploaded (can be boolean, string URL, or array of URLs) */
+    /** Optional helper subtitle displayed beneath the title (e.g. "Passport or Driver's License") */
+    subtitle?: string;
+    /** Whether the document has been uploaded (accepts boolean, single URL string, or string array of URLs) */
     isUploaded?: string | string[] | boolean;
-    /** Indicates if the previously uploaded document was rejected */
+    /** Indicates if the previously uploaded document was rejected by admin verification */
     isRejected?: boolean;
-    /** Callback fired when an upload is successfully completed */
+    /** Specific reason message explaining why the document was rejected by admin */
+    rejectionReason?: string;
+    /** Callback fired when an upload is successfully completed with the new file URL */
     onUploadSuccess?: (url: string) => void;
-    /** Whether multiple documents can be uploaded */
+    /** Whether multiple documents can be selected and appended */
     allowMultiple?: boolean;
-    /** Callback fired when a document is deleted */
+    /** Callback fired when a document is removed from preview */
     onDelete?: (index: number) => void;
-    /** If true, the upload/change buttons will be hidden, allowing view-only access */
+    /** If true, upload and change buttons are hidden, rendering in read-only inspection mode */
     readOnly?: boolean;
+    /** Visual style variant: 'card' (standalone box) or 'row' (embedded within unified list container) */
+    variant?: 'card' | 'row';
+    /** Whether to render a bottom divider hairline (used in row variant lists) */
+    showDivider?: boolean;
 }
 
 /**
- * DocumentUploadCard — A card component that handles document/image uploads
- * with support for status indicators (pending, success, rejected, error) and image preview.
+ * DocumentUploadCard Component
+ * 
+ * Handles document picking, upload state progression, status badges, full-text rejection banners,
+ * and thumbnail preview modal across both booking workflows and administrative review dashboards.
  */
 const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({ 
     docName, 
     docKey,
+    subtitle,
     isUploaded,
     isRejected = false, 
+    rejectionReason,
     onUploadSuccess,
     allowMultiple = false,
     onDelete,
-    readOnly = false
+    readOnly = false,
+    variant = 'card',
+    showDivider = false,
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
@@ -63,17 +119,27 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         setIsError(false);
         setErrorMessage('');
         try {
-            const url = await pickDocument((docKey || 'validId') as any);
+            const safeDocKey: UploadDocumentType = (
+                docKey === 'medicalCertificate' || docKey === 'bir' || docKey === 'dti' || docKey === 'denr'
+                    ? docKey
+                    : 'validId'
+            );
+            const url = await pickDocument(safeDocKey);
             if (url && onUploadSuccess) {
                 onUploadSuccess(url); 
-            } else {
-                setIsError(true);
-                setErrorMessage('Upload failed or was canceled.');
             }
-        } catch (error: any) {
-            console.error(`Upload failed for ${docKey}:`, error);
-            setIsError(true);
-            setErrorMessage(error.message || 'An error occurred during upload.');
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred during upload.';
+            const isCanceled = msg.toLowerCase().includes('cancel');
+            if (isCanceled) {
+                // User intentionally cancelled picker. Gracefully reset.
+                setIsError(false);
+                setErrorMessage('');
+            } else {
+                console.error(`Upload failed for ${docKey}:`, error);
+                setIsError(true);
+                setErrorMessage(msg);
+            }
         } finally {
             setIsUploading(false);
         }
@@ -119,26 +185,42 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         spinnerColor = Colors.WHITE;
     }
 
+    const isErrorOrRejected = isRejected || isError;
+    const viewBtnStyle = isErrorOrRejected ? styles.viewBtnNeutral : styles.viewBtn;
+    const viewBtnTextStyle = isErrorOrRejected ? styles.viewBtnTextNeutral : styles.viewBtnText;
+
     const displayDocName = allowMultiple && imagesList.length > 0 
         ? `${imagesList.length} ${imagesList.length === 1 ? 'image' : 'images'} added`
         : docName;
+    const isRow = variant === 'row';
+    const displayError = errorMessage || (isRejected ? rejectionReason : '');
 
     return (
-        <View style={styles.container}>
-            <View style={[styles.uploadCard, (isError || isRejected) && styles.uploadCardError]}>
+        <View style={[isRow ? styles.rowContainer : styles.cardContainer, showDivider && styles.rowDivider]}>
+            <View style={[
+                isRow ? styles.uploadRow : styles.uploadCard, 
+                (isError || isRejected) && (isRow ? styles.uploadRowError : styles.uploadCardError)
+            ]}>
                 <View style={styles.uploadInfo}>
                     <View style={[styles.iconWrapper, wrapperStyle]}>
-                        <CustomIcon library="Feather" name={iconName} size={20} color={iconColor} />
+                        <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
                     </View>
-                    <CustomText variant="label" style={styles.docName} numberOfLines={2}>
-                        {displayDocName}
-                    </CustomText>
+                    <View style={styles.textContainer}>
+                        <CustomText variant="label" style={styles.docName} numberOfLines={2}>
+                            {displayDocName}
+                        </CustomText>
+                        {subtitle ? (
+                            <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={1}>
+                                {subtitle}
+                            </CustomText>
+                        ) : null}
+                    </View>
                 </View>
                 
                 <View style={styles.actionContainer}>
                     {imagesList.length > 0 && (
-                        <TouchableOpacity style={styles.viewBtn} onPress={handleViewPress} activeOpacity={0.7}>
-                            <CustomText variant="caption" style={styles.viewBtnText}>
+                        <TouchableOpacity style={viewBtnStyle} onPress={handleViewPress} activeOpacity={0.7}>
+                            <CustomText variant="caption" style={viewBtnTextStyle}>
                                 View
                             </CustomText>
                         </TouchableOpacity>
@@ -163,10 +245,34 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 </View>
             </View>
 
-            {isError && Boolean(errorMessage) ? (
+            {/* In Row Variant: Dedicated un-truncated rejection callout banner within the row */}
+            {isRow && Boolean(displayError) ? (
+                <View style={styles.rowRejectionBox}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name={isRejected ? "alert-triangle" : "alert-circle"} 
+                        size={14} 
+                        color={Colors.ERROR} 
+                        style={styles.rowRejectionIcon} 
+                    />
+                    <CustomText variant="caption" style={styles.rowRejectionText}>
+                        {isRejected ? `Rejection reason: ${displayError}` : displayError}
+                    </CustomText>
+                </View>
+            ) : null}
+
+            {/* In Card Variant: Dedicated bottom rejectionReasonBox */}
+            {!isRow && Boolean(displayError) ? (
                 <View style={styles.rejectionReasonBox}>
+                    <CustomIcon 
+                        library="Feather" 
+                        name={isRejected ? "alert-triangle" : "alert-circle"} 
+                        size={14} 
+                        color={Colors.ERROR} 
+                        style={styles.cardRejectionIcon} 
+                    />
                     <CustomText variant="caption" style={styles.rejectionReasonText}>
-                        {errorMessage}
+                        {isRejected ? `Rejection reason: ${displayError}` : displayError}
                     </CustomText>
                 </View>
             ) : null}
@@ -182,8 +288,15 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
+    cardContainer: {
         marginBottom: 12,
+    },
+    rowContainer: {
+        width: '100%',
+    },
+    rowDivider: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: Colors.GRAY_LIGHT,
     },
     uploadCard: { 
         flexDirection: 'row', 
@@ -200,26 +313,72 @@ const styles = StyleSheet.create({
         borderColor: Colors.ERROR_BORDER,
         backgroundColor: Colors.ERROR_BG, 
     },
+    uploadRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        backgroundColor: Colors.WHITE,
+    },
+    uploadRowError: {
+        backgroundColor: Colors.WHITE,
+    },
     uploadInfo: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         flex: 1,
         paddingRight: 12
     },
+    textContainer: {
+        flex: 1,
+        justifyContent: 'center',
+    },
     iconWrapper: { 
-        width: 40, 
-        height: 40, 
-        borderRadius: 20, 
+        width: 38, 
+        height: 38, 
+        borderRadius: 19, 
         justifyContent: 'center', 
         alignItems: 'center', 
         marginRight: 12 
     },
     iconWrapperPending: { backgroundColor: Colors.BACKGROUND },
     iconWrapperSuccess: { backgroundColor: Colors.STATUS_APPROVED_BG },
-    iconWrapperError: { backgroundColor: Colors.WHITE }, 
+    iconWrapperError: { backgroundColor: Colors.STATUS_CANCELLED_BG }, 
     docName: { 
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+    },
+    docSubtitle: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+    },
+    rowRejectionBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginHorizontal: 16,
+        marginBottom: 12,
+        marginTop: 0,
+        gap: 8,
+    },
+    rowRejectionIcon: {
+        marginTop: 1,
+        flexShrink: 0,
+    },
+    rowRejectionText: {
+        color: Colors.ERROR,
+        fontSize: 12,
+        lineHeight: 17,
         flex: 1,
-        flexShrink: 1
+        fontWeight: '500',
     },
     actionContainer: { 
         flexDirection: 'row', 
@@ -235,24 +394,33 @@ const styles = StyleSheet.create({
     errorBtnText: { color: Colors.WHITE, fontWeight: 'bold' },
     viewBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Colors.STATUS_APPROVED_BG, borderWidth: 1, borderColor: Colors.SUCCESS },
     viewBtnText: { color: Colors.SUCCESS, fontWeight: 'bold' },
+    viewBtnNeutral: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_MEDIUM },
+    viewBtnTextNeutral: { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
     rejectionReasonBox: { 
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         backgroundColor: Colors.ERROR_BG, 
-        padding: 10, 
+        padding: 12, 
         borderRadius: 8, 
         marginTop: 4, 
-        marginLeft: 16,
-        marginRight: 16,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-        borderTopWidth: 0,
-        borderTopLeftRadius: 0,
+        marginHorizontal: 16,
+        borderWidth: 1, 
+        borderColor: Colors.ERROR_BORDER, 
+        borderTopWidth: 0, 
+        borderTopLeftRadius: 0, 
         borderTopRightRadius: 0,
+        gap: 8,
+    },
+    cardRejectionIcon: {
+        marginTop: 2,
+        flexShrink: 0,
     },
     rejectionReasonText: { 
         color: Colors.ERROR, 
         fontSize: 12, 
         lineHeight: 18,
-        fontStyle: 'italic'
+        flex: 1,
+        fontWeight: '500',
     },
 });
 
