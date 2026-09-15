@@ -277,3 +277,27 @@ export const getDeleteConfirmConfig = (
     };
 };
 
+export interface FormToastConfig {
+    visible: boolean;
+    message: string;
+    type?: 'error' | 'warning' | 'info' | 'success';
+    mode?: 'simple' | 'dismissible';
+    triggerKey?: number | string;
+}
+
+/**
+ * Generates toast configuration for form validation or system errors.
+ */
+export const getErrorToastConfig = (
+    message: string, 
+    mode: 'simple' | 'dismissible' = 'dismissible',
+    triggerKey: number | string = Date.now()
+): FormToastConfig => ({
+    visible: true,
+    message,
+    type: 'error',
+    mode,
+    triggerKey,
+});
+
+
