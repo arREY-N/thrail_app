@@ -12,10 +12,14 @@ import SkeletonEffect from "@/src/components/SkeletonEffect";
 
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
-import { ProcessedWeatherData } from "@/src/core/types/weather";
+import {
+  DetailedWeatherSafetyReport,
+  ProcessedWeatherData,
+} from "@/src/core/types/weather";
 import {
   formatLastUpdatedLabel,
   formatWeatherDisplay,
+  getDetailedWeatherSafety,
 } from "@/src/core/utility/weatherHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
 
@@ -29,6 +33,7 @@ import { IconLibrary } from "@/src/types/ui.types";
  * @param onPress - Callback fired when the weather section is pressed
  * @param onReload - Callback fired to retry/reload weather fetching
  * @param isRefreshing - Whether pull-to-refresh is currently active
+ * @param safetyReport - Optional safety report to display integrated advisory banner
  */
 export interface WeatherSectionProps {
   weatherData: ProcessedWeatherData | null | undefined;
@@ -38,6 +43,7 @@ export interface WeatherSectionProps {
   onPress: () => void;
   onReload?: () => void;
   isRefreshing?: boolean;
+  safetyReport?: DetailedWeatherSafetyReport | null;
 }
 
 /**
@@ -54,10 +60,40 @@ const WeatherSection = ({
   onPress,
   onReload,
   isRefreshing = false,
+  safetyReport,
 }: WeatherSectionProps): React.JSX.Element => {
   const display = formatWeatherDisplay(weatherData);
   const lastUpdatedLabel = formatLastUpdatedLabel(weatherData?.lastUpdated);
   const displayLocationText = locationName || "Unknown location";
+
+  const resolvedSafetyReport = React.useMemo(() => {
+    if (safetyReport !== undefined) return safetyReport;
+    if (!weatherData) return null;
+    return getDetailedWeatherSafety(weatherData, locationName);
+  }, [safetyReport, weatherData, locationName]);
+
+  const hasSafetyAlert = Boolean(
+    resolvedSafetyReport && resolvedSafetyReport.status !== "SAFE"
+  );
+
+  const isDanger = resolvedSafetyReport?.status === "DANGER";
+  const alertTheme = hasSafetyAlert
+    ? isDanger
+      ? {
+          bg: Colors.WEATHER_DANGER_BG,
+          border: Colors.WEATHER_DANGER_MAIN + "35",
+          text: Colors.WEATHER_DANGER_MAIN,
+          icon: "alert-octagon",
+          iconLib: "Feather",
+        }
+      : {
+          bg: Colors.WEATHER_CAUTION_BG,
+          border: Colors.WEATHER_CAUTION_MAIN + "35",
+          text: Colors.WEATHER_CAUTION_MAIN,
+          icon: "alert-triangle",
+          iconLib: "Feather",
+        }
+    : null;
 
   // 1. Loading / Locating / Refreshing State
   if ((loading && !weatherData) || isRefreshing) {
@@ -210,6 +246,50 @@ const WeatherSection = ({
           </View>
         </View>
       </View>
+
+      {/* Integrated Outdoor Safety Advisory Banner */}
+      {hasSafetyAlert && alertTheme && resolvedSafetyReport && (
+        <View style={styles.alertWrapper}>
+          <View style={styles.alertDivider} />
+          <View
+            style={[
+              styles.alertBanner,
+              {
+                backgroundColor: alertTheme.bg,
+                borderColor: alertTheme.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.alertIconWrapper,
+                { backgroundColor: alertTheme.text + "20" },
+              ]}
+            >
+              <CustomIcon
+                library={alertTheme.iconLib as IconLibrary}
+                name={alertTheme.icon}
+                size={18}
+                color={alertTheme.text}
+              />
+            </View>
+
+            <View style={styles.alertTextWrapper}>
+              <CustomText style={styles.alertDesc} numberOfLines={2}>
+                {resolvedSafetyReport.keyRisks?.[0] ||
+                  resolvedSafetyReport.description}
+              </CustomText>
+            </View>
+
+            <CustomIcon
+              library="Feather"
+              name="chevron-right"
+              size={18}
+              color={alertTheme.text}
+            />
+          </View>
+        </View>
+      )}
     </Pressable>
   );
 };
@@ -386,6 +466,44 @@ const styles = StyleSheet.create({
     width: 110,
     height: 14,
     borderRadius: 4,
+  },
+
+  // Integrated Alert Banner Styles
+  alertWrapper: {
+    marginTop: 14,
+  },
+  alertDivider: {
+    height: 1,
+    backgroundColor: Colors.GRAY_LIGHT,
+    marginBottom: 12,
+    opacity: 0.7,
+  },
+  alertBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+  },
+  alertIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  alertTextWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  alertDesc: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.TEXT_PRIMARY,
+    lineHeight: 18,
   },
 });
 
