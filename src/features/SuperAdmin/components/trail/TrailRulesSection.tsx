@@ -9,8 +9,6 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
-import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
@@ -92,16 +90,14 @@ const TrailRulesSection: React.FC<TrailRulesSectionProps> = ({
             <View style={styles.cardBody}>
                 {/* 1. Critical Trail Update (Optional Emergency Banner) */}
                 <View style={styles.fieldBlock}>
-                    <CustomTextInput
+                    <CustomFeedbackInput
                         label="Critical Trail Update"
-                        placeholder="e.g. Bridge beyond Camp 2 under repair. Trail opens at 6:00 AM only."
+                        placeholder="e.g. Bridge beyond Camp 2 under repair."
                         value={trail?.general?.critical_info || ''}
                         onChangeText={(val: string) => onUpdateField({ section: 'general', id: 'critical_info', value: val })}
-                        style={styles.noMarginBottom}
+                        suggestions={[]}
+                        helperText="Displays as a prominent red warning banner at the top of the hiker's trail screen."
                     />
-                    <CustomText variant="caption" style={styles.helperText}>
-                        {"Displays as a prominent red warning banner at the top of the hiker's trail screen."}
-                    </CustomText>
                 </View>
 
                 {/* 2. LGU Ordinances */}
@@ -163,14 +159,6 @@ const styles = StyleSheet.create({
     },
     fieldBlock: {
         width: '100%',
-    },
-    noMarginBottom: {
-        marginBottom: 0,
-    },
-    helperText: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 12,
-        marginTop: 4,
     },
 });
 
