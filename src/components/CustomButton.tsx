@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as any,
+    shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as unknown as ViewStyle,
     baseText: {
         fontWeight: 'bold',
         fontSize: 16,
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     disabledState: {
         opacity: 0.5,
         ...Platform.select({
-            web: { cursor: 'not-allowed' } as any
+            web: { cursor: 'not-allowed' } as unknown as ViewStyle
         })
     },
 
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     },
 
     outline: {
-        backgroundColor: 'transparent',
+        backgroundColor: Colors.WHITE,
         borderWidth: 1.5,
         borderColor: Colors.PRIMARY, 
     },
