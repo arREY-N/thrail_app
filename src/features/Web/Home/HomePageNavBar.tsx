@@ -7,11 +7,11 @@ import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
-import { useAuthStore } from "@/src/core/models/User/User";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
 
-interface NavItemConfig {
+export interface NavItemConfig {
   id: string;
   label: string;
   icon: string;
@@ -19,73 +19,178 @@ interface NavItemConfig {
   route: Href;
 }
 
-interface NavSection {
+export interface NavSection {
   title?: string;
   items: NavItemConfig[];
 }
 
-const NAV_SECTIONS: NavSection[] = [
-  {
-    title: "MENU",
-    items: [
-      {
-        id: "home",
-        label: "Home",
-        icon: "home",
-        library: "Feather",
-        route: "/(tabs)",
-      },
-      {
-        id: "explore",
-        label: "Explore Trails",
-        icon: "compass",
-        library: "Feather",
-        route: "/(tabs)/explore",
-      },
-      {
-        id: "hikes",
-        label: "My Hikes",
-        icon: "map-pin",
-        library: "Feather",
-        route: "/(tabs)/hike",
-      },
-    ],
-  },
-  {
-    title: "SOCIAL",
-    items: [
-      {
-        id: "community",
-        label: "Community",
-        icon: "users",
-        library: "Feather",
-        route: "/(tabs)/community",
-      },
-      {
-        id: "messages",
-        label: "Messages",
-        icon: "message-square",
-        library: "Feather",
-        route: "/(main)/group/list",
-      },
-    ],
-  },
-];
+export interface HomeSidebarProps {
+  activeTab?: string;
+  pendingCount?: number;
+  onTabPress?: (tab: string) => void;
+  isMobileDrawer?: boolean;
+  onCloseMobileDrawer?: () => void;
+}
 
-export const HomeSidebar = () => {
+export const HomeSidebar = ({
+  pendingCount = 0,
+  onTabPress,
+  isMobileDrawer = false,
+  onCloseMobileDrawer,
+}: HomeSidebarProps = {}) => {
   const pathname = usePathname();
   const segments = useSegments();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const profile = useAuthStore((s) => s.profile);
+  const { profile, role } = useAuthHook();
+  const userRole = role || profile?.role;
+
   const fullName = profile
     ? `${profile.firstname || ""} ${profile.lastname || ""}`.trim()
     : "";
   const displayName = fullName || profile?.username || "Hiker";
   const initials = getInitials(displayName !== "Hiker" ? displayName : "TH");
 
+  const effectiveCollapsed = isMobileDrawer ? false : isCollapsed;
+
+  const navSections: NavSection[] = [
+    {
+      title: "MENU",
+      items: [
+        {
+          id: "home",
+          label: "Home",
+          icon: "home",
+          library: "Feather",
+          route: "/(tabs)",
+        },
+        {
+          id: "explore",
+          label: "Explore Trails",
+          icon: "compass",
+          library: "Feather",
+          route: "/(tabs)/explore",
+        },
+        {
+          id: "hikes",
+          label: "My Hikes",
+          icon: "map-pin",
+          library: "Feather",
+          route: "/(tabs)/hike",
+        },
+      ],
+    },
+    {
+      title: "SOCIAL",
+      items: [
+        {
+          id: "community",
+          label: "Community",
+          icon: "users",
+          library: "Feather",
+          route: "/(tabs)/community",
+        },
+        {
+          id: "messages",
+          label: "Messages",
+          icon: "message-square",
+          library: "Feather",
+          route: "/(main)/group/list",
+        },
+      ],
+    },
+    ...(userRole === "superadmin"
+      ? [
+        {
+          title: "SUPERADMIN",
+          items: [
+            {
+              id: "superadmin-dashboard",
+              label: "Dashboard",
+              icon: "grid",
+              library: "Feather" as IconLibrary,
+              route: "/(main)/superadmin" as Href,
+            },
+            {
+              id: "application",
+              label: "Applications",
+              icon: "file-text",
+              library: "Feather" as IconLibrary,
+              route: "/(main)/superadmin/application/list" as Href,
+            },
+            {
+              id: "business",
+              label: "Tour Businesses",
+              icon: "briefcase",
+              library: "Feather" as IconLibrary,
+              route: "/(main)/superadmin/business/list" as Href,
+            },
+            {
+              id: "trail",
+              label: "Trails & Routes",
+              icon: "map",
+              library: "Feather" as IconLibrary,
+              route: "/(main)/superadmin/trail/list" as Href,
+            },
+            {
+              id: "mountain",
+              label: "Mountains Database",
+              icon: "mountain",
+              library: "FontAwesome5" as IconLibrary,
+              route: "/(main)/superadmin/mountain/list" as Href,
+            },
+            {
+              id: "user",
+              label: "User Accounts",
+              icon: "users",
+              library: "Feather" as IconLibrary,
+              route: "/(main)/superadmin/user/list" as Href,
+            },
+          ],
+        },
+      ]
+      : userRole === "admin"
+        ? [
+          {
+            title: "ADMINISTRATION",
+            items: [
+              {
+                id: "admin-dashboard",
+                label: "Dashboard",
+                icon: "grid",
+                library: "Feather" as IconLibrary,
+                route: "/(main)/admin" as Href,
+              },
+              {
+                id: "offer",
+                label: "Tour Offers",
+                icon: "tag",
+                library: "Feather" as IconLibrary,
+                route: "/(main)/admin/offer/list" as Href,
+              },
+              {
+                id: "personnel",
+                label: "Personnel",
+                icon: "user-check",
+                library: "Feather" as IconLibrary,
+                route: "/(main)/admin/personnel/list" as Href,
+              },
+              {
+                id: "trail",
+                label: "Trails & Routes",
+                icon: "map",
+                library: "Feather" as IconLibrary,
+                route: "/(main)/superadmin/trail/list" as Href,
+              },
+            ],
+          },
+        ]
+        : []),
+
+  ];
+
   const isItemActive = (route: Href) => {
-    const routeStr = String(route);
+    const routeStr = String(route).toLowerCase();
     const currentPath = (pathname || "").toLowerCase();
     const segs = (segments as string[]).map((s) => s.toLowerCase());
 
@@ -99,34 +204,90 @@ export const HomeSidebar = () => {
       );
     }
 
+    if (routeStr === "/(main)/superadmin") {
+      return (
+        (currentPath === "/(main)/superadmin" ||
+          currentPath === "/superadmin" ||
+          (segs.includes("superadmin") && segs.length <= 2)) &&
+        !currentPath.includes("application") &&
+        !currentPath.includes("business") &&
+        !currentPath.includes("trail") &&
+        !currentPath.includes("mountain") &&
+        !currentPath.includes("user")
+      );
+    }
+
+    if (routeStr === "/(main)/admin") {
+      return (
+        (currentPath === "/(main)/admin" ||
+          currentPath === "/admin" ||
+          (segs.includes("admin") && segs.length <= 2)) &&
+        !currentPath.includes("offer") &&
+        !currentPath.includes("personnel") &&
+        !currentPath.includes("booking")
+      );
+    }
+
     const keyword = routeStr
       .replace("/(tabs)/", "")
       .replace("/(main)/", "")
+      .replace("/list", "")
+      .replace("superadmin/", "")
+      .replace("admin/", "")
       .replace("/", "");
+
     return currentPath.includes(keyword) || segs.includes(keyword);
   };
 
   const isProfileActive = (pathname || "").toLowerCase().includes("profile");
 
+  const handleItemPress = (item: NavItemConfig) => {
+    if (isMobileDrawer && onCloseMobileDrawer) {
+      onCloseMobileDrawer();
+      setTimeout(() => {
+        if (onTabPress) {
+          onTabPress(item.id);
+        } else {
+          router.push(item.route);
+        }
+      }, 100);
+    } else {
+      if (onTabPress) {
+        onTabPress(item.id);
+      } else {
+        router.push(item.route);
+      }
+    }
+  };
+
   return (
-    <View style={[styles.sidebar, isCollapsed && styles.sidebarCollapsed]}>
-      {/* Top Header: Explorer Profile Card + Minimize Button */}
+    <View
+      style={[
+        styles.sidebar,
+        effectiveCollapsed && styles.sidebarCollapsed,
+        isMobileDrawer && styles.sidebarMobile,
+      ]}
+    >
+      {/* Top Header: Profile Card + Minimize Button */}
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={[
             styles.profileHeaderRow,
             isProfileActive && styles.profileHeaderRowActive,
-            isCollapsed && styles.profileHeaderRowCollapsed,
+            effectiveCollapsed && styles.profileHeaderRowCollapsed,
           ]}
-          onPress={() => router.push("/(tabs)/profile")}
+          onPress={() => {
+            if (isMobileDrawer && onCloseMobileDrawer) onCloseMobileDrawer();
+            router.push("/(tabs)/profile");
+          }}
           activeOpacity={0.7}
         >
-          {/* Avatar Circle ("ZO") */}
+          {/* Avatar Circle */}
           <View style={styles.avatarCircle}>
             <CustomText style={styles.avatarText}>{initials}</CustomText>
           </View>
 
-          {!isCollapsed && (
+          {!effectiveCollapsed && (
             <View style={styles.profileTextWrapper}>
               <CustomText
                 variant="body"
@@ -143,14 +304,18 @@ export const HomeSidebar = () => {
                 style={styles.profileRole}
                 numberOfLines={1}
               >
-                Explorer
+                {userRole === "superadmin"
+                  ? "Superadmin"
+                  : userRole === "admin"
+                    ? "Admin"
+                    : "Explorer"}
               </CustomText>
             </View>
           )}
         </TouchableOpacity>
 
         {/* Desktop Minimize Toggle Button (Expanded state) */}
-        {!isCollapsed && (
+        {!isMobileDrawer && !effectiveCollapsed && (
           <TouchableOpacity
             style={styles.minimizeBtn}
             onPress={() => setIsCollapsed(!isCollapsed)}
@@ -167,7 +332,7 @@ export const HomeSidebar = () => {
       </View>
 
       {/* Minimize Toggle Button (Collapsed state) */}
-      {isCollapsed && (
+      {!isMobileDrawer && effectiveCollapsed && (
         <View style={styles.minimizeCollapsedWrapper}>
           <TouchableOpacity
             style={styles.minimizeBtn}
@@ -186,9 +351,9 @@ export const HomeSidebar = () => {
 
       {/* Navigation Links */}
       <View style={styles.navList}>
-        {NAV_SECTIONS.map((section, sIndex) => (
+        {navSections.map((section, sIndex) => (
           <View key={section.title || sIndex} style={styles.sectionGroup}>
-            {!isCollapsed && section.title && (
+            {!effectiveCollapsed && section.title && (
               <View style={styles.sectionHeaderContainer}>
                 <CustomText variant="caption" style={styles.sectionTitleText}>
                   {section.title}
@@ -198,6 +363,8 @@ export const HomeSidebar = () => {
 
             {section.items.map((item) => {
               const isActive = isItemActive(item.route);
+              const isAppTab = item.id === "application";
+              const showBadge = isAppTab && pendingCount > 0;
 
               return (
                 <TouchableOpacity
@@ -205,9 +372,9 @@ export const HomeSidebar = () => {
                   style={[
                     styles.navItem,
                     isActive && styles.navItemActive,
-                    isCollapsed && styles.navItemCollapsed,
+                    effectiveCollapsed && styles.navItemCollapsed,
                   ]}
-                  onPress={() => router.push(item.route)}
+                  onPress={() => handleItemPress(item)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.navIconWrapper}>
@@ -219,7 +386,7 @@ export const HomeSidebar = () => {
                     />
                   </View>
 
-                  {!isCollapsed && (
+                  {!effectiveCollapsed && (
                     <CustomText
                       variant="body"
                       style={[
@@ -231,6 +398,14 @@ export const HomeSidebar = () => {
                       {item.label}
                     </CustomText>
                   )}
+
+                  {!effectiveCollapsed && showBadge && (
+                    <View style={styles.badgeContainer}>
+                      <CustomText style={styles.badgeText}>
+                        {pendingCount}
+                      </CustomText>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -240,6 +415,8 @@ export const HomeSidebar = () => {
     </View>
   );
 };
+
+export default HomeSidebar;
 
 const styles = StyleSheet.create({
   sidebar: {
@@ -251,6 +428,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 16,
     ...GlobalStyles.dropShadow(1),
+  },
+  sidebarMobile: {
+    width: "100%",
+    borderRightWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   sidebarCollapsed: {
     width: 68,
@@ -360,11 +543,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.TEXT_SECONDARY,
     fontWeight: "500",
+    flex: 1,
   },
   navLabelActive: {
     color: Colors.PRIMARY,
     fontWeight: "bold",
   },
+  badgeContainer: {
+    marginLeft: "auto",
+    backgroundColor: Colors.ERROR,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: Colors.WHITE,
+    fontSize: 10,
+    fontWeight: "700",
+  },
 });
-
-export default HomeSidebar;

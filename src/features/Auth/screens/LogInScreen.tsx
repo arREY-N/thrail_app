@@ -50,13 +50,13 @@ export interface LogInScreenProps {
 /**
  * Screen component that renders the Log In interface.
  */
-const LogInScreen: React.FC<LogInScreenProps> = ({ 
-    onLogInPress, 
-    onSignUpPress, 
-    onBackPress, 
-    onForgotPasswordPress, 
+const LogInScreen: React.FC<LogInScreenProps> = ({
+    onLogInPress,
+    onSignUpPress,
+    onBackPress,
+    onForgotPasswordPress,
     onRememberMePress,
-    onGmailLogIn, 
+    onGmailLogIn,
     onTermsPress,
     onPrivacyPress,
     error,

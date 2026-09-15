@@ -23,6 +23,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { formatDate } from '@/src/core/utility/date';
+import { HomeSidebar } from '@/src/features/Web/Home/HomePageNavBar';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
@@ -255,87 +256,104 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader 
-                title="Admin Dashboard" 
-                centerTitle={true}
-                onBackPress={onBackPress} 
-            />
+            <View style={styles.shellOuter}>
+                {isWideScreen && <HomeSidebar />}
 
-            {isLoading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
-                </View>
-            ) : error ? (
-                <View style={styles.errorContainer}>
-                    <View style={styles.errorCard}>
-                        <View style={styles.iconOuter}>
-                            <View style={styles.iconInner}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="alert-triangle"
-                                    size={44}
-                                    color={Colors.ERROR}
-                                />
-                            </View>
+                <View style={styles.mainCanvas}>
+                    <CustomHeader 
+                        title="Admin Dashboard" 
+                        centerTitle={true}
+                        onBackPress={onBackPress} 
+                    />
+
+                    {isLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color={Colors.PRIMARY} />
                         </View>
+                    ) : error ? (
+                        <View style={styles.errorContainer}>
+                            <View style={styles.errorCard}>
+                                <View style={styles.iconOuter}>
+                                    <View style={styles.iconInner}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="alert-triangle"
+                                            size={44}
+                                            color={Colors.ERROR}
+                                        />
+                                    </View>
+                                </View>
 
-                        <CustomText variant="title" style={styles.errorTitle}>
-                            Loading Failed
-                        </CustomText>
+                                <CustomText variant="title" style={styles.errorTitle}>
+                                    Loading Failed
+                                </CustomText>
 
-                        <CustomText variant="body" style={styles.errorMessage}>
-                            Failed to retrieve dashboard configurations. Please check your network connection and try again.
-                            {"\n\n"}
-                            <CustomText style={{ color: Colors.ERROR, fontWeight: '600' }}>
-                                {error}
-                            </CustomText>
-                        </CustomText>
+                                <CustomText variant="body" style={styles.errorMessage}>
+                                    Failed to retrieve dashboard configurations. Please check your network connection and try again.
+                                    {"\n\n"}
+                                    <CustomText style={{ color: Colors.ERROR, fontWeight: '600' }}>
+                                        {error}
+                                    </CustomText>
+                                </CustomText>
 
-                        {onRetryPress && (
-                            <View style={styles.errorButtonContainer}>
-                                <CustomButton
-                                    title="Try Again"
-                                    onPress={onRetryPress}
-                                    variant="primary"
-                                />
-                            </View>
-                        )}
-                    </View>
-                </View>
-            ) : (
-                <ResponsiveScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[
-                        styles.scrollContent,
-                        isWideScreen ? styles.scrollContentWide : styles.scrollContentMobile
-                    ]}
-                >
-                    {isWideScreen ? (
-                        <View style={styles.desktopColumns}>
-                            <View style={styles.columnWide}>
-                                {renderBusinessCard()}
-                            </View>
-                            <View style={styles.columnWide}>
-                                {renderAdminCard()}
+                                {onRetryPress && (
+                                    <View style={styles.errorButtonContainer}>
+                                        <CustomButton
+                                            title="Try Again"
+                                            onPress={onRetryPress}
+                                            variant="primary"
+                                        />
+                                    </View>
+                                )}
                             </View>
                         </View>
                     ) : (
-                        <View style={styles.mobileStack}>
-                            {renderBusinessCard()}
-                            {renderAdminCard()}
-                        </View>
+                        <ResponsiveScrollView 
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={[
+                                styles.scrollContent,
+                                isWideScreen ? styles.scrollContentWide : styles.scrollContentMobile
+                            ]}
+                        >
+                            {isWideScreen ? (
+                                <View style={styles.desktopColumns}>
+                                    <View style={styles.columnWide}>
+                                        {renderBusinessCard()}
+                                    </View>
+                                    <View style={styles.columnWide}>
+                                        {renderAdminCard()}
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.mobileStack}>
+                                    {renderBusinessCard()}
+                                    {renderAdminCard()}
+                                </View>
+                            )}
+
+                            {isWideScreen && renderQuickActions()}
+                        </ResponsiveScrollView>
                     )}
 
-                    {isWideScreen && renderQuickActions()}
-                </ResponsiveScrollView>
-            )}
-
-            {!isLoading && !error && !isWideScreen && renderMobileStickyActions()}
+                    {!isLoading && !error && !isWideScreen && renderMobileStickyActions()}
+                </View>
+            </View>
         </ScreenWrapper>
     );
 };
 
 const styles = StyleSheet.create({
+    shellOuter: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: Colors.BACKGROUND,
+        height: '100%',
+    },
+    mainCanvas: {
+        flex: 1,
+        height: '100%',
+        width: '100%',
+    },
     scrollContent: { 
         paddingTop: 16,
         paddingHorizontal: 16, 
