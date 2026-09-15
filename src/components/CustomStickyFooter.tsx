@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
+import {
     GestureResponderEvent,
     StyleProp,
-    StyleSheet, 
+    StyleSheet,
     TextStyle,
     View,
     ViewStyle
@@ -10,8 +10,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
-import { Colors } from '@/src/constants/colors';
-import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 
 interface FooterButtonConfig {
@@ -30,20 +28,33 @@ interface CustomStickyFooterProps {
     primaryButton?: FooterButtonConfig;
     secondaryButton?: FooterButtonConfig;
     layout?: 'row' | 'column';
+    style?: StyleProp<ViewStyle>;
 }
+
+/**
+ * Calculates the exact scroll container paddingBottom needed so content 
+ * is not obscured by CustomStickyFooter when scrolled to the very bottom.
+ * 
+ * - Web Desktop: 96px (86px footer + 10px breathing room)
+ * - Mobile: Math.max(bottomInset + 102, 120) (~136px with 34px gesture bar)
+ */
+export const getStickyFooterScrollPadding = (bottomInset: number = 0, isMobile: boolean = false): number => {
+    return isMobile ? Math.max(bottomInset + 102, 120) : 96;
+};
 
 const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ 
     primaryButton, 
     secondaryButton,
-    layout = 'row'
+    layout = 'row',
+    style,
 }) => {
     const insets = useSafeAreaInsets();
-    const safeBottomPadding = Math.max(insets.bottom, 16);
+    const safeBottomPadding = Math.max(insets.bottom + 16, 16);
 
     if (!primaryButton) return null;
 
     return (
-        <View style={[styles.footer, { paddingBottom: safeBottomPadding }]}>
+        <View style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}>
             {secondaryButton ? (
                 layout === 'column' ? (
                     <View style={styles.buttonColumn}>
@@ -109,17 +120,17 @@ const styles = StyleSheet.create({
         alignSelf: 'center', 
         width: '100%',
         maxWidth: Layout.MAX_WIDTH,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: 'transparent',
         paddingHorizontal: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_LIGHT,
+        borderTopColor: 'transparent',
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
-        ...GlobalStyles.dropShadow(10, 0.1, Colors.SHADOW, {
-            offset: { width: 0, height: -4 },
-            radius: 4
-        }), 
+        // ...GlobalStyles.dropShadow(10, 0.1, Colors.SHADOW, {
+        //     offset: { width: 0, height: -4 },
+        //     radius: 4
+        // }), 
     },
     buttonRow: { 
         flexDirection: 'row', 
