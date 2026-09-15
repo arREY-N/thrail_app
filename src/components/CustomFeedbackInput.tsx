@@ -68,24 +68,36 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     // Enable drag-to-scroll functionality on web platforms
     useWebDragScroll(scrollRef, suggestions.length > 0);
 
-    const handleSuggestionPress = (suggestion: string): void => {
-        const currentText = value || '';
-        const lines = currentText.split('\n');
+    const activeLines = (value || '')
+        .split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0);
 
-        const isCurrentlyActive = lines.some((line: string) => line.trim() === suggestion);
+    const handleSuggestionPress = (suggestion: string): void => {
+        const trimmedSuggestion = suggestion.trim();
+        const isCurrentlyActive = activeLines.includes(trimmedSuggestion);
 
         if (isCurrentlyActive) {
-            const newLines = lines.filter((line: string) => line.trim() !== suggestion);
-            onChangeText(newLines.join('\n'));
+            const newLines = activeLines.filter((line: string) => line !== trimmedSuggestion);
+            onChangeText(newLines.length > 0 ? newLines.join('\n') : '');
         } else {
-            let newLines = [...lines];
-            
-            if (newLines.length > 0 && newLines[newLines.length - 1].trim() === '') {
-                newLines.pop();
-            }
+            const newLines = [...activeLines, trimmedSuggestion];
+            onChangeText(newLines.join('\n'));
+        }
+    };
 
-            newLines.push(suggestion);
-            onChangeText(newLines.join('\n') + '\n');
+    const handleTextBlur = (): void => {
+        const raw = value || '';
+        const cleaned = raw
+            .split('\n')
+            .map((line: string) => line.trim())
+            .filter((line: string) => line.length > 0)
+            .join('\n');
+
+        if (cleaned !== raw) {
+            onChangeText(cleaned);
+        } else if (raw.trim() === '') {
+            onChangeText('');
         }
     };
 
@@ -108,7 +120,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                         {...scrollProps}
                     >
                         {suggestions.map((item: string, index: number) => {
-                            const isActive = (value || '').includes(item);
+                            const isActive = activeLines.includes(item.trim());
 
                             return (
                                 <TouchableOpacity 
@@ -159,6 +171,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                 placeholder={placeholder}
                 value={value}
                 onChangeText={onChangeText}
+                onBlur={handleTextBlur}
                 multiline={true}
                 numberOfLines={4}
                 inputStyle={styles.textArea}
@@ -188,10 +201,8 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     label: {
-        marginBottom: 10,
+        marginBottom: 8,
         marginLeft: 2,
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: 'bold',
     },
     scrollWrapper: {
         position: 'relative',
