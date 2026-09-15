@@ -6,10 +6,11 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 export interface AdminBookingCardProps {
-    booking: any;
+    booking: Booking;
     offerId: string;
     onViewBooking: (bookingId: string, offerId: string) => void;
     isOfferLocked?: boolean;
@@ -24,12 +25,12 @@ const AdminBookingCard = ({
     onViewBooking,
     isOfferLocked = false
 }: AdminBookingCardProps) => {
-    const hasRefundedPayment = booking?.payment?.some((p: any) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded');
     const displayStatus = hasRefundedPayment ? 'refunded' : booking.status;
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
     
-    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'pending-docs', 'downpayment', 'paid'].includes(displayStatus);
+    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'pending-docs', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule'].includes(displayStatus);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';

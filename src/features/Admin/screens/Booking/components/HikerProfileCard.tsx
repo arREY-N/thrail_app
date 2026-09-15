@@ -17,8 +17,10 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking, IUserBooking } from '@/src/core/models/Booking/Booking';
 import { User } from '@/src/core/models/User/User';
+import { getVerificationBadgeConfig } from '@/src/features/Admin/utils/reviewMessages';
 import { calculateAge, formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -45,6 +47,8 @@ export interface HikerProfileCardProps {
     emergencyStatus: 'verified' | 'expired' | 'unverified';
     personalMonthsRemaining: number;
     emergencyMonthsRemaining: number;
+    personalVerifiedAt?: Date | null;
+    emergencyVerifiedAt?: Date | null;
     onTogglePersonalVerify: () => void;
     onToggleEmergencyVerify: () => void;
     statusText?: string;
@@ -64,6 +68,8 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     emergencyStatus,
     personalMonthsRemaining,
     emergencyMonthsRemaining,
+    personalVerifiedAt,
+    emergencyVerifiedAt,
     onTogglePersonalVerify, 
     onToggleEmergencyVerify,
     statusText,
@@ -86,6 +92,13 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
             medicalBadgeText = "Medical Info";
         }
     }
+
+    const hikerExpiryText = personalStatus === 'verified'
+        ? formatVerificationExpiry(personalVerifiedAt ?? user?.phoneVerifiedAt ?? hikerProfile?.phoneVerifiedAt)
+        : null;
+    const emergencyExpiryText = emergencyStatus === 'verified'
+        ? formatVerificationExpiry(emergencyVerifiedAt ?? emergencyContact?.phoneVerifiedAt)
+        : null;
 
     // ConfirmationModal States for Phone Verification
     const [confirmVerifyVisible, setConfirmVerifyVisible] = useState(false);
@@ -168,37 +181,32 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
 
     const renderVerifyButton = (
         status: 'verified' | 'expired' | 'unverified', 
+        monthsRemaining: number,
         onToggle: () => void
     ) => {
-        let btnStyle: any = styles.verifyBtn;
-        let textStyle: any = styles.verifyBtnText;
-        let iconName: 'circle' | 'check-circle' | 'alert-octagon' = 'circle';
-        let iconColor = Colors.TEXT_SECONDARY;
-        let label = "Verify";
-
-        if (status === 'verified') {
-            btnStyle = [styles.verifyBtn, styles.verifyBtnActive];
-            textStyle = [styles.verifyBtnText, { color: Colors.PRIMARY }];
-            iconName = 'check-circle';
-            iconColor = Colors.PRIMARY;
-            label = "Verified";
-        } else if (status === 'expired') {
-            btnStyle = [styles.verifyBtn, styles.verifyBtnExpired];
-            textStyle = [styles.verifyBtnText, { color: Colors.VERIFICATION_EXPIRED_TEXT }];
-            iconName = 'alert-octagon';
-            iconColor = Colors.VERIFICATION_EXPIRED_TEXT;
-            label = "Expired";
-        }
+        const config = getVerificationBadgeConfig(status, monthsRemaining);
 
         return (
-            <TouchableOpacity style={btnStyle} onPress={onToggle} activeOpacity={0.7}>
+            <TouchableOpacity 
+                style={[
+                    styles.verifyBtn,
+                    {
+                        backgroundColor: config.backgroundColor,
+                        borderColor: config.borderColor,
+                    }
+                ]} 
+                onPress={onToggle} 
+                activeOpacity={0.7}
+            >
                 <CustomIcon 
                     library="Feather" 
-                    name={iconName} 
+                    name={config.iconName} 
                     size={14} 
-                    color={iconColor} 
+                    color={config.iconColor} 
                 />
-                <CustomText style={textStyle}>{label}</CustomText>
+                <CustomText style={[styles.verifyBtnText, { color: config.textColor }]}>
+                    {config.label}
+                </CustomText>
             </TouchableOpacity>
         );
     };
@@ -354,6 +362,11 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                             <View style={styles.contactLeft}>
                                 <CustomText style={styles.contactLabel}>Hiker Phone Number</CustomText>
                                 <CustomText style={styles.contactNumber}>{userPhone}</CustomText>
+                                {hikerExpiryText && (
+                                    <CustomText style={styles.contactExpiryText}>
+                                        {hikerExpiryText}
+                                    </CustomText>
+                                )}
                             </View>
                             <View style={styles.contactActions}>
                                 <TouchableOpacity 
@@ -363,7 +376,7 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                                 >
                                     <CustomIcon library="Feather" name="phone" size={14} color={Colors.PRIMARY} />
                                 </TouchableOpacity>
-                                {renderVerifyButton(personalStatus, () => handleVerifyPress('personal', personalStatus, onTogglePersonalVerify))}
+                                {renderVerifyButton(personalStatus, personalMonthsRemaining, () => handleVerifyPress('personal', personalStatus, onTogglePersonalVerify))}
                             </View>
                         </View>
                     )}
@@ -376,6 +389,11 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                                     {emergencyContact.contactNumber}
                                     <CustomText style={styles.contactNameInline}> ({emergencyContact.name})</CustomText>
                                 </CustomText>
+                                {emergencyExpiryText && (
+                                    <CustomText style={styles.contactExpiryText}>
+                                        {emergencyExpiryText}
+                                    </CustomText>
+                                )}
                             </View>
                             <View style={styles.contactActions}>
                                 <TouchableOpacity 
@@ -385,7 +403,7 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                                 >
                                     <CustomIcon library="Feather" name="phone" size={14} color={Colors.PRIMARY} />
                                 </TouchableOpacity>
-                                {renderVerifyButton(emergencyStatus, () => handleVerifyPress('emergency', emergencyStatus, onToggleEmergencyVerify))}
+                                {renderVerifyButton(emergencyStatus, emergencyMonthsRemaining, () => handleVerifyPress('emergency', emergencyStatus, onToggleEmergencyVerify))}
                             </View>
                         </View>
                     )}
@@ -528,6 +546,15 @@ const styles = StyleSheet.create({
         fontSize: 11, 
         fontWeight: 'bold' 
     },
+    verifyButtonWrapper: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+    },
+    verifySubtext: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
     contactRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -551,6 +578,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.TEXT_PRIMARY,
     },
+    contactExpiryText: {
+        fontSize: 11,
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        marginTop: -8,
+    },
     contactNameInline: {
         fontSize: 13,
         color: Colors.TEXT_SECONDARY,
@@ -560,6 +593,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         alignItems: 'center',
+        marginTop: 8,
     },
     callCircleButton: {
         width: 32,

@@ -5,10 +5,18 @@
 
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, StyleSheet, View } from "react-native";
+import {
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    StyleSheet,
+    View
+} from "react-native";
 
 import CustomFAB from "@/src/components/CustomFAB";
-import CustomFilterModal from "@/src/components/CustomFilterModal";
+import CustomFilterModal, { FilterValue } from "@/src/components/CustomFilterModal";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
@@ -48,7 +56,7 @@ export interface ExploreScreenProps {
 /**
  * Interface defining the active filters state.
  */
-interface ActiveFilters {
+interface ActiveFilters extends Record<string, FilterValue> {
     provinces: string[];
     elevation: string | null;
 }
@@ -101,7 +109,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
         outputRange: [-260, 0], // Fully slide header off-screen vertically
     });
 
-    const handleScroll = useCallback((event: any) => {
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const currentOffsetY = event.nativeEvent.contentOffset.y;
         if (currentOffsetY <= 0) {
             setHeaderVisible(true);
@@ -281,7 +289,10 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     sections={filterSections}
                     initialValues={activeFilters}
                     defaultValues={{ provinces: [], elevation: null }}
-                    onApply={(values) => setActiveFilters(values as ActiveFilters)}
+                    onApply={(values) => setActiveFilters({
+                        provinces: Array.isArray(values.provinces) ? (values.provinces as string[]) : [],
+                        elevation: typeof values.elevation === 'string' ? values.elevation : null,
+                    })}
                 />
 
                 <CustomFAB onPress={onGroupPress} />

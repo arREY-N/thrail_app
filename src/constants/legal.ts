@@ -87,3 +87,23 @@ Depending on your location, you may have certain rights regarding your personal 
 We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date of this Privacy Policy. You are advised to review this Privacy Policy periodically for any changes.
 
 [End of Privacy]`;
+
+export const BOOKING_TERMS_TEXT = `[BOOKING & ORGANIZER POLICIES]
+
+Last Updated: March 2026
+
+1. TOUR RESERVATION & ORGANIZER CONDUCT
+By booking a hike, guide, or tour package through Thrail, you enter into a direct service agreement with the verified Tour Organizer / Mountain Guide. You agree to follow all safety guidelines, gear requirements, leave-no-trace environmental rules, and trail etiquette set forth by the Tour Organizer and the local Department of Environment and Natural Resources (DENR) or Local Government Unit (LGU).
+
+2. CANCELLATION, RESCHEDULING & REFUND POLICY
+- Hiker Cancellation: Cancellations made at least 72 hours prior to the scheduled departure time are eligible for a refund or booking credit based on the Tour Organizer's specific cancellation tier. Cancellations within 72 hours of departure are non-refundable.
+- Weather Disruptions & Force Majeure: If a hike is cancelled or postponed due to severe weather advisories, tropical storm signals, landslides, or official trail closures by local authorities, the Organizer reserves the right to reschedule the hike for your safety. Rescheduled dates or event vouchers will be coordinated directly by the Organizer.
+- No-Show Policy: Failure to arrive at the designated meeting point on or before the departure cutoff time will result in forfeiture of the reservation without refund.
+
+3. WAIVER OF LIABILITY & MEDICAL CERTIFICATION
+You certify that you are in good physical and mental health to participate in the selected hike. You acknowledge that hiking in mountainous terrain carries inherent physical risks. You agree that Thrail, the Tour Organizer, and assigned guides shall not be held liable for personal injury, property loss, or unforeseen environmental hazards during the hike.
+
+4. MINOR PARTICIPATION & GUARDIAN OBLIGATIONS
+For participants under 18 years of age, a legal parent or guardian must provide a valid government-issued ID, submit emergency contact information, and digitally sign the guardian waiver. The parent or legal guardian assumes full legal responsibility for the minor's safety, physical readiness, and conduct throughout the event.
+
+[End of Booking Policies]`;

@@ -1,5 +1,6 @@
-
 import LoadingScreen from "@/src/app/loading";
+import { MaintenanceScreen } from "@/src/app/maintenance";
+import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/models/User/User";
 import {
 	AntDesign,
@@ -11,14 +12,12 @@ import {
 } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import { MaintenanceScreen } from "@/src/app/maintenance";
-import useMaintenance from "@/src/core/hook/useMaintenance";
-import * as WebBrowser from "expo-web-browser";
-
+// Complete authentication session in web browser
 WebBrowser.maybeCompleteAuthSession();
 
 // Prevent splash screen auto-hide at module load time
@@ -49,7 +48,7 @@ export default function RootLayout() {
 		const unsub = initialize();
 
 		return () => {
-			if (unsub) unsub()
+			if (unsub) unsub();
 		};
 	}, [initialize]);
 
@@ -59,7 +58,11 @@ export default function RootLayout() {
 		}
 	}, [fontsLoaded, fontError]);
 
-	if (!checked) {
+	if (!fontsLoaded && !fontError) {
+		return null;
+	}
+
+	if (!checked || isLoading) {
 		return (
 			<GestureHandlerRootView style={{ flex: 1 }}>
 				<LoadingScreen />
@@ -74,8 +77,6 @@ export default function RootLayout() {
 			</GestureHandlerRootView>
 		);
 	}
-
-	if (isLoading) return <LoadingScreen />
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>

@@ -1,16 +1,24 @@
+import { useSuperadmin } from '@/src/core/models/Superadmin/Superadmin';
 
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 
+interface SuperadminApproveController {
+    application?: Record<string, string>;
+    applicationLoading: boolean;
+    onApproveApplicationPress: (data: Record<string, string>) => void;
+    onRejectApplicationPress?: () => void;
+}
+
 export default function ApproveBusiness() {
-    // const {
-    //     application,
-    //     isLoading,
-    //     onApproveApplication,
-    //     onRejectApplication
-    // } = useApplication();
+    const {
+        application = {},
+        applicationLoading,
+        onApproveApplicationPress,
+        onRejectApplicationPress = () => {}
+    } = useSuperadmin({ role: null }) as unknown as SuperadminApproveController;
 
     const { onBackPress } = useAppNavigation();
 
@@ -29,7 +37,7 @@ export default function ApproveBusiness() {
                 onRejectApplicationPress={onRejectApplicationPress}
             /> */}
         </ScreenWrapper>
-    )
+    );
 }
 
 // const TESTAPPLICATIONAPPROVE = ({
@@ -65,12 +73,12 @@ export default function ApproveBusiness() {
 //                     <Pressable onPress={() => onRejectApplicationPress()}>
 //                         <Text>Reject Request</Text>
 //                     </Pressable>
-
+// 
 //                     <CustomTextInput
 //                         label={'Why is the application rejected?'}
 //                         placeholder={'Missing documents, incomplete information, etc.'}
 //                         value={application.message || ''}
-//                         onChangeText={(text) => console.log(text)}
+//                         onChangeText={(text: string) => console.log(text)}
 //                     />
 //                 </View>
 //             </View>

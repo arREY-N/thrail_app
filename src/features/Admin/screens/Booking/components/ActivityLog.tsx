@@ -47,7 +47,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
     const timelineEvents: TimelineEvent[] = [];
 
     // Helper to build dates
-    const getEventDate = (dateObj: any) => dateObj ? new Date(dateObj) : new Date();
+    const getEventDate = (dateObj: unknown) => {
+        if (!dateObj) return new Date();
+        if (dateObj instanceof Date) return dateObj;
+        if (typeof dateObj === 'object' && dateObj !== null && 'toDate' in dateObj && typeof (dateObj as { toDate: () => Date }).toDate === 'function') {
+            return (dateObj as { toDate: () => Date }).toDate();
+        }
+        return new Date(dateObj as string | number);
+    };
 
     // 1. Booking Initiated
     if (booking.createdAt) {
@@ -188,14 +195,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
     }
 
     // 6. Explicit Refund Status
-    if (booking.status === 'refund') {
+    if (booking.status === 'refund' || booking.status === 'refunded') {
         timelineEvents.push({
             title: "Booking Refunded",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
             desc: "Booking has been explicitly refunded by the admin.",
             reason: booking.cancellationReason || undefined,
-            status: getStatusConfig('refund', 'admin').label,
-            color: getStatusThemeColor('refund'),
+            status: getStatusConfig(booking.status, 'admin').label,
+            color: getStatusThemeColor(booking.status),
             sortDate: getEventDate(booking.updatedAt)
         });
     }

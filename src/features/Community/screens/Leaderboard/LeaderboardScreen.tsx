@@ -150,7 +150,7 @@ const LeaderboardScreen = ({
                             Loading Rankings...
                         </CustomText>
                     </View>
-                ) : topThree.length === 0 ? (
+                ) : restOfList.length === 0 && topThree.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <CustomIcon
                             library="MaterialCommunityIcons"
@@ -245,6 +245,7 @@ const LeaderboardScreen = ({
                 visible={showResetToast}
                 onHide={() => setShowResetToast(false)}
                 type="info"
+                position="sticky_footer"
             />
         </ScreenWrapper>
     );

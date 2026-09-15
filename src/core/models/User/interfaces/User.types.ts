@@ -51,7 +51,7 @@ export interface IUserBase<T> extends IUserSummary {
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;
     profileImage: string;
-    phoneVerifiedAt: T
+    phoneVerifiedAt?: T | null;
 }
 
 export type IUserDB = IUserBase<Timestamp | FieldValue>;

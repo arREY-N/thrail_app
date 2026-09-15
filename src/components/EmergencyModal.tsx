@@ -1,3 +1,8 @@
+/**
+ * @file EmergencyModal.tsx
+ * @description Modal bottom-sheet for configuring and searching emergency contacts with support for unified contact editing.
+ */
+
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -14,12 +19,12 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextInput';
+import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { EmergencyContactFlow } from '@/src/core/flows/EmergencyContactFlow';
-import { useAuthStore } from '@/src/core/models/User/stores/authStore';
+import { calculateVerificationValidity } from '@/src/core/flows/PhoneVerificationFlow';
+import { User, IEmergencyContact } from '@/src/core/models/User/User';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,7 +33,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 /**
  * Props for the EmergencyModal component.
  */
-interface EmergencyModalProps {
+export interface EmergencyModalProps {
     /** Whether the modal is visible */
     visible: boolean;
     /** Callback fired when the modal is requested to close */
@@ -37,8 +42,22 @@ interface EmergencyModalProps {
     mode?: 'emergency_only' | 'unified';
     /** The initial phone number of the current user (if in unified mode) */
     initialUserPhone?: string;
+    /** The initial emergency contact model (if in unified mode) */
+    initialEmergencyContact?: IEmergencyContact | null;
+    /** The authenticated user profile passed from caller */
+    currentUserProfile?: User | null;
+    /** Async function to search users by email */
+    onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
+    /** Async function to persist emergency contact in emergency_only mode */
+    onSaveEmergencyContact?: (contact: IEmergencyContact, linkedUser?: User | UserSearchResult | null) => Promise<boolean>;
     /** Callback fired to save the user's local phone number */
     onSaveLocalPhone?: (phone: string) => void;
+    /** Callback fired in unified booking mode to apply contact changes locally without immediate DB writes */
+    onSaveUnifiedContacts?: (data: {
+        phone: string;
+        emergencyContact: IEmergencyContact;
+        linkedUser?: User | UserSearchResult | null;
+    }) => void;
     /** Callback fired when the user chooses to skip setup */
     onSkip?: () => void;
 }
@@ -46,32 +65,38 @@ interface EmergencyModalProps {
 /**
  * Interface representing a user search result for emergency contact.
  */
-interface UserSearchResult {
+export interface UserSearchResult {
     id: string;
     email: string;
     firstname?: string;
     lastname?: string;
     phoneNumber?: string;
+    phoneVerifiedAt?: Date | null;
 }
 
 /**
  * EmergencyModal — A bottom sheet modal for users to set up or edit their
  * emergency contact information. Optionally allows editing their own phone number.
+ * 
+ * @param {EmergencyModalProps} props - Component props
+ * @returns {React.JSX.Element | null} The rendered modal component
  */
-const EmergencyModal: React.FC<EmergencyModalProps> = ({
-    visible,
-    onClose,
-    mode = 'emergency_only',
-    initialUserPhone = '',
-    onSaveLocalPhone,
-    onSkip
-}) => {
+const EmergencyModal = ({ 
+    visible, 
+    onClose, 
+    mode = 'emergency_only', 
+    initialUserPhone = '', 
+    initialEmergencyContact,
+    currentUserProfile,
+    onSearchUser,
+    onSaveEmergencyContact,
+    onSaveLocalPhone, 
+    onSaveUnifiedContacts,
+    onSkip 
+}: EmergencyModalProps): React.JSX.Element | null => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
-
-    const { profile } = useAuthStore();
-    const { findUser, setEmergencyContact, localError } = EmergencyContactFlow();
 
     const [myPhone, setMyPhone] = useState(initialUserPhone);
     const [searchEmail, setSearchEmail] = useState('');
@@ -85,7 +110,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
     const [isSaving, setIsSaving] = useState(false);
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [infoMsg, setInfoMsg] = useState<string | null>(null);
+    const [searchStatus, setSearchStatus] = useState<{ type: 'success' | 'not_found'; message: string } | null>(null);
 
     const [renderModal, setRenderModal] = useState(visible);
     if (visible && !renderModal) {
@@ -99,23 +124,28 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
         if (visible) {
             setRenderModal(true);
             
-            setMyPhone(initialUserPhone);
+            setMyPhone(initialUserPhone || formatLocalPhoneNumber(cleanPhoneNumber(currentUserProfile?.phoneNumber || '')));
             setSearchResults([]);
             setShowDropdown(false);
             setErrorMsg(null);
-            setInfoMsg(null);
+            setSearchStatus(null);
+            
+            const initEmail = initialEmergencyContact?.email ?? currentUserProfile?.emergencyContact?.email ?? '';
+            const initUserId = initialEmergencyContact?.userId ?? currentUserProfile?.emergencyContact?.userId ?? '';
+            const initName = initialEmergencyContact?.name ?? currentUserProfile?.emergencyContact?.name ?? '';
+            const initPhone = formatLocalPhoneNumber(cleanPhoneNumber(initialEmergencyContact?.contactNumber ?? currentUserProfile?.emergencyContact?.contactNumber ?? ''));
 
-            setSearchEmail(profile?.emergencyContact?.email || '');
+            setSearchEmail(initEmail);
             setSelectedUser(
-                profile?.emergencyContact?.userId
-                    ? {
-                        id: profile.emergencyContact.userId,
-                        email: profile.emergencyContact.email || ''
-                    }
+                initUserId 
+                    ? { 
+                        id: initUserId, 
+                        email: initEmail,
+                    } 
                     : null
             );
-            setContactName(profile?.emergencyContact?.name || '');
-            setContactPhone(profile?.emergencyContact?.contactNumber || '');
+            setContactName(initName);
+            setContactPhone(initPhone);
         }
     }
 
@@ -133,23 +163,20 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                 useNativeDriver: Platform.OS !== 'web',
             }).start(() => setRenderModal(false));
         }
-    }, [visible, animValue]);
+    }, [visible, initialUserPhone, initialEmergencyContact, currentUserProfile, animValue]);
 
     const handleCloseOrSkip = () => {
         setErrorMsg(null);
-        setInfoMsg(null);
-        if (mode === 'emergency_only' && onSkip) {
-            onSkip();
-        } else if (onClose) {
-            onClose();
-        }
+        setSearchStatus(null);
+        if (onSkip) onSkip();
+        if (onClose) onClose();
     };
 
     const handleEmailChange = (text: string) => {
         setSearchEmail(text);
         setShowDropdown(false);
         setErrorMsg(null);
-        setInfoMsg(null);
+        setSearchStatus(null);
 
         if (selectedUser && text.trim().toLowerCase() !== (selectedUser.email || '').toLowerCase()) {
             setSelectedUser(null);
@@ -158,12 +185,12 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
 
     const handleSearch = async () => {
         setErrorMsg(null);
-        setInfoMsg(null);
+        setSearchStatus(null);
         const cleanedSearch = searchEmail.trim().toLowerCase();
 
         if (!cleanedSearch) return;
 
-        if (cleanedSearch === profile?.email?.trim().toLowerCase()) {
+        if (cleanedSearch === currentUserProfile?.email?.trim().toLowerCase()) {
             setErrorMsg("You cannot use your own email as an emergency contact.");
             return;
         }
@@ -172,10 +199,13 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
         setShowDropdown(false);
 
         try {
-            const results = await findUser(cleanedSearch);
+            const results = onSearchUser ? await onSearchUser(cleanedSearch) : [];
 
             if (!results || results.length === 0) {
-                setInfoMsg("No Thrail account found with this email. Please provide the contact name and phone number, we will save this as an external SMS contact.");
+                setSearchStatus({
+                    type: 'not_found',
+                    message: "No Thrail account found with this email. Please provide the contact name and phone number below, we will save this as an external SMS contact."
+                });
                 setSelectedUser(null);
             } else if (results.length === 1) {
                 handleSelectUser(results[0]);
@@ -192,56 +222,108 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
 
     const handleSelectUser = (user: UserSearchResult) => {
         setSelectedUser(user);
-        setSearchEmail(user.email);
-        setContactName(`${user.firstname} ${user.lastname}`.trim());
         setShowDropdown(false);
-        setErrorMsg(null);
+        setSearchEmail(user.email);
+        
+        const fullName = `${user.firstname || ''} ${user.lastname || ''}`.trim();
+        setContactName(fullName || user.email);
 
         if (user.phoneNumber) {
-            setContactPhone(user.phoneNumber);
-            setInfoMsg(`Successfully linked to ${user.firstname}!`);
+            const validity = calculateVerificationValidity(user.phoneVerifiedAt);
+            setContactPhone(formatLocalPhoneNumber(cleanPhoneNumber(user.phoneNumber)));
+            setSearchStatus({
+                type: 'success',
+                message: validity.status === 'verified'
+                    ? `Successfully linked to ${user.firstname || 'user'}! (Verified Contact Number)` 
+                    : `Successfully linked to ${user.firstname || 'user'}!`
+            });
         } else {
             setContactPhone('');
-            setInfoMsg(`We found ${user.firstname}, but their profile is missing a phone number. Please provide it below.`);
+            setSearchStatus({
+                type: 'success',
+                message: `We found ${user.firstname || 'user'}, but their profile is missing a phone number. Please provide it below.`
+            });
         }
     };
 
     const handleSave = async () => {
         setErrorMsg(null);
-        setInfoMsg(null);
+        setSearchStatus(null);
 
         const cleanedContactName = contactName.trim();
         const cleanedContactPhone = cleanPhoneNumber(contactPhone);
         const cleanedMyPhone = cleanPhoneNumber(myPhone);
 
-        if (!cleanedContactName || !cleanedContactPhone) {
-            setErrorMsg("Please provide both the name and contact number for your emergency contact.");
-            return;
-        }
-        if (cleanedContactPhone.length < 10) {
-            setErrorMsg("Please enter a valid emergency contact phone number.");
-            return;
-        }
         if (mode === 'unified') {
             if (!cleanedMyPhone || cleanedMyPhone.length < 10) {
-                setErrorMsg("Please enter a valid phone number for yourself.");
+                setErrorMsg("Please enter your 10-digit mobile phone number.");
                 return;
             }
-            if (cleanedMyPhone === cleanedContactPhone) {
-                setErrorMsg("Your emergency contact number cannot be exactly the same as your own number.");
-                return;
+        }
+
+        if (!cleanedContactName) {
+            setErrorMsg("Please provide the full name for your emergency contact.");
+            return;
+        }
+
+        if (!cleanedContactPhone || cleanedContactPhone.length < 10) {
+            setErrorMsg("Please enter a valid 10-digit emergency contact phone number.");
+            return;
+        }
+
+        if (mode === 'unified' && cleanedMyPhone === cleanedContactPhone) {
+            setErrorMsg("Your emergency contact number cannot be the same as your own phone number.");
+            return;
+        }
+
+        if (currentUserProfile?.phoneNumber && cleanPhoneNumber(currentUserProfile.phoneNumber) === cleanedContactPhone) {
+            setErrorMsg("Your emergency contact number cannot be the same as your own phone number.");
+            return;
+        }
+
+        const isSelectedUserPhoneMatching = !!(
+            selectedUser &&
+            selectedUser.phoneNumber &&
+            cleanPhoneNumber(selectedUser.phoneNumber) === cleanedContactPhone
+        );
+
+        const isInitialContactPhoneMatching = !!(
+            initialEmergencyContact?.contactNumber &&
+            cleanPhoneNumber(initialEmergencyContact.contactNumber) === cleanedContactPhone
+        );
+
+        const resolvedPhoneVerifiedAt = isSelectedUserPhoneMatching
+            ? (selectedUser?.phoneVerifiedAt || null)
+            : (isInitialContactPhoneMatching
+                ? (initialEmergencyContact?.phoneVerifiedAt ?? null)
+                : null);
+
+        const contactPayload: IEmergencyContact = {
+            name: cleanedContactName,
+            contactNumber: cleanedContactPhone,
+            userId: selectedUser ? selectedUser.id : (isInitialContactPhoneMatching ? (initialEmergencyContact?.userId || '') : ''),
+            email: selectedUser ? selectedUser.email : (isInitialContactPhoneMatching ? (initialEmergencyContact?.email || '') : ''),
+            phoneVerifiedAt: resolvedPhoneVerifiedAt,
+        };
+
+        if (mode === 'unified' && onSaveUnifiedContacts) {
+            onSaveUnifiedContacts({
+                phone: cleanedMyPhone,
+                emergencyContact: contactPayload,
+                linkedUser: selectedUser || null,
+            });
+            if (onSaveLocalPhone) {
+                onSaveLocalPhone(cleanedMyPhone);
             }
+            if (onClose) onClose();
+            return;
         }
 
         setIsSaving(true);
-        const contactPayload = {
-            name: cleanedContactName,
-            contactNumber: cleanedContactPhone,
-            userId: selectedUser ? selectedUser.id : '',
-            email: selectedUser ? selectedUser.email : ''
-        };
-
-        const success = await setEmergencyContact(contactPayload, selectedUser as any);
+        let success = false;
+        if (onSaveEmergencyContact) {
+            success = await onSaveEmergencyContact(contactPayload, selectedUser);
+        }
         setIsSaving(false);
 
         if (success) {
@@ -250,7 +332,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
             }
             if (onClose) onClose();
         } else {
-            setErrorMsg(localError || "Failed to save. Check your connection.");
+            setErrorMsg("Failed to save emergency contact. Please try again.");
         }
     };
 
@@ -395,16 +477,22 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
                                         style={{ marginBottom: 12, width: '100%' }}
                                     />
                                 ) : null}
-                                {infoMsg ? (
-                                    <View style={styles.infoBox}>
+                                {searchStatus ? (
+                                    <View style={[
+                                        styles.infoBox,
+                                        searchStatus.type === 'not_found' ? styles.infoBoxNotFound : styles.infoBoxSuccess
+                                    ]}>
                                         <CustomIcon
                                             library="Feather"
-                                            name="info"
+                                            name={searchStatus.type === 'not_found' ? "alert-circle" : "check-circle"}
                                             size={16}
-                                            color={Colors.PRIMARY}
+                                            color={searchStatus.type === 'not_found' ? Colors.STATUS_CANCELLED_TEXT : Colors.STATUS_APPROVED_TEXT}
                                         />
-                                        <CustomText style={styles.infoText}>
-                                            {infoMsg}
+                                        <CustomText style={[
+                                            styles.infoText,
+                                            searchStatus.type === 'not_found' ? styles.infoTextNotFound : styles.infoTextSuccess
+                                        ]}>
+                                            {searchStatus.message}
                                         </CustomText>
                                     </View>
                                 ) : null}
@@ -483,7 +571,7 @@ const EmergencyModal: React.FC<EmergencyModalProps> = ({
             </KeyboardAvoidingView>
         </Modal>
     );
-}
+};
 
 const styles = StyleSheet.create({
     modalContainer: {
@@ -620,20 +708,32 @@ const styles = StyleSheet.create({
     infoBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.STATUS_APPROVED_BG,
         padding: 12,
         borderRadius: 12,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
         gap: 8,
         width: '100%'
     },
+    infoBoxSuccess: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    infoBoxNotFound: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.STATUS_CANCELLED_BORDER,
+    },
     infoText: {
-        color: Colors.PRIMARY,
         fontSize: 13,
         flex: 1,
-        fontWeight: '500'
+        fontWeight: '500',
+        lineHeight: 18,
+    },
+    infoTextSuccess: {
+        color: Colors.STATUS_APPROVED_TEXT,
+    },
+    infoTextNotFound: {
+        color: Colors.STATUS_CANCELLED_TEXT,
     }
 });
 

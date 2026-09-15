@@ -33,14 +33,17 @@ interface FilterSection {
     options: FilterOption[];
 }
 
+export type FilterValue = string | number | boolean | string[] | null | undefined;
+export type FilterValues = Record<string, FilterValue>;
+
 interface CustomFilterModalProps {
     visible: boolean;
     onClose: () => void;
-    onApply: (values: Record<string, any>) => void;
+    onApply: (values: FilterValues) => void;
     title?: string;
     sections?: FilterSection[];
-    initialValues?: Record<string, any>;
-    defaultValues?: Record<string, any>;
+    initialValues?: FilterValues;
+    defaultValues?: FilterValues;
 }
 
 /**
@@ -60,13 +63,15 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
     const isWideScreen = isDesktop || isTablet;
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    const [localValues, setLocalValues] = useState<Record<string, any>>(initialValues);
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [localValues, setLocalValues] = useState<FilterValues>(initialValues);
     const [animValue] = useState(() => new Animated.Value(0));
 
-    const currentVisibleKey = visible ? `open_${JSON.stringify(initialValues)}` : 'closed';
-    const [prevVisibleKey, setPrevVisibleKey] = useState(currentVisibleKey);
-    if (currentVisibleKey !== prevVisibleKey) {
-        setPrevVisibleKey(currentVisibleKey);
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
             setRenderModal(true);
             setLocalValues(initialValues);
@@ -85,9 +90,7 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                 toValue: 0,
                 duration: 250,
                 useNativeDriver: Platform.OS !== 'web',
-            }).start(({ finished }) => {
-                if (finished) setRenderModal(false);
-            });
+            }).start(() => setRenderModal(false));
         }
     }, [visible, animValue]);
 
@@ -107,7 +110,9 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                 };
             }
             
-            const currentArray = prev[sectionId] || [];
+            const currentArray: string[] = Array.isArray(prev[sectionId]) 
+                ? (prev[sectionId] as string[]) 
+                : [];
             
             if (currentArray.includes(value)) {
                 return { 
@@ -242,7 +247,7 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                                         <View style={styles.pillGrid}>
                                             {section.options.map(opt => {
                                                 const isSelected = isMulti 
-                                                    ? (currentValue || []).includes(opt.value)
+                                                    ? (Array.isArray(currentValue) && currentValue.includes(opt.value))
                                                     : currentValue === opt.value;
                                                 return (
                                                     <TouchableOpacity
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
     },
     backdrop: { 
         ...StyleSheet.absoluteFill, 
-        backgroundColor: 'rgba(0, 0, 0, 0.4)' 
+        backgroundColor: Colors.MODAL_OVERLAY,
     },
     backdropTouch: { 
         flex: 1 

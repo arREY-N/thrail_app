@@ -18,9 +18,11 @@ export type BookingStatus =
     | "for-cancellation"
     | "cancellation-rejected"
     | "refund"
+    | "refunded"
     | "for-reschedule"
     | "reschedule-rejected"
-    | "rescheduled";
+    | "rescheduled"
+    | "expired";
 
 export type Requirements = {
     name: string;

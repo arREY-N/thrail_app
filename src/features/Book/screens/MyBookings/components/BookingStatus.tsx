@@ -5,14 +5,14 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { getStatusConfig } from '@/src/constants/statusConfig';
+import { getStatusConfig, StatusConfigResult } from '@/src/constants/statusConfig';
 import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
 
 export interface BookingTrackerData {
     steps: { id: number, defaultLabel: string, defaultIcon: string }[];
     currentIndex: number;
     isTerminalError: boolean;
-    config: any;
+    config: StatusConfigResult;
 }
 
 /**
@@ -30,7 +30,8 @@ const getTrackerData = (status?: BookingStatusType | string): BookingTrackerData
         'refund', 
         'refunded', 
         'cancellation-rejected', 
-        'reschedule-rejected'
+        'reschedule-rejected',
+        'expired'
     ];
 
     if (terminalStatuses.includes(rawStatus as string)) {

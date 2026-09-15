@@ -202,7 +202,7 @@ const EditPointModal = ({
                             label="Point Name *"
                             placeholder="e.g. Campsite 1, Summit Flag, Water Source"
                             value={draftName}
-                            onChangeText={(val) => {
+                            onChangeText={(val: string) => {
                                 setDraftName(val);
                                 if (nameError) setNameError(null);
                             }}
