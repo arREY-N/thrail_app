@@ -7,7 +7,14 @@
  */
 
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { 
+    ActivityIndicator, 
+    StyleProp, 
+    StyleSheet, 
+    TouchableOpacity, 
+    View, 
+    ViewStyle 
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -78,6 +85,10 @@ interface DocumentUploadCardProps {
     variant?: 'card' | 'row';
     /** Whether to render a bottom divider hairline (used in row variant lists) */
     showDivider?: boolean;
+    /** Optional custom upload handler override (e.g. placeholder or custom service) */
+    onUploadPress?: () => void | Promise<void>;
+    /** Optional container style override */
+    style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -94,11 +105,13 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     isRejected = false, 
     rejectionReason,
     onUploadSuccess,
+    onUploadPress,
     allowMultiple = false,
     onDelete,
     readOnly = false,
     variant = 'card',
     showDivider = false,
+    style,
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
@@ -115,6 +128,11 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const isComplete = (imagesList.length > 0 || isUploaded === true) && !isRejected;
 
     const handleUploadPress = async () => {
+        if (onUploadPress) {
+            await onUploadPress();
+            return;
+        }
+
         setIsUploading(true);
         setIsError(false);
         setErrorMessage('');
@@ -196,7 +214,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const displayError = errorMessage || (isRejected ? rejectionReason : '');
 
     return (
-        <View style={[isRow ? styles.rowContainer : styles.cardContainer, showDivider && styles.rowDivider]}>
+        <View style={[isRow ? styles.rowContainer : styles.cardContainer, showDivider && styles.rowDivider, style]}>
             <View style={[
                 isRow ? styles.uploadRow : styles.uploadCard, 
                 (isError || isRejected) && (isRow ? styles.uploadRowError : styles.uploadCardError)

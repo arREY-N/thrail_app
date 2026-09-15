@@ -64,8 +64,22 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
         isFeatureEnabled(trail?.tourism?.monument, (trail as LegacyTrail)?.monument) ||
         viewpoints.length > 0;
 
-    const computedDistance = trailStats ? `${(trailStats.distance / 1000).toFixed(1)} km` : stats?.distance || "--";
-    const computedGain = trailStats ? `${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` : stats?.elevation || "--";
+    const curatedDistance = (trail?.difficulty?.length !== undefined && trail?.difficulty?.length !== null && Number(trail.difficulty.length) > 0)
+        ? `${trail.difficulty.length} km`
+        : null;
+    const computedDistance = curatedDistance
+        || (trailStats ? `${(trailStats.distance / 1000).toFixed(1)} km` : null)
+        || stats?.distance
+        || "--";
+
+    const curatedGain = (trail?.difficulty?.gain !== undefined && trail?.difficulty?.gain !== null && Number(trail.difficulty.gain) > 0)
+        ? `${trail.difficulty.gain} m`
+        : null;
+    const computedGain = curatedGain
+        || (trailStats ? `${Math.round(Math.max(trailStats.elevationGain, trailStats.elevationLoss))} m` : null)
+        || stats?.elevation
+        || "--";
+
     const curatedMASL = trail?.geography?.masl ? `${trail.geography.masl} MASL` : "--";
     const curatedDiff = `${trail?.difficulty?.lascoRating ?? "--"}/9`;
     const rawClass = trail?.difficulty?.classification?.toLowerCase();
@@ -93,17 +107,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     return (
         <View style={styles.tabContent}>
 
-            {/* 1. Critical Info */}
-            {criticalInfo && (
-                <View style={styles.criticalCard}>
-                    <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
-                    <View style={styles.criticalTextContainer}>
-                        <CustomText style={styles.criticalTitle}>Critical Trail Update</CustomText>
-                        <CustomText style={styles.criticalText}>{criticalInfo}</CustomText>
-                    </View>
-                </View>
-            )}
-
             {/* 2. Stats Dashboard */}
             {statsLoading ? (
                 <View style={styles.loadingContainer}>
@@ -126,6 +129,29 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                     </View>
                     {isRow2Active && <GlossaryTooltip activeStat={activeStat} trail={trail} />}
                 </View>
+            )}
+
+            {/* 1. Critical Info */}
+            {criticalInfo && (
+                <View style={styles.section}>
+                    <SectionHeader iconLib="Feather" iconName="alert-triangle" title="Critical Trail Info" color={Colors.ERROR}/>
+                    <View style={styles.aboutCard}>
+                        <CustomText style={styles.descriptionText}>{criticalInfo}</CustomText>
+                        {shouldTruncate && (
+                            <TouchableOpacity onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)} style={styles.readMoreButton} activeOpacity={0.7}>
+                                <CustomText style={styles.readMoreText}>{isDescriptionExpanded ? "Read Less" : "Read More"}</CustomText>
+                                <CustomIcon library="Feather" name={isDescriptionExpanded ? "chevron-up" : "chevron-down"} size={16} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+                // <View style={styles.criticalCard}>
+                //     <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
+                //     <View style={styles.criticalTextContainer}>
+                //         <CustomText style={styles.criticalTitle}>Critical Trail Update</CustomText>
+                //         <CustomText style={styles.criticalText}>{criticalInfo}</CustomText>
+                //     </View>
+                // </View>
             )}
 
             {/* 3. About the Mountain */}
@@ -272,7 +298,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 
             <ImagePreviewModal
                 visible={isMapPreviewVisible}
-                imageUrl={routeMapImageSource as any}
+                imageUrl={trail?.routeMapImage || undefined}
                 onClose={() => setIsMapPreviewVisible(false)}
             />
 
@@ -281,7 +307,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 };
 
 const styles = StyleSheet.create({
-    tabContent: { gap: 28, paddingBottom: 20, width: '100%', maxWidth: 860, alignSelf: 'center' },
+    tabContent: { gap: 16, paddingBottom: 20, width: '100%', maxWidth: 860, alignSelf: 'center' },
     section: { marginBottom: 4 },
     statsCard: { backgroundColor: Colors.WHITE, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, gap: 16, ...GlobalStyles.dropShadow(3) },
     statsRow: { flexDirection: 'row', justifyContent: 'space-around', zIndex: 2 },

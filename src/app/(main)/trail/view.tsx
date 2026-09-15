@@ -16,7 +16,8 @@ export default function ViewTrail() {
 
     const { onBackPress, onDownloadPress } = useAppNavigation();
 
-    const { isSuperadmin } = useAuthHook();
+    const { isSuperadmin, isAdmin } = useAuthHook();
+    const canEdit = isSuperadmin || isAdmin;
 
     const {
         trail
@@ -55,11 +56,13 @@ export default function ViewTrail() {
             <TrailScreen
                 trail={trail}
                 onBackPress={onBackPress}
-                onDownloadPress={onDownloadPress as any}
-                onHikePress={onHikePress as any}
-                onBookPress={onSeeTrailOffers as any}
+                onDownloadPress={() => onDownloadPress(tId)}
+                onHikePress={(id?: string) => onHikePress(id || tId)}
+                onBookPress={(id?: string) => onSeeTrailOffers(id || tId)}
                 onEditPress={() => onWriteTrail(tId)}
                 isSuperadmin={isSuperadmin}
+                isAdmin={isAdmin}
+                canEdit={canEdit}
 
                 reviews={reviews.filter(r => r.trail.id === trail.id)}
                 isLoading={reviewIsLoading}

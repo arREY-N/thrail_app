@@ -33,7 +33,9 @@ export interface TrailScreenProps {
     onHikePress: (id?: string) => void;
     onBookPress: (id?: string) => void;
     onEditPress: () => void;
-    isSuperadmin: boolean;
+    isSuperadmin?: boolean;
+    isAdmin?: boolean;
+    canEdit?: boolean;
     reviews?: IReview[] | null;
     isLoading: boolean;
     likeReview: (review: IReview) => void;
@@ -50,6 +52,8 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     onBookPress,
     onEditPress,
     isSuperadmin,
+    isAdmin,
+    canEdit: canEditProp,
     reviews,
     isLoading,
     likeReview,
@@ -57,11 +61,16 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     onWriteReviewPress,
     isOwned,
 }) => {
+    const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
     const [activeTab, setActiveTab] = useState('Details');
     const insets = useSafeAreaInsets();
 
+    const mountainName = Array.isArray(trail?.general?.mountain)
+        ? trail.general.mountain[0]
+        : (trail?.general?.mountain || trail?.general?.name);
+
     const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
-        trail?.general?.name,
+        mountainName,
         trail?.geography?.startLat,
         trail?.geography?.startLong
     );
@@ -83,7 +92,11 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     const stats = {
         distance: trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--",
         time: trail?.difficulty?.hours ? `${trail.difficulty.hours} hr` : "--",
-        elevation: trail?.difficulty?.elevation ? `${trail.difficulty.elevation} m` : "--",
+        elevation: (trail?.difficulty?.gain !== undefined && trail?.difficulty?.gain !== null && Number(trail.difficulty.gain) > 0)
+            ? `${trail.difficulty.gain} m`
+            : (trail?.difficulty?.elevation && Number(trail.difficulty.elevation) > 0)
+            ? `${trail.difficulty.elevation} m`
+            : "--",
     };
 
     const latitude = trail?.geography?.startLat ?? null;
@@ -123,8 +136,14 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 />
             </TouchableOpacity>
 
-            {isSuperadmin && (
-                <TouchableOpacity style={styles.editButton} onPress={onEditPress} activeOpacity={0.7}>
+            {canEdit && (
+                <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={onEditPress}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Edit Trail"
+                    accessibilityRole="button"
+                >
                     <CustomIcon
                         library="Feather"
                         name="edit-2"

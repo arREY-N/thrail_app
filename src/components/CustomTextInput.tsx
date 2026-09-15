@@ -132,7 +132,6 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     onBlur,
     ...props
 }) => {
-
     const [isFocused, setIsFocused] = useState(false);
     const [internalShowPassword, setInternalShowPassword] = useState(false);
 
@@ -160,12 +159,16 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         } else if (type === 'coordinate') {
             processedText = formatCoordinate(text);
         } else if (type === 'numerical') {
-            let cleaned = text.replace(/[^0-9.]/g, '');
-            const parts = cleaned.split('.');
-            if (parts.length > 2) {
-                cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+            if (keyboardType === 'number-pad' || keyboardType === 'numeric') {
+                processedText = text.replace(/[^0-9]/g, '');
+            } else {
+                let cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                if (parts.length > 2) {
+                    cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+                }
+                processedText = cleaned;
             }
-            processedText = cleaned;
         }
 
         setLocalValue(processedText);
@@ -175,7 +178,17 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     };
 
     const finalKeyboardType = keyboardType 
-        || (type === 'phone' ? 'phone-pad' : (type === 'coordinate' ? 'decimal-pad' : (type === 'numerical' ? 'numeric' : 'default')));
+        || (type === 'phone' 
+            ? 'phone-pad' 
+            : type === 'coordinate' 
+            ? (Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'decimal-pad')
+            : type === 'numerical' 
+            ? 'decimal-pad' 
+            : 'default');
+
+    const finalInputMode = (keyboardType === 'number-pad' || keyboardType === 'numeric')
+        ? 'numeric'
+        : (type === 'numerical' || type === 'coordinate' ? 'decimal' : (type === 'phone' ? 'tel' : undefined));
 
     const showPassword = isPasswordVisible !== undefined ? isPasswordVisible : internalShowPassword;
     const togglePassword = onTogglePassword || (() => setInternalShowPassword(!internalShowPassword));
@@ -271,7 +284,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     onChangeText={handleTextChange} 
                     secureTextEntry={secureTextEntry && !showPassword}
                     keyboardType={finalKeyboardType} 
-                    inputMode={type === 'numerical' || type === 'coordinate' ? 'decimal' : type === 'phone' ? 'tel' : undefined}
+                    inputMode={finalInputMode}
                     autoCorrect={secureTextEntry ? false : undefined}
                     onFocus={(e) => {
                         setIsFocused(true);
@@ -291,12 +304,6 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                         <CustomText style={styles.suffixText}>
                             {suffix}
                         </CustomText>
-                    </View>
-                )}
-
-                {rightElement && (
-                    <View style={styles.rightElementContainer}>
-                        {rightElement}
                     </View>
                 )}
 
@@ -387,9 +394,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: Colors.TEXT_SECONDARY,
-    },
-    rightElementContainer: {
-        marginLeft: 8,
     },
 
     input: {

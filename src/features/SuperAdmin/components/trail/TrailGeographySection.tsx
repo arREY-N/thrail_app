@@ -61,7 +61,7 @@ const TrailGeographySection: React.FC<TrailGeographySectionProps> = ({
                         value={getNumericDisplayValue(trail?.geography?.masl, isEditMode)}
                         onChangeText={(val: string) => onUpdateField({ section: 'geography', id: 'masl', value: val })}
                         type="numerical"
-                        keyboardType="numbers-and-punctuation"
+                        keyboardType="number-pad"
                         style={styles.noMarginBottom}
                     />
                 </View>
@@ -75,9 +75,11 @@ const TrailGeographySection: React.FC<TrailGeographySectionProps> = ({
                             value={getNumericDisplayValue(trail?.geography?.startLat, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'geography', id: 'startLat', value: val })}
                             type="coordinate"
-                            keyboardType="numbers-and-punctuation"
                             style={styles.noMarginBottom}
                         />
+                        <CustomText variant="caption" style={styles.helperText}>
+                            Range: -90 to 90
+                        </CustomText>
                     </View>
                     <View style={styles.pairedDividerCol}>
                         <CustomText style={styles.dividerText}>
@@ -91,9 +93,11 @@ const TrailGeographySection: React.FC<TrailGeographySectionProps> = ({
                             value={getNumericDisplayValue(trail?.geography?.startLong, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'geography', id: 'startLong', value: val })}
                             type="coordinate"
-                            keyboardType="numbers-and-punctuation"
                             style={styles.noMarginBottom}
                         />
+                        <CustomText variant="caption" style={styles.helperText}>
+                            Range: -180 to 180
+                        </CustomText>
                     </View>
                 </View>
 
@@ -106,9 +110,11 @@ const TrailGeographySection: React.FC<TrailGeographySectionProps> = ({
                             value={getNumericDisplayValue(trail?.geography?.endLat, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'geography', id: 'endLat', value: val })}
                             type="coordinate"
-                            keyboardType="numbers-and-punctuation"
                             style={styles.noMarginBottom}
                         />
+                        <CustomText variant="caption" style={styles.helperText}>
+                            Range: -90 to 90
+                        </CustomText>
                     </View>
                     <View style={styles.pairedDividerCol}>
                         <CustomText style={styles.dividerText}>
@@ -122,9 +128,11 @@ const TrailGeographySection: React.FC<TrailGeographySectionProps> = ({
                             value={getNumericDisplayValue(trail?.geography?.endLong, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'geography', id: 'endLong', value: val })}
                             type="coordinate"
-                            keyboardType="numbers-and-punctuation"
                             style={styles.noMarginBottom}
                         />
+                        <CustomText variant="caption" style={styles.helperText}>
+                            Range: -180 to 180
+                        </CustomText>
                     </View>
                 </View>
             </View>
@@ -179,6 +187,12 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         lineHeight: 22,
         textAlign: 'center',
+    },
+    helperText: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 12,
+        marginTop: 4,
+        marginLeft: 2,
     },
 });
 

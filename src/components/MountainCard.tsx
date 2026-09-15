@@ -20,6 +20,7 @@ import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
+import { ITrail } from "@/src/core/models/Trail/Trail";
 import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import {
     formatRouteType,
@@ -40,7 +41,7 @@ import { IconLibrary } from "@/src/types/ui.types";
  * @param offersCount - Number of active upcoming offers on this trail.
  */
 interface MountainCardProps {
-  item?: any;
+  item?: ITrail | null;
   onPress?: () => void;
   onDownload?: () => void;
   onLikePress?: () => void;
@@ -53,7 +54,7 @@ interface MountainCardProps {
 /**
  * Helper to process mountain data for display.
  */
-const getMountainData = (item: any, rating?: number | string) => {
+const getMountainData = (item?: ITrail | null, rating?: number | string) => {
   const name = item?.general?.name || "Unnamed Mountain";
 
   let location = "Unknown Location";
@@ -66,8 +67,14 @@ const getMountainData = (item: any, rating?: number | string) => {
   const displayLength = item?.difficulty?.length
     ? `${item.difficulty.length} km`
     : "--";
-  const displayElev = item?.difficulty?.elevation
-    ? `${item.difficulty.elevation} masl`
+  const elevGain = item?.difficulty?.gain;
+  const masl = item?.geography?.masl;
+  const displayElev = (elevGain !== undefined && elevGain !== null && Number(elevGain) > 0)
+    ? `+${elevGain} m`
+    : (masl !== undefined && masl !== null && Number(masl) > 0)
+    ? `${masl} masl`
+    : (item?.difficulty?.elevation && Number(item.difficulty.elevation) > 0)
+    ? `${item.difficulty.elevation} m`
     : "--";
   const displayRoute = formatRouteType(item?.difficulty?.circularity);
   const score = rating
@@ -158,7 +165,7 @@ const StatItem = ({
  * including distance, elevation, and route type over a hero image.
  */
 const MountainCard: React.FC<MountainCardProps> = ({
-  item = {},
+  item = null,
   onPress,
   onDownload,
   onLikePress,

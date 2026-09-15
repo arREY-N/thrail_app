@@ -40,10 +40,15 @@ export const STAT_GLOSSARY: Record<string, GlossaryData> = {
     difficulty: {
         title: "Difficulty (1-9)",
         points: [
-            { label: "1-2", text: "Beginner Friendly" },
-            { label: "3-5", text: "Moderate / Intermediate" },
-            { label: "6-7", text: "Hard / Steep Terrain" },
-            { label: "8-9", text: "Extreme / Technical" }
+            { label: "1", text: "Very easy" },
+            { label: "2", text: "Easy" },
+            { label: "3", text: "Mild" },
+            { label: "4", text: "Average" },
+            { label: "5", text: "Moderate" },
+            { label: "6", text: "Challenging" },
+            { label: "7", text: "Difficult" },
+            { label: "8", text: "Strenuous" },
+            { label: "9", text: "Technical" }
         ], col: 1
     },
     status: {
