@@ -5,7 +5,7 @@
  * CustomStickyFooter with interactive submit states, dismissible CustomToast validation alerts, and confirmation modals.
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -17,7 +17,7 @@ import {
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomStickyFooter from '@/src/components/CustomStickyFooter';
+import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -33,8 +33,10 @@ import TrailGeographySection from '@/src/features/SuperAdmin/components/trail/Tr
 import TrailRulesSection from '@/src/features/SuperAdmin/components/trail/TrailRulesSection';
 import TrailTourismSection from '@/src/features/SuperAdmin/components/trail/TrailTourismSection';
 import {
+    FormToastConfig,
     getDeleteConfirmConfig,
     getDiscardConfirmConfig,
+    getErrorToastConfig,
     getMissingFieldsSummary,
     getOptionStrings,
     getSaveButtonStyle,
@@ -48,6 +50,7 @@ import {
     isRulesComplete,
 } from '@/src/features/SuperAdmin/utils/trailFormUtils';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type IUseTrailWrite = IBaseWriteHook<Trail>;
 
@@ -58,6 +61,7 @@ export interface TrailWriteScreenProps {
     pendingCount?: number;
     onTabPress?: (tab: SuperadminTab) => void;
     onBackToSettings?: () => void;
+    uploadPicture?: () => void;
 }
 
 const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
@@ -67,8 +71,10 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     pendingCount = 0,
     onTabPress,
     onBackToSettings,
+    uploadPicture,
 }) => {
     const { isMobile, isDesktop } = useBreakpoints();
+    const insets = useSafeAreaInsets();
 
     const {
         object: trail,
@@ -85,10 +91,47 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState<boolean>(false);
     const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
+    const [toastConfig, setToastConfig] = useState<FormToastConfig>({
         visible: false,
         message: '',
+        type: 'error',
+        mode: 'dismissible',
+        triggerKey: 0,
     });
+
+    const showToast = useCallback((
+        message: string,
+        type: 'error' | 'warning' | 'info' | 'success' = 'error',
+        mode: 'simple' | 'dismissible' = 'dismissible',
+        triggerKey: number = Date.now()
+    ) => {
+        setToastConfig({
+            ...getErrorToastConfig(message, mode, triggerKey),
+            type,
+        });
+    }, []);
+
+    const [submitCount, setSubmitCount] = useState<number>(0);
+    const [handledSubmitCount, setHandledSubmitCount] = useState<number>(0);
+
+    // Reactive toast on controller error / submit completion
+    const [prevError, setPrevError] = useState<string | null>(error);
+
+    if (error && error !== prevError) {
+        setPrevError(error);
+        if (!isLoading) {
+            setToastConfig(getErrorToastConfig(error));
+        }
+    } else if (!error && prevError) {
+        setPrevError(null);
+    }
+
+    if (submitCount > handledSubmitCount) {
+        setHandledSubmitCount(submitCount);
+        if (error) {
+            setToastConfig(getErrorToastConfig(error));
+        }
+    }
 
     const isEditMode = Boolean(trail?.id && trail.id.length > 0);
     const screenTitle = isEditMode ? 'Edit Trail' : 'Create New Trail';
@@ -132,16 +175,16 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
         if (!trail.id) return;
         setIsDirty(false);
         setShowDeleteModal(false);
+        setSubmitCount(c => c + 1);
         await onRemovePress(trail.id);
     };
 
     const handleSavePress = async () => {
         if (!formValid) {
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: getMissingFieldsSummary(generalComplete, geographyComplete, difficultyComplete, rulesComplete),
-            });
+            showToast(
+                getMissingFieldsSummary(generalComplete, geographyComplete, difficultyComplete, rulesComplete)
+            );
             return;
         }
 
@@ -152,6 +195,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const handleConfirmSave = async () => {
         setShowSaveConfirmModal(false);
         setIsDirty(false);
+        setSubmitCount(c => c + 1);
         await onSubmitPress();
     };
 
@@ -183,7 +227,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                 contentContainerStyle={[
                     styles.scrollContainer,
                     isMobile ? styles.scrollPaddingMobile : styles.scrollPaddingDesktop,
-                    { paddingBottom: 110 },
+                    { paddingBottom: getStickyFooterScrollPadding(insets.bottom, isMobile) },
                 ]}
             >
                 <View style={[
@@ -200,6 +244,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                         isDesktop={isDesktop}
                         isMobile={isMobile}
                         onUpdateField={handleUpdateField}
+                        uploadPicture={uploadPicture}
                     />
 
                     {/* 2. Geography & Coordinates Card */}
@@ -246,21 +291,6 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                         isMobile={isMobile}
                         onUpdateField={handleUpdateField}
                     />
-
-                    {/* Error Banner */}
-                    {Boolean(error) && (
-                        <View style={styles.errorBanner}>
-                            <CustomIcon
-                                library="Feather"
-                                name="alert-circle"
-                                size={16}
-                                color={Colors.ERROR}
-                            />
-                            <CustomText variant="caption" style={styles.errorBannerText}>
-                                {error}
-                            </CustomText>
-                        </View>
-                    )}
 
                     {isLoading && (
                         <View style={styles.loadingOverlay}>
@@ -340,8 +370,9 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
             <CustomToast
                 visible={toastConfig.visible}
                 message={toastConfig.message}
-                type="error"
-                mode="dismissible"
+                type={toastConfig.type || 'error'}
+                mode={toastConfig.mode || 'dismissible'}
+                triggerKey={toastConfig.triggerKey}
                 position="sticky_footer"
                 onHide={() => {
                     setToastConfig(prev => ({ ...prev, visible: false }));
@@ -402,23 +433,6 @@ const styles = StyleSheet.create({
     },
     maxContainerShell: {
         maxWidth: 860,
-    },
-    errorBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: Colors.ERROR_BG,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-    },
-    errorBannerText: {
-        color: Colors.ERROR,
-        fontWeight: '500',
-        fontSize: 13,
-        flex: 1,
     },
     loadingOverlay: {
         flexDirection: 'row',
