@@ -5,8 +5,8 @@
  * and multi-select chips for Trail Quality and Difficulty Points.
  */
 
-import React, { useRef } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomText from '@/src/components/CustomText';
@@ -18,7 +18,6 @@ import { Trail } from '@/src/core/models/Trail/Trail';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 import TrailCardHeader from '@/src/features/SuperAdmin/components/trail/TrailCardHeader';
 import { getNumericDisplayValue } from '@/src/features/SuperAdmin/utils/trailFormUtils';
-import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 export interface TrailDifficultySectionProps {
     trail: Trail;
@@ -51,9 +50,6 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
     const difficultyPointsList: readonly string[] = trail?.difficulty?.difficulty_points || [];
     const currentRating = trail?.difficulty?.lascoRating;
 
-    const ratingScrollRef = useRef<ScrollView>(null);
-    useWebDragScroll(ratingScrollRef, true);
-
     return (
         <View style={[styles.sectionCard, { padding: isMobile ? 16 : 24 }]}>
             <TrailCardHeader
@@ -71,103 +67,102 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
 
             <View style={styles.cardBody}>
                 {/* 1. Profile: Classification * & Circularity * (2-Col Desktop / Stacked Mobile) */}
-                <View style={isDesktop ? styles.twoColRow : styles.singleCol}>
-                    <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
-                        <View style={styles.labelRow}>
-                            <CustomText variant="label" style={styles.inputLabel}>
-                                Classification *
-                            </CustomText>
+                <View style={styles.fieldBlock}>
+                    <View style={isDesktop ? styles.twoColRow : styles.singleCol}>
+                        <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
+                            <View style={styles.labelRow}>
+                                <CustomText variant="label" style={styles.inputLabel}>
+                                    Classification *
+                                </CustomText>
+                            </View>
+                            <View style={styles.chipContainer}>
+                                {classificationOptions.map((opt: string) => {
+                                    const isSelected = trail?.difficulty?.classification?.toLowerCase() === opt.toLowerCase();
+                                    const displayLabel = opt.charAt(0).toUpperCase() + opt.slice(1);
+                                    return (
+                                        <SelectionChip
+                                            key={opt}
+                                            label={displayLabel}
+                                            selected={isSelected}
+                                            onPress={() => onUpdateField({ section: 'difficulty', id: 'classification', value: opt })}
+                                        />
+                                    );
+                                })}
+                            </View>
                         </View>
-                        <View style={styles.chipContainer}>
-                            {classificationOptions.map((opt: string) => {
-                                const isSelected = trail?.difficulty?.classification?.toLowerCase() === opt.toLowerCase();
-                                const displayLabel = opt.charAt(0).toUpperCase() + opt.slice(1);
-                                return (
-                                    <SelectionChip
-                                        key={opt}
-                                        label={displayLabel}
-                                        selected={isSelected}
-                                        onPress={() => onUpdateField({ section: 'difficulty', id: 'classification', value: opt })}
-                                    />
-                                );
-                            })}
+
+                        <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
+                            <View style={styles.labelRow}>
+                                <CustomText variant="label" style={styles.inputLabel}>
+                                    Circularity *
+                                </CustomText>
+                            </View>
+                            <View style={styles.chipContainer}>
+                                {circularityOptions.map((opt: string) => {
+                                    const isSelected = trail?.difficulty?.circularity?.toLowerCase() === opt.toLowerCase();
+                                    const displayLabel = opt.charAt(0).toUpperCase() + opt.slice(1);
+                                    return (
+                                        <SelectionChip
+                                            key={opt}
+                                            label={displayLabel}
+                                            selected={isSelected}
+                                            onPress={() => onUpdateField({ section: 'difficulty', id: 'circularity', value: opt })}
+                                        />
+                                    );
+                                })}
+                            </View>
                         </View>
                     </View>
 
-                    <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
-                        <View style={styles.labelRow}>
-                            <CustomText variant="label" style={styles.inputLabel}>
-                                Circularity *
-                            </CustomText>
-                        </View>
-                        <View style={styles.chipContainer}>
-                            {circularityOptions.map((opt: string) => {
-                                const isSelected = trail?.difficulty?.circularity?.toLowerCase() === opt.toLowerCase();
-                                const displayLabel = opt.charAt(0).toUpperCase() + opt.slice(1);
-                                return (
-                                    <SelectionChip
-                                        key={opt}
-                                        label={displayLabel}
-                                        selected={isSelected}
-                                        onPress={() => onUpdateField({ section: 'difficulty', id: 'circularity', value: opt })}
-                                    />
-                                );
-                            })}
-                        </View>
+                    <View style={{ marginTop: 12 }}>
+                        <CustomFeedbackInput
+                            label="Classification Description"
+                            placeholder="Explain why this trail is classified as minor or major, entry requirements, or endurance needed..."
+                            value={trail?.description?.classificationDescription || ''}
+                            onChangeText={(val: string) => onUpdateField({ section: 'description', id: 'classificationDescription', value: val })}
+                        />
                     </View>
                 </View>
 
-                {/* 2. LASCO Rating (1-9) Interactive Segmented Bar */}
+                {/* 2. LASCO Difficulty Rating (1-9) CustomTextInput */}
                 <View style={styles.fieldBlock}>
-                    <View style={styles.labelRow}>
-                        <CustomText variant="label" style={styles.inputLabel}>
-                            LASCO Difficulty Rating *
+                    <View style={isDesktop ? styles.halfWidthField : styles.fieldBlock}>
+                        <CustomTextInput
+                            label="LASCO Difficulty Rating *"
+                            placeholder="e.g. 4"
+                            suffix="/9"
+                            maxLength={1}
+                            value={currentRating && currentRating > 0 ? String(currentRating) : ''}
+                            onChangeText={(val: string) => {
+                                const cleaned = val.replace(/[^1-9]/g, '');
+                                onUpdateField({ section: 'difficulty', id: 'lascoRating', value: cleaned });
+                            }}
+                            type="numerical"
+                            keyboardType="number-pad"
+                            style={styles.noMarginBottom}
+                        />
+                        <CustomText variant="caption" style={styles.ratingHelperText}>
+                            {currentRating && currentRating >= 9
+                                ? `Class ${currentRating} — Technical`
+                                : currentRating && currentRating >= 8
+                                ? `Class ${currentRating} — Strenuous`
+                                : currentRating && currentRating >= 7
+                                ? `Class ${currentRating} — Difficult`
+                                : currentRating && currentRating >= 6
+                                ? `Class ${currentRating} — Challenging`
+                                : currentRating && currentRating >= 5
+                                ? `Class ${currentRating} — Moderate`
+                                : currentRating && currentRating >= 4
+                                ? `Class ${currentRating} — Average`
+                                : currentRating && currentRating >= 3
+                                ? `Class ${currentRating} — Mild`
+                                : currentRating && currentRating >= 2
+                                ? `Class ${currentRating} — Easy`
+                                : currentRating && currentRating >= 1
+                                ? `Class ${currentRating} — Very Easy`
+                                : 'Enter a rating from 1 (Very Easy) to 9 (Technical)'}
                         </CustomText>
                     </View>
-                    <ScrollView
-                        ref={ratingScrollRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={[
-                            styles.ratingBarScrollContent,
-                            { gap: isMobile ? 4 : 6 },
-                        ]}
-                        style={styles.ratingBarScrollView}
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((ratingNum: number) => {
-                            const isSelected = currentRating === ratingNum;
-                            return (
-                                <TouchableOpacity
-                                    key={ratingNum}
-                                    style={[
-                                        styles.ratingButton,
-                                        { minWidth: isMobile ? 24 : 28 },
-                                        isSelected && styles.ratingButtonActive,
-                                    ]}
-                                    onPress={() => onUpdateField({ section: 'difficulty', id: 'lascoRating', value: ratingNum })}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomText
-                                        variant="caption"
-                                        style={[
-                                            styles.ratingButtonText,
-                                            isSelected && styles.ratingButtonTextActive,
-                                        ]}
-                                    >
-                                        {String(ratingNum)}
-                                    </CustomText>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-                    <CustomText variant="caption" style={styles.ratingHelperText}>
-                        {currentRating && currentRating >= 5
-                            ? `Class ${currentRating} — Major Hike (Technical / High endurance)`
-                            : currentRating && currentRating >= 1
-                            ? `Class ${currentRating} — Minor Hike (Beginner friendly)`
-                            : 'Select a rating from 1 (easiest) to 9 (extreme)'}
-                    </CustomText>
                     <View style={{ marginTop: 12 }}>
                         <CustomFeedbackInput
                             label="Difficulty Description"
@@ -188,7 +183,7 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
                             value={getNumericDisplayValue(trail?.difficulty?.length, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'difficulty', id: 'length', value: val })}
                             type="numerical"
-                            keyboardType="numbers-and-punctuation"
+                            keyboardType="decimal-pad"
                             style={styles.noMarginBottom}
                         />
                     </View>
@@ -205,7 +200,7 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
                             value={getNumericDisplayValue(trail?.difficulty?.gain, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'difficulty', id: 'gain', value: val })}
                             type="numerical"
-                            keyboardType="numbers-and-punctuation"
+                            keyboardType="number-pad"
                             style={styles.noMarginBottom}
                         />
                     </View>
@@ -221,7 +216,7 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
                             value={getNumericDisplayValue(trail?.difficulty?.slope, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'difficulty', id: 'slope', value: val })}
                             type="numerical"
-                            keyboardType="numbers-and-punctuation"
+                            keyboardType="decimal-pad"
                             style={styles.noMarginBottom}
                         />
                     </View>
@@ -238,7 +233,7 @@ const TrailDifficultySection: React.FC<TrailDifficultySectionProps> = ({
                             value={getNumericDisplayValue(trail?.difficulty?.obstacles, isEditMode)}
                             onChangeText={(val: string) => onUpdateField({ section: 'difficulty', id: 'obstacles', value: val })}
                             type="numerical"
-                            keyboardType="numbers-and-punctuation"
+                            keyboardType="number-pad"
                             style={styles.noMarginBottom}
                         />
                     </View>
@@ -326,6 +321,9 @@ const styles = StyleSheet.create({
     fieldBlock: {
         width: '100%',
     },
+    halfWidthField: {
+        width: '48%',
+    },
     noMarginBottom: {
         marginBottom: 0,
     },
@@ -345,43 +343,11 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         gap: 8,
     },
-    ratingBarScrollView: {
-        width: '100%',
-    },
-    ratingBarScrollContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexGrow: 1,
-        minWidth: '100%',
-    },
-    ratingButton: {
-        flex: 1,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        backgroundColor: Colors.BACKGROUND,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 0,
-    },
-    ratingButtonActive: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.PRIMARY,
-    },
-    ratingButtonText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: Colors.TEXT_SECONDARY,
-    },
-    ratingButtonTextActive: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
-    },
     ratingHelperText: {
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        marginTop: 6,
+        marginTop: 4,
+        marginLeft: 2,
     },
     pairedRowContainer: {
         flexDirection: 'row',
