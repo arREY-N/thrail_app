@@ -10,6 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
+import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
@@ -26,6 +27,7 @@ export interface TrailGeneralSectionProps {
     isDesktop: boolean;
     isMobile: boolean;
     onUpdateField: (params: TEdit<Trail>) => void;
+    uploadPicture?: () => void;
 }
 
 const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
@@ -37,6 +39,7 @@ const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
     isDesktop,
     isMobile,
     onUpdateField,
+    uploadPicture,
 }) => {
     const provinceList: readonly string[] = trail?.general?.province || [];
     const mountainList: readonly string[] = trail?.general?.mountain || [];
@@ -134,7 +137,24 @@ const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
                     />
                 </View>
 
-                {/* 5. Active Status */}
+                {/* 5. Trail Cover Photo */}
+                <View style={styles.fieldBlock}>
+                    <View style={styles.labelRow}>
+                        <CustomText variant="label" style={styles.inputLabel}>
+                            Cover Photo (Optional)
+                        </CustomText>
+                    </View>
+                    <DocumentUploadCard
+                        docName="Trail Cover Photo"
+                        subtitle="Landscape banner photo displayed on trail cards and details"
+                        isUploaded={trail?.coverImage || false}
+                        onUploadPress={uploadPicture}
+                        onDelete={() => onUpdateField({ section: 'root', id: 'coverImage', value: null })}
+                        style={styles.noMarginBottom}
+                    />
+                </View>
+
+                {/* 6. Active Status */}
                 <View style={styles.fieldBlock}>
                     <View style={styles.labelRow}>
                         <CustomText variant="label" style={styles.inputLabel}>
