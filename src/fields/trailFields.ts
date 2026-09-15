@@ -1,7 +1,10 @@
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { IFormField } from "../core/interface/formFieldInterface";
 
-export interface ITrailFormField extends IFormField<keyof Trail> {}
+export interface ITrailFormField extends IFormField<keyof Trail> {
+    placeholder?: string;
+    helperText?: string;
+}
 
 export const TrailUIConfig: ITrailFormField[] = [
     // --- GENERAL --- 
@@ -10,6 +13,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'name', 
         label: 'Trail Name', 
         type: 'text', 
+        placeholder: 'e.g. Mt. Batulao',
         required: true 
     },
     { 
@@ -17,6 +21,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'address', 
         label: 'Address', 
         type: 'text', 
+        placeholder: 'e.g. Nasugbu, Batangas',
         required: true 
     },
     { 
@@ -40,6 +45,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'description',
         label: 'Description',
         type: 'text',
+        placeholder: 'Enter trail description, terrain details, and highlights...',
         required: false
     },
     {
@@ -47,6 +53,35 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'active',
         label: 'Active Status',
         type: 'boolean',
+        required: true
+    },
+    {
+        section: 'general',
+        id: 'critical_info',
+        label: 'Critical Trail Update',
+        type: 'text',
+        placeholder: 'Enter urgent safety or trail advisory...',
+        required: false
+    },
+    {
+        section: 'general',
+        id: 'guidelines',
+        label: 'Rules of the Trail',
+        type: 'text',
+        required: true
+    },
+    {
+        section: 'general',
+        id: 'safety_tips',
+        label: 'Keep Safe Tips',
+        type: 'text',
+        required: false
+    },
+    {
+        section: 'general',
+        id: 'lgu_rules',
+        label: 'LGU Ordinances',
+        type: 'text',
         required: false
     },
     
@@ -57,6 +92,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'masl', 
         label: 'MASL (Meters)', 
         type: 'numerical', 
+        placeholder: 'e.g. 811',
         required: true 
     },
     { 
@@ -64,6 +100,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'startLat', 
         label: 'Start Latitude', 
         type: 'numerical', 
+        placeholder: 'e.g. 14.0412',
         required: true 
     },
     { 
@@ -71,6 +108,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'startLong', 
         label: 'Start Longitude', 
         type: 'numerical', 
+        placeholder: 'e.g. 120.8015',
         required: true 
     },
     { 
@@ -78,6 +116,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'endLat', 
         label: 'End Latitude', 
         type: 'numerical', 
+        placeholder: 'e.g. 14.0485',
         required: true 
     },
     { 
@@ -85,6 +124,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'endLong', 
         label: 'End Longitude', 
         type: 'numerical', 
+        placeholder: 'e.g. 120.8112',
         required: true 
     },
 
@@ -95,13 +135,22 @@ export const TrailUIConfig: ITrailFormField[] = [
         label: 'Classification',
         type: 'single-select',
         options: 'classification',
-        required: false
+        required: true
     },
     {
         section: 'difficulty',
         id: 'lascoRating',
         label: 'LASCO Rating (1-9)',
         type: 'numerical',
+        placeholder: '1 - 9 (e.g. 4)',
+        required: true
+    },
+    {
+        section: 'description',
+        id: 'lascoRatingDescription',
+        label: 'Difficulty Description',
+        type: 'text',
+        placeholder: 'Explain terrain challenges, steepness, or why this trail received this rating...',
         required: false
     },
     { 
@@ -109,6 +158,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'length', 
         label: 'Length (km)', 
         type: 'numerical', 
+        placeholder: 'e.g. 5.5',
         required: true 
     },
     { 
@@ -116,6 +166,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'gain', 
         label: 'Elevation Gain (m)', 
         type: 'numerical', 
+        placeholder: 'e.g. 350',
         required: true 
     },
     { 
@@ -123,6 +174,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'slope', 
         label: 'Slope (%)', 
         type: 'numerical', 
+        placeholder: 'e.g. 15',
         required: true 
     },
     { 
@@ -130,13 +182,7 @@ export const TrailUIConfig: ITrailFormField[] = [
         id: 'obstacles', 
         label: 'Obstacles (m)', 
         type: 'numerical', 
-        required: true 
-    },
-    { 
-        section: 'difficulty', 
-        id: 'hours', 
-        label: 'Est. Hours', 
-        type: 'numerical', 
+        placeholder: 'e.g. 0',
         required: true 
     },
     { 
