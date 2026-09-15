@@ -9,17 +9,20 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
         routeMapImage: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        offlinePoints: [],
+        ...init,
         description: {
             classificationDescription: "",
             lascoRatingDescription: "",
+            ...init?.description,
         },
-        offlinePoints: [],
         geography: {
             masl: 0,
             startLat: 0,
             startLong: 0,
             endLat: 0,
             endLong: 0,
+            ...init?.geography,
         },
         general: {
             active: true,
@@ -34,6 +37,7 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
             safety_tips: [],
             lgu_rules: [],
             critical_info: "",
+            ...init?.general,
         },
         difficulty: {
             length: 0,
@@ -45,7 +49,8 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
             quality: [],
             difficulty_points: [],
             lascoRating: 0,
-            classification: undefined,
+            classification: "minor",
+            ...init?.difficulty,
         },
         tourism: {
             shelter: null,
@@ -59,8 +64,8 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
             community: null,
             viewpoint: [],
             network_connection: false,
+            ...init?.tourism,
         },
-        ...init,
     };
 };
 
