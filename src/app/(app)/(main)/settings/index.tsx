@@ -5,7 +5,7 @@
 
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
-import { useAuthHook } from '@/src/core/models/User/User';
+import { Role, useAuthHook } from '@/src/core/models/User/User';
 import SettingsScreen from '@/src/features/Settings/screens/SettingsScreen';
 
 /**
@@ -36,7 +36,7 @@ export default function Settings() {
 
     return (
         <SettingsScreen
-            role={role as string}
+            role={role as Role}
             onBackPress={onProfilePress}
 
             onProfileInfoPress={() => onUserViewPress(profile?.id)}

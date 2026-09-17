@@ -8,6 +8,7 @@
 
 import React, { ReactNode, useState } from 'react';
 import {
+    Platform,
     StyleProp,
     StyleSheet,
     TouchableOpacity,
@@ -21,6 +22,7 @@ import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { useWebDrawer } from '@/src/core/context/WebDrawerContext';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 
 /**
@@ -74,11 +76,11 @@ export interface CustomHeaderProps {
  * @param props - Component properties.
  * @returns {React.ReactElement} The rendered header component.
  */
-const CustomHeader: React.FC<CustomHeaderProps> = ({ 
-    title, 
-    onBackPress, 
+const CustomHeader: React.FC<CustomHeaderProps> = ({
+    title,
+    onBackPress,
     leftAction,
-    rightActions, 
+    rightActions,
     showDefaultIcons = false,
     centerTitle = false,
     hasSearch = false,
@@ -95,10 +97,13 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 }) => {
 
     // Always called unconditionally (Rules of Hooks compliance)
-    const { 
-        onNotificationPress, 
+    const {
+        onNotificationPress,
         onBookingPress,
     } = useAppNavigation();
+
+    const { toggleDrawer } = useWebDrawer();
+    const activeDrawerToggle = onToggleDrawer || toggleDrawer;
 
     const [isMobileSearchActive, setIsMobileSearchActive] = useState<boolean>(false);
 
@@ -117,11 +122,11 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                         }}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-left" 
-                            size={24} 
-                            color={Colors.PRIMARY} 
+                        <CustomIcon
+                            library="Feather"
+                            name="chevron-left"
+                            size={24}
+                            color={Colors.PRIMARY}
                             style={styles.backButtonIcon}
                         />
                     </TouchableOpacity>
@@ -143,17 +148,17 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                 <View style={dashboardStyles.leftSection}>
                     {leftAction ? (
                         leftAction
-                    ) : isMobile && onToggleDrawer ? (
+                    ) : (isMobile || Platform.OS === 'web') && activeDrawerToggle ? (
                         <TouchableOpacity
                             style={dashboardStyles.backButton}
-                            onPress={onToggleDrawer}
+                            onPress={activeDrawerToggle}
                             activeOpacity={0.7}
                         >
                             <CustomIcon library="Feather" name="menu" size={24} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     ) : null}
                     {!isMobile && (
-                        <CustomText variant="h2" style={dashboardStyles.titleTextDesktop} numberOfLines={1}>
+                        <CustomText variant="h3" style={dashboardStyles.titleTextDesktop} numberOfLines={1}>
                             {title}
                         </CustomText>
                     )}
@@ -210,11 +215,11 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                         }}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-left" 
-                            size={24} 
-                            color={Colors.PRIMARY} 
+                        <CustomIcon
+                            library="Feather"
+                            name="chevron-left"
+                            size={24}
+                            color={Colors.PRIMARY}
                             style={styles.backButtonIcon}
                         />
                     </TouchableOpacity>
@@ -240,16 +245,16 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                         {/* === LEFT SECTION: Back Button === */}
                         <View style={styles.leftBoxCentered} pointerEvents="box-none">
                             {onBackPress && (
-                                <TouchableOpacity 
-                                    onPress={onBackPress} 
+                                <TouchableOpacity
+                                    onPress={onBackPress}
                                     style={styles.backButton}
                                     activeOpacity={0.7}
                                 >
-                                    <CustomIcon 
-                                        library="Feather" 
+                                    <CustomIcon
+                                        library="Feather"
                                         name="chevron-left"
                                         size={24}
-                                        color={Colors.PRIMARY} 
+                                        color={Colors.PRIMARY}
                                         style={styles.backButtonIcon}
                                     />
                                 </TouchableOpacity>
@@ -258,7 +263,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
                         {/* === CENTER SECTION: Title (always centered) === */}
                         <View style={styles.centerBox} pointerEvents="none">
-                            <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
+                            <CustomText variant="h3" style={styles.centerTitle} numberOfLines={1}>
                                 {title}
                             </CustomText>
                         </View>
@@ -301,45 +306,76 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
         onSearchChange: searchProps.onChangeText || searchProps.onSearchChange,
     };
 
+    const isWeb = Platform.OS === 'web';
+    const displayDefaultIcons = showDefaultIcons || isWeb;
+
     return (
         <View style={hasSearch ? { overflow: 'hidden', paddingBottom: 15 } : { zIndex: 100 }}>
             <View style={[
-                styles.masterContainer, 
-                hasSearch ? styles.withSearchShadowAndRadius : styles.flatHeader, 
+                styles.masterContainer,
+                hasSearch ? styles.withSearchShadowAndRadius : styles.flatHeader,
                 hasSearch && { marginTop: -10, paddingTop: 10 },
                 style
             ]}>
                 <View style={styles.titleRow}>
-                    
+
                     {/* === LEFT SECTION === */}
-                    <View style={centerTitle ? styles.leftBoxCentered : styles.leftBoxStandard} pointerEvents="box-none">
-                        {leftAction ? leftAction : (onBackPress ? (
-                            <TouchableOpacity 
-                                onPress={onBackPress} 
-                                style={styles.backButton}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="chevron-left"
-                                    size={24}
-                                    color={Colors.PRIMARY} 
-                                    style={styles.backButtonIcon}
-                                />
-                            </TouchableOpacity>
-                        ) : (
-                            !centerTitle && (
-                                children ? children : (
-                                    <CustomText variant="title" style={styles.headline} numberOfLines={1}>
-                                        {title}
-                                    </CustomText>
+                    <View style={(isWeb || !centerTitle) ? styles.leftBoxStandard : styles.leftBoxCentered} pointerEvents="box-none">
+                        {leftAction ? leftAction : (
+                            isWeb ? (
+                                <View style={styles.leftTitleGroup}>
+                                    {activeDrawerToggle && (
+                                        <TouchableOpacity
+                                            onPress={activeDrawerToggle}
+                                            style={styles.hamburgerButton}
+                                            activeOpacity={0.7}
+                                        >
+                                            <CustomIcon
+                                                library="Feather"
+                                                name="menu"
+                                                size={22}
+                                                color={Colors.PRIMARY}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
+                                    {children ? children : (
+                                        <CustomText variant="h3" style={styles.headline} numberOfLines={1}>
+                                            {title}
+                                        </CustomText>
+                                    )}
+                                </View>
+                            ) : (
+                                onBackPress ? (
+                                    <TouchableOpacity
+                                        onPress={onBackPress}
+                                        style={styles.backButton}
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="chevron-left"
+                                            size={24}
+                                            color={Colors.PRIMARY}
+                                            style={styles.backButtonIcon}
+                                        />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.leftTitleGroup}>
+                                        {!centerTitle && (
+                                            children ? children : (
+                                                <CustomText variant="title" style={styles.headline} numberOfLines={1}>
+                                                    {title}
+                                                </CustomText>
+                                            )
+                                        )}
+                                    </View>
                                 )
                             )
-                        ))}
+                        )}
                     </View>
 
-                    {/* === CENTER SECTION === */}
-                    {centerTitle && (
+                    {/* === CENTER SECTION (Native Only when centerTitle is true) === */}
+                    {!isWeb && centerTitle && (
                         <View style={styles.centerBox} pointerEvents="none">
                             {children ? children : (
                                 <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
@@ -350,28 +386,28 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                     )}
 
                     {/* === RIGHT SECTION === */}
-                    <View style={centerTitle ? styles.rightBoxCentered : styles.rightBoxStandard} pointerEvents="box-none">
+                    <View style={(isWeb || !centerTitle) ? styles.rightBoxStandard : styles.rightBoxCentered} pointerEvents="box-none">
                         <View style={styles.rightActionsInner}>
-                            {showDefaultIcons && (
+                            {displayDefaultIcons && (
                                 <>
                                     <TouchableOpacity
                                         style={styles.actionIcon}
                                         onPress={onNotificationPress}
                                     >
-                                        <CustomIcon 
-                                            library="Ionicons" 
+                                        <CustomIcon
+                                            library="Ionicons"
                                             name="notifications"
                                             size={24}
-                                            color={Colors.PRIMARY} 
+                                            color={Colors.PRIMARY}
                                         />
                                     </TouchableOpacity>
- 
+
                                     <TouchableOpacity
                                         style={styles.actionIcon}
                                         onPress={onBookingPress}
                                     >
-                                        <CustomIcon 
-                                            library="Ionicons" 
+                                        <CustomIcon
+                                            library="Ionicons"
                                             name="calendar-clear"
                                             size={24}
                                             color={Colors.PRIMARY}
@@ -389,7 +425,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                 {hasSearch && (
                     <CustomSearchBar {...enhancedSearchProps} />
                 )}
-                
+
             </View>
         </View>
     );
@@ -450,9 +486,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
+    leftTitleGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    hamburgerButton: {
+        padding: 4,
+        marginLeft: -4,
+    },
     backButton: {
         padding: 6,
-        marginLeft: -6, 
+        marginLeft: -6,
     },
     backButtonIcon: {},
     headline: {
@@ -460,7 +505,7 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     centerTitle: {
-        color: Colors.TEXT_PRIMARY, 
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
         textAlign: 'center',
     },

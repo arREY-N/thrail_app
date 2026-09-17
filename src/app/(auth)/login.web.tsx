@@ -1,4 +1,5 @@
 import LoadingScreen from "@/src/app/loading";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
 import { useNotifyPermission } from "@/src/core/hook/useNotifyPermission";
 import { useAuthHook } from "@/src/core/models/User/User";
@@ -13,16 +14,28 @@ export default function LogIn() {
 	const { mode } = useLocalSearchParams<{
 		mode?: "login" | "signup" | "forgot";
 	}>();
-	const { user, profile, isLoading } = useAuthHook();
+	const { onBackPress } = useAppNavigation();
 
-	const { onLogIn, onPrivacy, onTerms } = useLandingNavigation();
+	const {
+		user,
+		profile,
+		isLoading,
+		error,
+		onLogIn,
+		onGmailLogIn,
+	} = useAuthHook();
+	const {
+		onSignUp,
+		onPrivacy,
+		onTerms
+	} = useLandingNavigation();
 
 	if (user) {
 		if (!profile) return <LoadingScreen />;
 
 		if (profile && profile.onBoardingComplete)
-			return <Redirect href={"/(tabs)" as any} />;
-		else return <Redirect href={"/(auth)/preference" as any} />;
+			return <Redirect href={"/(tabs)"} />;
+		else return <Redirect href={"/(auth)/preference"} />;
 	}
 
 	if (isLoading) return <LoadingScreen />;
@@ -35,14 +48,14 @@ export default function LogIn() {
 
 	return (
 		<LogInScreen
-			onLogInPress={onLogIn as any}
-			onSignUpPress={() => { }}
-			error={""}
+			onLogInPress={onLogIn}
+			onSignUpPress={onSignUp}
+			error={error}
 			onForgotPasswordPress={() => { }}
-			onBackPress={() => { }}
+			onBackPress={onBackPress}
 			onRememberMePress={() => { }}
 			remember={true}
-			onGmailLogIn={() => { }}
+			onGmailLogIn={onGmailLogIn}
 			onTermsPress={onTerms}
 			onPrivacyPress={onPrivacy}
 		/>

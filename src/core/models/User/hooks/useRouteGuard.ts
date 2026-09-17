@@ -14,7 +14,7 @@ export function useRouteGuard() {
         }
 
         const inAuthGroup = segments[0] === "(auth)";
-        const inProtectedGroup = segments[0] === "(main)" || segments[0] === "(tabs)";
+        const inProtectedGroup = segments[0] === "(app)" || segments[0] === "(main)" || segments[0] === "(tabs)";
 
         if (!user && inProtectedGroup) {
             router.replace("/(auth)/login");

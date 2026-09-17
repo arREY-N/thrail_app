@@ -1,4 +1,4 @@
-import { Redirect, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
@@ -10,6 +10,7 @@ import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 export default function Login() {
+    console.log('inside login.tsx');
     const { isLargeScreen } = useBreakpoints();
 
     const {
@@ -18,6 +19,7 @@ export default function Login() {
     } = useAppNavigation();
 
     const {
+        onLogIn,
         onPrivacy,
         onTerms
     } = useLandingNavigation();
@@ -26,7 +28,6 @@ export default function Login() {
         error,
         remember,
         reset,
-        onLogIn,
         onRememberMePress,
         onForgotPassword,
         onGmailLogIn,
@@ -45,15 +46,13 @@ export default function Login() {
         }
     };
 
-    if (isLargeScreen) {
-        return <Redirect href="/(auth)/landing?mode=login" />;
-    }
+    console.log('in here')
 
     return (
         <View style={{ flex: 1 }}>
             <LogInScreen
-                onLogInPress={onLogIn as any}
-                onSignUpPress={onSignUpPress as any}
+                onLogInPress={onLogIn}
+                onSignUpPress={onSignUpPress}
                 error={error}
                 onForgotPasswordPress={onForgotPassword}
                 onBackPress={handleBack}
