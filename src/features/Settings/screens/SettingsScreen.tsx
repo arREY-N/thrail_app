@@ -7,7 +7,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -19,6 +19,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { Role } from '@/src/core/models/User/User';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { IconLibrary } from '@/src/types/ui.types';
 
@@ -59,32 +60,32 @@ export interface SettingsItemProps {
  * A selectable item row within the settings list
  */
 const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive }: SettingsItemProps) => (
-    <TouchableOpacity 
-        style={styles.itemContainer} 
+    <TouchableOpacity
+        style={styles.itemContainer}
         onPress={onPress}
         activeOpacity={0.7}
     >
         <View style={styles.itemLeft}>
             <View style={[styles.iconCircle, isDestructive && styles.iconCircleDestructive]}>
-                <CustomIcon 
-                    library={library} 
-                    name={icon} 
-                    size={20} 
-                    color={isDestructive ? Colors.ERROR : Colors.PRIMARY} 
+                <CustomIcon
+                    library={library}
+                    name={icon}
+                    size={20}
+                    color={isDestructive ? Colors.ERROR : Colors.PRIMARY}
                 />
             </View>
-            <CustomText 
-                variant="body" 
+            <CustomText
+                variant="body"
                 style={[styles.itemTitle, isDestructive && styles.itemTitleDestructive]}
             >
                 {title}
             </CustomText>
         </View>
-        <CustomIcon 
-            library="Feather" 
-            name="chevron-right" 
-            size={20} 
-            color={Colors.GRAY_MEDIUM} 
+        <CustomIcon
+            library="Feather"
+            name="chevron-right"
+            size={20}
+            color={Colors.GRAY_MEDIUM}
         />
     </TouchableOpacity>
 );
@@ -104,7 +105,7 @@ const SettingsItem = ({ icon, library = "Feather", title, onPress, isDestructive
  * @param onSignOutPress - Callback for initiating user sign out
  */
 export interface SettingsScreenProps {
-    role?: string;
+    role: Role;
     onBackPress: () => void;
     onProfileInfoPress: () => void;
     onSecurityPress: () => void;
@@ -124,13 +125,13 @@ const SettingsScreen = ({
     onBackPress,
     onProfileInfoPress,
     onSecurityPress,
-    
+
     onAdminPress,
     onSuperadminPress,
     onApplyPress,
-    
+
     onPrivacySettingsPress,
-    
+
     onAboutPress,
     onSignOutPress
 }: SettingsScreenProps): React.JSX.Element => {
@@ -145,7 +146,7 @@ const SettingsScreen = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
+
             <ConfirmationModal
                 visible={showSignOutModal}
                 title="Log Out Confirmation"
@@ -158,13 +159,13 @@ const SettingsScreen = ({
                 iconName="log-out"
             />
 
-            <CustomHeader 
+            <CustomHeader
                 title="Settings"
                 centerTitle={true}
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
             />
 
-            <ScrollView 
+            <ScrollView
                 style={styles.contentArea}
                 contentContainerStyle={[styles.scrollContent, !isMobile && styles.desktopContent]}
                 showsVerticalScrollIndicator={false}
@@ -173,14 +174,14 @@ const SettingsScreen = ({
                     <SectionHeader title="Account & Security" />
                     <SettingsItem icon="user" title="Profile Information" onPress={onProfileInfoPress} />
                     <SettingsItem icon="shield" title="Security" onPress={onSecurityPress} />
-                    
+
                     {role === 'superadmin' && (
                         <>
-                            <SettingsItem icon="briefcase" title="Apply for Business Account" onPress={onApplyPress || (() => {})} />
+                            <SettingsItem icon="briefcase" title="Apply for Business Account" onPress={onApplyPress || (() => { })} />
                             <SettingsItem icon="database" title="Superadmin Dashboard" onPress={onSuperadminPress} />
                         </>
                     )}
-                    
+
                     {role === 'admin' && (
                         <SettingsItem icon="command" title="Admin Dashboard" onPress={onAdminPress} />
                     )}
@@ -197,10 +198,10 @@ const SettingsScreen = ({
                 </View>
 
                 <View style={styles.logoutContainer}>
-                    <CustomButton 
+                    <CustomButton
                         title="Log Out"
                         onPress={() => setShowSignOutModal(true)}
-                        variant="primary" 
+                        variant="primary"
                         style={styles.logoutButton}
                     />
                 </View>
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
         color: Colors.BLACK,
         marginBottom: 8,
     },
-    
+
     itemContainer: {
         flexDirection: 'row',
         alignItems: 'center',

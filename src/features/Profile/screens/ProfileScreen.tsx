@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -150,19 +151,20 @@ const ProfileScreen = ({
                             </CustomText>
                         </View>
                     </View>
-
-                    <TouchableOpacity
-                        style={styles.settingsButton}
-                        onPress={onSettingsPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon
-                            library="Feather"
-                            name="settings"
-                            size={22}
-                            color={Colors.TEXT_PRIMARY}
-                        />
-                    </TouchableOpacity>
+                    {Platform.OS !== 'web' && (
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={onSettingsPress}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon
+                                library="Feather"
+                                name="settings"
+                                size={22}
+                                color={Colors.TEXT_PRIMARY}
+                            />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <View style={styles.stickyTabWrapper}>

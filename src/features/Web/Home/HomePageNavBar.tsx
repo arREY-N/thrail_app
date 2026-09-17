@@ -1,12 +1,10 @@
 import type { Href } from "expo-router";
 import { router, usePathname, useSegments } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
-import { GlobalStyles } from "@/src/constants/globalStyles";
 import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
@@ -24,7 +22,8 @@ interface NavSection {
   items: NavItemConfig[];
 }
 
-const NAV_SECTIONS: NavSection[] = [
+// ── Base Navigation Sections (Available for all users) ──
+const BASE_NAV_SECTIONS: NavSection[] = [
   {
     title: "MENU",
     items: [
@@ -70,19 +69,140 @@ const NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+  {
+    title: "SYSTEM",
+    items: [
+      {
+        id: "settings",
+        label: "Settings",
+        icon: "settings",
+        library: "Feather",
+        route: "/(main)/settings",
+      },
+    ],
+  },
 ];
 
-export const HomeSidebar = () => {
+// ── Superadmin Navigation Sections ──
+const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
+  {
+    title: "ADMIN MAIN",
+    items: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: "grid",
+        library: "Feather",
+        route: "/(main)/superadmin",
+      },
+      {
+        id: "application",
+        label: "Applications",
+        icon: "file-text",
+        library: "Feather",
+        route: "/(main)/superadmin/application/list",
+      },
+    ],
+  },
+  {
+    title: "MANAGEMENT",
+    items: [
+      {
+        id: "business",
+        label: "Tour Businesses",
+        icon: "briefcase",
+        library: "Feather",
+        route: "/(main)/superadmin/business/list",
+      },
+      {
+        id: "trail",
+        label: "Trails & Routes",
+        icon: "map",
+        library: "Feather",
+        route: "/(main)/superadmin/trail/list",
+      },
+      {
+        id: "mountain",
+        label: "Mountains Database",
+        icon: "mountain",
+        library: "FontAwesome5",
+        route: "/(main)/superadmin/mountain/list",
+      },
+      {
+        id: "user",
+        label: "User Accounts",
+        icon: "users",
+        library: "Feather",
+        route: "/(main)/superadmin/user/list",
+      },
+    ],
+  },
+];
+
+// ── Admin (Business Admin) Navigation Sections ──
+const ADMIN_NAV_SECTIONS: NavSection[] = [
+  {
+    title: "MANAGEMENT",
+    items: [
+      {
+        id: "business",
+        label: "Offers",
+        icon: "briefcase",
+        library: "Feather",
+        route: "/(main)/admin/offer/list",
+      },
+      {
+        id: "trail",
+        label: "Trails & Routes",
+        icon: "map",
+        library: "Feather",
+        route: "/(main)/superadmin/trail/list",
+      },
+      {
+        id: "personnel",
+        label: "Personnel",
+        icon: "map",
+        library: "Feather",
+        route: "/(main)/admin/personnel/list",
+      },
+    ],
+  },
+];
+
+interface HomeSidebarProps {
+  /** Callback to close the drawer when a nav item is pressed */
+  onClose?: () => void;
+}
+
+export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
   const pathname = usePathname();
   const segments = useSegments();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const profile = useAuthStore((s) => s.profile);
+  const role = useAuthStore((s) => s.role);
+
   const fullName = profile
     ? `${profile.firstname || ""} ${profile.lastname || ""}`.trim()
     : "";
   const displayName = fullName || profile?.username || "Hiker";
   const initials = getInitials(displayName !== "Hiker" ? displayName : "TH");
+
+  const roleTitle =
+    role === "superadmin"
+      ? "System Administrator"
+      : role === "admin"
+        ? "Business Admin"
+        : "Explorer";
+
+  // Combine menu sections dynamically based on user role
+  const navSections = [
+    ...BASE_NAV_SECTIONS,
+    ...(role === "superadmin"
+      ? SUPERADMIN_NAV_SECTIONS
+      : role === "admin"
+        ? ADMIN_NAV_SECTIONS
+        : []),
+  ];
 
   const isItemActive = (route: Href) => {
     const routeStr = String(route);
@@ -99,96 +219,93 @@ export const HomeSidebar = () => {
       );
     }
 
+    if (routeStr === "/(main)/superadmin") {
+      return (
+        currentPath === "/superadmin" ||
+        currentPath === "/(main)/superadmin" ||
+        (segs.includes("superadmin") && segs.length <= 2)
+      );
+    }
+
     const keyword = routeStr
       .replace("/(tabs)/", "")
       .replace("/(main)/", "")
+      .replace("/superadmin/", "")
+      .replace("/list", "")
       .replace("/", "");
+
     return currentPath.includes(keyword) || segs.includes(keyword);
   };
 
   const isProfileActive = (pathname || "").toLowerCase().includes("profile");
 
+  const handleNavPress = (route: Href) => {
+    router.push(route);
+    onClose?.();
+  };
+
   return (
-    <View style={[styles.sidebar, isCollapsed && styles.sidebarCollapsed]}>
-      {/* Top Header: Explorer Profile Card + Minimize Button */}
+    <View style={styles.sidebar}>
+      {/* Top Header: User Profile Card */}
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={[
             styles.profileHeaderRow,
             isProfileActive && styles.profileHeaderRowActive,
-            isCollapsed && styles.profileHeaderRowCollapsed,
           ]}
-          onPress={() => router.push("/(tabs)/profile")}
+          onPress={() => handleNavPress("/(tabs)/profile")}
           activeOpacity={0.7}
         >
-          {/* Avatar Circle ("ZO") */}
+          {/* Avatar Circle */}
           <View style={styles.avatarCircle}>
             <CustomText style={styles.avatarText}>{initials}</CustomText>
           </View>
 
-          {!isCollapsed && (
-            <View style={styles.profileTextWrapper}>
-              <CustomText
-                variant="body"
-                style={[
-                  styles.profileName,
-                  isProfileActive && styles.profileNameActive,
-                ]}
-                numberOfLines={1}
-              >
-                {displayName}
-              </CustomText>
-              <CustomText
-                variant="caption"
-                style={styles.profileRole}
-                numberOfLines={1}
-              >
-                Explorer
-              </CustomText>
-            </View>
-          )}
+          <View style={styles.profileTextWrapper}>
+            <CustomText
+              variant="body"
+              style={[
+                styles.profileName,
+                isProfileActive && styles.profileNameActive,
+              ]}
+              numberOfLines={1}
+            >
+              {displayName}
+            </CustomText>
+            <CustomText
+              variant="caption"
+              style={styles.profileRole}
+              numberOfLines={1}
+            >
+              {roleTitle}
+            </CustomText>
+          </View>
         </TouchableOpacity>
 
-        {/* Desktop Minimize Toggle Button (Expanded state) */}
-        {!isCollapsed && (
-          <TouchableOpacity
-            style={styles.minimizeBtn}
-            onPress={() => setIsCollapsed(!isCollapsed)}
-            activeOpacity={0.7}
-          >
-            <CustomIcon
-              library="Feather"
-              name="sidebar"
-              size={16}
-              color={Colors.PRIMARY}
-            />
-          </TouchableOpacity>
-        )}
+        {/* Close button */}
+        <TouchableOpacity
+          style={styles.closeBtn}
+          onPress={onClose}
+          activeOpacity={0.7}
+        >
+          <CustomIcon
+            library="Feather"
+            name="x"
+            size={20}
+            color={Colors.TEXT_SECONDARY}
+          />
+        </TouchableOpacity>
       </View>
 
-      {/* Minimize Toggle Button (Collapsed state) */}
-      {isCollapsed && (
-        <View style={styles.minimizeCollapsedWrapper}>
-          <TouchableOpacity
-            style={styles.minimizeBtn}
-            onPress={() => setIsCollapsed(!isCollapsed)}
-            activeOpacity={0.7}
-          >
-            <CustomIcon
-              library="Feather"
-              name="sidebar"
-              size={16}
-              color={Colors.TEXT_SECONDARY}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Navigation Links */}
-      <View style={styles.navList}>
-        {NAV_SECTIONS.map((section, sIndex) => (
+      {/* Scrollable Navigation Links */}
+      <ScrollView
+        style={styles.scrollList}
+        contentContainerStyle={styles.navListContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {navSections.map((section, sIndex) => (
           <View key={section.title || sIndex} style={styles.sectionGroup}>
-            {!isCollapsed && section.title && (
+            {section.title && (
               <View style={styles.sectionHeaderContainer}>
                 <CustomText variant="caption" style={styles.sectionTitleText}>
                   {section.title}
@@ -205,9 +322,8 @@ export const HomeSidebar = () => {
                   style={[
                     styles.navItem,
                     isActive && styles.navItemActive,
-                    isCollapsed && styles.navItemCollapsed,
                   ]}
-                  onPress={() => router.push(item.route)}
+                  onPress={() => handleNavPress(item.route)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.navIconWrapper}>
@@ -219,47 +335,38 @@ export const HomeSidebar = () => {
                     />
                   </View>
 
-                  {!isCollapsed && (
-                    <CustomText
-                      variant="body"
-                      style={[
-                        styles.navLabel,
-                        isActive && styles.navLabelActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.label}
-                    </CustomText>
-                  )}
+                  <CustomText
+                    variant="body"
+                    style={[
+                      styles.navLabel,
+                      isActive && styles.navLabelActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.label}
+                  </CustomText>
                 </TouchableOpacity>
               );
             })}
           </View>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 240,
-    height: "100%",
+    flex: 1,
     backgroundColor: Colors.WHITE,
-    borderRightWidth: 1,
-    borderRightColor: Colors.GRAY_LIGHT,
     paddingHorizontal: 12,
     paddingVertical: 16,
-    ...GlobalStyles.dropShadow(1),
-  },
-  sidebarCollapsed: {
-    width: 68,
   },
   topHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.GRAY_ULTRALIGHT,
@@ -275,10 +382,6 @@ const styles = StyleSheet.create({
   },
   profileHeaderRowActive: {
     backgroundColor: Colors.CHIP_PRIMARY_BG,
-  },
-  profileHeaderRowCollapsed: {
-    justifyContent: "center",
-    paddingHorizontal: 0,
   },
   avatarCircle: {
     width: 36,
@@ -308,25 +411,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.TEXT_SECONDARY,
   },
-  minimizeBtn: {
+  closeBtn: {
     padding: 6,
     borderRadius: 6,
     backgroundColor: Colors.BACKGROUND,
   },
-  minimizeCollapsedWrapper: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  navList: {
+  scrollList: {
     flex: 1,
-    gap: 12,
+  },
+  navListContainer: {
+    gap: 16,
+    paddingBottom: 24,
   },
   sectionGroup: {
     gap: 4,
   },
   sectionHeaderContainer: {
     paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 4,
   },
   sectionTitleText: {
@@ -343,10 +445,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     gap: 12,
-  },
-  navItemCollapsed: {
-    justifyContent: "center",
-    paddingHorizontal: 8,
   },
   navItemActive: {
     backgroundColor: Colors.CHIP_PRIMARY_BG,
