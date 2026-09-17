@@ -1,0 +1,272 @@
+/**
+ * @file SignUpScreen.tsx
+ * @description Pure-UI screen component for the user registration flow, handling email, username, password creation with a strength indicator, and Google OAuth signup.
+ */
+
+import { useState } from 'react';
+import {
+    ScrollView,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+import CustomButton from '@/src/components/CustomButton';
+import CustomHeader from '@/src/components/CustomHeader';
+import Customicon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import ErrorMessage from '@/src/components/ErrorMessage';
+import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+
+import { Colors } from '@/src/constants/colors';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
+/**
+ * Props for the SignUpScreen component.
+ * @param onLogInPress - Callback to navigate back to the log-in page.
+ * @param onBackPress - Callback to navigate to the previous screen.
+ * @param onSignUpPress - Callback to handle email-based sign-up.
+ * @param onGmailSignUp - Callback to handle Google-based sign-up.
+ * @param onTermsPress - Callback when Terms of Service link is pressed.
+ * @param onPrivacyPress - Callback when Privacy Policy link is pressed.
+ * @param error - Error message to display, if any.
+ * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
+ */
+export interface SignUpScreenProps {
+    onLogInPress: () => void;
+    onBackPress: () => void;
+    onSignUpPress: (email?: string, password?: string, username?: string, confirmPassword?: string) => void;
+    onGmailSignUp: () => void;
+    onTermsPress: () => void;
+    onPrivacyPress: () => void;
+    error?: string | null;
+    isSplitScreen?: boolean;
+}
+
+/**
+ * Screen component that renders the Sign Up interface.
+ */
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
+    onLogInPress, 
+    onBackPress, 
+    onSignUpPress, 
+    onGmailSignUp, 
+    onTermsPress,
+    onPrivacyPress,
+    error,
+    isSplitScreen,
+}) => {
+
+    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    
+    const [showPasswords, setShowPasswords] = useState(false);
+
+    let strength = 0;
+    if (password.length > 0) {
+        const hasLength = password.length >= 8;
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (hasLength && hasUpper && hasLower && hasNumber && hasSpecial) {
+            strength = 3;
+        } else if (hasLength && (hasNumber || hasSpecial)) {
+            strength = 2;
+        } else {
+            strength = 1;
+        }
+    }
+
+    const getStrengthColor = () => {
+        if (strength === 1) return Colors.STRENGTH_WEAK;    
+        if (strength === 2) return Colors.STRENGTH_MEDIUM;   
+        if (strength === 3) return Colors.STRENGTH_STRONG;  
+        return Colors.STRENGTH_EMPTY; 
+    };
+
+    const { isLargeScreen } = useBreakpoints();
+
+    // Shared form content — reused in both split-screen and mobile render paths.
+    const formContent = (
+        <View style={AuthStyles.formConstrainer}>
+            <CustomText
+                variant="title"
+                style={[
+                    AuthStyles.pageTitle,
+                    isSplitScreen && AuthStyles.splitScreenTitle,
+                ]}
+            >
+                Sign Up
+            </CustomText>
+
+            <CustomTextInput
+                label="Email Address *"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+            />
+
+            <CustomTextInput
+                label="Username *"
+                placeholder="Choose a username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+            />
+
+            <View>
+                <CustomTextInput
+                    label="Password *"
+                    placeholder="Type your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    isPasswordVisible={showPasswords}
+                    onTogglePassword={() => setShowPasswords(!showPasswords)}
+                    style={{ marginBottom: 0 }}
+                />
+
+                <View style={AuthStyles.strengthContainer}>
+                    {[1, 2, 3].map((level) => (
+                        <View
+                            key={level}
+                            style={[
+                                AuthStyles.strengthBar,
+                                {
+                                    backgroundColor: strength >= level
+                                        ? getStrengthColor()
+                                        : Colors.STRENGTH_EMPTY
+                                }
+                            ]}
+                        />
+                    ))}
+                </View>
+            </View>
+
+            <CustomTextInput
+                label="Confirm Password *"
+                placeholder="Retype your password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                isPasswordVisible={showPasswords}
+                onTogglePassword={() => setShowPasswords(!showPasswords)}
+            />
+
+            <ErrorMessage error={error} />
+
+            <View style={[AuthStyles.buttonContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
+                <CustomButton
+                    title="Continue with Email"
+                    onPress={() => onSignUpPress(email, password, username, confirmPassword)}
+                    variant="primary"
+                />
+            </View>
+
+            <View style={[AuthStyles.dividerContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
+                <View style={AuthStyles.line} />
+                <CustomText variant="caption" style={AuthStyles.dividerText}>
+                    or continue with
+                </CustomText>
+                <View style={AuthStyles.line} />
+            </View>
+
+            <TouchableOpacity
+                style={[AuthStyles.googleButton, isSplitScreen && AuthStyles.splitScreenSection]}
+                onPress={onGmailSignUp}
+                activeOpacity={0.8}
+            >
+                <Customicon
+                    library="AntDesign"
+                    name="google"
+                    size={20}
+                    color={Colors.BLACK}
+                />
+                <CustomText variant="body" style={AuthStyles.googleButtonText}>
+                    Continue with Google
+                </CustomText>
+            </TouchableOpacity>
+
+            <View style={AuthStyles.footerContainer}>
+                <CustomText variant="caption" style={AuthStyles.footerText}>
+                    {"Already have an account? "}
+                </CustomText>
+                <TouchableOpacity onPress={onLogInPress}>
+                    <CustomText variant="caption" style={AuthStyles.signUpLink}>
+                        Log In
+                    </CustomText>
+                </TouchableOpacity>
+            </View>
+
+            {isSplitScreen && (
+                <View style={[AuthStyles.termsContainer, AuthStyles.splitScreenSection]}>
+                    <CustomText variant="caption" style={AuthStyles.termsText}>
+                        By continuing, you agree to our{' '}
+                        <CustomText
+                            variant="caption"
+                            style={AuthStyles.termsLink}
+                            onPress={onTermsPress}
+                        >
+                            Terms of Service
+                        </CustomText>
+                        {' '}and{' '}
+                        <CustomText
+                            variant="caption"
+                            style={AuthStyles.termsLink}
+                            onPress={onPrivacyPress}
+                        >
+                            Privacy Policy
+                        </CustomText>
+                        .
+                    </CustomText>
+                </View>
+            )}
+        </View>
+    );
+
+    // ── Split-screen path: bare ScrollView, no ScreenWrapper overhead ──────────
+    if (isSplitScreen) {
+        return (
+            <ScrollView
+                style={AuthStyles.container}
+                contentContainerStyle={AuthStyles.splitScreenScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {formContent}
+            </ScrollView>
+        );
+    }
+
+    // ── Mobile path: unchanged ─────────────────────────────────────────────────
+    return (
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+
+            {!isLargeScreen && <CustomHeader onBackPress={onBackPress} />}
+
+            <ResponsiveScrollView
+                minHeight={isLargeScreen ? 0 : 600}
+                contentHeightOffset={48}
+                style={AuthStyles.container}
+                contentContainerStyle={[
+                    AuthStyles.scrollContent,
+                    isLargeScreen && { justifyContent: 'center' }
+                ]}
+            >
+                <View style={AuthStyles.contentContainer}>
+                    {formContent}
+                </View>
+            </ResponsiveScrollView>
+        </ScreenWrapper>
+    );
+};
+
+export default SignUpScreen;

@@ -1,21 +1,18 @@
-// TODO: remove the unused import once front end implemented
-import LoadingScreen from '@/src/app/loading';
-import UnauthorizedScreen from '@/src/app/unauthorized';
-import CustomButton from '@/src/components/CustomButton';
-import { useAdmin } from '@/src/core/hook/admin/useAdmin';
-import useAdminNavigation from '@/src/core/hook/navigation/useAdminNavigation';
-import { useAuthHook } from '@/src/core/hook/user/useAuthHook';
-import { Business } from '@/src/core/models/Business/Business';
-import { User } from '@/src/core/models/User/User';
-import { formatDate } from '@/src/core/utility/date';
-import { StyleSheet, Text, View } from "react-native";
-
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 import { Stack } from 'expo-router';
 
+import UnauthorizedScreen from '@/src/app/unauthorized';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useAdminNavigation } from '@/src/core/models/Admin/Admin';
+import { useBusinessAdmin } from '@/src/core/models/Business/Business';
+import { useAuthHook } from '@/src/core/models/User/User';
+import DashboardScreen from '@/src/features/Admin/screens/DashboardScreen';
 
-export default function adminHome(){
+/**
+ * Controller component for the Admin Dashboard.
+ * Handles authentication checks, queries business configurations,
+ * maps navigation actions, and manages loading/error reload triggers.
+ */
+export default function AdminHome() {
     const {
         businessId,
         profile,
@@ -24,112 +21,41 @@ export default function adminHome(){
         isLoading,
     } = useAuthHook();
 
+
     const {
         businessAccount,
-    } = useAdmin({ businessId })
+        onRefresh
+    } = useBusinessAdmin();
 
     const { onBackPress } = useAppNavigation();
-    
-    if(isLoading || !businessAccount || !businessId || !profile || !role) 
-        return <LoadingScreen/> 
-
-    if(!isLoading && (!businessId || !profile || !role)) 
-        return <UnauthorizedScreen/>
 
     const {
         onManageAdminsPress,
-        onManageOffersPress,    
+        onManageOffersPress,
         onManageTrailsPress,
-    } = useAdminNavigation({ 
-        userId: profile?.id,
-        businessId,
-        role,
-    });
+    } = useAdminNavigation();
+
+    const showLoading = isLoading || !businessAccount || !profile;
+
+
+    if (!isLoading && (!businessId || !profile || !role))
+        return <UnauthorizedScreen />;
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
-            <DashboardScreen 
+            <DashboardScreen
                 businessAccount={businessAccount}
                 onManageAdminsPress={onManageAdminsPress}
                 onManageOffersPress={onManageOffersPress}
                 onManageTrailsPress={onManageTrailsPress}
                 adminProfile={profile}
-                error={error}
+                error={error as string | null}
                 onBackPress={onBackPress}
+                isLoading={showLoading}
+                onRetryPress={onRefresh}
             />
         </>
-
-        // <TESTHOME 
-        //     businessAccount={businessAccount}
-        //     onManageAdminsPress={onManageAdminsPress}
-        //     onManageOffersPress={onManageOffersPress}
-        //     adminProfile={profile}
-        //     error={error}/>
     );
 }
-
-type screenParams = {
-    businessAccount: Business
-    onManageAdminsPress: () => void,
-    onManageOffersPress: () => void,
-    adminProfile: User,
-    error: string | null,
-}
-
-const TESTHOME =(params: screenParams) => {
-    const { 
-        businessAccount, 
-        onManageAdminsPress, 
-        onManageOffersPress,
-        adminProfile, 
-        error 
-    } = params;
-    
-    return (
-        <View>
-            <Text>Admin screen</Text>
-            { error && <Text>{error}</Text>}
-            <View style={styles.adminInfo}>
-                <Text>BUSINESS INFORMATION</Text>
-                
-                <View>
-                    <Text>  Business Name: {businessAccount.name}</Text>
-                    <Text>  Address: {businessAccount.address}</Text>
-                    <Text>  Serviced Location: {businessAccount.servicedLocation}</Text>
-                    <Text>  Established on: {formatDate(businessAccount.establishedOn)}</Text>
-                    <Text>  Approved: {formatDate(businessAccount.createdAt)}</Text>
-                    <Text>  Status: {businessAccount.active ? 'Active' : 'Archived'}</Text>
-                </View>
-            </View>
-
-            <View style={styles.adminInfo}>
-                <Text>ADMIN INFORMATION</Text>
-                <Text>  Admin Name: {adminProfile.firstname} {adminProfile?.lastname} </Text>
-                <Text>  Username: {adminProfile.username}</Text>
-                <Text>  Address: {adminProfile.address}</Text>
-                <Text>  Province: {adminProfile.email}</Text>
-            </View>
-            
-            <CustomButton 
-                title={'Manage Admins'}
-                onPress={onManageAdminsPress}
-                style={undefined}
-                textStyle={undefined} children={undefined}            />
-            
-            <CustomButton 
-                title={'Manage Offers'}
-                onPress={onManageOffersPress}
-                style={undefined}
-                textStyle={undefined} children={undefined}            />
-            
-        </View>
-    )
-}
-
-const styles = StyleSheet.create({
-    adminInfo: {
-        margin: 10,
-    }
-})

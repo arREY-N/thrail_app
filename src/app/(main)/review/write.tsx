@@ -1,8 +1,7 @@
-import useReviewWrite from "@/src/core/hook/review/useReviewWrite";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { useLocalSearchParams } from "expo-router";
 
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { CreateReviewFlow } from "@/src/core/flows/CreateReviewFlow";
 import WriteReviewScreen from "@/src/features/Navigation/screens/WriteReviewScreen";
 
 export default function WriteReview() {
@@ -11,8 +10,6 @@ export default function WriteReview() {
     const reviewId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
     const hikeId = getSearchParam(rawHike);
-
-    const { onBackPress } = useAppNavigation();
 
     const parsedDistance = parseFloat(distance as string) || 0;
     const parsedDuration = parseInt(duration as string, 10) || 0;
@@ -24,9 +21,9 @@ export default function WriteReview() {
         error,
         onUpdatePress,
         onSaveReview,
-    } = useReviewWrite({ 
-        reviewId, 
-        trailId, 
+    } = CreateReviewFlow({
+        reviewId,
+        trailId,
         hikeId,
 
         distance: parsedDistance,
@@ -35,13 +32,13 @@ export default function WriteReview() {
     });
 
     return (
-        <WriteReviewScreen 
+        <WriteReviewScreen
             review={review}
             error={error}
             isLoading={isLoading}
             onUpdatePress={onUpdatePress}
             onSaveReview={onSaveReview}
-            // onBackPress={onBackPress}
+        // onBackPress={onBackPress}
         />
     )
 }

@@ -1,7 +1,8 @@
 {
   "projects": {
     "default": "thrail",
-    "thrail": "thrail"
+    "thrail": "thrail",
+    "staging": "thrail-sandbox"
   },
   "targets": {},
   "etags": {}

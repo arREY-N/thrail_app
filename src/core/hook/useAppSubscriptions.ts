@@ -1,34 +1,29 @@
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
-import useBookingsStore from "@/src/core/stores/bookingsStore";
-import { useNotificationsStore } from "@/src/core/stores/notificationsStore";
-import { useReviewStore } from "@/src/core/stores/reviewStore";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
+import { useNotificationsStore } from "@/src/core/models/Notification/Notification";
+import { useReviewStore } from "@/src/core/models/Review/Review";
+import { useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect } from "react";
 
 
 export const useAppSubscriptions = () => {
-    const profile = useAuthStore(s => s.profile);
+    const { profile } = useAuthHook();
 
-    const reviewStore = useReviewStore();
-    const notifStore = useNotificationsStore();
-    const userBookingsStore = useBookingsStore();
-    const fetchAllTrails = useTrailsStore(s => s.fetchAll); 
-
+    const subscribeToReviews = useReviewStore(s => s.subscribeToReviews);
+    const subscribeToNotifications = useNotificationsStore(s => s.subscribeToNotifications);
+    const subscribeToUserBookings = useBookingsStore(s => s.subscribeToUserBookings);
+    const fetchAllTrails = useTrailsStore(s => s.fetchAll);
 
     useEffect(() => {
-        if(!profile) return;
-        console.log('Subscribing to app subscriptions for user: ', profile.id);
-        const unsubReview = reviewStore.subscribeToReviews();
-        const unsubNotifications = notifStore.subscribeToNotifications();
-        const unsubUserBookings = userBookingsStore.subscribeToUserBookings();
+        if (!profile?.id) return;
+        const unsubReview = subscribeToReviews();
+        const unsubNotifications = subscribeToNotifications(profile.id);
+        const unsubUserBookings = subscribeToUserBookings(profile.id);
         fetchAllTrails();
         return () => {
-            console.log('Cleaning up app subscriptions for user: ', profile.id);
             unsubReview?.();
             unsubNotifications?.();
             unsubUserBookings?.();
-        }
-    },[profile?.id]);
-
-    return null;
+        };
+    }, [profile?.id, subscribeToReviews, subscribeToNotifications, subscribeToUserBookings, fetchAllTrails]);
 }

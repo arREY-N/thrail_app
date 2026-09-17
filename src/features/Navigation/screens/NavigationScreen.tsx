@@ -1,26 +1,30 @@
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Keyboard, Platform, Pressable, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
+import CustomFAB from "@/src/components/CustomFAB";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import { formatDate } from "@/src/core/utility/date";
 import TrailMap from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
+import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
+import { Booking } from "@/src/core/models/Booking/Booking";
+import { Group } from "@/src/core/models/Group/Group";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 
 interface NavigationScreenProps {
-    upcomingBookings: any[]; 
-    groups: any[];
+    upcomingBookings: Booking[]; 
+    groups: Group[];
     currentUserId?: string;
     
     searchQuery: string;
@@ -31,28 +35,28 @@ interface NavigationScreenProps {
     onSearchChange: (text: string) => void;
     onSearchSubmit: () => void;
     onTrailSelect: (trail: Trail) => void;
-    onGroupChatPress: () => void;
+    onGroupPress: () => void;
     onBookingPress: () => void;
-    onStartTracking: (bookingContext?: any) => void;
-    onDeveloperBypass?: (bookingContext: any) => void;
+    onStartTracking: (bookingContext?: Booking | null) => void;
+    onDeveloperBypass?: (bookingContext: Booking | null) => void;
 }
 
-const getElevation = (trail: any) => {
-    const elev = trail?.difficulty?.elevation || trail?.geography?.masl || trail?.masl;
+const getElevation = (trail: Trail) => {
+    const elev = trail?.difficulty?.elevation || trail?.geography?.masl;
     return elev && elev > 0 ? elev : '--';
 };
 
-const getLocation = (trail: any) => {
+const getLocation = (trail: Trail) => {
     const prov = trail?.general?.province;
     if (Array.isArray(prov) && prov.length > 0) return prov.join(', ');
     if (typeof prov === 'string') return prov;
     return trail?.general?.address || 'Unknown';
 };
 
-const getDisplayData = (item: any) => {
+const getDisplayData = (item: Trail) => {
     const dist = item?.difficulty?.length ? `${item.difficulty.length} km` : "--";
     const elev = getElevation(item);
-    const route = item?.difficulty?.circularity === "Out and Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
+    const route = item?.difficulty?.circularity === "Out-and-Back" ? "Out & Back" : item?.difficulty?.circularity || "--";
     return { dist, elev: `${elev} masl`, route };
 };
 
@@ -60,7 +64,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     upcomingBookings, groups, currentUserId,
     searchQuery, filteredTrails, selectedTrail, isLoading,
     onSearchChange, onSearchSubmit, onTrailSelect,
-    onGroupChatPress, onBookingPress, onStartTracking, onDeveloperBypass
+    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress
 }) => {
     const insets = useSafeAreaInsets();
     const searchTopPadding = Platform.OS === 'ios' ? insets.top : insets.top + 10;
@@ -72,14 +76,15 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
-    const [activeBooking, setActiveBooking] = useState<any>(upcomingBookings[0] || null);
+    const [activeBooking, setActiveBooking] = useState<Booking | null>(upcomingBookings[0] || null);
     const prevTrailRef = useRef<Trail | null>(null);
-
-    useEffect(() => {
+    const [prevUpcomingLength, setPrevUpcomingLength] = useState(upcomingBookings.length);
+    if (upcomingBookings.length !== prevUpcomingLength) {
+        setPrevUpcomingLength(upcomingBookings.length);
         if (upcomingBookings.length > 0 && !activeBooking) {
             setActiveBooking(upcomingBookings[0]);
         }
-    }, [upcomingBookings]);
+    }
 
     useEffect(() => {
         if (prevTrailRef.current !== null && selectedTrail === null) {
@@ -98,25 +103,26 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const handleDisabledPress = () => {
         Alert.alert(
             "Booking Scheduled",
-            `Your guided hike is scheduled for ${formatDate(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
+            `Your guided hike is scheduled for ${formatDateToStandard(activeBooking?.offer?.date)}. You can start tracking once the date arrives.`,
             [{ text: "Understood" }]
         );
     };
 
-    const navigateToGroupChat = (booking: any) => {
-        const targetGroup = groups?.find(g => g.members?.some((m: any) => m.id === currentUserId && m.bookingId === booking.id));
+    const navigateToGroupChat = (booking: Booking) => {
+        const targetGroup = groups?.find((g: Group) => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
             router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
-            onGroupChatPress();
+            onGroupPress();
         }
     };
 
     if (Platform.OS === 'web') {
         return (
             <View style={styles.container}>
-                <CustomHeader title="Hike" showDefaultIcons={true} onBackPress={undefined} rightActions={undefined} style={undefined} children={undefined} />
+                <CustomHeader title="Hike" showDefaultIcons={true} />
                 <TrailMap ref={mapRef} bottomInset={0} />
+                <CustomFAB onPress={onGroupPress} />
             </View>
         );
     }
@@ -135,10 +141,9 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         : null;
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View style={styles.container}>
-                <TrailMap 
-                    ref={mapRef}
+        <View style={styles.container}>
+            <TrailMap 
+                ref={mapRef}
                     initialLon={selectedTrail?.geography?.startLong} 
                     initialLat={selectedTrail?.geography?.startLat}
                     bottomInset={275} 
@@ -219,7 +224,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
             </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupChatPress} activeOpacity={0.8}>
+                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupPress} activeOpacity={0.8}>
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>
 
@@ -249,7 +254,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 </View>
                             </View>
                             <CustomText variant="h3" style={styles.trailTitle}>Selected: {selectedTrail.general?.name}</CustomText>
-                            <CustomText variant="caption" style={styles.trailSubtext}>You're all set! Tap below to load the trail map and start recording your adventure.</CustomText>
+                            <CustomText variant="caption" style={styles.trailSubtext}>You&apos;re all set! Tap below to load the trail map and start recording your adventure.</CustomText>
                             <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                 <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />
                                 <CustomText style={styles.activeLaunchText}>Start Selected Hike</CustomText>
@@ -291,7 +296,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                     delayLongPress={2000}
                                 >
                                     <CustomIcon library="Feather" name="lock" size={16} color={Colors.TEXT_SECONDARY} />
-                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDate(activeBooking.offer.date)}</CustomText>
+                                    <CustomText style={styles.disabledLaunchText}>Starts on {formatDateToStandard(activeBooking.offer.date)}</CustomText>
                                 </Pressable>
                             )}
 
@@ -304,7 +309,6 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 confirmText="Bypass & Start"
                                 isDestructive={false}
                                 iconName="unlock"
-                                children={undefined}
                             />
                         </View>
                     ) : (
@@ -330,22 +334,15 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     onClose={() => setUpcomingModalVisible(false)}
                     bookings={upcomingBookings}
                     activeBooking={activeBooking}
-                    onSelectBooking={(booking: any) => {
+                    onSelectBooking={(booking: Booking) => {
                         setActiveBooking(booking);
                         setUpcomingModalVisible(false);
                     }}
                 />
 
             </View>
-        </TouchableWithoutFeedback>
     );
 };
-
-const dropShadow = Platform.select({
-    ios: { shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
-    android: { elevation: 6 },
-    web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)' } as any,
-});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
@@ -353,9 +350,9 @@ const styles = StyleSheet.create({
     floatingSearchWrapper: { position: "absolute", zIndex: 50 }, 
     floatingControlsContainer: { position: "absolute", bottom: 24, zIndex: 40, paddingHorizontal: 16 },
 
-    floatingIconBtn: { position: "absolute", right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", zIndex: 45, ...dropShadow },
+    floatingIconBtn: { position: "absolute", right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", zIndex: 45, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
-    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...dropShadow },
+    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     dropdownList: { paddingVertical: 4 },
     dropdownItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 12 },
     dropdownIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.BACKGROUND, alignItems: 'center', justifyContent: 'center' },
@@ -366,7 +363,7 @@ const styles = StyleSheet.create({
     dropdownSubText: { color: Colors.TEXT_SECONDARY, marginTop: 2 },
 
     loaderCard: { backgroundColor: Colors.WHITE, padding: 32, borderRadius: 24, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT },
-    controlCard: { backgroundColor: Colors.WHITE, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...dropShadow },
+    controlCard: { backgroundColor: Colors.WHITE, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     
     cardHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
     headerTitleGroup: { flexDirection: "row", alignItems: "center", gap: 6 },

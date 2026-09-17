@@ -1,5 +1,6 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from "@/src/constants/globalStyles";
 import React, { forwardRef, useImperativeHandle } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         
-        boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.04)',
+        ...GlobalStyles.dropShadow(12, 0.04, Colors.SHADOW, { radius: 24 }),
     } as any,
     iconRing: {
         width: 80,

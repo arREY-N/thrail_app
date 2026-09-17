@@ -1,44 +1,60 @@
-import LoadingScreen from "@/src/app/loading";
-import TESTWRITETRAIL from "@/src/components/TESTCOMPONENTS/TestWriteTrail";
-import useTrailWrite from "@/src/core/hook/trail/useTrailWrite";
-import { useLocalSearchParams } from "expo-router";
+/**
+ * @file write.tsx
+ * @description Controller route for trail creation and editing in Superadmin and Admin views. Composes useTrailWrite hook and delegates presentation to TrailWriteScreen.
+ */
 
-import CustomHeader from "@/src/components/CustomHeader";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useLocalSearchParams } from 'expo-router';
+import React from 'react';
+
+import LoadingScreen from '@/src/app/loading';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useSuperadminDomain, useSuperadminNavigation } from '@/src/core/models/Superadmin/Superadmin';
+import { useTrailWrite } from '@/src/core/models/Trail/Trail';
+import { useAuthHook } from '@/src/core/models/User/User';
+import TrailWriteScreen from '@/src/features/SuperAdmin/screens/tabs/TrailWriteScreen';
 
 /**
- * Trail write/editor screen.
- * Provides the interface to create a new trail or edit general info for an existing trail.
- * Renders the TestWriteTrail form component.
+ * Controller page for creating or editing trail domain models.
  * 
- * @returns {React.ReactElement} The trail edit form wrapper.
+ * @returns {React.JSX.Element} The rendered trail write route page.
  */
-export default function write() {
-  const { trailId: rawTrailId } = useLocalSearchParams();
+export default function Write(): React.JSX.Element {
+    const { trailId: rawTrailId } = useLocalSearchParams();
+    const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
 
-  const trailId = Array.isArray(rawTrailId) ? rawTrailId[0] : rawTrailId;
+    const { isSuperadmin } = useAuthHook();
+    const { onBackPress } = useAppNavigation();
 
-  const { onBackPress } = useAppNavigation();
-  const controller = useTrailWrite({ trailId });
+    const {
+        onTabPress,
+        onBackToSettingsPress,
+    } = useSuperadminNavigation();
 
-  if (!controller.object) return <LoadingScreen />;
+    const controller = useTrailWrite({ trailId });
+
+    const {
+        pendingApplication,
+    } = useSuperadminDomain(null);
+
+    const pendingCount = pendingApplication?.length || 0;
+
+    if (controller.isLoading && trailId && !controller.object.id) {
+        return <LoadingScreen />;
+    }
+
+    const uploadPicture = () => {
+        console.log('[TrailWrite] uploadPicture placeholder invoked (Awaiting backend storage service)');
+    };
 
     return (
-        <ScreenWrapper 
-            backgroundColor={Colors.BACKGROUND}  
-            style={undefined}
-        >
-            <CustomHeader 
-                title="Applications"
-                centerTitle={true}
-                onBackPress={onBackPress} 
-                rightActions={undefined} 
-                style={undefined} 
-                children={undefined}            
-            />
-            <TESTWRITETRAIL { ...controller }/>
-        </ScreenWrapper>
-    )
+        <TrailWriteScreen
+            controller={controller}
+            onBackPress={onBackPress}
+            isSuperadminShell={isSuperadmin}
+            pendingCount={pendingCount}
+            onTabPress={onTabPress}
+            onBackToSettings={isSuperadmin ? onBackToSettingsPress : onBackPress}
+            uploadPicture={uploadPicture}
+        />
+    );
 }

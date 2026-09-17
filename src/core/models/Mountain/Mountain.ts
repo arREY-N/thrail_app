@@ -1,41 +1,22 @@
-import { FirestoreDataConverter, QueryDocumentSnapshot } from "firebase/firestore";
-import { immerable } from "immer";
-import { IMountain } from "./Mountain.types";
+// TYPES
+export * from "@/src/core/models/Mountain/interfaces/Mountain.types";
 
+// FACTORY & CONVERTER
+export {
+    mountainConverter, newMountain
+} from "@/src/core/models/Mountain/utils/MountainFactory";
 
-export class Mountain implements IMountain{
-    [key: string]: any;
-    [immerable] = true
-    id: string = '';
-    name: string = '';
-    province: string[] = [];
-    
-    constructor(init?: Partial<IMountain>){
-        Object.assign(this, init);
-    }
+// STORES
+export {
+    useMountainsStore, useMountainStore
+} from "@/src/core/models/Mountain/stores/mountainStore";
 
-    static fromFirestore(id: string, data: IMountain): Mountain {
-        return new Mountain({
-            ...data,
-            id,
-        })
-    }
+// HOOKS
+export { useMountain } from "@/src/core/models/Mountain/hooks/useMountain";
+export { useMountainItem } from "@/src/core/models/Mountain/hooks/useMountainItem";
+export { useMountainList } from "@/src/core/models/Mountain/hooks/useMountainList";
+export { useMountainWrite } from "@/src/core/models/Mountain/hooks/useMountainWrite";
 
-    toFirestore(): IMountain {
-        return { 
-            id: this.id,
-            name: this.name,
-            province: this.province,
-        }
-    }
-}
+// REPOSITORIES
+export { MountainRepo } from "@/src/core/models/Mountain/repositories/MountainRepository";
 
-export const mountainConverter: FirestoreDataConverter<Mountain> = {
-    toFirestore: (mountain: Mountain) => {
-        return mountain.toFirestore();
-    },
-    fromFirestore: (snapshot: QueryDocumentSnapshot): Mountain => {
-        const data = snapshot.data() as IMountain;
-        return Mountain.fromFirestore(snapshot.id, data);
-    }
-}

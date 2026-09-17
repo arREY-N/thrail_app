@@ -26,13 +26,22 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# Binaries & Executables
+*.exe
+pmtiles.exe
+
+
 # macOS
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Environment & Secrets
 .env
+.env.*
+.env*.local
+.env.preview
+.env.productionw
+.env*
 
 # typescript
 *.tsbuildinfo
@@ -55,8 +64,32 @@ firebase-debug.*.log
 
 eas.json
 desktop.ini
+.agents/
 
 /google-services.json
 firebase-messaging-sw.js
 
-setSuperAdmin.js
+# Python virtual environment
+recommendation_engine/venv/
+venv/
+.venv/
+env/
+.env/
+.env*
+
+# Python compiled files / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+.agents/
+
+# SecureCoder & personal tooling
+.securecoderignore
+.securecoder/
+.ignore
+

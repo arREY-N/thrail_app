@@ -1,6 +1,6 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { create } from "zustand";
-import { Payment } from "../models/Payment/Payment";
+import { newPayment, Payment } from "../models/Payment/Payment";
 import { PaymentRepository } from "../repositories/paymentRepository";
 
 export interface PaymentState extends BaseStore<Payment>{
@@ -31,7 +31,7 @@ export const usePaymentsStore = create<PaymentState>((set, get) => ({
 
     load: async (id: string | null) => {
         if(!id){
-            set({ current: new Payment() });
+            set({ current: newPayment() });
             return;
         }
 

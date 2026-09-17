@@ -1,143 +1,52 @@
-import { useIsFocused } from "@react-navigation/native";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
-import { Keyboard, View } from "react-native";
-
+import { HikeTempFlow } from "@/src/core/flows/HikeTempFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { Trail } from "@/src/core/models/Trail/Trail";
-
-import useBook from "@/src/core/hook/book/useBook";
-import useBookOffer from "@/src/core/hook/book/useBookOffer";
-import { useGroupList } from "@/src/core/hook/group/useGroupList";
-import useHike from "@/src/core/hook/hike/useHike";
-import { useAuthHook } from "@/src/core/hook/user/useAuthHook";
-import { useTrailsStore } from "@/src/core/stores/trailStores/trailsStore";
-
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 
-export default function hike() {
-    const isFocused = useIsFocused();
-    const { onGroupPress, onBookingPress } = useAppNavigation();
-    
-    const { profile } = useAuthHook();
-    
-    useBook({ userId: profile?.id }); 
-    const { bookings } = useBookOffer(); 
-    const { groups } = useGroupList(profile?.id || "");
-    
-    const { viewHike, isLoading: hikeLoading } = useHike();
-    
-    const trailsDb = useTrailsStore(s => s.data);
+export default function Hike() {
+    const {
+        isFocused,
+        profile,
+        groups,
+        upcomingBookings,
+        filteredTrails,
+        selectedTrail,
+        hikeLoading,
+        searchQuery,
+        handleSearchChange,
+        handleSearchSubmit,
+        handleTrailSelect,
+        handleStartTracking,
+        handleDeveloperBypass,
+        isAdmin
+    } = HikeTempFlow();
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
-
-    const filteredTrails = useMemo(() => {
-        if (!searchQuery.trim()) return [];
-        return trailsDb.filter(t => 
-            t.general?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery, trailsDb]);
-
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    const upcomingBookings = useMemo(() => {
-        if (!bookings) return [];
-        return bookings.filter(b => {
-            if (b.status !== 'completed') return false; 
-            if (!b.offer?.date) return false;
-            
-            const bDate = new Date(b.offer.date);
-            bDate.setHours(0, 0, 0, 0);
-            return bDate.getTime() >= currentDate.getTime();
-        }).sort((a, b) => new Date(a.offer.date).getTime() - new Date(b.offer.date).getTime());
-    }, [bookings]);
-
-    const handleSearchChange = (text: string) => {
-        setSearchQuery(text);
-        if (text.trim() === "") {
-            setSelectedTrail(null);
-            Keyboard.dismiss(); 
-        }
-    };
-
-    const handleTrailSelect = (trail: Trail) => {
-        setSelectedTrail(trail);
-        setSearchQuery(trail.general?.name || "");
-        Keyboard.dismiss();
-    };
-
-    const handleSearchSubmit = () => {
-        if (filteredTrails.length > 0 && !selectedTrail) {
-            handleTrailSelect(filteredTrails[0]);
-        }
-        Keyboard.dismiss();
-    };
-
-    const handleStartTracking = (bookingContext?: any) => {
-        if (bookingContext) {
-            console.log('Booking context provided:', bookingContext);
-            const targetGroup = groups?.find(g => 
-                g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
-            );
-
-            router.push({ 
-                pathname: '/(main)/hike/view', 
-                params: { 
-                    trailId: bookingContext.trail.id, 
-                    groupId: targetGroup?.id,
-                    bookingId: bookingContext.id // ✅ FIXED: Passed to URL
-                } 
-            });
-        } else if (selectedTrail) {
-            console.log('Starting new hike with trail:', selectedTrail.id);
-            viewHike(selectedTrail.id);
-        } else {
-            console.log('Starting new hike without specific trail');
-            viewHike("new_diy_session");
-        }
-    };
-
-    const handleDeveloperBypass = (bookingContext: any) => {
-        console.log('handleDeveloperBypass:', bookingContext);
-        if (!bookingContext) return;
-        const targetGroup = groups?.find(g => 
-            g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
-        );
-        router.push({ 
-            pathname: '/(main)/hike/view', 
-            params: { 
-                trailId: bookingContext.trail.id, 
-                groupId: targetGroup?.id,
-                bookingId: bookingContext.id // ✅ FIXED: Passed to URL
-            } 
-        });
-    };
-
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
+    const {
+        onGroupPress,
+        onBookingPress
+    } = useAppNavigation();
 
     return (
         <View style={{ flex: 1 }}>
-            <StatusBar style="dark" translucent backgroundColor="transparent" />
-            
+            <StatusBar style="dark" />
+
             {isFocused && (
                 <NavigationScreen
                     upcomingBookings={upcomingBookings}
                     groups={groups}
                     currentUserId={profile?.id}
-                    
+
                     searchQuery={searchQuery}
                     filteredTrails={filteredTrails}
                     selectedTrail={selectedTrail}
                     isLoading={hikeLoading}
-                    
+
                     onSearchChange={handleSearchChange}
                     onSearchSubmit={handleSearchSubmit}
                     onTrailSelect={handleTrailSelect}
-                    
-                    onGroupChatPress={onGroupPress}
+
+                    onGroupPress={onGroupPress}
                     onBookingPress={onBookingPress}
                     onStartTracking={handleStartTracking}
                     onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}

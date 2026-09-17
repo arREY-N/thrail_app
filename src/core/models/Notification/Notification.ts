@@ -1,54 +1,27 @@
-import { INotification, INotificationDB } from "@/src/core/models/Notification/Notification.types";
-import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+// TYPES
+export * from "@/src/core/models/Notification/interfaces/Notification.types";
 
-export class Notification implements INotification {
-    id: string = '';
-    title: string = '';
-    message: string = '';
-    createdAt: Date = new Date();
-    read: boolean = false;
-    metadata?: {} | undefined;
+// FACTORY & CONVERTER
+export {
+    newNotification,
+    notificationConverter
+} from "@/src/core/models/Notification/utils/NotificationFactory";
 
-    constructor(init?: Partial<INotification>) {
-        Object.assign(this, init);
-    }
+// STORES
+export {
+    useNotificationsStore, useNotificationStore
+} from "@/src/core/models/Notification/stores/notificationStore";
 
-    static fromFirestore(id: string, data: INotificationDB): Notification {
-        const mapped: INotification = {
-            ...data,
-            createdAt: toDate(data.createdAt),
-            id,
-        }
+// HOOKS
+export {
+    requestNotificationPermission,
+    useNotifications
+} from "@/src/core/models/Notification/hooks/useNotification";
+export {
+    useNotificationItem,
+    useViewNotification
+} from "@/src/core/models/Notification/hooks/useViewNotification";
 
-        return new Notification(mapped);
-    }
+// REPOSITORIES
+export { NotificationRepo } from "@/src/core/models/Notification/repositories/NotificationRepository";
 
-    toFirestore(): INotificationDB {
-        const isNew = this.id === ''
-        
-        const mapped: INotificationDB = {
-            id: this.id,
-            title: this.title,
-            message: this.message,
-            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-            read: this.read,
-        }
-
-        if(this.metadata){
-            mapped.metadata = this.metadata
-        }
-
-        return mapped;
-    }
-}
-
-export const NotificationConverter: FirestoreDataConverter<Notification> = {
-    toFirestore: (notification: Notification) => {
-        return notification.toFirestore();
-    },
-    fromFirestore: (snapshot: QueryDocumentSnapshot): Notification => {
-        const data = snapshot.data() as INotificationDB;
-        return Notification.fromFirestore(snapshot.id, data);
-    }
-}

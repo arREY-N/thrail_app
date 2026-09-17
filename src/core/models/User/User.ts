@@ -1,115 +1,40 @@
-import { ISignUp } from "@/src/core/models/User/SignUp.types";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser, IUserDB, NotificationToken, Role } from "@/src/core/models/User/User.types";
-import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
-import { immerable } from "immer";
+// TYPES
+export * from "@/src/core/models/User/interfaces/SignUp.types";
+export * from "@/src/core/models/User/interfaces/User.types";
 
-export class User implements IUser{
-    [key: string]: any;
-    [immerable] = true
-    id: string = '';
-    createdAt: Date = new Date();
-    updatedAt: Date = new Date();
-    email: string = '';
-    firstname: string = '';
-    lastname: string = '';  
-    username: string = '';
-    role: Role = 'user'; 
-    address: string = '';
-    birthday: Date = new Date();
-    onBoardingComplete: boolean = false;
-    phoneNumber: string = '';
-    fcmTokens: NotificationToken<Date>[] = [];
-    preferences: IPreference = {
-        experience: '',
-        hike_length: [],
-        hiked: false,
-        location: [],
-        province: [],
-    };
-    medicalProfile: IMedicalProfile = {  // New
-        hasCondition: false,
-        details: '',
-    };
-    emergencyContact: IEmergencyContact = {
-        name: '',
-        contactNumber: '',
-        email: '',
-        userId: '',
-    }
+// FACTORY & CONVERTER
+export {
+    editUser,
+    newEmergencyContact,
+    newMedicalProfile,
+    newPreference,
+    newSignUp,
+    newUser,
+    userConverter
+} from "@/src/core/models/User/utils/UserFactory";
 
-    constructor(init?: Partial<User>){
-        Object.assign(this, init);
-    }
+// UTILITIES
+export { getUser, getUsersByEmail } from "@/src/core/models/User/utils/getUser";
+export { UserLogic } from "@/src/core/models/User/utils/User.logic";
 
-    static fromSignUp(data: ISignUp): User {
-        if(data.confirmPassword !== data.password) {
-            throw new Error('Password does not match');
-        }
+// STORES
+export { useAuthStore } from "@/src/core/models/User/stores/authStore";
+export { useUserStore } from "@/src/core/models/User/stores/userStore";
 
-        const mapped: ISignUp = {
-            ...data,
-        }
-        
-        return new User(mapped);
-    }
+// HOOKS
+export { useAuthHook } from "@/src/core/models/User/hooks/useAuthHook";
+export { useDevicePermissions } from "@/src/core/models/User/hooks/useDevicePermissions";
+export { useEditProfile } from "@/src/core/models/User/hooks/useEditProfile";
+export { useForgotPassword } from "@/src/core/models/User/hooks/useForgotPassword";
+export { useHikerProfile } from "@/src/core/models/User/hooks/useHikerProfile";
+export { usePreference } from "@/src/core/models/User/hooks/usePreference";
+export { useRouteGuard } from "@/src/core/models/User/hooks/useRouteGuard";
+export { useSignUp } from "@/src/core/models/User/hooks/useSignUp";
+export { useUser } from "@/src/core/models/User/hooks/useUser";
+export { useUserItem } from "@/src/core/models/User/hooks/useUserItem";
+export { useUserList } from "@/src/core/models/User/hooks/useUserList";
+export { useUserWrite } from "@/src/core/models/User/hooks/useUserWrite";
 
-    static fromFirestore(id: string, data: IUserDB): User {
-        const mapped: IUser = {
-            ...data,
-            id,
-            fcmTokens: (data.fcmTokens ?? []).map(token => ({
-                ...token,
-                lastUpdated: toDate(token.lastUpdated),
-            })),
-            birthday: toDate(data.birthday),
-            createdAt: toDate(data.createdAt),
-            updatedAt: toDate(data.updatedAt),
-        };
+// REPOSITORIES
+export { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
 
-        return new User(mapped);
-    }
-
-    toFirestore(): IUserDB {
-        const isNew = this.id === '';
-
-        const mapped: IUserDB = {
-            id: this.id,
-            fcmTokens: this.fcmTokens.map(token => ({
-                ...token,
-                lastUpdated: token.lastUpdated instanceof Date ? Timestamp.fromDate(token.lastUpdated) : token.lastUpdated,
-            })),
-            createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(this.createdAt),
-            updatedAt: serverTimestamp(),
-            username: this.username,
-            firstname: this.firstname,
-            lastname: this.lastname,
-            email: this.email,
-            address: this.address,
-            birthday: Timestamp.fromDate(this.birthday),
-            onBoardingComplete: this.onBoardingComplete,
-            phoneNumber: this.phoneNumber,
-            preferences: this.preferences,
-            medicalProfile: this.medicalProfile, // New
-            role: this.role,
-            emergencyContact: this.emergencyContact,
-        }
-
-        return mapped;
-    }
-}
-
-export const userConverter: FirestoreDataConverter<User> = {
-    toFirestore: (user: User) => {
-        return user.toFirestore();
-    },
-    fromFirestore: (snapshot: QueryDocumentSnapshot): User => {
-        const data = snapshot.data() as IUserDB;
-        return User.fromFirestore(snapshot.id, data);
-    }
-}
-
-export const editUser = ({user, updates}: {user: User, updates: Partial<User>}) => {
-    console.log("Editing user with updates:", updates);
-    return new User({...user, ...updates});
-}

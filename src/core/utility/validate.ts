@@ -1,28 +1,39 @@
 import { IFormField } from "@/src/core/interface/formFieldInterface";
-import { SignUp } from "@/src/core/models/User/SignUp";
+import { SignUp } from "@/src/core/models/User/User";
 
 export function validate<T>(
-    object: any, 
+    object: Record<string, unknown> | object, 
     structure: IFormField<T>[],
 ): string[] {
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     structure.forEach((field) => {
-        const {section, id, label, required } = field;
+        const { section, id, label, required } = field;
         
-        if(required) {
-            const value = section === 'root'
-                ? object[id]
-                : object[section][id]
+        if (required) {
+            const sectionRecord = (section as string) === 'root'
+                ? (object as Record<string, unknown>)
+                : ((object as Record<string, unknown>)?.[section as string] as Record<string, unknown> | undefined);
             
-            if(!value || 
+            const value = sectionRecord?.[id];
+            
+            const isMissing = value === null ||
+                value === undefined ||
                 (typeof value === 'string' && value.trim() === '') ||
-                (Array.isArray(value) && value.length === 0)
-            ){
-                errors.push(label)
+                (Array.isArray(value) && value.length === 0) ||
+                (typeof value === 'number' && isNaN(value));
+
+            // Coordinates cannot be 0 (Null Island)
+            const isInvalidCoordinate = (id.toLowerCase().includes('lat') || id.toLowerCase().includes('long')) && value === 0;
+
+            // Trail length cannot be 0 km
+            const isInvalidLength = id === 'length' && value === 0;
+            
+            if (isMissing || isInvalidCoordinate || isInvalidLength) {
+                errors.push(label);
             }
         }
-    })
+    });
 
     return errors;
 }

@@ -30,6 +30,10 @@ export const OPTIONS = {
         'Out-and-Back', 
         'Traverse'
     ],
+    classification: [
+        'minor',
+        'major'
+    ],
     quality: [
         'Dusty when dry, muddy when wet',  
         'Forest area',  
