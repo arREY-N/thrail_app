@@ -62,7 +62,7 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/maintenance.html"
+        "destination": "/index.html"
       }
     ]
   }

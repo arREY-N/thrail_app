@@ -1,0 +1,56 @@
+name: Deploy Web to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Web Bundle
+        env:
+          EXPO_PUBLIC_FIREBASE_APIKEY: ${{ secrets.EXPO_PUBLIC_FIREBASE_APIKEY }}
+          EXPO_PUBLIC_FIREBASE_AUTHDOMAIN: ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTHDOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECTID: ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECTID }}
+          EXPO_PUBLIC_FIREBASE_STORAGEBUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGEBUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGINGSENDERID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGINGSENDERID }}
+          EXPO_PUBLIC_FIREBASE_APPID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APPID }}
+          EXPO_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENTID }}
+          EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.EXPO_PUBLIC_MAPTILER_KEY }}
+        run: npm run build:web
+
+      # Deploy Preview Channel on Pull Request
+      - name: Deploy Preview to Firebase Hosting
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_THRAIL }}
+          projectId: thrail
+
+      # Deploy Live Channel on Push to Main
+      - name: Deploy Live to Firebase Hosting
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_THRAIL }}
+          channelId: live
+          projectId: thrail
