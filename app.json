@@ -8,9 +8,7 @@
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
-      "src/assets/fonts/**/*",
-      "src/assets/tiles/**/*",
-      "src/assets/map_data/**/*"
+      "**/*"
     ],
     "ios": {
       "supportsTablet": true

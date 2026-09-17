@@ -9,6 +9,7 @@ import {
 	FontAwesome6,
 	Ionicons,
 	MaterialCommunityIcons,
+	MaterialIcons,
 } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
@@ -42,6 +43,7 @@ export default function RootLayout() {
 		...FontAwesome6.font,
 		...Ionicons.font,
 		...MaterialCommunityIcons.font,
+		...MaterialIcons.font,
 	});
 
 	useEffect(() => {
