@@ -244,12 +244,6 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         set({ isChecking: true, error: null });
         try {
             validateSignUp(get().account);
-            logger("authStoreCreator", "account", get().account);
-            if (__DEV__) {
-                logger('authStoreCreator', 'credential bypassed, only for development mode');
-                set({ isChecking: false, error: null });
-                return true;
-            }
             await UserRepo.checkUserCredentials(get().account);
             set({ isChecking: false, error: null });
             return true;

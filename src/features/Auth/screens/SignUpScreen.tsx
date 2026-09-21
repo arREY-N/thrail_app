@@ -37,7 +37,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 export interface SignUpScreenProps {
     onLogInPress: () => void;
     onBackPress: () => void;
-    onSignUpPress: (email?: string, password?: string, username?: string, confirmPassword?: string) => void;
+    onSignUpPress: (email: string, password: string, username: string, confirmPassword: string) => void;
     onGmailSignUp: () => void;
     onTermsPress: () => void;
     onPrivacyPress: () => void;
@@ -48,11 +48,11 @@ export interface SignUpScreenProps {
 /**
  * Screen component that renders the Sign Up interface.
  */
-const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
-    onLogInPress, 
-    onBackPress, 
-    onSignUpPress, 
-    onGmailSignUp, 
+const SignUpScreen: React.FC<SignUpScreenProps> = ({
+    onLogInPress,
+    onBackPress,
+    onSignUpPress,
+    onGmailSignUp,
     onTermsPress,
     onPrivacyPress,
     error,
@@ -63,7 +63,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    
+
     const [showPasswords, setShowPasswords] = useState(false);
 
     let strength = 0;
@@ -84,10 +84,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
     }
 
     const getStrengthColor = () => {
-        if (strength === 1) return Colors.STRENGTH_WEAK;    
-        if (strength === 2) return Colors.STRENGTH_MEDIUM;   
-        if (strength === 3) return Colors.STRENGTH_STRONG;  
-        return Colors.STRENGTH_EMPTY; 
+        if (strength === 1) return Colors.STRENGTH_WEAK;
+        if (strength === 2) return Colors.STRENGTH_MEDIUM;
+        if (strength === 3) return Colors.STRENGTH_STRONG;
+        return Colors.STRENGTH_EMPTY;
     };
 
     const { isLargeScreen } = useBreakpoints();

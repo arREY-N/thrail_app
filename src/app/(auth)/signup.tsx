@@ -1,4 +1,4 @@
-import { Redirect, router } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
@@ -19,22 +19,14 @@ export default function Signup() {
     } = useSignUp(true);
 
     const {
-        onLanding,
-        onLogIn
+        onLogIn,
+        onBackPress,
     } = useAppNavigation();
 
     const {
         onPrivacy,
         onTerms
     } = useLandingNavigation();
-
-    const handleBack = () => {
-        if (router.canGoBack()) {
-            router.back();
-        } else {
-            onLanding();
-        }
-    };
 
     if (isLargeScreen) {
         return <Redirect href="/(auth)/landing?mode=signup" />;
@@ -43,9 +35,9 @@ export default function Signup() {
     return (
         <View style={{ flex: 1, backgroundColor: Colors.BACKGROUND }}>
             <SignUpScreen
-                onSignUpPress={onSignUpPress as any}
+                onSignUpPress={onSignUpPress}
                 onLogInPress={onLogIn}
-                onBackPress={handleBack}
+                onBackPress={onBackPress}
                 onGmailSignUp={onGmailSignUp}
                 onTermsPress={onTerms}
                 onPrivacyPress={onPrivacy}
