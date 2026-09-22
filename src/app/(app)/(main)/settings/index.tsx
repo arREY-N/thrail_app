@@ -3,6 +3,7 @@
  * @description Controller for the main settings page.
  */
 
+import { SignOutFlow } from '@/src/core/flows/SignOutFlow';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useProfileNavigation } from '@/src/core/hook/navigation/useProfileNavigation';
 import { Role, useAuthHook } from '@/src/core/models/User/User';
@@ -12,10 +13,9 @@ import SettingsScreen from '@/src/features/Settings/screens/SettingsScreen';
  * SettingsPage coordinates navigation options, sign out triggers, and role-based actions.
  */
 export default function Settings() {
-    const { profile } = useAuthHook();
+    const { profile, role } = useAuthHook();
 
     const {
-        // onBackPress,
         onProfilePress,
         onSecuritySettingsPress,
         onPrivacySettingsPress,
@@ -23,10 +23,7 @@ export default function Settings() {
         onUserViewPress
     } = useAppNavigation();
 
-    const {
-        role,
-        onSignOutPress
-    } = useAuthHook();
+    const { signOut } = SignOutFlow();
 
     const {
         onAdminPress,
@@ -49,7 +46,7 @@ export default function Settings() {
 
             onAboutPress={onAboutSettingsPress}
 
-            onSignOutPress={onSignOutPress}
+            onSignOutPress={signOut}
         />
     );
 }

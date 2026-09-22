@@ -59,6 +59,8 @@ export interface HikeState {
     startShareLocation: (groupId: string) => Promise<void>;
     stopShareLocation: (groupId: string) => void;
     setShareLocationEnabled: (enabled: boolean) => Promise<void>;
+
+    reset: () => void;
 }
 
 export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]]> = (set, get) => ({
@@ -79,6 +81,34 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     activeGroupId: null,
     shareLocationEnabled: true,
     profile: null,
+
+    reset: () => {
+        const listeners = get().activeListeners || {};
+        Object.values(listeners).forEach((unsub) => {
+            if (typeof unsub === "function") unsub();
+        });
+
+        set({
+            hikes: [],
+            isLoading: false,
+            error: null,
+            gpsError: null,
+            currentHike: null,
+            elapsedTime: 0,
+            timerStartTime: 0,
+            totalDistance: 0,
+            totalElevationGain: 0,
+            active: false,
+            coordinates: [],
+            live: false,
+            locationByGroup: {},
+            activeListeners: {},
+            activeGroupId: null,
+            shareLocationEnabled: true,
+            profile: null,
+        });
+    },
+
 
     addCoordinate: async (coordinate: Location) => {
         try {

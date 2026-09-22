@@ -19,7 +19,7 @@ export { UserLogic } from "@/src/core/models/User/utils/User.logic";
 
 // STORES
 export { useAuthStore } from "@/src/core/models/User/stores/authStore";
-export { useUserStore } from "@/src/core/models/User/stores/userStore";
+export { useUserStore, useUserStore as useUsersStore } from "@/src/core/models/User/stores/userStore";
 
 // HOOKS
 export { useAuthHook } from "@/src/core/models/User/hooks/useAuthHook";

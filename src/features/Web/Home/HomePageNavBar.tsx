@@ -2,12 +2,15 @@ import type { Href } from "expo-router";
 import { router, usePathname, useSegments } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
+import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
+import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
 import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
+import { useState } from "react";
 
 interface NavItemConfig {
   id: string;
@@ -32,40 +35,35 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         label: "Home",
         icon: "home",
         library: "Feather",
-        route: "/(tabs)",
+        route: "/(app)/(tabs)",
       },
       {
         id: "explore",
         label: "Explore Trails",
         icon: "compass",
         library: "Feather",
-        route: "/(tabs)/explore",
+        route: "/(app)/(tabs)/explore",
       },
-      {
-        id: "hikes",
-        label: "My Hikes",
-        icon: "map-pin",
-        library: "Feather",
-        route: "/(tabs)/hike",
-      },
-    ],
-  },
-  {
-    title: "SOCIAL",
-    items: [
       {
         id: "community",
         label: "Community",
         icon: "users",
         library: "Feather",
-        route: "/(tabs)/community",
+        route: "/(app)/(tabs)/community",
+      },
+      {
+        id: "profile",
+        label: "Profile",
+        icon: "user",
+        library: "Feather",
+        route: "/(app)/(tabs)/profile",
       },
       {
         id: "messages",
         label: "Messages",
         icon: "message-square",
         library: "Feather",
-        route: "/(main)/group/list",
+        route: "/(app)/(main)/group/list",
       },
     ],
   },
@@ -77,7 +75,7 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         label: "Settings",
         icon: "settings",
         library: "Feather",
-        route: "/(main)/settings",
+        route: "/(app)/(main)/settings",
       },
     ],
   },
@@ -93,14 +91,14 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Dashboard",
         icon: "grid",
         library: "Feather",
-        route: "/(main)/superadmin",
+        route: "/(app)/(main)/superadmin",
       },
       {
         id: "application",
         label: "Applications",
         icon: "file-text",
         library: "Feather",
-        route: "/(main)/superadmin/application/list",
+        route: "/(app)/(main)/superadmin/application/list",
       },
     ],
   },
@@ -112,28 +110,28 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Tour Businesses",
         icon: "briefcase",
         library: "Feather",
-        route: "/(main)/superadmin/business/list",
+        route: "/(app)/(main)/superadmin/business/list",
       },
       {
         id: "trail",
         label: "Trails & Routes",
         icon: "map",
         library: "Feather",
-        route: "/(main)/superadmin/trail/list",
+        route: "/(app)/(main)/superadmin/trail/list",
       },
       {
         id: "mountain",
         label: "Mountains Database",
         icon: "mountain",
         library: "FontAwesome5",
-        route: "/(main)/superadmin/mountain/list",
+        route: "/(app)/(main)/superadmin/mountain/list",
       },
       {
         id: "user",
         label: "User Accounts",
         icon: "users",
         library: "Feather",
-        route: "/(main)/superadmin/user/list",
+        route: "/(app)/(main)/superadmin/user/list",
       },
     ],
   },
@@ -149,21 +147,21 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Offers",
         icon: "briefcase",
         library: "Feather",
-        route: "/(main)/admin/offer/list",
+        route: "/(app)/(main)/admin/offer/list",
       },
       {
         id: "trail",
         label: "Trails & Routes",
         icon: "map",
         library: "Feather",
-        route: "/(main)/superadmin/trail/list",
+        route: "/(app)/(main)/superadmin/trail/list",
       },
       {
         id: "personnel",
         label: "Personnel",
         icon: "map",
         library: "Feather",
-        route: "/(main)/admin/personnel/list",
+        route: "/(app)/(main)/admin/personnel/list",
       },
     ],
   },
@@ -228,6 +226,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     }
 
     const keyword = routeStr
+      .replace("/(app)/", "")
       .replace("/(tabs)/", "")
       .replace("/(main)/", "")
       .replace("/superadmin/", "")
@@ -237,25 +236,19 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     return currentPath.includes(keyword) || segs.includes(keyword);
   };
 
-  const isProfileActive = (pathname || "").toLowerCase().includes("profile");
-
   const handleNavPress = (route: Href) => {
     router.push(route);
     onClose?.();
   };
 
+  const { signOut } = SignOutFlow();
+  const [showSignOutModal, setShowSignOutModal] = useState<boolean>(false);
+
   return (
     <View style={styles.sidebar}>
-      {/* Top Header: User Profile Card */}
+      {/* Top Header: User Info Header */}
       <View style={styles.topHeader}>
-        <TouchableOpacity
-          style={[
-            styles.profileHeaderRow,
-            isProfileActive && styles.profileHeaderRowActive,
-          ]}
-          onPress={() => handleNavPress("/(tabs)/profile")}
-          activeOpacity={0.7}
-        >
+        <View style={styles.profileHeaderRow}>
           {/* Avatar Circle */}
           <View style={styles.avatarCircle}>
             <CustomText style={styles.avatarText}>{initials}</CustomText>
@@ -264,10 +257,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
           <View style={styles.profileTextWrapper}>
             <CustomText
               variant="body"
-              style={[
-                styles.profileName,
-                isProfileActive && styles.profileNameActive,
-              ]}
+              style={styles.profileName}
               numberOfLines={1}
             >
               {displayName}
@@ -280,7 +270,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
               {roleTitle}
             </CustomText>
           </View>
-        </TouchableOpacity>
+        </View>
 
         {/* Close button */}
         <TouchableOpacity
@@ -351,6 +341,43 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
           </View>
         ))}
       </ScrollView>
+
+      {/* Log Out Section at bottom of Sidebar */}
+      <View style={styles.logoutSection}>
+        <TouchableOpacity
+          style={styles.logoutItem}
+          onPress={() => setShowSignOutModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.navIconWrapper}>
+            <CustomIcon
+              library="Feather"
+              name="log-out"
+              size={18}
+              color={Colors.ERROR}
+            />
+          </View>
+          <CustomText variant="body" style={styles.logoutLabel}>
+            Log Out
+          </CustomText>
+        </TouchableOpacity>
+      </View>
+
+      <ConfirmationModal
+        visible={showSignOutModal}
+        title="Log Out Confirmation"
+        message="Are you sure you want to log out?"
+        confirmText="Confirm"
+        cancelText="Cancel"
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          onClose?.();
+          signOut();
+        }}
+        onClose={() => setShowSignOutModal(false)}
+        isDestructive={true}
+        iconName="log-out"
+      />
     </View>
   );
 };
@@ -461,6 +488,25 @@ const styles = StyleSheet.create({
   },
   navLabelActive: {
     color: Colors.PRIMARY,
+    fontWeight: "bold",
+  },
+  logoutSection: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.GRAY_ULTRALIGHT,
+    marginTop: 8,
+  },
+  logoutItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 12,
+  },
+  logoutLabel: {
+    fontSize: 13,
+    color: Colors.ERROR,
     fontWeight: "bold",
   },
 });

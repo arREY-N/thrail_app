@@ -47,7 +47,7 @@ export function useAuthHook() {
     const onGmailLogIn = async () => {
         try {
             await gmailSignUp();
-            router.replace("/(tabs)");
+            router.replace("/(app)/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
@@ -57,7 +57,7 @@ export function useAuthHook() {
     const onLogIn = async (email: string, password: string) => {
         try {
             await logIn(email, password);
-            router.replace("/(tabs)");
+            router.replace("/(app)/(tabs)");
         } catch (error) {
             setLocalError((error as Error).message);
             catchError((error as Error), 'error', 'useAuthHook()')
