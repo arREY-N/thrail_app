@@ -10,6 +10,7 @@ export interface RescheduleState {
     fetchAllUserReschedules: (userId: string) => Promise<void>;
 
     write: (reschedule: Reschedule) => Promise<Reschedule>;
+    reset: () => void;
 
     isFetching: boolean;
     isWriting: boolean;
@@ -32,6 +33,8 @@ const init = {
 
 export const rescheduleStoreCreator: StateCreator<RescheduleState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
+
+    reset: () => set(init),
 
     fetchAll: async () => {
         try {
