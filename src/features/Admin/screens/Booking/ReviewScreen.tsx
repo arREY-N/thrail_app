@@ -67,7 +67,7 @@ export interface ReviewScreenProps {
     onConfirmPayment: (booking?: Booking) => Promise<void>;
     onReject: (reason: string, docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null, booking?: Booking) => Promise<void>;
     onReschedule: (offerData: Offer, booking?: Booking) => void | Promise<void>;
-    onRefund: (booking: Booking, refundType: RefundType) => Promise<Booking | undefined | void> | void;
+    onRefund: (booking: Booking, refundType: RefundType, customAmount?: number) => Promise<Booking | undefined | void> | void;
     onCancelUnpaid?: (booking?: Booking) => Promise<void>;
     error?: string;
     hikerProfile?: User | null;
@@ -615,13 +615,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 visible={showRefundModal}
                 amountPaid={totalAmountPaid}
                 onClose={() => setShowRefundModal(false)}
-                onSelect={(refundType: RefundType) => {
+                onSelect={(refundType: RefundType, customAmount?: number) => {
                     setShowRefundModal(false);
                     setTimeout(async () => {
                         if (onRefund) {
                             setIsProcessingAction(true);
                             try {
-                                await onRefund(booking, refundType);
+                                await onRefund(booking, refundType, customAmount);
                             } finally {
                                 setIsProcessingAction(false);
                             }
