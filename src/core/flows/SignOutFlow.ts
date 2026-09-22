@@ -14,8 +14,8 @@ export function SignOutFlow() {
         try {
             setFlowError(null);
             await stopBackgroundTracking();
-            await onSignOutPress();
             resetData();
+            await onSignOutPress();
             router.replace('/(auth)/landing');
         } catch (error) {
             setFlowError((error as Error).message);

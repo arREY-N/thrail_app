@@ -14,7 +14,7 @@ import { useRecommendationsStore } from '@/src/core/models/Recommendation/Recomm
 import { useRescheduleStore } from '@/src/core/models/Reschedule/Reschedule';
 import { useReviewStore } from '@/src/core/models/Review/Review';
 import { useTrailsStore } from "@/src/core/models/Trail/Trail";
-import { useAuthStore, useUsersStore } from '@/src/core/models/User/User';
+import { useUsersStore } from '@/src/core/models/User/User';
 import { useFilesStore } from '@/src/core/stores/fileStore';
 import { usePaymentsStore } from '@/src/core/stores/paymentsStore';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
@@ -23,7 +23,6 @@ export const resetData = () => {
     try {
         useAdminStore.getState().reset();
         useApplicationsStore.getState().reset();
-        useAuthStore.getState().reset();
         useBookingsStore.getState().reset();
         useBusinessesStore.getState().reset();
         useFilesStore.getState().reset();

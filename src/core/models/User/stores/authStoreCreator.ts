@@ -212,13 +212,14 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     signOut: async () => {
         try {
             set({ isLoading: true, error: null });
-            await signOut(auth);
 
             const currentUnsub = get()._unsubscribe;
-
             if (currentUnsub) {
                 currentUnsub();
+                set({ _unsubscribe: null });
             }
+
+            await signOut(auth);
         } catch (err) {
             set({
                 error: (err as Error).message ?? "Failed signing out",
