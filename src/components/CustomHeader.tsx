@@ -102,8 +102,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
         onBookingPress,
     } = useAppNavigation();
 
-    const { toggleDrawer } = useWebDrawer();
-    const activeDrawerToggle = onToggleDrawer || toggleDrawer;
+    const { toggleDrawer, hasProvider } = useWebDrawer();
+    const activeDrawerToggle = onToggleDrawer || (hasProvider ? toggleDrawer : undefined);
 
     const [isMobileSearchActive, setIsMobileSearchActive] = useState<boolean>(false);
 
@@ -307,7 +307,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     };
 
     const isWeb = Platform.OS === 'web';
-    const displayDefaultIcons = showDefaultIcons || isWeb;
+    const isWebDrawerActive = isWeb && !!activeDrawerToggle;
+    const displayDefaultIcons = showDefaultIcons || isWebDrawerActive;
 
     return (
         <View style={hasSearch ? { overflow: 'hidden', paddingBottom: 15 } : { zIndex: 100 }}>
@@ -320,24 +321,22 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                 <View style={styles.titleRow}>
 
                     {/* === LEFT SECTION === */}
-                    <View style={(isWeb || !centerTitle) ? styles.leftBoxStandard : styles.leftBoxCentered} pointerEvents="box-none">
+                    <View style={(isWebDrawerActive || !centerTitle) ? styles.leftBoxStandard : styles.leftBoxCentered} pointerEvents="box-none">
                         {leftAction ? leftAction : (
-                            isWeb ? (
+                            isWebDrawerActive ? (
                                 <View style={styles.leftTitleGroup}>
-                                    {activeDrawerToggle && (
-                                        <TouchableOpacity
-                                            onPress={activeDrawerToggle}
-                                            style={styles.hamburgerButton}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomIcon
-                                                library="Feather"
-                                                name="menu"
-                                                size={22}
-                                                color={Colors.PRIMARY}
-                                            />
-                                        </TouchableOpacity>
-                                    )}
+                                    <TouchableOpacity
+                                        onPress={activeDrawerToggle}
+                                        style={styles.hamburgerButton}
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="menu"
+                                            size={22}
+                                            color={Colors.PRIMARY}
+                                        />
+                                    </TouchableOpacity>
                                     {children ? children : (
                                         <CustomText variant="h3" style={styles.headline} numberOfLines={1}>
                                             {title}
@@ -374,8 +373,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                         )}
                     </View>
 
-                    {/* === CENTER SECTION (Native Only when centerTitle is true) === */}
-                    {!isWeb && centerTitle && (
+                    {/* === CENTER SECTION (Only when centerTitle is true and NOT in web drawer mode) === */}
+                    {!isWebDrawerActive && centerTitle && (
                         <View style={styles.centerBox} pointerEvents="none">
                             {children ? children : (
                                 <CustomText variant="h2" style={styles.centerTitle} numberOfLines={1}>
@@ -386,7 +385,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                     )}
 
                     {/* === RIGHT SECTION === */}
-                    <View style={(isWeb || !centerTitle) ? styles.rightBoxStandard : styles.rightBoxCentered} pointerEvents="box-none">
+                    <View style={(isWebDrawerActive || !centerTitle) ? styles.rightBoxStandard : styles.rightBoxCentered} pointerEvents="box-none">
                         <View style={styles.rightActionsInner}>
                             {displayDefaultIcons && (
                                 <>
