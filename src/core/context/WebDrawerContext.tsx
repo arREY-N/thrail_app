@@ -5,9 +5,13 @@ interface WebDrawerContextType {
   isDrawerOpen: boolean;
 }
 
-export const WebDrawerContext = createContext<WebDrawerContextType>({
-  toggleDrawer: () => {},
-  isDrawerOpen: false,
-});
+export const WebDrawerContext = createContext<WebDrawerContextType | null>(null);
 
-export const useWebDrawer = () => useContext(WebDrawerContext);
+export const useWebDrawer = () => {
+  const ctx = useContext(WebDrawerContext);
+  return {
+    toggleDrawer: ctx?.toggleDrawer,
+    isDrawerOpen: ctx?.isDrawerOpen ?? false,
+    hasProvider: !!ctx,
+  };
+};
