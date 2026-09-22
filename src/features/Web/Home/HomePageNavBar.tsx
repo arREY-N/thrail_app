@@ -6,7 +6,8 @@ import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
-import { useAuthHook, useAuthStore } from "@/src/core/models/User/User";
+import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
+import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
 import { useState } from "react";
@@ -49,6 +50,13 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         icon: "users",
         library: "Feather",
         route: "/(app)/(tabs)/community",
+      },
+      {
+        id: "profile",
+        label: "Profile",
+        icon: "user",
+        library: "Feather",
+        route: "/(app)/(tabs)/profile",
       },
       {
         id: "messages",
@@ -218,6 +226,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     }
 
     const keyword = routeStr
+      .replace("/(app)/", "")
       .replace("/(tabs)/", "")
       .replace("/(main)/", "")
       .replace("/superadmin/", "")
@@ -227,28 +236,19 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     return currentPath.includes(keyword) || segs.includes(keyword);
   };
 
-  const isProfileActive = (pathname || "").toLowerCase().includes("profile");
-
   const handleNavPress = (route: Href) => {
     router.push(route);
     onClose?.();
   };
 
-  const { onSignOutPress } = useAuthHook();
+  const { signOut } = SignOutFlow();
   const [showSignOutModal, setShowSignOutModal] = useState<boolean>(false);
 
   return (
     <View style={styles.sidebar}>
-      {/* Top Header: User Profile Card */}
+      {/* Top Header: User Info Header */}
       <View style={styles.topHeader}>
-        <TouchableOpacity
-          style={[
-            styles.profileHeaderRow,
-            isProfileActive && styles.profileHeaderRowActive,
-          ]}
-          onPress={() => handleNavPress("/(app)/(tabs)/profile")}
-          activeOpacity={0.7}
-        >
+        <View style={styles.profileHeaderRow}>
           {/* Avatar Circle */}
           <View style={styles.avatarCircle}>
             <CustomText style={styles.avatarText}>{initials}</CustomText>
@@ -257,10 +257,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
           <View style={styles.profileTextWrapper}>
             <CustomText
               variant="body"
-              style={[
-                styles.profileName,
-                isProfileActive && styles.profileNameActive,
-              ]}
+              style={styles.profileName}
               numberOfLines={1}
             >
               {displayName}
@@ -273,7 +270,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
               {roleTitle}
             </CustomText>
           </View>
-        </TouchableOpacity>
+        </View>
 
         {/* Close button */}
         <TouchableOpacity
@@ -375,7 +372,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
         onConfirm={() => {
           setShowSignOutModal(false);
           onClose?.();
-          onSignOutPress();
+          signOut();
         }}
         onClose={() => setShowSignOutModal(false)}
         isDestructive={true}
