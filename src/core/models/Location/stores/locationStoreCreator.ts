@@ -14,6 +14,7 @@ export interface LocationState {
     saveHikeHistory: (params: Omit<WriteLocation, "groupId">) => Promise<void>;
     subscribeToGroupLocations: (groupId: string) => Unsubscribe | null;
     unsubscribeFromGroupLocations: (groupId: string) => void;
+    reset: () => void;
 }
 
 let activeListeners: Record<string, Unsubscribe> = {};
@@ -30,6 +31,14 @@ export const locationStoreCreator: StateCreator<
     [["zustand/immer", never]]
 > = (set, get) => ({
     ...init,
+
+    reset: () => {
+        Object.values(activeListeners).forEach((unsub) => {
+            if (typeof unsub === "function") unsub();
+        });
+        activeListeners = {};
+        set(init);
+    },
 
     setCurrentLocation: (location: Location | null) => {
         set({ currentLocation: location });

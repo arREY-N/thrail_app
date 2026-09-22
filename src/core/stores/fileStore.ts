@@ -10,12 +10,17 @@ export interface FileState {
     uploadDocument(): Promise<string>;
     capturePhoto(): Promise<string>;
     selectPhoto(): Promise<string>;
+    reset(): void;
 
     error: string | null;
 }
 
 export const useFilesStore = create<FileState>()(immer((set, get) => ({
     error: null,
+
+    reset: () => {
+        set({ error: null });
+    },
 
     uploadDocument: async (): Promise<string> => {
         try {
