@@ -19,7 +19,7 @@ import { Booking, BookingLogic } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact } from '@/src/core/models/User/User';
 import { toDateOrNull } from '@/src/core/utility/date';
-import { formatDateToStandard } from '@/src/utils/dateFormatter';
+import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
@@ -206,6 +206,25 @@ const BookingScreen = ({
         hikerDetails: HikerBookingDetails; 
         uploadedDocs: Record<string, string>; 
     }) => {
+        // Defensive check: Ensure selected offer satisfies 1-week advance notice rule
+        if (bookingData.selectedOfferId) {
+            const selectedOfferObj = safeOffers.find((o) => o.id === bookingData.selectedOfferId);
+            if (selectedOfferObj?.date) {
+                const startDate = safeParseDateString(selectedOfferObj.date);
+                startDate.setHours(0, 0, 0, 0);
+                const minBookingDate = new Date();
+                minBookingDate.setHours(0, 0, 0, 0);
+                minBookingDate.setDate(minBookingDate.getDate() + 7);
+
+                if (startDate < minBookingDate) {
+                    setBookingStatusOutcome('error');
+                    setBookingErrorMessage('Reservations require at least 1 week advance notice. Please select an offer at least 7 days ahead.');
+                    setCurrentView(3);
+                    return;
+                }
+            }
+        }
+
         setIsSubmitting(true);
 
         const cleanedPhone = cleanPhoneNumber(payload.hikerDetails.phone || '');
