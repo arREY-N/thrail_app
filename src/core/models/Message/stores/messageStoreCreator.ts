@@ -20,6 +20,7 @@ export interface MessageState {
     markMessageAsRead: (groupId: string, messageId: string, userSummary: IUserSummary) => Promise<void>;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
     clearMessages: (groupId?: string) => void;
+    reset: () => void;
 }
 
 const init = {
@@ -37,6 +38,14 @@ export const messageStoreCreator: StateCreator<
     [["zustand/immer", never]]
 > = (set, get) => ({
     ...init,
+
+    reset: () => {
+        const listeners = get().activeListeners || {};
+        Object.values(listeners).forEach((unsub) => {
+            if (typeof unsub === "function") unsub();
+        });
+        set(init);
+    },
 
     subscribeToGroupMessages: (groupId: string) => {
         if (get().activeListeners[groupId]) {

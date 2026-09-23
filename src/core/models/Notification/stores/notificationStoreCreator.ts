@@ -12,6 +12,7 @@ export interface NotificationState {
     subscribeToNotifications: (userId: string) => Unsubscribe | null;
     unsubscribeFromNotifications: () => void;
     readNotification: (notificationId: string) => Promise<void>;
+    reset: () => void;
 }
 
 let activeNotificationsUnsubscribe: Unsubscribe | null = null;
@@ -27,6 +28,11 @@ export const notificationStoreCreator: StateCreator<
     [["zustand/immer", never]]
 > = (set, get) => ({
     ...init,
+
+    reset: () => {
+        get().unsubscribeFromNotifications();
+        set(init);
+    },
 
     subscribeToNotifications: (userId: string) => {
         if (activeNotificationsUnsubscribe) {

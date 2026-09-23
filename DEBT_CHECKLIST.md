@@ -47,12 +47,12 @@ Below is the master allocation table separating tasks by developer responsibilit
 ### 👤 Raven (Native / GPS & Build Specialist) — 8 Items
 | ID | Severity | Item Description | Status / Note |
 |---|---|---|---|
-| **C-03** | 🔴 CRITICAL | Duplicate `TaskManager.defineTask` registration | Consolidate background GPS task definition |
+| **C-03** | 🔴 CRITICAL | Duplicate `TaskManager.defineTask` registration | ✅ **Resolved** — Removed duplicate definition from `TrackHikerGPSFlow.ts` and consolidated on strongly-typed `locationTask.ts` |
 | **H-01** | 🟠 HIGH | `useHikerGPS` AppState/NetInfo listener accumulation | ✅ **Resolved** — Convert to singleton / lifecycle guard (Implemented global active instance listener guard in `TrackHikerGPSFlow.ts`) |
 | **H-04** | 🟠 HIGH | Background GPS `addCoordinate` fire-and-forget loss | ✅ **Resolved** — Ensure durable background writing & error catching (Switched `locationTask.ts` to `getState()`, safe profile checks & background write error handling) |
 | **H-08** | 🟠 HIGH | `TrailMap.native.tsx` untyped `any` props | ✅ **Resolved** — Add strict types for map props & camera ref (Added strict `TrailMapProps`, `TrailMapRef`, `HikerLocation` interfaces & component display name) |
 | **H-09** | 🟠 HIGH | Dev weather override block in `weatherRepository.ts` | ✅ **Resolved** — Clean up override logic before client builds (Removed hardcoded `applyDevOverrides` mock logic, returning live Open-Meteo & cached data) |
-| **L-03** | 🟢 LOW | `pmtiles.exe` (58 MB) committed binary | Remove executable from repo & track in `.gitignore` |
+| **L-03** | 🟢 LOW | `pmtiles.exe` (58 MB) committed binary | ✅ **Resolved** — Untracked from Git index (`git rm --cached`), preserved locally, and ignored via `.gitignore` |
 | **L-06** | 🟢 LOW | Release build using debug keystore | Configure production signing configs in Gradle |
 | **L-07** | 🟢 LOW | ProGuard / R8 minification disabled in release | Enable `enableMinifyInReleaseBuilds` & test build |
 
@@ -91,8 +91,9 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### C-03 — Duplicate `TaskManager.defineTask` Registration
 - **Assigned To:** Raven
-- **File(s):** `src/core/hook/trail/useHikerGPS.ts`, `src/core/utility/locationTask.ts`
-- **Description:** `TaskManager.defineTask` called in two files for `"background-location-task"`. `locationTask.ts` uses static `getInitialState()`.
+- **File(s):** `src/core/flows/TrackHikerGPSFlow.ts`, `src/core/utility/locationTask.ts`
+- **Status:** ✅ **Resolved**
+- **Description:** Removed duplicate `TaskManager.defineTask` and unused `TaskManager` import from `TrackHikerGPSFlow.ts`. Consolidated single source of truth in `locationTask.ts` with strongly-typed `LocationTaskPayload` eliminating all `any` usages.
 
 #### C-04 — `SplashScreen.preventAutoHideAsync()` Called Inside Component Body
 - **Assigned To:** Emman
@@ -259,6 +260,8 @@ Below is the master allocation table separating tasks by developer responsibilit
 
 #### L-03 — `pmtiles.exe` (58 MB) Committed Binary
 - **Assigned To:** Raven
+- **Status:** ✅ **Resolved**
+- **Description:** Untracked `pmtiles.exe` from Git cache (`git rm --cached pmtiles.exe`) while preserving the binary on the developer's local drive. Ensured `.gitignore` rules (`*.exe`, `pmtiles.exe`) prevent re-staging.
 
 #### L-04 — Root Development Artifacts (`tmp_script.js`, `replacements.txt`)
 - **Assigned To:** Reyn

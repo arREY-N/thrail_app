@@ -11,6 +11,7 @@ export interface ReviewState {
 
     subscribeToReviews: () => Unsubscribe | null;
     unsubscribeFromReviews: () => void;
+    reset: () => void;
 
     fetchAll: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -34,6 +35,11 @@ export const reviewStoreCreator: StateCreator<
     [["zustand/immer", never]]
 > = (set, get) => ({
     ...init,
+
+    reset: () => {
+        get().unsubscribeFromReviews();
+        set(init);
+    },
 
     subscribeToReviews: () => {
         if (activeReviewsUnsubscribe) {

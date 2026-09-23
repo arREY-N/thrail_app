@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -202,14 +203,16 @@ const SettingsScreen = ({
                     )}
                 </View>
 
-                <View style={styles.logoutContainer}>
-                    <CustomButton
-                        title="Log Out"
-                        onPress={() => setShowSignOutModal(true)}
-                        variant="primary"
-                        style={styles.logoutButton}
-                    />
-                </View>
+                {Platform.OS !== 'web' && (
+                    <View style={styles.logoutContainer}>
+                        <CustomButton
+                            title="Log Out"
+                            onPress={() => setShowSignOutModal(true)}
+                            variant="primary"
+                            style={styles.logoutButton}
+                        />
+                    </View>
+                )}
 
             </ScrollView>
         </ScreenWrapper>

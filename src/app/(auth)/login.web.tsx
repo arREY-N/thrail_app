@@ -34,7 +34,7 @@ export default function LogIn() {
 		if (!profile) return <LoadingScreen />;
 
 		if (profile && profile.onBoardingComplete)
-			return <Redirect href={"/(tabs)"} />;
+			return <Redirect href={"/(app)/(tabs)"} />;
 		else return <Redirect href={"/(auth)/preference"} />;
 	}
 

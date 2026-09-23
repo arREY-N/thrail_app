@@ -4,14 +4,16 @@ import {
   CameraRef,
   GeoJSONSource,
   Layer,
+  LineLayerStyle,
   Map,
   Marker,
+  StyleSpecification,
   UserLocation,
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
@@ -24,8 +26,56 @@ const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojso
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
 
-// Minimum valid PMTiles size — adjust if your file is smaller
-const MIN_PMTILES_SIZE_BYTES = 18_000_000;
+// Expected archive size is ~35.4MB (35,443,673 bytes).
+// Require at least 34MB (~96%) to reject incomplete writes.
+const MIN_PMTILES_SIZE_BYTES = 34_000_000;
+
+/**
+ * Validates PMTiles archive integrity by checking both file size
+ * and the PMTiles v3 magic header ("PMTiles" ASCII string at byte offset 0).
+ */
+async function isPmtilesValid(uri: string): Promise<boolean> {
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (!info.exists || !info.size || info.size < MIN_PMTILES_SIZE_BYTES) {
+      return false;
+    }
+    // Read the first 7 bytes to check the PMTiles v3 magic header
+    const header = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.UTF8,
+      position: 0,
+      length: 7,
+    });
+    return header === "PMTiles";
+  } catch (error) {
+    console.warn("⚠️ Error verifying PMTiles header:", error);
+    return false;
+  }
+}
+
+interface LegacyCameraRef {
+  setCamera?: (options: {
+    centerCoordinate: [number, number];
+    zoomLevel: number;
+    animationDuration: number;
+    animationMode: string;
+  }) => void;
+}
+
+interface RegionChangeEvent {
+  properties?: {
+    isUserInteraction?: boolean;
+    zoomLevel?: number;
+  };
+  geometry?: {
+    coordinates?: [number, number];
+  };
+  nativeEvent?: {
+    userInteraction?: boolean;
+    zoom?: number;
+    center?: [number, number];
+  };
+}
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -63,7 +113,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     isOnline,
     exportHikeData,
     initForegroundGps,
-    // startBackgroundTracking,
+    startBackgroundTracking,
     stopBackgroundTracking,
   } = TrackHikerGPSFlow();
 
@@ -80,6 +130,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
   const [geoJsonUrl, setGeoJsonUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   const cameraRef = useRef<CameraRef | null>(null);
   const lastZoomRef = useRef<number>(16);
@@ -87,11 +138,12 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
 
   // Helper for cross-version camera flyTo animation
   const flyCamera = (center: [number, number], zoom: number, duration = 800) => {
-    const cam = cameraRef.current as any;
-    if (cam?.flyTo) {
-      cam.flyTo({ center, zoom, duration });
-    } else if (cam?.setCamera) {
-      cam.setCamera({
+    if (!cameraRef.current) return;
+    if (cameraRef.current.flyTo) {
+      cameraRef.current.flyTo({ center, zoom, duration });
+    } else {
+      const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
+      legacyCam.setCamera?.({
         centerCoordinate: center,
         zoomLevel: zoom,
         animationDuration: duration,
@@ -108,49 +160,54 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
 
   useEffect(() => {
     async function resolveGeoJson() {
-      const geoAsset = Asset.fromModule(rawMapDataAsset);
-      await geoAsset.downloadAsync();
-      if (geoAsset.localUri) setGeoJsonUrl(geoAsset.localUri);
+      const [geoAsset] = await Asset.loadAsync(rawMapDataAsset);
+      const uri = geoAsset.localUri || geoAsset.uri;
+      if (uri) setGeoJsonUrl(uri);
     }
 
     async function resolveOfflineMap() {
       const fileUri = `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      const isCachedValid = await isPmtilesValid(fileUri);
 
-      if (fileInfo.exists && fileInfo.size && fileInfo.size > MIN_PMTILES_SIZE_BYTES) {
-        console.log("✅ Offline map cache is healthy.");
+      if (isCachedValid) {
+        console.log("✅ Offline map cache is healthy & verified.");
         setOfflineTileUrl(`pmtiles://${fileUri}`);
         return;
       }
 
+      // If corrupted or truncated file exists, clean it up before re-copying
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
+        console.warn("⚠️ Existing PMTiles cache failed integrity check (corrupt or partial). Deleting...");
         await FileSystem.deleteAsync(fileUri, { idempotent: true });
       }
 
-      const asset = Asset.fromModule(offlineMapTileAsset);
-
-      try {
-        await asset.downloadAsync();
-      } catch (error) {
-        console.warn("⚠️ asset.downloadAsync() failed, falling back to manual HTTP download:", error);
+      const [asset] = await Asset.loadAsync(offlineMapTileAsset);
+      if (!asset) {
+        throw new Error("Unable to load offline map asset from module.");
       }
 
-      if (asset.localUri) {
-        await FileSystem.copyAsync({ from: asset.localUri, to: fileUri });
+      const sourceUri = asset.localUri || asset.uri;
+      if (!sourceUri) {
+        throw new Error("Offline map asset source URI could not be resolved.");
+      }
+
+      console.log(`📦 Copying offline map asset from: ${sourceUri}`);
+
+      if (sourceUri.startsWith("http://") || sourceUri.startsWith("https://")) {
+        // Dev environment (asset served over HTTP via Metro bundler)
+        await FileSystem.downloadAsync(sourceUri, fileUri);
       } else {
-        let downloadSuccess = false;
-        let retries = 3;
-        while (!downloadSuccess && retries > 0) {
-          try {
-            await FileSystem.downloadAsync(asset.uri, fileUri);
-            downloadSuccess = true;
-          } catch (error) {
-            retries -= 1;
-            console.warn(`⚠️ FileSystem.downloadAsync attempt failed (${retries} retries left):`, error);
-            if (retries > 0) await new Promise((r) => setTimeout(r, 2000));
-          }
-        }
+        // Production release APK/AAB or standalone bundle (asset:// or file://)
+        await FileSystem.copyAsync({ from: sourceUri, to: fileUri });
       }
+
+      const isCopiedValid = await isPmtilesValid(fileUri);
+      if (!isCopiedValid) {
+        throw new Error("Offline map copy completed, but file failed integrity verification (PMTiles magic header or size check failed).");
+      }
+
+      console.log(`✅ Offline map installed and verified successfully.`);
       setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
 
@@ -164,7 +221,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
         console.error("❌ Failed to load map assets:", err);
         setLoadState("error");
       });
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -184,22 +241,18 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     flyCamera([lon, lat], 17, 800);
   };
 
-  const handleRegionWillChange = (event: any) => {
-    if (!event?.properties?.isUserInteraction) return;
+  const handleRegionWillChange = (event: RegionChangeEvent) => {
+    const isUser = event.properties?.isUserInteraction ?? event.nativeEvent?.userInteraction;
+    if (!isUser) return;
 
-    const newZoom = event.properties.zoomLevel ?? lastZoomRef.current;
-    const [newLon, newLat] = event.geometry?.coordinates ?? [0, 0];
-    const zoomChanged = Math.abs(newZoom - lastZoomRef.current) > 0.1;
-    const centerChanged = lastCenterRef.current
-      ? Math.abs(newLon - lastCenterRef.current[0]) > 0.0001 || Math.abs(newLat - lastCenterRef.current[1]) > 0.0001
-      : false;
+    const newZoom = event.properties?.zoomLevel ?? event.nativeEvent?.zoom ?? lastZoomRef.current;
+    const [newLon, newLat] = event.geometry?.coordinates ?? event.nativeEvent?.center ?? [0, 0];
 
     lastZoomRef.current = newZoom;
     lastCenterRef.current = [newLon, newLat];
 
-    if (centerChanged && !zoomChanged) {
-      setIsFollowing(false);
-    }
+    // Any manual touch interaction (pan, pinch-to-zoom, rotate) disengages camera follow
+    setIsFollowing(false);
   };
 
   // ✅ Expose these functions up to the HikeRecordingScreen
@@ -208,7 +261,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     centerOnCoordinate,
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
-    // startBackgroundTracking,
+    startBackgroundTracking,
     stopBackgroundTracking,
   }));
 
@@ -218,7 +271,16 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
-        <Text style={styles.errorText}>Failed to load map.{"\n"}Please restart the app.</Text>
+        <Text style={styles.errorText}>Failed to load map assets.{"\n"}Check storage or try again.</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setLoadState("loading");
+            setReloadKey((k) => k + 1);
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry Setup</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -227,8 +289,8 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     return <LoadingScreen />;
   }
 
-  const activeStyle: any = (actuallyOffline && offlineTileUrl && fontBaseDir)
-    ? buildOfflineStyle(offlineTileUrl, fontBaseDir)
+  const activeStyle: StyleSpecification | string = (actuallyOffline && offlineTileUrl && fontBaseDir)
+    ? (buildOfflineStyle(offlineTileUrl, fontBaseDir) as unknown as StyleSpecification)
     : onlineStyle;
 
   return (
@@ -237,7 +299,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
         style={styles.map}
         logoPosition={{ bottom: bottomInset, left: 16 }}
         attributionPosition={{ bottom: bottomInset, left: 100 }}
-        mapStyle={activeStyle as any}
+        mapStyle={activeStyle}
         onDidFinishLoadingMap={() => setMapReady(true)}
         onRegionWillChange={handleRegionWillChange}
       >
@@ -254,7 +316,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
 
         {geoJsonUrl && (
           <GeoJSONSource id="trailSource" data={geoJsonUrl}>
-            <Layer id="layer-hiking" type="line" style={mapStyles.trailLine as any} />
+            <Layer id="layer-hiking" type="line" style={mapStyles.trailLine} />
           </GeoJSONSource>
         )}
 
@@ -268,7 +330,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
               properties: {},
             }}
           >
-            <Layer id="layer-walked-path" type="line" style={mapStyles.walkedPathStyle as any} />
+            <Layer id="layer-walked-path" type="line" style={mapStyles.walkedPathStyle} />
           </GeoJSONSource>
         )}
 
@@ -323,6 +385,18 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   errorText: { marginTop: 16, fontSize: 15, color: "#555", textAlign: "center", lineHeight: 22 },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "#2E7D32",
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
 
   hikerMarkerContainer: {
     alignItems: 'center',
@@ -371,7 +445,10 @@ const styles = StyleSheet.create({
   },
 });
 
-const mapStyles = {
+const mapStyles: {
+  trailLine: LineLayerStyle;
+  walkedPathStyle: LineLayerStyle;
+} = {
   trailLine: { lineColor: "#228B22", lineWidth: 4, lineCap: "round", lineJoin: "round" },
   walkedPathStyle: { lineColor: "#FF5722", lineWidth: 4, lineCap: "round", lineJoin: "round", lineDasharray: [2, 2] },
 };

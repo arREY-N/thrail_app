@@ -9,8 +9,13 @@ import { useState } from "react";
 export function usePaymentAdmin() {
     const { role } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
+    const [isRefunding, setIsRefunding] = useState<boolean>(false);
 
-    const onRefund = async (booking: Booking, refundType: RefundType) => {
+    const onRefund = async (
+        booking: Booking, 
+        refundType: RefundType, 
+        customAmount?: number
+    ) => {
         try {
             if (!booking) throw new Error('Booking not found');
 
@@ -20,32 +25,39 @@ export function usePaymentAdmin() {
 
             if (role !== 'admin') throw new Error('Only admins can refund bookings');
 
+            setIsRefunding(true);
+            setLocalError(null);
 
             const refundBookingFunction = httpsCallable(functions, 'refundBooking');
 
             // Call the actual Firebase Cloud Function to process the PayMongo refund
-            await refundBookingFunction({
+            const payload: {
+                bookingId: string;
+                userId: string;
+                reason: string;
+                refundPercentage?: number;
+                customAmount?: number;
+            } = {
                 bookingId: booking.id,
                 userId: booking.user.id,
                 reason: 'requested_by_admin',
-                refundPercentage: refundType === 'full' ? 100 : 50
-            });
+            };
 
-            // const response: IPayment<Date> = {
-            //     gateway: "paymongo",
-            //     sessionId: "refund_processing",
-            //     referenceCode: null,
-            //     status: "refunded",
-            //     refundableUntil: new Date(),
-            //     amount: totalAmountPaid,
-            //     createdAt: new Date(),
-            // 
+            if (refundType === 'custom' && typeof customAmount === 'number') {
+                payload.customAmount = customAmount;
+            } else {
+                payload.refundPercentage = refundType === 'full' ? 100 : 10;
+            }
+
+            await refundBookingFunction(payload);
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRefund()');
             setLocalError((error as Error).message || 'Failed to refund booking');
             throw error;
+        } finally {
+            setIsRefunding(false);
         }
-    }
+    };
 
     // const refundBooking = async (booking: Booking, refundPercentage: 'full' | 'partial' = 'full') => {
     //     try {
@@ -104,5 +116,6 @@ export function usePaymentAdmin() {
     return {
         onRefund,
         localError,
+        isRefunding,
     }
 }
