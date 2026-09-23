@@ -156,23 +156,7 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 
 			console.log("New:", trail);
 
-			let saved = trail;
-			try {
-				saved = await TrailRepo.write(trail);
-			} catch (err: unknown) {
-				const errMessage = err instanceof Error ? err.message : String(err);
-				const errCode = typeof err === 'object' && err !== null && 'code' in err ? String((err as Record<string, unknown>).code) : '';
-				const isPermissionError =
-					errMessage.toLowerCase().includes("permission") ||
-					errCode === "permission-denied";
-
-				if (isPermissionError) {
-					console.warn("Firestore write failed due to permissions. Saving locally in-memory for testing.", err);
-					saved = trail;
-				} else {
-					throw err;
-				}
-			}
+			const saved = await TrailRepo.write(trail);
 
 			set({
 				data: get().data.some((d) => d.id === saved.id)

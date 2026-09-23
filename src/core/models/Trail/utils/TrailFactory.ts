@@ -99,7 +99,7 @@ const trailToFirestore = (trail: Trail): ITrailDB => {
         description: trail.description,
         offlinePoints: trail.offlinePoints,
         updatedAt: serverTimestamp(),
-        createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(trail.createdAt),
+        createdAt: (isNew || !trail.createdAt) ? serverTimestamp() : Timestamp.fromDate(toDate(trail.createdAt) || new Date()),
         general: trail.general,
         difficulty: trail.difficulty,
         tourism: trail.tourism,
