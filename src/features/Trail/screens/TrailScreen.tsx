@@ -42,6 +42,7 @@ export interface TrailScreenProps {
     isLiked: (review: IReview) => boolean;
     onWriteReviewPress: (review: IReview) => void;
     isOwned: (review: IReview) => boolean;
+    offersCount?: number;
 }
 
 const TrailScreen: React.FC<TrailScreenProps> = ({
@@ -60,6 +61,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     isLiked,
     onWriteReviewPress,
     isOwned,
+    offersCount = 0,
 }) => {
     const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
     const [activeTab, setActiveTab] = useState('Details');
@@ -259,7 +261,9 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             <CustomStickyFooter
                 primaryButton={{
                     title: "Book",
-                    onPress: () => onBookPress(trail?.id)
+                    onPress: () => onBookPress(trail?.id),
+                    showIndicator: (offersCount ?? 0) > 0,
+                    badgeCount: offersCount,
                 }}
                 secondaryButton={{
                     title: "Hike",
