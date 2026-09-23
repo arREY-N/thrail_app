@@ -782,21 +782,42 @@ exports.paymongoRedirect = functions.https.onRequest((req, res) => {
     }
     console.log(`[paymongoRedirect] Generating proxy HTML for redirect to: ${targetUrl}`);
 
-    // Using an HTML meta-refresh and JS redirect ensures the app scheme 
-    // is correctly invoked by the WebView, avoiding standard 302 errors.
+    // If opened via window.open on web, notify parent opener, redirect opener, and close popup.
+    // For mobile native WebBrowser, window.opener is absent; redirects via deep link scheme.
+    const safeTargetJson = JSON.stringify(targetUrl);
     const html = `
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta http-equiv="refresh" content="0;url=${targetUrl}">
+            <title>Payment Complete</title>
         </head>
-        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-            <p>Returning to app...</p>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding-top: 60px; color: #1e293b;">
+            <div style="max-width: 400px; margin: 0 auto; padding: 20px;">
+                <h3 style="margin-bottom: 8px;">Payment Successful</h3>
+                <p style="color: #64748b; font-size: 14px;">Returning to your application...</p>
+            </div>
             <script>
-                setTimeout(function() {
-                    window.location.href = "${targetUrl}";
-                }, 100);
+                (function() {
+                    var target = ${safeTargetJson};
+                    try {
+                        if (window.opener && !window.opener.closed) {
+                            try {
+                                window.opener.postMessage({ type: 'PAYMONGO_PAYMENT_SUCCESS', url: target }, '*');
+                            } catch (e) {}
+                            try {
+                                window.opener.location.href = target;
+                            } catch (e) {}
+                            setTimeout(function() {
+                                window.close();
+                            }, 300);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('[paymongoRedirect] Opener communication error:', err);
+                    }
+                    window.location.href = target;
+                })();
             </script>
         </body>
         </html>
@@ -1012,7 +1033,7 @@ exports.cancelBooking = https.onCall(async (request) => {
  * @throws {HttpsError} 403 if unauthorized, 400 if timeframe expired or gateway error.
  */
 exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
-    const { bookingId, userId, reason, refundPercentage } = request.data;
+    const { bookingId, userId, reason, refundPercentage, customAmount } = request.data;
     const caller = request.auth;
 
     console.log(`[refundBooking] Refund requested for booking ${bookingId} by user ${caller?.uid}`);
@@ -1027,9 +1048,18 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     const data = bookingDoc.data();
 
     const payments = data.payment || [];
+
+    // Concurrency Check: Ensure no refund is already in-flight
+    if (payments.some(p => p.status === 'processing_refund')) {
+        throw new HttpsError('failed-precondition', 'A refund is already in progress for this booking. Please wait.');
+    }
+
     const capturedPayment = payments.find(p => p.status === 'captured');
 
     if (!capturedPayment) {
+        if (payments.some(p => p.status === 'refunded')) {
+            throw new HttpsError('failed-precondition', 'This booking has already been refunded.');
+        }
         throw new HttpsError('failed-precondition', 'Cannot refund a booking that is not captured.');
     }
 
@@ -1043,6 +1073,11 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         throw new HttpsError('permission-denied', 'Not authorized to refund this booking.');
     }
 
+    // Custom amount privilege guard: strictly admin/superadmin only
+    if (customAmount !== undefined && customAmount !== null && !isAdmin && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only admins can set a custom refund amount.');
+    }
+
     // User-triggered timeframe check
     if (isOwner && !isAdmin && !isSuperAdmin) {
         const now = Timestamp.now().toDate();
@@ -1053,15 +1088,22 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         }
     }
 
-    // Execute Refund via PaymentManager
-    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
-    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
-    PaymentManager.registerProvider('paymongo', provider);
+    // Calculate Refund Amount
+    let refundAmount;
+    let refundLabel;
 
-    try {
-        const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
-        
-        // Calculate Refund Amount
+    if ((isAdmin || isSuperAdmin) && typeof customAmount === 'number' && !isNaN(customAmount) && customAmount > 0) {
+        const parsedCustom = Math.round(customAmount * 100) / 100;
+        if (parsedCustom < 1.00) {
+            throw new HttpsError('invalid-argument', 'Minimum refund amount is ₱1.00.');
+        }
+        if (parsedCustom > capturedPayment.amount) {
+            throw new HttpsError('invalid-argument', `Custom refund amount cannot exceed total paid (₱${capturedPayment.amount.toFixed(2)}).`);
+        }
+        refundAmount = parsedCustom;
+        const pct = Math.round((refundAmount / capturedPayment.amount) * 100);
+        refundLabel = `₱${refundAmount.toFixed(2)} (${pct}%)`;
+    } else {
         let multiplier = 0.10; // Normal users are strictly limited to 10%
         if (isAdmin || isSuperAdmin) {
             if (refundPercentage === 'full' || refundPercentage === 1 || refundPercentage === 100) {
@@ -1070,9 +1112,24 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
                 multiplier = 0.10;
             }
         }
-        
-        const refundAmount = capturedPayment.amount * multiplier;
-        const refundLabel = multiplier === 1.0 ? '100%' : '10%';
+        refundAmount = Math.round((capturedPayment.amount * multiplier) * 100) / 100;
+        refundLabel = multiplier === 1.0 ? '100%' : '10%';
+    }
+
+    // Acquire In-Flight Distributed Lock to prevent duplicate charge calls
+    capturedPayment.status = 'processing_refund';
+    await bookingRef.update({
+        payment: payments.map(p => ({ ...p })),
+        updatedAt: FieldValue.serverTimestamp()
+    });
+
+    // Execute Refund via PaymentManager
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
+    PaymentManager.registerProvider('paymongo', provider);
+
+    try {
+        const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
         
         // Ensure reason is one of the accepted PayMongo values
         const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
@@ -1085,7 +1142,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
 
         await bookingRef.update({
             status: 'cancelled',
-            payment: payments,
+            payment: payments.map(p => ({ ...p })),
             updatedAt: FieldValue.serverTimestamp()
         });
 
@@ -1093,10 +1150,28 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     } catch (error) {
         console.error("[refundBooking] PayMongo Refund Error:", error);
         
+        // Rollback lock to 'captured' so the admin can safely retry
+        try {
+            const freshDoc = await bookingRef.get();
+            if (freshDoc.exists) {
+                const freshPayments = freshDoc.data().payment || [];
+                const inFlight = freshPayments.find(p => p.status === 'processing_refund');
+                if (inFlight) {
+                    inFlight.status = 'captured';
+                    await bookingRef.update({ 
+                        payment: freshPayments.map(p => ({ ...p })),
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        } catch (rollbackErr) {
+            console.error("[refundBooking] Failed to rollback processing_refund lock:", rollbackErr);
+        }
+
         // Handle specific PayMongo API Errors gracefully
         const errorMessage = error.message || '';
         if (errorMessage.includes('same_day_partial_refund_not_allowed')) {
-            throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please try again tomorrow.');
+            throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please issue a full (100%) refund or try again tomorrow.');
         }
         
         throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);

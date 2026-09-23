@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -43,6 +43,7 @@ const PaymentScreen = ({
     onPrivacyPress,
 }: PaymentScreenProps) => {
     const { profile } = useAuthStore();
+    const popupRef = useRef<Window | null>(null);
 
     const hikerFirstName = bookingData?.user?.firstname || profile?.firstname || '';
     const hikerLastName = bookingData?.user?.lastname || profile?.lastname || '';
@@ -52,6 +53,34 @@ const PaymentScreen = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') return;
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'PAYMONGO_PAYMENT_SUCCESS') {
+                if (popupRef.current && !popupRef.current.closed) {
+                    try {
+                        popupRef.current.close();
+                    } catch (e) {}
+                }
+                setIsWaitingForVerification(false);
+                if (event.data.url) {
+                    try {
+                        const targetUrl = new URL(event.data.url, window.location.origin);
+                        window.location.href = targetUrl.toString();
+                    } catch (e) {
+                        window.location.href = event.data.url;
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => {
+            window.removeEventListener('message', handleMessage);
+        };
+    }, []);
 
     const [paymentType, setPaymentType] = useState<'full' | 'downpayment'>('full');
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
@@ -141,6 +170,7 @@ const PaymentScreen = ({
                         'PayMongoCheckout',
                         `toolbar=no, location=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=${width}, height=${height}, top=${top}, left=${left}`
                     );
+                    popupRef.current = popup;
                 }
 
                 setIsSubmitting(true);

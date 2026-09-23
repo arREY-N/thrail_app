@@ -6,15 +6,28 @@ import * as TaskManager from "expo-task-manager";
 
 export const LOCATION_TASK = "background-location-task";
 
+interface LocationTaskPayload {
+  locations?: {
+    coords: {
+      latitude: number;
+      longitude: number;
+      altitude?: number | null;
+    };
+    timestamp: number;
+  }[];
+}
+
 // ✅ Background task defined strictly as a utility module (native only)
 if (Platform.OS !== 'web') {
-  TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
+  TaskManager.defineTask<LocationTaskPayload>(
+    LOCATION_TASK,
+    async ({ data, error }: TaskManager.TaskManagerTaskBody<LocationTaskPayload>) => {
     if (error) {
       console.error('[locationTask] Background location task error:', error);
       return;
     }
     try {
-      const { locations } = data;
+      const locations = data?.locations;
       if (!locations || locations.length === 0) return;
       const location = locations[0];
 
