@@ -1,11 +1,11 @@
-import { router } from "expo-router";
+import { RelativePathString, router } from "expo-router";
 /**
  * @returns - Access to common navigation functions
  */
 export function useAppNavigation() {
     const onTrailPress = (id: string) => {
         router.push({
-            pathname: '/(main)/trail/view',
+            pathname: '/trail/view',
             params: { trailId: id },
         })
     }
@@ -21,7 +21,7 @@ export function useAppNavigation() {
     const onUserViewPress = (id?: string) => {
         if (!id) return;
         router.push({
-            pathname: '/(main)/user/view',
+            pathname: '/user/view',
         });
     };
 
@@ -30,23 +30,23 @@ export function useAppNavigation() {
     }
 
     const onSignUpPress = () => {
-        router.replace('/(auth)/signup');
+        router.replace('/signup');
     }
 
     const onLogIn = () => {
-        router.replace('/(auth)/login');
+        router.replace('/login');
     }
 
     const onNotificationPress = () => {
-        router.push('/(main)/home/notification');
+        router.push('/home/notification');
     }
 
     const onBookingPress = () => {
-        router.push('/(main)/book/list');
+        router.push('/book/list');
     }
 
     const onWeatherPress = () => {
-        router.push('/(main)/home/weather')
+        router.push('/home/weather')
     }
 
     const onSeeMoreRecommendationsPress = () => {
@@ -72,25 +72,25 @@ export function useAppNavigation() {
 
     const onGroupPress = () => {
         router.push({
-            pathname: '/(main)/group/list',
+            pathname: '/group/list',
         })
     }
 
     const onLeaderBoardPress = () => {
         router.push({
-            pathname: '/(main)/leaderboard/view',
+            pathname: '/leaderboard/view',
         })
     }
 
     const onProfilePress = () => {
         router.replace({
-            pathname: '/(tabs)/profile',
+            pathname: '/profile',
         })
     }
 
     const onSettingsPress = () => {
         router.push({
-            pathname: '/(main)/settings',
+            pathname: '/settings',
         })
     }
 
@@ -99,27 +99,27 @@ export function useAppNavigation() {
     }
 
     const onSecuritySettingsPress = () => {
-        router.push('/(main)/settings/security');
-    }
-
-    const onNotificationSettingsPress = () => {
-        router.push('/(main)/settings/notifications');
+        router.push('/settings/security');
     }
 
     const onPrivacySettingsPress = () => {
-        router.push('/(main)/settings/privacy');
+        router.push('/settings/privacy');
     }
 
     const onAboutSettingsPress = () => {
-        router.push('/(main)/settings/about');
+        router.push('/settings/about');
+    }
+
+    const onTestSettingsPress = () => {
+        router.push('/settings/test' as unknown as RelativePathString);
     }
 
     const onHelpSettingsPress = () => {
-        router.push('/(main)/settings/help');
+        router.push('/settings/help');
     }
 
     const onHikingPreferencesPress = () => {
-        router.push('/(main)/settings/preferences');
+        router.push('/settings/preferences');
     }
 
     return {
@@ -140,9 +140,9 @@ export function useAppNavigation() {
         onProfilePress,
         onSettingsPress,
         onSecuritySettingsPress,
-        onNotificationSettingsPress,
         onPrivacySettingsPress,
         onAboutSettingsPress,
+        onTestSettingsPress,
         onHelpSettingsPress,
         onHikingPreferencesPress,
         onUserViewPress
