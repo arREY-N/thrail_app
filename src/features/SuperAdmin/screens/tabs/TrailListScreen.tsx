@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {
+    ActivityIndicator,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -156,7 +157,14 @@ const TrailListScreen: React.FC<TrailListScreenProps> = ({
             </View>
 
             {/* Trail Cards Responsive Desktop 2-Column Grid */}
-            {filteredTrails.length === 0 ? (
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                    <CustomText variant="caption" style={styles.loadingText}>
+                        Loading trails...
+                    </CustomText>
+                </View>
+            ) : filteredTrails.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
                     <CustomIcon library="Feather" name="map" size={40} color={Colors.GRAY_MEDIUM} />
                     <CustomText variant="h2" style={styles.emptyStateTitle}>
@@ -258,6 +266,20 @@ const styles = StyleSheet.create({
         height: 40,
         paddingHorizontal: 16,
         borderRadius: 12,
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 56,
+        gap: 12,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        ...GlobalStyles.dropShadow(1),
+    },
+    loadingText: {
+        color: Colors.TEXT_SECONDARY,
     },
     emptyStateContainer: {
         paddingVertical: 48,
