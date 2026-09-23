@@ -32,21 +32,21 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         label: "Home",
         icon: "home",
         library: "Feather",
-        route: "/(tabs)",
+        route: "/",
       },
       {
         id: "explore",
         label: "Explore Trails",
         icon: "compass",
         library: "Feather",
-        route: "/(tabs)/explore",
+        route: "/explore",
       },
       {
         id: "hikes",
         label: "My Hikes",
         icon: "map-pin",
         library: "Feather",
-        route: "/(tabs)/hike",
+        route: "/hike",
       },
     ],
   },
@@ -58,14 +58,14 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         label: "Community",
         icon: "users",
         library: "Feather",
-        route: "/(tabs)/community",
+        route: "/community",
       },
       {
         id: "messages",
         label: "Messages",
         icon: "message-square",
         library: "Feather",
-        route: "/(main)/group/list",
+        route: "/group/list",
       },
     ],
   },
@@ -77,7 +77,7 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         label: "Settings",
         icon: "settings",
         library: "Feather",
-        route: "/(main)/settings",
+        route: "/settings",
       },
     ],
   },
@@ -93,14 +93,14 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Dashboard",
         icon: "grid",
         library: "Feather",
-        route: "/(main)/superadmin",
+        route: "/superadmin",
       },
       {
         id: "application",
         label: "Applications",
         icon: "file-text",
         library: "Feather",
-        route: "/(main)/superadmin/application/list",
+        route: "/superadmin/application/list",
       },
     ],
   },
@@ -112,28 +112,28 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Tour Businesses",
         icon: "briefcase",
         library: "Feather",
-        route: "/(main)/superadmin/business/list",
+        route: "/superadmin/business/list",
       },
       {
         id: "trail",
         label: "Trails & Routes",
         icon: "map",
         library: "Feather",
-        route: "/(main)/superadmin/trail/list",
+        route: "/superadmin/trail/list",
       },
       {
         id: "mountain",
         label: "Mountains Database",
         icon: "mountain",
         library: "FontAwesome5",
-        route: "/(main)/superadmin/mountain/list",
+        route: "/superadmin/mountain/list",
       },
       {
         id: "user",
         label: "User Accounts",
         icon: "users",
         library: "Feather",
-        route: "/(main)/superadmin/user/list",
+        route: "/superadmin/user/list",
       },
     ],
   },
@@ -149,21 +149,21 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Offers",
         icon: "briefcase",
         library: "Feather",
-        route: "/(main)/admin/offer/list",
+        route: "/admin/offer/list",
       },
       {
         id: "trail",
         label: "Trails & Routes",
         icon: "map",
         library: "Feather",
-        route: "/(main)/superadmin/trail/list",
+        route: "/admin/trail/list",
       },
       {
         id: "personnel",
         label: "Personnel",
         icon: "map",
         library: "Feather",
-        route: "/(main)/admin/personnel/list",
+        route: "/admin/personnel/list",
       },
     ],
   },
@@ -205,11 +205,11 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
   ];
 
   const isItemActive = (route: Href) => {
-    const routeStr = String(route);
+    const routeStr = typeof route === "string" ? route : (route as { pathname?: string }).pathname || "";
     const currentPath = (pathname || "").toLowerCase();
     const segs = (segments as string[]).map((s) => s.toLowerCase());
 
-    if (routeStr === "/(tabs)") {
+    if (routeStr === "/" || routeStr === "/(tabs)") {
       return (
         currentPath === "/" ||
         currentPath === "" ||
@@ -219,7 +219,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
       );
     }
 
-    if (routeStr === "/(main)/superadmin") {
+    if (routeStr === "/superadmin" || routeStr === "/(main)/superadmin") {
       return (
         currentPath === "/superadmin" ||
         currentPath === "/(main)/superadmin" ||
@@ -231,6 +231,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
       .replace("/(tabs)/", "")
       .replace("/(main)/", "")
       .replace("/superadmin/", "")
+      .replace("/admin/", "")
       .replace("/list", "")
       .replace("/", "");
 
@@ -253,7 +254,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
             styles.profileHeaderRow,
             isProfileActive && styles.profileHeaderRowActive,
           ]}
-          onPress={() => handleNavPress("/(tabs)/profile")}
+          onPress={() => handleNavPress("/profile")}
           activeOpacity={0.7}
         >
           {/* Avatar Circle */}
