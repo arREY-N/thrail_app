@@ -13,7 +13,7 @@ import { safeParseDateString } from "@/src/utils/dateFormatter";
 export interface UseProfileFormParams {
     user: IUser;
     isEditing: boolean;
-    onSavePress?: (updatedFields: Partial<IUser>) => void;
+    onSavePress?: (updatedFields: Partial<IUser>) => Promise<void>;
     onCancelPress?: () => void;
     onEditPress: () => void;
 }
@@ -137,9 +137,9 @@ export function useProfileForm({
     const willResetEmergencyVerification = isEmergencyPhoneChanged && !!user.emergencyContact?.phoneVerifiedAt;
     const willResetAnyVerification = willResetPersonalVerification || willResetEmergencyVerification;
 
-    const handleSave = (): void => {
+    const handleSave = async (): Promise<void> => {
         if (onSavePress) {
-            onSavePress({
+            await onSavePress({
                 username,
                 phoneNumber,
                 birthday: birthday ?? undefined,
