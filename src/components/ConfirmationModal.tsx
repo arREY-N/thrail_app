@@ -27,6 +27,7 @@ interface ConfirmationModalProps {
     cancelText?: string;
     confirmText?: string;
     isDestructive?: boolean;
+    isLoading?: boolean;
     iconName?: string;
     iconLibrary?: IconLibrary;
     iconColor?: string;
@@ -42,6 +43,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     cancelText = "Cancel",
     confirmText = "Confirm",
     isDestructive = false,
+    isLoading = false,
     iconName,
     iconLibrary = "Feather",
     iconColor,
@@ -59,7 +61,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             transparent
             visible={visible}
             animationType="fade"
-            onRequestClose={onClose}
+            onRequestClose={isLoading ? undefined : onClose}
         >
             <View style={styles.overlay}>
                 <View 
@@ -108,6 +110,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <CustomButton 
                             title={cancelText}
                             onPress={onClose}
+                            disabled={isLoading}
                             variant={cancelButtonVariant}
                             style={[
                                 styles.modalButton,
@@ -121,6 +124,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <CustomButton 
                             title={confirmText}
                             onPress={onConfirm}
+                            disabled={isLoading}
+                            isLoading={isLoading}
                             variant={primaryButtonVariant}
                             style={styles.modalButton} 
                         />
