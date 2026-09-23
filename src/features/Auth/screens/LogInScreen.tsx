@@ -34,7 +34,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
  */
 export interface LogInScreenProps {
-    onLogInPress: (email?: string, password?: string) => void;
+    onLogInPress: (email: string, password: string) => void;
     onSignUpPress: () => void;
     onBackPress: () => void;
     onForgotPasswordPress: () => void;
@@ -50,13 +50,13 @@ export interface LogInScreenProps {
 /**
  * Screen component that renders the Log In interface.
  */
-const LogInScreen: React.FC<LogInScreenProps> = ({ 
-    onLogInPress, 
-    onSignUpPress, 
-    onBackPress, 
-    onForgotPasswordPress, 
+const LogInScreen: React.FC<LogInScreenProps> = ({
+    onLogInPress,
+    onSignUpPress,
+    onBackPress,
+    onForgotPasswordPress,
     onRememberMePress,
-    onGmailLogIn, 
+    onGmailLogIn,
     onTermsPress,
     onPrivacyPress,
     error,

@@ -1,50 +1,38 @@
-import LoadingScreen from "@/src/app/loading";
-import { IUser, useAuthHook } from "@/src/core/models/User/User";
-import { useState } from 'react';
 
 import { Stack } from "expo-router";
 
+import CustomLoading from "@/src/components/CustomLoading";
+import { UpdateUserFlow } from "@/src/core/flows/UpdateUserFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import ProfileInfoScreen from "@/src/features/Settings/screens/ProfileInfoScreen";
 
 export default function ViewUser() {
-    const { profile: user } = useAuthHook();
-
-    const [isEditing, setIsEditing] = useState(false);
+    const {
+        onEditPress,
+        onCancelPress,
+        onSaveAccount,
+        isEditing,
+        profile,
+        isLoading,
+    } = UpdateUserFlow();
 
     const {
         onBackPress
     } = useAppNavigation();
 
-    const onEditPress = () => {
-        // TODO: [Backend] Implement navigation to edit profile screen
-        console.log("Edit Button clicked");
-        setIsEditing(true);
-    };
-
-    const onCancelPress = () => {
-        setIsEditing(false);
-    };
-
-    const onSavePress = async (updatedFields: Partial<IUser>) => {
-        console.log("Saving fields in placeholder:", updatedFields);
-        // TODO: [Backend] Connect this to useEditProfile hook
-        setIsEditing(false);
-    };
-
-    if (!user) return <LoadingScreen />
+    if (!profile || isLoading) return <CustomLoading message="Loading Profile" />
 
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
             <ProfileInfoScreen
-                user={user}
+                user={profile}
                 onBackPress={onBackPress}
                 onEditPress={onEditPress}
                 isEditing={isEditing}
                 onCancelPress={onCancelPress}
-                onSavePress={onSavePress}
+                onSavePress={onSaveAccount}
             />
         </>
     )

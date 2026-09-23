@@ -57,6 +57,7 @@ export interface AuthState {
     validateInfo: () => boolean;
     resetSignUp: () => void;
     setHydrated: (hydrated: boolean) => void;
+    updateProfile: (profile: User) => void;
 }
 
 const init = {
@@ -77,6 +78,11 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     ...init,
 
     resetSignUp: () => set({ account: newSignUp() }),
+
+    updateProfile: (profile: User) => {
+        set({ isLoading: true })
+        set({ profile, isLoading: false })
+    },
 
     reset: () => set({
         ...init,

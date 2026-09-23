@@ -87,12 +87,12 @@ export interface InfoRowProps {
  * Responsive design automatically stacks the label on top and value on bottom
  * if forceStack is enabled by the parent container.
  */
-export const InfoRow = ({ 
-    label, 
-    value, 
-    subValue, 
-    noMargin, 
-    forceStack = false, 
+export const InfoRow = ({
+    label,
+    value,
+    subValue,
+    noMargin,
+    forceStack = false,
     badge,
     badgePosition = 'beside_value'
 }: InfoRowProps) => {
@@ -170,7 +170,7 @@ export interface ProfileInfoScreenProps {
     onEditPress: () => void;
     isEditing?: boolean;
     onCancelPress?: () => void;
-    onSavePress?: (updatedFields: Partial<IUser>) => void;
+    onSavePress?: (updatedFields: Partial<IUser>) => Promise<void>;
 }
 
 /**
@@ -653,9 +653,9 @@ const ProfileInfoScreen = ({
                                 ) : (
                                     <View>
                                         <InfoRow label="Username" value={`@${effectiveUser.username}`} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow 
-                                            label="Phone Number" 
-                                            value={formatPhoneWithPrefix(effectiveUser.phoneNumber)} 
+                                        <InfoRow
+                                            label="Phone Number"
+                                            value={formatPhoneWithPrefix(effectiveUser.phoneNumber)}
                                             badge={renderVerificationBadge(phoneValidity)}
                                             badgePosition="before_value"
                                             subValue={personalExpiryText}
@@ -714,9 +714,9 @@ const ProfileInfoScreen = ({
                                 ) : effectiveUser.emergencyContact?.name ? (
                                     <View>
                                         <InfoRow label="Contact Name" value={effectiveUser.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
-                                        <InfoRow 
-                                            label="Contact Number" 
-                                            value={formatPhoneWithPrefix(effectiveUser.emergencyContact.contactNumber)} 
+                                        <InfoRow
+                                            label="Contact Number"
+                                            value={formatPhoneWithPrefix(effectiveUser.emergencyContact.contactNumber)}
                                             badge={renderVerificationBadge(emergencyValidity, !!effectiveUser.emergencyContact.userId)}
                                             badgePosition="before_value"
                                             subValue={emergencyExpiryText}
@@ -893,18 +893,18 @@ const ProfileInfoScreen = ({
 
             {/* Modals */}
             <ConfirmationModal visible={isEditModalVisible} title="Edit Profile" message="Are you sure you want to edit this profile information? You will be redirected to the edit screen." onConfirm={handleConfirmEdit} onClose={() => setIsEditModalVisible(false)} confirmText="Edit" cancelText="Cancel" />
-            <ConfirmationModal 
-                visible={isSaveModalVisible} 
-                title={willResetAnyVerification ? "Reset Verification Warning" : "Save Changes"} 
+            <ConfirmationModal
+                visible={isSaveModalVisible}
+                title={willResetAnyVerification ? "Reset Verification Warning" : "Save Changes"}
                 message={
                     willResetAnyVerification
                         ? "Modifying your verified phone number (or emergency contact) will reset its verification status and require tour organizers to re-verify it on your next reservation. Do you wish to proceed and save changes?"
                         : "You have made changes to your profile. Do you want to save them?"
-                } 
-                onConfirm={() => { setIsSaveModalVisible(false); handleSave(); }} 
-                onClose={() => setIsSaveModalVisible(false)} 
-                confirmText="Save" 
-                cancelText="Keep Editing" 
+                }
+                onConfirm={() => { setIsSaveModalVisible(false); handleSave(); }}
+                onClose={() => setIsSaveModalVisible(false)}
+                confirmText="Save"
+                cancelText="Keep Editing"
             />
             <ConfirmationModal visible={isCancelModalVisible} title="Discard Changes" message="You have unsaved changes. Are you sure you want to discard them?" onConfirm={() => { setIsCancelModalVisible(false); if (onCancelPress) onCancelPress(); }} onClose={() => setIsCancelModalVisible(false)} confirmText="Discard" cancelText="Keep Editing" />
 
