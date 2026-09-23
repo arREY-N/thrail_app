@@ -4,7 +4,7 @@ import { useState } from "react";
 export function UpdateUserFlow() {
     const { profile, isLoading: authIsLoading } = useAuthHook();
     const [isEditing, setIsEditing] = useState(false);
-    const isLoading = useUserStore(s => s.isLoading);
+    const userIsLoading = useUserStore(s => s.isLoading);
 
     const createUser = useUserStore(s => s.create);
 
@@ -33,7 +33,7 @@ export function UpdateUserFlow() {
         onEditPress,
         onCancelPress,
         onSaveAccount,
-        isLoading: authIsLoading,
+        isLoading: authIsLoading || userIsLoading,
         isEditing,
         profile
     }
