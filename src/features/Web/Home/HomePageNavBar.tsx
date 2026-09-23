@@ -154,7 +154,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
         label: "Trails & Routes",
         icon: "map",
         library: "Feather",
-        route: "/(app)/(main)/superadmin/trail/list",
+        route: "/(app)/(main)/admin/trail/list",
       },
       {
         id: "personnel",
@@ -405,9 +405,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 12,
   },
-  profileHeaderRowActive: {
-    backgroundColor: Colors.CHIP_PRIMARY_BG,
-  },
   avatarCircle: {
     width: 36,
     height: 36,
@@ -428,9 +425,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "bold",
     color: Colors.TEXT_PRIMARY,
-  },
-  profileNameActive: {
-    color: Colors.PRIMARY,
   },
   profileRole: {
     fontSize: 11,

@@ -36,7 +36,7 @@ import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
 
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { ITrail } from '@/src/core/models/Trail/Trail';
-import { safeParseDateString } from '@/src/utils/dateFormatter';
+import { getTrailOffersCount } from '@/src/utils/offerHelpers';
 
 /**
  * Props for the HomeScreen component.
@@ -340,16 +340,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   //     reloadMountainWeatherBadges();
   // }, [reloadMountainWeatherBadges]);
 
-    // Helper to calculate upcoming active offers count for each card
-    const getTrailOffersCount = (trailId: string) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return offers.filter(o => {
-            if (o.trail?.id !== trailId || !o.date) return false;
-            const offerDate = o.date instanceof Date ? new Date(o.date) : safeParseDateString(o.date as string);
-            offerDate.setHours(0, 0, 0, 0);
-            return offerDate >= today;
-        }).length;
+    // Helper to calculate active offers count for each card
+    const getTrailOffersCountForCard = (trailId: string) => {
+        return getTrailOffersCount(trailId, offers);
     };
 
   const safetyReport = React.useMemo(() => {
@@ -411,7 +404,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           getItemRating={getItemRating}
           onMountainPress={onMountainPress}
           onDownloadPress={onDownloadPress}
-          getTrailOffersCount={getTrailOffersCount}
+          getTrailOffersCount={getTrailOffersCountForCard}
         />
 
         <ListSection
@@ -426,7 +419,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           getItemRating={getItemRating}
           onMountainPress={onMountainPress}
           onDownloadPress={onDownloadPress}
-          getTrailOffersCount={getTrailOffersCount}
+          getTrailOffersCount={getTrailOffersCountForCard}
         />
 
         {trailsWithOffers.length > 0 && (
@@ -441,7 +434,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             getItemRating={getItemRating}
             onMountainPress={onMountainPress}
             onDownloadPress={onDownloadPress}
-            getTrailOffersCount={getTrailOffersCount}
+            getTrailOffersCount={getTrailOffersCountForCard}
           />
         )}
       </ResponsiveScrollView>

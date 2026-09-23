@@ -43,6 +43,8 @@ export interface OfferCardProps {
     bookedStatusText?: string;
     isDateConflict?: boolean;
     isClosed?: boolean;
+    isWithinAdvanceCutoff?: boolean;
+    isToday?: boolean;
 }
 
 /**
@@ -60,6 +62,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
     bookedStatusText,
     isDateConflict = false,
     isClosed = false,
+    isWithinAdvanceCutoff = false,
+    isToday = false,
 }) => {
     const { isMobile } = useBreakpoints();
     const isWide = !isMobile;
@@ -100,7 +104,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             style={[
                 styles.offerCard, 
                 isSelected && styles.selectedOfferCard,
-                (isBooked || isDateConflict || isClosed) && styles.bookedOfferCard
+                (isBooked || isDateConflict || isClosed || isWithinAdvanceCutoff) && styles.bookedOfferCard
             ]}
             onPress={onSelect}
         >
@@ -165,11 +169,23 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                 Date Reserved
                             </CustomText>
                         </View>
+                    ) : isWithinAdvanceCutoff ? (
+                        <View style={isToday ? styles.closedBadge : styles.cutoffBadge}>
+                            <CustomIcon 
+                                library="Feather" 
+                                name="clock" 
+                                size={10} 
+                                color={isToday ? Colors.TEXT_SECONDARY : Colors.STATUS_WARNING_TEXT} 
+                            />
+                            <CustomText style={isToday ? styles.closedBadgeText : styles.cutoffBadgeText}>
+                                {isToday ? "Closed for Today" : "Closed (< 7 Days)"}
+                            </CustomText>
+                        </View>
                     ) : isClosed ? (
                         <View style={styles.closedBadge}>
                             <CustomIcon library="Feather" name="clock" size={10} color={Colors.TEXT_SECONDARY} />
                             <CustomText style={styles.closedBadgeText}>
-                                Closed for Today
+                                Closed
                             </CustomText>
                         </View>
                     ) : null}
@@ -788,6 +804,24 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         color: Colors.TEXT_SECONDARY,
+    },
+    cutoffBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_WARNING_BORDER,
+        marginBottom: 4,
+        alignSelf: 'flex-end',
+    },
+    cutoffBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.STATUS_WARNING_TEXT,
     },
 });
 

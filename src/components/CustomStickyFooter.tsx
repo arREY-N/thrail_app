@@ -10,6 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
+import CustomText from '@/src/components/CustomText';
+import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
 interface FooterButtonConfig {
@@ -19,6 +21,9 @@ interface FooterButtonConfig {
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     disabled?: boolean;
+    isLoading?: boolean;
+    showIndicator?: boolean;
+    badgeCount?: number;
 }
 
 /**
@@ -65,6 +70,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                             style={primaryButton.style}
                             textStyle={primaryButton.textStyle}
                             disabled={primaryButton.disabled}
+                            isLoading={primaryButton.isLoading}
                         />
                         <CustomButton 
                             title={secondaryButton.title}
@@ -73,6 +79,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                             style={secondaryButton.style}
                             textStyle={secondaryButton.textStyle}
                             disabled={secondaryButton.disabled}
+                            isLoading={secondaryButton.isLoading}
                         />
                     </View>
                 ) : (
@@ -85,6 +92,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 style={secondaryButton.style}
                                 textStyle={secondaryButton.textStyle}
                                 disabled={secondaryButton.disabled}
+                                isLoading={secondaryButton.isLoading}
                             />
                         </View>
                         <View style={styles.buttonWrapper}>
@@ -95,19 +103,57 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 style={primaryButton.style}
                                 textStyle={primaryButton.textStyle}
                                 disabled={primaryButton.disabled}
+                                isLoading={primaryButton.isLoading}
                             />
+                            {primaryButton.showIndicator && (
+                                <View style={[
+                                    styles.indicatorBadge,
+                                    typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 && styles.indicatorBadgeWithCount
+                                ]}>
+                                    {typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 ? (
+                                        <CustomText
+                                            variant="caption"
+                                            style={styles.indicatorBadgeText}
+                                        >
+                                            {primaryButton.badgeCount > 99 ? '99+' : String(primaryButton.badgeCount)}
+                                        </CustomText>
+                                    ) : (
+                                        <View style={styles.indicatorDot} />
+                                    )}
+                                </View>
+                            )}
                         </View>
                     </View>
                 )
             ) : (
-                <CustomButton 
-                    title={primaryButton.title}
-                    onPress={primaryButton.onPress}
-                    variant={primaryButton.variant || 'primary'}
-                    style={primaryButton.style}
-                    textStyle={primaryButton.textStyle}
-                    disabled={primaryButton.disabled}
-                />
+                <View style={styles.singleButtonWrapper}>
+                    <CustomButton 
+                        title={primaryButton.title}
+                        onPress={primaryButton.onPress}
+                        variant={primaryButton.variant || 'primary'}
+                        style={primaryButton.style}
+                        textStyle={primaryButton.textStyle}
+                        disabled={primaryButton.disabled}
+                        isLoading={primaryButton.isLoading}
+                    />
+                    {primaryButton.showIndicator && (
+                        <View style={[
+                            styles.indicatorBadge,
+                            typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 && styles.indicatorBadgeWithCount
+                        ]}>
+                            {typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 ? (
+                                <CustomText
+                                    variant="caption"
+                                    style={styles.indicatorBadgeText}
+                                >
+                                    {primaryButton.badgeCount > 99 ? '99+' : String(primaryButton.badgeCount)}
+                                </CustomText>
+                            ) : (
+                                <View style={styles.indicatorDot} />
+                            )}
+                        </View>
+                    )}
+                </View>
             )}
         </View>
     );
@@ -142,6 +188,48 @@ const styles = StyleSheet.create({
     },
     buttonWrapper: { 
         flex: 1, 
+        position: 'relative',
+    },
+    singleButtonWrapper: {
+        width: '100%',
+        position: 'relative',
+    },
+    indicatorBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: Colors.PRIMARY,
+        borderRadius: 999,
+        width: 14,
+        height: 14,
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    indicatorBadgeWithCount: {
+        minWidth: 24,
+        height: 24,
+        paddingHorizontal: 6,
+        top: -8,
+        right: -8,
+        borderWidth: 2,
+        borderColor: Colors.WHITE,
+        backgroundColor: Colors.PRIMARY,
+    },
+    indicatorBadgeText: {
+        color: Colors.WHITE,
+        fontSize: 11,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        includeFontPadding: false,
+    },
+    indicatorDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.WHITE,
     },
 });
 
