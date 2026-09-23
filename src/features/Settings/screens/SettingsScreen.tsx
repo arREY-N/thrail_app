@@ -114,6 +114,7 @@ export interface SettingsScreenProps {
     onApplyPress?: () => void;
     onPrivacySettingsPress: () => void;
     onAboutPress: () => void;
+    onTestPress?: () => void;
     onSignOutPress: () => void;
 }
 
@@ -133,6 +134,7 @@ const SettingsScreen = ({
     onPrivacySettingsPress,
 
     onAboutPress,
+    onTestPress,
     onSignOutPress
 }: SettingsScreenProps): React.JSX.Element => {
 
@@ -195,6 +197,9 @@ const SettingsScreen = ({
                 <View style={styles.section}>
                     <SectionHeader title="App Information" />
                     <SettingsItem icon="info" title="About The App" onPress={onAboutPress} />
+                    {__DEV__ && (
+                        <SettingsItem icon="sliders" title="Test Screen" onPress={onTestPress || (() => {})} />
+                    )}
                 </View>
 
                 <View style={styles.logoutContainer}>
