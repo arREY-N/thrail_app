@@ -37,14 +37,30 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
                 : (dateVal && typeof dateVal === 'object' && 'toDate' in dateVal ? (dateVal as import('firebase/firestore').Timestamp).toDate() : new Date((dateVal as Date | string | number) || 0));
             
             const isPast = hikeDate.getTime() < today.getTime();
-            const isDead = ['cancelled', 'refund', 'refunded', 'cancellation-rejected', 'reschedule-rejected', 'finished', 'expired'].includes(status);
+            const isDead = [
+                'cancelled',
+                'refund',
+                'refunded',
+                'finished',
+                'expired'
+            ].includes(status);
             
             if (isDead || isPast) {
                 return activeTab === 'history';
             }
             
             if (activeTab === 'pending') {
-                return ['for-reservation', 'pending-docs', 'reservation-rejected', 'approved-docs', 'for-payment', 'for-reschedule'].includes(status);
+                return [
+                    'for-reservation',
+                    'pending-docs',
+                    'reservation-rejected',
+                    'approved-docs',
+                    'for-payment',
+                    'for-reschedule',
+                    'for-cancellation',
+                    'cancellation-rejected',
+                    'reschedule-rejected',
+                ].includes(status);
             }
             
             if (activeTab === 'upcoming') {
@@ -55,9 +71,21 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
         });
 
         if (filterBy === 'action-needed') {
-            filtered = filtered.filter(b => ['for-payment', 'approved-docs', 'reservation-rejected'].includes(b.status));
+            filtered = filtered.filter(b => [
+                'for-payment',
+                'approved-docs',
+                'reservation-rejected',
+                'cancellation-rejected',
+                'reschedule-rejected',
+            ].includes(b.status));
         } else if (filterBy === 'waiting') {
-            filtered = filtered.filter(b => ['for-reservation', 'pending-docs', 'for-reschedule', 'paid'].includes(b.status));
+            filtered = filtered.filter(b => [
+                'for-reservation',
+                'pending-docs',
+                'for-reschedule',
+                'for-cancellation',
+                'paid',
+            ].includes(b.status));
         } else if (filterBy === 'partial') {
             filtered = filtered.filter(b => b.status === 'downpayment');
         }

@@ -25,6 +25,7 @@ import PaymentScreen, { PaymentResultResponse } from '@/src/features/Book/screen
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
 import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { UserSearchResult } from '@/src/components/EmergencyModal';
@@ -67,6 +68,14 @@ export interface MyBookingsScreenProps {
     onTermsPress: () => void;
     /** Callback for Privacy Policy */
     onPrivacyPress: () => void;
+    /** Array of active cancellations for user's bookings */
+    userCancellations?: Cancellation[];
+    /** Callback to withdraw cancellation */
+    onWithdrawCancellation?: (cancellation: Cancellation) => Promise<void> | void;
+    /** Callback to appeal / update cancellation reason */
+    onUpdateCancellationReason?: (cancellation: Cancellation, newReason: string) => Promise<void> | void;
+    /** Callback to accept admin cancellation */
+    onAcceptAdminCancellation?: (cancellation: Cancellation) => Promise<void> | void;
     /** The authenticated user profile passed from controller */
     currentUserProfile?: User | null;
     /** Callback to self-heal phone verification on profile */
@@ -99,7 +108,11 @@ const MyBookingsScreen = ({
     onPrivacyPress,
     currentUserProfile,
     onSyncBookingVerification,
-    onSearchUser
+    onSearchUser,
+    userCancellations,
+    onWithdrawCancellation,
+    onUpdateCancellationReason,
+    onAcceptAdminCancellation,
 }: MyBookingsScreenProps) => {
     const initialKey = `${initialView || 'list'}_${initialBookingId || ''}`;
     const [prevInitialKey, setPrevInitialKey] = useState(initialKey);
@@ -116,6 +129,8 @@ const MyBookingsScreen = ({
     }
 
     const selectedBooking = userBookings?.find(b => b.id === selectedBookingId) || null;
+    const selectedBookingCancellation =
+        userCancellations?.find(c => c.bookingId === selectedBookingId) || null;
 
     const { 
         tabs, 
@@ -277,9 +292,12 @@ const MyBookingsScreen = ({
                 currentUserProfile={currentUserProfile}
                 onSyncBookingVerification={onSyncBookingVerification}
                 onSearchUser={onSearchUser}
+                cancellation={selectedBookingCancellation}
+                onWithdrawCancellation={onWithdrawCancellation}
+                onUpdateCancellationReason={onUpdateCancellationReason}
+                onAcceptAdminCancellation={onAcceptAdminCancellation}
                 onCancelConfirm={(booking, reason) => {
                     onCancelBookingPress(booking, reason);
-                    setCurrentView('list');
                 }}
                 onRefundConfirm={(booking, reason) => {
                     if (onRefundBookingPress) {

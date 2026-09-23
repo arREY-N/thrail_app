@@ -33,7 +33,9 @@ import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHe
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
-import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
+import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
+import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import RequiredDocumentsSection from '@/src/features/Book/screens/MyBookings/components/RequiredDocumentsSection';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 import {
@@ -72,6 +74,14 @@ export interface BookingDetailsScreenProps {
     onUpdatePress?: () => void;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
+    /** Active cancellation associated with this booking, if any */
+    cancellation?: Cancellation | null;
+    /** Handler to withdraw an active cancellation request */
+    onWithdrawCancellation?: (cancellation: Cancellation) => Promise<void> | void;
+    /** Handler to appeal / update the cancellation reason */
+    onUpdateCancellationReason?: (cancellation: Cancellation, newReason: string) => Promise<void> | void;
+    /** Handler to accept an admin-initiated cancellation */
+    onAcceptAdminCancellation?: (cancellation: Cancellation) => Promise<void> | void;
     /** The authenticated user profile passed from controller */
     currentUserProfile?: User | null;
     /** Callback to self-heal phone verification on profile */
@@ -100,10 +110,17 @@ const BookingDetailsScreen = ({
     currentUserProfile,
     onSyncBookingVerification,
     onSearchUser,
-    availableFutureOffers = []
+    availableFutureOffers = [],
+    cancellation,
+    onWithdrawCancellation,
+    onUpdateCancellationReason,
+    onAcceptAdminCancellation,
 }: BookingDetailsScreenProps) => {
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
-    const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null);
+    const [activeCancelModal, setActiveCancelModal] = useState<'cancel' | 'refund' | 'update' | null>(null);
+    const [modalInitialReason, setModalInitialReason] = useState<string>('');
+    const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
+    const [isSubmittingCancellation, setIsSubmittingCancellation] = useState<boolean>(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
     const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
@@ -276,10 +293,18 @@ const BookingDetailsScreen = ({
     }, [booking, onSyncBookingVerification]);
 
 
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected', 'expired'].includes(displayStatus || '');
+    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'expired'].includes(displayStatus || '');
     const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus || '');
 
-    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus || '');
+    const canCancel = [
+        'for-reservation',
+        'pending-docs',
+        'for-reschedule',
+        'for-payment',
+        'approved-docs',
+        'reservation-rejected',
+        'reschedule-rejected',
+    ].includes(displayStatus || '');
     const canRefund = isConfirmed;
     const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus || '');
 
@@ -293,7 +318,7 @@ const BookingDetailsScreen = ({
 
     const enhancedBooking = {
         ...booking,
-        status: displayStatus,
+        status: displayStatus || booking.status,
         offer: {
             ...booking?.offer,
             duration: fullOffer?.duration || 'N/A',
@@ -537,7 +562,26 @@ const BookingDetailsScreen = ({
 
                     <QuickInfoCard booking={enhancedBooking} />
 
-                    <BookingStatusComponent status={displayStatus} reason={cancellationReason} />
+                    <BookingStatusComponent
+                        status={displayStatus}
+                        isPaid={hasHistoricalPayments}
+                    />
+
+                    <CancellationCard
+                        booking={{
+                            ...booking,
+                            status: displayStatus || booking.status,
+                        }}
+                        cancellation={cancellation}
+                        onWithdraw={onWithdrawCancellation}
+                        onAppeal={(cancellationItem) => {
+                            setModalInitialReason(cancellationItem.reason || '');
+                            setModalErrorMessage(null);
+                            setActiveCancelModal('update');
+                        }}
+                        onAcceptAdminCancellation={onAcceptAdminCancellation}
+                        onReschedule={() => setShowRescheduleModal(true)}
+                    />
 
                     {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
@@ -679,15 +723,40 @@ const BookingDetailsScreen = ({
                 </View>
             )}
 
-            <ReasonModal
-                visible={!!activeReasonModal}
-                actionType={activeReasonModal}
-                onClose={() => setActiveReasonModal(null)}
-                onConfirm={(reason: string) => {
-                    if (activeReasonModal === 'cancel') {
-                        onCancelConfirm(booking, reason);
-                    } else if (activeReasonModal === 'refund') {
-                        onRefundConfirm(booking, reason);
+            <CancelBookingModal
+                visible={!!activeCancelModal}
+                actionType={activeCancelModal}
+                initialReason={modalInitialReason}
+                isSubmitting={isSubmittingCancellation}
+                errorMessage={modalErrorMessage}
+                onClose={() => {
+                    setActiveCancelModal(null);
+                    setModalInitialReason('');
+                    setModalErrorMessage(null);
+                }}
+                onConfirm={async (reason: string) => {
+                    setIsSubmittingCancellation(true);
+                    setModalErrorMessage(null);
+                    try {
+                        if (activeCancelModal === 'cancel') {
+                            await onCancelConfirm(booking, reason);
+                            setActiveCancelModal(null);
+                        } else if (activeCancelModal === 'refund') {
+                            await onRefundConfirm(booking, reason);
+                            setActiveCancelModal(null);
+                        } else if (activeCancelModal === 'update' && cancellation && onUpdateCancellationReason) {
+                            await onUpdateCancellationReason(cancellation, reason);
+                            setActiveCancelModal(null);
+                            setToastConfig({
+                                visible: true,
+                                message: 'Cancellation appeal updated successfully.',
+                                type: 'success',
+                            });
+                        }
+                    } catch (err: unknown) {
+                        setModalErrorMessage(err instanceof Error ? err.message : 'An error occurred.');
+                    } finally {
+                        setIsSubmittingCancellation(false);
                     }
                 }}
             />
@@ -790,7 +859,7 @@ const BookingDetailsScreen = ({
                                     style={styles.actionItem}
                                     onPress={() => {
                                         setShowActionMenu(false);
-                                        setTimeout(() => setActiveReasonModal('cancel'), 300);
+                                        setTimeout(() => setActiveCancelModal('cancel'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
@@ -805,7 +874,7 @@ const BookingDetailsScreen = ({
                                     style={styles.actionItem}
                                     onPress={() => {
                                         setShowActionMenu(false);
-                                        setTimeout(() => setActiveReasonModal('refund'), 300);
+                                        setTimeout(() => setActiveCancelModal('refund'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
