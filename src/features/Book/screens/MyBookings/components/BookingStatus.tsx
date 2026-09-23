@@ -5,61 +5,65 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { getStatusConfig, StatusConfigResult } from '@/src/constants/statusConfig';
+import { getStatusConfig } from '@/src/constants/statusConfig';
 import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
 
-export interface BookingTrackerData {
-    steps: { id: number, defaultLabel: string, defaultIcon: string }[];
-    currentIndex: number;
-    isTerminalError: boolean;
-    config: StatusConfigResult;
+export interface BookingStatusProps {
+    /** The status of the booking */
+    status?: BookingStatusType | string;
+    /** Optional cancellation reason (kept for backward compatibility, not displayed in 4-step bar) */
+    reason?: string;
+    /** Whether payment has been captured for this booking */
+    isPaid?: boolean;
 }
 
+interface StepDefinition {
+    id: number;
+    defaultLabel: string;
+    defaultIcon: string;
+}
+
+const DEFAULT_STEPS: StepDefinition[] = [
+    { id: 0, defaultLabel: 'REVIEW', defaultIcon: 'file-text' },
+    { id: 1, defaultLabel: 'PAYMENT', defaultIcon: 'credit-card' },
+    { id: 2, defaultLabel: 'VERIFYING', defaultIcon: 'shield' },
+    { id: 3, defaultLabel: 'COMPLETED', defaultIcon: 'check-circle' },
+];
+
 /**
- * Gets tracker data based on booking status.
- * @param {BookingStatusType | string | undefined} status - Booking status
- * @returns {BookingTrackerData} Tracker state
+ * Visual 4-step progress tracker for booking lifecycle.
+ * Preserves the 4 steps at all times and dynamically updates the active/cancelled step.
  */
-const getTrackerData = (status?: BookingStatusType | string): BookingTrackerData => {
-    const config = getStatusConfig(status, 'user');
+const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false }) => {
     const rawStatus = status || 'unknown';
-
-    const terminalStatuses = [
-        'reservation-rejected', 
-        'cancelled', 
-        'refund', 
-        'refunded', 
-        'cancellation-rejected', 
-        'reschedule-rejected',
-        'expired'
-    ];
-
-    if (terminalStatuses.includes(rawStatus as string)) {
-        return {
-            steps: [],
-            currentIndex: 0,
-            isTerminalError: true,
-            config
-        };
-    }
-
-    const steps = [
-        { id: 0, defaultLabel: 'REVIEW', defaultIcon: 'file-text' },
-        { id: 1, defaultLabel: 'PAYMENT', defaultIcon: 'credit-card' },
-        { id: 2, defaultLabel: 'VERIFYING', defaultIcon: 'shield' },
-        { id: 3, defaultLabel: 'COMPLETED', defaultIcon: 'check-circle' }
-    ];
+    const config = getStatusConfig(status, 'user');
 
     let currentIndex = 0;
+    let overrideLabel: string | undefined;
+    let overrideIcon: string | undefined;
+    let isErrorState = false;
+    let isRefundState = false;
 
     switch (rawStatus) {
         case 'for-reservation':
         case 'pending-docs':
             currentIndex = 0;
             break;
+        case 'reservation-rejected':
+            currentIndex = 0;
+            overrideLabel = 'REJECTED';
+            overrideIcon = 'x-circle';
+            isErrorState = true;
+            break;
         case 'approved-docs':
         case 'for-payment':
             currentIndex = 1;
+            break;
+        case 'expired':
+            currentIndex = 1;
+            overrideLabel = 'EXPIRED';
+            overrideIcon = 'clock';
+            isErrorState = true;
             break;
         case 'downpayment':
         case 'paid':
@@ -68,40 +72,50 @@ const getTrackerData = (status?: BookingStatusType | string): BookingTrackerData
         case 'completed':
         case 'rescheduled':
         case 'for-reschedule':
-        case 'for-cancellation':
+        case 'finished':
             currentIndex = 3;
+            break;
+        case 'reschedule-rejected':
+            currentIndex = 3;
+            overrideLabel = 'REJECTED';
+            overrideIcon = 'x-circle';
+            isErrorState = true;
+            break;
+
+        // Cancellation sub-approval overrides:
+        case 'for-cancellation':
+            currentIndex = isPaid ? 2 : 0;
+            overrideLabel = 'CANCELLING';
+            overrideIcon = 'alert-triangle';
+            isErrorState = true;
+            break;
+        case 'cancellation-rejected':
+            currentIndex = isPaid ? 2 : 0;
+            overrideLabel = 'DECLINED';
+            overrideIcon = 'x-octagon';
+            isErrorState = true;
+            break;
+        case 'refund':
+            currentIndex = 2;
+            overrideLabel = 'REFUNDING';
+            overrideIcon = 'rotate-ccw';
+            isRefundState = true;
+            break;
+        case 'refunded':
+            currentIndex = 2;
+            overrideLabel = 'REFUNDED';
+            overrideIcon = 'check-circle';
+            isRefundState = true;
+            break;
+        case 'cancelled':
+            currentIndex = isPaid ? 2 : 0;
+            overrideLabel = 'CANCELLED';
+            overrideIcon = 'x-circle';
+            isErrorState = true;
             break;
         default:
             currentIndex = 0;
     }
-
-    return { 
-        steps, 
-        currentIndex, 
-        isTerminalError: false, 
-        config 
-    };
-};
-
-export interface BookingStatusProps {
-    /** The status of the booking */
-    status?: BookingStatusType | string;
-    /** Optional cancellation reason */
-    reason?: string;
-}
-
-/**
- * Visual tracker for the booking status.
- * 
- * @param {BookingStatusProps} props - Component props
- */
-const BookingStatus = ({ status, reason }: BookingStatusProps) => {
-    const { 
-        steps, 
-        currentIndex, 
-        isTerminalError, 
-        config 
-    } = getTrackerData(status);
 
     return (
         <View style={styles.container}>
@@ -117,104 +131,86 @@ const BookingStatus = ({ status, reason }: BookingStatusProps) => {
                 </CustomText>
             </View>
 
-            {isTerminalError ? (
-                // ✅ MORPHED TERMINAL BANNER (Replaces the empty white space)
-                <View style={styles.terminalBanner}>
-                    <View style={styles.terminalHeader}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name={config.icon} 
-                            size={20} 
-                            color={Colors.ERROR} 
-                        />
-                        <CustomText style={styles.terminalTitle}>
-                            {config.label}
-                        </CustomText>
-                    </View>
-                    
-                    {reason ? (
-                        <View style={styles.terminalReasonWrapper}>
-                            <CustomText variant="caption" style={styles.terminalReasonText}>
-                                <CustomText style={styles.terminalReasonLabel}>Reason: </CustomText>
-                                {reason}
-                            </CustomText>
-                        </View>
-                    ) : null}
-                </View>
-            ) : (
-                // ✅ ACTIVE STEP TRACKER
-                <View 
-                    style={[
-                        styles.trackerContainer, 
-                        steps.length === 1 && { justifyContent: 'center' }
-                    ]}
-                >
-                    {steps.map((step, index) => {
-                        const isDone = index < currentIndex;
-                        const isCurrent = index === currentIndex;
-                        const isLastVisible = index === steps.length - 1;
+            <View style={styles.trackerContainer}>
+                {DEFAULT_STEPS.map((step, index) => {
+                    const isDone = index < currentIndex;
+                    const isCurrent = index === currentIndex;
+                    const isLastVisible = index === DEFAULT_STEPS.length - 1;
 
-                        let circleBg: string = Colors.GRAY_LIGHT;
-                        let iconColor: string = Colors.TEXT_SECONDARY;
-                        let iconName: string = step.defaultIcon;
-                        let labelText: string = step.defaultLabel;
-                        let labelColor: string = Colors.TEXT_SECONDARY;
+                    let circleBg: string = Colors.GRAY_LIGHT;
+                    let iconColor: string = Colors.TEXT_SECONDARY;
+                    let iconName: string = step.defaultIcon;
+                    let labelText: string = step.defaultLabel;
+                    let labelColor: string = Colors.TEXT_SECONDARY;
 
-                        if (isDone) {
-                            circleBg = Colors.SUCCESS;
-                            iconColor = Colors.WHITE;
-                            iconName = 'check';
-                            labelColor = Colors.TEXT_PRIMARY;
-                        } else if (isCurrent) {
+                    if (isDone) {
+                        circleBg = Colors.SUCCESS;
+                        iconColor = Colors.WHITE;
+                        iconName = 'check';
+                        labelColor = Colors.TEXT_PRIMARY;
+                    } else if (isCurrent) {
+                        if (isErrorState) {
+                            circleBg = Colors.STATUS_CANCELLED_BG;
+                            iconColor = Colors.ERROR;
+                            iconName = overrideIcon || 'alert-triangle';
+                            labelText = overrideLabel || config.label;
+                            labelColor = Colors.ERROR;
+                        } else if (isRefundState) {
+                            circleBg = rawStatus === 'refunded' ? Colors.STATUS_APPROVED_BG : '#FEF3C7';
+                            iconColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#D97706';
+                            iconName = overrideIcon || 'rotate-ccw';
+                            labelText = overrideLabel || config.label;
+                            labelColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#92400E';
+                        } else {
                             circleBg = config.bgColor;
                             iconColor = config.textColor === Colors.WHITE ? Colors.WHITE : config.textColor;
                             iconName = config.icon;
                             labelText = config.label;
-                            labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor; 
+                            labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor;
                         }
+                    }
 
-                        return (
-                            <React.Fragment key={step.id}>
-                                <View style={styles.stepWrapper}>
-                                    <View 
-                                        style={[
-                                            styles.circle, 
-                                            { backgroundColor: circleBg }
-                                        ]}
-                                    >
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name={iconName} 
-                                            size={16} 
-                                            color={iconColor} 
-                                        />
-                                    </View>
-                                    <CustomText 
-                                        variant="caption" 
-                                        style={[
-                                            styles.stepText, 
-                                            { color: labelColor }, 
-                                            isCurrent && styles.boldText
-                                        ]}
-                                        numberOfLines={2}
-                                    >
-                                        {labelText}
-                                    </CustomText>
-                                </View>
-
-                                {!isLastVisible && (
-                                    <View 
-                                        style={[
-                                            styles.line, 
-                                            { backgroundColor: isDone ? Colors.SUCCESS : Colors.GRAY_LIGHT }
-                                        ]} 
+                    return (
+                        <React.Fragment key={step.id}>
+                            <View style={styles.stepWrapper}>
+                                <View 
+                                    style={[
+                                        styles.circle, 
+                                        { backgroundColor: circleBg }
+                                    ]}
+                                >
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name={iconName} 
+                                        size={16} 
+                                        color={iconColor} 
                                     />
-                                )}
-                            </React.Fragment>
-                        );
-                    })}
-                </View>
-            )}
+                                </View>
+                                <CustomText 
+                                    variant="caption" 
+                                    style={[
+                                        styles.stepText, 
+                                        { color: labelColor }, 
+                                        isCurrent && styles.boldText
+                                    ]}
+                                    numberOfLines={2}
+                                >
+                                    {labelText}
+                                </CustomText>
+                            </View>
+
+                            {!isLastVisible && (
+                                <View 
+                                    style={[
+                                        styles.line, 
+                                        { backgroundColor: isDone ? Colors.SUCCESS : Colors.GRAY_LIGHT }
+                                    ]} 
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </View>
         </View>
     );
 };
@@ -228,10 +224,6 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-         
-         
-         
-         
         ...GlobalStyles.dropShadow(3), 
     },
     headerRow: { 
@@ -276,36 +268,6 @@ const styles = StyleSheet.create({
     boldText: { 
         fontWeight: 'bold' 
     },
-    // ✅ NEW TERMINAL BANNER STYLES
-    terminalBanner: {
-        backgroundColor: Colors.ERROR_BG,
-        borderColor: Colors.ERROR,
-        borderWidth: 1,
-        borderRadius: 12,
-        padding: 16,
-    },
-    terminalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    terminalTitle: {
-        color: Colors.ERROR,
-        fontWeight: 'bold',
-        fontSize: 15,
-    },
-    terminalReasonWrapper: {
-        marginTop: 6,
-        paddingLeft: 28, // Aligns exactly under the text, skipping the icon width
-    },
-    terminalReasonText: {
-        color: Colors.ERROR,
-        lineHeight: 18,
-    },
-    terminalReasonLabel: {
-        fontWeight: 'bold',
-        color: Colors.ERROR,
-    }
 });
 
 export default BookingStatus;
