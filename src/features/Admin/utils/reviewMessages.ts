@@ -30,6 +30,16 @@ export const DOCUMENT_REJECTION_REASONS: readonly string[] = [
 ] as const;
 
 /**
+ * Priority rejection reasons relating to cancellation requests.
+ */
+export const CANCELLATION_DECLINE_REASONS: readonly string[] = [
+    "Late request: < 24h prior to hike",
+    "Non-refundable slot per tour policy",
+    "Logistics and permits already acquired",
+    "Hike proceeding as scheduled",
+] as const;
+
+/**
  * Priority rejection reasons relating to phone and contact verification issues.
  */
 export const PHONE_REJECTION_REASONS: readonly string[] = [
@@ -52,12 +62,18 @@ export const OPERATIONAL_REASONS: readonly string[] = [
  *
  * @param docCount - Number of documents configured for the booking.
  * @param hasRejections - Whether any document has been marked as rejected.
+ * @param isCancellation - Optional flag indicating review context is a cancellation request.
  * @returns Array of prioritized rejection reason suggestions.
  */
 export function getDynamicRejectionSuggestions(
     docCount: number,
-    hasRejections: boolean
+    hasRejections: boolean,
+    isCancellation?: boolean
 ): string[] {
+    if (isCancellation) {
+        return [...CANCELLATION_DECLINE_REASONS];
+    }
+
     if (docCount === 0) {
         // Context C: Zero documents required -> phone & operational reasons
         return [...PHONE_REJECTION_REASONS, ...OPERATIONAL_REASONS];
@@ -91,6 +107,21 @@ export const REVIEW_MODALS = {
         message: "Documents and phone verifications are cleared. Approve this booking to proceed to payment?",
         confirmText: "Approve",
         cancelText: "Cancel",
+    },
+    APPROVE_CANCELLATION: {
+        title: "Approve Cancellation",
+        message: (isPaid: boolean, amount?: number): string =>
+            isPaid
+                ? `Are you sure you want to approve this cancellation? This will process a refund of ₱${(amount || 0).toFixed(2)} via PayMongo and release the reserved slot.`
+                : "Are you sure you want to approve this cancellation? The reserved slot will be released immediately.",
+        confirmText: "Approve Cancellation",
+        cancelText: "Keep Reviewing",
+    },
+    DECLINE_CANCELLATION: {
+        title: "Decline Cancellation Request",
+        message: "Are you sure you want to decline this cancellation request? The hiker will be notified with your decline reason and can submit an appeal.",
+        confirmText: "Decline Request",
+        cancelText: "Back",
     },
     SAFETY_OVERRIDE: {
         title: "Safety Override Warning",

@@ -27,14 +27,14 @@ export default function useBookingFilters(bookings: Booking[]) {
         if (activeFilter !== 'All') {
             result = result.filter(b => {
                 const status = b.status || '';
-                const isPending = status === 'pending-docs' || status === 'for-reservation';
+                const isNeedsReview = status === 'pending-docs' || status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule';
                 
-                if (activeFilter === 'Needs Review') return isPending;
+                if (activeFilter === 'Needs Review') return isNeedsReview;
                 if (activeFilter === 'Rejected') return ['reservation-rejected', 'cancelled', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
                 if (activeFilter === 'For Payment') return status === 'for-payment' || status === 'approved-docs';
                 if (activeFilter === 'Downpayment') return status === 'downpayment';
                 if (activeFilter === 'Fully Paid') return status === 'paid';
-                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished';
+                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished' || status === 'rescheduled';
                 
                 return true;
             });
@@ -64,12 +64,17 @@ export default function useBookingFilters(bookings: Booking[]) {
         const getPriorityScore = (status?: BookingStatus | string) => {
             const s = status || '';
 
-            if (s === 'pending-docs' || s === 'for-reservation') return 1;
+            // Tier 1: Urgent Inbound Requests requiring immediate organizer action
+            if (s === 'for-cancellation' || s === 'pending-docs' || s === 'for-reservation' || s === 'for-reschedule') return 1;
+            // Tier 2: Payment confirmation
             if (s === 'paid') return 2;
+            // Tier 3: Downpayment balance tracking
             if (s === 'downpayment') return 3; 
-            
+            // Tier 4: Awaiting hiker payment
             if (s === 'for-payment' || s === 'approved-docs') return 4;
-            if (s === 'completed' || s === 'finished') return 5;
+            // Tier 5: Confirmed and active
+            if (s === 'completed' || s === 'finished' || s === 'rescheduled') return 5;
+            // Tier 6: Terminal and closed records
             if (['reservation-rejected', 'cancelled', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(s)) return 6;
 
             return 7;
