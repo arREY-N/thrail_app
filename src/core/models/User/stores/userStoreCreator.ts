@@ -1,11 +1,13 @@
 import { BaseStore } from "@/src/core/interface/storeInterface";
 import { IEmergencyContact, NotificationToken, User } from "@/src/core/models/User/interfaces/User.types";
 import { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
+import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { newUser } from "@/src/core/models/User/utils/UserFactory";
 import { StateCreator } from "zustand";
 
 export interface UserState extends BaseStore<User> {
     searched: User[];
+    isFetching: boolean;
     loadUserByEmail: (email: string) => Promise<User[]>;
     loadUser: (id: string) => Promise<User | null>;
     addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;
@@ -15,6 +17,7 @@ export interface UserState extends BaseStore<User> {
 const init = {
     data: [],
     current: null,
+    isFetching: false,
     isLoading: false,
     error: null,
     searched: [],
@@ -170,6 +173,11 @@ export const userStoreCreator: StateCreator<
                 state.isLoading = false;
             });
 
+            const authState = useAuthStore.getState();
+            if (authState.user?.uid === savedUser.id || authState.profile?.id === savedUser.id) {
+                authState.updateProfile(savedUser);
+            }
+
             return true;
         } catch (err) {
             console.error(err);
@@ -190,7 +198,13 @@ export const userStoreCreator: StateCreator<
                 emergencyContact: contact,
             });
 
-            await UserRepo.write(validatedUser);
+            const savedUser = await UserRepo.write(validatedUser);
+
+            // Immediately sync updated profile to authStore if this is the active user
+            const authState = useAuthStore.getState();
+            if (authState.user?.uid === savedUser.id || authState.profile?.id === savedUser.id) {
+                authState.updateProfile(savedUser);
+            }
 
             set({ isLoading: false });
         } catch (err) {
@@ -224,7 +238,7 @@ export const userStoreCreator: StateCreator<
     },
 
     loadUserByEmail: async (email: string): Promise<User[]> => {
-        set({ isLoading: true, error: null });
+        set({ isFetching: true, error: null });
 
         try {
             const users = await UserRepo.fetchByEmail(email);
@@ -238,14 +252,14 @@ export const userStoreCreator: StateCreator<
                 const filtered = state.data.filter(u => !searchedIds.has(u.id));
                 state.data = [...filtered, ...users];
                 state.searched = users;
-                state.isLoading = false;
+                state.isFetching = false;
             });
 
             return users;
         } catch (err) {
             set({
                 error: (err as Error).message ?? 'Failed retrieving user',
-                isLoading: false,
+                isFetching: false,
             });
             return [];
         }

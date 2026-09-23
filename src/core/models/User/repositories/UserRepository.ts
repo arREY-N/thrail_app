@@ -101,8 +101,8 @@ export const UserRepository = (db: Firestore) => ({
     },
 
     async checkUserCredentials(userCredentials: UserCredential): Promise<void> {
-        const checkCredentials = httpsCallable(functions, 'checkEmail');
         try {
+            const checkCredentials = httpsCallable(functions, 'checkEmail');
             const response = await checkCredentials(userCredentials);
 
             let unavailable = []
@@ -113,8 +113,7 @@ export const UserRepository = (db: Firestore) => ({
             if (unavailable.length > 0)
                 throw new Error(`${unavailable.join(', ')} already in use`);
         } catch (err) {
-            console.log(err);
-            throw new Error(getAuthErrorMessage(err as FirebaseError));
+            throw new Error(`Failed checking user credentials: ${(err as Error).message}`);
         }
     },
 

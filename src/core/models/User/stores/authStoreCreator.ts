@@ -57,6 +57,7 @@ export interface AuthState {
     validateInfo: () => boolean;
     resetSignUp: () => void;
     setHydrated: (hydrated: boolean) => void;
+    updateProfile: (profile: User) => void;
 }
 
 const init = {
@@ -77,6 +78,11 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     ...init,
 
     resetSignUp: () => set({ account: newSignUp() }),
+
+    updateProfile: (profile: User) => {
+        set({ isLoading: true })
+        set({ profile, isLoading: false })
+    },
 
     reset: () => set({
         ...init,
@@ -212,13 +218,14 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     signOut: async () => {
         try {
             set({ isLoading: true, error: null });
-            await signOut(auth);
 
             const currentUnsub = get()._unsubscribe;
-
             if (currentUnsub) {
                 currentUnsub();
+                set({ _unsubscribe: null });
             }
+
+            await signOut(auth);
         } catch (err) {
             set({
                 error: (err as Error).message ?? "Failed signing out",
@@ -244,12 +251,6 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         set({ isChecking: true, error: null });
         try {
             validateSignUp(get().account);
-            logger("authStoreCreator", "account", get().account);
-            if (__DEV__) {
-                logger('authStoreCreator', 'credential bypassed, only for development mode');
-                set({ isChecking: false, error: null });
-                return true;
-            }
             await UserRepo.checkUserCredentials(get().account);
             set({ isChecking: false, error: null });
             return true;

@@ -1,11 +1,11 @@
-import NetInfo from "@react-native-community/netinfo";
+import NetInfo, { NetInfoSubscription } from "@react-native-community/netinfo";
 import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
 import { useEffect, useRef, useState } from "react";
 import {
     Alert,
     AppState,
     Linking,
+    NativeEventSubscription,
     PermissionsAndroid,
     Platform,
 } from "react-native";
@@ -16,43 +16,12 @@ import { exportHikeData } from "@/src/core/utility/hikeStorage";
 import { LOCATION_TASK } from "@/src/core/utility/locationTask";
 
 
-// ✅ Background task must be defined outside the hook at the top level (mobile only)
-if (Platform.OS !== "web") {
-    TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-        const addCoordinate = useHikeStore.getState().addCoordinate;
-
-        if (error) {
-            console.error("[TrackHikerGPSFlow] Background location task error:", error);
-            return;
-        }
-        try {
-            const { locations } = data;
-            if (!locations || locations.length === 0) return;
-            const location = locations[0];
-
-            const lat = location.coords.latitude;
-            const lon = location.coords.longitude;
-            const alt = location.coords.altitude ?? 0;
-            const timestamp = new Date(location.timestamp).toISOString();
-            console.log('calling from background task');
-            await addCoordinate(newLocation({
-                latitude: lat,
-                longitude: lon,
-                altitude: alt,
-                timestamp: new Date(timestamp),
-                status: 'APP_BACKGROUNDED',
-            }));
-        } catch (err) {
-            console.error("[TrackHikerGPSFlow] Failed to log background coordinate:", err);
-        }
-    });
-}
-
-
 let globalActiveInstances = 0;
-let globalAppStateSub: any = null;
-let globalNetInfoSub: any = null;
+let globalAppStateSub: NativeEventSubscription | null = null;
+let globalNetInfoSub: NetInfoSubscription | null = null;
 let globalLastAppState = "active";
+let globalIsBackgroundTrackingRunning = false;
+let globalIsBackgroundStarting = false;
 const onlineListeners = new Set<(online: boolean) => void>();
 
 /**
@@ -200,9 +169,10 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     }));
                 },
             );
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to start location tracking:", err);
-            setGpsError("Failed to initialize GPS: " + (err?.message || String(err)));
+            const message = err instanceof Error ? err.message : String(err);
+            setGpsError("Failed to initialize GPS: " + message);
         }
     };
 
@@ -212,6 +182,12 @@ x     * Will ONLY record data and draw the red line if the global store says act
      */
     const startBackgroundTracking = async () => {
         if (Platform.OS === "web") return;
+        if (globalIsBackgroundTrackingRunning || globalIsBackgroundStarting) {
+            console.log("[TrackHikerGPSFlow] Background tracking already active or initializing. Skipping duplicate request.");
+            return;
+        }
+
+        globalIsBackgroundStarting = true;
         try {
             if (Platform.OS === "android" && Platform.Version >= 33) {
                 await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -230,12 +206,15 @@ x     * Will ONLY record data and draw the red line if the global store says act
                         notificationColor: "#228B22",
                     },
                 });
+                globalIsBackgroundTrackingRunning = true;
                 console.log("✅ Background task started");
             } else {
                 console.warn("Background location permission was not granted.");
             }
         } catch (err) {
             console.error("Background tracking failed to start:", err);
+        } finally {
+            globalIsBackgroundStarting = false;
         }
     };
 
@@ -246,6 +225,7 @@ x     * Will ONLY record data and draw the red line if the global store says act
         if (Platform.OS === "web") return;
         try {
             await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+            globalIsBackgroundTrackingRunning = false;
             console.log("✅ Background task stopped");
         } catch (err) {
             console.warn("Failed to stop background tracking task:", err);
