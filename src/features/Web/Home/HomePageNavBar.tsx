@@ -202,38 +202,36 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
         : []),
   ];
 
-  const isItemActive = (route: Href) => {
-    const routeStr = String(route);
+  const isItemActive = (route: Href, id?: string) => {
+    const routeStr = String(route).toLowerCase();
     const currentPath = (pathname || "").toLowerCase();
     const segs = (segments as string[]).map((s) => s.toLowerCase());
 
-    if (routeStr === "/(tabs)") {
-      return (
-        currentPath === "/" ||
-        currentPath === "" ||
-        currentPath === "/(tabs)" ||
-        currentPath === "/home" ||
-        (segs.includes("(tabs)") && (!segs[1] || segs[1] === "index"))
-      );
+    // 1. Home Tab (id === 'home' or route points to tab root)
+    if (id === "home" || routeStr.endsWith("/(tabs)") || routeStr.endsWith("/(tabs)/index")) {
+      const isHomeSegment = segs.includes("(tabs)") && (!segs[2] || segs[2] === "index" || segs[2] === "");
+      return currentPath === "/" || currentPath === "" || currentPath === "/home" || isHomeSegment;
     }
 
-    if (routeStr === "/(main)/superadmin") {
-      return (
-        currentPath === "/superadmin" ||
-        currentPath === "/(main)/superadmin" ||
-        (segs.includes("superadmin") && segs.length <= 2)
-      );
+    // 2. Superadmin Dashboard
+    if (id === "dashboard" || routeStr.endsWith("/superadmin")) {
+      const isSuperadminRoot = segs.includes("superadmin") && (segs.length <= 3 || segs[segs.length - 1] === "superadmin");
+      return currentPath === "/superadmin" || isSuperadminRoot;
     }
 
-    const keyword = routeStr
-      .replace("/(app)/", "")
-      .replace("/(tabs)/", "")
-      .replace("/(main)/", "")
-      .replace("/superadmin/", "")
-      .replace("/list", "")
-      .replace("/", "");
+    // 3. Extract target keyword from route or id
+    const cleanRoute = routeStr
+      .replace("/(app)", "")
+      .replace("/(tabs)", "")
+      .replace("/(main)", "")
+      .replace("/list", "");
 
-    return currentPath.includes(keyword) || segs.includes(keyword);
+    const segmentsList = cleanRoute.split("/").filter(Boolean);
+    const targetKey = segmentsList[segmentsList.length - 1] || id || "";
+
+    if (!targetKey) return false;
+
+    return segs.includes(targetKey) || currentPath.includes(targetKey);
   };
 
   const handleNavPress = (route: Href) => {
@@ -304,7 +302,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
             )}
 
             {section.items.map((item) => {
-              const isActive = isItemActive(item.route);
+              const isActive = isItemActive(item.route, item.id);
 
               return (
                 <TouchableOpacity
