@@ -62,18 +62,20 @@ const DocumentReviewCard = ({
             ]}
         >
             <View style={styles.docHeader}>
-                <CustomText style={styles.docName}>
+                <CustomText style={styles.docName} numberOfLines={2} ellipsizeMode="tail">
                     {doc.name}
                 </CustomText>
                 
-                {doc.valid !== 'pending' && !isCancelledStatus && (
+                {!isCancelledStatus && (
                     <View 
                         style={[
                             styles.badge, 
                             { 
                                 backgroundColor: doc.valid === 'approved' 
                                     ? Colors.STATUS_APPROVED_BG 
-                                    : Colors.ERROR_BG 
+                                    : doc.valid === 'rejected'
+                                      ? Colors.ERROR_BG 
+                                      : Colors.STATUS_PENDING_BG,
                             }
                         ]}
                     >
@@ -84,11 +86,13 @@ const DocumentReviewCard = ({
                                 { 
                                     color: doc.valid === 'approved' 
                                         ? Colors.SUCCESS 
-                                        : Colors.ERROR 
+                                        : doc.valid === 'rejected'
+                                          ? Colors.ERROR 
+                                          : Colors.STATUS_PENDING_TEXT,
                                 }
                             ]}
                         >
-                            {doc.valid === 'approved' ? "APPROVED" : "REJECTED"}
+                            {doc.valid === 'approved' ? "APPROVED" : doc.valid === 'rejected' ? "REJECTED" : "PENDING REVIEW"}
                         </CustomText>
                     </View>
                 )}
@@ -203,16 +207,19 @@ const styles = StyleSheet.create({
     },
     docName: { 
         fontSize: 15, 
-        fontWeight: '600' 
+        fontWeight: '600',
+        flex: 1,
+        marginRight: 10,
     },
     badge: { 
         paddingHorizontal: 8, 
-        paddingVertical: 2, 
-        borderRadius: 6 
+        paddingVertical: 3, 
+        borderRadius: 6,
+        flexShrink: 0,
     },
     badgeText: { 
         fontWeight: 'bold', 
-        fontSize: 10 
+        fontSize: 10,
     },
     viewFileBtn: { 
         flexDirection: 'row', 

@@ -36,11 +36,15 @@ const AdminBookingCard = ({
     const lastName = booking.user?.lastname || 'Hiker';
     const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
+    const isCancellation = displayStatus === 'for-cancellation';
+
     return (
         <TouchableOpacity 
             style={[
                 styles.bookingCard, 
-                requiresAdminAction && styles.highlightBorder 
+                isCancellation 
+                    ? styles.cancellationBorder 
+                    : (requiresAdminAction ? styles.highlightBorder : null)
             ]}
             onPress={() => onViewBooking(booking.id, offerId)}
             activeOpacity={0.7}
@@ -92,6 +96,10 @@ const styles = StyleSheet.create({
     highlightBorder: { 
         borderColor: Colors.PRIMARY, 
         borderWidth: 1.5 
+    },
+    cancellationBorder: {
+        borderColor: Colors.ERROR,
+        borderWidth: 1.5
     },
     hikerInfo: { 
         flexDirection: 'row', 

@@ -90,7 +90,7 @@ const RequiredDocumentsSection = ({
         }
 
         const iconName = isApproved ? 'check-circle' : isRejected ? 'x-circle' : 'clock';
-        const iconColor = isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.WARNING;
+        const iconColor = isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.STATUS_PENDING_TEXT;
         const statusText = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
 
         if (displayStatus === 'reservation-rejected') {
@@ -113,11 +113,11 @@ const RequiredDocumentsSection = ({
                                     library="Feather"
                                     name={isApproved ? 'check' : isRejected ? 'alert-circle' : 'clock'}
                                     size={18}
-                                    color={isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.WARNING}
+                                    color={isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.STATUS_PENDING_TEXT}
                                 />
                             </View>
                             <View style={styles.textContainer}>
-                                <CustomText variant="body" style={styles.docName}>
+                                <CustomText variant="body" style={styles.docName} numberOfLines={2} ellipsizeMode="tail">
                                     {docName}
                                 </CustomText>
                             </View>
@@ -128,6 +128,7 @@ const RequiredDocumentsSection = ({
                                     style={styles.docViewBtn}
                                     onPress={() => onPreviewDoc(docObj.file || '')}
                                     activeOpacity={0.7}
+                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                                 >
                                     <CustomText variant="caption" style={styles.docViewBtnText}>
                                         View
@@ -159,7 +160,12 @@ const RequiredDocumentsSection = ({
                 <View style={styles.documentRow}>
                     <View style={styles.docNameRow}>
                         <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
-                        <CustomText variant="body" style={styles.documentText}>
+                        <CustomText
+                            variant="body"
+                            style={styles.documentText}
+                            numberOfLines={2}
+                            ellipsizeMode="tail"
+                        >
                             {docName}
                         </CustomText>
                     </View>
@@ -169,6 +175,7 @@ const RequiredDocumentsSection = ({
                                 style={styles.docViewBtn}
                                 onPress={() => onPreviewDoc(docObj.file || '')}
                                 activeOpacity={0.7}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
                                 <CustomText variant="caption" style={styles.docViewBtnText}>
                                     View
@@ -214,20 +221,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: 2,
     },
     docNameRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
+        flex: 1,
+        marginRight: 10,
     },
     documentText: {
         color: Colors.TEXT_PRIMARY,
         fontWeight: '500',
+        fontSize: 14,
+        flex: 1,
     },
     statusGroup: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
+        flexShrink: 0,
     },
     documentStatusText: {
         fontWeight: 'bold',
@@ -268,7 +281,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_APPROVED_BG,
     },
     iconWrapperPending: {
-        backgroundColor: Colors.BACKGROUND,
+        backgroundColor: Colors.STATUS_PENDING_BG,
     },
     iconWrapperError: {
         backgroundColor: Colors.STATUS_CANCELLED_BG,
@@ -289,9 +302,9 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     docViewBtn: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 20,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 14,
         backgroundColor: Colors.STATUS_APPROVED_BG,
         borderWidth: 1,
         borderColor: Colors.SUCCESS,

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
@@ -28,15 +29,18 @@ import { Layout } from '@/src/constants/layout';
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
+import AdminCancellationCard from '@/src/features/Admin/screens/Booking/components/AdminCancellationCard';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
 import { 
+    CANCELLATION_DECLINE_REASONS,
     getDynamicRejectionSuggestions, 
     getVerificationWarningMessage, 
     REVIEW_MODALS, 
@@ -57,6 +61,10 @@ import {
  * @param onCancelUnpaid - Callback when cancelling an unpaid booking.
  * @param error - Optional error message text.
  * @param hikerProfile - The hiker profile details.
+ * @param cancellationRequest - Optional active cancellation request document.
+ * @param onApproveCancellation - Callback when approving a cancellation request.
+ * @param onDeclineCancellation - Callback when declining a cancellation request with adminNote.
+ * @param onAdminCancelBooking - Callback when organizer force-cancels a booking.
  */
 export interface ReviewScreenProps {
     isLoading: boolean;
@@ -71,6 +79,10 @@ export interface ReviewScreenProps {
     onCancelUnpaid?: (booking?: Booking) => Promise<void>;
     error?: string;
     hikerProfile?: User | null;
+    cancellationRequest?: Cancellation | null;
+    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking) => Promise<void>;
+    onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
+    onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
 }
 
 /**
@@ -88,7 +100,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onRefund,
     onCancelUnpaid,
     error,
-    hikerProfile
+    hikerProfile,
+    cancellationRequest,
+    onApproveCancellation,
+    onDeclineCancellation,
+    onAdminCancelBooking,
 }) => {
     const { width } = useWindowDimensions();
     const isWide = width >= 768;
@@ -108,6 +124,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         isApprovedStatus,
         isRejectedStatus,
         isCancelledStatus,
+        isCancellationPending,
         isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
@@ -127,6 +144,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     const [isProcessingAction, setIsProcessingAction] = useState(false);
     const [isRejectingBooking, setIsRejectingBooking] = useState(false);
+    const [isDecliningCancellation, setIsDecliningCancellation] = useState(false);
+    const [cancellationDeclineReason, setCancellationDeclineReason] = useState('');
+    const [isConfirmCancellationVisible, setIsConfirmCancellationVisible] = useState(false);
+    const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
 
     const [toastConfig, setToastConfig] = useState<{
         visible: boolean;
@@ -344,6 +365,93 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
 
+    const cancellationPrimaryConfig = useMemo(() => {
+        if (isDecliningCancellation) {
+            const hasReason = cancellationDeclineReason.trim().length > 0;
+            return {
+                title: "Submit Decline",
+                variant: 'destructive' as const,
+                disabled: isProcessingAction,
+                style: hasReason ? {
+                    backgroundColor: Colors.ERROR,
+                    borderColor: Colors.ERROR,
+                } : {
+                    backgroundColor: Colors.GRAY_ULTRALIGHT,
+                    borderColor: Colors.GRAY_LIGHT,
+                    borderWidth: 1.5,
+                },
+                textStyle: hasReason ? {
+                    color: Colors.WHITE,
+                    fontWeight: 'bold' as const,
+                } : {
+                    color: Colors.TEXT_SECONDARY,
+                    fontWeight: 'bold' as const,
+                },
+                onPress: () => {
+                    if (cancellationDeclineReason.trim().length === 0) {
+                        setToastConfig({
+                            visible: true,
+                            message: REVIEW_TOASTS.REASON_REQUIRED,
+                            type: 'error',
+                        });
+                        return;
+                    }
+                    setIsConfirmDeclineVisible(true);
+                },
+            };
+        }
+
+        return {
+            title: totalAmountPaid > 0 ? "Approve & Refund" : "Approve Cancellation",
+            variant: 'destructive' as const,
+            disabled: isProcessingAction,
+            style: {
+                backgroundColor: Colors.ERROR,
+                borderColor: Colors.ERROR,
+            },
+            textStyle: {
+                color: Colors.WHITE,
+                fontWeight: 'bold' as const,
+            },
+            onPress: () => {
+                setIsConfirmCancellationVisible(true);
+            },
+        };
+    }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, totalAmountPaid]);
+
+    const cancellationSecondaryConfig = useMemo(() => {
+        if (isDecliningCancellation) {
+            return {
+                title: "Cancel Decline",
+                variant: 'outline' as const,
+                disabled: isProcessingAction,
+                textStyle: { color: Colors.TEXT_PRIMARY },
+                style: {
+                    borderColor: Colors.GRAY_LIGHT,
+                    backgroundColor: Colors.WHITE,
+                },
+                onPress: () => {
+                    setIsDecliningCancellation(false);
+                    setCancellationDeclineReason('');
+                },
+            };
+        }
+
+        return {
+            title: "Decline Cancellation",
+            variant: 'outline' as const,
+            disabled: isProcessingAction,
+            textStyle: { color: Colors.ERROR },
+            style: {
+                borderColor: Colors.ERROR,
+                backgroundColor: Colors.WHITE,
+            },
+            onPress: () => {
+                setIsDecliningCancellation(true);
+            },
+        };
+    }, [isDecliningCancellation, isProcessingAction]);
+
     const confirmModalConfig = useMemo(() => {
         if (isRejecting) {
             return {
@@ -441,6 +549,29 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
                         {/* Right Column: Documents and Payment Verification */}
                         <View style={isWide ? styles.rightColumn : styles.fullWidthContainer}>
+                            <AdminCancellationCard
+                                status={currentStatus}
+                                cancellationReason={booking.cancellationReason || cancellationRequest?.reason}
+                                declineReason={cancellationRequest?.adminNote}
+                                totalAmountPaid={totalAmountPaid}
+                                requestedAt={cancellationRequest?.createdAt || booking.updatedAt}
+                                cancelledBy={booking.cancelledBy || cancellationRequest?.cancelledBy}
+                            />
+
+                            {isCancellationPending && isDecliningCancellation && (
+                                <View style={styles.cancellationReasonBox}>
+                                    <CustomFeedbackInput
+                                        label="Decline Reason *"
+                                        helperText="Explain why the cancellation request is declined. The hiker will receive this message and can appeal."
+                                        placeholder="Explain why cancellation cannot be approved..."
+                                        value={cancellationDeclineReason}
+                                        onChangeText={setCancellationDeclineReason}
+                                        suggestions={[...CANCELLATION_DECLINE_REASONS]}
+                                        variant="danger"
+                                    />
+                                </View>
+                            )}
+
                             <View style={styles.tabContainer}>
                                 <TouchableOpacity
                                     style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
@@ -514,14 +645,21 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 </View>
             </ScrollView>
 
-            {!isReviewComplete && activeTab === 'documents' && (
+            {isCancellationPending ? (
+                <View style={styles.footerWrapper}>
+                    <CustomStickyFooter
+                        primaryButton={cancellationPrimaryConfig}
+                        secondaryButton={cancellationSecondaryConfig}
+                    />
+                </View>
+            ) : (!isReviewComplete && activeTab === 'documents' && (
                 <View style={styles.footerWrapper}>
                     <CustomStickyFooter
                         primaryButton={primaryButtonConfig}
                         secondaryButton={secondaryButtonConfig}
                     />
                 </View>
-            )}
+            ))}
 
             {/* Custom Toast above Sticky Footer */}
             <CustomToast
@@ -575,7 +713,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 cancelText={REVIEW_MODALS.CANCEL_UNPAID.cancelText}
                 onConfirm={async () => {
                     setShowCancelUnpaidModal(false);
-                    if (onCancelUnpaid) {
+                    if (onAdminCancelBooking) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onAdminCancelBooking(booking, "Organizer cancelled booking");
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    } else if (onCancelUnpaid) {
                         setIsProcessingAction(true);
                         try {
                             await onCancelUnpaid(booking);
@@ -586,6 +731,50 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 }}
                 isDestructive={true}
                 iconName="alert-triangle"
+            />
+
+            <ConfirmationModal
+                visible={isConfirmCancellationVisible}
+                onClose={() => setIsConfirmCancellationVisible(false)}
+                onConfirm={async () => {
+                    setIsConfirmCancellationVisible(false);
+                    if (onApproveCancellation) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onApproveCancellation(cancellationRequest, booking);
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    }
+                }}
+                title={REVIEW_MODALS.APPROVE_CANCELLATION.title}
+                message={REVIEW_MODALS.APPROVE_CANCELLATION.message(totalAmountPaid > 0, totalAmountPaid)}
+                confirmText={REVIEW_MODALS.APPROVE_CANCELLATION.confirmText}
+                cancelText={REVIEW_MODALS.APPROVE_CANCELLATION.cancelText}
+                iconName="alert-triangle"
+                isDestructive={true}
+            />
+
+            <ConfirmationModal
+                visible={isConfirmDeclineVisible}
+                onClose={() => setIsConfirmDeclineVisible(false)}
+                onConfirm={async () => {
+                    setIsConfirmDeclineVisible(false);
+                    if (onDeclineCancellation) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    }
+                }}
+                title={REVIEW_MODALS.DECLINE_CANCELLATION.title}
+                message={REVIEW_MODALS.DECLINE_CANCELLATION.message}
+                confirmText={REVIEW_MODALS.DECLINE_CANCELLATION.confirmText}
+                cancelText={REVIEW_MODALS.DECLINE_CANCELLATION.cancelText}
+                iconName="alert-triangle"
+                isDestructive={true}
             />
 
             <CustomSelectionModal
@@ -732,6 +921,9 @@ const styles = StyleSheet.create({
     },
     fullWidthContainer: {
         width: '100%'
+    },
+    cancellationReasonBox: {
+        marginBottom: 20
     },
 
 

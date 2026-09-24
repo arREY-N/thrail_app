@@ -9,7 +9,8 @@ import { Text } from "react-native";
 
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useBookingAdmin, useBookingAdminItem, } from "@/src/core/models/Booking/Booking";
+import { Booking, useBookingAdmin, useBookingAdminItem, } from "@/src/core/models/Booking/Booking";
+import { Cancellation, useCancellationAdmin, useCancellationAdminList } from "@/src/core/models/Cancellation/Cancellation";
 import { useOfferList } from "@/src/core/models/Offer/Offer";
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 import { useHikerProfile } from "@/src/core/models/User/User";
@@ -40,9 +41,22 @@ export default function AdminViewBooking() {
         onRejectBooking,
         onRescheduleBooking,
         onCancelUnpaid,
-        error,
-        isLoading,
+        error: bookingError,
+        isLoading: isBookingLoading,
     } = useBookingAdmin();
+
+    const {
+        processCancellationRequest,
+        cancelUserBooking,
+        isWriting: isCancellationWriting,
+        writingError: cancellationWritingError,
+    } = useCancellationAdmin();
+
+    const { businessCancellations } = useCancellationAdminList();
+
+    const cancellationRequest = businessCancellations.find(
+        (c: Cancellation) => c.bookingId === booking?.id
+    ) ?? null;
 
     const {
         onRefund
@@ -51,6 +65,69 @@ export default function AdminViewBooking() {
     const {
         hikerProfile,
     } = useHikerProfile(booking?.user.id);
+
+    const handleApproveCancellation = async (
+        request?: Cancellation | null,
+        currentBooking?: Booking
+    ) => {
+        const activeBooking = currentBooking || booking;
+        if (!activeBooking) return;
+
+        if (request) {
+            await processCancellationRequest(request, true);
+        } else {
+            const simulatedRequest: Cancellation = {
+                id: activeBooking.id,
+                userId: activeBooking.user.id,
+                cancelledBy: 'user',
+                bookingId: activeBooking.id,
+                offerId: activeBooking.offer.id,
+                businessId: activeBooking.business.id,
+                reason: activeBooking.cancellationReason || "Cancellation requested by hiker",
+                status: "pending",
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            await processCancellationRequest(simulatedRequest, true);
+        }
+        onBackPress();
+    };
+
+    const handleDeclineCancellation = async (
+        declineNote: string,
+        request?: Cancellation | null,
+        currentBooking?: Booking
+    ) => {
+        const activeBooking = currentBooking || booking;
+        if (!activeBooking) return;
+
+        if (request) {
+            await processCancellationRequest(request, false, declineNote);
+        } else {
+            const simulatedRequest: Cancellation = {
+                id: activeBooking.id,
+                userId: activeBooking.user.id,
+                cancelledBy: 'user',
+                bookingId: activeBooking.id,
+                offerId: activeBooking.offer.id,
+                businessId: activeBooking.business.id,
+                reason: activeBooking.cancellationReason || "Cancellation requested by hiker",
+                status: "pending",
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            await processCancellationRequest(simulatedRequest, false, declineNote);
+        }
+        onBackPress();
+    };
+
+    const handleAdminCancelBooking = async (
+        targetBooking: Booking,
+        reason: string
+    ) => {
+        await cancelUserBooking(targetBooking, reason);
+        onBackPress();
+    };
 
     if (!booking || isFetching) {
         return (
@@ -63,12 +140,29 @@ export default function AdminViewBooking() {
 
     if (!booking) return <Text>Booking not found</Text>;
 
+    const combinedError = cancellationWritingError || bookingError || undefined;
+    const combinedLoading = isBookingLoading || isCancellationWriting;
+
+    const displayBooking: Booking = (cancellationRequest && cancellationRequest.status === 'pending')
+        ? {
+            ...booking,
+            status: 'for-cancellation' as const,
+            cancellationReason: cancellationRequest.reason || booking.cancellationReason,
+        }
+        : (cancellationRequest && cancellationRequest.status === 'rejected' && booking.status !== 'cancelled' && booking.status !== 'refund' && booking.status !== 'refunded')
+            ? {
+                ...booking,
+                status: 'cancellation-rejected' as const,
+                cancellationReason: cancellationRequest.reason || booking.cancellationReason,
+            }
+            : booking;
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
 
             <ReviewScreen
-                booking={booking}
+                booking={displayBooking}
                 offers={offers}
                 onBackPress={onBackPress}
                 onApprove={onApproveBooking}
@@ -77,9 +171,13 @@ export default function AdminViewBooking() {
                 onReschedule={onRescheduleBooking}
                 onRefund={onRefund}
                 onCancelUnpaid={onCancelUnpaid}
-                isLoading={isLoading}
-                error={error || undefined}
+                isLoading={combinedLoading}
+                error={combinedError}
                 hikerProfile={hikerProfile}
+                cancellationRequest={cancellationRequest}
+                onApproveCancellation={handleApproveCancellation}
+                onDeclineCancellation={handleDeclineCancellation}
+                onAdminCancelBooking={handleAdminCancelBooking}
             />
         </>
     );

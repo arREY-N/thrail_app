@@ -32,6 +32,7 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
  * @param value - The current text value of the feedback input.
  * @param onChangeText - Callback fired when the text value changes.
  * @param suggestions - List of pre-defined suggestion tags/chips.
+ * @param variant - Visual style variant for suggestion chips ('primary' | 'danger'). Defaults to 'primary'.
  * @param style - Additional style prop for the root container.
  */
 interface CustomFeedbackInputProps {
@@ -41,6 +42,7 @@ interface CustomFeedbackInputProps {
     value?: string;
     onChangeText: (text: string) => void;
     suggestions?: string[];
+    variant?: 'primary' | 'danger';
     style?: StyleProp<ViewStyle>;
 }
 
@@ -55,6 +57,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     value = '', 
     onChangeText, 
     suggestions = [], 
+    variant = 'primary',
     style 
 }) => {
     const scrollRef = useRef<ScrollView>(null);
@@ -67,6 +70,8 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
 
     // Enable drag-to-scroll functionality on web platforms
     useWebDragScroll(scrollRef, suggestions.length > 0);
+
+    const isDanger = variant === 'danger';
 
     const activeLines = (value || '')
         .split('\n')
@@ -127,18 +132,19 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                                     key={index} 
                                     style={[
                                         styles.chip,
-                                        isActive && styles.chipActive
+                                        isActive && (isDanger ? styles.chipActiveDanger : styles.chipActive)
                                     ]}
                                     onPress={() => handleSuggestionPress(item)}
                                     activeOpacity={0.7}
                                 >
                                     <CustomText 
+                                        variant="caption"
                                         style={[
                                             styles.chipText,
-                                            isActive && styles.chipTextActive
+                                            isActive && (isDanger ? styles.chipTextActiveDanger : styles.chipTextActive)
                                         ]}
                                     >
-                                        {isActive ? '✓ ' : '+ '}{item}
+                                        {item}
                                     </CustomText>
                                 </TouchableOpacity>
                             );
@@ -231,12 +237,15 @@ const styles = StyleSheet.create({
         zIndex: 2,
     },
     chip: {
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Colors.BACKGROUND,
         borderWidth: 1,
-        borderColor: Colors.GRAY_MEDIUM,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
+        borderColor: Colors.GRAY_LIGHT,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         ...Platform.select({
             web: {
                 cursor: 'pointer',
@@ -244,16 +253,23 @@ const styles = StyleSheet.create({
         }),
     },
     chipActive: {
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         borderColor: Colors.PRIMARY,
     },
+    chipActiveDanger: {
+        backgroundColor: Colors.ERROR_BG,
+        borderColor: Colors.ERROR,
+    },
     chipText: {
-        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     chipTextActive: {
-        color: Colors.WHITE,
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
+    chipTextActiveDanger: {
+        color: Colors.ERROR,
         fontWeight: 'bold',
     },
     textArea: {

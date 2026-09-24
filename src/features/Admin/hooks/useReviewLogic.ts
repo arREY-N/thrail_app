@@ -60,6 +60,8 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
     const isApprovedStatus = ['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
     const isCancelledStatus = ['cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(currentStatus);
+    const isCancellationPending = currentStatus === 'for-cancellation';
+    const isCancellationRejected = currentStatus === 'cancellation-rejected';
     const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus;
 
     const [activeTab, setActiveTab] = useState<'documents' | 'payment'>(() => isApprovedStatus ? 'payment' : 'documents'); 
@@ -196,6 +198,8 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         isApprovedStatus, 
         isRejectedStatus, 
         isCancelledStatus, 
+        isCancellationPending,
+        isCancellationRejected,
         isReviewComplete,
         adminStatusConfig,
         hasRejections, 
