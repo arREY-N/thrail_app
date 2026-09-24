@@ -250,7 +250,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
-            {!isLargeScreen && <CustomHeader onBackPress={onBackPress} />}
+            <CustomHeader onBackPress={onBackPress} />
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}
