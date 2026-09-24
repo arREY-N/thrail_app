@@ -38,7 +38,7 @@ export interface LogInScreenProps {
     onSignUpPress: () => void;
     onBackPress: () => void;
     onForgotPasswordPress: () => void;
-    onRememberMePress: () => void;
+    onRememberMePress?: () => void;
     onGmailLogIn: () => void;
     onTermsPress: () => void;
     onPrivacyPress: () => void;
@@ -193,7 +193,7 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
-            {!isLargeScreen && <CustomHeader onBackPress={onBackPress} />}
+            <CustomHeader onBackPress={onBackPress} />
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}
