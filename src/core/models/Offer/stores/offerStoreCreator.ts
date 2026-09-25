@@ -328,16 +328,14 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         try {
             const newOffer = await OfferRepo.write(offer);
 
-            set(state => {
-                const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
-                const offers = [...newOfferList, newOffer];
-
+            set((state) => {
                 return {
-                    businessOffers: offers,
-                    data: offers,
+                    businessOffers: upsertItem(state.businessOffers, newOffer),
+                    data: upsertItem(state.data, newOffer),
                     isLoading: false
                 }
-            });
+            })
+
             return true;
         } catch (err) {
             console.error((err as Error).message);

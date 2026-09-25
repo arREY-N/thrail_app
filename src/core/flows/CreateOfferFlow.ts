@@ -1,11 +1,11 @@
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { BusinessLogic, useBusinessesStore } from "@/src/core/models/Business/Business";
 import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
 import { newOffer, Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
-import { Trail, TrailLogic } from "@/src/core/models/Trail/Trail";
+import { Trail, TrailLogic, useTrailList } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 
-import { router } from "expo-router";
 import { produce } from "immer";
 import { useState } from "react";
 
@@ -19,20 +19,22 @@ export type UseOfferParams = {
 export type FormMode = 'create' | 'edit';
 
 export function CreateOfferFlow(params: UseOfferParams = {}) {
-    const { offerId, businessId } = params
-    const { profile } = useAuthHook();
+    const { offerId } = params
+    const { profile, businessId } = useAuthHook();
+    const { onBackPress } = useAppNavigation();
+    const {
+        trails
+    } = useTrailList();
+
+    const [loadingFlow, setLoadingFlow] = useState(false);
 
     const businessAccount = useBusinessesStore(s => s.current);
     const offers = useOfferStore(s => s.businessOffers);
     const error = useOfferStore(s => s.error);
-    const isLoading = useOfferStore(s => s.isLoading);
     const remove = useOfferStore(s => s.delete);
     const create = useOfferStore(s => s.newOffer);
 
     const createGroup = useGroupStore(s => s.createGroup);
-    const checkGroupExists = useGroupStore(s => s.checkGroupExists);
-
-    const [mode, setMode] = useState<FormMode>('create');
     const [localError, setLocalError] = useState<string | null>(null);
 
     const [offer, setOffer] = useState<Offer>(() => {
@@ -44,10 +46,6 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
         }
 
         const businessSummary = BusinessLogic.toSummary(businessAccount);
-
-        if (existing) {
-            setMode('edit');
-        }
 
         return existing
             ? newOffer(existing)
@@ -90,6 +88,8 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
 
     const onSubmitPress = async () => {
         try {
+            setLoadingFlow(true);
+
             if (!profile)
                 throw new Error('User profile not found');
 
@@ -121,31 +121,33 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
                 status: 'active',
             });
 
-            if (mode === 'create') {
-                await createGroup(groupBlueprint);
-            } else if (mode === 'edit') {
-                let groupExists = false;
+            await createGroup(groupBlueprint);
+            // if (mode === 'create') {
+            // } else if (mode === 'edit') {
+            //     let groupExists = false;
 
-                try {
-                    const existingGroup = await checkGroupExists(offer.id);
-                    if (existingGroup) {
-                        groupExists = true;
-                    }
-                } catch (e) {
-                    console.log('Group not found in DB. Catching error to heal the offer.');
-                    groupExists = false;
-                }
+            //     try {
+            //         const existingGroup = await checkGroupExists(offer.id);
+            //         if (existingGroup) {
+            //             groupExists = true;
+            //         }
+            //     } catch (e) {
+            //         console.log('Group not found in DB. Catching error to heal the offer.');
+            //         groupExists = false;
+            //     }
 
-                if (!groupExists) {
-                    console.log('Healing broken offer: Creating missing group...');
-                    await createGroup(groupBlueprint);
-                } else {
-                    console.log('Offer updated successfully. Existing group preserved.');
-                }
-            }
+            //     if (!groupExists) {
+            //         console.log('Healing broken offer: Creating missing group...');
+            //         await createGroup(groupBlueprint);
+            //     } else {
+            //         console.log('Offer updated successfully. Existing group preserved.');
+            //     }
+            // }
 
-            router.back();
+            onBackPress();
+            setLoadingFlow(false);
         } catch (error) {
+            setLoadingFlow(false);
             setLocalError((error as Error).message || 'Failed submitting');
         }
     }
@@ -155,8 +157,9 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
             if (!businessId) throw new Error('Business ID missing');
             if (!id) throw new Error('Offer ID missing');
 
-            remove({ id, businessId });
-            router.back();
+            await remove({ id, businessId });
+
+            onBackPress();
         } catch (error) {
             setLocalError((error as Error).message || 'Failed removing offer')
         }
@@ -165,10 +168,13 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
     return {
         offer,
         error: error || localError,
-        isLoading,
+        isLoading: loadingFlow,
+        businessId,
+        trails,
         onRemovePress,
         onUpdatePress,
         onSubmitPress,
         onSetTrail,
+        onBackPress,
     }
 }
