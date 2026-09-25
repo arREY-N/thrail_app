@@ -20,8 +20,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 import CustomHeader from '@/src/components/CustomHeader';
-import Drawer from '@/src/features/SuperAdmin/components/Drawer';
-import Sidebar, { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
+import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 
 /**
  * Interface representing the properties of the SuperadminShell component.
@@ -38,9 +37,9 @@ import Sidebar, { SuperadminTab } from '@/src/features/SuperAdmin/components/Sid
  */
 interface Props {
     activeTab: SuperadminTab;
-    pendingCount: number;
-    onTabPress: (tab: SuperadminTab) => void;
-    onBackToSettings: () => void;
+    pendingCount?: number;
+    onTabPress?: (tab: SuperadminTab) => void;
+    onBackToSettings?: () => void;
     children: React.ReactNode;
     searchValue?: string;
     onSearchChange?: (text: string) => void;
@@ -71,9 +70,6 @@ const TAB_TITLES: Record<SuperadminTab, string> = {
  */
 const SuperadminShell = ({
     activeTab,
-    pendingCount,
-    onTabPress,
-    onBackToSettings,
     children,
     searchValue,
     onSearchChange,
@@ -88,7 +84,6 @@ const SuperadminShell = ({
 }: Props): React.JSX.Element => {
     const { isTablet, isMobile } = useBreakpoints();
     const insets = useSafeAreaInsets();
-    const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
     const scrollRef = useRef<ScrollView>(null);
     const [fadeAnim] = useState(() => new Animated.Value(1));
@@ -116,47 +111,12 @@ const SuperadminShell = ({
         scrollRef.current?.scrollTo({ y: 0, animated: false });
     }, [activeTab, fadeAnim, translateYAnim]);
 
-    const handleTabSelect = (tab: SuperadminTab) => {
-        setIsDrawerOpen(false);
-        onTabPress(tab);
-    };
-
     return (
         <ScreenWrapper 
             backgroundColor={Colors.BACKGROUND}
             statusBarBackgroundColor={isMobile ? Colors.WHITE : Colors.BACKGROUND}
         >
             <View style={styles.shellOuter}>
-                {/* Desktop / Tablet Persistent Left Sidebar */}
-                {!isMobile && (
-                    <Sidebar
-                        activeTab={activeTab}
-                        pendingCount={pendingCount}
-                        onTabPress={handleTabSelect}
-                        onBackToSettings={onBackToSettings}
-                    />
-                )}
-
-                {/* Mobile Left-Slide Drawer */}
-                {isMobile && (
-                    <Drawer
-                        visible={isDrawerOpen}
-                        onClose={() => setIsDrawerOpen(false)}
-                    >
-                        <Sidebar
-                            activeTab={activeTab}
-                            pendingCount={pendingCount}
-                            onTabPress={handleTabSelect}
-                            onBackToSettings={() => {
-                                setIsDrawerOpen(false);
-                                onBackToSettings();
-                            }}
-                            isMobileDrawer={true}
-                            onCloseMobileDrawer={() => setIsDrawerOpen(false)}
-                        />
-                    </Drawer>
-                )}
-
                 {/* Main Content Area Wrapper */}
                 <View style={[styles.mainCanvasWrapper, isMobile && styles.mainCanvasWrapperMobile]}>
                     {/* Unified Outer Container */}
@@ -164,12 +124,11 @@ const SuperadminShell = ({
                         styles.unifiedCardContainer,
                         isMobile && styles.unifiedCardContainerMobile
                     ]}>
-                        {/* Header Bar */}
+                        {/* Header Bar using Global Drawer Navigation */}
                         <CustomHeader
                             variant="dashboard"
                             title={titleOverride || TAB_TITLES[activeTab] || 'Dashboard'}
                             isMobile={isMobile || isTablet}
-                            onToggleDrawer={() => setIsDrawerOpen(true)}
                             searchValue={searchValue}
                             onSearchChange={onSearchChange}
                             searchPlaceholder={searchPlaceholder}
