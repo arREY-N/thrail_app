@@ -9,6 +9,7 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
@@ -101,9 +102,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                             </CustomText>
                         )}
                     </View>
-                    <CustomText style={styles.infoBoxText}>
-                        &ldquo;{cancellationReason}&rdquo;
-                    </CustomText>
+                    <ExpandableText
+                        text={cancellationReason}
+                        quote={true}
+                        textStyle={styles.infoBoxText}
+                        characterLimit={160}
+                        arrowColor={Colors.TEXT_PRIMARY}
+                    />
                 </View>
             ) : null}
 
@@ -115,9 +120,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                             ORGANIZER&apos;S DECLINE NOTE
                         </CustomText>
                     </View>
-                    <CustomText style={styles.declineBoxText}>
-                        &ldquo;{declineReason}&rdquo;
-                    </CustomText>
+                    <ExpandableText
+                        text={declineReason}
+                        quote={true}
+                        textStyle={styles.declineBoxText}
+                        characterLimit={160}
+                        arrowColor={Colors.ERROR}
+                    />
                 </View>
             ) : null}
 
