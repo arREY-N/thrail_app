@@ -1,4 +1,5 @@
 import { Booking } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { useMemo, useState } from 'react';
 
 export type TabId = 'upcoming' | 'pending' | 'history';
@@ -9,9 +10,13 @@ export type FilterBy = 'all' | 'action-needed' | 'waiting' | 'partial';
  * Custom hook to manage booking filters, sorting, and tab selection.
  * 
  * @param {Booking[]} userBookings - Array of bookings to filter and sort
+ * @param {Cancellation[]} [userCancellations] - Array of user cancellation requests
  * @returns Object containing state and setter functions for filters
  */
-export default function useBookingFilters(userBookings: Booking[] = []) {
+export default function useBookingFilters(
+    userBookings: Booking[] = [],
+    userCancellations: Cancellation[] = []
+) {
     const [activeTab, setActiveTab] = useState<TabId>('upcoming');
     const [sortBy, setSortBy] = useState<SortBy>('hike-date'); 
     const [filterBy, setFilterBy] = useState<FilterBy>('all'); 
@@ -28,8 +33,26 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        const getEffectiveStatus = (booking: Booking): string => {
+            const activeCancellation = userCancellations?.find(
+                c => c.bookingId === booking.id && (c.status === 'pending' || c.status === 'rejected')
+            );
+            if (activeCancellation?.status === 'pending') {
+                return 'for-cancellation';
+            }
+            if (
+                activeCancellation?.status === 'rejected' &&
+                booking.status !== 'cancelled' &&
+                booking.status !== 'refund' &&
+                booking.status !== 'refunded'
+            ) {
+                return 'cancellation-rejected';
+            }
+            return booking.status;
+        };
+
         let filtered = userBookings.filter(booking => {
-            const status = booking.status;
+            const status = getEffectiveStatus(booking);
             
             const dateVal = booking.offer?.date;
             const hikeDate = dateVal instanceof Date 
@@ -52,7 +75,6 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
             if (activeTab === 'pending') {
                 return [
                     'for-reservation',
-                    'pending-docs',
                     'reservation-rejected',
                     'approved-docs',
                     'for-payment',
@@ -77,17 +99,16 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
                 'reservation-rejected',
                 'cancellation-rejected',
                 'reschedule-rejected',
-            ].includes(b.status));
+            ].includes(getEffectiveStatus(b)));
         } else if (filterBy === 'waiting') {
             filtered = filtered.filter(b => [
                 'for-reservation',
-                'pending-docs',
                 'for-reschedule',
                 'for-cancellation',
                 'paid',
-            ].includes(b.status));
+            ].includes(getEffectiveStatus(b)));
         } else if (filterBy === 'partial') {
-            filtered = filtered.filter(b => b.status === 'downpayment');
+            filtered = filtered.filter(b => getEffectiveStatus(b) === 'downpayment');
         }
 
         const getMs = (val: unknown): number => {
@@ -117,7 +138,7 @@ export default function useBookingFilters(userBookings: Booking[] = []) {
         });
 
         return filtered;
-    }, [userBookings, activeTab, sortBy, filterBy]);
+    }, [userBookings, userCancellations, activeTab, sortBy, filterBy]);
 
     const handleTabChange = (tabId: TabId) => {
         setActiveTab(tabId);
