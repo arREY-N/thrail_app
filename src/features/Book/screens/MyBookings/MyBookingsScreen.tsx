@@ -11,6 +11,7 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from "@/src/components/CustomLoading";
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -40,9 +41,9 @@ export interface MyBookingsScreenProps {
     /** Back button handler */
     onBackPress: () => void;
     /** Callback when cancel is pressed */
-    onCancelBookingPress: (booking: Booking, reason: string) => void;
+    onCancelBookingPress: (booking: Booking, reason: string) => Promise<void> | void;
     /** Callback for refund confirmation */
-    onRefundBookingPress?: (booking: Booking, reason: string) => void;
+    onRefundBookingPress?: (booking: Booking, reason: string) => Promise<void> | void;
     /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
     onResubmitDocuments?: (
         booking: Booking,
@@ -53,7 +54,7 @@ export interface MyBookingsScreenProps {
     /** Callback when updating contact details on rejected bookings */
     onUpdateBookingContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
     /** Callback to reschedule */
-    onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => void;
+    onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
     /** Callback to pay */
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
     /** Function to fetch full offer */
@@ -73,7 +74,7 @@ export interface MyBookingsScreenProps {
     /** Callback to withdraw cancellation */
     onWithdrawCancellation?: (cancellation: Cancellation) => Promise<void> | void;
     /** Callback to appeal / update cancellation reason */
-    onUpdateCancellationReason?: (cancellation: Cancellation, newReason: string) => Promise<void> | void;
+    onUpdateCancellationReason?: (params: { reason: string; oldRequest: Cancellation }) => Promise<void> | void;
     /** Callback to accept admin cancellation */
     onAcceptAdminCancellation?: (cancellation: Cancellation) => Promise<void> | void;
     /** The authenticated user profile passed from controller */
@@ -119,6 +120,15 @@ const MyBookingsScreen = ({
     const [currentView, setCurrentView] = useState<'list' | 'overview' | 'payment' | 'receipt'>(initialView || 'list'); 
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId || null);
     const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+    const [toastConfig, setToastConfig] = useState<{
+        visible: boolean;
+        type: 'success' | 'error';
+        message: string;
+    }>({
+        visible: false,
+        type: 'success',
+        message: '',
+    });
 
     if (initialKey !== prevInitialKey) {
         setPrevInitialKey(initialKey);
@@ -141,7 +151,7 @@ const MyBookingsScreen = ({
         setSortBy,
         filterBy,
         setFilterBy
-    } = useBookingFilters(userBookings);
+    } = useBookingFilters(userBookings, userCancellations);
 
     const onHeaderBackPress = () => {
         if (currentView === 'overview') {
@@ -235,6 +245,7 @@ const MyBookingsScreen = ({
                                 <BookingCard 
                                     key={booking.id} 
                                     booking={booking} 
+                                    cancellation={userCancellations?.find(c => c.bookingId === booking.id)}
                                     onSelectBooking={onBookingSelectPress} 
                                 />
                             ))
@@ -264,6 +275,15 @@ const MyBookingsScreen = ({
                             setFilterBy(values.filterBy as 'all' | 'action-needed' | 'waiting' | 'partial');
                         }
                     }}
+                />
+
+                <CustomToast
+                    visible={toastConfig.visible}
+                    type={toastConfig.type}
+                    message={toastConfig.message}
+                    mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
+                    position="tabbar"
+                    onHide={() => setToastConfig(prev => ({ ...prev, visible: false }))}
                 />
 
             </ScreenWrapper>
@@ -296,19 +316,53 @@ const MyBookingsScreen = ({
                 onWithdrawCancellation={onWithdrawCancellation}
                 onUpdateCancellationReason={onUpdateCancellationReason}
                 onAcceptAdminCancellation={onAcceptAdminCancellation}
-                onCancelConfirm={(booking, reason) => {
-                    onCancelBookingPress(booking, reason);
-                }}
-                onRefundConfirm={(booking, reason) => {
-                    if (onRefundBookingPress) {
-                        onRefundBookingPress(booking, reason);
-                        setCurrentView('list');
+                onCancelConfirm={async (booking, reason) => {
+                    const isDraft = booking.status === 'for-reservation';
+                    try {
+                        await onCancelBookingPress(booking, reason);
+                        if (isDraft) {
+                            setCurrentView('list');
+                            setToastConfig({
+                                visible: true,
+                                type: 'success',
+                                message: 'Reservation cancelled successfully.',
+                            });
+                        }
+                    } catch (err: unknown) {
+                        if (isDraft) {
+                            setCurrentView('list');
+                            setToastConfig({
+                                visible: true,
+                                type: 'error',
+                                message: err instanceof Error ? err.message : 'Failed to cancel reservation.',
+                            });
+                        }
+                        throw err;
                     }
                 }}
-                onReschedule={(booking, newOffer) => {
+                onRefundConfirm={async (booking, reason) => {
+                    if (onRefundBookingPress) {
+                        await onRefundBookingPress(booking, reason);
+                    }
+                }}
+                onReschedule={async (booking, newOffer) => {
                     if (onRescheduleBooking) {
-                        onRescheduleBooking(booking, newOffer);
-                        setCurrentView('list');
+                        try {
+                            await onRescheduleBooking(booking, newOffer);
+                            setCurrentView('list');
+                            setToastConfig({
+                                visible: true,
+                                type: 'success',
+                                message: 'Booking rescheduled successfully.',
+                            });
+                        } catch (err: unknown) {
+                            setCurrentView('list');
+                            setToastConfig({
+                                visible: true,
+                                type: 'error',
+                                message: err instanceof Error ? err.message : 'Failed to reschedule booking.',
+                            });
+                        }
                     }
                 }}
             />

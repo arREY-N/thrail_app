@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -33,6 +34,8 @@ export interface CancelBookingModalProps {
     actionType: 'cancel' | 'refund' | 'update' | null | string;
     /** Pre-filled reason if editing or appealing */
     initialReason?: string;
+    /** Previous reason submitted by user (shown as read-only card in update/appeal mode) */
+    previousReason?: string;
     /** Whether the submission request is in progress */
     isSubmitting?: boolean;
     /** Error message to display, if any */
@@ -50,6 +53,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     onConfirm,
     actionType,
     initialReason = '',
+    previousReason = '',
     isSubmitting = false,
     errorMessage = null,
 }) => {
@@ -57,12 +61,14 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
+    const isUpdate = actionType === 'update';
+
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     if (visible && !renderModal) {
         setRenderModal(true);
     }
 
-    const [reason, setReason] = useState<string>(initialReason);
+    const [reason, setReason] = useState<string>(isUpdate ? '' : (initialReason || ''));
     const [animValue] = useState(() => new Animated.Value(0));
 
     const [prevVisible, setPrevVisible] = useState(visible);
@@ -70,7 +76,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         setPrevVisible(visible);
         if (visible) {
             setRenderModal(true);
-            setReason(initialReason || '');
+            setReason(isUpdate ? '' : (initialReason || ''));
         }
     }
 
@@ -91,7 +97,6 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     }, [visible, animValue]);
 
     const isRefund = actionType === 'refund';
-    const isUpdate = actionType === 'update';
 
     let title = 'Cancel Booking';
     let warningText = 'Once submitted, your cancellation request will be reviewed by the organizer. Refunds (if applicable) take 3–5 business days to process after approval.';
@@ -226,6 +231,21 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                 <CustomText variant="caption" style={styles.errorText}>
                                     {errorMessage}
                                 </CustomText>
+                            </View>
+                        ) : null}
+
+                        {isUpdate && Boolean(previousReason) ? (
+                            <View style={styles.previousReasonBox}>
+                                <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                    PREVIOUS SUBMITTED REASON
+                                </CustomText>
+                                <ExpandableText
+                                    text={previousReason || ''}
+                                    quote={true}
+                                    textStyle={styles.previousReasonText}
+                                    characterLimit={150}
+                                    arrowColor={Colors.TEXT_PRIMARY}
+                                />
                             </View>
                         ) : null}
 
@@ -386,6 +406,28 @@ const styles = StyleSheet.create({
         color: Colors.ERROR,
         fontSize: 12,
         fontWeight: '500',
+    },
+    previousReasonBox: {
+        backgroundColor: Colors.BACKGROUND,
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        marginBottom: 16,
+    },
+    previousReasonLabel: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: 'bold',
+        fontSize: 11,
+        marginBottom: 6,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    previousReasonText: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 13,
+        fontStyle: 'italic',
+        lineHeight: 19,
     },
     counterRow: {
         flexDirection: 'row',

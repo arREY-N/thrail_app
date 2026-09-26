@@ -53,7 +53,6 @@ const RequiredDocumentsSection = ({
 
     const isAccordionDefaultOpen =
         displayStatus === 'for-reservation' ||
-        displayStatus === 'pending-docs' ||
         displayStatus === 'reservation-rejected';
 
     const renderDocumentRow = (docObj: Requirements, idx: number): React.JSX.Element => {
@@ -93,84 +92,37 @@ const RequiredDocumentsSection = ({
         const iconColor = isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.STATUS_PENDING_TEXT;
         const statusText = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
 
-        if (displayStatus === 'reservation-rejected') {
-            const hasFile = Boolean(docObj.file);
-            return (
-                <View key={idx} style={[styles.approvedRowWrapper, idx < localDocs.length - 1 && styles.rowDivider]}>
-                    <View style={styles.approvedUploadRow}>
-                        <View style={styles.uploadInfo}>
-                            <View
-                                style={[
-                                    styles.iconWrapper,
-                                    isApproved
-                                        ? styles.iconWrapperSuccess
-                                        : isRejected
-                                          ? styles.iconWrapperError
-                                          : styles.iconWrapperPending,
-                                ]}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name={isApproved ? 'check' : isRejected ? 'alert-circle' : 'clock'}
-                                    size={18}
-                                    color={isApproved ? Colors.SUCCESS : isRejected ? Colors.ERROR : Colors.STATUS_PENDING_TEXT}
-                                />
-                            </View>
-                            <View style={styles.textContainer}>
-                                <CustomText variant="body" style={styles.docName} numberOfLines={2} ellipsizeMode="tail">
-                                    {docName}
-                                </CustomText>
-                            </View>
-                        </View>
-                        <View style={styles.actionContainer}>
-                            {hasFile ? (
-                                <TouchableOpacity
-                                    style={styles.docViewBtn}
-                                    onPress={() => onPreviewDoc(docObj.file || '')}
-                                    activeOpacity={0.7}
-                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                >
-                                    <CustomText variant="caption" style={styles.docViewBtnText}>
-                                        View
-                                    </CustomText>
-                                </TouchableOpacity>
-                            ) : null}
-                            <View style={isApproved ? styles.approvedPill : isRejected ? styles.rejectedPill : styles.pendingPill}>
-                                <CustomText
-                                    variant="caption"
-                                    style={
-                                        isApproved
-                                            ? styles.approvedPillText
-                                            : isRejected
-                                              ? styles.rejectedPillText
-                                              : styles.pendingPillText
-                                    }
-                                >
-                                    {statusText}
-                                </CustomText>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-            );
-        }
+        const hasFile = Boolean(docObj.file);
 
         return (
-            <View key={idx} style={styles.documentRowContainer}>
-                <View style={styles.documentRow}>
-                    <View style={styles.docNameRow}>
-                        <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
-                        <CustomText
-                            variant="body"
-                            style={styles.documentText}
-                            numberOfLines={2}
-                            ellipsizeMode="tail"
+            <View key={idx} style={[styles.approvedRowWrapper, idx < localDocs.length - 1 && styles.rowDivider]}>
+                <View style={styles.approvedUploadRow}>
+                    <View style={styles.uploadInfo}>
+                        <View
+                            style={[
+                                styles.iconWrapper,
+                                isApproved
+                                    ? styles.iconWrapperSuccess
+                                    : isRejected
+                                      ? styles.iconWrapperError
+                                      : styles.iconWrapperPending,
+                            ]}
                         >
-                            {docName}
-                        </CustomText>
+                            <CustomIcon
+                                library="Feather"
+                                name={iconName}
+                                size={18}
+                                color={iconColor}
+                            />
+                        </View>
+                        <View style={styles.textContainer}>
+                            <CustomText variant="body" style={styles.docName} numberOfLines={2} ellipsizeMode="tail">
+                                {docName}
+                            </CustomText>
+                        </View>
                     </View>
-                    <View style={styles.statusGroup}>
-                        {docObj.file ? (
+                    <View style={styles.actionContainer}>
+                        {hasFile ? (
                             <TouchableOpacity
                                 style={styles.docViewBtn}
                                 onPress={() => onPreviewDoc(docObj.file || '')}
@@ -182,9 +134,20 @@ const RequiredDocumentsSection = ({
                                 </CustomText>
                             </TouchableOpacity>
                         ) : null}
-                        <CustomText variant="caption" style={[styles.documentStatusText, { color: iconColor }]}>
-                            {statusText}
-                        </CustomText>
+                        <View style={isApproved ? styles.approvedPill : isRejected ? styles.rejectedPill : styles.pendingPill}>
+                            <CustomText
+                                variant="caption"
+                                style={
+                                    isApproved
+                                        ? styles.approvedPillText
+                                        : isRejected
+                                          ? styles.rejectedPillText
+                                          : styles.pendingPillText
+                                }
+                            >
+                                {statusText}
+                            </CustomText>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -197,7 +160,7 @@ const RequiredDocumentsSection = ({
             icon="file-text"
             defaultOpen={isAccordionDefaultOpen}
         >
-            <View style={displayStatus === 'reservation-rejected' ? styles.documentsContainerCard : undefined}>
+            <View style={styles.documentsContainerCard}>
                 {localDocs.map((doc: Requirements, idx: number) => renderDocumentRow(doc, idx))}
             </View>
         </AccordionItem>
@@ -211,42 +174,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         overflow: 'hidden',
-    },
-    documentRowContainer: {
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        paddingVertical: 12,
-    },
-    documentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 2,
-    },
-    docNameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        flex: 1,
-        marginRight: 10,
-    },
-    documentText: {
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '500',
-        fontSize: 14,
-        flex: 1,
-    },
-    statusGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        flexShrink: 0,
-    },
-    documentStatusText: {
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        fontSize: 10,
-        letterSpacing: 0.5,
     },
     approvedRowWrapper: {
         width: '100%',

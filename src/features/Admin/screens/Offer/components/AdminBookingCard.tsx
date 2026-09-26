@@ -30,7 +30,7 @@ const AdminBookingCard = ({
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
     
-    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'pending-docs', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule'].includes(displayStatus);
+    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule'].includes(displayStatus);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';

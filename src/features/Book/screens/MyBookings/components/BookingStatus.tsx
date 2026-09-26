@@ -46,7 +46,6 @@ const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false })
 
     switch (rawStatus) {
         case 'for-reservation':
-        case 'pending-docs':
             currentIndex = 0;
             break;
         case 'reservation-rejected':

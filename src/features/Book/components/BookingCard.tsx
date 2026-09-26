@@ -10,17 +10,21 @@ import { getStatusConfig } from '@/src/constants/statusConfig';
 import { formatBookingDate, getRecentUpdateText, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 
 export interface BookingCardProps {
     booking: Booking | null;
     onSelectBooking: (booking: Booking) => void;
     role?: 'user' | 'admin' | 'superadmin' | 'business';
+    /** Optional active cancellation request */
+    cancellation?: Cancellation | null;
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({ 
     booking, 
     onSelectBooking, 
-    role = 'user' 
+    role = 'user',
+    cancellation,
 }) => {
     if (!booking) return null;
 
@@ -32,6 +36,17 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isPast = hikeDate.getTime() < today.getTime();
 
     let displayStatus = booking?.status;
+
+    if (cancellation?.status === 'pending') {
+        displayStatus = 'for-cancellation';
+    } else if (
+        cancellation?.status === 'rejected' &&
+        booking?.status !== 'cancelled' &&
+        booking?.status !== 'refund' &&
+        booking?.status !== 'refunded'
+    ) {
+        displayStatus = 'cancellation-rejected';
+    }
 
     if (displayStatus === 'for-cancellation') {
         const payments = booking?.payment || [];

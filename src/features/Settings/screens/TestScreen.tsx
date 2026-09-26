@@ -119,7 +119,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ onBackPress }) => {
             setSimulatedCancellation(null);
         }
 
-        const isPendingPhase = ['for-reservation', 'pending-docs'].includes(scenario.initialStatus);
+        const isPendingPhase = scenario.initialStatus === 'for-reservation';
         setSimulatedDocs(
             isPendingPhase
                 ? freshBooking.documents.map(d => ({ ...d, valid: 'pending' as const }))
@@ -135,6 +135,13 @@ export const TestScreen: React.FC<TestScreenProps> = ({ onBackPress }) => {
 
     // Simulator Transition Handlers
     const handleSimulateUserRequestCancel = useCallback(() => {
+        const isPreApprovalDraft = simulatedBooking.status === 'for-reservation';
+        if (isPreApprovalDraft) {
+            setSimulatedCancellation(null);
+            setActionNotice('Cancelled initial reservation draft (deleted immediately, no request created).');
+            return;
+        }
+
         const reason = 'User requested cancellation (simulator). Schedule conflict with personal obligations.';
         setSimulatedBooking(prev => ({
             ...prev,
@@ -151,7 +158,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ onBackPress }) => {
         setCurrentStepIndex(2);
         setIsSimulatingDecline(false);
         setActionNotice('Transitioned to "for-cancellation" (Sub-Approval Pending). Booking routed to Pending tab.');
-    }, []);
+    }, [simulatedBooking.status]);
 
     const handleModalCancelSubmit = useCallback((reason: string) => {
         setIsCancelModalOpen(false);
@@ -299,7 +306,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ onBackPress }) => {
 
     const currentAdminTab: string = useMemo(() => {
         const status = simulatedBooking.status;
-        if (['for-reservation', 'pending-docs', 'for-cancellation'].includes(status)) {
+        if (['for-reservation', 'for-cancellation'].includes(status)) {
             return 'Needs Review';
         }
         if (status === 'for-payment') return 'For Payment';
