@@ -175,8 +175,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         const list = bookingByOffer[offerId] || [];
         return list.filter(b => {
             const status = (b.status as string) || '';
-            return status === 'pending-docs' || 
-                   status === 'for-reservation' || 
+            return status === 'for-reservation' || 
                    status === 'paid' || 
                    status === 'downpayment' ||
                    status === 'for-cancellation' ||
