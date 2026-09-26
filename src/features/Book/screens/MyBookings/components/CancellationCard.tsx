@@ -9,6 +9,7 @@ import {
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking } from '@/src/core/models/Booking/Booking';
@@ -245,18 +246,25 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                         <CustomText variant="caption" style={styles.errorHighlightLabel}>
                             Reason for Decline:
                         </CustomText>
-                        <CustomText style={styles.errorHighlightText}>
-                            {adminNote || 'The organizer declined this cancellation request based on policy terms.'}
-                        </CustomText>
+                        <ExpandableText
+                            text={adminNote || 'The organizer declined this cancellation request based on policy terms.'}
+                            textStyle={styles.errorHighlightText}
+                            arrowColor={Colors.ERROR}
+                            characterLimit={160}
+                        />
                     </View>
 
                     <View style={styles.previousReasonBox}>
                         <CustomText variant="caption" style={styles.previousReasonLabel}>
                             Your Submitted Reason:
                         </CustomText>
-                        <CustomText style={styles.previousReasonText}>
-                            {`"${userReason}"`}
-                        </CustomText>
+                        <ExpandableText
+                            text={userReason}
+                            quote={true}
+                            textStyle={styles.previousReasonText}
+                            arrowColor={Colors.TEXT_PRIMARY}
+                            characterLimit={160}
+                        />
                     </View>
 
                     <View style={styles.actionsColumn}>
@@ -270,7 +278,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                     library="Feather"
                                     name="edit-3"
                                     size={16}
-                                    color={Colors.PRIMARY}
+                                    color={Colors.ERROR}
                                 />
                                 <CustomText style={styles.appealBtnText}>
                                     Appeal / Update Reason
@@ -388,9 +396,13 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                         <CustomText variant="caption" style={styles.previousReasonLabel}>
                             Cancellation Reason:
                         </CustomText>
-                        <CustomText style={styles.previousReasonText}>
-                            {`"${userReason}"`}
-                        </CustomText>
+                        <ExpandableText
+                            text={userReason}
+                            quote={true}
+                            textStyle={styles.previousReasonText}
+                            arrowColor={Colors.TEXT_PRIMARY}
+                            characterLimit={160}
+                        />
                     </View>
                 )}
             </View>
@@ -424,9 +436,13 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                     <CustomText variant="caption" style={styles.quoteLabel}>
                         {isAppeal ? 'Your Submitted Reason (Appeal):' : 'Your Submitted Reason:'}
                     </CustomText>
-                    <CustomText style={styles.quoteText}>
-                        {`"${userReason}"`}
-                    </CustomText>
+                    <ExpandableText
+                        text={userReason}
+                        quote={true}
+                        textStyle={styles.quoteText}
+                        arrowColor={Colors.TEXT_PRIMARY}
+                        characterLimit={160}
+                    />
                 </View>
 
                 <View style={styles.infoBanner}>
@@ -486,36 +502,36 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     iconCircleError: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_CANCELLED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCirclePending: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_CANCELLED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCircleSuccess: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_APPROVED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     titleError: {
-        color: Colors.ERROR,
+        color: Colors.TEXT_PRIMARY,
         fontWeight: 'bold',
         fontSize: 16,
     },
     titlePending: {
-        color: Colors.ERROR,
+        color: Colors.TEXT_PRIMARY,
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -674,7 +690,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: Colors.WHITE,
         borderWidth: 1.5,
-        borderColor: Colors.PRIMARY,
+        borderColor: Colors.ERROR,
         borderRadius: 12,
         paddingVertical: 12,
         alignItems: 'center',
@@ -682,7 +698,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     appealBtnText: {
-        color: Colors.PRIMARY,
+        color: Colors.ERROR,
         fontWeight: 'bold',
         fontSize: 14,
     },
@@ -712,16 +728,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1.5,
-        borderColor: Colors.ERROR_BORDER,
-        backgroundColor: Colors.ERROR_BG,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.WHITE,
         borderRadius: 12,
         paddingVertical: 11,
         gap: 6,
     },
     withdrawTriggerBtnText: {
-        color: Colors.ERROR,
-        fontWeight: 'bold',
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
         fontSize: 13,
     },
 });
