@@ -17,12 +17,15 @@ Ordered by user-facing impact (demo-visible glitches and emergency rescue usabil
 | **1** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L187-L203) | **Follow-Mode Broken on Pinch-to-Zoom:** `handleRegionWillChange` requires `centerChanged && !zoomChanged` to cancel `isFollowing`. Pinch-zooming alters both zoom and center, preventing follow from disengaging. Also, `lastCenterRef.current` is `null` on initial touch. | **Critical UX Glitch:** While inspecting upcoming trail junctions or pinching to zoom out, the map violently snaps back to the user's position upon the next GPS tick (every 2s). | Disengage follow mode (`setIsFollowing(false)`) whenever `event.properties.isUserInteraction === true`, regardless of zoom vs center differentiation. Initialize `lastCenterRef` on first location update. |
 | **2** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L130-L153) | **Production APK Asset Resolution & Download Crash Loop:** When `asset.localUri` is null, code falls back to `FileSystem.downloadAsync(asset.uri, fileUri)`. In production release APKs, `asset.uri` is an `asset://` scheme, not an HTTP URL. `downloadAsync` throws `UnsupportedSchemeException` across all 3 retries, delays startup by 6s, and still sets `offlineTileUrl` to a non-existent file. | **Fatal Offline Crash:** Fresh install on production release devices fails to copy PMTiles, attempts to mount non-existent file, and results in a blank void or MapLibre crash. | Rely on `Asset.loadAsync(offlineMapTileAsset)`. For `asset://` sources, use `FileSystem.copyAsync` directly (supported in Expo). If copy fails, abort and set `loadState = "error"` with an actionable user retry button rather than executing invalid HTTP calls. |
 | **3** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L120-L124) | **Insufficient PMTiles Integrity Check:** Cache check relies solely on `fileInfo.size > 18_000_000`. The actual bundled file is ~34MB (34,613 KB / 33.8 MB). Interrupted writes (>18MB, just ~52% of the file) or zero-padded/corrupted files pass this check as valid. | **Silent Map Rendering Failure:** MapLibre attempts to parse a malformed or half-written PMTiles file, resulting in silent render failures, missing tile layers, or native C++ JNI crashes without recovery. | Read the first 7 bytes via `FileSystem.readAsStringAsync(fileUri, { length: 7, encoding: 'utf8' })` and assert `header === "PMTiles"`. Also compare against known bundled file size (~34MB). If corrupted or incomplete, delete and trigger clean re-extraction. |
-| **4** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L284-L313) | **Abrupt Live Hiker Marker Snapping:** Group hiker positions received from Firestore `onSnapshot` updates directly set `<Marker lngLat={[hiker.longitude, hiker.latitude]}>` with no smoothing or interpolation. | **Jarring Visual Snapping:** Hiker pins jump across the screen abruptly whenever a remote device sends an update, degrading presentation quality. | Extract marker into a dedicated component (`AnimatedHikerMarker`) using React Native `Animated.ValueXY` or an interpolation easing hook over the update cadence (2–3 seconds). |
-| **5** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L284-L313)<br>[hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts#L207-L215)<br>[useGroupLocation.ts](file:///d:/thrail_app/src/core/models/Group/hooks/useGroupLocation.ts#L155-L174) | **Missing Last Known Location (LKL) Visual State & Delayed Session Purge:** (a) When a hiker's phone dies or enters a dead zone, the marker stays frozen with zero indication of when it was recorded (looks identical to active walkers). (b) Auto-deleting markers based on timer would be dangerous for lost hikers. (c) `onCompleteHike` never deletes user location docs or triggers session cleanup. | **Search & Rescue Impairment:** Searchers and guides looking at the map cannot tell if a lost hiker with a dead battery was at that coordinate 2 minutes ago or 2 hours ago. Conversely, when hikes formally end, old markers stay in Firestore. | **Implement LKL Pattern:** NEVER delete pins during an active hike. If `currentTime - timestamp > 2min`, transition marker to "Last Known Location" (amber/muted pin with a *"Signal Lost / Last seen Xm ago"* pill). Tapping the pin shows rescue coordinates. Only purge pins from Firestore and store upon formal hike completion. |
+| **4** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx) | **Abrupt Live Hiker Marker Snapping:** Group hiker positions received from Firestore `onSnapshot` updates directly set `<Marker lngLat={[hiker.longitude, hiker.latitude]}>` with no smoothing or interpolation. | **Jarring Visual Snapping:** Hiker pins jump across the screen abruptly whenever a remote device sends an update, degrading presentation quality. | Extract marker into a dedicated component (`AnimatedHikerMarker`) using React Native `Animated.ValueXY` or an interpolation easing hook over the update cadence (2–3 seconds). |
+| **5** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx)<br>[hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts)<br>[useGroupLocation.ts](file:///d:/thrail_app/src/core/models/Group/hooks/useGroupLocation.ts) | **Missing Last Known Location (LKL) Visual State & Delayed Session Purge:** (a) When a hiker's phone dies or enters a dead zone, the marker stays frozen with zero indication of when it was recorded (looks identical to active walkers). (b) Auto-deleting markers based on timer would be dangerous for lost hikers. (c) `onCompleteHike` never deletes user location docs or triggers session cleanup. | **Search & Rescue Impairment:** Searchers and guides looking at the map cannot tell if a lost hiker with a dead battery was at that coordinate 2 minutes ago or 2 hours ago. Conversely, when hikes formally end, old markers stay in Firestore. | **Implement LKL Pattern:** NEVER delete pins during an active hike. If `currentTime - timestamp > 2min`, transition marker to "Last Known Location" (amber/muted pin with a *"Signal Lost / Last seen Xm ago"* pill). Tapping the pin shows rescue coordinates. Only purge pins from Firestore and store upon formal hike completion. |
 | **6** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L230-L232) | **Silent Fallback to Online Style when Offline:** If `fontBaseDir` fails to resolve or is empty, `activeStyle` falls back to `onlineStyle` (MapTiler) silently, even when `actuallyOffline` is true. | **White Screen of Death in Dead Zones:** While offline on a mountain, if font extraction failed, the map attempts to fetch MapTiler over the network, fails completely, and displays a blank gray canvas. | Prevent fallback to `onlineStyle` when `actuallyOffline` is true. If offline styles fail, surface a clear offline recovery UI rather than attempting network calls. |
 | **7** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L109-L167) | **Unconditional Offline Copying in Online Mode:** On mount, `Promise.all([resolveGeoJson(), resolveOfflineMap(), resolveOfflineFonts()])` runs unconditionally even if the internal test harness (MapTiler) is selected. | **Performance & Storage Waste:** Running the MapTiler test mode triggers a ~34MB file copy and font extraction, blocking the test harness for several seconds. | Guard `resolveOfflineMap()` and `resolveOfflineFonts()` so they only run when offline mode is active, or trigger lazy asset extraction when first switching to offline. |
-| **8** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L286) | **Falsy Coordinate Check Discarding Zero-Values:** `if (!hiker.latitude || !hiker.longitude)` evaluates to true if latitude or longitude is `0`. Also fails to check `isNaN`, `isFinite`, or geographic boundaries (-90 to +90, -180 to +180). | **Data Drop & Crash Risk:** Legitimate (0,0) coordinate tests fail silently. Out-of-range floats or string inputs bypass checks, potentially causing native MapLibre GL crashes. | Implement strict validation: `typeof lat === 'number' && !isNaN(lat) && isFinite(lat) && lat >= -90 && lat <= 90` (and corresponding check for longitude). |
+| **8** | ✅ **Resolved** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L286) | **Falsy Coordinate Check Discarding Zero-Values:** `if (!hiker.latitude || !hiker.longitude)` evaluates to true if latitude or longitude is `0`. Also fails to check `isNaN`, `isFinite`, or geographic boundaries (-90 to +90, -180 to +180). | **Data Drop & Crash Risk:** Legitimate (0,0) coordinate tests fail silently. Out-of-range floats or string inputs bypass checks, potentially causing native MapLibre GL crashes. | Implement strict validation: `typeof lat === 'number' && !isNaN(lat) && isFinite(lat) && lat >= -90 && lat <= 90` (and corresponding check for longitude). |
 | **9** | ⏳ **Pending** | [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L157-L166) | **Indefinite Hang on Unhandled Asset Rejection:** If `resolveOfflineMap` encounters an unhandled filesystem lock or asset extraction hang, `loadState` stays `"loading"` indefinitely with no timeout. | **Unresponsive App Freeze:** The user is trapped on `<LoadingScreen />` with no user-facing recovery mechanism. | Wrap asset loading in a timeout (e.g. 15s). If exceeded, transition `loadState` to `"error"` and provide an explicit "Retry Setup" button. |
+| **10** | ✅ **Resolved** | [TrackHikerGPSFlow.ts](file:///d:/thrail_app/src/core/flows/TrackHikerGPSFlow.ts)<br>[locationTask.ts](file:///d:/thrail_app/src/core/utility/locationTask.ts)<br>[TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx)<br>[hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts) | **Background Trace-Line Disconnect & Diagonal Snapping (The "Orange Line" Void):** When the phone screen turns off or the app is backgrounded, `watchPositionAsync` in `TrackHikerGPSFlow` sleeps. The background TaskManager (`locationTask.ts`) collects points via headless task and only calls `useHikeStore.addCoordinate`, but never updates `routeCoordinates` (which is trapped in a local React `useState`). Furthermore, `locationTask` only takes `locations[0]` from the OS batch, `hikeStoreCreator` purges its coordinates queue down to 1 item every 5 ticks, and `AppState` injects dummy `(0, 0)` points. When the user unlocks the phone, `watchPositionAsync` resumes at the current location and immediately draws a straight diagonal vector cutting across buildings and terrain from the pre-sleep coordinate to the new fix. | **Severe Data Corruption & Visual Breakdown:** Hikers reviewing their path see an orange dashed line slicing through buildings, rivers, and cliffs instead of adhering to the trail walked while the phone was in their pocket. Recorded distance and elevation are distorted. | (1) Moved `walkedRoute: [number, number][]` to `useHikeStore` so both foreground watcher and headless `locationTask` append to the same continuous coordinate array.<br>(2) In `locationTask.ts`, loop through all items in `data.locations` (not just `locations[0]`).<br>(3) In `hikeStoreCreator.ts`, decoupled the Firestore upload queue from the continuous session trail (never truncate the displayed route).<br>(4) Stopped injecting dummy `(0, 0)` coordinates into the store on background/resume events.<br>(5) Upgraded trace line to a clean, smooth solid line (`lineDasharray` removed). |
+| **11** | ✅ **Resolved** | [TrackHikerGPSFlow.ts](file:///d:/thrail_app/src/core/flows/TrackHikerGPSFlow.ts#L159)<br>[TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L335-L338) | **Premature Trail Drawing Prior to Hike Start:** On map mount, `initForegroundGps()` starts `watchPositionAsync` to pre-warm the GPS for the blue dot. However, `setRouteCoordinates((prev) => [...prev, [lon, lat]])` was called unconditionally on every GPS tick without verifying `active === true` and `hike.status === 'started'`. Additionally, `routeCoordinates` was never cleared on reset. | **False Trail Scribbles:** The orange trace line starts drawing immediately when entering the map screen before the user taps "Start Hike" (both in Free Roam and Booked Hike). Minor GPS jitter or walking to the trail origin scribbles an unwanted walked path. | Guarded route recording: only append coordinates when `active === true && currentHike?.status === 'started'`. Separated blue dot positioning (`setUserLocation`) from route breadcrumb recording (`setRouteCoordinates`). Reset the route breadcrumb array whenever a hike session begins, resets, or completes. |
+| **12** | ✅ **Resolved** | [hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts#L160-L171)<br>[HikeRepository.ts](file:///d:/thrail_app/src/core/models/Hike/repositories/HikeRepository.ts#L85-L107) | **Firestore Quota Burn & Write-Only Trace Subcollection (15s Document Explosion):** Every 5 GPS updates (~10-15s), the app created a brand new document in `users/{userId}/hikes/{hikeId}/coordinates/{timestampMs}`. A single 4-hour hike created 1,000–1,500 separate Firestore documents per user. These thousands of documents were "write-only" and never queried or retrieved anywhere in the app. Concurrently, `hikeStoreCreator.ts` purged memory down to `[lastCoord]` on every write, destroying the session's trail history in RAM. | **Massive Quota Exhaustion & Data Disconnect:** 8 hikers on a mountain hike consume >10,000 Firestore writes in one morning (exceeding daily limits). In dead zones, hundreds of failed write mutations queue up and drain battery. Hikers cannot review their walked trail in past history because the app never reads the data back. | (1) Stopped high-frequency subcollection document writes; maintain the complete session path `walkedRoute: [number, number][]` in local memory throughout the hike.<br>(2) Consolidated the route write to a single document upon hike completion via `HikeRepo.writeRoute(userId, hikeId, route)` (`users/{userId}/hikes/{hikeId}/route/session`). Reduces writes from ~1,500 to 1 per hike.<br>(3) Added `fetchRoute(userId, hikeId)` in `HikeRepository.ts` to retrieve and replay completed routes. |
 
 ---
 
@@ -91,6 +94,11 @@ Ordered by user-facing impact (demo-visible glitches and emergency rescue usabil
 - **Expected Behavior:** `AppState` listener detects revocation, safely halts background task, and prompts user.
 - **Failure Signal:** Fatal crash with `SecurityException: Need ACCESS_FINE_LOCATION permission`.
 
+#### P-4: Pre-Hike GPS Pre-Warming Isolation (Orange Line Inactive)
+- **Setup Steps:** Open trail map or hike recording screen, but do NOT press "Start Hike" or "Start Free Roam". Walk around or observe map for 60 seconds with GPS jitter.
+- **Expected Behavior:** Blue dot tracks the user's current position, but NO orange dashed breadcrumb trail appears on the map.
+- **Failure Signal:** Orange dashed line immediately draws on the map, capturing pre-hike steps or station jitter before the hike has formally started.
+
 ---
 
 ### 3. Connectivity & Emergency Hiker Safety
@@ -120,8 +128,32 @@ Ordered by user-facing impact (demo-visible glitches and emergency rescue usabil
   - After 2 minutes without updates, pin transitions to the **Last Known Location (LKL)** state (amber/slate icon with *"Last seen Xm ago"* pill).
   - Tapping the pin displays exact latitude/longitude and timestamp for search-and-rescue teams.
   - Pin remains visible until the guide formally taps "Complete Hike".
+#### C-5: Background Sleep & Wake Walked Path Continuity (Orange Line Trace)
+- **Setup Steps:**
+  1. Start an active hike session.
+  2. Walk 100 meters along a street or trail with screen ON (confirm orange dashed line traces the road).
+  3. Lock the phone / turn screen OFF and place phone in pocket.
+  4. Walk 300 meters, turning around two sharp street corners.
+  5. Unlock the phone and view the trail map.
+- **Expected Behavior:**
+  - Background `locationTask` continuously records points into the shared session route.
+  - The orange dashed line immediately displays the full curve around both corners without gaps or cuts.
+  - Distance and elevation include the entire path walked in the background.
 - **Failure Signal:**
-  - Pin disappears from map after an inactivity timeout (leaving guide blind), OR pin continues displaying as a live active hiker with no timestamp.
+  - The orange dashed line cuts directly across buildings and terrain in a straight diagonal line between the pre-sleep position and the current location. Intermediate path points are missing.
+
+#### C-6: Mountain Dead Zone & Consolidated Session Route Persistence
+- **Setup Steps:**
+  1. Start an active hike with cellular data and Wi-Fi disabled (Airplane Mode ON).
+  2. Walk along a 2-kilometer mountain trail over 45 minutes.
+  3. Tap "Hold to Finish" to complete the hike while offline.
+  4. Later, reconnect to cellular data / Wi-Fi.
+- **Expected Behavior:**
+  - Zero high-frequency Firestore document write loops during the hike (no battery drain or failed write mutation spam).
+  - Complete walked route remains safe in local device memory/storage without mid-hike purges.
+  - Upon completion and network reconnect, a single consolidated route document is synced to Firestore.
+- **Failure Signal:**
+  - App queues 180+ failed Firestore writes in offline cache; battery drains excessively; local coordinates are purged mid-hike, leaving the user with an empty or broken route.
 
 ---
 
@@ -178,8 +210,8 @@ Ordered by user-facing impact (demo-visible glitches and emergency rescue usabil
 graph TD
     Item1["1. Fix Follow-Mode Gesture Logic<br><b>✅ RESOLVED</b><br><i>TrailMap.native.tsx</i>"] --> Item2["2. Harden Production APK Asset Copy<br><b>✅ RESOLVED</b><br><i>TrailMap.native.tsx</i>"]
     Item2 --> Item3["3. Implement PMTiles Magic Header Check<br><b>✅ RESOLVED</b><br><i>TrailMap.native.tsx</i>"]
-    Item3 --> Item4["4. Implement Last Known Location (LKL) Pin State<br><i>TrailMap.native.tsx & hikeStoreCreator.ts</i>"]
-    Item4 --> Item5["5. Smooth Live Marker Snapping<br><i>AnimatedHikerMarker</i>"]
+    Item3 --> Item4["4. Implement Last Known Location (LKL) Pin State<br><b>✅ RESOLVED</b><br><i>TrailMap.native.tsx, hikeStoreCreator.ts, useGroupLocation.ts</i>"]
+    Item4 --> Item5["5. Smooth Live Marker Snapping<br><b>✅ RESOLVED</b><br><i>AnimatedHikerMarker in TrailMap.native.tsx</i>"]
 ```
 
 ### 1. Fix Camera Follow-Mode Gesture Disconnect — ✅ Resolved
@@ -200,14 +232,103 @@ graph TD
 - **Action Taken:** Updated minimum size threshold to `MIN_PMTILES_SIZE_BYTES = 34_000_000` (matching actual 35.4 MB bundled size) and added `isPmtilesValid(uri)` reading the first 7 bytes via `FileSystem.readAsStringAsync(fileUri, { length: 7 })` to assert the `"PMTiles"` ASCII magic header. Corrupted or partial writes are automatically deleted and re-copied.
 - **Outcome:** Zero silent black-screen failures or native JNI MapLibre crashes from malformed/incomplete archives.
 
-### 4. Implement Last Known Location (LKL) Pin State & Session-End Purge
-- **Files:** [TrailMap.native.tsx:L284-313](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L284-L313), [hikeStoreCreator.ts:L207-215](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts#L207-L215), [useGroupLocation.ts:L155-174](file:///d:/thrail_app/src/core/models/Group/hooks/useGroupLocation.ts#L155-L174)
-- **Action:**
-  - **Never hide pins during an active hike.** If phone dies or signal drops for >2 mins, transition marker to "Last Known Location" with a relative time pill (`Last seen 35m ago`) and tap-to-inspect GPS coordinates for search parties.
-  - Purge pins from Firestore and store only when the hike is explicitly completed or cancelled.
-- **Why #4:** Critical search-and-rescue requirement for lost hikers with dead batteries or zero signal in CALABARZON mountains.
+### 4. Implement Last Known Location (LKL) Pin State & Session-End Purge — ✅ Resolved
+- **Files:** [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx), [hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts), [useGroupLocation.ts](file:///d:/thrail_app/src/core/models/Group/hooks/useGroupLocation.ts), [CreateHikeFlow.ts](file:///d:/thrail_app/src/core/flows/CreateHikeFlow.ts)
+- **Status:** ✅ **Resolved**
+- **Action Taken:**
+  - Preserved all hiker pins during active hikes regardless of inactivity so lost hikers are never culled from the screen.
+  - Implemented 10-second ticker in `AnimatedHikerMarker` that detects when an update is >= 2 minutes old and automatically shifts marker visual state into the Last Known Location (LKL) design (amber badge with relative time pill, e.g. `⚠️ Signal Lost • Last seen 15m ago`).
+  - Added an interactive Rescue Coordinates card popup on marker tap displaying exact latitude/longitude (6 decimal places), altitude, recorded timestamp, focus button, and an emergency dispatch sharing button formatted for Mountain Search and Rescue teams.
+  - Connected `onCompleteHike` and `onResetHike` in `useGroupLocation.ts` and `CreateHikeFlow.ts` to call `stopSharingLocation`, ensuring the user's live location document is purged from Firestore and group locations are cleared from local store upon formal session termination.
+- **Outcome:** Search parties and guides have continuous situational awareness of lost hikers' last known positions with one-tap dispatch coordinates.
 
-### 5. Smooth Live Hiker Markers with Interpolated Coordinates
-- **File:** [TrailMap.native.tsx:L284-313](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx#L284-L313)
-- **Action:** Replace raw `[hiker.longitude, hiker.latitude]` snapping with an animated marker component interpolating over the update interval (2000ms), and fix `!hiker.latitude || !hiker.longitude` falsy checks.
-- **Why #5:** Elevates visual polish for live group hiking demos from jerky teleports to fluid marker motion.
+### 5. Smooth Live Hiker Markers with Interpolated Coordinates — ✅ Resolved
+- **File:** [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx)
+- **Status:** ✅ **Resolved**
+- **Action Taken:**
+  - Created memoized `AnimatedHikerMarker` component using React Native `Animated.timing` with quadratic ease-out interpolation over a 1200ms cadence.
+  - Added distance change thresholds: ignores sub-decimeter jitter (< 0.1m) and snaps large teleports (> 5km / first fix), while smoothly animating typical walking transitions.
+  - Replaced falsy coordinate checks with strict `isValidCoordinate(lat, lon)` validating numbers, `!isNaN`, `isFinite`, and standard coordinate bounds (-90 to +90 lat, -180 to +180 lon), properly supporting legitimate 0-values.
+- **Outcome:** Remote hiker pins glide smoothly across the terrain on position updates without abrupt jumps or teleports.
+
+### 6. Background Trace Continuity & Diagonal Snapping (Orange Line Void) — ✅ Resolved
+- **Files:** [TrackHikerGPSFlow.ts](file:///d:/thrail_app/src/core/flows/TrackHikerGPSFlow.ts), [locationTask.ts](file:///d:/thrail_app/src/core/utility/locationTask.ts), [TrailMap.native.tsx](file:///d:/thrail_app/src/features/Map/TrailMap.native.tsx), [hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts)
+- **Status:** ✅ **Resolved**
+- **Action Taken:**
+  - Migrated `walkedRoute: [number, number][]` into `useHikeStore` as the single source of truth for both foreground and headless background GPS tracking.
+  - Updated `locationTask.ts` to iterate through all points in `data.locations` batch provided by the OS, appending all intermediate curve points to the shared store.
+  - Eliminated the in-memory truncation (`set({ coordinates: [lastCoord] })`), preserving the user's walked path uninterrupted in device RAM.
+  - Removed dummy `(0, 0)` coordinate injection on `AppState` transitions.
+  - Converted the trace line from a dashed pattern to a continuous smooth solid line (`lineDasharray` removed from `walkedPathStyle`).
+- **Outcome:** Locking the phone, putting it in pocket, and turning street corners maintains full curve fidelity without diagonal snapping across buildings.
+
+### 7. Premature Trail Drawing Prior to Hike Start & Pre-Warming Isolation — ✅ Resolved
+- **Files:** [TrackHikerGPSFlow.ts](file:///d:/thrail_app/src/core/flows/TrackHikerGPSFlow.ts), [CreateHikeFlow.ts](file:///d:/thrail_app/src/core/flows/CreateHikeFlow.ts)
+- **Status:** ✅ **Resolved**
+- **Action Taken:**
+  - Decoupled blue dot GPS pre-warming (`setUserLocation`) from trace breadcrumb recording.
+  - Strictly guarded coordinate recording: `addCoordinate` is only triggered when `active === true && currentHike?.status === 'started'`.
+  - Added session reset hooks in `startHike`, `onResetHike`, and screen unmount to ensure every hike begins with an empty, pristine trace line.
+- **Outcome:** Navigating to map or browsing trails displays user location without drawing false jitter scribbles before "Start Hike" / "Start Free Roam" is clicked.
+
+### 8. Consolidated Route Persistence & Elimination of High-Frequency Firestore Spam — ✅ Resolved
+- **Files:** [hikeStoreCreator.ts](file:///d:/thrail_app/src/core/models/Hike/stores/hikeStoreCreator.ts), [HikeRepository.ts](file:///d:/thrail_app/src/core/models/Hike/repositories/HikeRepository.ts)
+- **Status:** ✅ **Resolved**
+- **Action Taken:**
+  - Eliminated the 15-second subcollection document spam (`writeCoordinates` every 5 ticks), protecting daily Firestore write quotas and preventing offline mutation backlog in mountain dead zones.
+  - Implemented `writeRoute(userId, hikeId, route)` saving the complete recorded route into a single consolidated document `users/{userId}/hikes/{hikeId}/route/session` upon hike completion (`onCompleteHike`).
+  - Added `fetchRoute(userId, hikeId)` to enable retrieving and rendering the recorded trail when viewing past hikes.
+- **Outcome:** Reduces Firestore write operations from ~1,500 down to 1 per completed hike, while preserving full trail history for review.
+
+---
+
+## Part 5 — Testing & Validation Status (Pending Field & Hardware Verification)
+
+> [!WARNING]
+> **Implementation vs. Verification Notice:**
+> While Items 1 through 5 and Item 8 have been structurally implemented, strictly typed, and validated through static analysis in the codebase, **NONE of these components are currently fully tested in physical, real-world conditions**. 
+> 
+> Comprehensive automated testing, physical device testing, and mountain field validation remain strictly required prior to production release.
+
+### Component-by-Component Validation Checklist
+
+| Item | Component / Feature | Current Code Status | Required Validation & Testing | Verification Method |
+|------|---------------------|---------------------|-------------------------------|---------------------|
+| **1** | **Follow-Mode Gestures** | ✅ Code Implemented | Validate that pinch-to-zoom, two-finger rotation, and pans reliably disengage camera tracking under active GPS updates without snapping back. | Physical Android/iOS device running active GPS simulator. |
+| **2** | **Production APK Asset Extraction** | ✅ Code Implemented | Verify standalone release APK installs copy the ~34MB PMTiles from `asset://` without crashing or throwing `UnsupportedSchemeException`. | Install unsigned release APK on physical test phone with Wi-Fi/data OFF and Metro bundler stopped. |
+| **3** | **PMTiles Magic Header Integrity** | ✅ Code Implemented | Test recovery from interrupted writes, zero-byte stubs, and partial files (<34MB) to ensure automatic purge and clean re-extraction. | Inject mock corrupted/partial file at `${FileSystem.documentDirectory}thrail-offline-map.pmtiles` and verify clean recovery. |
+| **4** | **LKL Pin State & Rescue Overlay** | ✅ Code Implemented | (1) Test 2-minute inactivity transition to amber warning state when peer disconnects.<br>(2) Test Rescue Card coordinate precision, native Share dispatch, and camera focus.<br>(3) Verify Firestore document deletion and store cleanup on `onCompleteHike`. | Multi-device test: 2 physical phones on group hike; force-kill one phone / toggle Airplane Mode; verify pin persistence and SAR card. |
+| **5** | **Marker Coordinate Interpolation** | ✅ Code Implemented | Test 1200ms quadratic ease-out interpolation smoothness on regular walking ticks (2-3s interval) and verify instant snapping on initial fix or teleports (>5km). | Stream recorded GPS walk path into Firestore group document and observe marker fluidity on physical screen. |
+| **8** | **Strict Coordinate Validation** | ✅ Code Implemented | Verify that `isValidCoordinate` safely accepts `(0, 0)` while discarding `NaN`, `undefined`, infinite numbers, or out-of-bounds coordinates. | Unit test suite covering coordinate edge cases. |
+| **10** | **Background Trace Continuity (Orange Line)** | ✅ Code Implemented | Verify continuous GPS trace recording when phone is locked or screen off. Confirm zero straight diagonal snaps across buildings upon unlocking. | Physical walk test locking screen across two 90-degree street corners. |
+| **11** | **Premature Trace Drawing Prior to Hike Start** | ✅ Code Implemented | Verify that navigating to map screen pre-warms GPS (blue dot) without appending breadcrumbs to the orange line until "Start Hike" / "Start Free Roam" is explicitly pressed. | Open HikeRecordingScreen / TrailMap, walk 20 meters before tapping Start, verify zero orange line on map. |
+| **12** | **Consolidated Route Persistence vs. High-Frequency Quota Burn** | ✅ Code Implemented | Verify that active hike recording maintains the full route locally without firing Firestore writes every 15s. Verify that completing a hike saves a single consolidated route document and past hikes can load and display the trail. | Walk a 10-minute test hike, verify only 1 route document written to Firestore upon completion, and verify past hike screen renders the walked route. |
+
+---
+
+### Crucial Pre-Release Test Protocols
+
+#### 1. Hardware & Platform Testing (Release APK)
+- [ ] Build standalone production APK: `cd android && ./gradlew assembleRelease`.
+- [ ] Install on low-RAM device (2GB–3GB RAM Android) and test cold launch time (<3.5s).
+- [ ] Verify contour layers, trails GeoJSON, and PBF fonts render with zero memory exhaustion (`OutOfMemoryError`).
+
+#### 2. Network & Dead-Zone Field Simulation
+- [ ] **Airplane Mode Cutover:** Start hike, verify offline PMTiles and trail rendering works seamlessly with cellular data and Wi-Fi disabled.
+- [ ] **Mid-Hike Signal Loss (LKL Test):** Hiker B turns off phone / loses signal for 5 minutes. Verify Hiker A's screen keeps Hiker B's pin pinned at last coordinates with amber badge `⚠️ Signal Lost • Last seen 5m ago`.
+- [ ] **Emergency SAR Dispatch Test:** Tap LKL pin, press "Dispatch Coordinates", and verify the share message contains correct 6-decimal latitude/longitude and working Google Maps search link.
+
+#### 3. Active Hike Recording & Path Continuity
+- [ ] **Pre-Hike Isolation:** Open map before pressing "Start Hike"; confirm blue dot shows location, but orange trace line remains empty.
+- [ ] **Background Continuity:** Start hike, walk with screen locked / in pocket, turn two corners, unlock phone; confirm orange dashed line faithfully follows the street/trail without straight diagonal cuts across buildings.
+
+#### 4. Session Lifecycle & Cleanup Test
+- [ ] Guide taps "Complete Hike":
+  - Verify `stopSharingLocation` removes live location document from Firestore: `groups/{groupId}/liveLocations/{userId}`.
+  - Verify local store `locationByGroup[groupId]` is cleared.
+  - Verify map unmounts cleanly without orphaned timers or listener leaks.
+- [ ] **Consolidated Route Save:** Complete a hike and inspect Firestore console:
+  - Verify that NO 15-second spam documents were written to `coordinates/{timestampMs}`.
+  - Verify that a single consolidated route document is saved under `users/{userId}/hikes/{hikeId}/route` (or within the hike document).
+  - Open past hike in history and verify the walked path renders on the review map.
+
