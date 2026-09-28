@@ -4,7 +4,7 @@
  */
 
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -124,6 +124,7 @@ const BookingDetailsScreen = ({
     const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
     const [isSubmittingCancellation, setIsSubmittingCancellation] = useState<boolean>(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
+    const isReschedulingRef = useRef<boolean>(false);
     const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
@@ -886,15 +887,24 @@ const BookingDetailsScreen = ({
 
             <RescheduleModal
                 visible={showRescheduleModal}
-                onClose={() => setShowRescheduleModal(false)}
+                onClose={() => {
+                    isReschedulingRef.current = false;
+                    setShowRescheduleModal(false);
+                }}
                 availableFutureOffers={availableFutureOffers}
                 onConfirm={(selectedOffer: IOffer | 'explore') => {
+                    if (isReschedulingRef.current) return;
+                    isReschedulingRef.current = true;
                     setShowRescheduleModal(false);
-                    setTimeout(() => {
-                        if (selectedOffer === 'explore') {
-                            router.replace('/explore');
-                        } else if (onReschedule && typeof selectedOffer === 'object') {
-                            onReschedule(booking, selectedOffer);
+                    setTimeout(async () => {
+                        try {
+                            if (selectedOffer === 'explore') {
+                                router.replace('/explore');
+                            } else if (onReschedule && typeof selectedOffer === 'object') {
+                                await onReschedule(booking, selectedOffer);
+                            }
+                        } finally {
+                            isReschedulingRef.current = false;
                         }
                     }, 300);
                 }}
