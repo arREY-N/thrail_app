@@ -280,6 +280,20 @@ const ProfileInfoScreen = ({
     const personalDetailsRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(personalDetailsFields) : false);
     const emergencyContactRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(emergencyContactFields) : false);
 
+    const handleSaveAccount = async (updatedFields: Partial<IUser>): Promise<void> => {
+        if (!onSavePress) return;
+        const sanitizedFields = { ...updatedFields };
+        if (sanitizedFields.emergencyContact) {
+            const ec = sanitizedFields.emergencyContact;
+            sanitizedFields.emergencyContact = {
+                ...ec,
+                userId: ec.userId || '',
+                phoneVerifiedAt: ec.userId ? (ec.phoneVerifiedAt ?? null) : null,
+            };
+        }
+        await onSavePress(sanitizedFields);
+    };
+
     const {
         isEditModalVisible,
         setIsEditModalVisible,
@@ -302,11 +316,9 @@ const ProfileInfoScreen = ({
         medicalProfile,
         setMedicalProfile,
         emergencyContact,
-        setEmergencyContact,
         preferences,
         setPreferences,
         searchEmail,
-        setSearchEmail,
         isSearching,
         searchError,
         searchSuccess,
@@ -321,7 +333,11 @@ const ProfileInfoScreen = ({
         willResetAnyVerification,
         findUser,
         handleSaveEmergencyContact,
-    } = useProfileForm({ user: effectiveUser, isEditing, onSavePress, onCancelPress, onEditPress });
+        handleSearchEmailChange,
+        handleContactNameChange,
+        handleContactNumberChange,
+        handleContactEmailChange,
+    } = useProfileForm({ user: effectiveUser, isEditing, onSavePress: handleSaveAccount, onCancelPress, onEditPress });
 
     const effectivePersonalPhoneVerifiedAt = toDateOrNull(effectiveUser.phoneVerifiedAt);
     const phoneValidity = calculateVerificationValidity(effectivePersonalPhoneVerifiedAt);
@@ -680,9 +696,9 @@ const ProfileInfoScreen = ({
                                 {isEditing ? (
                                     <View style={styles.editForm}>
                                         {/* Search Row */}
-                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 0 }}>
                                             <View style={{ flex: 1 }}>
-                                                <CustomTextInput label="Search by Email (Optional)" placeholder="friend@email.com" value={searchEmail} onChangeText={setSearchEmail} keyboardType="email-address" autoCapitalize="none" />
+                                                <CustomTextInput label="Search by Email (Optional)" placeholder="contact@email.com" value={searchEmail} onChangeText={handleSearchEmailChange} keyboardType="email-address" autoCapitalize="none" />
                                             </View>
                                             <TouchableOpacity onPress={handleEmergencySearch} disabled={isSearching} style={{ backgroundColor: Colors.PRIMARY, height: 54, width: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 28 }} activeOpacity={0.8}>
                                                 {isSearching ? (
@@ -707,9 +723,9 @@ const ProfileInfoScreen = ({
                                             </View>
                                         )}
 
-                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, name: text }))} />
-                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, contactNumber: text }))} type="phone" prefix="+63" />
-                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={(text: string) => setEmergencyContact(prev => ({ ...prev, email: text }))} style={styles.noMarginBottom} />
+                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={handleContactNameChange} />
+                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={handleContactNumberChange} type="phone" prefix="+63" />
+                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={handleContactEmailChange} style={styles.noMarginBottom} />
                                     </View>
                                 ) : effectiveUser.emergencyContact?.name ? (
                                     <View>
