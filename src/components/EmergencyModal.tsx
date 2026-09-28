@@ -287,23 +287,14 @@ const EmergencyModal = ({
             cleanPhoneNumber(selectedUser.phoneNumber) === cleanedContactPhone
         );
 
-        const isInitialContactPhoneMatching = !!(
-            initialEmergencyContact?.contactNumber &&
-            cleanPhoneNumber(initialEmergencyContact.contactNumber) === cleanedContactPhone
-        );
-
-        const resolvedPhoneVerifiedAt = isSelectedUserPhoneMatching
-            ? (selectedUser?.phoneVerifiedAt || null)
-            : (isInitialContactPhoneMatching
-                ? (initialEmergencyContact?.phoneVerifiedAt ?? null)
-                : null);
+        const isLinked = !!(selectedUser && isSelectedUserPhoneMatching);
 
         const contactPayload: IEmergencyContact = {
             name: cleanedContactName,
             contactNumber: cleanedContactPhone,
-            userId: selectedUser ? selectedUser.id : (isInitialContactPhoneMatching ? (initialEmergencyContact?.userId || '') : ''),
-            email: selectedUser ? selectedUser.email : (isInitialContactPhoneMatching ? (initialEmergencyContact?.email || '') : ''),
-            phoneVerifiedAt: resolvedPhoneVerifiedAt,
+            userId: isLinked ? selectedUser.id : '',
+            email: selectedUser ? selectedUser.email : searchEmail.trim(),
+            phoneVerifiedAt: isLinked ? (selectedUser.phoneVerifiedAt || null) : null,
         };
 
         if (mode === 'unified' && onSaveUnifiedContacts) {
@@ -442,7 +433,7 @@ const EmergencyModal = ({
                                 <View style={{ flex: 1 }}>
                                     <CustomTextInput
                                         label="Search by Email (Optional)"
-                                        placeholder="friend@email.com"
+                                        placeholder="contact@email.com"
                                         value={searchEmail}
                                         onChangeText={handleEmailChange}
                                         keyboardType="email-address"
