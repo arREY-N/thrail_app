@@ -27,15 +27,15 @@ import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User, UserRepo } from '@/src/core/models/User/User';
 import { formatTime } from '@/src/utils/dateFormatter';
 
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
+import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
+import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
-import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
-import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
-import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import RequiredDocumentsSection from '@/src/features/Book/screens/MyBookings/components/RequiredDocumentsSection';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 import {
@@ -162,6 +162,16 @@ const BookingDetailsScreen = ({
         setHasStagedContactChanges(false);
     }
 
+    const [prevCancellation, setPrevCancellation] = useState<Cancellation | null | undefined>(cancellation);
+    const [wasAdminCancellationLifted, setWasAdminCancellationLifted] = useState<boolean>(false);
+
+    if (cancellation !== prevCancellation) {
+        if (prevCancellation && prevCancellation.cancelledBy === 'admin' && !cancellation) {
+            setWasAdminCancellationLifted(true);
+        }
+        setPrevCancellation(cancellation);
+    }
+
     useEffect(() => {
         const fetchOfferDetails = async () => {
             const offerToUse = booking?.offer as unknown as IOffer;
@@ -189,17 +199,30 @@ const BookingDetailsScreen = ({
         fetchOfferDetails();
     }, [booking?.offer, getBookOffer]);
 
+    const totalAmount = booking?.offer?.price || 0;
+    const amountPaid = booking?.payment?.reduce((sum, p) => {
+        if (p.status === 'captured') return sum + (p.amount || 0);
+        return sum;
+    }, 0) || 0;
+    const remainingBalance = totalAmount - amountPaid;
+
+    const isAdminCancelled =
+        cancellation?.cancelledBy === 'admin' ||
+        (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
+
     let displayStatus: BookingStatus | undefined = localStatus;
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
+    } else if (cancellation?.status === 'approved') {
+        displayStatus = amountPaid > 0 ? 'refund' : 'cancelled';
     } else if (
         cancellation?.status === 'rejected' &&
         localStatus !== 'cancelled' &&
         localStatus !== 'refund' &&
         localStatus !== 'refunded'
     ) {
-        displayStatus = 'cancellation-rejected';
+        displayStatus = localStatus;
     }
 
     if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation') {
@@ -209,13 +232,6 @@ const BookingDetailsScreen = ({
             displayStatus = 'refunded';
         }
     }
-
-    const totalAmount = booking?.offer?.price || 0;
-    const amountPaid = booking?.payment?.reduce((sum, p) => {
-        if (p.status === 'captured') return sum + (p.amount || 0);
-        return sum;
-    }, 0) || 0;
-    const remainingBalance = totalAmount - amountPaid;
 
     const user = booking?.user;
     const cancellationReason = booking?.cancellationReason;
@@ -333,7 +349,7 @@ const BookingDetailsScreen = ({
 
     const canCancelDraft = isPreApprovalDraft && !isCancelled;
     const canRefund = isConfirmed && !isCancelled && !hasPendingCancellation;
-    const canReschedule = ['for-reservation', 'for-reschedule'].includes(displayStatus || '') && !isCancelled;
+    const canReschedule = ['for-reservation', 'for-reschedule'].includes(displayStatus || '') && !isCancelled && !isAdminCancelled;
 
     const showMenuIcon = canCancelDraft || canCancelBooking || canRefund || canReschedule;
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
@@ -594,6 +610,28 @@ const BookingDetailsScreen = ({
                         isPaid={hasHistoricalPayments}
                     />
 
+                    {wasAdminCancellationLifted && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.revertNoticeBanner}>
+                                <CustomIcon library="Feather" name="info" size={18} color={Colors.PRIMARY} />
+                                <View style={styles.revertNoticeContent}>
+                                    <CustomText style={styles.revertNoticeTitle}>
+                                        Cancellation Lifted by Organizer
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.revertNoticeText}>
+                                        The organizer has withdrawn the cancellation notice. Your reservation is active and proceeding normally.
+                                    </CustomText>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setWasAdminCancellationLifted(false)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <CustomIcon library="Feather" name="x" size={16} color={Colors.TEXT_SECONDARY} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
                     <CancellationCard
                         booking={{
                             ...booking,
@@ -644,7 +682,7 @@ const BookingDetailsScreen = ({
                         onReschedule={() => setShowRescheduleModal(true)}
                     />
 
-                    {displayStatus === 'for-reservation' && (
+                    {displayStatus === 'for-reservation' && (!cancellation || cancellation.status === 'rejected') && !isAdminCancelled && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
                             <View style={styles.infoBanner}>
                                 <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -661,6 +699,7 @@ const BookingDetailsScreen = ({
                         stagedReplacements={stagedReplacements}
                         displayStatus={displayStatus}
                         isCancelled={isCancelled}
+                        rejectionReason={booking.cancellationReason}
                         onUploadSuccess={(idx, url, docName) => {
                             setStagedReplacements(prev => ({
                                 ...prev,
@@ -1088,6 +1127,29 @@ const styles = StyleSheet.create({
         flex: 1,
         color: Colors.TEXT_SECONDARY,
         lineHeight: 20
+    },
+    revertNoticeBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+        gap: 12,
+    },
+    revertNoticeContent: {
+        flex: 1,
+        gap: 2,
+    },
+    revertNoticeTitle: {
+        fontWeight: 'bold',
+        fontSize: 14,
+        color: Colors.PRIMARY,
+    },
+    revertNoticeText: {
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 18,
     },
     bulletRow: {
         flexDirection: 'row',
