@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -96,6 +96,14 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         }
     }, [visible, animValue]);
 
+    const isSubmittingRef = useRef(false);
+
+    useEffect(() => {
+        if (!visible) {
+            isSubmittingRef.current = false;
+        }
+    }, [visible]);
+
     const isRefund = actionType === 'refund';
 
     let title = 'Cancel Booking';
@@ -136,8 +144,13 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     const isConfirmDisabled = !reason.trim() || isSubmitting;
 
     const handleConfirm = async () => {
-        if (isConfirmDisabled) return;
-        await onConfirm(reason.trim());
+        if (isConfirmDisabled || isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        try {
+            await onConfirm(reason.trim());
+        } finally {
+            isSubmittingRef.current = false;
+        }
     };
 
     if (!renderModal) return null;
