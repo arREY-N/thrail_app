@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 
+import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
 import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
@@ -16,6 +17,12 @@ export interface UseProfileFormParams {
     onSavePress?: (updatedFields: Partial<IUser>) => Promise<void>;
     onCancelPress?: () => void;
     onEditPress: () => void;
+}
+
+interface LinkedContactUser {
+    id: string;
+    phoneNumber?: string;
+    email?: string;
 }
 
 export function useProfileForm({
@@ -39,12 +46,27 @@ export function useProfileForm({
     const [emergencyContact, setEmergencyContact] = useState<IEmergencyContact>(user.emergencyContact || { name: '', contactNumber: '', email: '' });
     const [preferences, setPreferences] = useState<IPreference>(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
 
+    const [linkedUser, setLinkedUser] = useState<LinkedContactUser | null>(
+        user.emergencyContact?.userId
+            ? {
+                id: user.emergencyContact.userId,
+                phoneNumber: user.emergencyContact.contactNumber || '',
+                email: user.emergencyContact.email || '',
+            }
+            : null
+    );
+
     const { findUser, setEmergencyContact: saveEmergencyContactToDb } = EmergencyContactFlow();
 
-    const handleSaveEmergencyContact = async (contact: IEmergencyContact, linkedUser?: Partial<IUser> | null): Promise<boolean> => {
-        const success = await saveEmergencyContactToDb(contact, linkedUser);
+    const handleSaveEmergencyContact = async (contact: IEmergencyContact, linkedUserResult?: Partial<IUser> | null): Promise<boolean> => {
+        const success = await saveEmergencyContactToDb(contact, linkedUserResult);
         if (success) {
             setEmergencyContact(contact);
+            setLinkedUser(contact.userId ? {
+                id: contact.userId,
+                phoneNumber: contact.contactNumber,
+                email: contact.email,
+            } : null);
         }
         return success;
     };
@@ -67,11 +89,21 @@ export function useProfileForm({
             setMedicalProfile(user.medicalProfile || { hasCondition: false, details: [], clearanceUri: '' });
             setEmergencyContact(user.emergencyContact || { name: '', contactNumber: '', email: '' });
             setPreferences(user.preferences || { experience: 'Beginner', location: [], hike_length: [], province: [] });
-            setSearchEmail(user.emergencyContact?.email || '');
+            setSearchEmail('');
+            setLinkedUser(user.emergencyContact?.userId ? {
+                id: user.emergencyContact.userId,
+                phoneNumber: user.emergencyContact.contactNumber || '',
+                email: user.emergencyContact.email || '',
+            } : null);
             setSearchError(null);
             setSearchSuccess(null);
             setSearchInfo(null);
             setFormError(null);
+        } else {
+            setSearchEmail('');
+            setSearchError(null);
+            setSearchSuccess(null);
+            setSearchInfo(null);
         }
     }
 
@@ -89,6 +121,63 @@ export function useProfileForm({
         onEditPress();
     };
 
+    const handleSearchEmailChange = (text: string) => {
+        setSearchEmail(text);
+        setSearchError(null);
+        const cleaned = text.trim().toLowerCase();
+        if (linkedUser && cleaned !== (linkedUser.email || '').trim().toLowerCase()) {
+            setLinkedUser(null);
+            setSearchSuccess(null);
+            setEmergencyContact(prev => ({
+                ...prev,
+                userId: '',
+                phoneVerifiedAt: null,
+            }));
+        }
+    };
+
+    const handleContactNameChange = (text: string) => {
+        setEmergencyContact(prev => ({ ...prev, name: text }));
+    };
+
+    const handleContactNumberChange = (text: string) => {
+        const cleanedText = cleanPhoneNumber(text);
+        const linkedPhone = cleanPhoneNumber(linkedUser?.phoneNumber || '');
+        const isPhoneMatchingLinked = !!(linkedUser && linkedPhone && cleanedText === linkedPhone);
+
+        if (linkedUser && !isPhoneMatchingLinked) {
+            setLinkedUser(null);
+            setSearchSuccess(null);
+            setEmergencyContact(prev => ({
+                ...prev,
+                contactNumber: text,
+                userId: '',
+                phoneVerifiedAt: null,
+            }));
+        } else {
+            setEmergencyContact(prev => ({ ...prev, contactNumber: text }));
+        }
+    };
+
+    const handleContactEmailChange = (text: string) => {
+        const cleanedText = text.trim().toLowerCase();
+        const linkedEmail = (linkedUser?.email || '').trim().toLowerCase();
+        const isEmailMatchingLinked = !!(linkedUser && linkedEmail && cleanedText === linkedEmail);
+
+        if (linkedUser && !isEmailMatchingLinked) {
+            setLinkedUser(null);
+            setSearchSuccess(null);
+            setEmergencyContact(prev => ({
+                ...prev,
+                email: text,
+                userId: '',
+                phoneVerifiedAt: null,
+            }));
+        } else {
+            setEmergencyContact(prev => ({ ...prev, email: text }));
+        }
+    };
+
     const handleEmergencySearch = async () => {
         setSearchError(null);
         setSearchSuccess(null);
@@ -104,8 +193,21 @@ export function useProfileForm({
             const results = await findUser(cleanedEmail);
             if (!results || results.length === 0) {
                 setSearchInfo("No Thrail account found with this email. Please provide the contact name and phone number manually, we will save this as an external SMS contact.");
+                setSearchSuccess(null);
+                setLinkedUser(null);
+                setEmergencyContact(prev => ({
+                    ...prev,
+                    email: cleanedEmail,
+                    userId: '',
+                    phoneVerifiedAt: null,
+                }));
             } else {
                 const foundUser = results[0];
+                setLinkedUser({
+                    id: foundUser.id,
+                    phoneNumber: foundUser.phoneNumber || '',
+                    email: foundUser.email || '',
+                });
                 setEmergencyContact({
                     name: `${foundUser.firstname || ''} ${foundUser.lastname || ''}`.trim(),
                     contactNumber: foundUser.phoneNumber || '',
@@ -139,21 +241,62 @@ export function useProfileForm({
 
     const handleSave = async (): Promise<void> => {
         if (onSavePress) {
+            const hasName = !!emergencyContact.name?.trim();
+            const hasPhone = !!emergencyContact.contactNumber?.trim();
+            const hasEmail = !!emergencyContact.email?.trim();
+
+            if (!hasName && !hasPhone && !hasEmail) {
+                await onSavePress({
+                    username,
+                    phoneNumber,
+                    birthday: birthday ?? undefined,
+                    address,
+                    medicalProfile,
+                    emergencyContact: {
+                        name: '',
+                        contactNumber: '',
+                        email: '',
+                        userId: '',
+                        phoneVerifiedAt: null,
+                    },
+                    preferences,
+                    phoneVerifiedAt: isPhoneChanged ? null : (user.phoneVerifiedAt ?? null),
+                });
+                return;
+            }
+
+            const cleanedContactNumber = cleanPhoneNumber(emergencyContact.contactNumber || '');
+            const linkedContactPhone = cleanPhoneNumber(linkedUser?.phoneNumber || '');
+            const isPhoneMatch = !!(linkedUser && linkedContactPhone && cleanedContactNumber === linkedContactPhone);
+
+            const isLinked = !!(
+                linkedUser &&
+                emergencyContact.userId &&
+                linkedUser.id === emergencyContact.userId &&
+                isPhoneMatch
+            );
+
+            const resolvedEmergencyContact: IEmergencyContact = {
+                name: emergencyContact.name.trim(),
+                contactNumber: emergencyContact.contactNumber.trim(),
+                email: (emergencyContact.email || '').trim(),
+                userId: isLinked ? emergencyContact.userId : '',
+                phoneVerifiedAt: isLinked ? (isEmergencyPhoneChanged ? null : (user.emergencyContact?.phoneVerifiedAt ?? null)) : null,
+            };
+
             await onSavePress({
                 username,
                 phoneNumber,
                 birthday: birthday ?? undefined,
                 address,
                 medicalProfile,
-                emergencyContact: {
-                    ...emergencyContact,
-                    phoneVerifiedAt: isEmergencyPhoneChanged ? null : (user.emergencyContact?.phoneVerifiedAt ?? null),
-                },
+                emergencyContact: resolvedEmergencyContact,
                 preferences,
                 phoneVerifiedAt: isPhoneChanged ? null : (user.phoneVerifiedAt ?? null),
             });
         }
     };
+
 
     const handleSavePress = () => {
         if (!username.trim()) {
@@ -217,5 +360,10 @@ export function useProfileForm({
         willResetEmergencyVerification,
         findUser,
         handleSaveEmergencyContact,
+        handleSearchEmailChange,
+        handleContactNameChange,
+        handleContactNumberChange,
+        handleContactEmailChange,
+        linkedUser,
     };
 }
