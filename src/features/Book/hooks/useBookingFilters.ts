@@ -34,14 +34,17 @@ export default function useBookingFilters(
         today.setHours(0, 0, 0, 0);
 
         const getEffectiveStatus = (booking: Booking): string => {
-            const activeCancellation = userCancellations?.find(
-                c => c.bookingId === booking.id && (c.status === 'pending' || c.status === 'rejected')
+            const cancellationDoc = userCancellations?.find(
+                c => c.bookingId === booking.id
             );
-            if (activeCancellation?.status === 'pending') {
+            if (cancellationDoc?.status === 'approved') {
+                return 'cancelled';
+            }
+            if (cancellationDoc?.status === 'pending') {
                 return 'for-cancellation';
             }
             if (
-                activeCancellation?.status === 'rejected' &&
+                cancellationDoc?.status === 'rejected' &&
                 booking.status !== 'cancelled' &&
                 booking.status !== 'refund' &&
                 booking.status !== 'refunded'

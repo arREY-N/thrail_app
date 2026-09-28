@@ -1,36 +1,36 @@
-/**
- * @file AdminCancellationCard.tsx
- * @description In-page review card for tour organizers displaying cancellation request status,
- * hiker reason, submission timestamp, financial impact, and organizer decline notes.
- */
-
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { getStatusConfig } from '@/src/constants/statusConfig';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 /**
  * Props for AdminCancellationCard.
  * @param status - Current workflow status of the booking.
- * @param cancellationReason - Reason submitted by the hiker.
+ * @param cancellation - Optional cancellation request object.
+ * @param cancellationReason - Reason submitted by the hiker or organizer.
  * @param declineReason - Decline explanation/adminNote provided by organizer if declined.
  * @param totalAmountPaid - Total captured payment amount for the booking.
  * @param requestedAt - Optional timestamp when the cancellation was requested.
  * @param cancelledBy - Optional name/role of who cancelled the booking.
+ * @param onRevert - Optional callback when organizer reverts a pending admin-initiated cancellation.
+ * @param isReverting - Whether the revert operation is currently processing.
  */
 export interface AdminCancellationCardProps {
     status: string;
+    cancellation?: Cancellation | null;
     cancellationReason?: string;
     declineReason?: string;
     totalAmountPaid: number;
     requestedAt?: Date | null;
     cancelledBy?: string;
+    onRevert?: () => void;
+    isReverting?: boolean;
 }
 
 /**
@@ -38,72 +38,132 @@ export interface AdminCancellationCardProps {
  */
 const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     status,
+    cancellation,
     cancellationReason,
     declineReason,
     totalAmountPaid,
     requestedAt,
     cancelledBy,
+    onRevert,
+    isReverting = false,
 }) => {
-    const isPending = status === 'for-cancellation';
-    const isDeclined = status === 'cancellation-rejected';
-    const isRefunded = status === 'refund' || status === 'refunded';
-    const isCancelled = status === 'cancelled';
+    const isCancelledByAdmin =
+        cancellation?.cancelledBy === 'admin' || cancelledBy === 'admin';
+
+    const isPending = cancellation
+        ? cancellation.status === 'pending'
+        : status === 'for-cancellation';
+    const isDeclined = cancellation
+        ? cancellation.status === 'rejected'
+        : status === 'cancellation-rejected';
+    const isRefunded =
+        (cancellation?.status === 'approved' && totalAmountPaid > 0) ||
+        status === 'refund' ||
+        status === 'refunded';
+    const isCancelled =
+        status === 'cancelled' ||
+        (cancellation?.status === 'approved' && totalAmountPaid === 0);
 
     if (!isPending && !isDeclined && !isRefunded && !isCancelled) {
         return null;
     }
 
     const isPaid = totalAmountPaid > 0;
-    const statusConfig = getStatusConfig(status, 'admin');
+
+    const isApproved =
+        cancellation?.status === 'approved' ||
+        status === 'cancelled' ||
+        status === 'refund' ||
+        status === 'refunded';
+
+    const headerTitle = isCancelledByAdmin
+        ? 'Hike Cancelled by Organizer'
+        : isDeclined
+        ? 'Cancellation Request Declined'
+        : isApproved
+        ? (isRefunded ? 'Cancellation Approved & Refunded' : 'Cancellation Approved')
+        : 'Cancellation Review';
+
+    const headerIcon = isCancelledByAdmin
+        ? 'slash'
+        : isDeclined
+        ? 'x-circle'
+        : isApproved
+        ? 'check-circle'
+        : 'alert-triangle';
+
+    const iconColor = isCancelledByAdmin || isDeclined || isPending
+        ? Colors.ERROR
+        : Colors.SUCCESS;
+
+    const subtitleText = isCancelledByAdmin
+        ? (isPending
+            ? 'You cancelled this reservation. Hiker has been notified.'
+            : 'Booking cancelled by organizer. Reserved slot released.')
+        : (isPending
+            ? 'Hiker requested to cancel this reservation. Review reason and inventory status.'
+            : isDeclined
+            ? 'Organizer declined this request. Hiker can submit an appeal.'
+            : isRefunded
+            ? 'Cancellation approved and refund issued via PayMongo.'
+            : `Booking cancelled by ${cancelledBy || 'Hiker'}. Reserved slot released.`);
+
+    const resolvedReason =
+        cancellation?.reason || cancellationReason;
+    const resolvedDeclineReason =
+        declineReason || cancellation?.adminNote;
+    const resolvedTimestamp =
+        requestedAt || cancellation?.createdAt;
+
+    const reasonBoxLabel = isCancelledByAdmin
+        ? "ORGANIZER'S CANCELLATION REASON"
+        : "HIKER'S SUBMITTED REASON";
 
     return (
         <View style={styles.cardContainer}>
-            {/* Header Row: Title & Icon on Left, Official Status Badge on Right */}
+            {/* Header Row: Title & Icon on Left, Approved Badge on Right */}
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
                     <CustomIcon
                         library="Feather"
-                        name={statusConfig.icon}
+                        name={headerIcon}
                         size={16}
-                        color={statusConfig.textColor}
+                        color={iconColor}
                     />
                     <CustomText style={styles.headerTitle}>
-                        Cancellation Review
+                        {headerTitle}
                     </CustomText>
                 </View>
 
-                <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-                    <CustomText style={[styles.statusBadgeText, { color: statusConfig.textColor }]}>
-                        {statusConfig.label}
-                    </CustomText>
-                </View>
+                {isApproved && (
+                    <View style={styles.approvedBadge}>
+                        <CustomIcon library="Feather" name="check" size={12} color={Colors.SUCCESS} />
+                        <CustomText style={styles.approvedBadgeText}>
+                            APPROVED
+                        </CustomText>
+                    </View>
+                )}
             </View>
 
             <CustomText variant="caption" style={styles.headerSubtitle}>
-                {isPending
-                    ? 'Hiker requested to cancel this reservation. Review reason and inventory status.'
-                    : isDeclined
-                    ? 'Organizer declined this request. Hiker can submit an appeal.'
-                    : isRefunded
-                    ? 'Cancellation approved and refund issued via PayMongo.'
-                    : `Booking cancelled by ${cancelledBy || 'Hiker'}. Reserved slot released.`}
+                {subtitleText}
             </CustomText>
 
-            {/* Hiker Reason Box (for pending, cancelled, or declined) */}
-            {cancellationReason ? (
+            {/* Reason Box (Hiker or Organizer) */}
+            {resolvedReason ? (
                 <View style={styles.infoBox}>
                     <View style={styles.infoBoxHeader}>
                         <CustomText variant="caption" style={styles.infoBoxLabel}>
-                            HIKER&apos;S SUBMITTED REASON
+                            {reasonBoxLabel}
                         </CustomText>
-                        {requestedAt && (
+                        {resolvedTimestamp && (
                             <CustomText variant="caption" style={styles.infoBoxTimestamp}>
-                                {formatBookingDate(requestedAt)}
+                                {formatBookingDate(resolvedTimestamp)}
                             </CustomText>
                         )}
                     </View>
                     <ExpandableText
-                        text={cancellationReason}
+                        text={resolvedReason}
                         quote={true}
                         textStyle={styles.infoBoxText}
                         characterLimit={160}
@@ -113,7 +173,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             ) : null}
 
             {/* Organizer Decline Reason Box (if declined) */}
-            {isDeclined && declineReason ? (
+            {isDeclined && resolvedDeclineReason ? (
                 <View style={[styles.infoBox, styles.declineBox]}>
                     <View style={styles.infoBoxHeader}>
                         <CustomText variant="caption" style={styles.declineBoxLabel}>
@@ -121,7 +181,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         </CustomText>
                     </View>
                     <ExpandableText
-                        text={declineReason}
+                        text={resolvedDeclineReason}
                         quote={true}
                         textStyle={styles.declineBoxText}
                         characterLimit={160}
@@ -155,6 +215,21 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                     </CustomText>
                 </View>
             </View>
+
+            {/* Optional Revert Cancellation Action for Admin-Initiated Pending Cancellations */}
+            {isCancelledByAdmin && isPending && Boolean(onRevert) && (
+                <TouchableOpacity
+                    style={styles.revertBtn}
+                    onPress={onRevert}
+                    disabled={isReverting}
+                    activeOpacity={0.7}
+                >
+                    <CustomIcon library="Feather" name="rotate-ccw" size={14} color={Colors.ERROR} />
+                    <CustomText style={styles.revertBtnText}>
+                        {isReverting ? 'Reverting Cancellation...' : 'Revert Cancellation'}
+                    </CustomText>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
@@ -185,15 +260,20 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
     },
-    statusBadge: {
+    approvedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
     },
-    statusBadgeText: {
-        fontWeight: 'bold',
+    approvedBadgeText: {
         fontSize: 10,
-        textTransform: 'uppercase',
+        fontWeight: 'bold',
+        color: Colors.SUCCESS,
+        letterSpacing: 0.5,
     },
     headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
@@ -284,6 +364,23 @@ const styles = StyleSheet.create({
     },
     slotReleasedText: {
         color: Colors.PRIMARY,
+    },
+    revertBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.ERROR,
+        backgroundColor: Colors.WHITE,
+        marginTop: 12,
+    },
+    revertBtnText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
     },
 });
 
