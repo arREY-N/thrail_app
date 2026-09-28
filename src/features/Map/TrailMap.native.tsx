@@ -12,8 +12,8 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { forwardRef, memo, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
@@ -84,7 +84,185 @@ export interface HikerLocation {
   latitude: number;
   longitude: number;
   hikerName?: string;
+  timestamp?: Date | string | number;
+  altitude?: number | null;
+  status?: string;
 }
+
+/**
+ * Validates coordinate numbers to ensure they are finite, non-NaN,
+ * and within standard geographic limits (-90 to +90 lat, -180 to +180 lon).
+ * Correctly permits 0-valued coordinates (e.g. at the equator/prime meridian).
+ */
+function isValidCoordinate(lat?: number | null, lon?: number | null): boolean {
+  if (typeof lat !== "number" || typeof lon !== "number") return false;
+  if (isNaN(lat) || isNaN(lon) || !isFinite(lat) || !isFinite(lon)) return false;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return false;
+  return true;
+}
+
+/**
+ * Returns elapsed minutes between a recorded timestamp and a reference time.
+ */
+function getElapsedMinutes(timestamp?: Date | string | number, currentTimeMs = Date.now()): number {
+  if (!timestamp) return 0;
+  const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
+  if (isNaN(timeMs)) return 0;
+  const elapsedMs = Math.max(0, currentTimeMs - timeMs);
+  return Math.floor(elapsedMs / (1000 * 60));
+}
+
+/**
+ * Formats relative time elapsed since the last location report.
+ */
+function formatTimeAgo(timestamp?: Date | string | number, currentTimeMs = Date.now()): string {
+  const mins = getElapsedMinutes(timestamp, currentTimeMs);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return `${hours}h ${remainingMins}m ago`;
+}
+
+/**
+ * Formats recorded timestamp for emergency rescue coordinates display.
+ */
+function formatRecordedTime(timestamp?: Date | string | number): string {
+  if (!timestamp) return "Unknown";
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  if (isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+interface AnimatedHikerMarkerProps {
+  hiker: HikerLocation;
+  onPress: (hiker: HikerLocation) => void;
+}
+
+/**
+ * Smoothly interpolates hiker marker coordinates on the map over ~1200ms
+ * upon receiving remote location updates. Automatically transitions to
+ * Last Known Location (LKL) state if no updates are received for >= 2 minutes.
+ */
+const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress }) => {
+  const [coords, setCoords] = useState<[number, number]>([hiker.longitude, hiker.latitude]);
+  const prevCoordsRef = useRef<[number, number]>([hiker.longitude, hiker.latitude]);
+  const animValue = useRef(new Animated.Value(1)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Periodic ticker ensuring LKL state transitions even if device battery died
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Smoothly interpolate coordinate movements across updates
+  useEffect(() => {
+    const prev = prevCoordsRef.current;
+    const targetLon = hiker.longitude;
+    const targetLat = hiker.latitude;
+
+    const dLon = targetLon - prev[0];
+    const dLat = targetLat - prev[1];
+    const distSq = dLon * dLon + dLat * dLat;
+
+    // If movement is negligible (< ~0.1m) or huge (> ~0.05 degrees, initial load or warp), snap directly
+    if (distSq < 0.000000001 || distSq > 0.0025) {
+      prevCoordsRef.current = [targetLon, targetLat];
+      setCoords([targetLon, targetLat]);
+      return;
+    }
+
+    if (animRef.current) {
+      animRef.current.stop();
+    }
+
+    const startLon = prev[0];
+    const startLat = prev[1];
+
+    animValue.setValue(0);
+    const listenerId = animValue.addListener(({ value }) => {
+      const currentLon = startLon + (targetLon - startLon) * value;
+      const currentLat = startLat + (targetLat - startLat) * value;
+      setCoords([currentLon, currentLat]);
+    });
+
+    const animation = Animated.timing(animValue, {
+      toValue: 1,
+      duration: 1200,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    });
+
+    animRef.current = animation;
+    animation.start(() => {
+      prevCoordsRef.current = [targetLon, targetLat];
+      setCoords([targetLon, targetLat]);
+      animValue.removeListener(listenerId);
+      animRef.current = null;
+    });
+
+    return () => {
+      animValue.removeListener(listenerId);
+      if (animRef.current) {
+        animRef.current.stop();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hiker.longitude, hiker.latitude]);
+
+  const initials = hiker.hikerName
+    ? hiker.hikerName
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "?";
+
+  // LKL condition: 2 or more minutes since last recorded update
+  const elapsedMinutes = getElapsedMinutes(hiker.timestamp, now);
+  const isLkl = elapsedMinutes >= 2;
+  const timeAgoText = formatTimeAgo(hiker.timestamp, now);
+
+  return (
+    <Marker
+      key={`hiker-${hiker.id}`}
+      id={`hiker-${hiker.id}`}
+      lngLat={coords}
+      onPress={() => onPress(hiker)}
+    >
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => onPress(hiker)}
+        style={styles.hikerMarkerContainer}
+      >
+        <View style={[styles.hikerMarkerCircle, isLkl && styles.hikerMarkerCircleLkl]}>
+          <Text style={styles.hikerMarkerInitials}>{initials}</Text>
+          {isLkl && (
+            <View style={styles.hikerMarkerLklBadge}>
+              <MaterialIcons name="warning" size={9} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.hikerMarkerLabel, isLkl && styles.hikerMarkerLabelLkl]}>
+          <Text
+            style={[styles.hikerMarkerLabelText, isLkl && styles.hikerMarkerLabelTextLkl]}
+            numberOfLines={1}
+          >
+            {isLkl ? `⚠️ Signal Lost • ${timeAgoText}` : hiker.hikerName || "Hiker"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Marker>
+  );
+});
+
+AnimatedHikerMarker.displayName = "AnimatedHikerMarker";
 
 export interface TrailMapProps {
   initialLon?: number | string | (number | string)[];
@@ -99,6 +277,7 @@ export interface TrailMapProps {
 export interface TrailMapRef {
   centerOnUser: () => void;
   centerOnCoordinate: (lon: number, lat: number) => void;
+  flyTo?: (options: { center: [number, number]; zoom?: number; duration?: number }) => void;
   toggleOffline: () => void;
   exportHikeData: () => void;
   startBackgroundTracking: () => Promise<void>;
@@ -131,6 +310,8 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
+  const isSelectedLkl = selectedHiker ? getElapsedMinutes(selectedHiker.timestamp) >= 2 : false;
 
   const cameraRef = useRef<CameraRef | null>(null);
   const lastZoomRef = useRef<number>(16);
@@ -259,6 +440,10 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
   useImperativeHandle(ref, () => ({
     centerOnUser,
     centerOnCoordinate,
+    flyTo: (options: { center: [number, number]; zoom?: number; duration?: number }) => {
+      setIsFollowing(false);
+      flyCamera(options.center, options.zoom ?? 17, options.duration ?? 800);
+    },
     toggleOffline: () => setForceOffline((v: boolean) => !v),
     exportHikeData,
     startBackgroundTracking,
@@ -342,38 +527,103 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
           />
         )}
 
-        {/* Render other group hikers on the map */}
+        {/* Render group hikers with smooth animated coordinate interpolation & LKL state */}
         {hikerLocations && hikerLocations.map((hiker: HikerLocation) => {
-          // Skip if coordinate is invalid or is the current user
-          if (!hiker || !hiker.latitude || !hiker.longitude) return null;
+          // Strictly validate coordinates and skip current user
+          if (!hiker || !isValidCoordinate(hiker.latitude, hiker.longitude)) return null;
           if (currentUserId && hiker.id === currentUserId) return null;
 
-          const initials = hiker.hikerName
-            ? hiker.hikerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
-            : '?';
-
           return (
-            <Marker
+            <AnimatedHikerMarker
               key={`hiker-${hiker.id}`}
-              id={`hiker-${hiker.id}`}
-              lngLat={[hiker.longitude, hiker.latitude]}
-            >
-              <View style={styles.hikerMarkerContainer}>
-                <View style={styles.hikerMarkerCircle}>
-                  <Text style={styles.hikerMarkerInitials}>{initials}</Text>
-                </View>
-                {hiker.hikerName && (
-                  <View style={styles.hikerMarkerLabel}>
-                    <Text style={styles.hikerMarkerLabelText} numberOfLines={1}>
-                      {hiker.hikerName}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </Marker>
+              hiker={hiker}
+              onPress={(clicked) => setSelectedHiker(clicked)}
+            />
           );
         })}
       </Map>
+
+      {/* Rescue Coordinates Card Overlay (Interactive Search & Rescue Inspection) */}
+      {selectedHiker && (
+        <View style={[styles.rescueCardContainer, { bottom: bottomInset + 12 }]} pointerEvents="box-none">
+          <View style={styles.rescueCard}>
+            <View style={styles.rescueCardHeader}>
+              <View style={styles.rescueCardTitleGroup}>
+                <View style={[styles.rescueCardIndicator, isSelectedLkl ? styles.bgAmber : styles.bgEmerald]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rescueCardHikerName} numberOfLines={1}>
+                    {selectedHiker.hikerName || "Group Hiker"}
+                  </Text>
+                  <Text style={styles.rescueCardStatusSub}>
+                    {isSelectedLkl
+                      ? `⚠️ Last Known Location • ${formatTimeAgo(selectedHiker.timestamp)}`
+                      : "🟢 Live Signal • Active"}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setSelectedHiker(null)}
+                style={styles.rescueCardCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="close" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.rescueGrid}>
+              <View style={styles.rescueGridCol}>
+                <Text style={styles.rescueGridLabel}>LATITUDE</Text>
+                <Text style={styles.rescueGridValue}>{selectedHiker.latitude.toFixed(6)}</Text>
+              </View>
+              <View style={styles.rescueGridCol}>
+                <Text style={styles.rescueGridLabel}>LONGITUDE</Text>
+                <Text style={styles.rescueGridValue}>{selectedHiker.longitude.toFixed(6)}</Text>
+              </View>
+              <View style={styles.rescueGridCol}>
+                <Text style={styles.rescueGridLabel}>ALTITUDE</Text>
+                <Text style={styles.rescueGridValue}>
+                  {selectedHiker.altitude != null ? `${Math.round(selectedHiker.altitude)} m` : "—"}
+                </Text>
+              </View>
+              <View style={styles.rescueGridCol}>
+                <Text style={styles.rescueGridLabel}>RECORDED</Text>
+                <Text style={styles.rescueGridValue}>{formatRecordedTime(selectedHiker.timestamp)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.rescueActions}>
+              <TouchableOpacity
+                style={styles.rescueShareBtn}
+                onPress={() => {
+                  const name = selectedHiker.hikerName || "Hiker";
+                  const latStr = selectedHiker.latitude.toFixed(6);
+                  const lonStr = selectedHiker.longitude.toFixed(6);
+                  const timeStr = formatRecordedTime(selectedHiker.timestamp);
+                  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${latStr},${lonStr}`;
+                  Share.share({
+                    title: `Emergency Rescue Coordinates: ${name}`,
+                    message: `[THRAIL SEARCH & RESCUE]\nHiker: ${name}\nStatus: ${isSelectedLkl ? "LAST KNOWN LOCATION (Signal Lost)" : "LIVE SIGNAL"}\nCoordinates: ${latStr}, ${lonStr}\nRecorded: ${timeStr}\nMap: ${mapUrl}`,
+                  });
+                }}
+              >
+                <MaterialIcons name="share" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.rescueShareBtnText}>Dispatch Coordinates</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.rescueCenterBtn}
+                onPress={() => {
+                  flyCamera([selectedHiker.longitude, selectedHiker.latitude], 16, 1000);
+                }}
+              >
+                <MaterialIcons name="my-location" size={16} color="#1E293B" style={{ marginRight: 4 }} />
+                <Text style={styles.rescueCenterBtnText}>Focus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 });
@@ -417,6 +667,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  hikerMarkerCircleLkl: {
+    backgroundColor: '#D97706', // Amber 600 for Last Known Location
+    borderColor: '#FEF3C7',
+  },
+  hikerMarkerLklBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#B45309',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
   hikerMarkerInitials: {
     color: '#FFFFFF',
     fontSize: 11,
@@ -437,11 +704,133 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  hikerMarkerLabelLkl: {
+    backgroundColor: 'rgba(180, 83, 9, 0.95)', // Deep amber pill for LKL
+    borderColor: 'rgba(254, 243, 199, 0.3)',
+    borderWidth: 1,
+  },
   hikerMarkerLabelText: {
     fontSize: 9,
     fontWeight: '700',
     color: '#FFFFFF', // High-contrast crisp white text
     letterSpacing: 0.2,
+  },
+  hikerMarkerLabelTextLkl: {
+    color: '#FFFBEB',
+  },
+
+  rescueCardContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 999,
+  },
+  rescueCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  rescueCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  rescueCardTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rescueCardIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  bgAmber: {
+    backgroundColor: '#F59E0B',
+  },
+  bgEmerald: {
+    backgroundColor: '#10B981',
+  },
+  rescueCardHikerName: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  rescueCardStatusSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  rescueCardCloseBtn: {
+    padding: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+  },
+  rescueGrid: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  rescueGridCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  rescueGridLabel: {
+    color: '#64748B',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  rescueGridValue: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  rescueActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  rescueShareBtn: {
+    flex: 1,
+    backgroundColor: '#E65100',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  rescueShareBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  rescueCenterBtn: {
+    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  rescueCenterBtnText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 
@@ -450,7 +839,7 @@ const mapStyles: {
   walkedPathStyle: LineLayerStyle;
 } = {
   trailLine: { lineColor: "#228B22", lineWidth: 4, lineCap: "round", lineJoin: "round" },
-  walkedPathStyle: { lineColor: "#FF5722", lineWidth: 4, lineCap: "round", lineJoin: "round", lineDasharray: [2, 2] },
+  walkedPathStyle: { lineColor: "#FF5722", lineWidth: 4, lineCap: "round", lineJoin: "round" },
 };
 
 export default TrailMap;
