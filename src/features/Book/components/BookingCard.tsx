@@ -94,7 +94,16 @@ const BookingCard: React.FC<BookingCardProps> = ({
         }
     }
 
-    const recentUpdateText = getRecentUpdateText(booking?.updatedAt, booking?.createdAt);
+    const bookingUpdateTime = booking?.updatedAt ? safeParseDateString(booking.updatedAt).getTime() : 0;
+    const cancelUpdateTime = cancellation?.updatedAt
+        ? safeParseDateString(cancellation.updatedAt).getTime()
+        : (cancellation?.createdAt ? safeParseDateString(cancellation.createdAt).getTime() : 0);
+
+    const effectiveUpdatedAt = cancelUpdateTime > bookingUpdateTime
+        ? (cancellation?.updatedAt || cancellation?.createdAt)
+        : booking?.updatedAt;
+
+    const recentUpdateText = getRecentUpdateText(effectiveUpdatedAt, booking?.createdAt);
     const trailName = booking?.trail?.name || 'Hiking Package';
     const businessName = booking?.business?.name || 'Independent Guide';
     const formattedDate = formatBookingDate(booking?.offer?.date, undefined, true);
