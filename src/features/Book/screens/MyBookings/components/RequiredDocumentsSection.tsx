@@ -9,6 +9,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { BookingStatus, Requirements } from '@/src/core/models/Booking/Booking';
 import DocumentUploadCard, { getStrictDocKey } from '@/src/components/DocumentUploadCard';
@@ -25,6 +26,8 @@ export interface RequiredDocumentsSectionProps {
     displayStatus?: BookingStatus;
     /** Whether booking is cancelled */
     isCancelled: boolean;
+    /** Admin rejection reason if documents were rejected */
+    rejectionReason?: string;
     /** Callback when a document is successfully uploaded */
     onUploadSuccess: (idx: number, url: string, docName: string) => void;
     /** Callback to preview a document */
@@ -44,6 +47,7 @@ const RequiredDocumentsSection = ({
     stagedReplacements,
     displayStatus,
     isCancelled,
+    rejectionReason,
     onUploadSuccess,
     onPreviewDoc,
 }: RequiredDocumentsSectionProps): React.JSX.Element | null => {
@@ -160,20 +164,46 @@ const RequiredDocumentsSection = ({
             icon="file-text"
             defaultOpen={isAccordionDefaultOpen}
         >
-            <View style={styles.documentsContainerCard}>
-                {localDocs.map((doc: Requirements, idx: number) => renderDocumentRow(doc, idx))}
-            </View>
+            {displayStatus === 'reservation-rejected' && Boolean(rejectionReason?.trim()) && (
+                <View style={styles.errorHighlightBox}>
+                    <CustomText variant="caption" style={styles.errorHighlightLabel}>
+                        REASON FOR REJECTION:
+                    </CustomText>
+                    <ExpandableText
+                        text={rejectionReason!}
+                        textStyle={styles.errorHighlightText}
+                        arrowColor={Colors.ERROR}
+                        characterLimit={160}
+                    />
+                </View>
+            )}
+            {localDocs.map((doc: Requirements, idx: number) => renderDocumentRow(doc, idx))}
         </AccordionItem>
     );
 };
 
 const styles = StyleSheet.create({
-    documentsContainerCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+    errorHighlightBox: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderRadius: 12,
+        padding: 14,
         borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        overflow: 'hidden',
+        borderColor: Colors.ERROR_BORDER,
+        marginBottom: 16,
+    },
+    errorHighlightLabel: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 11,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    errorHighlightText: {
+        color: Colors.ERROR,
+        fontSize: 14,
+        lineHeight: 20,
+        fontWeight: '500',
     },
     approvedRowWrapper: {
         width: '100%',
