@@ -29,6 +29,7 @@ import { Layout } from '@/src/constants/layout';
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
+import AdminCancelBookingModal from '@/src/features/Admin/screens/Booking/components/AdminCancelBookingModal';
 import AdminCancellationCard from '@/src/features/Admin/screens/Booking/components/AdminCancellationCard';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
@@ -82,6 +83,7 @@ export interface ReviewScreenProps {
     cancellationRequest?: Cancellation | null;
     onApproveCancellation?: (request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
+    onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
     onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
 }
 
@@ -104,6 +106,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     cancellationRequest,
     onApproveCancellation,
     onDeclineCancellation,
+    onRevertCancellation,
     onAdminCancelBooking,
 }) => {
     const { width } = useWindowDimensions();
@@ -124,14 +127,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         isApprovedStatus,
         isRejectedStatus,
         isCancelledStatus,
-        isCancellationPending,
+        isHikerCancellationPending,
+        isAdminCancellationPending,
         isReviewComplete,
         adminStatusConfig,
         hasRejections, isDecisionIncomplete,
         availableOffers,
         approvalGuard,
         syncGlobalVerification,
-    } = useReviewLogic(booking, offers);
+    } = useReviewLogic(booking, offers, cancellationRequest);
 
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
@@ -148,6 +152,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [cancellationDeclineReason, setCancellationDeclineReason] = useState('');
     const [isConfirmCancellationVisible, setIsConfirmCancellationVisible] = useState(false);
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
+    const [isConfirmRevertVisible, setIsConfirmRevertVisible] = useState(false);
 
     const [toastConfig, setToastConfig] = useState<{
         visible: boolean;
@@ -551,14 +556,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         <View style={isWide ? styles.rightColumn : styles.fullWidthContainer}>
                             <AdminCancellationCard
                                 status={currentStatus}
-                                cancellationReason={booking.cancellationReason || cancellationRequest?.reason}
+                                cancellation={cancellationRequest}
+                                cancellationReason={cancellationRequest?.reason || booking.cancellationReason}
                                 declineReason={cancellationRequest?.adminNote}
                                 totalAmountPaid={totalAmountPaid}
                                 requestedAt={cancellationRequest?.createdAt || booking.updatedAt}
                                 cancelledBy={booking.cancelledBy || cancellationRequest?.cancelledBy}
+                                onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
+                                isReverting={isProcessingAction}
                             />
 
-                            {isCancellationPending && isDecliningCancellation && (
+                            {isHikerCancellationPending && isDecliningCancellation && (
                                 <View style={styles.cancellationReasonBox}>
                                     <CustomFeedbackInput
                                         label="Decline Reason *"
@@ -608,6 +616,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     isReviewComplete={isReviewComplete}
                                     isRejectedStatus={isRejectedStatus}
                                     isCancelledStatus={isCancelledStatus}
+                                    isCancellationPending={isHikerCancellationPending}
                                     hasRejections={hasRejections}
                                     showRejectionReason={isRejecting}
                                     rejectionReason={rejectionReason}
@@ -645,7 +654,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 </View>
             </ScrollView>
 
-            {isCancellationPending ? (
+            {isHikerCancellationPending ? (
                 <View style={styles.footerWrapper}>
                     <CustomStickyFooter
                         primaryButton={cancellationPrimaryConfig}
@@ -704,19 +713,27 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 cancelText={REVIEW_MODALS.CONFIRM_PAYMENT.cancelText}
             />
 
-            <ConfirmationModal
+            <AdminCancelBookingModal
                 visible={showCancelUnpaidModal}
                 onClose={() => setShowCancelUnpaidModal(false)}
-                title={REVIEW_MODALS.CANCEL_UNPAID.title}
-                message={REVIEW_MODALS.CANCEL_UNPAID.message}
-                confirmText={REVIEW_MODALS.CANCEL_UNPAID.confirmText}
-                cancelText={REVIEW_MODALS.CANCEL_UNPAID.cancelText}
-                onConfirm={async () => {
+                isSubmitting={isProcessingAction}
+                onConfirm={async (selectedReason: string) => {
                     setShowCancelUnpaidModal(false);
                     if (onAdminCancelBooking) {
                         setIsProcessingAction(true);
                         try {
-                            await onAdminCancelBooking(booking, "Organizer cancelled booking");
+                            await onAdminCancelBooking(booking, selectedReason);
+                            setToastConfig({
+                                visible: true,
+                                message: REVIEW_TOASTS.ORGANIZER_CANCELLED,
+                                type: 'success',
+                            });
+                        } catch (err: unknown) {
+                            setToastConfig({
+                                visible: true,
+                                message: err instanceof Error ? err.message : "Failed to cancel booking",
+                                type: 'error',
+                            });
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -729,8 +746,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         }
                     }
                 }}
-                isDestructive={true}
-                iconName="alert-triangle"
             />
 
             <ConfirmationModal
@@ -742,6 +757,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onApproveCancellation(cancellationRequest, booking);
+                            setToastConfig({
+                                visible: true,
+                                message: REVIEW_TOASTS.CANCELLATION_APPROVED,
+                                type: 'success',
+                            });
+                        } catch (err: unknown) {
+                            setToastConfig({
+                                visible: true,
+                                message: err instanceof Error ? err.message : 'Failed to approve cancellation.',
+                                type: 'error',
+                            });
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -764,6 +790,19 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
+                            setIsDecliningCancellation(false);
+                            setCancellationDeclineReason('');
+                            setToastConfig({
+                                visible: true,
+                                message: REVIEW_TOASTS.CANCELLATION_DECLINED,
+                                type: 'success',
+                            });
+                        } catch (err: unknown) {
+                            setToastConfig({
+                                visible: true,
+                                message: err instanceof Error ? err.message : 'Failed to decline cancellation.',
+                                type: 'error',
+                            });
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -775,6 +814,39 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 cancelText={REVIEW_MODALS.DECLINE_CANCELLATION.cancelText}
                 iconName="alert-triangle"
                 isDestructive={true}
+            />
+
+            <ConfirmationModal
+                visible={isConfirmRevertVisible}
+                onClose={() => setIsConfirmRevertVisible(false)}
+                onConfirm={async () => {
+                    setIsConfirmRevertVisible(false);
+                    if (onRevertCancellation) {
+                        setIsProcessingAction(true);
+                        try {
+                            await onRevertCancellation(cancellationRequest);
+                            setToastConfig({
+                                visible: true,
+                                message: REVIEW_TOASTS.CANCELLATION_REVERTED,
+                                type: 'success',
+                            });
+                        } catch (err: unknown) {
+                            setToastConfig({
+                                visible: true,
+                                message: err instanceof Error ? err.message : 'Failed to revert cancellation.',
+                                type: 'error',
+                            });
+                        } finally {
+                            setIsProcessingAction(false);
+                        }
+                    }
+                }}
+                title={REVIEW_MODALS.REVERT_CANCELLATION.title}
+                message={REVIEW_MODALS.REVERT_CANCELLATION.message}
+                confirmText={REVIEW_MODALS.REVERT_CANCELLATION.confirmText}
+                cancelText={REVIEW_MODALS.REVERT_CANCELLATION.cancelText}
+                iconName="alert-triangle"
+                isDestructive={false}
             />
 
             <CustomSelectionModal
