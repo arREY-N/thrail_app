@@ -57,6 +57,7 @@ export interface DocumentTabProps {
     isReviewComplete: boolean;
     isRejectedStatus: boolean;
     isCancelledStatus: boolean;
+    isCancellationPending?: boolean;
     hasRejections: boolean;
     showRejectionReason?: boolean;
     rejectionReason: string;
@@ -78,6 +79,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
     isReviewComplete, 
     isRejectedStatus: _isRejectedStatus, 
     isCancelledStatus,
+    isCancellationPending = false,
     hasRejections, 
     showRejectionReason = false,
     rejectionReason, 
@@ -89,7 +91,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 }) => {
 
     const toggleDocDecision = (index: number, statusString: DocValidState) => {
-        if (isReviewComplete) return; 
+        if (isReviewComplete || isCancellationPending) return; 
         
         if (!viewedDocs[index] && docStates[index].valid === 'pending') {
             if (onAttachmentRequired) {
@@ -110,6 +112,14 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 
     return (
         <View style={styles.tabContent}>
+            {isCancellationPending && (
+                <View style={styles.cancellationPendingBanner}>
+                    <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
+                    <CustomText variant="caption" style={styles.cancellationPendingText}>
+                        A cancellation request is currently pending. Please approve or decline the cancellation request below before completing document verification.
+                    </CustomText>
+                </View>
+            )}
             
             {docStates.length === 0 ? (
                 <View style={styles.emptyCard}>
@@ -127,7 +137,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                         index={index} 
                         needsReview={!viewedDocs[index] && doc.valid === 'pending'}
                         isViewed={!!viewedDocs[index]}
-                        isReviewComplete={isReviewComplete}
+                        isReviewComplete={isReviewComplete || isCancellationPending}
                         isCancelledStatus={isCancelledStatus}
                         onViewFile={onViewFile} 
                         onToggleDecision={toggleDocDecision}
@@ -135,7 +145,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                 ))
             )}
 
-            {!isReviewComplete && (hasRejections || showRejectionReason) && (
+            {!isReviewComplete && !isCancellationPending && (hasRejections || showRejectionReason) && (
                 <View style={styles.reasonBox}>
                     <CustomFeedbackInput 
                         label="Rejection Reason *"
@@ -144,6 +154,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                         value={rejectionReason}
                         onChangeText={setRejectionReason}
                         suggestions={suggestions || REJECTION_SUGGESTIONS}
+                        variant="danger"
                     />
                 </View>
             )}
@@ -155,6 +166,24 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 const styles = StyleSheet.create({
     tabContent: { 
         paddingTop: 4 
+    },
+    cancellationPendingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_CANCELLED_BORDER,
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 14,
+        gap: 8,
+    },
+    cancellationPendingText: {
+        color: Colors.ERROR,
+        fontSize: 12,
+        lineHeight: 18,
+        fontWeight: '500',
+        flex: 1,
     },
     reasonBox: { 
         marginBottom: 24 
