@@ -23,14 +23,17 @@ export const newPreference = (init?: Partial<IPreference>): IPreference => ({
     ...init,
 });
 
-export const newEmergencyContact = (init?: Partial<IEmergencyContact>): IEmergencyContact => ({
-    name: '',
-    contactNumber: '',
-    email: '',
-    userId: '',
-    ...init,
-    phoneVerifiedAt: toDateOrNull(init?.phoneVerifiedAt),
-});
+export const newEmergencyContact = (init?: Partial<IEmergencyContact>): IEmergencyContact => {
+    return {
+        name: '',
+        contactNumber: '',
+        email: '',
+        userId: '',
+        chatId: '',
+        phoneVerifiedAt: toDateOrNull(init?.phoneVerifiedAt),
+        ...init,
+    }
+};
 
 export const newMedicalProfile = (init?: Partial<IMedicalProfile>): IMedicalProfile => ({
     hasCondition: false,
@@ -140,6 +143,7 @@ const userToFirestore = (user: User): IUserDB => {
             contactNumber: user.emergencyContact.contactNumber,
             userId: user.emergencyContact.userId || '',
             email: user.emergencyContact.email || '',
+            chatId: user.emergencyContact.chatId || '',
             phoneVerifiedAt: user.emergencyContact.phoneVerifiedAt instanceof Date
                 ? Timestamp.fromDate(user.emergencyContact.phoneVerifiedAt)
                 : (user.emergencyContact.phoneVerifiedAt || null),
