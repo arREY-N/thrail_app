@@ -3,10 +3,10 @@ import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Book
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
-import { Offer } from "@/src/core/models/Offer/Offer";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
-import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
 import { toDateOrNull } from "@/src/core/utility/date";
+import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 import { Alert } from "react-native";
 
@@ -16,6 +16,7 @@ export function useBookingAdmin() {
     const create = useBookingsStore(s => s.create);
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
+    const updateReservedPaxInOffer = useOfferStore(s => s.updateReservedPaxInOffer);
 
     const { onBackPress } = useAppNavigation();
 
@@ -35,12 +36,12 @@ export function useBookingAdmin() {
                 // throw new Error('Missing booking information');
             }
 
-            const resolvedPersonalVerified = personalVerifiedAt !== undefined 
-                ? toDateOrNull(personalVerifiedAt) 
+            const resolvedPersonalVerified = personalVerifiedAt !== undefined
+                ? toDateOrNull(personalVerifiedAt)
                 : toDateOrNull(booking.user.phoneVerifiedAt);
 
-            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined 
-                ? toDateOrNull(emergencyVerifiedAt) 
+            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined
+                ? toDateOrNull(emergencyVerifiedAt)
                 : toDateOrNull(booking.emergencyContact?.phoneVerifiedAt);
 
             const approvedBook = newBooking({
@@ -71,11 +72,7 @@ export function useBookingAdmin() {
                 throw new Error('Failed to approve booking');
             }
 
-            // Sync the hiker's profile and emergency contact profile if they exist
-            // WRONG USE CASE
-            // 
-            // Sync upon submission of reservation not in approval
-            // Admins do not have permissions to edit users' profiles.
+            await updateReservedPaxInOffer(booking.offer.id, 'add');
 
             onBackPress();
         } catch (error) {
@@ -125,23 +122,19 @@ export function useBookingAdmin() {
     ) => {
         try {
             if (!booking) {
-
                 refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
                 return;
-
-                // TODO clean up (by REYN) once UI is refactored
-                // throw new Error('Missing booking information');
             }
 
             if (!reason) throw new Error('Rejection reason is required');
             if (!profile) throw new Error('Admin must be logged in to reject a booking');
 
-            const resolvedPersonalVerified = personalVerifiedAt !== undefined 
-                ? toDateOrNull(personalVerifiedAt) 
+            const resolvedPersonalVerified = personalVerifiedAt !== undefined
+                ? toDateOrNull(personalVerifiedAt)
                 : toDateOrNull(booking.user.phoneVerifiedAt);
 
-            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined 
-                ? toDateOrNull(emergencyVerifiedAt) 
+            const resolvedEmergencyVerified = emergencyVerifiedAt !== undefined
+                ? toDateOrNull(emergencyVerifiedAt)
                 : toDateOrNull(booking.emergencyContact?.phoneVerifiedAt);
 
             const rejectedBook = newBooking({
@@ -171,12 +164,6 @@ export function useBookingAdmin() {
 
             if (!success) throw new Error('Failed to reject booking');
 
-            // Sync the hiker's profile and emergency contact profile if they exist
-            // WRONG USE CASE
-            // 
-            // Sync upon submission of reservation not in approval
-            // Admins do not have permissions to edit users' profiles.
-
             onBackPress();
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRejectBooking()');
@@ -187,12 +174,8 @@ export function useBookingAdmin() {
     const onRescheduleBooking = (newOffer: Offer, booking?: Booking,) => {
         try {
             if (!booking) {
-
                 refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
                 return;
-
-                // TODO clean up (by REYN) once UI is refactored
-                // throw new Error('Missing booking information');
             }
 
             if (!newOffer) throw new Error('A new offer must be provided to reschedule');
@@ -220,12 +203,8 @@ export function useBookingAdmin() {
     const onCancelUnpaid = async (booking?: Booking) => {
         try {
             if (!booking) {
-
                 refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
                 return;
-
-                // TODO clean up (by REYN) once UI is refactored
-                // throw new Error('Missing booking information');
             }
 
             if (role !== 'admin') throw new Error('Only admins can cancel bookings');

@@ -23,7 +23,7 @@ import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/
 import {
     getBusinessOfferItem,
     Offer,
-    updateOfferOnCancellation,
+    subtractReservedPaxOnOffer,
     useOfferStore
 } from "@/src/core/models/Offer/Offer";
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
@@ -74,12 +74,12 @@ export function useCancellationAdmin() {
                 if (!booking)
                     throw new Error("Booking not found for the provided booking ID.");
 
-                const group: Group | null = await getGroup(booking.offer.id);
+                const group: Group | void = await getGroup(booking.offer.id);
 
                 if (!group)
                     throw new Error("Group chat not found for the provided offer ID.");
 
-                const updatedOffer: Offer = updateOfferOnCancellation(offer, booking);
+                const updatedOffer: Offer = subtractReservedPaxOnOffer(offer, booking);
 
                 const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
 
