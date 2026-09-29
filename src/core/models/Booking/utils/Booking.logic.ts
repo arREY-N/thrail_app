@@ -96,7 +96,7 @@ export const BookingLogic = {
         }
         draft.documents[docIndex].file = fileUrl;
         draft.documents[docIndex].valid = 'pending';
-        draft.status = 'pending-docs';
+        draft.status = 'for-reservation';
     },
 
     isInactiveStatus(status?: BookingStatus | string): boolean {

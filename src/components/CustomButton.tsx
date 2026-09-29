@@ -3,7 +3,7 @@
  * @description Standardized customizable button component for the Thrail application, supporting icons, states, and custom variants.
  */
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef } from 'react';
 import {
     ActivityIndicator,
     GestureResponderEvent,
@@ -47,6 +47,7 @@ interface CustomButtonProps {
     textStyle?: StyleProp<TextStyle>;
     disabled?: boolean;
     isLoading?: boolean;
+    throttleMs?: number;
     children?: ReactNode;
     icon?: string;
     iconLibrary?: IconLibrary;
@@ -66,6 +67,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     textStyle,
     disabled,
     isLoading = false,
+    throttleMs = 500,
     children,
     icon,
     iconLibrary,
@@ -92,10 +94,22 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 
     const defaultIconColor = iconColor ?? (variant === 'primary' || variant === 'destructive' ? Colors.WHITE : Colors.PRIMARY);
     const isDisabled = disabled || isLoading;
+    const lastPressTimeRef = useRef<number>(0);
+
+    const handlePress = (event: GestureResponderEvent) => {
+        if (!onPress || isDisabled) return;
+
+        const now = Date.now();
+        if (throttleMs > 0 && now - lastPressTimeRef.current < throttleMs) {
+            return;
+        }
+        lastPressTimeRef.current = now;
+        onPress(event);
+    };
 
     return (
         <Pressable 
-            onPress={isDisabled ? undefined : onPress}
+            onPress={isDisabled ? undefined : handlePress}
             disabled={isDisabled}
             style={({ pressed }) => [
                 styles.baseButton as StyleProp<ViewStyle>, 

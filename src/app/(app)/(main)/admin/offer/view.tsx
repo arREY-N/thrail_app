@@ -34,31 +34,34 @@ export default function ViewOffer() {
     const displayBookings = useMemo(() => {
         if (!offerBookings) return [];
         return offerBookings.map(b => {
-            const activeCancellation = businessCancellations?.find(
-                (c: Cancellation) => c.bookingId === b.id && c.status === 'pending'
+            const cancellation = businessCancellations?.find(
+                (c: Cancellation) => c.bookingId === b.id
             );
-            if (activeCancellation) {
-                return {
-                    ...b,
-                    status: 'for-cancellation' as const,
-                    cancellationReason: activeCancellation.reason || b.cancellationReason,
-                };
-            }
-
-            const rejectedCancellation = businessCancellations?.find(
-                (c: Cancellation) => c.bookingId === b.id && c.status === 'rejected'
-            );
-            if (
-                rejectedCancellation &&
-                b.status !== 'cancelled' &&
-                b.status !== 'refund' &&
-                b.status !== 'refunded'
-            ) {
-                return {
-                    ...b,
-                    status: 'cancellation-rejected' as const,
-                    cancellationReason: rejectedCancellation.reason || b.cancellationReason,
-                };
+            if (cancellation) {
+                if (cancellation.status === 'approved') {
+                    return {
+                        ...b,
+                        status: 'cancelled' as const,
+                        cancellationReason: cancellation.reason || b.cancellationReason,
+                        cancelledBy: cancellation.cancelledBy,
+                    };
+                }
+                if (cancellation.status === 'pending') {
+                    if (cancellation.cancelledBy === 'admin') {
+                        return {
+                            ...b,
+                            status: 'cancelled' as const,
+                            cancellationReason: cancellation.reason || b.cancellationReason,
+                            cancelledBy: 'admin',
+                        };
+                    }
+                    return {
+                        ...b,
+                        status: 'for-cancellation' as const,
+                        cancellationReason: cancellation.reason || b.cancellationReason,
+                        cancelledBy: 'user',
+                    };
+                }
             }
 
             return b;

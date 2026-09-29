@@ -29,23 +29,39 @@ if (Platform.OS !== 'web') {
     try {
       const locations = data?.locations;
       if (!locations || locations.length === 0) return;
-      const location = locations[0];
-
-      const lat = location.coords.latitude;
-      const lon = location.coords.longitude;
-      const alt = location.coords.altitude ?? 0;
-      const timestamp = new Date(location.timestamp).toISOString();
 
       const addCoordinate = useHikeStore.getState().addCoordinate;
-      await addCoordinate(newLocation({
-        latitude: lat,
-        longitude: lon,
-        altitude: alt,
-        timestamp: new Date(timestamp),
-        status: 'APP_BACKGROUNDED',
-      }));
+
+      for (const location of locations) {
+        const lat = location.coords.latitude;
+        const lon = location.coords.longitude;
+        const alt = location.coords.altitude ?? 0;
+
+        // Strictly validate coordinates and reject Null Island / corrupted fixes
+        if (
+          typeof lat !== 'number' ||
+          typeof lon !== 'number' ||
+          isNaN(lat) ||
+          isNaN(lon) ||
+          (lat === 0 && lon === 0) ||
+          lat < -90 || lat > 90 ||
+          lon < -180 || lon > 180
+        ) {
+          continue;
+        }
+
+        const timestamp = new Date(location.timestamp).toISOString();
+
+        await addCoordinate(newLocation({
+          latitude: lat,
+          longitude: lon,
+          altitude: alt,
+          timestamp: new Date(timestamp),
+          status: 'APP_BACKGROUNDED',
+        }));
+      }
     } catch (err) {
-      console.error('[locationTask] Failed to log background coordinate:', err);
+      console.error('[locationTask] Failed to log background coordinates batch:', err);
     }
   });
 }

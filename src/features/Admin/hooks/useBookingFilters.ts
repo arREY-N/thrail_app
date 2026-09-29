@@ -27,7 +27,7 @@ export default function useBookingFilters(bookings: Booking[]) {
         if (activeFilter !== 'All') {
             result = result.filter(b => {
                 const status = b.status || '';
-                const isNeedsReview = status === 'pending-docs' || status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule';
+                const isNeedsReview = status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule';
                 
                 if (activeFilter === 'Needs Review') return isNeedsReview;
                 if (activeFilter === 'Rejected') return ['reservation-rejected', 'cancelled', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
@@ -65,7 +65,7 @@ export default function useBookingFilters(bookings: Booking[]) {
             const s = status || '';
 
             // Tier 1: Urgent Inbound Requests requiring immediate organizer action
-            if (s === 'for-cancellation' || s === 'pending-docs' || s === 'for-reservation' || s === 'for-reschedule') return 1;
+            if (s === 'for-cancellation' || s === 'for-reservation' || s === 'for-reschedule') return 1;
             // Tier 2: Payment confirmation
             if (s === 'paid') return 2;
             // Tier 3: Downpayment balance tracking

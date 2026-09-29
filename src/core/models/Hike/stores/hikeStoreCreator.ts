@@ -40,6 +40,7 @@ export interface HikeState {
 
     active: boolean;
     coordinates: Location[];
+    walkedRoute: [number, number][];
     live: boolean;
     activeGroupId: string | null;
 
@@ -49,6 +50,7 @@ export interface HikeState {
 
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
+    clearWalkedRoute: () => void;
     updateCurrentHike: (patch: Partial<Hike>) => void;
     updateHikeStore: (patch: Partial<HikeState>) => void;
 
@@ -78,12 +80,15 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     totalElevationGain: 0,
     active: false,
     coordinates: [],
+    walkedRoute: [],
     live: false,
     locationByGroup: {},
     activeListeners: {},
     activeGroupId: null,
     shareLocationEnabled: true,
     profile: null,
+
+    clearWalkedRoute: () => set({ walkedRoute: [] }),
     currentLocation: null,
 
     reset: () => {
@@ -104,6 +109,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             totalElevationGain: 0,
             active: false,
             coordinates: [],
+            walkedRoute: [],
             live: false,
             locationByGroup: {},
             activeListeners: {},
@@ -125,10 +131,22 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             set({ currentLocation: coordinate });
 
             logger('HikeStoreCreator', 'Current Location', coordinate);
-            if (!active || (currentHike && currentHike.status === 'paused')) {
-                set({
-                    coordinates: [coordinate]
-                });
+            // Reject invalid coordinates and Null Island
+            if (
+                !coordinate ||
+                typeof coordinate.latitude !== 'number' ||
+                typeof coordinate.longitude !== 'number' ||
+                isNaN(coordinate.latitude) ||
+                isNaN(coordinate.longitude) ||
+                (coordinate.latitude === 0 && coordinate.longitude === 0) ||
+                coordinate.latitude < -90 || coordinate.latitude > 90 ||
+                coordinate.longitude < -180 || coordinate.longitude > 180
+            ) {
+                return;
+            }
+
+            // Only record session trail and calculate distance when hike is actively started
+            if (!active || !currentHike || currentHike.status !== 'started') {
                 return;
             }
 
@@ -136,21 +154,19 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 console.warn("[addCoordinate] Skipped: No user profile found.");
                 return;
             }
-            if (!currentHike) {
-                console.warn("[addCoordinate] Skipped: No active hike found.");
-                return;
-            }
 
             set((state) => {
                 if (state.currentHike && state.active && state.currentHike.status === 'started') {
                     if (!state.coordinates) state.coordinates = [];
+                    if (!state.walkedRoute) state.walkedRoute = [];
 
                     const lastCoord = state.coordinates[state.coordinates.length - 1];
 
-                    if (lastCoord && lastCoord.latitude && lastCoord.longitude && coordinate.latitude && coordinate.longitude) {
+                    if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
                         const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
 
-                        if (distMeters > 1 && distMeters < 200) {
+                        // Ignore sub-meter jitter (< 1m) and impossible GPS jumps (> 250m per tick)
+                        if (distMeters > 1 && distMeters < 250) {
                             state.totalDistance += distMeters;
                         }
 
@@ -159,25 +175,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                             state.totalElevationGain += altDiff;
                         }
                     }
+
+                    // Append to session telemetry & map route (NEVER truncated mid-hike)
                     state.coordinates.push(coordinate);
+                    state.walkedRoute.push([coordinate.longitude, coordinate.latitude]);
                 }
             });
 
-            const updatedCoordinates = get().coordinates;
-
-            if (updatedCoordinates.length % 5 === 0 && updatedCoordinates.length !== 0 && get().currentHike) {
-                try {
-                    await HikeRepo.writeCoordinates(
-                        profile.id,
-                        currentHike.id,
-                        updatedCoordinates
-                    );
-                    set({ coordinates: [updatedCoordinates[updatedCoordinates.length - 1]] });
-                } catch (repoError) {
-                    console.error('[addCoordinate] Background repo write failed, keeping coordinates in state queue:', repoError);
-                }
-            }
-
+            // Live SAR group pin sharing (only 1 merged document per active group member)
             if (get().live && get().shareLocationEnabled && activeGroupId) {
                 try {
                     const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
@@ -191,7 +196,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 }
             }
         } catch (error) {
-            console.error('Error adding coordinates: ', error);
+            console.error('[addCoordinate] Unexpected error:', error);
         }
     },
 
@@ -248,7 +253,15 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 set((state) => {
                     const newListeners = { ...state.activeListeners };
                     delete newListeners[groupId];
-                    return { ...state, activeListeners: newListeners, live: false, activeGroupId: null };
+                    const newLocations = { ...state.locationByGroup };
+                    delete newLocations[groupId];
+                    return {
+                        ...state,
+                        activeListeners: newListeners,
+                        locationByGroup: newLocations,
+                        live: false,
+                        activeGroupId: null,
+                    };
                 });
             }
         } catch (error) {
@@ -303,6 +316,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             set({
                 currentHike: updated,
                 coordinates: [],
+                walkedRoute: [],
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
@@ -379,6 +393,16 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             };
 
             const response = await HikeRepo.write(toUploadHike, userId);
+
+            // Consolidated route persistence: save the completed trail in a single document
+            const route = get().walkedRoute;
+            if (route && route.length > 0) {
+                try {
+                    await HikeRepo.writeRoute(userId, response.id, route);
+                } catch (routeError) {
+                    console.error('[create] Failed to save consolidated hike route:', routeError);
+                }
+            }
 
             set({
                 isLoading: false,

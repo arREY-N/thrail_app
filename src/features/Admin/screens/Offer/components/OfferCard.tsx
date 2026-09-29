@@ -12,11 +12,13 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { FieldValue } from 'firebase/firestore';
+
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
-import { formatDateToStandard } from '@/src/utils/dateFormatter';
+import { DateInput, formatDateToStandard } from '@/src/utils/dateFormatter';
 import SlotsCounter from './SlotsCounter';
 
 export interface OfferStatusDetails {
@@ -26,6 +28,20 @@ export interface OfferStatusDetails {
     bg: string;
     /** The status text color */
     color: string;
+}
+
+export interface OfferCardData {
+    id: string;
+    trail?: { name?: string };
+    price?: number;
+    description?: string;
+    date?: DateInput | FieldValue | null;
+    hikeDate?: DateInput | FieldValue | null;
+    duration?: string;
+    hikeDuration?: string;
+    documents?: string[];
+    minPax?: number | string;
+    maxPax?: number | string;
 }
 
 /**
@@ -40,7 +56,7 @@ export interface OfferStatusDetails {
  * @param style - Optional style override prop.
  */
 export interface OfferCardProps {
-    offer: any;
+    offer: OfferCardData;
     bookings: Booking[];
     statusDetails: OfferStatusDetails;
     actionableCount: number;
@@ -160,7 +176,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                                 statusDetails.label === 'Expired' && { color: Colors.ERROR }
                             ]}
                         >
-                            {formatDateToStandard(offer.date || offer.hikeDate)}
+                            {formatDateToStandard((offer.date || offer.hikeDate) as DateInput)}
                         </CustomText>
                     </View>
                     

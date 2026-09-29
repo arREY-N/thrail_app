@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     Modal,
     ScrollView,
@@ -13,7 +13,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
 import { IOffer } from '@/src/core/models/Offer/Offer';
-import OfferCard from '@/src/features/Book/components/OfferCard';
+import OfferCard, { OfferData } from '@/src/features/Book/components/OfferCard';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 export interface RescheduleModalProps {
@@ -39,16 +39,32 @@ const RescheduleModal = ({
     availableFutureOffers = [] 
 }: RescheduleModalProps) => {
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
+
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
+        if (!visible) {
+            setIsSubmitting(false);
+            setSelectedOfferId(null);
+        }
+    }
 
     const handleConfirm = () => {
+        if (isSubmittingRef.current || isSubmitting) return;
         const selected = availableFutureOffers.find(o => o.id === selectedOfferId);
         if (selected) {
+            isSubmittingRef.current = true;
+            setIsSubmitting(true);
             onConfirm(selected);
             setSelectedOfferId(null);
         }
     };
 
     const handleClose = () => {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
         setSelectedOfferId(null);
         onClose();
     };
@@ -95,7 +111,7 @@ const RescheduleModal = ({
                                     </CustomText>
                                     
                                     <OfferCard 
-                                        offer={offer as any}
+                                        offer={offer as unknown as OfferData}
                                         isSelected={selectedOfferId === offer.id}
                                         onSelect={() => {
                                             setSelectedOfferId(
@@ -125,16 +141,23 @@ const RescheduleModal = ({
                             secondaryButton={{
                                 title: "Keep Current Date",
                                 onPress: handleClose,
+                                disabled: isSubmitting,
                                 variant: "outline"
                             }}
                             primaryButton={{
                                 title: availableFutureOffers.length === 0 
                                     ? "Explore Mountains" 
-                                    : "Confirm Reschedule",
+                                    : (isSubmitting ? "Rescheduling..." : "Confirm Reschedule"),
                                 onPress: availableFutureOffers.length === 0 
-                                    ? () => onConfirm('explore') 
+                                    ? () => {
+                                        if (isSubmittingRef.current || isSubmitting) return;
+                                        isSubmittingRef.current = true;
+                                        setIsSubmitting(true);
+                                        onConfirm('explore');
+                                    } 
                                     : handleConfirm,
-                                disabled: availableFutureOffers.length > 0 && !selectedOfferId
+                                disabled: (availableFutureOffers.length > 0 && !selectedOfferId) || isSubmitting,
+                                isLoading: isSubmitting
                             }}
                         />
                     </View>

@@ -3,7 +3,7 @@
  * @description Screen component for hiker contact details, document upload requirements, and digital signature for booking reservations.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -87,6 +87,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const isConfirmingRef = useRef(false);
+
     const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
         visible: false,
         message: '',
@@ -128,6 +130,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     }, [uploadedDocs, isSignatureValid, isPhoneSet, isEmergencySet, formData.phone, profilePhone, onProgressChange]);
 
     const handleReservePress = () => {
+        if (isSubmitting || isConfirmingRef.current) return;
+
         if (!isPhoneSet) {
             setHasAttemptedSubmit(true);
             setToastConfig({
@@ -173,6 +177,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     };
 
     const handleConfirmReservation = () => {
+        if (isConfirmingRef.current || isSubmitting) return;
+        isConfirmingRef.current = true;
         setShowConfirmModal(false);
         onContinue({ hikerDetails: formData, uploadedDocs });
     };
@@ -383,6 +389,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                 primaryButton={{
                     title: isSubmitting ? "Reserving..." : "Reserve",
                     disabled: isSubmitting,
+                    isLoading: isSubmitting,
                     style: {
                         backgroundColor: isFormValid 
                             ? Colors.PRIMARY 
@@ -435,12 +442,16 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
             {/* Confirmation Modal before submitting reservation */}
             <ConfirmationModal 
                 visible={showConfirmModal}
-                onClose={() => setShowConfirmModal(false)}
+                onClose={() => {
+                    isConfirmingRef.current = false;
+                    setShowConfirmModal(false);
+                }}
                 onConfirm={handleConfirmReservation}
                 title="Confirm Reservation"
                 message="Are you sure you want to proceed with this reservation? Please ensure all contact details and uploaded documents are accurate."
                 confirmText="Yes, Reserve"
                 cancelText="Review Details"
+                isLoading={isSubmitting}
                 iconName="calendar"
                 iconLibrary="Feather"
             />

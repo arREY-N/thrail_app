@@ -152,7 +152,7 @@ export function useGroupLocation(groupId: string) {
             });
 
             updateHikeStore({ currentHike: hike });
-            await startHike(hike, { id: profile.id, firstname: profile.firstname, lastname: profile.lastname });
+            await startHike(hike, profile);
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
@@ -189,6 +189,10 @@ export function useGroupLocation(groupId: string) {
         if (!currentHike) {
             setLocalError("No active hike to complete");
             return;
+        }
+
+        if (groupId) {
+            onStopSharingLocation();
         }
 
         updateHikeStore({

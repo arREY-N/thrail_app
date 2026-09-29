@@ -9,6 +9,7 @@ import {
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking } from '@/src/core/models/Booking/Booking';
@@ -42,10 +43,6 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
     onAcceptAdminCancellation,
     onReschedule,
 }) => {
-    const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
-    const [isAccepting, setIsAccepting] = useState<boolean>(false);
-    const [showWithdrawModal, setShowWithdrawModal] = useState<boolean>(false);
-
     const bookingStatus = booking.status;
     const isCancellationRelated =
         Boolean(cancellation) ||
@@ -56,10 +53,6 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
             'refunded',
             'cancelled',
         ].includes(bookingStatus || '');
-
-    if (!isCancellationRelated) {
-        return null;
-    }
 
     const isAdminCancelled =
         cancellation?.cancelledBy === 'admin' ||
@@ -76,6 +69,17 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
 
     const isCancelledClosed =
         bookingStatus === 'cancelled' && !isAdminCancelled && !isRejected;
+
+    const isTerminal = isApprovedOrRefunded || isCancelledClosed;
+
+    const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
+    const [isAccepting, setIsAccepting] = useState<boolean>(false);
+    const [showWithdrawModal, setShowWithdrawModal] = useState<boolean>(false);
+    const [isExpanded, setIsExpanded] = useState<boolean>(() => !isTerminal);
+
+    if (!isCancellationRelated) {
+        return null;
+    }
 
     const userReason =
         cancellation?.reason ||
@@ -96,11 +100,15 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         new Date(cancellation.updatedAt).getTime() > new Date(cancellation.createdAt).getTime()
     );
 
+    const totalAmountPaid = booking.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+
     const handleExecuteWithdraw = async () => {
         if (!cancellation || !onWithdraw) return;
         setIsWithdrawing(true);
         try {
             await onWithdraw(cancellation);
+            setShowWithdrawModal(false);
+        } catch {
             setShowWithdrawModal(false);
         } finally {
             setIsWithdrawing(false);
@@ -137,82 +145,104 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
     if (isAdminCancelled) {
         return (
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <View style={styles.iconCircleError}>
-                        <CustomIcon
-                            library="Feather"
-                            name="alert-circle"
-                            size={18}
-                            color={Colors.ERROR}
-                        />
-                    </View>
-                    <View style={styles.headerTextGroup}>
-                        <CustomText variant="label" style={styles.titleError}>
-                            Hike Cancelled by Organizer
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subtitle}>
-                            Event cancellation notice
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.noticeBox}>
-                    <CustomText variant="caption" style={styles.noticeLabel}>
-                        Organizer&apos;s Explanation:
-                    </CustomText>
-                    <CustomText style={styles.noticeText}>
-                        {adminNote || 'The organizer had to cancel this hike due to weather, safety, or schedule constraints.'}
-                    </CustomText>
-                </View>
-
-                <View style={styles.infoRow}>
-                    <CustomIcon
-                        library="Feather"
-                        name="info"
-                        size={15}
-                        color={Colors.TEXT_SECONDARY}
-                    />
-                    <CustomText variant="caption" style={styles.infoText}>
-                        You are eligible for a full refund or can choose to reschedule to an alternative available date.
-                    </CustomText>
-                </View>
-
-                <View style={styles.actionsColumn}>
-                    {cancellation && onAcceptAdminCancellation && cancellation.status !== 'approved' && (
-                        <TouchableOpacity
-                            style={styles.primaryDestructiveBtn}
-                            onPress={handleExecuteAcceptAdmin}
-                            disabled={isAccepting}
-                            activeOpacity={0.8}
-                        >
-                            {isAccepting ? (
-                                <ActivityIndicator size="small" color={Colors.WHITE} />
-                            ) : (
-                                <CustomText style={styles.primaryDestructiveBtnText}>
-                                    Accept Cancellation & Request Refund
-                                </CustomText>
-                            )}
-                        </TouchableOpacity>
-                    )}
-
-                    {onReschedule && (
-                        <TouchableOpacity
-                            style={styles.outlineBtn}
-                            onPress={onReschedule}
-                            activeOpacity={0.7}
-                        >
+                <TouchableOpacity
+                    style={[styles.headerRow, !isExpanded && styles.headerRowCollapsed]}
+                    onPress={() => setIsExpanded(prev => !prev)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.headerLeftGroup}>
+                        <View style={styles.iconCircleError}>
                             <CustomIcon
                                 library="Feather"
-                                name="calendar"
-                                size={16}
-                                color={Colors.PRIMARY}
+                                name="alert-circle"
+                                size={18}
+                                color={Colors.ERROR}
                             />
-                            <CustomText style={styles.outlineBtnTextPrimary}>
-                                Reschedule to Another Date
+                        </View>
+                        <View style={styles.headerTextGroup}>
+                            <CustomText variant="label" style={styles.titleError}>
+                                Hike Cancelled by Organizer
                             </CustomText>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                            <CustomText variant="caption" style={styles.subtitle}>
+                                Event cancellation notice
+                            </CustomText>
+                        </View>
+                    </View>
+                    <View style={styles.chevronWrapper}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={20}
+                            color={Colors.TEXT_SECONDARY}
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                {isExpanded && (
+                    <>
+                        <View style={styles.noticeBox}>
+                            <CustomText variant="caption" style={styles.noticeLabel}>
+                                Organizer&apos;s Explanation:
+                            </CustomText>
+                            <CustomText style={styles.noticeText}>
+                                {adminNote || 'The organizer had to cancel this hike due to weather, safety, or schedule constraints.'}
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.infoRow}>
+                            <CustomIcon
+                                library="Feather"
+                                name="info"
+                                size={15}
+                                color={Colors.TEXT_SECONDARY}
+                            />
+                            <CustomText variant="caption" style={styles.infoText}>
+                                {totalAmountPaid > 0
+                                    ? 'You are eligible for a full refund or can choose to reschedule to an alternative available date.'
+                                    : 'This booking is unpaid. You can reschedule to an alternative available date or acknowledge this cancellation.'}
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.actionsColumn}>
+                            {cancellation && onAcceptAdminCancellation && cancellation.status !== 'approved' && (
+                                <TouchableOpacity
+                                    style={styles.primaryDestructiveBtn}
+                                    onPress={handleExecuteAcceptAdmin}
+                                    disabled={isAccepting}
+                                    activeOpacity={0.8}
+                                >
+                                    {isAccepting ? (
+                                        <ActivityIndicator size="small" color={Colors.WHITE} />
+                                    ) : (
+                                        <CustomText style={styles.primaryDestructiveBtnText}>
+                                            {totalAmountPaid > 0
+                                                ? 'Accept Cancellation & Request Refund'
+                                                : 'Acknowledge Cancellation'}
+                                        </CustomText>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+
+                            {onReschedule && (
+                                <TouchableOpacity
+                                    style={styles.outlineBtn}
+                                    onPress={onReschedule}
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="calendar"
+                                        size={16}
+                                        color={Colors.PRIMARY}
+                                    />
+                                    <CustomText style={styles.outlineBtnTextPrimary}>
+                                        Reschedule to Another Date
+                                    </CustomText>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </>
+                )}
             </View>
         );
     }
@@ -222,61 +252,296 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         return (
             <>
                 <View style={styles.container}>
-                    <View style={styles.headerRow}>
+                    <TouchableOpacity
+                        style={[styles.headerRow, !isExpanded && styles.headerRowCollapsed]}
+                        onPress={() => setIsExpanded(prev => !prev)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.headerLeftGroup}>
+                            <View style={styles.iconCircleError}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="x-octagon"
+                                    size={18}
+                                    color={Colors.ERROR}
+                                />
+                            </View>
+                            <View style={styles.headerTextGroup}>
+                                <CustomText variant="label" style={styles.titleError}>
+                                    Cancellation Request Declined
+                                </CustomText>
+                                <CustomText variant="caption" style={styles.subtitle}>
+                                    Reviewed by hike organizer
+                                </CustomText>
+                            </View>
+                        </View>
+                        <View style={styles.chevronWrapper}>
+                            <CustomIcon
+                                library="Feather"
+                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={20}
+                                color={Colors.TEXT_SECONDARY}
+                            />
+                        </View>
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                        <>
+                            <View style={styles.errorHighlightBox}>
+                                <CustomText variant="caption" style={styles.errorHighlightLabel}>
+                                    Reason for Decline:
+                                </CustomText>
+                                <ExpandableText
+                                    text={adminNote || 'The organizer declined this cancellation request based on policy terms.'}
+                                    textStyle={styles.errorHighlightText}
+                                    arrowColor={Colors.ERROR}
+                                    characterLimit={160}
+                                />
+                            </View>
+
+                            <View style={styles.previousReasonBox}>
+                                <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                    Your Submitted Reason:
+                                </CustomText>
+                                <ExpandableText
+                                    text={userReason}
+                                    quote={true}
+                                    textStyle={styles.previousReasonText}
+                                    arrowColor={Colors.TEXT_PRIMARY}
+                                    characterLimit={160}
+                                />
+                            </View>
+
+                            <View style={styles.actionsColumn}>
+                                {cancellation && onAppeal && (
+                                    <TouchableOpacity
+                                        style={styles.appealBtn}
+                                        onPress={() => onAppeal(cancellation)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="edit-3"
+                                            size={16}
+                                            color={Colors.ERROR}
+                                        />
+                                        <CustomText style={styles.appealBtnText}>
+                                            Appeal / Update Reason
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </>
+                    )}
+                </View>
+                {renderConfirmationModal()}
+            </>
+        );
+    }
+
+    // 3. APPROVED & REFUNDED (Terminal State in History)
+    if (isApprovedOrRefunded) {
+        const isPaid = totalAmountPaid > 0;
+        return (
+            <View style={styles.container}>
+                <TouchableOpacity
+                    style={[styles.headerRow, !isExpanded && styles.headerRowCollapsed]}
+                    onPress={() => setIsExpanded(prev => !prev)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.headerLeftGroup}>
+                        <View style={styles.iconCircleSuccess}>
+                            <CustomIcon
+                                library="Feather"
+                                name="check-circle"
+                                size={18}
+                                color={Colors.PRIMARY}
+                            />
+                        </View>
+                        <View style={styles.headerTextGroup}>
+                            <CustomText variant="label" style={styles.titleSuccess}>
+                                {isPaid ? 'Cancellation Approved & Refunded' : 'Cancellation Approved'}
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.subtitle}>
+                                Booking closed
+                            </CustomText>
+                        </View>
+                    </View>
+                    <View style={styles.chevronWrapper}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={20}
+                            color={Colors.TEXT_SECONDARY}
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                {isExpanded && (
+                    <>
+                        <View style={styles.successBox}>
+                            <CustomText style={styles.successMessage}>
+                                {isPaid
+                                    ? 'Your cancellation request has been approved. The refund transaction is being processed via PayMongo.'
+                                    : 'Your cancellation request has been approved. Your reservation has been cancelled and slots released.'}
+                            </CustomText>
+                            {isPaid && (
+                                <View style={styles.timelineBox}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="clock"
+                                        size={14}
+                                        color={Colors.TEXT_SECONDARY}
+                                    />
+                                    <CustomText variant="caption" style={styles.timelineText}>
+                                        Estimated 3–5 business days to credit back to your original payment method.
+                                    </CustomText>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.previousReasonBox}>
+                            <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                Cancellation Reason:
+                            </CustomText>
+                            <CustomText style={styles.previousReasonText}>
+                                {`"${userReason}"`}
+                            </CustomText>
+                        </View>
+                    </>
+                )}
+            </View>
+        );
+    }
+
+    // 4. CANCELLED / CLOSED (Terminal State in History without payment)
+    if (isCancelledClosed) {
+        return (
+            <View style={styles.container}>
+                <TouchableOpacity
+                    style={[styles.headerRow, !isExpanded && styles.headerRowCollapsed]}
+                    onPress={() => setIsExpanded(prev => !prev)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.headerLeftGroup}>
                         <View style={styles.iconCircleError}>
                             <CustomIcon
                                 library="Feather"
-                                name="x-octagon"
+                                name="x-circle"
                                 size={18}
                                 color={Colors.ERROR}
                             />
                         </View>
                         <View style={styles.headerTextGroup}>
                             <CustomText variant="label" style={styles.titleError}>
-                                Cancellation Request Declined
+                                Booking Cancelled
                             </CustomText>
                             <CustomText variant="caption" style={styles.subtitle}>
-                                Reviewed by hike organizer
+                                Reservation closed
                             </CustomText>
                         </View>
                     </View>
-
-                    <View style={styles.errorHighlightBox}>
-                        <CustomText variant="caption" style={styles.errorHighlightLabel}>
-                            Reason for Decline:
-                        </CustomText>
-                        <CustomText style={styles.errorHighlightText}>
-                            {adminNote || 'The organizer declined this cancellation request based on policy terms.'}
-                        </CustomText>
+                    <View style={styles.chevronWrapper}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={20}
+                            color={Colors.TEXT_SECONDARY}
+                        />
                     </View>
+                </TouchableOpacity>
 
-                    <View style={styles.previousReasonBox}>
-                        <CustomText variant="caption" style={styles.previousReasonLabel}>
-                            Your Submitted Reason:
-                        </CustomText>
-                        <CustomText style={styles.previousReasonText}>
-                            {`"${userReason}"`}
-                        </CustomText>
-                    </View>
+                {isExpanded && (
+                    <>
+                        <View style={styles.noticeBox}>
+                            <CustomText style={styles.noticeText}>
+                                This booking has been cancelled and your reservation spot has been released.
+                            </CustomText>
+                        </View>
 
-                    <View style={styles.actionsColumn}>
-                        {cancellation && onAppeal && (
-                            <TouchableOpacity
-                                style={styles.appealBtn}
-                                onPress={() => onAppeal(cancellation)}
-                                activeOpacity={0.8}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name="edit-3"
-                                    size={16}
-                                    color={Colors.PRIMARY}
-                                />
-                                <CustomText style={styles.appealBtnText}>
-                                    Appeal / Update Reason
+                        {Boolean(userReason && userReason !== 'No reason provided by user.') && (
+                            <View style={styles.previousReasonBox}>
+                                <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                    Cancellation Reason:
                                 </CustomText>
-                            </TouchableOpacity>
+                                <ExpandableText
+                                    text={userReason}
+                                    quote={true}
+                                    textStyle={styles.previousReasonText}
+                                    arrowColor={Colors.TEXT_PRIMARY}
+                                    characterLimit={160}
+                                />
+                            </View>
                         )}
+                    </>
+                )}
+            </View>
+        );
+    }
+
+    // 5. PENDING REVIEW (DEFAULT SUB-APPROVAL STATE)
+    return (
+        <>
+            <View style={styles.container}>
+                <TouchableOpacity
+                    style={[styles.headerRow, !isExpanded && styles.headerRowCollapsed]}
+                    onPress={() => setIsExpanded(prev => !prev)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.headerLeftGroup}>
+                        <View style={styles.iconCirclePending}>
+                            <CustomIcon
+                                library="Feather"
+                                name="alert-triangle"
+                                size={18}
+                                color={Colors.ERROR}
+                            />
+                        </View>
+                        <View style={styles.headerTextGroup}>
+                            <CustomText variant="label" style={styles.titlePending}>
+                                {isAppeal ? 'Cancellation Request Under Review (Appeal)' : 'Cancellation Request Under Review'}
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.subtitle}>
+                                {createdAtDate ? `Submitted on ${createdAtDate}` : 'Awaiting organizer decision'}
+                            </CustomText>
+                        </View>
+                    </View>
+                    <View style={styles.chevronWrapper}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={20}
+                            color={Colors.TEXT_SECONDARY}
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                {isExpanded && (
+                    <>
+                        <View style={styles.quoteBox}>
+                            <CustomText variant="caption" style={styles.quoteLabel}>
+                                {isAppeal ? 'Your Submitted Reason (Appeal):' : 'Your Submitted Reason:'}
+                            </CustomText>
+                            <ExpandableText
+                                text={userReason}
+                                quote={true}
+                                textStyle={styles.quoteText}
+                                arrowColor={Colors.TEXT_PRIMARY}
+                                characterLimit={160}
+                            />
+                        </View>
+
+                        <View style={styles.infoBanner}>
+                            <CustomIcon
+                                library="Feather"
+                                name="info"
+                                size={16}
+                                color={Colors.TEXT_SECONDARY}
+                            />
+                            <CustomText variant="caption" style={styles.infoBannerText}>
+                                Organizers typically review cancellation requests within 24–48 hours. If approved, your booking will be cancelled and any refundable amount will be returned via PayMongo.
+                            </CustomText>
+                        </View>
 
                         {cancellation && onWithdraw && (
                             <TouchableOpacity
@@ -295,168 +560,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 </CustomText>
                             </TouchableOpacity>
                         )}
-                    </View>
-                </View>
-                {renderConfirmationModal()}
-            </>
-        );
-    }
-
-    // 3. APPROVED & REFUNDED (Terminal State in History)
-    if (isApprovedOrRefunded) {
-        return (
-            <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <View style={styles.iconCircleSuccess}>
-                        <CustomIcon
-                            library="Feather"
-                            name="check-circle"
-                            size={18}
-                            color={Colors.PRIMARY}
-                        />
-                    </View>
-                    <View style={styles.headerTextGroup}>
-                        <CustomText variant="label" style={styles.titleSuccess}>
-                            Cancellation Approved & Refunded
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subtitle}>
-                            Booking closed
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.successBox}>
-                    <CustomText style={styles.successMessage}>
-                        Your cancellation request has been approved. The refund transaction is being processed via PayMongo.
-                    </CustomText>
-                    <View style={styles.timelineBox}>
-                        <CustomIcon
-                            library="Feather"
-                            name="clock"
-                            size={14}
-                            color={Colors.TEXT_SECONDARY}
-                        />
-                        <CustomText variant="caption" style={styles.timelineText}>
-                            Estimated 3–5 business days to credit back to your original payment method.
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.previousReasonBox}>
-                    <CustomText variant="caption" style={styles.previousReasonLabel}>
-                        Cancellation Reason:
-                    </CustomText>
-                    <CustomText style={styles.previousReasonText}>
-                        {`"${userReason}"`}
-                    </CustomText>
-                </View>
-            </View>
-        );
-    }
-
-    // 4. CANCELLED / CLOSED (Terminal State in History without payment)
-    if (isCancelledClosed) {
-        return (
-            <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <View style={styles.iconCircleError}>
-                        <CustomIcon
-                            library="Feather"
-                            name="x-circle"
-                            size={18}
-                            color={Colors.ERROR}
-                        />
-                    </View>
-                    <View style={styles.headerTextGroup}>
-                        <CustomText variant="label" style={styles.titleError}>
-                            Booking Cancelled
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subtitle}>
-                            Reservation closed
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.noticeBox}>
-                    <CustomText style={styles.noticeText}>
-                        This booking has been cancelled and your reservation spot has been released.
-                    </CustomText>
-                </View>
-
-                {Boolean(userReason && userReason !== 'No reason provided by user.') && (
-                    <View style={styles.previousReasonBox}>
-                        <CustomText variant="caption" style={styles.previousReasonLabel}>
-                            Cancellation Reason:
-                        </CustomText>
-                        <CustomText style={styles.previousReasonText}>
-                            {`"${userReason}"`}
-                        </CustomText>
-                    </View>
-                )}
-            </View>
-        );
-    }
-
-    // 5. PENDING REVIEW (DEFAULT SUB-APPROVAL STATE)
-    return (
-        <>
-            <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <View style={styles.iconCirclePending}>
-                        <CustomIcon
-                            library="Feather"
-                            name="alert-triangle"
-                            size={18}
-                            color={Colors.ERROR}
-                        />
-                    </View>
-                    <View style={styles.headerTextGroup}>
-                        <CustomText variant="label" style={styles.titlePending}>
-                            {isAppeal ? 'Cancellation Request Under Review (Appeal)' : 'Cancellation Request Under Review'}
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.subtitle}>
-                            {createdAtDate ? `Submitted on ${createdAtDate}` : 'Awaiting organizer decision'}
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.quoteBox}>
-                    <CustomText variant="caption" style={styles.quoteLabel}>
-                        {isAppeal ? 'Your Submitted Reason (Appeal):' : 'Your Submitted Reason:'}
-                    </CustomText>
-                    <CustomText style={styles.quoteText}>
-                        {`"${userReason}"`}
-                    </CustomText>
-                </View>
-
-                <View style={styles.infoBanner}>
-                    <CustomIcon
-                        library="Feather"
-                        name="info"
-                        size={16}
-                        color={Colors.TEXT_SECONDARY}
-                    />
-                    <CustomText variant="caption" style={styles.infoBannerText}>
-                        Organizers typically review cancellation requests within 24–48 hours. If approved, your booking will be cancelled and any refundable amount will be returned via PayMongo.
-                    </CustomText>
-                </View>
-
-                {cancellation && onWithdraw && (
-                    <TouchableOpacity
-                        style={styles.withdrawTriggerBtn}
-                        onPress={() => setShowWithdrawModal(true)}
-                        activeOpacity={0.8}
-                    >
-                        <CustomIcon
-                            library="Feather"
-                            name="rotate-ccw"
-                            size={15}
-                            color={Colors.ERROR}
-                        />
-                        <CustomText style={styles.withdrawTriggerBtnText}>
-                            Withdraw Cancellation Request
-                        </CustomText>
-                    </TouchableOpacity>
+                    </>
                 )}
             </View>
             {renderConfirmationModal()}
@@ -478,44 +582,62 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
         marginBottom: 16,
+    },
+    headerRowCollapsed: {
+        marginBottom: 0,
+    },
+    headerLeftGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    chevronWrapper: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.WHITE,
+        marginLeft: 8,
     },
     headerTextGroup: {
         flex: 1,
         gap: 2,
     },
     iconCircleError: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_CANCELLED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCirclePending: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_CANCELLED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCircleSuccess: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: Colors.STATUS_APPROVED_BG,
         alignItems: 'center',
         justifyContent: 'center',
     },
     titleError: {
-        color: Colors.ERROR,
+        color: Colors.TEXT_PRIMARY,
         fontWeight: 'bold',
         fontSize: 16,
     },
     titlePending: {
-        color: Colors.ERROR,
+        color: Colors.TEXT_PRIMARY,
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -674,7 +796,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: Colors.WHITE,
         borderWidth: 1.5,
-        borderColor: Colors.PRIMARY,
+        borderColor: Colors.ERROR,
         borderRadius: 12,
         paddingVertical: 12,
         alignItems: 'center',
@@ -682,7 +804,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     appealBtnText: {
-        color: Colors.PRIMARY,
+        color: Colors.ERROR,
         fontWeight: 'bold',
         fontSize: 14,
     },
@@ -697,7 +819,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 18,
         fontWeight: '500',
-        marginBottom: 8,
     },
     timelineBox: {
         flexDirection: 'row',
@@ -712,16 +833,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1.5,
-        borderColor: Colors.ERROR_BORDER,
-        backgroundColor: Colors.ERROR_BG,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.WHITE,
         borderRadius: 12,
         paddingVertical: 11,
         gap: 6,
     },
     withdrawTriggerBtnText: {
-        color: Colors.ERROR,
-        fontWeight: 'bold',
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
         fontSize: 13,
     },
 });

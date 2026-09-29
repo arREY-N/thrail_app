@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+/**
+ * @file AdminCancelBookingModal.tsx
+ * @description Dedicated modal for organizer-initiated booking cancellations,
+ * featuring organizer suggestion chips (weather, trail closures, safety) and custom reason input.
+ */
+
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -16,44 +22,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { ORGANIZER_CANCEL_REASONS } from '@/src/features/Admin/utils/reviewMessages';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export interface CancelBookingModalProps {
+export interface AdminCancelBookingModalProps {
     /** Whether the modal is visible */
     visible: boolean;
     /** Callback to close the modal */
     onClose: () => void;
-    /** Callback when user confirms reason */
+    /** Callback when admin confirms cancellation with reason */
     onConfirm: (reason: string) => Promise<void> | void;
-    /** Type of action being performed */
-    actionType: 'cancel' | 'refund' | 'update' | null | string;
-    /** Pre-filled reason if editing or appealing */
-    initialReason?: string;
-    /** Previous reason submitted by user (shown as read-only card in update/appeal mode) */
-    previousReason?: string;
-    /** Whether the submission request is in progress */
+    /** Whether the cancellation action is in progress */
     isSubmitting?: boolean;
     /** Error message to display, if any */
     errorMessage?: string | null;
 }
 
 /**
- * Universal Responsive Modal for booking cancellations, refund requests, and appeals.
- * Displays centered with breathable adaptive width on desktop/web,
- * and slides up as an interactive bottom sheet on mobile screens.
+ * Universal Responsive Modal for organizer-initiated booking cancellations.
+ * Centers on tablet/desktop screens and slides up as an interactive bottom sheet on mobile screens.
  */
-const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
+const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
     visible,
     onClose,
     onConfirm,
-    actionType,
-    initialReason = '',
-    previousReason = '',
     isSubmitting = false,
     errorMessage = null,
 }) => {
@@ -61,14 +57,12 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
-    const isUpdate = actionType === 'update';
-
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     if (visible && !renderModal) {
         setRenderModal(true);
     }
 
-    const [reason, setReason] = useState<string>(isUpdate ? '' : (initialReason || ''));
+    const [reason, setReason] = useState<string>('');
     const [animValue] = useState(() => new Animated.Value(0));
 
     const [prevVisible, setPrevVisible] = useState(visible);
@@ -76,7 +70,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         setPrevVisible(visible);
         if (visible) {
             setRenderModal(true);
-            setReason(isUpdate ? '' : (initialReason || ''));
+            setReason('');
         }
     }
 
@@ -96,61 +90,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         }
     }, [visible, animValue]);
 
-    const isSubmittingRef = useRef(false);
-
-    useEffect(() => {
-        if (!visible) {
-            isSubmittingRef.current = false;
-        }
-    }, [visible]);
-
-    const isRefund = actionType === 'refund';
-
-    let title = 'Cancel Booking';
-    let warningText = 'Once submitted, your cancellation request will be reviewed by the organizer. Refunds (if applicable) take 3–5 business days to process after approval.';
-    let confirmLabel = 'Confirm Cancel';
-    let suggestions = [
-        'Schedule conflict',
-        'Transportation issue',
-        'Emergency',
-        'Health concerns',
-        'Weather forecast',
-        'Change of plans',
-    ];
-
-    if (isRefund) {
-        title = 'Request Refund';
-        warningText = 'Refund requests are subject to organizer approval based on cancellation policy deadlines. Approved refunds are credited back via your original payment method.';
-        confirmLabel = 'Submit Request';
-        suggestions = [
-            'Medical emergency',
-            'Severe weather',
-            'Booked incorrect date',
-            'Event cancelled',
-            'Family emergency',
-        ];
-    } else if (isUpdate) {
-        title = 'Update Cancellation Reason';
-        warningText = 'Provide updated or additional details for your cancellation request to help the organizer re-evaluate your appeal.';
-        confirmLabel = 'Save Updates';
-        suggestions = [
-            'Clarified medical certificate',
-            'Work travel documentation',
-            'Transportation delay receipt',
-            'Additional context provided',
-        ];
-    }
-
     const isConfirmDisabled = !reason.trim() || isSubmitting;
 
     const handleConfirm = async () => {
-        if (isConfirmDisabled || isSubmittingRef.current) return;
-        isSubmittingRef.current = true;
-        try {
-            await onConfirm(reason.trim());
-        } finally {
-            isSubmittingRef.current = false;
-        }
+        if (isConfirmDisabled) return;
+        await onConfirm(reason.trim());
     };
 
     if (!renderModal) return null;
@@ -195,7 +139,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                     <View style={styles.header}>
                         <View style={styles.headerSide} />
                         <CustomText variant="h3" style={styles.headerTitle}>
-                            {title}
+                            Cancel Booking
                         </CustomText>
                         <View style={[styles.headerSide, styles.headerSideRight]}>
                             <TouchableOpacity
@@ -229,7 +173,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                 color={Colors.ERROR}
                             />
                             <CustomText variant="caption" style={styles.warningText}>
-                                {warningText}
+                                Cancelling this booking will notify the hiker and update the reservation status. Please select a reason or provide a clear explanation for the cancellation.
                             </CustomText>
                         </View>
 
@@ -247,28 +191,13 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                             </View>
                         ) : null}
 
-                        {isUpdate && Boolean(previousReason) ? (
-                            <View style={styles.previousReasonBox}>
-                                <CustomText variant="caption" style={styles.previousReasonLabel}>
-                                    PREVIOUS SUBMITTED REASON
-                                </CustomText>
-                                <ExpandableText
-                                    text={previousReason || ''}
-                                    quote={true}
-                                    textStyle={styles.previousReasonText}
-                                    characterLimit={150}
-                                    arrowColor={Colors.TEXT_PRIMARY}
-                                />
-                            </View>
-                        ) : null}
-
                         <CustomFeedbackInput
-                            label={isUpdate ? 'Updated Reason / Context' : `Reason for ${isRefund ? 'Refund' : 'Cancellation'}`}
-                            placeholder={isUpdate ? 'Explain additional context or documents for your appeal...' : `Please tell us why you are ${isRefund ? 'requesting a refund' : 'canceling'}...`}
+                            label="Reason for Cancellation"
+                            placeholder="Select a suggestion above or enter specific details..."
                             helperText="Tap a suggestion above or type your own detailed reason."
                             value={reason}
                             onChangeText={setReason}
-                            suggestions={suggestions}
+                            suggestions={[...ORGANIZER_CANCEL_REASONS]}
                             variant="danger"
                         />
 
@@ -287,7 +216,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                             disabled={isSubmitting}
                         >
                             <CustomText style={styles.cancelBtnText}>
-                                {isUpdate ? 'Cancel' : 'Keep Booking'}
+                                Keep Booking
                             </CustomText>
                         </TouchableOpacity>
 
@@ -309,7 +238,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                         isConfirmDisabled && styles.confirmBtnTextDisabled,
                                     ]}
                                 >
-                                    {confirmLabel}
+                                    Confirm Cancellation
                                 </CustomText>
                             )}
                         </TouchableOpacity>
@@ -420,28 +349,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '500',
     },
-    previousReasonBox: {
-        backgroundColor: Colors.BACKGROUND,
-        borderRadius: 12,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        marginBottom: 16,
-    },
-    previousReasonLabel: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-        fontSize: 11,
-        marginBottom: 6,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    previousReasonText: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 13,
-        fontStyle: 'italic',
-        lineHeight: 19,
-    },
     counterRow: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
@@ -494,4 +401,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CancelBookingModal;
+export default AdminCancelBookingModal;

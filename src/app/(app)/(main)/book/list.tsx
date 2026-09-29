@@ -1,18 +1,21 @@
+import { db } from "@/src/core/config/Firebase";
+import { collectionGroup, onSnapshot, query, where } from "firebase/firestore";
+import { useEffect } from "react";
+
 import CustomLoading from "@/src/components/CustomLoading";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { Booking, useBookingDelete, useBookingUserList } from "@/src/core/models/Booking/Booking";
-import { Cancellation, useCancellationUser, useCancellationUserList } from "@/src/core/models/Cancellation/Cancellation";
+import { Booking, useBookingsStore, useBookingUserList } from "@/src/core/models/Booking/Booking";
+import { Cancellation, cancellationConverter, useCancellationStore, useCancellationUser, useCancellationUserList } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
 import { useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 
 export default function ListBook() {
     const { bookingId: rawBookingId, view: rawView } = useLocalSearchParams();
@@ -44,9 +47,27 @@ export default function ListBook() {
 
     const {
         userCancellations,
-        refreshUserCancellations,
         error: cancellationsListError,
     } = useCancellationUserList();
+
+    // TODO: [Backend Handover / Issue #95]: Temporary controller-level onSnapshot listener for user cancellations because CancellationRepository lacks real-time listeners. Backend can remove or migrate to CancellationRepository/cancellationStore.
+    useEffect(() => {
+        if (!profile?.id || profile.role === 'admin') return;
+
+        const q = query(
+            collectionGroup(db, 'cancellations').withConverter(cancellationConverter),
+            where('userId', '==', profile.id)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(d => d.data());
+            useCancellationStore.setState({ userCancellations: list });
+        }, (err) => {
+            console.error('Real-time user cancellations subscription error:', err);
+        });
+
+        return () => unsubscribe();
+    }, [profile?.id, profile?.role]);
 
     const {
         onRescheduleBooking
@@ -59,11 +80,6 @@ export default function ListBook() {
     } = useBookingUserList();
 
     const {
-        isDeleting,
-        error: deleteError,
-    } = useBookingDelete();
-
-    const {
         onPayOffer,
         onResubmitDocuments,
         onUpdateBookingContacts,
@@ -71,78 +87,22 @@ export default function ListBook() {
         findUser,
     } = CreateBookingFlow();
 
-    const [localBookingOverrides, setLocalBookingOverrides] = useState<Record<string, Booking>>({});
-
-    const handleCancelBooking = async (booking: Booking, reason: string) => {
-        await cancelBooking(booking, reason);
-        if (booking.status !== 'for-reservation') {
-            setLocalBookingOverrides(prev => ({
-                ...prev,
-                [booking.id]: {
-                    ...booking,
-                    status: 'for-cancellation',
-                    cancellationReason: reason,
-                }
-            }));
-        }
-        await refreshUserCancellations();
-    };
-
-    const handleWithdrawCancellation = async (cancellation: Cancellation) => {
-        await cancelUserRequest(cancellation);
-        setLocalBookingOverrides(prev => {
-            const next = { ...prev };
-            delete next[cancellation.bookingId];
-            return next;
-        });
-        await refreshUserCancellations();
-    };
-
-    const handleUpdateCancellationReason = async (cancellation: Cancellation, newReason: string) => {
-        await updateCancellationReason({
-            reason: newReason,
-            oldRequest: cancellation,
-        });
-        await refreshUserCancellations();
-    };
-
+    // TODO: [Backend Handover / Issue #96]: 
+    // proceedToAdminCancellation only approves the cancellation record in businesses/{id}/cancellations and omits updating the parent booking document (users/{userId}/bookings/{bookingId}) to status = 'cancelled'. 
+    // The controller manually syncs useBookingsStore so the booking transitions to the history tab. Backend should update both records atomically.
     const handleAcceptAdminCancellation = async (cancellation: Cancellation) => {
         await proceedToAdminCancellation(cancellation);
-        await refreshUserCancellations();
+        const targetBooking = bookings?.find((b) => b.id === cancellation.bookingId);
+        if (targetBooking && targetBooking.status !== 'cancelled') {
+            const updatedBooking: Booking = {
+                ...targetBooking,
+                status: 'cancelled',
+                cancelledBy: 'admin',
+                updatedAt: new Date(),
+            };
+            await useBookingsStore.getState().create(updatedBooking, false, true);
+        }
     };
-
-    const displayBookings: Booking[] = (bookings || []).map(b => {
-        if (localBookingOverrides[b.id]) return localBookingOverrides[b.id];
-
-        const activeCancellation = userCancellations?.find(
-            c => c.bookingId === b.id && c.status === 'pending'
-        );
-        if (activeCancellation) {
-            return {
-                ...b,
-                status: 'for-cancellation',
-                cancellationReason: activeCancellation.reason,
-            };
-        }
-
-        const rejectedCancellation = userCancellations?.find(
-            c => c.bookingId === b.id && c.status === 'rejected'
-        );
-        if (
-            rejectedCancellation &&
-            b.status !== 'cancelled' &&
-            b.status !== 'refund' &&
-            b.status !== 'refunded'
-        ) {
-            return {
-                ...b,
-                status: 'cancellation-rejected',
-                cancellationReason: rejectedCancellation.reason,
-            };
-        }
-
-        return b;
-    });
 
     if (isFetching) {
         return (
@@ -152,24 +112,16 @@ export default function ListBook() {
         );
     }
 
-    if (isDeleting) {
-        return (
-            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomLoading visible={true} message="Cancelling your booking..." />
-            </ScreenWrapper>
-        );
-    }
-
     return (
         <MyBookingsScreen
-            userBookings={displayBookings}
+            userBookings={bookings || []}
             userCancellations={userCancellations}
             isLoading={isFetching}
-            error={subscriptionError || deleteError || cancellationError || cancellationsListError || undefined}
+            error={subscriptionError || cancellationError || cancellationsListError || undefined}
             onBackPress={onBackPress}
-            onCancelBookingPress={handleCancelBooking}
-            onWithdrawCancellation={handleWithdrawCancellation}
-            onUpdateCancellationReason={handleUpdateCancellationReason}
+            onCancelBookingPress={cancelBooking}
+            onWithdrawCancellation={cancelUserRequest}
+            onUpdateCancellationReason={updateCancellationReason}
             onAcceptAdminCancellation={handleAcceptAdminCancellation}
             onRefundBookingPress={onRefundBooking}
             onResubmitDocuments={onResubmitDocuments}
