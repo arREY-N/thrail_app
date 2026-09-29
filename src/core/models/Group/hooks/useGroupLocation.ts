@@ -122,15 +122,12 @@ export function useGroupLocation(groupId: string) {
         }
 
         if (emergencyContact) {
-            logger('useGroupLocation', 'Sending to contact: ', emergencyContact)
-            Linking.openURL(`sms:${emergencyContact || ""}?body=${encodeURIComponent(message)}`);
-            return;
+            onSendSMS();
         }
     };
 
     const onSendSMS = () => {
-        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation?.latitude},${currentLocation?.longitude}`;
-        const message = `THRAIL APP EMERGENCY SOS \n\nThis is ${profile?.firstname} ${profile?.lastname}. I have assigned you, ${profile?.emergencyContact.name}, as my contact person. \nI am having a trail emergency and require immediate assistance. My current location is here: \n${mapLink}`;
+        const message = `THRAIL APP EMERGENCY SOS \n\nThis is ${profile?.firstname} ${profile?.lastname}. I have assigned you, ${profile?.emergencyContact.name}, as my contact person. \nI am having a trail emergency and require immediate assistance. Copy this location in any browser or in Google Maps: \n\n[${currentLocation?.latitude},${currentLocation?.longitude}]`;
         Linking.openURL(`sms:${emergencyContact || ""}?body=${encodeURIComponent(message)}`);
     }
 
