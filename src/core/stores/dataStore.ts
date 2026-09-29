@@ -2,6 +2,7 @@ import { useAdminStore } from '@/src/core/models/Admin/Admin';
 import { useApplicationsStore } from '@/src/core/models/Application/Application';
 import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { useBusinessesStore } from '@/src/core/models/Business/Business';
+import { useGroupStore } from '@/src/core/models/Group/Group';
 import { useHikeStore } from '@/src/core/models/Hike/Hike';
 import { useLeaderboardStore } from '@/src/core/models/Leaderboard/Leaderboard';
 import { useLocationStore } from '@/src/core/models/Location/Location';
@@ -19,7 +20,7 @@ import { useFilesStore } from '@/src/core/stores/fileStore';
 import { usePaymentsStore } from '@/src/core/stores/paymentsStore';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
 
-export const resetData = () => {
+export const resetData = async () => {
     try {
         useAdminStore.getState().reset();
         useApplicationsStore.getState().reset();
@@ -30,6 +31,7 @@ export const resetData = () => {
         useLeaderboardStore.getState().reset();
         useLocationStore.getState().reset();
         useMessageStore.getState().reset();
+        useGroupStore.getState().reset();
         useMountainStore.getState().reset();
         useNotificationStore.getState().reset();
         useOfferStore.getState().reset();

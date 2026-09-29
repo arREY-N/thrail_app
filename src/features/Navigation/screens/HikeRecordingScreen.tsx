@@ -14,7 +14,7 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group, IGroupMember } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { IUserSummary, useAuthStore } from "@/src/core/models/User/User";
+import { IUserSummary, User } from "@/src/core/models/User/User";
 import { formatDate } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
@@ -52,11 +52,13 @@ interface HikeRecordingScreenProps {
     onAddReview: () => void;
     onBackPress: () => void;
     onTriggerBackendSOS?: () => void;
-    onTriggerEmergencySOS?: () => void;
+    onTriggerEmergencySOS: () => void;
     onOpenSOSCamera?: () => void;
+    onSendSMS: () => void;
     emergencyContactNumber?: string;
     shareLocationEnabled?: boolean;
     setShareLocationEnabled?: (enabled: boolean) => Promise<void>;
+    profile: User;
 }
 
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
@@ -65,7 +67,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
-    shareLocationEnabled, setShareLocationEnabled,
+    shareLocationEnabled, setShareLocationEnabled, profile, onSendSMS,
 }) => {
     const insets = useSafeAreaInsets();
     const mapRef = useRef<TrailMapRef | null>(null);
@@ -87,8 +89,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showMapOptions, setShowMapOptions] = useState(false);
 
     const [liveTime, setLiveTime] = useState(baseElapsedTime);
-
-    const { profile } = useAuthStore();
 
     const isStarted = hike.status === "started";
     const isPaused = hike.status === "paused";
@@ -129,8 +129,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isGuidedHike = !!booking;
 
     const handleSendSMS = () => {
-        const message = `EMERGENCY SOS \n\nI am having a trail emergency and require immediate assistance.\n\n📍 Coordinates: ${lat || 'Unknown'}, ${lon || 'Unknown'}`;
-        Linking.openURL(`sms:${emergencyContactNumber || ""}?body=${encodeURIComponent(message)}`);
+        onSendSMS();
         setShowSosMenu(false);
     };
 
@@ -140,15 +139,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     const handleGroupSOS = () => {
-        if (onTriggerBackendSOS) onTriggerBackendSOS();
+        console.log('handleGroupSOS');
         setShowSosMenu(false);
         setShowCameraPrompt(true);
+        if (onTriggerBackendSOS) onTriggerBackendSOS();
     };
 
     const handleEmergencyContactSOS = () => {
-        if (onTriggerEmergencySOS) onTriggerEmergencySOS();
+        console.log('handleEmergencyContactSOS');
         setShowSosMenu(false);
         setShowCameraPrompt(true);
+        onTriggerEmergencySOS();
     };
 
     const handleSafeBackPress = () => {

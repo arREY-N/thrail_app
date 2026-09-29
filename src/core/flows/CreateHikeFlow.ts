@@ -79,7 +79,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 guidelines: []
             },
         })
-        : null;
+        : null
 
     const resolvedTrail = trail ?? fallbackTrail;
 

@@ -3,6 +3,7 @@ import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -31,6 +32,8 @@ export interface HikeState {
     currentHike: Hike | null;
     elapsedTime: number;
     timerStartTime: number;
+
+    currentLocation: Location | null;
 
     totalDistance: number;
     totalElevationGain: number;
@@ -86,6 +89,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     profile: null,
 
     clearWalkedRoute: () => set({ walkedRoute: [] }),
+    currentLocation: null,
 
     reset: () => {
         const listeners = get().activeListeners || {};
@@ -112,6 +116,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             activeGroupId: null,
             shareLocationEnabled: true,
             profile: null,
+            currentLocation: null,
         });
     },
 
@@ -123,6 +128,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const active = get().active;
             const profile = get().profile;
 
+            set({ currentLocation: coordinate });
+
+            logger('HikeStoreCreator', 'Current Location', coordinate);
             // Reject invalid coordinates and Null Island
             if (
                 !coordinate ||
@@ -392,7 +400,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 try {
                     await HikeRepo.writeRoute(userId, response.id, route);
                 } catch (routeError) {
-                    console.error('[create] Failed to save consolidated hike route:', routeError);
+                    set({
+                        error: (routeError as Error).message || "Failed to save consolidated hike route",
+                    })
                 }
             }
 

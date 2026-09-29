@@ -4,9 +4,8 @@ export * from "@/src/core/models/User/interfaces/User.types";
 
 // FACTORY & CONVERTER
 export {
-    editUser,
-    newEmergencyContact,
-    newMedicalProfile,
+    attachEmergencyChatID, editUser,
+    newEmergencyContact, newMedicalProfile,
     newPreference,
     newSignUp,
     newUser,
@@ -19,12 +18,12 @@ export { UserLogic } from "@/src/core/models/User/utils/User.logic";
 
 // STORES
 export { useAuthStore } from "@/src/core/models/User/stores/authStore";
-export { useUserStore, useUserStore as useUsersStore } from "@/src/core/models/User/stores/userStore";
+export { useUserStore as useUsersStore, useUserStore } from "@/src/core/models/User/stores/userStore";
 
 // HOOKS
 export { useAuthHook } from "@/src/core/models/User/hooks/useAuthHook";
 export { useDevicePermissions } from "@/src/core/models/User/hooks/useDevicePermissions";
-export { useEditProfile } from "@/src/core/models/User/hooks/useEditProfile";
+// export { useEditProfile } from "@/src/core/models/User/hooks/useEditProfile";
 export { useForgotPassword } from "@/src/core/models/User/hooks/useForgotPassword";
 export { useHikerProfile } from "@/src/core/models/User/hooks/useHikerProfile";
 export { usePreference } from "@/src/core/models/User/hooks/usePreference";
