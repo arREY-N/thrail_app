@@ -9,7 +9,7 @@ export {
 
 // UTILITIES
 export { getBusinessOfferItem, getOffer } from "@/src/core/models/Offer/utils/getOffer";
-export { updateOfferOnCancellation } from "@/src/core/models/Offer/utils/OfferUtilities";
+export { subtractReservedPaxOnOffer } from "@/src/core/models/Offer/utils/OfferUtilities";
 
 // STORES
 export { useOfferStore } from "@/src/core/models/Offer/stores/offerStore";
