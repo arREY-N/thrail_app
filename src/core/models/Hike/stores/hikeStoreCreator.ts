@@ -400,7 +400,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 try {
                     await HikeRepo.writeRoute(userId, response.id, route);
                 } catch (routeError) {
-                    console.error('[create] Failed to save consolidated hike route:', routeError);
+                    set({
+                        error: (routeError as Error).message || "Failed to save consolidated hike route",
+                    })
                 }
             }
 
