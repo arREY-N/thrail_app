@@ -126,6 +126,8 @@ export const Colors = {
     BUTTON_DISABLED_TEXT:    Palette.Neutral400,
     BUTTON_DISABLED_BG:      Palette.Neutral200,
     BUTTON_DISABLED_BORDER: Palette.Neutral200,
+    BUTTON_RIPPLE_LIGHT:     Palette.WhiteAlpha12,
+    BUTTON_RIPPLE_DARK:      Palette.Green50,
 
     // UI Elements & Chart Accents
     YELLOW:           Palette.Yellow600,
