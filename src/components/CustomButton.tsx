@@ -93,6 +93,9 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     }
 
     const defaultIconColor = iconColor ?? (variant === 'primary' || variant === 'destructive' ? Colors.WHITE : Colors.PRIMARY);
+    const rippleColor = (variant === 'primary' || variant === 'destructive')
+        ? Colors.BUTTON_RIPPLE_LIGHT
+        : Colors.BUTTON_RIPPLE_DARK;
     const isDisabled = disabled || isLoading;
     const lastPressTimeRef = useRef<number>(0);
 
@@ -111,6 +114,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         <Pressable 
             onPress={isDisabled ? undefined : handlePress}
             disabled={isDisabled}
+            android_ripple={isDisabled ? undefined : { color: rippleColor }}
             style={({ pressed }) => [
                 styles.baseButton as StyleProp<ViewStyle>, 
                 buttonStyle, 
@@ -173,6 +177,9 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer', userSelect: 'none' } as unknown as ViewStyle,
+        }),
     },
     shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as unknown as ViewStyle,
     baseText: {
@@ -181,14 +188,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     pressed: {
-        opacity: 0.75, 
-        transform: [{ scale: 0.98 }] 
+        transform: [{ scale: 0.98 }],
     },
     disabledState: {
         opacity: 0.5,
         ...Platform.select({
-            web: { cursor: 'not-allowed' } as unknown as ViewStyle
-        })
+            web: { cursor: 'not-allowed' } as unknown as ViewStyle,
+        }),
     },
 
     primary: {
