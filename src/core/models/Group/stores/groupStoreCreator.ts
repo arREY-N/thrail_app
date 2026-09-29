@@ -34,9 +34,10 @@ export interface GroupState {
     createGroup: (group: Group) => Promise<void>;
     joinGroup: (group: Group, member: IGroupMember) => Promise<void>;
     checkGroupExists: (groupId: string) => Promise<Group | null>;
+    reset: () => void;
 }
 
-export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", never]]> = ((set, get) => ({
+const init = {
     groups: [],
     isLoading: false,
     isFetching: false,
@@ -46,6 +47,18 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     messageLimits: {},
     messagePrevCounts: {},
     hasReachedEndByGroup: {},
+}
+
+export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", never]]> = ((set, get) => ({
+    ...init,
+
+    reset: () => {
+        const listeners = get().activeListeners || {};
+        Object.values(listeners).forEach((unsub) => {
+            if (typeof unsub === "function") unsub();
+        });
+        set(init);
+    },
 
     fetchGroupById: async (groupId: string): Promise<Group | void> => {
         try {
@@ -61,7 +74,6 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
             return group;
         } catch (error) {
             set({ isFetching: false, error: error instanceof Error ? error.message : "Failed to fetch group" });
-            throw error;
         }
     },
 

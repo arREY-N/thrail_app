@@ -3,6 +3,7 @@ import { HikeRepo } from "@/src/core/models/Hike/repositories/HikeRepository";
 import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -31,6 +32,8 @@ export interface HikeState {
     currentHike: Hike | null;
     elapsedTime: number;
     timerStartTime: number;
+
+    currentLocation: Location | null;
 
     totalDistance: number;
     totalElevationGain: number;
@@ -81,6 +84,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     activeGroupId: null,
     shareLocationEnabled: true,
     profile: null,
+    currentLocation: null,
 
     reset: () => {
         const listeners = get().activeListeners || {};
@@ -106,6 +110,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             activeGroupId: null,
             shareLocationEnabled: true,
             profile: null,
+            currentLocation: null,
         });
     },
 
@@ -117,6 +122,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const active = get().active;
             const profile = get().profile;
 
+            set({ currentLocation: coordinate });
+
+            logger('HikeStoreCreator', 'Current Location', coordinate);
             if (!active || (currentHike && currentHike.status === 'paused')) {
                 set({
                     coordinates: [coordinate]

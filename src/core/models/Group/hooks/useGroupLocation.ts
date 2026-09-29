@@ -5,8 +5,9 @@ import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newMessage } from "@/src/core/models/Message/Message";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { useFilesStore } from "@/src/core/stores/fileStore";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 
 export function useGroupLocation(groupId: string) {
     const { profile } = useAuthHook();
@@ -26,13 +27,16 @@ export function useGroupLocation(groupId: string) {
     const updateHikeStore = useHikeStore(s => s.updateHikeStore);
     const updateCurrentHike = useHikeStore(s => s.updateCurrentHike);
     const startHike = useHikeStore(s => s.startHike);
-    const getLastKnownCoordinate = useHikeStore(s => s.getLastKnownCoordinate);
     const elapsedTime = useHikeStore(s => s.elapsedTime);
+    const currentLocation = useHikeStore(s => s.currentLocation);
 
     const uploadDocument = useFilesStore(s => s.uploadDocument);
     const capturePhoto = useFilesStore(s => s.capturePhoto);
 
     const create = useHikeStore(s => s.create);
+
+    const emergencyContact = profile?.emergencyContact.contactNumber;
+
 
     const onStartSharingLocation = async () => {
         try {
@@ -79,31 +83,60 @@ export function useGroupLocation(groupId: string) {
         }
     };
 
-    const onEmergencyPress = () => {
-        if (!profile || !groupId) return;
+    const onEmergencyPress = async () => {
+        console.log('sending emergency message');
 
-        const coordinate = getLastKnownCoordinate();
+        if (!profile) return;
 
-        if (!coordinate) {
+        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation?.latitude},${currentLocation?.longitude}`;
+
+        const message = currentLocation
+            ? `Send emergency help! I'm at ${mapLink}`
+            : `Send emergency help! I'm at ${currentHike?.trail.name}`
+
+        const chatId = profile.emergencyContact.chatId
+
+        if (!currentLocation) {
             setLocalError("No location data available to send emergency alert");
             return;
         }
 
-        const mapLink = `https://www.google.com/maps/search/?api=1&query=${coordinate.latitude},${coordinate.longitude}`;
-
         const msg = newMessage({
-            content: `Send help! \n\nLast known location: ${mapLink} \n\nTime: ${coordinate.timestamp}`,
+            content: `Send help! \n\nLast known location: ${mapLink} \n\nTime: ${currentLocation.timestamp}`,
             senderId: profile.id,
             senderName: profile.firstname,
             timesent: new Date(),
         });
 
-        GroupRepo.sendMessage(groupId, msg);
+
+        if (groupId) {
+            logger('useGroupLocation', 'Sending to group: ', groupId)
+            await GroupRepo.sendMessage(groupId, msg);
+            return;
+        }
+
+        if (chatId) {
+            logger('useGroupLocation', 'Sending to chat: ', chatId)
+            await GroupRepo.sendMessage(chatId, msg);
+            return;
+        }
+
+        if (emergencyContact) {
+            logger('useGroupLocation', 'Sending to contact: ', emergencyContact)
+            Linking.openURL(`sms:${emergencyContact || ""}?body=${encodeURIComponent(message)}`);
+            return;
+        }
     };
+
+    const onSendSMS = () => {
+        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation?.latitude},${currentLocation?.longitude}`;
+        const message = `THRAIL APP EMERGENCY SOS \n\nThis is ${profile?.firstname} ${profile?.lastname}. I have assigned you, ${profile?.emergencyContact.name}, as my contact person. \nI am having a trail emergency and require immediate assistance. My current location is here: \n${mapLink}`;
+        Linking.openURL(`sms:${emergencyContact || ""}?body=${encodeURIComponent(message)}`);
+    }
 
     const onStartHike = async (group: Group, booking: Booking) => {
         try {
-            if (!profile)
+            if (!profile?.id)
                 throw new Error("User not authenticated. Please log in to share location");
 
             if (currentHike && currentHike.trail.id !== group.trail.id)
@@ -119,7 +152,7 @@ export function useGroupLocation(groupId: string) {
             });
 
             updateHikeStore({ currentHike: hike });
-            await startHike(profile.id);
+            await startHike(hike, { id: profile.id, firstname: profile.firstname, lastname: profile.lastname });
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
@@ -181,6 +214,7 @@ export function useGroupLocation(groupId: string) {
         onCompleteHike,
         onEmergencyPress,
         onSendPicture,
+        onSendSMS,
         location,
         error: localError,
         isLive,

@@ -79,7 +79,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 guidelines: []
             },
         })
-        : null;
+        : null
 
     const resolvedTrail = trail ?? fallbackTrail;
 
@@ -238,7 +238,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 throw new Error('Cannot review an incomplete hike');
 
             router.push({
-                pathname: '/(main)/review/write',
+                pathname: '/(app)/(main)/review/write',
                 params: {
                     trailId: currentHike.trail.id,
                 }
