@@ -506,17 +506,6 @@ const BookingDetailsScreen = ({
             };
         }
 
-        if (canReschedule) {
-            return {
-                primaryButton: {
-                    title: "Reschedule",
-                    variant: "primary" as const,
-                    style: { borderRadius: 12 },
-                    onPress: () => setShowRescheduleModal(true)
-                }
-            };
-        }
-
         if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
             return {
                 primaryButton: {
