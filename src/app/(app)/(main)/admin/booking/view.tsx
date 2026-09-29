@@ -35,7 +35,7 @@ import {
 } from "@/src/core/models/Group/Group";
 import {
     getBusinessOfferItem,
-    updateOfferOnCancellation,
+    subtractReservedPaxOnOffer,
     useOfferList,
     useOfferStore,
 } from "@/src/core/models/Offer/Offer";
@@ -141,7 +141,7 @@ export default function AdminViewBooking() {
 
             const group = await getGroup(dbBooking.offer.id);
 
-            const updatedOffer = updateOfferOnCancellation(offer, dbBooking);
+            const updatedOffer = subtractReservedPaxOnOffer(offer, dbBooking);
             const updatedBooking: Booking = {
                 ...updateBookingOnCancellation(dbBooking, request, true),
                 status: 'cancelled',
