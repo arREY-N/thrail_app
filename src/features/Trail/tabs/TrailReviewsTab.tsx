@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { FlatList, ListRenderItemInfo, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { DimensionValue, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -27,43 +27,38 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
     onWriteReviewPress,
 }) => {
     const { isDesktop, isTablet } = useBreakpoints();
-    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
+    const contentMaxWidth: DimensionValue = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
-    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<IReview>) => (
-        <PostCard
-            review={item}
-            variant="community"
-            onLike={() => likeReview(item)}
-            isLiked={isLiked}
-            onEdit={() => onWriteReviewPress(item)}
-        />
-    ), [likeReview, isLiked, onWriteReviewPress]);
+    const hasReviews = Boolean(reviews && reviews.length > 0);
 
     return (
         <View style={styles.tabContent}>
-            <FlatList
-                data={reviews ?? []}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={[
+            <View
+                style={[
                     styles.scrollContent,
-                    { maxWidth: contentMaxWidth as any, alignSelf: 'center', width: '100%' }
+                    { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }
                 ]}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-                nestedScrollEnabled={true}
+            >
+                {hasReviews && reviews?.map((item) => (
+                    <PostCard
+                        key={item.id}
+                        review={item}
+                        variant="community"
+                        onLike={() => likeReview(item)}
+                        isLiked={isLiked}
+                        onEdit={() => onWriteReviewPress(item)}
+                    />
+                ))}
 
-                renderItem={renderPostCard}
-                ListEmptyComponent={
-                    !isLoading ? (
-                        <View style={styles.emptyStateContainer}>
-                            <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
-                            <CustomText variant="caption" style={styles.emptyStateText}>
-                                No community posts found.
-                            </CustomText>
-                        </View>
-                    ) : null
-                }
-            />
+                {!hasReviews && !isLoading && (
+                    <View style={styles.emptyStateContainer}>
+                        <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                        <CustomText variant="caption" style={styles.emptyStateText}>
+                            No community posts found.
+                        </CustomText>
+                    </View>
+                )}
+            </View>
         </View>
     );
 };
