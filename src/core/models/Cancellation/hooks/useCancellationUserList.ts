@@ -19,27 +19,15 @@ export function useCancellationUserList() {
     const userCancellations = useCancellationStore(s => s.userCancellations);
     const storeError = useCancellationStore(s => s.error);
     const storeFetching = useCancellationStore(s => s.isFetching);
+    const subscribe = useCancellationStore(s => s.subscribeToUserCancellations);
 
     useEffect(() => {
-        const fetch = async () => {
-            setLocalError(null);
+        if (!profile?.id) return;
 
-            if (!profile?.id) {
-                setLocalError("User profile is not available.");
-                return;
-            }
+        const unsubscribe = subscribe(profile.id);
+        return () => unsubscribe();
 
-            if (profile.role === "admin") {
-                setLocalError("Only users can fetch the list of their cancellation requests.");
-                return;
-            }
-
-            await useCancellationStore.getState().fetchAllUserCancellations(profile.id);
-        }
-
-        fetch();
-
-    }, [profile?.id, profile?.role]);
+    }, [profile?.id, subscribe]);
 
     /**
      * Refreshes the list of cancellation requests for the current user.

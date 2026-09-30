@@ -11,16 +11,12 @@ export function useCancellationAdminList() {
     const [localError, setLocalError] = useState<string | null>(null);
     const businessCancellations = useCancellationStore(s => s.businessCancellations);
     const isFetching = useCancellationStore(s => s.isFetching);
-
+    const subscribe = useCancellationStore(s => s.subscribeToBusinessCancellations);
     useEffect(() => {
-        const fetch = async () => {
-            if (!businessId) return;
-
-            await useCancellationStore.getState().fetchAllBusinessCancellations(businessId);
-        }
-
-        fetch();
-    }, [businessId]);
+        if (!businessId) return;
+        const unsubscribe = subscribe(businessId);
+        return unsubscribe;
+    }, [businessId, subscribe]);
 
     /**
      * Forces a refresh on the admin cancellations list by re-fetching the data from the store. 
