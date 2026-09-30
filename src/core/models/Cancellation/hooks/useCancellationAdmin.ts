@@ -19,6 +19,7 @@ import {
     useGroupStore
 } from "@/src/core/models/Group/Group";
 
+import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import {
     getBusinessOfferItem,
@@ -29,7 +30,7 @@ import {
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 
 
-export function useCancellationAdmin() {
+export function useCancellationAdmin(bookingId: string) {
     const { profile, role, businessId } = useAuthHook();
 
     const { onRefund } = usePaymentAdmin();
@@ -43,6 +44,12 @@ export function useCancellationAdmin() {
     const createBooking = useBookingsStore(s => s.create);
     const createGroup = useGroupStore(s => s.createGroup);
 
+    const { businessCancellations } = useCancellationAdminList();
+
+    const cancellationRequest = businessCancellations.find(
+        c => c.bookingId === bookingId
+    )
+
     const revertAdminCancellation = useCancellationStore(s => s.delete);
 
     /**
@@ -53,12 +60,23 @@ export function useCancellationAdmin() {
      * @param approved - A boolean indicating whether the cancellation request is approved (true) or rejected (false).
      * @param adminNote - An optional note from the admin explaining the decision. This is required if the request is rejected.
      */
-    const processCancellationRequest = async (request: Cancellation, approved: boolean, adminNote?: string) => {
+    const processCancellationRequest = async ({
+        request,
+        approved,
+        refund,
+        adminNote,
+    }: {
+        request?: Cancellation | null, approved: boolean, refund?: number, adminNote?: string
+    }) => {
         try {
             setWritingError(null);
 
             if (!profile || profile.role !== "admin") {
                 throw new Error("Only admins can process cancellation requests.");
+            }
+
+            if (!request) {
+                throw new Error('Cancellation request not provided');
             }
 
             if (approved) {
@@ -85,7 +103,21 @@ export function useCancellationAdmin() {
 
                 const updatedGroup: Group = updateGroupOnCancellation(group, booking.user.id);
 
-                await onRefund(updatedBooking, 'full');
+                const totalPaid = booking.payment.reduce(
+                    (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
+                    0
+                ) || 0;
+
+                if (totalPaid > 0) {
+                    logger('UseCancellationAdmin', 'Implement variable refund amount')
+
+                    if (!refund) {
+                        logger('UseCancellation', 'If error is thrown, update call to processCancellationRequest to include refund percentage (in decimal format).')
+                        throw new Error('Refund percentage not provided');
+                    }
+
+                    await onRefund(updatedBooking, 'full');
+                }
 
                 await createBooking(updatedBooking, true, true);
                 await createOffer(updatedOffer);
@@ -115,6 +147,27 @@ export function useCancellationAdmin() {
             setWritingError((error as Error).message || "An unexpected error occurred.");
         }
     }
+
+    const handleApproveCancellation = async (
+        request?: Cancellation | null,
+        currentBooking?: Booking
+    ) => {
+        const activeBooking = currentBooking;
+        if (!activeBooking || !request) return;
+
+        const totalPaid = activeBooking.payment?.reduce(
+            (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
+            0
+        ) || 0;
+
+        if (totalPaid > 0) {
+            // Paid booking: triggers refund and inventory updates via backend
+            await processCancellationRequest({
+                request,
+                approved: true
+            })
+        };
+    };
 
     /**
      * Creates a cancellation request on behalf of a user booking. This function is intended for admin use only.
@@ -155,7 +208,7 @@ export function useCancellationAdmin() {
      * Reverts a cancellation request made by an admin.
      * @param {Cancellation} request - The cancellation request to be reverted.
      */
-    const revertCancellationRequest = async (request: Cancellation) => {
+    const revertCancellationRequest = async () => {
         try {
             setWritingError(null);
 
@@ -163,19 +216,23 @@ export function useCancellationAdmin() {
                 throw new Error("Cannot delete requests without the business ID.");
             }
 
+            if (!cancellationRequest) {
+                throw new Error("Cancelaltion request not loaded");
+            }
+
             if (!profile || profile.role !== "admin") {
                 throw new Error("Only admins can revert cancellation by admin requests.");
             }
 
-            if (request.cancelledBy !== "admin") {
+            if (cancellationRequest.cancelledBy !== "admin") {
                 throw new Error("Only cancellations made by admins can be reverted by an admin.");
             }
 
-            if (request.status !== "pending") {
+            if (cancellationRequest.status !== "pending") {
                 throw new Error("Only pending cancellations can be reverted.");
             }
 
-            await revertAdminCancellation(businessId, request);
+            await revertAdminCancellation(businessId, cancellationRequest);
 
         } catch (error) {
             catchError(error as Error, 'writingError', 'revertCancellationRequest()');
@@ -219,6 +276,7 @@ export function useCancellationAdmin() {
         isWriting,
         writingError,
         storeError,
+        cancellationRequest,
         processCancellationRequest,
         cancelUserBooking,
         revertCancellationRequest,
