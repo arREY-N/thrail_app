@@ -1,34 +1,27 @@
 
-import LoadingScreen from "@/src/app/loading";
+import CustomLoading from "@/src/components/CustomLoading";
 import { CreateOfferFlow } from "@/src/core/flows/CreateOfferFlow";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useTrailList } from "@/src/core/models/Trail/Trail";
-import { useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import OfferWriteScreen from "@/src/features/Admin/screens/Offer/OfferWriteScreen";
 import { Stack, useLocalSearchParams } from "expo-router";
 
 export default function WriteOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
-    const { businessId } = useAuthHook();
-    const { onBackPress } = useAppNavigation();
 
     const offerId = getSearchParam(rawOfferId);
-
-    const {
-        trails
-    } = useTrailList();
 
     const {
         offer,
         error,
         isLoading,
+        trails,
         onRemovePress,
         onUpdatePress,
         onSubmitPress,
-    } = CreateOfferFlow({ offerId, businessId });
+        onBackPress,
+    } = CreateOfferFlow({ offerId });
 
-    if (isLoading || !offer) return <LoadingScreen />;
+    if (isLoading || !offer) return <CustomLoading message="Saving offer" />;
 
     return (
         <>

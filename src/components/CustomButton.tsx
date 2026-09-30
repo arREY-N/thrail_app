@@ -3,8 +3,9 @@
  * @description Standardized customizable button component for the Thrail application, supporting icons, states, and custom variants.
  */
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef } from 'react';
 import {
+    ActivityIndicator,
     GestureResponderEvent,
     Platform,
     Pressable,
@@ -30,6 +31,7 @@ import { IconLibrary } from '@/src/types/ui.types';
  * @param style - Custom styles for the button container.
  * @param textStyle - Custom styles for the button text label.
  * @param disabled - Boolean indicating if the button is disabled.
+ * @param isLoading - Boolean indicating if the button is in a loading/processing state.
  * @param children - Optional custom sub-elements of the button.
  * @param icon - Name of the icon to render.
  * @param iconLibrary - Icon library name (e.g., 'Feather', 'Ionicons').
@@ -44,6 +46,8 @@ interface CustomButtonProps {
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     disabled?: boolean;
+    isLoading?: boolean;
+    throttleMs?: number;
     children?: ReactNode;
     icon?: string;
     iconLibrary?: IconLibrary;
@@ -62,6 +66,8 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     style,
     textStyle,
     disabled,
+    isLoading = false,
+    throttleMs = 500,
     children,
     icon,
     iconLibrary,
@@ -87,32 +93,57 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     }
 
     const defaultIconColor = iconColor ?? (variant === 'primary' || variant === 'destructive' ? Colors.WHITE : Colors.PRIMARY);
+    const rippleColor = (variant === 'primary' || variant === 'destructive')
+        ? Colors.BUTTON_RIPPLE_LIGHT
+        : Colors.BUTTON_RIPPLE_DARK;
+    const isDisabled = disabled || isLoading;
+    const lastPressTimeRef = useRef<number>(0);
+
+    const handlePress = (event: GestureResponderEvent) => {
+        if (!onPress || isDisabled) return;
+
+        const now = Date.now();
+        if (throttleMs > 0 && now - lastPressTimeRef.current < throttleMs) {
+            return;
+        }
+        lastPressTimeRef.current = now;
+        onPress(event);
+    };
 
     return (
         <Pressable 
-            onPress={onPress}
-            disabled={disabled}
+            onPress={isDisabled ? undefined : handlePress}
+            disabled={isDisabled}
+            android_ripple={isDisabled ? undefined : { color: rippleColor }}
             style={({ pressed }) => [
                 styles.baseButton as StyleProp<ViewStyle>, 
                 buttonStyle, 
-                useShadow && !disabled && (styles.shadows as StyleProp<ViewStyle>),
+                useShadow && !isDisabled && (styles.shadows as StyleProp<ViewStyle>),
                 style,
-                pressed && !disabled && (styles.pressed as StyleProp<ViewStyle>),
-                disabled && (styles.disabledState as StyleProp<ViewStyle>)
+                pressed && !isDisabled && (styles.pressed as StyleProp<ViewStyle>),
+                isDisabled && (styles.disabledState as StyleProp<ViewStyle>)
             ]}
         >
             {children ? (
                 children
             ) : (
                 <View style={styles.contentRow}>
-                    {icon && iconLibrary && iconPosition === 'left' && (
-                        <CustomIcon 
-                            library={iconLibrary} 
-                            name={icon} 
-                            size={iconSize} 
+                    {isLoading ? (
+                        <ActivityIndicator 
+                            size="small" 
                             color={defaultIconColor} 
-                            style={styles.iconLeft}
+                            style={styles.spinner}
                         />
+                    ) : (
+                        icon && iconLibrary && iconPosition === 'left' && (
+                            <CustomIcon 
+                                library={iconLibrary} 
+                                name={icon} 
+                                size={iconSize} 
+                                color={defaultIconColor} 
+                                style={styles.iconLeft}
+                            />
+                        )
                     )}
                     <CustomText 
                         style={[
@@ -123,7 +154,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
                     >
                         {title}
                     </CustomText>
-                    {icon && iconLibrary && iconPosition === 'right' && (
+                    {!isLoading && icon && iconLibrary && iconPosition === 'right' && (
                         <CustomIcon 
                             library={iconLibrary} 
                             name={icon} 
@@ -146,6 +177,9 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
+        ...Platform.select({
+            web: { cursor: 'pointer', userSelect: 'none' } as unknown as ViewStyle,
+        }),
     },
     shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as unknown as ViewStyle,
     baseText: {
@@ -154,14 +188,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     pressed: {
-        opacity: 0.75, 
-        transform: [{ scale: 0.98 }] 
+        transform: [{ scale: 0.98 }],
     },
     disabledState: {
         opacity: 0.5,
         ...Platform.select({
-            web: { cursor: 'not-allowed' } as unknown as ViewStyle
-        })
+            web: { cursor: 'not-allowed' } as unknown as ViewStyle,
+        }),
     },
 
     primary: {
@@ -204,6 +237,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
+    },
+    spinner: {
+        marginRight: 4,
     },
     iconLeft: {},
     iconRight: {}

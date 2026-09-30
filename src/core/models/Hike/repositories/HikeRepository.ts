@@ -77,32 +77,69 @@ export const HikeRepository = (db: Firestore) => ({
     },
 
     /**
-     * Writes tracking coordinates for an active hike.
+     * Writes the complete consolidated route for a hike to Firestore.
+     * Stored in a single document: users/{userId}/hikes/{hikeId}/route/session
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
-     * @param coordinates - Array of coordinates to save.
+     * @param route - Complete array of [lon, lat] coordinates.
+     */
+    async writeRoute(userId: string, hikeId: string, route: [number, number][]): Promise<void> {
+        try {
+            if (!route || route.length === 0) return;
+            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+            await setDoc(routeRef, {
+                coordinates: route,
+                pointCount: route.length,
+                updatedAt: Timestamp.now(),
+            });
+        } catch (error) {
+            console.error("Error writing consolidated hike route: ", error);
+            if (error instanceof Error) throw error;
+            throw new Error("Failed writing hike route");
+        }
+    },
+
+    /**
+     * Fetches the consolidated route for a completed hike.
+     * @param userId - The ID of the user.
+     * @param hikeId - The ID of the hike.
+     * @returns Array of [lon, lat] coordinates or empty array.
+     */
+    async fetchRoute(userId: string, hikeId: string): Promise<[number, number][]> {
+        try {
+            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+            const snapshot = await getDoc(routeRef);
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                return (data.coordinates as [number, number][]) || [];
+            }
+            return [];
+        } catch (error) {
+            console.error("Error fetching hike route: ", error);
+            return [];
+        }
+    },
+
+    /**
+     * Legacy coordinate writer - preserved for backwards compatibility.
+     * Converts Location[] to [lon, lat][] and persists via writeRoute.
      */
     async writeCoordinates(userId: string, hikeId: string, coordinates: Location[]): Promise<void> {
         try {
             if (!coordinates || coordinates.length === 0) return;
-
-            const lastTimestamp = coordinates[coordinates.length - 1].timestamp;
-            const docId = lastTimestamp.getTime().toString();
-            const coordRef = doc(collection(db, "users", userId, "hikes", hikeId, "coordinates"), docId);
-
-            const coordinatesData = coordinates.map(locationConverter.toFirestore);
-
-            await setDoc(
-                coordRef,
-                {
-                    coordinates: coordinatesData,
-                    lastCoordinate: Timestamp.fromDate(lastTimestamp),
-                },
-            );
+            const route: [number, number][] = coordinates
+                .filter(c => typeof c.longitude === 'number' && typeof c.latitude === 'number' && !isNaN(c.longitude) && !isNaN(c.latitude))
+                .map(c => [c.longitude, c.latitude]);
+            if (route.length > 0) {
+                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+                await setDoc(routeRef, {
+                    coordinates: route,
+                    pointCount: route.length,
+                    updatedAt: Timestamp.now(),
+                }, { merge: true });
+            }
         } catch (error) {
-            console.error("Error writing coordinates: ", error);
-            if (error instanceof Error) throw error;
-            throw new Error("Failed writing coordinates");
+            console.error("Error in writeCoordinates: ", error);
         }
     },
 
@@ -171,11 +208,10 @@ export const HikeRepository = (db: Firestore) => ({
             return onSnapshot(
                 q,
                 (snapshot) => {
-                    const locations = snapshot.docs.map(docsnap => {
-                        const locationInstance = docsnap.data();
-                        (locationInstance as any).id = docsnap.id;
-                        return locationInstance;
-                    });
+                    const locations = snapshot.docs.map(docsnap => ({
+                        ...docsnap.data(),
+                        id: docsnap.id,
+                    }));
                     onUpdate(locations);
                 },
                 (error) => {

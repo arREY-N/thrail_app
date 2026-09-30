@@ -19,7 +19,7 @@ import { Booking, BookingLogic } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact } from '@/src/core/models/User/User';
 import { toDateOrNull } from '@/src/core/utility/date';
-import { formatDateToStandard } from '@/src/utils/dateFormatter';
+import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
@@ -78,6 +78,7 @@ const BookingScreen = ({
 
     const [currentView, setCurrentView] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
     const [submitPhase, setSubmitPhase] = useState('idle');
     const [bookingStatusOutcome, setBookingStatusOutcome] = useState<BookingStatusOutcome>('success');
     const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
@@ -138,6 +139,7 @@ const BookingScreen = ({
     }, [bookingData]);
 
     const resetStateAndGoBack = () => {
+        isSubmittingRef.current = false;
         setCurrentView(1);
         setBookingData({
             selectedOfferId: null,
@@ -185,12 +187,14 @@ const BookingScreen = ({
     };
 
     const handleRetryBooking = () => {
+        isSubmittingRef.current = false;
         setCurrentView(2);
         setSubmitPhase('idle');
         setIsSubmitting(false);
     };
 
     const handleChangeDate = () => {
+        isSubmittingRef.current = false;
         setCurrentView(1);
         setSubmitPhase('idle');
         setIsSubmitting(false);
@@ -206,6 +210,30 @@ const BookingScreen = ({
         hikerDetails: HikerBookingDetails; 
         uploadedDocs: Record<string, string>; 
     }) => {
+        if (isSubmittingRef.current || isSubmitting) return;
+
+        // Defensive check: Ensure selected offer satisfies 1-week advance notice rule
+        if (bookingData.selectedOfferId) {
+            const selectedOfferObj = safeOffers.find((o) => o.id === bookingData.selectedOfferId);
+            if (selectedOfferObj?.date) {
+                const startDate = safeParseDateString(selectedOfferObj.date);
+                startDate.setHours(0, 0, 0, 0);
+                const minBookingDate = new Date();
+                minBookingDate.setHours(0, 0, 0, 0);
+                minBookingDate.setDate(minBookingDate.getDate() + 7);
+
+                if (startDate < minBookingDate) {
+                    isSubmittingRef.current = false;
+                    setIsSubmitting(false);
+                    setBookingStatusOutcome('error');
+                    setBookingErrorMessage('Reservations require at least 1 week advance notice. Please select an offer at least 7 days ahead.');
+                    setCurrentView(3);
+                    return;
+                }
+            }
+        }
+
+        isSubmittingRef.current = true;
         setIsSubmitting(true);
 
         const cleanedPhone = cleanPhoneNumber(payload.hikerDetails.phone || '');
@@ -285,6 +313,7 @@ const BookingScreen = ({
 
                 setCurrentView(3);
                 setIsSubmitting(false);
+                isSubmittingRef.current = false;
                 setSubmitPhase('idle');
             }, 250);
 

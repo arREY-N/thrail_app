@@ -44,9 +44,13 @@ export const newBooking = (init?: Partial<Booking>): Booking => {
 };
 
 const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
+    const rawStatus = data.status as string;
+    const normalizedStatus: Booking['status'] = rawStatus === 'pending-docs' ? 'for-reservation' : data.status;
+
     return {
         ...data,
         id,
+        status: normalizedStatus,
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
         offer: {

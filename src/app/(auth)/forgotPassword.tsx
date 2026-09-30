@@ -1,12 +1,22 @@
-import { Redirect } from 'expo-router';
-import { View } from 'react-native';
+/**
+ * @file forgotPassword.tsx
+ * @description Route controller for password recovery and reset link dispatch.
+ */
 
-import CustomLoading from "@/src/components/CustomLoading";
+import { Redirect } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+
+import CustomLoading from '@/src/components/CustomLoading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
-import { useForgotPassword } from "@/src/core/models/User/User";
-import ForgotPasswordScreen from "@/src/features/Auth/screens/ForgotPasswordScreen";
+import { useForgotPassword } from '@/src/core/models/User/User';
+import ForgotPasswordScreen from '@/src/features/Auth/screens/ForgotPasswordScreen';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
+/**
+ * Controller managing password reset email requests and desktop redirects.
+ *
+ * @returns {React.JSX.Element} The rendered forgot password controller view.
+ */
 export default function ForgotPassword() {
     const { isLargeScreen } = useBreakpoints();
     const { onBackPress } = useAppNavigation();
@@ -18,7 +28,7 @@ export default function ForgotPassword() {
     }
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={styles.container}>
             <ForgotPasswordScreen
                 onSendResetEmail={controller.onSendResetEmail}
                 error={controller.error}
@@ -34,3 +44,9 @@ export default function ForgotPassword() {
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+});

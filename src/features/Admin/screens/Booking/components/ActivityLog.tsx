@@ -79,16 +79,6 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
             color: getStatusThemeColor('reservation-rejected'),
             sortDate: getEventDate(booking.updatedAt)
         });
-    } else if (booking.status === 'pending-docs') {
-        timelineEvents.push({
-            title: "Documents Pending Re-upload",
-            time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
-            desc: "Admin requested hiker to re-upload clear document copies.",
-            reason: booking.cancellationReason || 'N/A',
-            status: getStatusConfig('pending-docs', 'admin').label,
-            color: getStatusThemeColor('pending-docs'),
-            sortDate: getEventDate(booking.updatedAt)
-        });
     } else if (booking.status === 'approved-docs' || booking.status === 'for-payment' || 
                ['paid', 'downpayment', 'completed', 'finished', 'for-cancellation', 'cancellation-rejected', 'cancelled', 'refund', 'refunded', 'for-reschedule', 'reschedule-rejected', 'rescheduled'].includes(booking.status)) {
         timelineEvents.push({

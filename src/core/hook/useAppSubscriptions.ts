@@ -1,4 +1,5 @@
 import { useBookingsStore } from "@/src/core/models/Booking/Booking";
+import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
 import { useNotificationsStore } from "@/src/core/models/Notification/Notification";
 import { useReviewStore } from "@/src/core/models/Review/Review";
 import { useTrailsStore } from "@/src/core/models/Trail/Trail";
@@ -13,6 +14,7 @@ export const useAppSubscriptions = () => {
     const subscribeToNotifications = useNotificationsStore(s => s.subscribeToNotifications);
     const subscribeToUserBookings = useBookingsStore(s => s.subscribeToUserBookings);
     const fetchAllTrails = useTrailsStore(s => s.fetchAll);
+    const fetchAllMountains = useMountainsStore(s => s.fetchAll);
 
     useEffect(() => {
         if (!profile?.id) return;
@@ -20,10 +22,18 @@ export const useAppSubscriptions = () => {
         const unsubNotifications = subscribeToNotifications(profile.id);
         const unsubUserBookings = subscribeToUserBookings(profile.id);
         fetchAllTrails();
+        fetchAllMountains();
         return () => {
             unsubReview?.();
             unsubNotifications?.();
             unsubUserBookings?.();
         };
-    }, [profile?.id, subscribeToReviews, subscribeToNotifications, subscribeToUserBookings, fetchAllTrails]);
+    }, [
+        profile?.id,
+        subscribeToReviews,
+        subscribeToNotifications,
+        subscribeToUserBookings,
+        fetchAllTrails,
+        fetchAllMountains
+    ]);
 }

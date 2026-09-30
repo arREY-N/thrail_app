@@ -1,6 +1,6 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
-import { useMountainsStore } from "@/src/core/models/Mountain/Mountain";
+import { MountainRepo, useMountainsStore } from "@/src/core/models/Mountain/Mountain";
 import { Trail } from "@/src/core/models/Trail/interfaces/ITrail";
 import { useTrailsStore } from "@/src/core/models/Trail/stores/trailStore";
 import { newTrail } from "@/src/core/models/Trail/utils/TrailFactory";
@@ -143,6 +143,33 @@ export function useTrailWrite(params: TrailParams = {}): IUseTrailWrite {
                 throw new Error(`Missing required fields: ${result.join(', ')}`);
             }
 
+            // Auto-register any new mountains in Firestore /mountains
+            const selectedMountains = trail.general?.mountain || [];
+            const selectedProvinces = trail.general?.province || [];
+
+            let hasNewMountain = false;
+            for (const mtn of selectedMountains) {
+                const trimmed = mtn.trim();
+                if (!trimmed) continue;
+
+                const exists = mountains.some(
+                    m => m.name.toLowerCase() === trimmed.toLowerCase()
+                );
+
+                if (!exists) {
+                    await MountainRepo.write({
+                        id: '',
+                        name: trimmed,
+                        province: selectedProvinces.length > 0 ? selectedProvinces : ['Unknown'],
+                    });
+                    hasNewMountain = true;
+                }
+            }
+
+            if (hasNewMountain) {
+                await useMountainsStore.getState().refresh();
+            }
+
             const created = await create(trail);
 
             if (!created) {
@@ -157,8 +184,18 @@ export function useTrailWrite(params: TrailParams = {}): IUseTrailWrite {
     };
 
     const onRemovePress = async (targetId: string) => {
-        if (targetId) await remove(targetId);
-        router.replace('/');
+        setLocalError(null);
+        try {
+            if (!targetId) return;
+            await remove(targetId);
+            const storeError = useTrailsStore.getState().error;
+            if (storeError) {
+                throw new Error(storeError);
+            }
+            router.back();
+        } catch (error: unknown) {
+            setLocalError(error instanceof Error ? error.message : 'Failed deleting trail');
+        }
     };
 
     return {

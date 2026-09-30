@@ -48,11 +48,11 @@ const onlineListeners = new Set<(online: boolean) => void>();
 export const TrackHikerGPSFlow = () => {
     const addCoordinate = useHikeStore((state) => state.addCoordinate);
     const updateHikeStore = useHikeStore((state) => state.updateHikeStore);
+    const routeCoordinates = useHikeStore((state) => state.walkedRoute);
 
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [isOnline, setIsOnline] = useState(true);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-    const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
 
     const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
@@ -152,21 +152,22 @@ x     * Will ONLY record data and draw the red line if the global store says act
                         }));
                     }, GPS_TIMEOUT_MS);
 
-                    if (location.coords.accuracy && location.coords.accuracy > 20) return;
+                    if (location.coords.accuracy && location.coords.accuracy > 25) return;
 
                     // Always update the Blue Dot position
                     setUserLocation([lon, lat]);
-                    setRouteCoordinates((prev) => [...prev, [lon, lat]]);
 
-                    console.log('logging from TrackHikerGPSFlow');
-                    // Global Store Integration
-                    addCoordinate(newLocation({
-                        latitude: lat,
-                        longitude: lon,
-                        altitude: alt,
-                        timestamp: new Date(timestamp),
-                        status: 'ACTIVE',
-                    }));
+                    // Global Store Integration: only record breadcrumbs when hike is actively started
+                    const { active, currentHike } = useHikeStore.getState();
+                    if (active && currentHike?.status === 'started') {
+                        addCoordinate(newLocation({
+                            latitude: lat,
+                            longitude: lon,
+                            altitude: alt,
+                            timestamp: new Date(timestamp),
+                            status: 'ACTIVE',
+                        }));
+                    }
                 },
             );
         } catch (err: unknown) {
@@ -250,29 +251,13 @@ x     * Will ONLY record data and draw the red line if the global store says act
             globalAppStateSub = AppState.addEventListener(
                 "change",
                 (nextState) => {
-                    const addCoord = useHikeStore.getState().addCoordinate;
-
                     if ((nextState === "background" || nextState === "inactive") && globalLastAppState === "active") {
                         globalLastAppState = nextState;
-                        const timestamp = new Date().toISOString();
-                        addCoord(newLocation({
-                            latitude: 0,
-                            longitude: 0,
-                            altitude: 0,
-                            timestamp: new Date(timestamp),
-                            status: 'APP_BACKGROUNDED',
-                        }));
+                        console.log('[TrackHikerGPSFlow] App transitioned to background/inactive');
                     }
                     if (nextState === "active" && globalLastAppState !== "active") {
                         globalLastAppState = "active";
-                        const timestamp = new Date().toISOString();
-                        addCoord(newLocation({
-                            latitude: 0,
-                            longitude: 0,
-                            altitude: 0,
-                            timestamp: new Date(timestamp),
-                            status: 'APP_RESUMED',
-                        }));
+                        console.log('[TrackHikerGPSFlow] App transitioned to active foreground');
                     }
                 },
             );

@@ -1,6 +1,6 @@
-import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
-import { useAuthHook } from "@/src/core/models/User/User";
+import CustomLoading from "@/src/components/CustomLoading";
+import { useBusinessAdmin } from "@/src/core/models/Business/Business";
 import { Stack } from "expo-router";
 
 export const unstable_settings = {
@@ -8,10 +8,13 @@ export const unstable_settings = {
 };
 
 export default function AdminLayout() {
-    const { role, isLoading } = useAuthHook();
-    if (isLoading) return <LoadingScreen />
+    const { businessAccount, isLoading, isFetching, role } = useBusinessAdmin();
 
-    if (role !== 'admin') return <UnauthorizedScreen />
+    if ((isLoading || isFetching) && !businessAccount)
+        return <CustomLoading message="Loading business account" />
+
+    if (role !== 'admin' || !businessAccount)
+        return <UnauthorizedScreen />
 
     return <Stack screenOptions={{ title: 'Admin Dashboard' }} />
 }

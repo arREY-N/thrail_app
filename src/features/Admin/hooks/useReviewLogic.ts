@@ -6,6 +6,7 @@ import {
     PhoneVerificationGuardResult
 } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { UserRepo } from '@/src/core/models/User/User';
 import { toDateOrNull } from '@/src/core/utility/date';
@@ -40,10 +41,14 @@ const extractDocs = (
         );
 };
 
-export default function useReviewLogic(booking: Booking | null | undefined, offers: Offer[]) {
+export default function useReviewLogic(
+    booking: Booking | null | undefined, 
+    offers: Offer[],
+    cancellationRequest?: Cancellation | null
+) {
     const offerDate = booking?.offer?.date ? new Date(booking.offer.date) : null;
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
-    const isTerminalStatus = ['completed', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
+    const isTerminalStatus = ['completed', 'cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
     const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded');
     
@@ -55,12 +60,17 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
             
     const displayCancellationReason = hasRefundedPayment 
         ? 'Refund processed securely via PayMongo.' 
-        : booking?.cancellationReason;
+        : (cancellationRequest?.reason || booking?.cancellationReason);
+
+    const isCancellationPending = (cancellationRequest?.status === 'pending') || currentStatus === 'for-cancellation';
+    const isHikerCancellationPending = isCancellationPending && (cancellationRequest?.cancelledBy !== 'admin' && booking?.cancelledBy !== 'admin');
+    const isAdminCancellationPending = isCancellationPending && (cancellationRequest?.cancelledBy === 'admin' || booking?.cancelledBy === 'admin');
+    const isCancellationRejected = (cancellationRequest?.status === 'rejected') || currentStatus === 'cancellation-rejected';
 
     const isApprovedStatus = ['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
-    const isCancelledStatus = ['cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(currentStatus);
-    const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus;
+    const isCancelledStatus = ['cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(currentStatus) || isAdminCancellationPending;
+    const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus || isAdminCancellationPending;
 
     const [activeTab, setActiveTab] = useState<'documents' | 'payment'>(() => isApprovedStatus ? 'payment' : 'documents'); 
     const [docStates, setDocStates] = useState<Requirements[]>(() => extractDocs(booking, isApprovedStatus, isRejectedStatus));
@@ -111,10 +121,14 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         loadEmergencyVerification();
     }, [booking?.emergencyContact]);
 
-    const adminStatusConfig = getStatusConfig(currentStatus, 'admin');
+    const adminStatusConfig = isHikerCancellationPending
+        ? getStatusConfig('for-cancellation', 'admin')
+        : (isAdminCancellationPending
+            ? getStatusConfig('cancelled', 'admin')
+            : getStatusConfig(currentStatus, 'admin'));
     const isMinor = checkIfMinor(booking?.user?.birthday);
 
-    const currentSyncKey = `${booking?.id || ''}_${booking?.status || ''}_${booking?.user?.phoneNumber || ''}_${booking?.emergencyContact?.contactNumber || ''}_${booking?.updatedAt ? new Date(booking.updatedAt).getTime() : 0}`;
+    const currentSyncKey = `${booking?.id || ''}_${booking?.status || ''}_${cancellationRequest?.id || ''}_${cancellationRequest?.status || ''}_${booking?.user?.phoneNumber || ''}_${booking?.emergencyContact?.contactNumber || ''}_${booking?.updatedAt ? new Date(booking.updatedAt).getTime() : 0}`;
     const [prevSyncKey, setPrevSyncKey] = useState(currentSyncKey);
     if (currentSyncKey !== prevSyncKey) {
         setPrevSyncKey(currentSyncKey);
@@ -196,6 +210,10 @@ export default function useReviewLogic(booking: Booking | null | undefined, offe
         isApprovedStatus, 
         isRejectedStatus, 
         isCancelledStatus, 
+        isCancellationPending,
+        isHikerCancellationPending,
+        isAdminCancellationPending,
+        isCancellationRejected,
         isReviewComplete,
         adminStatusConfig,
         hasRejections, 

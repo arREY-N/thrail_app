@@ -27,6 +27,7 @@ import { Colors } from "@/src/constants/colors";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { ITrail } from "@/src/core/models/Trail/Trail";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
+import { getTrailOffersCount } from "@/src/utils/offerHelpers";
 
 const CATEGORIES = ["All", "Recommended", "Offers", "Nearby", "Discover", "Challenge"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
@@ -184,10 +185,9 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
         return result;
     }, [selectedCategory, trails, searchQuery, activeFilters, offers]);
 
-    // Retrieve active upcoming offers count for the trail card badge
-    const getTrailOffersCount = (trailId: string) => {
-        const now = new Date();
-        return offers.filter(o => o.trail?.id === trailId && o.date && new Date(o.date).getTime() > now.getTime()).length;
+    // Retrieve offers count for the trail card badge
+    const getTrailOffersCountForCard = (trailId: string) => {
+        return getTrailOffersCount(trailId, offers);
     };
 
     const filterSections = [
@@ -277,7 +277,7 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                             onPress={() => onViewMountain(t.id)}
                             onLikePress={() => console.log("Like", t.general?.name)}
                             style={{ width: cardWidth }}
-                            offersCount={getTrailOffersCount(t.id)}
+                            offersCount={getTrailOffersCountForCard(t.id)}
                         />
                     )}
                 />
@@ -325,9 +325,7 @@ const filterTrailsByCategory = (trails: ITrail[], category: string, offers: Offe
                 return elev > 600 || len > 10;
             });
         case "Offers": {
-            const now = new Date();
-            const upcomingOffers = offers.filter(o => o.date && new Date(o.date).getTime() > now.getTime());
-            const ids = upcomingOffers.map(o => o.trail?.id).filter(Boolean);
+            const ids = offers.map(o => o.trail?.id).filter(Boolean);
             return trails.filter((t: ITrail) => ids.includes(t.id));
         }
         case "All":

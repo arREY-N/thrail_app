@@ -15,6 +15,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
 import { Trail } from '@/src/core/models/Trail/Trail';
+import DynamicListBuilder from '@/src/components/DynamicListBuilder';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 import TrailCardHeader from '@/src/features/SuperAdmin/components/trail/TrailCardHeader';
 
@@ -28,6 +29,7 @@ export interface TrailGeneralSectionProps {
     isMobile: boolean;
     onUpdateField: (params: TEdit<Trail>) => void;
     uploadPicture?: () => void;
+    onShowToast?: (message: string, type?: 'error' | 'warning' | 'info') => void;
 }
 
 const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
@@ -40,6 +42,7 @@ const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
     isMobile,
     onUpdateField,
     uploadPicture,
+    onShowToast,
 }) => {
     const provinceList: readonly string[] = trail?.general?.province || [];
     const mountainList: readonly string[] = trail?.general?.mountain || [];
@@ -71,48 +74,42 @@ const TrailGeneralSection: React.FC<TrailGeneralSectionProps> = ({
                     />
                 </View>
 
-                {/* 2. Geographic Taxonomy: Province & Mountain (2-Column Desktop / Stacked Mobile) */}
+                {/* 2. Geographic Taxonomy: Mountain & Province (2-Column Desktop / Stacked Mobile) */}
                 <View style={isDesktop ? styles.twoColRow : styles.singleCol}>
+                    {/* Column 1: Mountain */}
                     <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
-                        <View style={styles.labelRow}>
-                            <CustomText variant="label" style={styles.inputLabel}>
-                                Province *
-                            </CustomText>
-                        </View>
-                        <View style={styles.chipContainer}>
-                            {provinceOptions.map((prov: string) => {
-                                const isSelected = provinceList.includes(prov);
-                                return (
-                                    <SelectionChip
-                                        key={prov}
-                                        label={prov}
-                                        selected={isSelected}
-                                        onPress={() => onUpdateField({ section: 'general', id: 'province', value: prov })}
-                                    />
-                                );
-                            })}
-                        </View>
+                        <DynamicListBuilder
+                            label="Mountain *"
+                            placeholder="Enter mountain (e.g. Mt. Pulag, Mt. Apo)..."
+                            items={mountainList as string[]}
+                            presets={mountainOptions}
+                            maxVisiblePresets={8}
+                            layout="wrap"
+                            collapsibleInput={true}
+                            suggestions={mountainOptions}
+                            onError={onShowToast}
+                            onTogglePreset={(mtn) => onUpdateField({ section: 'general', id: 'mountain', value: mtn })}
+                            onAddItem={(mtn) => onUpdateField({ section: 'general', id: 'mountain', value: mtn })}
+                            onRemoveItem={(mtn) => onUpdateField({ section: 'general', id: 'mountain', value: mtn })}
+                        />
                     </View>
 
+                    {/* Column 2: Province */}
                     <View style={isDesktop ? styles.colHalf : styles.fieldBlock}>
-                        <View style={styles.labelRow}>
-                            <CustomText variant="label" style={styles.inputLabel}>
-                                Mountain *
-                            </CustomText>
-                        </View>
-                        <View style={styles.chipContainer}>
-                            {mountainOptions.map((mtn: string) => {
-                                const isSelected = mountainList.includes(mtn);
-                                return (
-                                    <SelectionChip
-                                        key={mtn}
-                                        label={mtn}
-                                        selected={isSelected}
-                                        onPress={() => onUpdateField({ section: 'general', id: 'mountain', value: mtn })}
-                                    />
-                                );
-                            })}
-                        </View>
+                        <DynamicListBuilder
+                            label="Province *"
+                            placeholder="Enter province (e.g. Benguet, Cebu)..."
+                            items={provinceList as string[]}
+                            presets={provinceOptions}
+                            maxVisiblePresets={8}
+                            layout="wrap"
+                            collapsibleInput={true}
+                            suggestions={provinceOptions}
+                            onError={onShowToast}
+                            onTogglePreset={(prov) => onUpdateField({ section: 'general', id: 'province', value: prov })}
+                            onAddItem={(prov) => onUpdateField({ section: 'general', id: 'province', value: prov })}
+                            onRemoveItem={(prov) => onUpdateField({ section: 'general', id: 'province', value: prov })}
+                        />
                     </View>
                 </View>
 

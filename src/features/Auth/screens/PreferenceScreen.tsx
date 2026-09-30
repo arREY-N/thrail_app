@@ -20,9 +20,20 @@ import { Colors } from '@/src/constants/colors';
 import MountainSelectChip from '@/src/features/Auth/components/MountainSelectChip';
 import SelectionOption from '@/src/features/Auth/components/SelectionOption';
 
+export interface PreferenceQuestionItem {
+    question?: string;
+    type?: string;
+    options?: string[];
+    answer?: string | string[] | boolean | null;
+    details?: string;
+    clearanceUri?: string;
+}
+
+export type PreferenceQuestionKey = 'medical' | 'q1' | 'q2' | 'q3' | 'q4' | 'q5';
+
 export interface PreferenceScreenProps {
-    questions: any;
-    setAnswer: (key: string, value: any) => void;
+    questions: Record<string, PreferenceQuestionItem>;
+    setAnswer: (key: PreferenceQuestionKey, value: string) => void;
     setMedicalDetails: (details: string) => void;
     setMedicalClearance: (uri: string) => void;
     onFinish: () => void;
@@ -41,8 +52,8 @@ const PreferenceScreen = ({
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-    const FLOW_YES = ['medical', 'q1', 'q2', 'q3', 'q4', 'q5'];
-    const FLOW_NO  = ['medical', 'q1', 'q4', 'q5'];
+    const FLOW_YES: readonly PreferenceQuestionKey[] = ['medical', 'q1', 'q2', 'q3', 'q4', 'q5'];
+    const FLOW_NO: readonly PreferenceQuestionKey[] = ['medical', 'q1', 'q4', 'q5'];
 
     const hikedBeforeAnswer = questions['q1']?.answer; 
     const currentFlow = hikedBeforeAnswer === false ? FLOW_NO : FLOW_YES;
@@ -55,7 +66,7 @@ const PreferenceScreen = ({
     if (currentStepKey === 'medical') {
         if (currentAnswer === false) {
             hasAnswer = true;
-        } else if (currentAnswer === true && currentQuestionData?.details?.trim().length > 0) {
+        } else if (currentAnswer === true && (currentQuestionData?.details?.trim().length ?? 0) > 0) {
             hasAnswer = true; 
         }
     } else {
@@ -68,7 +79,7 @@ const PreferenceScreen = ({
         ? (1 / FLOW_YES.length) * 100 
         : ((stepIndex + 1) / currentFlow.length) * 100;
 
-    const handleSelect = (value: any) => {
+    const handleSelect = (value: string) => {
         setAnswer(currentStepKey, value);
     };
 
@@ -93,7 +104,7 @@ const PreferenceScreen = ({
         }
     };
 
-    const isSelected = (optionValue: any) => {
+    const isSelected = (optionValue: string) => {
         if (currentAnswer === null || currentAnswer === undefined) return false;
 
         if (currentQuestionData?.type === 'binary' || currentQuestionData?.type === 'medical') {
@@ -131,7 +142,7 @@ const PreferenceScreen = ({
             return (
                 <MountainSelectChip
                     options={dynamicOptions}
-                    selectedValues={currentAnswer || []}
+                    selectedValues={Array.isArray(currentAnswer) ? currentAnswer : []}
                     onToggle={handleSelect}
                 />
             );

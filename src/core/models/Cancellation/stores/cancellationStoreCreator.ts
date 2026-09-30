@@ -1,25 +1,29 @@
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { CancellationRepo } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
 export interface CancellationState {
     businessCancellations: Cancellation[];
     offerCancellations: Record<string, Cancellation[]>;
     userCancellations: Cancellation[];
-    
+
     error: string | null;
     isFetching: boolean;
     isWriting: boolean;
 
     write: (writeData: WriteCancellationParams) => Promise<void>;
     delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
-    
+
     fetchUserCancellation: (businessId: string, id: string) => Promise<Cancellation | null>;
     fetchAllUserCancellations: (userId: string, refresh?: boolean) => Promise<void>;
-    
+
     fetchAllBusinessCancellations: (businessId: string, refresh?: boolean) => Promise<void>;
     fetchAllOfferCancellations: (businessId: string, offerId: string) => Promise<Cancellation[]>;
+
+    subscribeToBusinessCancellations: (businessId: string) => Unsubscribe;
+    subscribeToUserCancellations: (userId: string) => Unsubscribe;
 }
 
 const init = {
@@ -41,14 +45,44 @@ export type WriteCancellationParams = {
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
+    subscribeToBusinessCancellations(businessId: string): Unsubscribe {
+        try {
+            return CancellationRepo.listenToBusinessCancellations(
+                businessId,
+                (cancellations) =>
+                    set({
+                        businessCancellations: cancellations,
+                    }),
+            )
+        } catch (error) {
+            set({ error: (error as Error).message })
+            throw error;
+        }
+    },
+
+    subscribeToUserCancellations(userId: string): Unsubscribe {
+        try {
+            return CancellationRepo.listenToUserCancellations(
+                userId,
+                (cancellations) =>
+                    set({
+                        userCancellations: cancellations,
+                    }),
+            )
+        } catch (error) {
+            set({ error: (error as Error).message })
+            throw error;
+        }
+    },
+
     async write(writeData: WriteCancellationParams): Promise<void> {
         const { cancellation, oldCancellation, isAdmin } = writeData;
-        
+
         try {
             set({ isWriting: true, error: null });
 
             const alreadyApproved = oldCancellation?.status === "approved";
-            
+
             const alreadyProcessed = alreadyApproved || (oldCancellation?.status === "rejected" && isAdmin);
 
             if (alreadyProcessed) {
@@ -110,7 +144,7 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             const id = cancellation.id;
 
             await CancellationRepo.delete(businessId, id);
-            
+
             set((state) => {
                 if (cancellation.cancelledBy === 'admin') {
                     return {
@@ -145,23 +179,23 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
             throw error;
         }
     },
-    
+
     async fetchAllUserCancellations(userId: string, refresh: boolean = false): Promise<void> {
         if (get().isFetching) {
             console.log("Fetch already in progress for userId:", userId);
             return;
         }
-        
+
         if (get().userCancellations.length > 0 && get().userCancellations[0].userId === userId && !refresh) {
             console.log("User cancellations already fetched for userId:", userId);
             return;
         }
 
-        try {    
+        try {
             set({ isFetching: true, error: null });
-            
+
             const userCancellations = await CancellationRepo.fetchAllUserCancellations(userId);
-            
+
             set({ userCancellations });
         } catch (error) {
             console.error("Error fetching user cancellations:", (error as Error).message);
@@ -192,7 +226,7 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
                 isFetching: false
             });
         } catch (error) {
-            set({ 
+            set({
                 error: (error as Error).message,
                 isFetching: false
             });
@@ -216,6 +250,6 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         } catch (error) {
             console.error("Error fetching cancellations by offer ID:", (error as Error).message);
             throw error;
-        }   
+        }
     },
 });

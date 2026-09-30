@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -51,6 +51,7 @@ const PaymentScreen = ({
 
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -62,14 +63,17 @@ const PaymentScreen = ({
                 if (popupRef.current && !popupRef.current.closed) {
                     try {
                         popupRef.current.close();
-                    } catch (e) {}
+                    } catch (error) {
+                        console.warn('[PaymentScreen] Failed to close payment popup window:', error);
+                    }
                 }
                 setIsWaitingForVerification(false);
                 if (event.data.url) {
                     try {
                         const targetUrl = new URL(event.data.url, window.location.origin);
                         window.location.href = targetUrl.toString();
-                    } catch (e) {
+                    } catch (error) {
+                        console.warn('[PaymentScreen] Invalid redirect URL format, navigating directly:', error);
                         window.location.href = event.data.url;
                     }
                 }
@@ -136,29 +140,16 @@ const PaymentScreen = ({
         }
     }
 
-    const handleHeaderBackPress = () => {
-        if (isWaitingForVerification) {
-            setIsWaitingForVerification(false);
-            return;
-        }
-        if (currentStep === 2) {
-            handleNextStep();
-        } else {
-            onBackPress();
-        }
-    };
+    const handleNextStep = useCallback(async () => {
+        if (isSubmittingRef.current || isSubmitting || isWaitingForVerification) return;
 
-    const handleStepNavigation = (step: number) => {
-        if (currentStep === 2) return;
-        if (step > currentStep || isSubmitting || isWaitingForVerification) return;
-        setCurrentStep(step);
-    };
-
-    const handleNextStep = async () => {
         if (currentStep === 1) {
             setPaymentError(null);
 
             if (selectedMethod && ['gcash', 'maya'].includes(selectedMethod)) {
+                isSubmittingRef.current = true;
+                setIsSubmitting(true);
+
                 let popup: Window | null = null;
                 if (Platform.OS === 'web') {
                     const width = 450;
@@ -173,7 +164,6 @@ const PaymentScreen = ({
                     popupRef.current = popup;
                 }
 
-                setIsSubmitting(true);
                 try {
                     const urlParams = {
                         queryParams: {
@@ -245,13 +235,21 @@ const PaymentScreen = ({
                         }
                     }
 
-                } catch (error) {
-                    if (popup) popup.close();
-                    console.error("Payment Error:", error);
-                    setPaymentError(
-                        (error as Error).message || "Failed to initialize payment gateway. Please try again."
-                    );
+                } catch (error: unknown) {
+                    if (popup) {
+                        try {
+                            popup.close();
+                        } catch (closeError) {
+                            console.warn('[PaymentScreen] Failed to close popup after payment error:', closeError);
+                        }
+                    }
+                    const errorMessage = error instanceof Error
+                        ? error.message
+                        : "Failed to initialize payment gateway. Please try again.";
+                    console.error("[PaymentScreen] Payment Initialization Error:", error);
+                    setPaymentError(errorMessage);
                 } finally {
+                    isSubmittingRef.current = false;
                     setIsSubmitting(false);
                 }
             }
@@ -262,29 +260,79 @@ const PaymentScreen = ({
                 amountPaid: latestPayment?.amount || amountToPay,
             });
         }
-    };
+    }, [
+        isSubmitting,
+        isWaitingForVerification,
+        currentStep,
+        selectedMethod,
+        bookingData,
+        amountToPay,
+        onPayOffer,
+        effectivePaymentType,
+        onContinue,
+        latestPayment
+    ]);
 
-    const getFooterConfig = () => {
-        if (isWaitingForVerification) return {
-            title: "Cancel Verification",
-            onPress: () => setIsWaitingForVerification(false),
-            variant: "outline"
-        };
-        if (currentStep === 1) return {
-            title: "Continue to Payment",
-            disabled: !(selectedMethod && isSignatureValid)
-        };
-        if (currentStep === 2) return {
-            title: "Return to Bookings",
-            disabled: false
-        };
+    const handleHeaderBackPress = useCallback(() => {
+        if (isWaitingForVerification) {
+            setIsWaitingForVerification(false);
+            return;
+        }
+        if (currentStep === 2) {
+            handleNextStep();
+        } else {
+            onBackPress();
+        }
+    }, [isWaitingForVerification, currentStep, handleNextStep, onBackPress]);
+
+    const handleStepNavigation = useCallback((step: number) => {
+        if (currentStep === 2) return;
+        if (step > currentStep || isSubmitting || isWaitingForVerification) return;
+        setCurrentStep(step);
+    }, [currentStep, isSubmitting, isWaitingForVerification]);
+
+    const handleCancelVerification = useCallback(() => {
+        isSubmittingRef.current = false;
+        setIsWaitingForVerification(false);
+    }, []);
+
+    const footerConfig = useMemo(() => {
+        if (isWaitingForVerification) {
+            return {
+                title: "Cancel Verification",
+                onPress: handleCancelVerification,
+                variant: "outline" as const,
+                disabled: false,
+                isLoading: false,
+            };
+        }
+        if (currentStep === 1) {
+            return {
+                title: "Continue to Payment",
+                onPress: handleNextStep,
+                variant: "primary" as const,
+                disabled: !(selectedMethod && isSignatureValid) || isSubmitting || isWaitingForVerification,
+                isLoading: isSubmitting,
+            };
+        }
+        if (currentStep === 2) {
+            return {
+                title: "Return to Bookings",
+                onPress: handleNextStep,
+                variant: "primary" as const,
+                disabled: isSubmitting,
+                isLoading: false,
+            };
+        }
         return {
             title: "Continue",
-            disabled: false
+            onPress: handleNextStep,
+            variant: "primary" as const,
+            disabled: false,
+            isLoading: false,
         };
-    };
+    }, [isWaitingForVerification, currentStep, selectedMethod, isSignatureValid, isSubmitting, handleNextStep, handleCancelVerification]);
 
-    const footerConfig = getFooterConfig();
     const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
     return (
@@ -369,9 +417,10 @@ const PaymentScreen = ({
             <CustomStickyFooter
                 primaryButton={{
                     title: footerConfig.title,
-                    onPress: footerConfig.onPress || handleNextStep,
+                    onPress: footerConfig.onPress,
                     disabled: footerConfig.disabled,
-                    variant: (footerConfig.variant as "primary" | "outline") || "primary"
+                    isLoading: footerConfig.isLoading,
+                    variant: footerConfig.variant,
                 }}
             />
         </ScreenWrapper>

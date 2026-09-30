@@ -23,6 +23,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { Booking } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { DateInput, safeParseDateString } from '@/src/utils/dateFormatter';
 
@@ -35,6 +36,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * 
  * @param offers - List of created offers to display.
  * @param bookingByOffer - Map of bookings indexed by offer ID to display reserved/booking counts.
+ * @param cancellations - Optional list of business cancellations to calculate pending cancellation badges.
  * @param isLoading - Boolean representing loading state.
  * @param error - Optional error message text.
  * @param onAddOffer - Callback to navigate to the Add Offer screen.
@@ -45,6 +47,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 export interface OfferListScreenProps {
     offers: Offer[];
     bookingByOffer: Record<string, Booking[]>;
+    cancellations?: Cancellation[];
     isLoading: boolean;
     error: string | null;
     onAddOffer: () => void;
@@ -59,6 +62,7 @@ export interface OfferListScreenProps {
 const OfferListScreen: React.FC<OfferListScreenProps> = ({ 
     offers,
     bookingByOffer, 
+    cancellations = [],
     isLoading, 
     error,
     onAddOffer, 
@@ -133,7 +137,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         </TouchableOpacity>
     );
 
-    const getOfferStatusDetails = (offer: Record<string, unknown>) => {
+    const getOfferStatusDetails = (offer: Offer) => {
         const status = (offer.status || '').toString().toLowerCase();
         const offerDate = safeParseDateString((offer.date || offer.hikeDate) as DateInput);
         offerDate.setHours(0, 0, 0, 0);
@@ -170,18 +174,49 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     };
 
     const getActionableBookingsCount = (offerId: string) => {
-        if (!bookingByOffer || !Object.prototype.hasOwnProperty.call(bookingByOffer, offerId)) return 0;
-        
-        const list = bookingByOffer[offerId] || [];
-        return list.filter(b => {
+        const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offerId))
+            ? bookingByOffer[offerId] || []
+            : [];
+
+        // Build a lookup of relevant cancellations for this offer
+        const offerCancellations = (cancellations || []).filter(c => c.offerId === offerId);
+        const cancellationByBooking = new Map<string, Cancellation>();
+        offerCancellations.forEach(c => {
+            cancellationByBooking.set(c.bookingId, c);
+        });
+
+        const actionableBookingIds = new Set<string>();
+        list.forEach(b => {
+            const cancellation = cancellationByBooking.get(b.id);
+            // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
+            if (cancellation?.status === 'approved' || b.status === 'cancelled') {
+                return;
+            }
+            // If cancellation was initiated by admin, admin is waiting on hiker action
+            if (cancellation && cancellation.cancelledBy === 'admin') {
+                return;
+            }
+
             const status = (b.status as string) || '';
-            return status === 'pending-docs' || 
-                   status === 'for-reservation' || 
-                   status === 'paid' || 
-                   status === 'downpayment' ||
-                   status === 'for-cancellation' ||
-                   status === 'for-reschedule';
-        }).length;
+            if (
+                status === 'for-reservation' || 
+                status === 'paid' || 
+                status === 'downpayment' ||
+                status === 'for-cancellation' ||
+                status === 'for-reschedule'
+            ) {
+                actionableBookingIds.add(b.id);
+            }
+        });
+
+        // Also count pending cancellation requests submitted by hikers
+        offerCancellations.forEach(c => {
+            if (c.status === 'pending' && c.cancelledBy !== 'admin') {
+                actionableBookingIds.add(c.bookingId);
+            }
+        });
+
+        return actionableBookingIds.size;
     };
 
     const filterSections = [
@@ -288,13 +323,13 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         {!isLoading && filteredAndSortedOffers.length > 0 && (
                             <>
                                 <View style={styles.listContainer}>
-                                    {filteredAndSortedOffers.map((offer: Record<string, unknown>) => (
+                                    {filteredAndSortedOffers.map((offer: Offer) => (
                                         <OfferCard 
-                                            key={offer.id as string}
+                                            key={offer.id}
                                             offer={offer}
-                                            bookings={Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id as string) ? bookingByOffer[offer.id as string] : []}
+                                            bookings={Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id) ? bookingByOffer[offer.id] : []}
                                             statusDetails={getOfferStatusDetails(offer)}
-                                            actionableCount={getActionableBookingsCount(offer.id as string)}
+                                            actionableCount={getActionableBookingsCount(offer.id)}
                                             onViewBookings={onViewOfferBookings}
                                             onEditPress={handleEditPress}
                                             style={{ width: cardWidth }}

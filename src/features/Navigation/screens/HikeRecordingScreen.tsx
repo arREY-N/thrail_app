@@ -11,13 +11,14 @@ import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Booking } from "@/src/core/models/Booking/Booking";
-import { Group } from "@/src/core/models/Group/Group";
+import { Group, IGroupMember } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
-import { useAuthStore } from "@/src/core/models/User/User";
+import { IUserSummary, User } from "@/src/core/models/User/User";
 import { formatDate } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
-import TrailMap from "@/src/features/Map/TrailMap";
+import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
+import { formatActivityTime } from "@/src/utils/dateFormatter";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -31,7 +32,7 @@ interface HikeRecordingScreenProps {
     hike: Hike;
     booking: Booking | null;
     currentGroup: Group | null;
-    hikerLocations: { id: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string }[];
+    hikerLocations: { id?: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string }[];
     error: string | null;
     fullOffer?: Offer | null;
 
@@ -51,11 +52,13 @@ interface HikeRecordingScreenProps {
     onAddReview: () => void;
     onBackPress: () => void;
     onTriggerBackendSOS?: () => void;
-    onTriggerEmergencySOS?: () => void;
+    onTriggerEmergencySOS: () => void;
     onOpenSOSCamera?: () => void;
+    onSendSMS: () => void;
     emergencyContactNumber?: string;
     shareLocationEnabled?: boolean;
     setShareLocationEnabled?: (enabled: boolean) => Promise<void>;
+    profile: User;
 }
 
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
@@ -64,10 +67,10 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
-    shareLocationEnabled, setShareLocationEnabled,
+    shareLocationEnabled, setShareLocationEnabled, profile, onSendSMS,
 }) => {
     const insets = useSafeAreaInsets();
-    const mapRef = useRef<any>(null);
+    const mapRef = useRef<TrailMapRef | null>(null);
 
     const [localError, setLocalError] = useState<string | null>(error);
     const [prevError, setPrevError] = useState<string | null>(error);
@@ -86,8 +89,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showMapOptions, setShowMapOptions] = useState(false);
 
     const [liveTime, setLiveTime] = useState(baseElapsedTime);
-
-    const { profile } = useAuthStore();
 
     const isStarted = hike.status === "started";
     const isPaused = hike.status === "paused";
@@ -128,8 +129,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isGuidedHike = !!booking;
 
     const handleSendSMS = () => {
-        const message = `EMERGENCY SOS \n\nI am having a trail emergency and require immediate assistance.\n\n📍 Coordinates: ${lat || 'Unknown'}, ${lon || 'Unknown'}`;
-        Linking.openURL(`sms:${emergencyContactNumber || ""}?body=${encodeURIComponent(message)}`);
+        onSendSMS();
         setShowSosMenu(false);
     };
 
@@ -139,15 +139,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     const handleGroupSOS = () => {
-        if (onTriggerBackendSOS) onTriggerBackendSOS();
+        console.log('handleGroupSOS');
         setShowSosMenu(false);
         setShowCameraPrompt(true);
+        if (onTriggerBackendSOS) onTriggerBackendSOS();
     };
 
     const handleEmergencyContactSOS = () => {
-        if (onTriggerEmergencySOS) onTriggerEmergencySOS();
+        console.log('handleEmergencyContactSOS');
         setShowSosMenu(false);
         setShowCameraPrompt(true);
+        onTriggerEmergencySOS();
     };
 
     const handleSafeBackPress = () => {
@@ -168,15 +170,18 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     };
 
-    const handleHikerLocationPress = (member: any, locData: any) => {
+    const handleHikerLocationPress = (
+        member: IUserSummary | IGroupMember,
+        locData: NonNullable<HikeRecordingScreenProps['hikerLocations']>[number]
+    ) => {
         Alert.alert(
-            `Hiker Location: ${member.firstname} ${member.lastname}`,
-            `Coordinates: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}\nLast Updated: ${formatDate(locData.timestamp as any)}`,
+            `Hiker Location: ${member.firstname} ${member.lastname || ''}`.trim(),
+            `Coordinates: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}\nLast Updated: ${formatDate(locData.timestamp)}`,
             [
                 {
                     text: "Track",
                     onPress: () => {
-                        mapRef.current?.flyTo({
+                        mapRef.current?.flyTo?.({
                             center: [locData.longitude, locData.latitude],
                             zoom: 17,
                             duration: 1000
@@ -296,7 +301,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     </TouchableOpacity>
                 )}
                 {isGuidedHike && currentGroup && (
-                    <TouchableOpacity style={styles.fabBtn} onPress={() => router.push({ pathname: '/(main)/group/room', params: { roomId: currentGroup.id } })}>
+                    <TouchableOpacity style={styles.fabBtn} onPress={() => router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: currentGroup.id } })}>
                         <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 )}
@@ -481,7 +486,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                                     <CustomText style={styles.infoSubTitle}>Day {day.day}</CustomText>
                                                     {day.activities.map((act: { time: string | Date; event: string }, i: number) => (
                                                         <View key={i} style={styles.activityRow}>
-                                                            <CustomText style={styles.activityTime}>{formatTime(act.time as any)}</CustomText>
+                                                            <CustomText style={styles.activityTime}>{formatActivityTime(act.time)}</CustomText>
                                                             <CustomText style={styles.activityEvent}>{act.event}</CustomText>
                                                         </View>
                                                     ))}
@@ -588,7 +593,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         </View>
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
-                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp as any)}` : 'Waiting for signal...'}</CustomText>
+                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
                                             {locData && (
                                                 <TouchableOpacity
                                                     style={styles.trackHikerBtn}

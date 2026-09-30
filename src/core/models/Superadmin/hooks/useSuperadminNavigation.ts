@@ -11,49 +11,37 @@ export function useSuperadminNavigation() {
      * Navigates to the main Superadmin Dashboard overview.
      */
     const onManageDashboardPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin'
-        });
+        router.push('/superadmin');
     };
 
     /**
      * Navigates to the guide and partner applications list.
      */
     const onManageApplicationPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin/application/list'
-        });
+        router.push('/superadmin/application/list');
     };
 
     const onManageBusinessPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin/business/list'
-        });
+        router.push('/superadmin/business/list');
     };
 
     const onManageTrailsPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin/trail/list'
-        });
+        router.push('/superadmin/trail/list');
     };
 
     const onManageUsersPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin/user/list'
-        });
+        router.push('/superadmin/user/list');
     };
 
     const onManageMountainPress = () => {
-        router.push({
-            pathname: '/(main)/superadmin/mountain/list'
-        });
+        router.push('/superadmin/mountain/list');
     };
 
     /**
      * Navigates explicitly to the Settings/Profile tab screen.
      */
     const onBackToSettingsPress = () => {
-        router.push('/(main)/settings');
+        router.push('/settings');
     };
 
     /**
@@ -65,13 +53,11 @@ export function useSuperadminNavigation() {
         console.log('to write', trailId);
         if (trailId) {
             router.push({
-                pathname: '/(main)/superadmin/trail/write',
+                pathname: '/superadmin/trail/write',
                 params: { trailId }
             });
         } else {
-            router.push({
-                pathname: '/(main)/superadmin/trail/write',
-            });
+            router.push('/superadmin/trail/write');
         }
     }
 
@@ -82,7 +68,7 @@ export function useSuperadminNavigation() {
      */
     function onEditMapPins(trailId: string) {
         router.push({
-            pathname: '/(main)/superadmin/trail/map-editor',
+            pathname: '/superadmin/trail/map-editor',
             params: { trailId }
         });
     }

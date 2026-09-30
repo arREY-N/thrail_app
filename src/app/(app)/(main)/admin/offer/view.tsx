@@ -1,16 +1,16 @@
-import getSearchParam from "@/src/core/utility/getSearchParam";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
-
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen";
+import { Stack, useLocalSearchParams } from "expo-router";
 
 import CustomHeader from "@/src/components/CustomHeader";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useBookingOfferAdminList } from "@/src/core/models/Booking/Booking";
+import { Cancellation, useCancellationAdminList } from "@/src/core/models/Cancellation/Cancellation";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
-
+import getSearchParam from "@/src/core/utility/getSearchParam";
+import OfferViewScreen from "@/src/features/Admin/screens/Offer/OfferViewScreen";
 
 export default function ViewOffer() {
     const { offerId: rawOfferId } = useLocalSearchParams();
@@ -29,6 +29,45 @@ export default function ViewOffer() {
         offer
     } = useOfferItem(offerId);
 
+    const { businessCancellations } = useCancellationAdminList();
+
+    const displayBookings = useMemo(() => {
+        if (!offerBookings) return [];
+        return offerBookings.map(b => {
+            const cancellation = businessCancellations?.find(
+                (c: Cancellation) => c.bookingId === b.id
+            );
+            if (cancellation) {
+                if (cancellation.status === 'approved') {
+                    return {
+                        ...b,
+                        status: 'cancelled' as const,
+                        cancellationReason: cancellation.reason || b.cancellationReason,
+                        cancelledBy: cancellation.cancelledBy,
+                    };
+                }
+                if (cancellation.status === 'pending') {
+                    if (cancellation.cancelledBy === 'admin') {
+                        return {
+                            ...b,
+                            status: 'cancelled' as const,
+                            cancellationReason: cancellation.reason || b.cancellationReason,
+                            cancelledBy: 'admin',
+                        };
+                    }
+                    return {
+                        ...b,
+                        status: 'for-cancellation' as const,
+                        cancellationReason: cancellation.reason || b.cancellationReason,
+                        cancelledBy: 'user',
+                    };
+                }
+            }
+
+            return b;
+        });
+    }, [offerBookings, businessCancellations]);
+
     if (!offerBookings || (!offer)) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND} style={undefined}>
@@ -43,7 +82,7 @@ export default function ViewOffer() {
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
                 </View>
             </ScreenWrapper>
-        )
+        );
     }
 
     return (
@@ -54,12 +93,12 @@ export default function ViewOffer() {
                 <OfferViewScreen
                     offerId={offerId}
                     offer={offer}
-                    bookings={offerBookings}
+                    bookings={displayBookings}
                     onViewBooking={onViewBooking}
                     onBackPress={onBackPress}
                     error={error as string}
                 />
             )}
         </>
-    )
+    );
 }

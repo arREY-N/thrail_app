@@ -14,6 +14,7 @@ import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
+import Unauthorized from "@/src/app/unauthorized";
 import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
@@ -56,7 +57,7 @@ export default function HikeView() {
     const resolvedBookingId = bookingId || (currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
 
     const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
-        g.members?.some((m: any) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
     )?.id) || undefined;
 
     const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
@@ -64,6 +65,7 @@ export default function HikeView() {
         location: groupLocations,
         onEmergencyPress,
         onSendPicture,
+        onSendSMS,
         error: groupError,
     } = useGroupLocation(resolvedGroupId || '');
 
@@ -99,6 +101,8 @@ export default function HikeView() {
 
     if (!currentHike) return null;
 
+    if (!profile) return <Unauthorized />
+
     return (
         <>
             <Stack.Screen options={SCREEN_OPTIONS} />
@@ -108,7 +112,7 @@ export default function HikeView() {
                 hike={currentHike}
                 booking={booking || null}
                 currentGroup={currentGroup || null}
-                hikerLocations={(groupLocations as any) || []}
+                hikerLocations={groupLocations || []}
                 error={hikeError || groupError}
 
                 baseElapsedTime={elapsedTime}
@@ -132,8 +136,11 @@ export default function HikeView() {
                 onBackPress={onBackPress}
 
                 onTriggerBackendSOS={onEmergencyPress}
+                onTriggerEmergencySOS={onEmergencyPress}
+                onSendSMS={onSendSMS}
                 onOpenSOSCamera={onSendPicture}
-                emergencyContactNumber={booking?.emergencyContact?.contactNumber || ""}
+                emergencyContactNumber={profile.emergencyContact?.contactNumber || ""}
+                profile={profile}
             />
         </>
     )

@@ -26,28 +26,28 @@ export function useAdminNavigation() {
 
     const onManageAdminsPress = () => {
         if (!isAllowed()) return;
-        router.push('/(main)/admin/personnel/list');
+        router.push('/admin/personnel/list');
     }
 
     const onManageOffersPress = () => {
         if (!isAllowed()) return;
         router.push({
-            pathname: '/(main)/admin/offer/list',
+            pathname: '/admin/offer/list',
             params: { businessId }
         });
     }
 
     const onAddAdminPress = () => {
         if (!isAllowed()) return;
-        router.push('/(main)/admin/personnel/write');
+        router.push('/admin/personnel/write');
     }
 
     const onWriteOffer = (id: string | null = null) => {
         if (!isAllowed()) return;
         router.push({
-            pathname: '/(main)/admin/offer/write',
+            pathname: '/admin/offer/write',
             params: { offerId: id }
-        })
+        });
     }
 
     /**
@@ -56,7 +56,7 @@ export function useAdminNavigation() {
      */
     const onManageTrailsPress = () => {
         if (!isAllowed()) return;
-        router.push('/(main)/superadmin/trail/list');
+        router.push('/admin/trail/list');
     }
 
     return {

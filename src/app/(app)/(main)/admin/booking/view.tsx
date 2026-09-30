@@ -9,8 +9,16 @@ import { Text } from "react-native";
 
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useBookingAdmin, useBookingAdminItem, } from "@/src/core/models/Booking/Booking";
-import { useOfferList } from "@/src/core/models/Offer/Offer";
+import {
+    useBookingAdmin,
+    useBookingAdminItem
+} from "@/src/core/models/Booking/Booking";
+import {
+    useCancellationAdmin
+} from "@/src/core/models/Cancellation/Cancellation";
+import {
+    useOfferList
+} from "@/src/core/models/Offer/Offer";
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 import { useHikerProfile } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
@@ -40,9 +48,18 @@ export default function AdminViewBooking() {
         onRejectBooking,
         onRescheduleBooking,
         onCancelUnpaid,
-        error,
-        isLoading,
+        error: bookingError,
+        isLoading: isBookingLoading,
     } = useBookingAdmin();
+
+    const {
+        cancellationRequest,
+        processCancellationRequest,
+        cancelUserBooking,
+        revertCancellationRequest,
+        isWriting: isCancellationWriting,
+        writingError: cancellationWritingError,
+    } = useCancellationAdmin(bookingId);
 
     const {
         onRefund
@@ -52,16 +69,20 @@ export default function AdminViewBooking() {
         hikerProfile,
     } = useHikerProfile(booking?.user.id);
 
+
     if (!booking || isFetching) {
         return (
             <>
                 <Stack.Screen options={{ headerShown: false }} />
                 <CustomLoading message="Fetching booking details" />
             </>
-        )
+        );
     }
 
     if (!booking) return <Text>Booking not found</Text>;
+
+    const combinedError = cancellationWritingError || bookingError || undefined;
+    const combinedLoading = isBookingLoading || isCancellationWriting;
 
     return (
         <>
@@ -77,9 +98,21 @@ export default function AdminViewBooking() {
                 onReschedule={onRescheduleBooking}
                 onRefund={onRefund}
                 onCancelUnpaid={onCancelUnpaid}
-                isLoading={isLoading}
-                error={error || undefined}
+                isLoading={combinedLoading}
+                error={combinedError}
                 hikerProfile={hikerProfile}
+                cancellationRequest={cancellationRequest}
+                onApproveCancellation={(request, booking) => processCancellationRequest({
+                    request,
+                    approved: true,
+                })}
+                onDeclineCancellation={(declineNote, request, currentBooking) => processCancellationRequest({
+                    adminNote: declineNote,
+                    request,
+                    approved: false,
+                })}
+                onRevertCancellation={revertCancellationRequest}
+                onAdminCancelBooking={cancelUserBooking}
             />
         </>
     );

@@ -1,13 +1,15 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useHike } from "@/src/core/models/Hike/Hike";
-import { useOfferNavigation } from "@/src/core/models/Offer/Offer";
+import { useOfferList, useOfferNavigation, useOfferTrails } from "@/src/core/models/Offer/Offer";
 import { useReview, useReviewList } from "@/src/core/models/Review/Review";
 import { useTrailItem, useTrailNavigation } from "@/src/core/models/Trail/Trail";
 import { useAuthHook } from "@/src/core/models/User/User";
 import TrailScreen from "@/src/features/Trail/screens/TrailScreen";
+import { getTrailOffersCount } from "@/src/utils/offerHelpers";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React, { useMemo } from "react";
 import { View } from "react-native";
 
 export default function ViewTrail() {
@@ -47,6 +49,16 @@ export default function ViewTrail() {
         onSeeTrailOffers
     } = useOfferNavigation();
 
+    const { offers } = useOfferList();
+    const { trailOffers } = useOfferTrails(tId);
+
+    const offersCount = useMemo(() => {
+        const candidateOffers = (trailOffers && trailOffers.length > 0)
+            ? trailOffers
+            : offers;
+        return getTrailOffersCount(tId, candidateOffers);
+    }, [offers, trailOffers, tId]);
+
     if (!trail) return <LoadingScreen />;
 
     return (
@@ -70,6 +82,7 @@ export default function ViewTrail() {
                 onWriteReviewPress={(review) => onWriteReviewPress(review.id)}
                 isOwned={isOwned}
                 isLiked={isLiked}
+                offersCount={offersCount}
             />
         </View>
     )

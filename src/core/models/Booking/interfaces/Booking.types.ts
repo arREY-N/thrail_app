@@ -6,7 +6,7 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type BookingStatus =
     | "for-reservation"
-    | "pending-docs"
+    | "pending-docs" // @deprecated Legacy status normalized to 'for-reservation'
     | "approved-docs"
     | "cancelled"
     | "for-payment"

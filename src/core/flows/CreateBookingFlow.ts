@@ -263,7 +263,7 @@ export function CreateBookingFlow() {
                             : (updatedEmergency.phoneVerifiedAt ?? draft.emergencyContact?.phoneVerifiedAt ?? null),
                     };
                 }
-                draft.status = 'pending-docs';
+                draft.status = 'for-reservation';
                 delete draft.cancellationReason;
                 delete draft.cancelledBy;
             });

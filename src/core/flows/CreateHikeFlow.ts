@@ -79,7 +79,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 guidelines: []
             },
         })
-        : null;
+        : null
 
     const resolvedTrail = trail ?? fallbackTrail;
 
@@ -211,11 +211,20 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         });
 
         await create(profile!.id);
+
+        const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+        if (targetGroup) {
+            stopSharingLocation(targetGroup);
+        }
         //router.replace('/');
     }
 
     const onResetHike = () => {
         stopBackgroundTracking();
+        const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+        if (targetGroup) {
+            stopSharingLocation(targetGroup);
+        }
         updateHikeStore({
             currentHike: null,
             active: false,
@@ -224,6 +233,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             totalDistance: 0,
             totalElevationGain: 0,
             coordinates: [],
+            walkedRoute: [],
             activeGroupId: null,
             live: false,
         });
@@ -238,7 +248,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 throw new Error('Cannot review an incomplete hike');
 
             router.push({
-                pathname: '/(main)/review/write',
+                pathname: '/(app)/(main)/review/write',
                 params: {
                     trailId: currentHike.trail.id,
                 }
@@ -295,6 +305,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                     totalDistance: 0,
                     totalElevationGain: 0,
                     coordinates: [],
+                    walkedRoute: [],
                     activeGroupId: null,
                     live: false,
                 });
@@ -322,6 +333,14 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         onResumeHike,
         onCompleteHike,
         onResetHike,
-        setShareLocationEnabled: async () => { },
+        setShareLocationEnabled: async (enabled: boolean) => {
+            if (enabled) {
+                await onStartSharingLocation();
+            } else {
+                onStopSharingLocation();
+            }
+        },
+        onStartSharingLocation,
+        onStopSharingLocation,
     }
 }

@@ -45,6 +45,8 @@ export interface OffersScreenProps {
     onViewBookingDetails?: (bookingId?: string) => void;
 }
 
+const ADVANCE_BOOKING_CUTOFF_DAYS = 7;
+
 interface OfferDateSpan {
     startDate: Date;
     endDate: Date;
@@ -87,6 +89,62 @@ const getOfferDateSpan = (offer: Offer): OfferDateSpan => {
 };
 
 /**
+ * Resolves the optimal default date to display when opening the booking offers view:
+ * 1. If an offer was explicitly pre-selected, use that offer's date.
+ * 2. If the trail has upcoming offers, pick the one closest to today (preferring bookable offers >= 7 days ahead).
+ * 3. Fallback: Today's date if no offers exist for this trail.
+ * 
+ * @param offersList - List of available trail offers
+ * @param preferredOfferId - Optional pre-selected offer ID
+ * @returns {string} Formatted standard date string
+ */
+const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | null): string => {
+    if (preferredOfferId) {
+        const matched = offersList.find((o) => o.id === preferredOfferId);
+        if (matched?.date) {
+            return formatDateToStandard(matched.date);
+        }
+    }
+
+    const nowMidnight = new Date();
+    nowMidnight.setHours(0, 0, 0, 0);
+
+    const minCutoffDate = new Date(nowMidnight.getTime());
+    minCutoffDate.setDate(minCutoffDate.getDate() + ADVANCE_BOOKING_CUTOFF_DAYS);
+
+    // 1. Prefer first upcoming bookable offer (>= 7 days notice), sorted closest to today
+    const upcomingBookableOffers = offersList
+        .map((o) => ({ dateStr: formatDateToStandard(o.date), dateObj: safeParseDateString(o.date) }))
+        .filter((item) => {
+            const itemMidnight = new Date(item.dateObj);
+            itemMidnight.setHours(0, 0, 0, 0);
+            return itemMidnight >= minCutoffDate && Boolean(item.dateStr);
+        })
+        .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+    if (upcomingBookableOffers.length > 0 && upcomingBookableOffers[0].dateStr) {
+        return upcomingBookableOffers[0].dateStr;
+    }
+
+    // 2. Next prefer any upcoming offer (even within 7-day cutoff), sorted closest to today
+    const upcomingAnyOffers = offersList
+        .map((o) => ({ dateStr: formatDateToStandard(o.date), dateObj: safeParseDateString(o.date) }))
+        .filter((item) => {
+            const itemMidnight = new Date(item.dateObj);
+            itemMidnight.setHours(0, 0, 0, 0);
+            return itemMidnight >= nowMidnight && Boolean(item.dateStr);
+        })
+        .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+    if (upcomingAnyOffers.length > 0 && upcomingAnyOffers[0].dateStr) {
+        return upcomingAnyOffers[0].dateStr;
+    }
+
+    // 3. Fallback to today's date if no offers exist
+    return formatDateToStandard(nowMidnight);
+};
+
+/**
  * OffersScreen — Allows hikers to filter and pick available hike offers by date,
  * viewing package details, schedules, and pricing while handling multi-day overlaps and consecutive hike notices.
  *
@@ -112,6 +170,18 @@ const OffersScreen = ({
     ), [userBookings]);
 
     const [currentDate] = useState(() => new Date());
+
+    const todayMidnight = useMemo(() => {
+        const d = new Date(currentDate);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, [currentDate]);
+
+    const minBookingDate = useMemo(() => {
+        const d = new Date(todayMidnight.getTime());
+        d.setDate(d.getDate() + ADVANCE_BOOKING_CUTOFF_DAYS);
+        return d;
+    }, [todayMidnight]);
 
     const todayFormatted = useMemo(() => formatDateToStandard(currentDate), [currentDate]);
 
@@ -167,28 +237,26 @@ const OffersScreen = ({
         return knownSpans;
     }, [safeOffers, effectiveBookedOfferIds, safeBookings]);
 
-    const [selectedDate, setSelectedDate] = useState<string>(() => {
-        if (selectedOfferId) {
-            const preSelectedOffer = safeOffers.find((o) => o.id === selectedOfferId);
-            if (preSelectedOffer && preSelectedOffer.date) {
-                return formatDateToStandard(preSelectedOffer.date);
+    const [userHasManuallySelectedDate, setUserHasManuallySelectedDate] = useState(false);
+
+    const [selectedDate, setSelectedDate] = useState<string>(() => 
+        resolveBestOfferDate(safeOffers, selectedOfferId)
+    );
+
+    // Adjust selectedDate during render if safeOffers array updates and current selection has 0 offers
+    const [prevSafeOffers, setPrevSafeOffers] = useState(safeOffers);
+    if (safeOffers !== prevSafeOffers) {
+        setPrevSafeOffers(safeOffers);
+        if (safeOffers.length > 0 && !userHasManuallySelectedDate) {
+            const currentHasOffers = safeOffers.some(
+                (o) => formatDateToStandard(o?.date) === selectedDate
+            );
+            if (!currentHasOffers) {
+                const bestDate = resolveBestOfferDate(safeOffers, selectedOfferId);
+                setSelectedDate(bestDate);
             }
         }
-        const todayStr = formatDateToStandard(new Date());
-        const hasTodayOffer = safeOffers.some((o) => formatDateToStandard(o.date) === todayStr);
-        if (hasTodayOffer) {
-            return todayStr;
-        }
-
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const upcomingOffer = safeOffers
-            .map((o) => ({ dateStr: formatDateToStandard(o.date), dateObj: safeParseDateString(o.date) }))
-            .filter((item) => item.dateObj >= now && item.dateStr)
-            .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0];
-
-        return upcomingOffer?.dateStr || todayStr;
-    });
+    }
 
     const [localSelectedId, setLocalSelectedId] = useState<string | null>(selectedOfferId || null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -209,6 +277,7 @@ const OffersScreen = ({
             const preSelectedOffer = safeOffers.find((o) => o.id === selectedOfferId);
             if (preSelectedOffer && preSelectedOffer.date) {
                 setSelectedDate(formatDateToStandard(preSelectedOffer.date));
+                setUserHasManuallySelectedDate(true);
             }
         } else {
             setLocalSelectedId(null);
@@ -224,7 +293,10 @@ const OffersScreen = ({
     const getOfferStatus = useCallback((candidate: Offer) => {
         const isExactBooked = effectiveBookedOfferIds.includes(candidate.id);
         const candidateSpan = getOfferDateSpan(candidate);
-        const isClosed = formatDateToStandard(candidate.date) === todayFormatted;
+        const isToday = formatDateToStandard(candidate.date) === todayFormatted;
+        const isPastDate = candidateSpan.startDate < todayMidnight;
+        const isWithinAdvanceCutoff = candidateSpan.startDate >= todayMidnight && candidateSpan.startDate < minBookingDate;
+        const isClosed = isPastDate || isWithinAdvanceCutoff;
 
         // Check for date-span overlap against any booked offer
         const overlappingBooking = bookedOfferSpans.find((b) => 
@@ -262,16 +334,19 @@ const OffersScreen = ({
             isExactBooked,
             isDateConflict,
             isClosed,
+            isToday,
+            isWithinAdvanceCutoff,
             isConsecutive,
             overlappingBooking,
             consecutiveSourceBooking,
             candidateSpan
         };
-    }, [effectiveBookedOfferIds, todayFormatted, bookedOfferSpans, conflictOfferIds, consecutiveOfferIds]);
+    }, [effectiveBookedOfferIds, todayFormatted, todayMidnight, minBookingDate, bookedOfferSpans, conflictOfferIds, consecutiveOfferIds]);
 
     const [hasAttemptedBlockedSubmit, setHasAttemptedBlockedSubmit] = useState(false);
 
     const handleDateSelect = (date: string) => {
+        setUserHasManuallySelectedDate(true);
         setSelectedDate(date);
         setLocalSelectedId(null);
         setHasAttemptedBlockedSubmit(false);
@@ -332,9 +407,19 @@ const OffersScreen = ({
             return;
         }
 
+        if (selectedOfferStatus.isWithinAdvanceCutoff) {
+            setHasAttemptedBlockedSubmit(true);
+            if (selectedOfferStatus.isToday) {
+                setToastMessage("Reservations for today are closed. Please choose an upcoming date at least 1 week ahead.");
+            } else {
+                setToastMessage("Reservations require at least 1 week advance notice. Please select an offer at least 7 days ahead.");
+            }
+            return;
+        }
+
         if (selectedOfferStatus.isClosed) {
             setHasAttemptedBlockedSubmit(true);
-            setToastMessage("Reservations for today are closed. Please choose an upcoming date.");
+            setToastMessage("This date is closed for reservations. Please choose an upcoming date at least 1 week ahead.");
             return;
         }
 
@@ -368,7 +453,10 @@ const OffersScreen = ({
             return onViewBookingDetails ? "View My Reservation" : "Already Booked";
         }
         if (selectedOfferStatus?.isDateConflict) return "Date Already Reserved";
-        if (selectedOfferStatus?.isClosed) return "Booking Closed for Today";
+        if (selectedOfferStatus?.isWithinAdvanceCutoff) {
+            return selectedOfferStatus.isToday ? "Booking Closed for Today" : "Advance Notice Required (1 Week)";
+        }
+        if (selectedOfferStatus?.isClosed) return "Booking Closed";
         return "Continue";
     };
 
@@ -446,6 +534,8 @@ const OffersScreen = ({
                                         isBooked={status.isExactBooked}
                                         isDateConflict={status.isDateConflict}
                                         isClosed={status.isClosed}
+                                        isWithinAdvanceCutoff={status.isWithinAdvanceCutoff}
+                                        isToday={status.isToday}
                                         onSelect={() => handleOfferSelect(offer.id)}
                                     />
                                 );

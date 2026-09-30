@@ -4,6 +4,14 @@
 
 This document outlines the architectural plan for implementing **Admin-Controlled Custom Refunds** in the payment system. It resolves identified system discrepancies, answers all architectural safety questions, and introduces robust financial guardrails (idempotency, distributed locking, double-click protection, and gateway error handling) to protect both the admin and the customer.
 
+> [!WARNING]
+> **Current Status: PENDING LIVE TESTING & MANUAL CLOUD DEPLOYMENT**
+> All code changes, backend functions, and UI modifications documented herein are **UNTESTED in live production/staging environments and are currently PENDING**. 
+> - Backend Cloud Functions have **not** been deployed to Firebase.
+> - Live gateway transactions with real PayMongo accounts have **not** been executed.
+> - Cross-window popup auto-close handshakes and mobile deep-link returns have **not** been tested in live end-to-end user workflows.
+> - User-side booking double-click prevention protections have been implemented in code, pending physical device/browser verification.
+
 ---
 
 ## 2. Answers to Double-Checking Questions
@@ -259,6 +267,12 @@ To ensure the popup closes automatically and redirects the original browser wind
   - Full suite testing `refundBooking` (unauthenticated, not-found, in-flight mutex lock, unauthorized users, privilege escalation, bounds checks, custom amount execution, full refund, 10% partial refund, error rollback, and same-day error mapping).
 - [x] **Automated Test Suite: Frontend Hook ([`usePaymentAdmin.test.ts`](file:///d:/thrail_app/src/core/models/Payment/hooks/__tests__/usePaymentAdmin.test.ts))**
   - Full suite testing `usePaymentAdmin` (custom amount payload, 100% full, 10% partial, admin-only role enforcement, and error state handling).
+- [x] **User-Side Booking Double-Click & Rapid-Tap Hardening**
+  - **Payment Flow ([`PaymentScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/PaymentScreen.tsx))**: Added synchronous ref guard (`isSubmittingRef`), disabled state in `footerConfig` during submission, and passed `isLoading` to primary button.
+  - **Reservation Flow ([`DetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Booking/DetailsScreen.tsx) & [`BookingScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Booking/BookingScreen.tsx))**: Added synchronous confirmation lock (`isConfirmingRef`), `isSubmitting` entry guards, and passed `isLoading` to `ConfirmationModal` and `CustomStickyFooter`.
+  - **Cancellation Flow ([`CancelBookingModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancelBookingModal.tsx))**: Added synchronous ref lock (`isSubmittingRef`) to prevent rapid consecutive touch events from sending duplicate `cancelBooking` or `refundBooking` calls.
+  - **Reschedule Flow ([`RescheduleModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/RescheduleModal.tsx) & [`BookingDetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/BookingDetailsScreen.tsx))**: Added `isSubmitting` state, synchronous ref locks (`isSubmittingRef` and `isReschedulingRef`), disabled state, and loading spinner.
+  - **App-Wide Base Component ([`CustomButton.tsx`](file:///d:/thrail_app/src/components/CustomButton.tsx))**: Built-in 500ms press debounce/throttle by default to prevent accidental double-taps app-wide.
 
 ---
 
@@ -274,3 +288,23 @@ cd functions
 firebase deploy --only functions:refundBooking,functions:paymongoRedirect
 ```
 *(Or `firebase deploy --only functions` to deploy all functions).*
+
+---
+
+## 9. Current Testing & Verification Status: PENDING LIVE TESTING
+
+> [!CAUTION]
+> **Status: All feature updates are currently UNTESTED in live environments and remain PENDING.**
+> 
+> Although automated unit tests passed in local mock environments (17 Cloud Function tests in [`paymentFunctions.test.js`](file:///d:/thrail_app/functions/__tests__/paymentFunctions.test.js) and 5 hook tests in [`usePaymentAdmin.test.ts`](file:///d:/thrail_app/src/core/models/Payment/hooks/__tests__/usePaymentAdmin.test.ts)), no updates have been deployed to cloud infrastructure or verified against live payment services.
+
+### Detailed Breakdown of Pending Verification Items:
+
+| Area | Status | Description |
+| :--- | :--- | :--- |
+| **Cloud Deployment** | ⏳ **Pending** | [`refundBooking`](file:///d:/thrail_app/functions/index.js#L1035) and [`paymongoRedirect`](file:///d:/thrail_app/functions/index.js#L776) are only committed to the local repository branch (`raven-add-custom-refund-amount`). They have **not** been deployed to Firebase Cloud Functions. |
+| **PayMongo Gateway Live Refunds** | ⏳ **Pending** | Live refund execution against real or test PayMongo API credentials has **not** been tested. Real-world balance deduction, centavo accuracy, and live webhook lifecycle responses remain untested in production/staging. |
+| **Web Popup Auto-Close & Navigation Handshake** | ⏳ **Pending** | The `window.opener.postMessage` cross-window handshake between the PayMongo redirect proxy and [`PaymentScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/PaymentScreen.tsx) has **not** been tested across live web browsers (Chrome, Edge, Safari, Firefox). Real popup closure and parent tab refresh are pending live verification. |
+| **Mobile Native Deep-Link Handshake** | ⏳ **Pending** | Native Expo `WebBrowser.openAuthSessionAsync` deep-link returns (`thrailapp://`) with the updated proxy have **not** been verified on physical iOS or Android devices. |
+| **User-Side Booking Double-Click Prevention** | ⏳ **Pending Live Device/Browser Testing** | Protections implemented across [`PaymentScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/PaymentScreen.tsx), [`DetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Booking/DetailsScreen.tsx), [`BookingScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Booking/BookingScreen.tsx), [`CancelBookingModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancelBookingModal.tsx), [`RescheduleModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/RescheduleModal.tsx), [`BookingDetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/BookingDetailsScreen.tsx), and [`CustomButton.tsx`](file:///d:/thrail_app/src/components/CustomButton.tsx). End-to-end multi-tap verification on physical touch screens and web browsers is pending manual testing. |
+

@@ -1,6 +1,11 @@
+/**
+ * @file login.tsx
+ * @description Route controller for the native mobile authentication login flow.
+ */
+
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
@@ -8,23 +13,28 @@ import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigatio
 import { useAuthHook } from '@/src/core/models/User/User';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 
+/**
+ * Controller managing the native mobile log-in screen state and authentication actions.
+ *
+ * @returns {React.JSX.Element} The rendered login controller view.
+ */
 export default function Login() {
     const {
         onLanding,
-        onSignUpPress
+        onSignUpPress,
     } = useAppNavigation();
 
     const {
-        onLogIn,
         onPrivacy,
-        onTerms
+        onTerms,
     } = useLandingNavigation();
 
+    // TODO(backend): Deprecate and remove "remember" and "onRememberMePress" from useAuthHook & authStore.
+    // The frontend no longer renders or uses "Remember Me" functionality.
     const {
         error,
-        remember,
         reset,
-        onRememberMePress,
+        onLogIn,
         onForgotPassword,
         onGmailLogIn,
         isLoading,
@@ -42,18 +52,14 @@ export default function Login() {
         }
     };
 
-    console.log('in here')
-
     return (
-        <View style={{ flex: 1 }}>
+        <View style={styles.container}>
             <LogInScreen
                 onLogInPress={onLogIn}
                 onSignUpPress={onSignUpPress}
                 error={error}
                 onForgotPasswordPress={onForgotPassword}
                 onBackPress={handleBack}
-                onRememberMePress={onRememberMePress}
-                remember={remember}
                 onGmailLogIn={onGmailLogIn}
                 onTermsPress={onTerms}
                 onPrivacyPress={onPrivacy}
@@ -66,3 +72,9 @@ export default function Login() {
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+});

@@ -7,7 +7,6 @@
 
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -17,8 +16,8 @@ import {
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
-import CustomText from '@/src/components/CustomText';
 import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
@@ -90,6 +89,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState<boolean>(false);
     const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+    const [actionLoading, setActionLoading] = useState<'create' | 'save' | 'delete' | null>(null);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
     const [toastConfig, setToastConfig] = useState<FormToastConfig>({
         visible: false,
@@ -175,8 +175,13 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
         if (!trail.id) return;
         setIsDirty(false);
         setShowDeleteModal(false);
+        setActionLoading('delete');
         setSubmitCount(c => c + 1);
-        await onRemovePress(trail.id);
+        try {
+            await onRemovePress(trail.id);
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     const handleSavePress = async () => {
@@ -195,8 +200,13 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const handleConfirmSave = async () => {
         setShowSaveConfirmModal(false);
         setIsDirty(false);
+        setActionLoading(isEditMode ? 'save' : 'create');
         setSubmitCount(c => c + 1);
-        await onSubmitPress();
+        try {
+            await onSubmitPress();
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     const isButtonError = !formValid && hasAttemptedSubmit && toastConfig.visible;
@@ -245,6 +255,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                         isMobile={isMobile}
                         onUpdateField={handleUpdateField}
                         uploadPicture={uploadPicture}
+                        onShowToast={showToast}
                     />
 
                     {/* 2. Geography & Coordinates Card */}
@@ -291,18 +302,6 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                         isMobile={isMobile}
                         onUpdateField={handleUpdateField}
                     />
-
-                    {isLoading && (
-                        <View style={styles.loadingOverlay}>
-                            <ActivityIndicator
-                                size="small"
-                                color={Colors.PRIMARY}
-                            />
-                            <CustomText variant="caption" style={styles.loadingText}>
-                                Saving trail changes to database...
-                            </CustomText>
-                        </View>
-                    )}
                 </View>
 
                 {/* Modal 1: Discard Unsaved Changes Confirmation */}
@@ -352,6 +351,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                 primaryButton={{
                     title: getSaveButtonTitle(isLoading, isEditMode),
                     disabled: isLoading,
+                    isLoading: Boolean(isLoading && (actionLoading === 'save' || actionLoading === 'create')),
                     style: getSaveButtonStyle(isLoading, formValid, isButtonError),
                     textStyle: getSaveButtonTextStyle(formValid, isLoading, isButtonError),
                     onPress: handleSavePress,
@@ -362,8 +362,21 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                     style: { borderColor: Colors.ERROR },
                     textStyle: { color: Colors.ERROR },
                     disabled: isLoading,
+                    isLoading: Boolean(isLoading && actionLoading === 'delete'),
                     onPress: () => setShowDeleteModal(true),
                 } : undefined}
+            />
+
+            {/* Responsive Full-Screen Action Loading Overlay */}
+            <CustomLoading
+                visible={Boolean(isLoading && actionLoading)}
+                message={
+                    actionLoading === 'delete'
+                        ? 'Deleting trail from database...'
+                        : actionLoading === 'create'
+                            ? 'Creating new trail in database...'
+                            : 'Saving trail changes to database...'
+                }
             />
 
             {/* Status Toast Notification positioned above sticky footer */}
@@ -433,16 +446,6 @@ const styles = StyleSheet.create({
     },
     maxContainerShell: {
         maxWidth: 860,
-    },
-    loadingOverlay: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 8,
-    },
-    loadingText: {
-        color: Colors.TEXT_SECONDARY,
     },
     backHeaderButton: {
         padding: 6,

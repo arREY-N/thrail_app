@@ -4,7 +4,7 @@
  */
 
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -27,13 +27,15 @@ import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User, UserRepo } from '@/src/core/models/User/User';
 import { formatTime } from '@/src/utils/dateFormatter';
 
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
+import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
+import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
-import ReasonModal from '@/src/features/Book/screens/MyBookings/components/ReasonModal';
 import RequiredDocumentsSection from '@/src/features/Book/screens/MyBookings/components/RequiredDocumentsSection';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
 import {
@@ -52,13 +54,13 @@ export interface BookingDetailsScreenProps {
     /** Callback when user proceeds to payment */
     onProceedToPayment: (booking: Booking) => void;
     /** Callback for reschedule confirmation */
-    onReschedule?: (booking: Booking, newOffer: IOffer) => void;
+    onReschedule?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
     /** Callback to view receipt */
     onViewReceipt: (booking: Booking) => void;
     /** Callback for cancellation confirmation */
-    onCancelConfirm: (booking: Booking, reason: string) => void;
+    onCancelConfirm: (booking: Booking, reason: string) => Promise<void> | void;
     /** Callback for refund confirmation */
-    onRefundConfirm: (booking: Booking, reason: string) => void;
+    onRefundConfirm: (booking: Booking, reason: string) => Promise<void> | void;
     /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
     onResubmitDocuments?: (
         booking: Booking,
@@ -72,6 +74,14 @@ export interface BookingDetailsScreenProps {
     onUpdatePress?: () => void;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
+    /** Active cancellation associated with this booking, if any */
+    cancellation?: Cancellation | null;
+    /** Handler to withdraw an active cancellation request */
+    onWithdrawCancellation?: (cancellation: Cancellation) => Promise<void> | void;
+    /** Handler to appeal / update the cancellation reason */
+    onUpdateCancellationReason?: (params: { reason: string; oldRequest: Cancellation }) => Promise<void> | void;
+    /** Handler to accept an admin-initiated cancellation */
+    onAcceptAdminCancellation?: (cancellation: Cancellation) => Promise<void> | void;
     /** The authenticated user profile passed from controller */
     currentUserProfile?: User | null;
     /** Callback to self-heal phone verification on profile */
@@ -100,11 +110,21 @@ const BookingDetailsScreen = ({
     currentUserProfile,
     onSyncBookingVerification,
     onSearchUser,
-    availableFutureOffers = []
+    availableFutureOffers = [],
+    cancellation,
+    onWithdrawCancellation,
+    onUpdateCancellationReason,
+    onAcceptAdminCancellation,
 }: BookingDetailsScreenProps) => {
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
-    const [activeReasonModal, setActiveReasonModal] = useState<'cancel' | 'refund' | null>(null);
+    const [showCancelDraftModal, setShowCancelDraftModal] = useState<boolean>(false);
+    const [isCancelingDraft, setIsCancelingDraft] = useState<boolean>(false);
+    const [activeCancelModal, setActiveCancelModal] = useState<'cancel' | 'refund' | 'update' | null>(null);
+    const [modalInitialReason, setModalInitialReason] = useState<string>('');
+    const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
+    const [isSubmittingCancellation, setIsSubmittingCancellation] = useState<boolean>(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
+    const isReschedulingRef = useRef<boolean>(false);
     const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
@@ -143,6 +163,16 @@ const BookingDetailsScreen = ({
         setHasStagedContactChanges(false);
     }
 
+    const [prevCancellation, setPrevCancellation] = useState<Cancellation | null | undefined>(cancellation);
+    const [wasAdminCancellationLifted, setWasAdminCancellationLifted] = useState<boolean>(false);
+
+    if (cancellation !== prevCancellation) {
+        if (prevCancellation && prevCancellation.cancelledBy === 'admin' && !cancellation) {
+            setWasAdminCancellationLifted(true);
+        }
+        setPrevCancellation(cancellation);
+    }
+
     useEffect(() => {
         const fetchOfferDetails = async () => {
             const offerToUse = booking?.offer as unknown as IOffer;
@@ -170,21 +200,39 @@ const BookingDetailsScreen = ({
         fetchOfferDetails();
     }, [booking?.offer, getBookOffer]);
 
-    let displayStatus: BookingStatus | undefined = localStatus;
-    if (localStatus === 'cancelled' || localStatus === 'for-cancellation') {
-        const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded');
-        if (hasRefund) {
-            displayStatus = 'refunded';
-        }
-    }
-
     const totalAmount = booking?.offer?.price || 0;
     const amountPaid = booking?.payment?.reduce((sum, p) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0) || 0;
     const remainingBalance = totalAmount - amountPaid;
+
+    const isAdminCancelled =
+        cancellation?.cancelledBy === 'admin' ||
+        (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
+
+    let displayStatus: BookingStatus | undefined = localStatus;
+
+    if (cancellation?.status === 'pending') {
+        displayStatus = 'for-cancellation';
+    } else if (cancellation?.status === 'approved') {
+        displayStatus = amountPaid > 0 ? 'refund' : 'cancelled';
+    } else if (
+        cancellation?.status === 'rejected' &&
+        localStatus !== 'cancelled' &&
+        localStatus !== 'refund' &&
+        localStatus !== 'refunded'
+    ) {
+        displayStatus = localStatus;
+    }
+
+    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation') {
+        const payments = booking?.payment || [];
+        const hasRefund = payments.some(p => p.status === 'refunded');
+        if (hasRefund) {
+            displayStatus = 'refunded';
+        }
+    }
 
     const user = booking?.user;
     const cancellationReason = booking?.cancellationReason;
@@ -276,14 +324,35 @@ const BookingDetailsScreen = ({
     }, [booking, onSyncBookingVerification]);
 
 
-    const isCancelled = ['for-cancellation', 'cancellation-rejected', 'refund', 'refunded', 'cancelled', 'reschedule-rejected', 'expired'].includes(displayStatus || '');
+    const hasPendingCancellation = cancellation?.status === 'pending';
+    const isCancelled = [
+        'for-cancellation',
+        'cancellation-rejected',
+        'refund',
+        'refunded',
+        'cancelled',
+        'expired',
+    ].includes(displayStatus || '') || hasPendingCancellation;
+
     const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus || '');
 
-    const canCancel = ['for-reservation', 'pending-docs', 'for-reschedule', 'for-payment', 'approved-docs'].includes(displayStatus || '');
-    const canRefund = isConfirmed;
-    const canReschedule = ['for-reservation', 'pending-docs', 'for-reschedule'].includes(displayStatus || '');
+    // Initial draft reservation can be cancelled directly without reason or admin review
+    const isPreApprovalDraft = displayStatus === 'for-reservation';
 
-    const showMenuIcon = !isCancelled && (canCancel || canRefund || canReschedule);
+    // Bookings requiring formal cancellation request to organizer with reason
+    const canCancelBooking = [
+        'reservation-rejected',
+        'for-payment',
+        'approved-docs',
+        'for-reschedule',
+        'reschedule-rejected',
+    ].includes(displayStatus || '') && !isCancelled && !hasPendingCancellation;
+
+    const canCancelDraft = isPreApprovalDraft && !isCancelled;
+    const canRefund = isConfirmed && !isCancelled && !hasPendingCancellation;
+    const canReschedule = ['for-reservation', 'for-reschedule'].includes(displayStatus || '') && !isCancelled && !isAdminCancelled;
+
+    const showMenuIcon = canCancelDraft || canCancelBooking || canRefund || canReschedule;
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
 
     const inclusions = fullOffer?.inclusions || [];
@@ -293,7 +362,7 @@ const BookingDetailsScreen = ({
 
     const enhancedBooking = {
         ...booking,
-        status: displayStatus,
+        status: displayStatus || booking.status,
         offer: {
             ...booking?.offer,
             duration: fullOffer?.duration || 'N/A',
@@ -352,7 +421,7 @@ const BookingDetailsScreen = ({
 
             if (success) {
                 setLocalDocs(updatedDocs);
-                setLocalStatus('pending-docs');
+                setLocalStatus('for-reservation');
                 setStagedReplacements({});
                 setHasStagedContactChanges(false);
                 setToastConfig({
@@ -433,17 +502,6 @@ const BookingDetailsScreen = ({
                         fontWeight: 'bold' as const,
                     },
                     onPress: handleResubmitPress,
-                }
-            };
-        }
-
-        if (canReschedule) {
-            return {
-                primaryButton: {
-                    title: "Reschedule",
-                    variant: "primary" as const,
-                    style: { borderRadius: 12 },
-                    onPress: () => setShowRescheduleModal(true)
                 }
             };
         }
@@ -537,9 +595,84 @@ const BookingDetailsScreen = ({
 
                     <QuickInfoCard booking={enhancedBooking} />
 
-                    <BookingStatusComponent status={displayStatus} reason={cancellationReason} />
+                    <BookingStatusComponent
+                        status={displayStatus}
+                        isPaid={hasHistoricalPayments}
+                    />
 
-                    {(displayStatus === 'for-reservation' || displayStatus === 'pending-docs') && (
+                    {wasAdminCancellationLifted && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.revertNoticeBanner}>
+                                <CustomIcon library="Feather" name="info" size={18} color={Colors.PRIMARY} />
+                                <View style={styles.revertNoticeContent}>
+                                    <CustomText style={styles.revertNoticeTitle}>
+                                        Cancellation Lifted by Organizer
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.revertNoticeText}>
+                                        The organizer has withdrawn the cancellation notice. Your reservation is active and proceeding normally.
+                                    </CustomText>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setWasAdminCancellationLifted(false)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <CustomIcon library="Feather" name="x" size={16} color={Colors.TEXT_SECONDARY} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
+                    <CancellationCard
+                        booking={{
+                            ...booking,
+                            status: displayStatus || booking.status,
+                        }}
+                        cancellation={cancellation}
+                        onWithdraw={async (item) => {
+                            if (onWithdrawCancellation) {
+                                try {
+                                    await onWithdrawCancellation(item);
+                                    setToastConfig({
+                                        visible: true,
+                                        message: 'Cancellation request withdrawn successfully.',
+                                        type: 'success',
+                                    });
+                                } catch (err: unknown) {
+                                    setToastConfig({
+                                        visible: true,
+                                        message: err instanceof Error ? err.message : 'Failed to withdraw cancellation request.',
+                                        type: 'error',
+                                    });
+                                }
+                            }
+                        }}
+                        onAppeal={(cancellationItem) => {
+                            setModalInitialReason(cancellationItem.reason || '');
+                            setModalErrorMessage(null);
+                            setActiveCancelModal('update');
+                        }}
+                        onAcceptAdminCancellation={async (item) => {
+                            if (onAcceptAdminCancellation) {
+                                try {
+                                    await onAcceptAdminCancellation(item);
+                                    setToastConfig({
+                                        visible: true,
+                                        message: 'Cancellation confirmed successfully.',
+                                        type: 'success',
+                                    });
+                                } catch (err: unknown) {
+                                    setToastConfig({
+                                        visible: true,
+                                        message: err instanceof Error ? err.message : 'Failed to confirm cancellation.',
+                                        type: 'error',
+                                    });
+                                }
+                            }
+                        }}
+                        onReschedule={() => setShowRescheduleModal(true)}
+                    />
+
+                    {displayStatus === 'for-reservation' && (!cancellation || cancellation.status === 'rejected') && !isAdminCancelled && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
                             <View style={styles.infoBanner}>
                                 <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -556,6 +689,7 @@ const BookingDetailsScreen = ({
                         stagedReplacements={stagedReplacements}
                         displayStatus={displayStatus}
                         isCancelled={isCancelled}
+                        rejectionReason={booking.cancellationReason}
                         onUploadSuccess={(idx, url, docName) => {
                             setStagedReplacements(prev => ({
                                 ...prev,
@@ -679,30 +813,87 @@ const BookingDetailsScreen = ({
                 </View>
             )}
 
-            <ReasonModal
-                visible={!!activeReasonModal}
-                actionType={activeReasonModal}
-                onClose={() => setActiveReasonModal(null)}
-                onConfirm={(reason: string) => {
-                    if (activeReasonModal === 'cancel') {
-                        onCancelConfirm(booking, reason);
-                    } else if (activeReasonModal === 'refund') {
-                        onRefundConfirm(booking, reason);
+            <CancelBookingModal
+                visible={!!activeCancelModal}
+                actionType={activeCancelModal}
+                initialReason={modalInitialReason}
+                previousReason={activeCancelModal === 'update' ? modalInitialReason : undefined}
+                isSubmitting={isSubmittingCancellation}
+                errorMessage={modalErrorMessage}
+                onClose={() => {
+                    setActiveCancelModal(null);
+                    setModalInitialReason('');
+                    setModalErrorMessage(null);
+                }}
+                onConfirm={async (reason: string) => {
+                    setIsSubmittingCancellation(true);
+                    setModalErrorMessage(null);
+                    try {
+                        if (activeCancelModal === 'cancel') {
+                            await onCancelConfirm(booking, reason);
+                            setActiveCancelModal(null);
+                            setToastConfig({
+                                visible: true,
+                                message: 'Cancellation request submitted successfully.',
+                                type: 'success',
+                            });
+                        } else if (activeCancelModal === 'refund') {
+                            await onRefundConfirm(booking, reason);
+                            setActiveCancelModal(null);
+                            const isPaid = ['paid', 'downpayment'].includes(booking.status);
+                            setToastConfig({
+                                visible: true,
+                                message: isPaid
+                                    ? 'Cancellation & refund request submitted successfully.'
+                                    : 'Cancellation request submitted successfully.',
+                                type: 'success',
+                            });
+                        } else if (activeCancelModal === 'update' && cancellation && onUpdateCancellationReason) {
+                            try {
+                                await onUpdateCancellationReason({ reason, oldRequest: cancellation });
+                                setActiveCancelModal(null);
+                                setToastConfig({
+                                    visible: true,
+                                    message: 'Cancellation appeal submitted successfully.',
+                                    type: 'success',
+                                });
+                            } catch (err: unknown) {
+                                setActiveCancelModal(null);
+                                setToastConfig({
+                                    visible: true,
+                                    message: err instanceof Error ? err.message : 'Failed to submit cancellation appeal.',
+                                    type: 'error',
+                                });
+                            }
+                        }
+                    } catch (err: unknown) {
+                        setModalErrorMessage(err instanceof Error ? err.message : 'An error occurred.');
+                    } finally {
+                        setIsSubmittingCancellation(false);
                     }
                 }}
             />
 
             <RescheduleModal
                 visible={showRescheduleModal}
-                onClose={() => setShowRescheduleModal(false)}
+                onClose={() => {
+                    isReschedulingRef.current = false;
+                    setShowRescheduleModal(false);
+                }}
                 availableFutureOffers={availableFutureOffers}
                 onConfirm={(selectedOffer: IOffer | 'explore') => {
+                    if (isReschedulingRef.current) return;
+                    isReschedulingRef.current = true;
                     setShowRescheduleModal(false);
-                    setTimeout(() => {
-                        if (selectedOffer === 'explore') {
-                            router.replace('/explore');
-                        } else if (onReschedule && typeof selectedOffer === 'object') {
-                            onReschedule(booking, selectedOffer);
+                    setTimeout(async () => {
+                        try {
+                            if (selectedOffer === 'explore') {
+                                router.replace('/explore');
+                            } else if (onReschedule && typeof selectedOffer === 'object') {
+                                await onReschedule(booking, selectedOffer);
+                            }
+                        } finally {
+                            isReschedulingRef.current = false;
                         }
                     }, 300);
                 }}
@@ -785,12 +976,27 @@ const BookingDetailsScreen = ({
                                 </TouchableOpacity>
                             )}
 
-                            {canCancel && (
+                            {canCancelDraft && (
                                 <TouchableOpacity
                                     style={styles.actionItem}
                                     onPress={() => {
                                         setShowActionMenu(false);
-                                        setTimeout(() => setActiveReasonModal('cancel'), 300);
+                                        setTimeout(() => setShowCancelDraftModal(true), 300);
+                                    }}
+                                >
+                                    <View style={styles.actionIconBgError}>
+                                        <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
+                                    </View>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel Reservation</CustomText>
+                                </TouchableOpacity>
+                            )}
+
+                            {canCancelBooking && (
+                                <TouchableOpacity
+                                    style={styles.actionItem}
+                                    onPress={() => {
+                                        setShowActionMenu(false);
+                                        setTimeout(() => setActiveCancelModal('cancel'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
@@ -805,19 +1011,49 @@ const BookingDetailsScreen = ({
                                     style={styles.actionItem}
                                     onPress={() => {
                                         setShowActionMenu(false);
-                                        setTimeout(() => setActiveReasonModal('refund'), 300);
+                                        setTimeout(() => setActiveCancelModal('refund'), 300);
                                     }}
                                 >
                                     <View style={styles.actionIconBgError}>
                                         <CustomIcon library="Feather" name="refresh-ccw" size={18} color={Colors.ERROR} />
                                     </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Request Refund</CustomText>
+                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel & Request Refund</CustomText>
                                 </TouchableOpacity>
                             )}
                         </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Confirmation Modal for canceling pre-approval draft reservations */}
+            <ConfirmationModal
+                visible={showCancelDraftModal}
+                onClose={() => !isCancelingDraft && setShowCancelDraftModal(false)}
+                onConfirm={async () => {
+                    setIsCancelingDraft(true);
+                    try {
+                        await onCancelConfirm(booking, '');
+                        setShowCancelDraftModal(false);
+                    } catch (err: unknown) {
+                        setShowCancelDraftModal(false);
+                        setToastConfig({
+                            visible: true,
+                            message: err instanceof Error ? err.message : 'Failed to cancel reservation.',
+                            type: 'error',
+                        });
+                    } finally {
+                        setIsCancelingDraft(false);
+                    }
+                }}
+                title="Cancel Reservation"
+                message="Are you sure you want to cancel this reservation? Your draft booking will be deleted."
+                confirmText="Yes, Cancel"
+                cancelText="Keep Reservation"
+                isDestructive={true}
+                isLoading={isCancelingDraft}
+                iconName="x-circle"
+                iconColor={Colors.ERROR}
+            />
 
             {/* Confirmation Modal before submitting documents / contact details */}
             <ConfirmationModal
@@ -838,7 +1074,7 @@ const BookingDetailsScreen = ({
                 visible={toastConfig.visible}
                 message={toastConfig.message}
                 type={toastConfig.type}
-                mode="dismissible"
+                mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
                 position="sticky_footer"
                 onHide={() => {
                     setToastConfig(prev => ({ ...prev, visible: false }));
@@ -890,6 +1126,29 @@ const styles = StyleSheet.create({
         flex: 1,
         color: Colors.TEXT_SECONDARY,
         lineHeight: 20
+    },
+    revertNoticeBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+        gap: 12,
+    },
+    revertNoticeContent: {
+        flex: 1,
+        gap: 2,
+    },
+    revertNoticeTitle: {
+        fontWeight: 'bold',
+        fontSize: 14,
+        color: Colors.PRIMARY,
+    },
+    revertNoticeText: {
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 18,
     },
     bulletRow: {
         flexDirection: 'row',

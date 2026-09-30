@@ -58,47 +58,49 @@ const DocumentReviewCard = ({
                 styles.docCard,
                 doc.valid === 'approved' && styles.cardApproved,
                 doc.valid === 'rejected' && styles.cardRejected,
-                isCancelledStatus && styles.cardCancelled
+                isCancelledStatus && doc.valid === 'pending' && styles.cardCancelled
             ]}
         >
             <View style={styles.docHeader}>
-                <CustomText style={styles.docName}>
+                <CustomText style={styles.docName} numberOfLines={2} ellipsizeMode="tail">
                     {doc.name}
                 </CustomText>
                 
-                {doc.valid !== 'pending' && !isCancelledStatus && (
-                    <View 
+                <View 
+                    style={[
+                        styles.badge, 
+                        { 
+                            backgroundColor: doc.valid === 'approved' 
+                                ? Colors.STATUS_APPROVED_BG 
+                                : doc.valid === 'rejected'
+                                  ? Colors.ERROR_BG 
+                                  : Colors.STATUS_PENDING_BG,
+                        }
+                    ]}
+                >
+                    <CustomText 
+                        variant="caption" 
                         style={[
-                            styles.badge, 
+                            styles.badgeText, 
                             { 
-                                backgroundColor: doc.valid === 'approved' 
-                                    ? Colors.STATUS_APPROVED_BG 
-                                    : Colors.ERROR_BG 
+                                color: doc.valid === 'approved' 
+                                    ? Colors.SUCCESS 
+                                    : doc.valid === 'rejected'
+                                      ? Colors.ERROR 
+                                      : Colors.STATUS_PENDING_TEXT,
                             }
                         ]}
                     >
-                        <CustomText 
-                            variant="caption" 
-                            style={[
-                                styles.badgeText, 
-                                { 
-                                    color: doc.valid === 'approved' 
-                                        ? Colors.SUCCESS 
-                                        : Colors.ERROR 
-                                }
-                            ]}
-                        >
-                            {doc.valid === 'approved' ? "APPROVED" : "REJECTED"}
-                        </CustomText>
-                    </View>
-                )}
+                        {doc.valid === 'approved' ? "APPROVED" : doc.valid === 'rejected' ? "REJECTED" : "PENDING REVIEW"}
+                    </CustomText>
+                </View>
             </View>
             
             {/* VIEW ATTACHMENT BUTTON (ALWAYS VISIBLE & CLUTTER-FREE) */}
             <TouchableOpacity 
                 style={[
                     styles.viewFileBtn, 
-                    isViewed && !isCancelledStatus && styles.viewFileBtnViewed
+                    isViewed && styles.viewFileBtnViewed
                 ]}
                 onPress={() => onViewFile(doc.file, index)}
                 activeOpacity={0.7}
@@ -203,16 +205,19 @@ const styles = StyleSheet.create({
     },
     docName: { 
         fontSize: 15, 
-        fontWeight: '600' 
+        fontWeight: '600',
+        flex: 1,
+        marginRight: 10,
     },
     badge: { 
         paddingHorizontal: 8, 
-        paddingVertical: 2, 
-        borderRadius: 6 
+        paddingVertical: 3, 
+        borderRadius: 6,
+        flexShrink: 0,
     },
     badgeText: { 
         fontWeight: 'bold', 
-        fontSize: 10 
+        fontSize: 10,
     },
     viewFileBtn: { 
         flexDirection: 'row', 

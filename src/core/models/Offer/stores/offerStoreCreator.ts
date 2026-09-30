@@ -37,6 +37,8 @@ export interface OfferState {
 
     newOffer: (offer: Offer) => Promise<Offer | null>;
     refresh: () => Promise<void>
+
+    updateReservedPaxInOffer: (id: string, state: 'add' | 'remove') => Promise<void>;
 }
 
 const init = {
@@ -55,6 +57,46 @@ const init = {
 
 export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
+
+    updateReservedPaxInOffer: async (id: string, state: 'add' | 'remove') => {
+        try {
+            set({ isWriting: true });
+            const offer = get().businessOffers.find(o => o.id === id);
+
+            if (!offer)
+                throw new Error(`Cannot find offer with ID ${id}`);
+
+            if (state === 'remove' && offer.reservedPax <= 0) {
+                set({
+                    isWriting: false,
+                    error: `Cannot update reserved pax of offer ${id} because it is already at 0`
+                })
+                return;
+            }
+
+            const updatedOffer: Offer = newOffer({
+                ...offer,
+                reservedPax: state === 'add' ? offer.reservedPax + 1 : offer.reservedPax - 1
+            })
+
+            logger('OfferStoreCreator', 'Old offer', offer);
+            logger('OfferStoreCreator', 'Updated offer', updatedOffer);
+
+            await OfferRepo.write(updatedOffer);
+
+            set((state) => ({
+                isWriting: false,
+                businessOffers: upsertItem(state.businessOffers, updatedOffer),
+                trailOffers: upsertItem(state.trailOffers, updatedOffer),
+                data: upsertItem(state.data, updatedOffer)
+            }))
+        } catch (error) {
+            set({
+                isWriting: false,
+                error: (error as Error).message
+            })
+        }
+    },
 
     findSimilarOffers: async (offerId: string) => {
         try {
@@ -328,16 +370,14 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
         try {
             const newOffer = await OfferRepo.write(offer);
 
-            set(state => {
-                const newOfferList = state.businessOffers.filter(o => o.id !== newOffer.id);
-                const offers = [...newOfferList, newOffer];
-
+            set((state) => {
                 return {
-                    businessOffers: offers,
-                    data: offers,
+                    businessOffers: upsertItem(state.businessOffers, newOffer),
+                    data: upsertItem(state.data, newOffer),
                     isLoading: false
                 }
-            });
+            })
+
             return true;
         } catch (err) {
             console.error((err as Error).message);

@@ -16,6 +16,7 @@ export interface BusinessState {
     data: Business[];
     current: Business | null;
     isLoading: boolean;
+    isFetching: boolean;
     error: string | null;
 
     fetchAll: () => Promise<void>;
@@ -40,6 +41,7 @@ const init = {
     businessAdmins: [],
     lastFetchedAt: 0,
     isLoading: true,
+    isFetching: true,
     error: null,
 };
 
@@ -111,7 +113,7 @@ export const businessStoreCreator: StateCreator<
         const data = get().data;
 
         try {
-            set({ isLoading: true, error: null });
+            set({ isFetching: true, isLoading: true, error: null });
 
             let business = null;
 
@@ -139,6 +141,7 @@ export const businessStoreCreator: StateCreator<
                     current: business,
                     data: [...updated, business],
                     isLoading: false,
+                    isFetching: false,
                 };
             });
         } catch (err) {
@@ -146,6 +149,7 @@ export const businessStoreCreator: StateCreator<
             set({
                 error: (err as Error).message,
                 isLoading: false,
+                isFetching: false,
             });
         }
     },

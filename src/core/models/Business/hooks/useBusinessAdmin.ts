@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo } from "react";
  */
 export function useBusinessAdmin() {
     const { profile, businessId, role } = useAuthHook();
-    const { isLoading } = useBusinessState();
+    const { isLoading, isFetching } = useBusinessState();
 
     const businessAccount = useBusinessesStore(s => s.current);
 
@@ -46,6 +46,7 @@ export function useBusinessAdmin() {
         profile,
         role,
         businessId,
-        isLoading
-    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isLoading])
+        isLoading,
+        isFetching,
+    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isLoading, isFetching])
 }

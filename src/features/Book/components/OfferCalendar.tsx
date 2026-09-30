@@ -71,16 +71,22 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
         return d;
     }, []);
 
+    const minBookingDate = useMemo(() => {
+        const d = new Date(normalizedToday.getTime());
+        d.setDate(d.getDate() + 7);
+        return d;
+    }, [normalizedToday]);
+
     const todayFormatted = useMemo(() => formatDateToStandard(normalizedToday), [normalizedToday]);
 
-    // Total upcoming available offers (today and future)
+    // Total upcoming available offers strictly meeting the 1-week (7 days) advance booking requirement
     const futureOfferDates = useMemo(() => {
         return uniqueDates.filter((dateStr) => {
             const parsed = safeParseDateString(dateStr);
             parsed.setHours(0, 0, 0, 0);
-            return parsed >= normalizedToday;
+            return parsed >= minBookingDate;
         });
-    }, [uniqueDates, normalizedToday]);
+    }, [uniqueDates, minBookingDate]);
 
     const totalFutureDates = futureOfferDates.length;
 
@@ -103,14 +109,14 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     // Prevent navigating into past months before today's month
     const canGoPrev = startOfCurrentViewMonth > startOfActualCurrentMonth;
 
-    // Unique dates with offers in previous months (between today and start of current view month)
+    // Unique dates with offers in previous months (between minBookingDate and start of current view month)
     const prevDatesCount = useMemo(() => {
         if (!canGoPrev) return 0;
         return futureOfferDates.filter((dateStr) => {
             const parsed = safeParseDateString(dateStr);
-            return parsed >= normalizedToday && parsed < startOfCurrentViewMonth;
+            return parsed >= minBookingDate && parsed < startOfCurrentViewMonth;
         }).length;
-    }, [canGoPrev, futureOfferDates, normalizedToday, startOfCurrentViewMonth]);
+    }, [canGoPrev, futureOfferDates, minBookingDate, startOfCurrentViewMonth]);
 
     // Unique dates with offers in future months (strictly on or after next view month)
     const nextDatesCount = useMemo(() => {
@@ -278,6 +284,7 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
                                     const cellDateNormalized = new Date(dateObj);
                                     cellDateNormalized.setHours(0, 0, 0, 0);
                                     const isPast = cellDateNormalized < normalizedToday;
+                                    const isWithinAdvanceCutoff = cellDateNormalized >= normalizedToday && cellDateNormalized < minBookingDate;
 
                                     const formattedString = formatDateToStandard(dateObj);
                                     const isSelected = formattedString === selectedDate;
@@ -309,7 +316,7 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
                                             </CustomText>
 
                                             {hasOffer && !isSelected && !isPast && (
-                                                <View style={styles.offerDot} />
+                                                <View style={isWithinAdvanceCutoff ? styles.cutoffOfferDot : styles.offerDot} />
                                             )}
                                         </TouchableOpacity>
                                     );
@@ -540,6 +547,14 @@ const styles = StyleSheet.create({
         height: 4,
         borderRadius: 2,
         backgroundColor: Colors.PRIMARY,
+    },
+    cutoffOfferDot: {
+        position: 'absolute',
+        bottom: 3,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: Colors.GRAY_MEDIUM,
     },
 
     // 3. Full-width Expand/Collapse Action

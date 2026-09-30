@@ -1,63 +1,96 @@
-import LoadingScreen from "@/src/app/loading";
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useNotifyPermission } from "@/src/core/hook/useNotifyPermission";
-import { useAuthHook } from "@/src/core/models/User/User";
-import LogInScreen from "@/src/features/Auth/screens/LogInScreen";
-import { useBreakpoints } from "@/src/hooks/useBreakpoints";
-import { Redirect, useLocalSearchParams } from "expo-router";
+/**
+ * @file login.web.tsx
+ * @description Route controller for the web browser authentication login flow.
+ */
 
-export default function LogIn() {
-	useNotifyPermission();
+import { Redirect, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-	const { isLargeScreen } = useBreakpoints();
-	const { mode } = useLocalSearchParams<{
-		mode?: "login" | "signup" | "forgot";
-	}>();
-	const { onBackPress } = useAppNavigation();
+import LoadingScreen from '@/src/app/loading';
+import CustomLoading from '@/src/components/CustomLoading';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
+import { useNotifyPermission } from '@/src/core/hook/useNotifyPermission';
+import { useAuthHook } from '@/src/core/models/User/User';
+import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-	const {
-		user,
-		profile,
-		isLoading,
-		error,
-		onLogIn,
-		onGmailLogIn,
-	} = useAuthHook();
-	const {
-		onSignUp,
-		onPrivacy,
-		onTerms
-	} = useLandingNavigation();
+/**
+ * Controller managing the web browser log-in screen state, responsive redirects, and authentication actions.
+ *
+ * @returns {React.JSX.Element} The rendered web login controller view.
+ */
+export default function Login() {
+    useNotifyPermission();
 
-	if (user) {
-		if (!profile) return <LoadingScreen />;
+    const { isLargeScreen } = useBreakpoints();
+    const { mode } = useLocalSearchParams<{
+        mode?: 'login' | 'signup' | 'forgot';
+    }>();
+    const { onBackPress } = useAppNavigation();
 
-		if (profile && profile.onBoardingComplete)
-			return <Redirect href={"/(app)/(tabs)"} />;
-		else return <Redirect href={"/(auth)/preference"} />;
-	}
+    // TODO(backend): Deprecate and remove "remember" and "onRememberMePress" from useAuthHook & authStore.
+    // The frontend no longer renders or uses "Remember Me" functionality.
+    const {
+        user,
+        profile,
+        isLoading,
+        error,
+        reset,
+        onLogIn,
+        onForgotPassword,
+        onGmailLogIn,
+    } = useAuthHook();
 
-	if (isLoading) return <LoadingScreen />;
+    const {
+        onSignUp,
+        onPrivacy,
+        onTerms,
+    } = useLandingNavigation();
 
-	if (!isLargeScreen && mode) {
-		if (mode === "login") return <Redirect href="/(auth)/login" />;
-		if (mode === "signup") return <Redirect href="/(auth)/signup" />;
-		if (mode === "forgot") return <Redirect href="/(auth)/forgotPassword" />;
-	}
+    useEffect(() => {
+        reset();
+    }, [reset]);
 
-	return (
-		<LogInScreen
-			onLogInPress={onLogIn}
-			onSignUpPress={onSignUp}
-			error={error}
-			onForgotPasswordPress={() => { }}
-			onBackPress={onBackPress}
-			onRememberMePress={() => { }}
-			remember={true}
-			onGmailLogIn={onGmailLogIn}
-			onTermsPress={onTerms}
-			onPrivacyPress={onPrivacy}
-		/>
-	);
+    if (user) {
+        if (!profile) return <LoadingScreen />;
+
+        if (profile.onBoardingComplete) {
+            return <Redirect href="/(app)/(tabs)" />;
+        }
+        return <Redirect href="/(auth)/preference" />;
+    }
+
+    if (!isLargeScreen && mode) {
+        if (mode === 'login') return <Redirect href="/(auth)/login" />;
+        if (mode === 'signup') return <Redirect href="/(auth)/signup" />;
+        if (mode === 'forgot') return <Redirect href="/(auth)/forgotPassword" />;
+    }
+
+    return (
+        <View style={styles.container}>
+            <LogInScreen
+                onLogInPress={onLogIn}
+                onSignUpPress={onSignUp}
+                error={error}
+                onForgotPasswordPress={onForgotPassword}
+                onBackPress={onBackPress}
+                onGmailLogIn={onGmailLogIn}
+                onTermsPress={onTerms}
+                onPrivacyPress={onPrivacy}
+            />
+
+            <CustomLoading
+                visible={isLoading}
+                message="Signing in..."
+            />
+        </View>
+    );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+});
