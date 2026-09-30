@@ -9,6 +9,8 @@ import {
     Animated,
     FlatList,
     ListRenderItemInfo,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     Platform,
     RefreshControl,
     StyleSheet,
@@ -30,31 +32,7 @@ import { Review } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useCommunity } from '../hooks/useCommunity';
 
-/**
- * Animated View component to handle smooth mounting fade-ins of feed list cards.
- */
-const FadeInView: React.FC<{ children: React.ReactNode, itemId: string, animatedIds: Set<string> }> = ({ children, itemId, animatedIds }) => {
-    const hasAnimated = animatedIds.has(itemId);
-    const [fadeAnim] = useState(() => new Animated.Value(hasAnimated ? 1 : 0));
 
-    useEffect(() => {
-        if (!hasAnimated) {
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 350,
-                useNativeDriver: true,
-            }).start(() => {
-                animatedIds.add(itemId);
-            });
-        }
-    }, [fadeAnim, hasAnimated, itemId, animatedIds]);
-
-    return (
-        <Animated.View style={{ opacity: fadeAnim }}>
-            {children}
-        </Animated.View>
-    );
-};
 
 /**
  * Props for the CommunityScreen component.
@@ -159,20 +137,15 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
-    // Keep track of which items have already animated to prevent them from flashing when scrolling back up
-    const animatedIds = useRef(new Set<string>()).current;
-
-    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<any>) => (
-        <FadeInView itemId={item.id} animatedIds={animatedIds}>
-            <PostCard 
-                review={item}
-                variant="community"
-                onLike={() => likeReview(item)}
-                isLiked={isLiked}
-                onEdit={() => onWriteReviewPress(item)}
-            />
-        </FadeInView>
-    ), [likeReview, isLiked, onWriteReviewPress, animatedIds]);
+    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<Review>) => (
+        <PostCard 
+            review={item}
+            variant="community"
+            onLike={() => likeReview(item)}
+            isLiked={isLiked}
+            onEdit={() => onWriteReviewPress(item.id)}
+        />
+    ), [likeReview, isLiked, onWriteReviewPress]);
 
     const renderFooter = useCallback(() => {
         if (isFetchingMore) {
@@ -248,7 +221,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         );
     }, [isLoading, isError, onReload, searchQuery]);
 
-    const handleScroll = useCallback((event: any) => {
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const currentOffsetY = event.nativeEvent.contentOffset.y;
         if (currentOffsetY <= 50) {
             setHeaderVisible(true);
