@@ -5,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     ImageSourcePropType,
     Platform,
@@ -25,12 +25,12 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview, Review } from '@/src/core/models/Review/Review';
-import { Trail, useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
+import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
 import { formatDateToStandard, formatDuration } from "@/src/utils/dateFormatter";
-import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 
 /**
  * Shape of legacy untyped review fields preserved for backwards compatibility.
@@ -106,21 +106,17 @@ const PostCard = <T extends IReview = Review>({
 
     const legacy = (review ?? {}) as LegacyReviewFields;
     const legacyTrailId = review?.trail?.id || legacy.trailId || legacy.mountainId;
-    const legacyTrailName = review?.trail?.name || legacy.trailName || legacy.mountainName;
 
-    const storeTrailData = useTrailsStore(
-        useCallback((s) => {
-            if (propTrailData || !review) return undefined;
-            return s.data.find(t => 
-                (legacyTrailId && t.id === legacyTrailId) || 
-                (legacyTrailName && t.general?.name?.toLowerCase() === legacyTrailName?.toLowerCase())
-            );
-        }, [propTrailData, review, legacyTrailId, legacyTrailName])
-    );
+    // Read trail from store synchronously — no load(), no network call.
+    // If the trail has been deleted from Firebase the store won't have it and
+    // getHeroImageSource(undefined) returns the local fallback asset safely.
+    const storeTrail = propTrailData
+        ? undefined
+        : useTrailStore.getState().data.find(
+              (t) => t.id === (legacyTrailId ?? '')
+          );
 
-    const trailData = propTrailData ?? storeTrailData;
-
-    const fallbackImage = getHeroImageSource(trailData);
+    const fallbackImage = getHeroImageSource(propTrailData ?? storeTrail);
     const imagesList = (review?.image && review.image.length > 0) ? review.image : [fallbackImage];
     const displayImage = imagesList[0];
 
@@ -453,8 +449,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         ...GlobalStyles.dropShadow(3, 0.05, Colors.SHADOW, { radius: 8 }),
-        overflow: 'hidden',
         padding: 16,
+        ...Platform.select({
+            web: {
+                touchAction: 'pan-y' as const,
+            },
+        }),
     },
     header: {
         flexDirection: 'row',

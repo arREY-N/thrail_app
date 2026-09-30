@@ -6,13 +6,13 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Platform,
-    Pressable,
-    StyleProp,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    ViewStyle,
+  Platform,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
 
 import CustomIcon from "@/src/components/CustomIcon";
@@ -23,9 +23,9 @@ import { GlobalStyles } from "@/src/constants/globalStyles";
 import { ITrail } from "@/src/core/models/Trail/Trail";
 import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import {
-    formatRouteType,
-    getHeroImageSource,
-    isUsingMapFallback,
+  formatRouteType,
+  getHeroImageSource,
+  isUsingMapFallback,
 } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
 
@@ -464,6 +464,9 @@ const styles = StyleSheet.create({
     width: "100%",
     position: "relative",
     backgroundColor: Colors.GRAY_LIGHT,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
   },
   cardImage: {
     width: "100%",
@@ -621,6 +624,8 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 10,
     position: "relative",
     backgroundColor: Colors.GRAY_LIGHT,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: "hidden",
   },
   gradientOverlayWeb: {

@@ -1,17 +1,18 @@
-import CustomLoading from '@/src/components/CustomLoading';
-import CustomText from '@/src/components/CustomText';
 import EmergencyNotification from '@/src/components/EmergencyNotification';
 import { ViewProfile } from '@/src/core/flows/ViewProfile';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
+import { View } from 'react-native';
 
 /**
  * Controller component for the Profile tab.
  * Gathers user data, hike logs, reviews, and computes summary statistics.
- */import { Pressable, View } from 'react-native';
-
-export default function Profile() {
+ * Passes isLoading to ProfileScreen so the skeleton renders inside the Hike Log tab
+ * rather than gating the entire screen behind a full-screen spinner.
+ */
+export default function profile() {
     const {
         hikeLog,
+        hasMore,
         computedStats,
         profile,
         role,
@@ -25,14 +26,11 @@ export default function Profile() {
         onWriteReviewPress,
         onApplyPress,
         isLoading,
+        isRefreshing,
+        onRefresh,
+        error,
         onSeeMore,
     } = ViewProfile();
-
-    if (isLoading) return (
-        <CustomLoading
-            message="Loading Profile"
-        />
-    )
 
     return (
         <View style={{ flex: 1 }}>
@@ -44,18 +42,22 @@ export default function Profile() {
                 onSuperadminPress={onSuperadminPress}
                 stats={computedStats}
                 hikeLog={hikeLog}
+                isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                onRefresh={onRefresh}
+                error={error}
                 profile={profile ?? undefined}
                 role={role ?? undefined}
                 onLikeReview={likeReview}
                 isLiked={isLiked}
                 onEditReview={onWriteReviewPress}
                 onGroupPress={onGroupPress}
+                onSeeMore={onSeeMore}
+                hasMore={hasMore}
             />
-            <Pressable onPress={onSeeMore} style={{ position: 'absolute', bottom: 100, right: 20 }}>
-                <CustomText style={{ fontSize: 20, color: 'blue' }}>See More</CustomText>
-            </Pressable>
 
             <EmergencyNotification />
         </View>
     );
 }
+
