@@ -1,4 +1,4 @@
-import { Booking, useBookingDelete } from "@/src/core/models/Booking/Booking";
+import { Booking, newBooking, useBookingDelete, useBookingsStore, useBookingUserList } from "@/src/core/models/Booking/Booking";
 import { Cancellation, CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { createCancellationRequest, newCancellation } from "@/src/core/models/Cancellation/utils/CancellationFactory";
@@ -25,7 +25,9 @@ export function useCancellationUser() {
     
     const write = useCancellationStore(s => s.write);
     const deleteCancellation = useCancellationStore(s => s.delete);
-    
+    const { bookings } = useBookingUserList();
+    const createBooking = useBookingsStore(s => s.create);
+
     /**
      * Allows users to submit a new cancellation request for a booking. 
      * This function checks if the user is authorized to make the request 
@@ -192,11 +194,28 @@ export function useCancellationUser() {
                 { status: "approved" }
             );
 
-            await write({
-                cancellation: updatedRequest,
-                oldCancellation: request,
-                isAdmin: false
+            const booking = bookings.find(b => b.id === request.bookingId);
+
+            if(!booking) {
+                throw new Error("Booking not found.");
+            }
+
+            const updatedBooking = newBooking({
+                ...booking,
+                status: 'cancelled',
+                cancelledBy: 'admin',
+                updatedAt: new Date(),
             })
+
+            Promise.all([
+                await createBooking(updatedBooking, false, true),
+                await write({
+                    cancellation: updatedRequest,
+                    oldCancellation: request,
+                    isAdmin: false
+                })
+            ])
+            
         } catch (error) {
             catchError(error as Error, 'writingError', 'approveAdminRequest()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
