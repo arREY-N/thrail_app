@@ -1,7 +1,8 @@
 import { db } from "@/src/core/config/Firebase";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { cancellationConverter } from "@/src/core/models/Cancellation/utils/CancellationFactory";
-import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { Unsubscribe } from "firebase/auth";
+import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 
 const createCancellationCollection = (db: Firestore, businessId: string) => {
     return collection(db, 'businesses', businessId, 'cancellations').withConverter(cancellationConverter);
@@ -134,10 +135,54 @@ export const CancellationRepository = (db: Firestore) => ({
 
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (error) {
-            console.error("Error fetching cancellations by offer ID from Firestore:", error);
             throw error;
         }
     },
+
+    listenToBusinessCancellations(businessId: string, onUpdate: (cancellations: Cancellation[]) => void): Unsubscribe {
+        try {
+            if (!businessId)
+                throw new Error('Business ID missing');
+
+            const q = collection(db, "businesses", businessId, "cancellations").withConverter(cancellationConverter);
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(d => d.data()));
+                },
+                (error) => {
+                    throw error
+                }
+            )
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    listenToUserCancellations(userId: string, onUpdate: (cancellations: Cancellation[]) => void): Unsubscribe {
+        try {
+            if (!userId)
+                throw new Error('User ID is missing');
+
+            const q = query(
+                collectionGroup(db, 'cancellations'),
+                where('userId', '==', userId),
+            ).withConverter(cancellationConverter);
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    onUpdate(snapshot.docs.map(d => d.data()));
+                },
+                (error) => {
+                    throw error;
+                }
+            )
+        } catch (error) {
+            throw error;
+        }
+    }
 });
 
 export const CancellationRepo = CancellationRepository(db);
