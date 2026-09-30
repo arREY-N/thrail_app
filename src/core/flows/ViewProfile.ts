@@ -1,11 +1,11 @@
 import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useProfileNavigation } from "@/src/core/hook/navigation/useProfileNavigation";
-import { Hike, useHikeList } from "@/src/core/models/Hike/Hike";
-import { newReview, Review, useReview, useReviewList } from "@/src/core/models/Review/Review";
+import { Hike, useHikeList, useHikeStore } from "@/src/core/models/Hike/Hike";
+import { newReview, Review, useReview, useReviewList, useReviewStore } from "@/src/core/models/Review/Review";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { formatDistance, formatTime } from "@/src/core/utility/statsFormatter";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export function ViewProfile() {
     const { profile, role } = useAuthHook();
@@ -31,8 +31,8 @@ export function ViewProfile() {
         onWriteReviewPress,
     } = useReview();
 
-    const { reviews, reviewIsLoading } = useReviewList();
-    const { hikes, hikeIsLoading } = useHikeList();
+    const { reviews, reviewIsLoading, reviewError } = useReviewList();
+    const { hikes, hikeIsLoading, error: hikeError } = useHikeList();
 
     const hikeLog = useMemo<Review[]>(() => {
         if (!profile?.id) return [];
@@ -88,22 +88,41 @@ export function ViewProfile() {
 
     const [page, setPage] = useState(5);
 
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const onRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            await Promise.allSettled([
+                useReviewStore.getState().refresh(),
+                profile?.id ? useHikeStore.getState().refresh(profile.id) : Promise.resolve(),
+            ]);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [profile?.id]);
+
     const visibleHikeLog = useMemo(() => {
         return hikeLog.slice(0, page);
-    }, [hikeLog, page])
+    }, [hikeLog, page]);
 
     const onSeeMore = () => {
         setPage(prev => {
             if (prev + 5 > hikeLog.length) return hikeLog.length;
-            return prev + 5
+            return prev + 5;
         });
-    }
+    };
+
     return {
         onSeeMore,
         hikeLog: visibleHikeLog,
+        hasMore: page < hikeLog.length,
         reviews,
         hikes,
         isLoading: hikeIsLoading || reviewIsLoading,
+        isRefreshing,
+        onRefresh,
+        error: hikeError || reviewError || null,
         computedStats,
         role,
         profile,
@@ -116,5 +135,5 @@ export function ViewProfile() {
         likeReview,
         isLiked,
         onWriteReviewPress,
-    }
+    };
 }
