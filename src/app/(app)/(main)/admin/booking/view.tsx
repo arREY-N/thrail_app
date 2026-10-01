@@ -47,12 +47,12 @@ export default function AdminViewBooking() {
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
-        onCancelUnpaid,
         error: bookingError,
         isLoading: isBookingLoading,
     } = useBookingAdmin();
 
     const {
+        onCancelUnpaid,
         cancellationRequest,
         processCancellationRequest,
         cancelUserBooking,
