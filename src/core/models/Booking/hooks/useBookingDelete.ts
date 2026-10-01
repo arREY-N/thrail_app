@@ -34,7 +34,6 @@ export function useBookingDelete() {
 
             await deleteBooking(booking.id);
         } catch (error) {
-            console.log("Error canceling reservation:", error);
             setLocalError(`Error canceling reservation. Details: ${(error as Error).message}`);
         }
     }
