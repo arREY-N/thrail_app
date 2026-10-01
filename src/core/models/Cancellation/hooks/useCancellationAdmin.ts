@@ -19,6 +19,7 @@ import {
     useGroupStore
 } from "@/src/core/models/Group/Group";
 
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import {
@@ -32,7 +33,7 @@ import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 
 export function useCancellationAdmin(bookingId: string) {
     const { profile, role, businessId } = useAuthHook();
-
+    const { onBackPress } = useAppNavigation();
     const { onRefund } = usePaymentAdmin();
 
     const [writingError, setWritingError] = useState<string | null>(null);
@@ -272,7 +273,25 @@ export function useCancellationAdmin(bookingId: string) {
         }
     }
 
+    const onCancelUnpaid = async (booking?: Booking) => {
+        try {
+            if (!booking) {
+                throw new Error('No booking data provided.');
+            }
+
+            if (role !== 'admin') throw new Error('Only admins can cancel bookings');
+
+            await cancelUserBooking(booking, 'Unpaid booking');
+
+            onBackPress();
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onCancelUnpaid()');
+            setWritingError((error as Error).message || 'Failed to cancel booking');
+        }
+    }
+
     return {
+        onCancelUnpaid,
         isWriting,
         writingError,
         storeError,

@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     Platform,
+    RefreshControl,
     StyleSheet,
     TouchableOpacity,
     View
@@ -49,6 +52,14 @@ export interface ProfileScreenProps {
     stats?: import('@/src/features/Profile/tabs/MilestonesTab').MilestonesTabProps['stats'];
     /** An array of reviews/hikes the user has logged */
     hikeLog?: Review[];
+    /** When true, HikeLogTab renders PostCardSkeleton placeholders instead of empty state */
+    isLoading?: boolean;
+    /** When true, shows active pull-to-refresh spinner */
+    isRefreshing?: boolean;
+    /** Callback triggered upon pull-to-refresh */
+    onRefresh?: () => Promise<void> | void;
+    /** Error message if an error occurred while fetching hike data */
+    error?: string | null;
     /** Callback for the settings gear icon */
     onSettingsPress: () => void;
     /** Callback when a review is liked */
@@ -67,6 +78,10 @@ export interface ProfileScreenProps {
     onApplyPress?: () => void;
     /** Callback to sign out */
     onSignOutPress?: () => void;
+    /** Callback fired when user scrolls near bottom of hike log to reveal more items */
+    onSeeMore?: () => void;
+    /** When true, hike log has more items to reveal */
+    hasMore?: boolean;
 }
 
 /**
@@ -77,6 +92,10 @@ const ProfileScreen = ({
     role,
     stats,
     hikeLog,
+    isLoading,
+    isRefreshing,
+    onRefresh,
+    error,
     onSettingsPress,
     onLikeReview,
     isLiked,
@@ -85,10 +104,58 @@ const ProfileScreen = ({
     onAdminPress,
     onSuperadminPress,
     onApplyPress,
-    onSignOutPress
+    onSignOutPress,
+    onSeeMore,
+    hasMore,
 }: ProfileScreenProps) => {
 
     const [activeTab, setActiveTab] = useState<'Milestones' | 'Hike Log'>('Milestones');
+
+    // Stable refs so the scroll handler always reads fresh values
+    // without causing re-renders. Synced in useEffect after each commit.
+    const scrollYRef = useRef(0);
+    const contentHeightRef = useRef(0);
+    const layoutHeightRef = useRef(0);
+    const activeTabRef = useRef(activeTab);
+    const hasMoreRef = useRef(hasMore);
+    const onSeeMoreRef = useRef(onSeeMore);
+    // Guard: prevents repeated calls while a page is already being appended.
+    const isPagingRef = useRef(false);
+
+    // Synchronize scroll handler refs with the latest props and state
+    useEffect(() => {
+        activeTabRef.current = activeTab;
+        hasMoreRef.current = hasMore;
+        onSeeMoreRef.current = onSeeMore;
+    }, [activeTab, hasMore, onSeeMore]);
+
+    // Reset pagination throttle guard whenever the rendered list changes
+    useEffect(() => {
+        isPagingRef.current = false;
+    }, [hikeLog]);
+
+    // Stable scroll handler — created once. Reads via refs so it always
+    // sees the latest tab/hasMore state without needing to be recreated.
+    const handleScroll = useCallback(
+        (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            scrollYRef.current = e.nativeEvent.contentOffset.y;
+            const nearBottom =
+                scrollYRef.current + layoutHeightRef.current >=
+                contentHeightRef.current - 200;
+            if (
+                nearBottom &&
+                activeTabRef.current === 'Hike Log' &&
+                hasMoreRef.current &&
+                onSeeMoreRef.current &&
+                !isPagingRef.current
+            ) {
+                isPagingRef.current = true;
+                onSeeMoreRef.current();
+            }
+        },
+        [] // stable — all reads go through refs
+    );
+
 
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth: number | `${number}%` = isDesktop ? 800 : (isTablet ? 650 : '100%');
@@ -130,6 +197,22 @@ const ProfileScreen = ({
             <ResponsiveScrollView
                 contentContainerStyle={styles.scrollContent}
                 stickyHeaderIndices={[1]}
+                onScroll={handleScroll}
+                scrollEventThrottle={200}
+                onContentSizeChange={(_w, h) => { contentHeightRef.current = h; }}
+                onLayout={(e) => { layoutHeightRef.current = e.nativeEvent.layout.height; }}
+                bounces={true}
+                overScrollMode="always"
+                refreshControl={
+                    onRefresh ? (
+                        <RefreshControl
+                            refreshing={Boolean(isRefreshing)}
+                            onRefresh={onRefresh}
+                            colors={[Colors.PRIMARY]}
+                            tintColor={Colors.PRIMARY}
+                        />
+                    ) : undefined
+                }
             >
                 <View style={[styles.userBanner, responsiveAlignStyle]}>
                     <View style={styles.userInfoLeft}>
@@ -223,16 +306,22 @@ const ProfileScreen = ({
                 </View>
 
                 <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
-                    {activeTab === 'Milestones' ? (
+                    <View style={activeTab !== 'Milestones' ? styles.hidden : undefined}>
                         <MilestonesTab stats={stats} />
-                    ) : (
+                    </View>
+                    <View style={activeTab !== 'Hike Log' ? styles.hidden : undefined}>
                         <HikeLogTab
                             hikeLog={hikeLog}
+                            isLoading={isLoading}
+                            error={error}
+                            onRetry={onRefresh}
                             onLikeReview={onLikeReview}
                             isLiked={(review) => Boolean(isLiked(review))}
                             onEditReview={(id: string) => onEditReview(id)}
+                            onSeeMore={onSeeMore}
+                            hasMore={hasMore}
                         />
-                    )}
+                    </View>
                 </View>
 
             </ResponsiveScrollView>
@@ -348,7 +437,10 @@ const styles = StyleSheet.create({
     tabTextActive: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
-    }
+    },
+    hidden: {
+        display: 'none',
+    },
 });
 
 export default ProfileScreen;

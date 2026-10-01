@@ -72,6 +72,9 @@ const styles = StyleSheet.create({
         width: '100%',
         position: 'relative',
         backgroundColor: Colors.GRAY_LIGHT,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        overflow: 'hidden',
     },
     imageSkeleton: {
         width: '100%',

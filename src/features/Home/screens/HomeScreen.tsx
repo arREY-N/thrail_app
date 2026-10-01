@@ -143,7 +143,7 @@ const ListSection: React.FC<ListSectionProps> = ({
   const scrollRef = React.useRef<ScrollView>(null);
 
   // Web drag-to-slide mouse scrolling hook for Web ScrollView
-  useWebDragScroll(scrollRef, hasData);
+  useWebDragScroll(scrollRef, hasData, data);
 
   return (
     <View style={styles.sectionContainer}>
@@ -479,7 +479,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   horizontalList: {
-    paddingBottom: 4,
+    paddingTop: 12,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   scrollViewStyle: {
@@ -498,7 +499,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.BACKGROUND,
-    opacity: 0.8,
     gap: 8,
   },
   emptyStateText: {

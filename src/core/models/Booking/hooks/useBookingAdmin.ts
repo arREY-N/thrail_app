@@ -200,36 +200,11 @@ export function useBookingAdmin() {
         }
     }
 
-    const onCancelUnpaid = async (booking?: Booking) => {
-        try {
-            if (!booking) {
-                refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
-                return;
-            }
-
-            if (role !== 'admin') throw new Error('Only admins can cancel bookings');
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            Alert.alert(
-                "Placeholder Active",
-                "BACKEND: Insert `cancelBooking` Cloud Function call here."
-            );
-
-            onBackPress();
-
-        } catch (error) {
-            catchError(error as Error, 'writingError', 'onCancelUnpaid()');
-            setLocalError((error as Error).message || 'Failed to cancel booking');
-        }
-    }
-
     return {
         onApproveBooking,
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
-        onCancelUnpaid,
         error: localError || error,
         isLoading
     }
