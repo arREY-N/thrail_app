@@ -16,7 +16,6 @@ import { useState } from "react";
  */
 export function useCancellationUser() {
     const { profile } = useAuthHook();
-    
     const { cancelPendingBooking } = useBookingDelete();
 
     const [writingError, setWritingError] = useState<string | null>(null);
@@ -66,8 +65,19 @@ export function useCancellationUser() {
                 throw new Error("Cannot cancel an expired offer.");
             }
 
+            
             if(booking.status === "for-reservation") {
                 await cancelPendingBooking(booking);
+            } else if (booking.status === 'reservation-rejected') {
+                const updatedBooking: Booking = newBooking({
+                    ...booking,
+                    status: 'cancelled',
+                    cancelledBy: 'user',
+                    cancellationReason: reason,
+                    updatedAt: new Date(),
+                }) 
+
+                await createBooking(updatedBooking);
             } else {
                 const cancellationRequest = createCancellationRequest({ 
                     ...request, 
@@ -80,14 +90,6 @@ export function useCancellationUser() {
                     isAdmin: false
                 })
             }
-
-            // TODO: move this to admin hook for cancellation approval
-            // const cancelBookingFn = httpsCallable(functions, 'cancelBooking');
-            // await cancelBookingFn({
-            //     bookingId: booking.id,
-            //     userId: profile?.id || profile?.uid,
-            //     reason: reason
-            // });
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationUser');
             setWritingError(`Error submitting cancellation request: ${(error as Error).message}`);
