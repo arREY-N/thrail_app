@@ -40,7 +40,7 @@ const onlineListeners = new Set<(online: boolean) => void>();
  * @property {boolean} permissionGranted - True if location permissions (foreground) have been authorized.
  * @property {boolean} isOnline - Real-time network reachability status.
  * @property {[number, number] | null} userLocation - Current `[longitude, latitude]` for immediate map centering.
- * @property {[number, number][]} routeCoordinates - Breadcrumb path of the current session as `[lon, lat]` array.
+ * @property {[number, number][][]} routeCoordinates - Multi-segment breadcrumb path of the current session as array of segments `[lon, lat][][]`.
  * @property {Function} exportHikeData - Utility to trigger a file export of the recorded hike data.
  * @property {() => Promise<void>} onStartGps - Starts the GPS tracking session (foreground and background).
  * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
