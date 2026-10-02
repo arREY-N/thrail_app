@@ -12,7 +12,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
-import { forwardRef, memo, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
@@ -313,6 +313,22 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
   const isSelectedLkl = selectedHiker ? getElapsedMinutes(selectedHiker.timestamp) >= 2 : false;
 
+  // Multi-segment breadcrumb handling (supports multiple pause/resume intervals with clean gaps)
+  const validSegments: [number, number][][] = useMemo(() => {
+    if (!routeCoordinates || !Array.isArray(routeCoordinates) || routeCoordinates.length === 0) {
+      return [];
+    }
+    // Handle backwards compatibility if routeCoordinates is legacy flat array: [[lon, lat], [lon, lat], ...]
+    if (typeof routeCoordinates[0]?.[0] === "number") {
+      const flat = routeCoordinates as unknown as [number, number][];
+      return flat.length >= 2 ? [flat] : [];
+    }
+    // Multi-segment format: [ [[lon, lat], [lon, lat]], [[lon, lat], [lon, lat]] ]
+    return (routeCoordinates as unknown as [number, number][][]).filter(
+      (seg) => Array.isArray(seg) && seg.length >= 2
+    );
+  }, [routeCoordinates]);
+
   const cameraRef = useRef<CameraRef | null>(null);
   const lastZoomRef = useRef<number>(16);
   const lastCenterRef = useRef<[number, number] | null>(null);
@@ -547,13 +563,13 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
           </GeoJSONSource>
         )}
 
-        {/* ✅ Red dashed line will only draw when routeCoordinates actually receives data */}
-        {routeCoordinates.length >= 2 && (
+        {/* ✅ Orange solid line rendered as MultiLineString to prevent pause/resume gap snapping */}
+        {validSegments.length > 0 && (
           <GeoJSONSource
             id="walkedPathSource"
             data={{
               type: "Feature",
-              geometry: { type: "LineString", coordinates: routeCoordinates },
+              geometry: { type: "MultiLineString", coordinates: validSegments },
               properties: {},
             }}
           >
