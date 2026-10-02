@@ -234,6 +234,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             totalElevationGain: 0,
             coordinates: [],
             walkedRoute: [],
+            isSegmentFirstPoint: true,
             activeGroupId: null,
             live: false,
         });
@@ -306,6 +307,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                     totalElevationGain: 0,
                     coordinates: [],
                     walkedRoute: [],
+                    isSegmentFirstPoint: true,
                     activeGroupId: null,
                     live: false,
                 });
