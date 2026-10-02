@@ -40,7 +40,8 @@ export interface HikeState {
 
     active: boolean;
     coordinates: Location[];
-    walkedRoute: [number, number][];
+    walkedRoute: [number, number][][];
+    isSegmentFirstPoint?: boolean;
     live: boolean;
     activeGroupId: string | null;
 
@@ -51,6 +52,7 @@ export interface HikeState {
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
     clearWalkedRoute: () => void;
+    startNewSegment: () => void;
     updateCurrentHike: (patch: Partial<Hike>) => void;
     updateHikeStore: (patch: Partial<HikeState>) => void;
 
@@ -81,6 +83,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     active: false,
     coordinates: [],
     walkedRoute: [],
+    isSegmentFirstPoint: true,
     live: false,
     locationByGroup: {},
     activeListeners: {},
@@ -88,7 +91,15 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     shareLocationEnabled: true,
     profile: null,
 
-    clearWalkedRoute: () => set({ walkedRoute: [] }),
+    clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true }),
+    startNewSegment: () => set((state) => {
+        if (!state.walkedRoute) state.walkedRoute = [];
+        const lastSeg = state.walkedRoute[state.walkedRoute.length - 1];
+        if (!lastSeg || lastSeg.length > 0) {
+            state.walkedRoute.push([]);
+        }
+        state.isSegmentFirstPoint = true;
+    }),
     currentLocation: null,
 
     reset: () => {
@@ -110,6 +121,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             active: false,
             coordinates: [],
             walkedRoute: [],
+            isSegmentFirstPoint: true,
             live: false,
             locationByGroup: {},
             activeListeners: {},
@@ -158,27 +170,41 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             set((state) => {
                 if (state.currentHike && state.active && state.currentHike.status === 'started') {
                     if (!state.coordinates) state.coordinates = [];
-                    if (!state.walkedRoute) state.walkedRoute = [];
+                    if (!state.walkedRoute || state.walkedRoute.length === 0) {
+                        state.walkedRoute = [[]];
+                    }
 
-                    const lastCoord = state.coordinates[state.coordinates.length - 1];
+                    let currentSegment = state.walkedRoute[state.walkedRoute.length - 1];
+                    if (!currentSegment) {
+                        currentSegment = [];
+                        state.walkedRoute.push(currentSegment);
+                    }
 
-                    if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
-                        const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
+                    // If this coordinate is the first point of a new segment (after start or resume),
+                    // skip displacement calculation so pause distance is not counted
+                    if (state.isSegmentFirstPoint) {
+                        state.isSegmentFirstPoint = false;
+                    } else {
+                        const lastCoord = state.coordinates[state.coordinates.length - 1];
 
-                        // Ignore sub-meter jitter (< 1m) and impossible GPS jumps (> 250m per tick)
-                        if (distMeters > 1 && distMeters < 250) {
-                            state.totalDistance += distMeters;
-                        }
+                        if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
+                            const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
 
-                        const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
-                        if (altDiff > 2 && altDiff < 100) {
-                            state.totalElevationGain += altDiff;
+                            // Ignore sub-meter jitter (< 1m) and impossible GPS jumps (> 250m per tick)
+                            if (distMeters > 1 && distMeters < 250) {
+                                state.totalDistance += distMeters;
+                            }
+
+                            const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
+                            if (altDiff > 2 && altDiff < 100) {
+                                state.totalElevationGain += altDiff;
+                            }
                         }
                     }
 
-                    // Append to session telemetry & map route (NEVER truncated mid-hike)
+                    // Append to session telemetry & active segment
                     state.coordinates.push(coordinate);
-                    state.walkedRoute.push([coordinate.longitude, coordinate.latitude]);
+                    currentSegment.push([coordinate.longitude, coordinate.latitude]);
                 }
             });
 
@@ -299,7 +325,18 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     },
 
     updateCurrentHike: (patch) => set((state) => {
-        if (state.currentHike) { Object.assign(state.currentHike, patch); }
+        if (state.currentHike) {
+            const wasPaused = state.currentHike.status === 'paused';
+            Object.assign(state.currentHike, patch);
+            if (wasPaused && patch.status === 'started') {
+                if (!state.walkedRoute) state.walkedRoute = [];
+                const lastSeg = state.walkedRoute[state.walkedRoute.length - 1];
+                if (!lastSeg || lastSeg.length > 0) {
+                    state.walkedRoute.push([]);
+                }
+                state.isSegmentFirstPoint = true;
+            }
+        }
     }),
 
     startHike: async (hike: IHike, profile: { id: string, firstname: string, lastname: string }) => {
@@ -317,6 +354,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 currentHike: updated,
                 coordinates: [],
                 walkedRoute: [],
+                isSegmentFirstPoint: true,
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
