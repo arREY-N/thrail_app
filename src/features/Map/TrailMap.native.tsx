@@ -339,11 +339,16 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const actuallyOffline = forceOffline || !isOnline;
+
   useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout | null = null;
+
     async function resolveGeoJson() {
       const [geoAsset] = await Asset.loadAsync(rawMapDataAsset);
       const uri = geoAsset.localUri || geoAsset.uri;
-      if (uri) setGeoJsonUrl(uri);
+      if (uri && isMounted) setGeoJsonUrl(uri);
     }
 
     async function resolveOfflineMap() {
@@ -352,7 +357,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
 
       if (isCachedValid) {
         console.log("✅ Offline map cache is healthy & verified.");
-        setOfflineTileUrl(`pmtiles://${fileUri}`);
+        if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
         return;
       }
 
@@ -389,20 +394,56 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
       }
 
       console.log(`✅ Offline map installed and verified successfully.`);
-      setOfflineTileUrl(`pmtiles://${fileUri}`);
+      if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
 
-    Promise.all([
-      resolveGeoJson(),
-      resolveOfflineMap(),
-      resolveOfflineFonts().then((dir) => setFontBaseDir(dir)),
-    ])
-      .then(() => setLoadState("ready"))
-      .catch((err) => {
+    async function loadAssets() {
+      if (isMounted) setLoadState("loading");
+
+      try {
+        // Item 9: Wrap asset loading in a 15-second timeout to prevent indefinite freeze on filesystem locks
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error("Map asset extraction timed out after 15 seconds. Please check device storage and retry."));
+          }, 15000);
+        });
+
+        const tasks: Promise<unknown>[] = [resolveGeoJson()];
+
+        // Item 7: Guard offline copying in online mode.
+        // Only resolve heavy offline PMTiles (~34MB) and glyph fonts when offline mode is active.
+        if (actuallyOffline) {
+          tasks.push(resolveOfflineMap());
+          tasks.push(resolveOfflineFonts().then((dir) => {
+            if (isMounted) setFontBaseDir(dir);
+          }));
+        }
+
+        await Promise.race([
+          Promise.all(tasks),
+          timeoutPromise,
+        ]);
+
+        if (isMounted) {
+          setLoadState("ready");
+        }
+      } catch (err) {
         console.error("❌ Failed to load map assets:", err);
-        setLoadState("error");
-      });
-  }, [reloadKey]);
+        if (isMounted) {
+          setLoadState("error");
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    loadAssets();
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [reloadKey, actuallyOffline]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -450,9 +491,8 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     stopBackgroundTracking,
   }));
 
-  const actuallyOffline = forceOffline || !isOnline;
-
-  if (loadState === "error") {
+  // Item 6: If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
+  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir))) {
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
@@ -470,11 +510,13 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     );
   }
 
-  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && !offlineTileUrl)) {
+  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && (!offlineTileUrl || !fontBaseDir))) {
     return <LoadingScreen />;
   }
 
-  const activeStyle: StyleSpecification | string = (actuallyOffline && offlineTileUrl && fontBaseDir)
+  // Item 6: Prevent silent fallback to onlineStyle when offline.
+  // When actuallyOffline is true, activeStyle strictly uses buildOfflineStyle and never requests MapTiler over the network.
+  const activeStyle: StyleSpecification | string = actuallyOffline
     ? (buildOfflineStyle(offlineTileUrl, fontBaseDir) as unknown as StyleSpecification)
     : onlineStyle;
 
