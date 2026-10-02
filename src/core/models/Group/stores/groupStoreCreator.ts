@@ -4,12 +4,14 @@ import { newGroup } from "@/src/core/models/Group/utils/GroupFactory";
 import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
 export interface GroupState {
     groups: Group[];
     isLoading: boolean;
+    isWriting: boolean;
     error: string | null;
     isFetching: boolean;
 
@@ -41,6 +43,7 @@ const init = {
     groups: [],
     isLoading: false,
     isFetching: false,
+    isWriting: false,
     error: null,
     messagesByGroup: {},
     activeListeners: {},
@@ -66,6 +69,7 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
 
             const group = await GroupRepo.fetchGroup(groupId);
 
+            logger('GroupStoreCreator', 'Found group: ', group);
             set({
                 isFetching: false,
                 groups: upsertItem(get().groups, group),

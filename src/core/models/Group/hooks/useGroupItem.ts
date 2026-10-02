@@ -17,8 +17,17 @@ export function useGroupItem(id?: string | null) {
         fetch();
     }, [id]);
 
+    const getGroupById = async (id: string) => {
+        const group = useGroupStore.getState().groups.find(g => g.id === id);
+
+        if (!group) await useGroupStore.getState().fetchGroupById(id);
+
+        return group;
+    }
+
     return {
         group,
+        getGroupById,
         isLoading,
         isFetching,
         error,
