@@ -16,6 +16,7 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 
 import Unauthorized from "@/src/app/unauthorized";
 import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
+import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 
@@ -32,6 +33,13 @@ export default function HikeView() {
     const { onBackPress } = useAppNavigation();
     const { profile } = useAuthHook();
     const { groups } = useGroupList(profile?.id || "");
+
+    const storedHike = useHikeStore((s) => s.currentHike);
+    const resolvedBookingId = bookingId || (storedHike?.mode === 'booked' ? storedHike.bookingId : undefined);
+
+    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
+        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+    )?.id) || undefined;
 
     const {
         currentHike,
@@ -52,13 +60,12 @@ export default function HikeView() {
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = CreateHikeFlow({ hikeId, trailId, bookingId, groupId });
-
-    const resolvedBookingId = bookingId || (currentHike?.mode === 'booked' ? currentHike.bookingId : undefined);
-
-    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
-        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
-    )?.id) || undefined;
+    } = CreateHikeFlow({ 
+        hikeId, 
+        trailId, 
+        bookingId: resolvedBookingId || bookingId, 
+        groupId: resolvedGroupId || groupId 
+    });
 
     const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
     const {
