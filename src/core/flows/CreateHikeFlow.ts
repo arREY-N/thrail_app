@@ -121,7 +121,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             updateHikeStore({
                 activeGroupId: groupId,
             });
-            // await onStartSharingLocation();
+            try {
+                await shareLocation(groupId);
+            } catch (shareErr) {
+                console.warn("[onStartHike] Background location share initialization warning:", shareErr);
+            }
         }
 
         startBackgroundTracking();
