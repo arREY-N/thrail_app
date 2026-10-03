@@ -112,15 +112,6 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 
     return (
         <View style={styles.tabContent}>
-            {isCancellationPending && (
-                <View style={styles.cancellationPendingBanner}>
-                    <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
-                    <CustomText variant="caption" style={styles.cancellationPendingText}>
-                        A cancellation request is currently pending. Please approve or decline the cancellation request below before completing document verification.
-                    </CustomText>
-                </View>
-            )}
-            
             {docStates.length === 0 ? (
                 <View style={styles.emptyCard}>
                     <CustomIcon library="Feather" name="file-text" size={32} color={Colors.TEXT_SECONDARY} />
@@ -166,24 +157,6 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 const styles = StyleSheet.create({
     tabContent: { 
         paddingTop: 4 
-    },
-    cancellationPendingBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_CANCELLED_BORDER,
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 14,
-        gap: 8,
-    },
-    cancellationPendingText: {
-        color: Colors.ERROR,
-        fontSize: 12,
-        lineHeight: 18,
-        fontWeight: '500',
-        flex: 1,
     },
     reasonBox: { 
         marginBottom: 24 
