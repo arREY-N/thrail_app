@@ -174,9 +174,9 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     // Continuous Pre-Hike GPS Availability: always update currentLocation for Emergency SOS & SMS (Finding 5)
                     useHikeStore.getState().setCurrentLocation(latestCoord);
 
-                    // Global Store Integration: only record breadcrumbs when hike is actively started
+                    // Global Store Integration: record breadcrumbs when hike is started, stream live location when started or paused (Finding 4)
                     const { active, currentHike } = useHikeStore.getState();
-                    if (active && currentHike?.status === 'started') {
+                    if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
                         addCoordinate(latestCoord);
                     }
                 },
