@@ -60,38 +60,40 @@ export default function useBookingFilters(bookings: Booking[]) {
             });
         }
 
-        // Default 'All' tab sorting: Priority first, then latest first
-        const getPriorityScore = (status?: BookingStatus | string) => {
+        // 3-Tier Hierarchy for 'All' tab: Action Required -> In-Progress -> Dead / Closed
+        const getPriorityTier = (status?: BookingStatus | string): number => {
             const s = status || '';
 
-            // Tier 1: Urgent Inbound Requests requiring immediate organizer action
-            if (s === 'for-cancellation' || s === 'for-reservation' || s === 'for-reschedule') return 1;
-            // Tier 2: Payment confirmation
-            if (s === 'paid') return 2;
-            // Tier 3: Downpayment balance tracking
-            if (s === 'downpayment') return 3; 
-            // Tier 4: Awaiting hiker payment
-            if (s === 'for-payment' || s === 'approved-docs') return 4;
-            // Tier 5: Confirmed and active
-            if (s === 'completed' || s === 'finished' || s === 'rescheduled') return 5;
-            // Tier 6: Terminal and closed records
-            if (['reservation-rejected', 'cancelled', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(s)) return 6;
+            // Tier 1: Action Required by Admin (Top)
+            if (s === 'for-reservation' || s === 'for-cancellation' || s === 'for-reschedule' || s === 'paid') {
+                return 1;
+            }
 
-            return 7;
+            // Tier 2: Active & In-Progress / Confirmed (Middle)
+            if (s === 'for-payment' || s === 'approved-docs' || s === 'downpayment' || s === 'completed' || s === 'rescheduled') {
+                return 2;
+            }
+
+            // Tier 3: Dead / Closed / Finished Records (Bottom)
+            if (['finished', 'cancelled', 'reservation-rejected', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(s)) {
+                return 3;
+            }
+
+            return 4;
         };
 
         return result.sort((a, b) => {
-            const priorityA = getPriorityScore(a.status);
-            const priorityB = getPriorityScore(b.status);
+            const tierA = getPriorityTier(a.status);
+            const tierB = getPriorityTier(b.status);
             
-            if (priorityA !== priorityB) {
-                return priorityA - priorityB;
+            if (tierA !== tierB) {
+                return tierA - tierB;
             }
 
             const timeA = getMs(a.updatedAt || a.createdAt);
             const timeB = getMs(b.updatedAt || b.createdAt);
             
-            return timeB - timeA;
+            return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
         });
 
     }, [bookings, activeFilter, sortOrder]);
