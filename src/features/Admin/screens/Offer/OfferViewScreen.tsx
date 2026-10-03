@@ -103,24 +103,22 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                             Recent Bookings <CustomText style={styles.sectionTitleCounter}>({filteredBookings.length})</CustomText>
                         </CustomText>
                         
-                        {activeFilter !== 'All' && (
-                            <TouchableOpacity 
-                                style={styles.sortButton}
-                                onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                                activeOpacity={0.7}
-                            >
-                                <CustomText style={styles.sortButtonText}>
-                                    Date
-                                </CustomText>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name={sortOrder === 'desc' ? "arrow-down" : "arrow-up"} 
-                                    size={14} 
-                                    color={Colors.PRIMARY} 
-                                    style={styles.sortIcon}
-                                />
-                            </TouchableOpacity>
-                        )}
+                        <TouchableOpacity 
+                            style={styles.sortButton}
+                            onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                            activeOpacity={0.7}
+                        >
+                            <CustomText style={styles.sortButtonText}>
+                                Date
+                            </CustomText>
+                            <CustomIcon 
+                                library="Feather" 
+                                name={sortOrder === 'desc' ? "arrow-down" : "arrow-up"} 
+                                size={14} 
+                                color={Colors.PRIMARY} 
+                                style={styles.sortIcon}
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     {bookings && bookings.length > 0 && (
