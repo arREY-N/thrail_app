@@ -334,23 +334,27 @@ const BookingDetailsScreen = ({
         'expired',
     ].includes(displayStatus || '') || hasPendingCancellation;
 
+    const hasActiveCancellation = Boolean(cancellation) || hasPendingCancellation || isCancelled;
+
     const isConfirmed = ['paid', 'completed', 'downpayment'].includes(displayStatus || '');
 
-    // Initial draft reservation can be cancelled directly without reason or admin review
-    const isPreApprovalDraft = displayStatus === 'for-reservation';
+    // Initial draft reservation or rejected documents can be cancelled directly without reason or admin review
+    const isPreApprovalDraft = ['for-reservation', 'reservation-rejected'].includes(displayStatus || '');
 
     // Bookings requiring formal cancellation request to organizer with reason
     const canCancelBooking = [
-        'reservation-rejected',
         'for-payment',
         'approved-docs',
         'for-reschedule',
         'reschedule-rejected',
-    ].includes(displayStatus || '') && !isCancelled && !hasPendingCancellation;
+    ].includes(displayStatus || '') && !isCancelled && !hasActiveCancellation;
 
-    const canCancelDraft = isPreApprovalDraft && !isCancelled;
-    const canRefund = isConfirmed && !isCancelled && !hasPendingCancellation;
-    const canReschedule = ['for-reservation', 'for-reschedule'].includes(displayStatus || '') && !isCancelled && !isAdminCancelled;
+    const canCancelDraft = isPreApprovalDraft && !isCancelled && !hasActiveCancellation;
+    const canRefund = isConfirmed && !isCancelled && !hasActiveCancellation;
+    const canReschedule = (amountPaid > 0 || displayStatus === 'for-reschedule') &&
+        !isCancelled &&
+        !isAdminCancelled &&
+        !hasActiveCancellation;
 
     const showMenuIcon = canCancelDraft || canCancelBooking || canRefund || canReschedule;
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
@@ -1046,7 +1050,7 @@ const BookingDetailsScreen = ({
                     }
                 }}
                 title="Cancel Reservation"
-                message="Are you sure you want to cancel this reservation? Your draft booking will be deleted."
+                message="Are you sure you want to cancel this reservation? Your booking will be deleted."
                 confirmText="Yes, Cancel"
                 cancelText="Keep Reservation"
                 isDestructive={true}
