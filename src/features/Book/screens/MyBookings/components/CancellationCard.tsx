@@ -81,9 +81,11 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         return null;
     }
 
+    const hasRejectedDocs = Array.isArray(booking.documents) && booking.documents.some(d => d.valid === 'rejected');
+
     const userReason =
         cancellation?.reason ||
-        booking.cancellationReason ||
+        (!hasRejectedDocs ? booking.cancellationReason : undefined) ||
         'No reason provided by user.';
 
     const adminNote =
@@ -199,7 +201,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                             <CustomText variant="caption" style={styles.infoText}>
                                 {totalAmountPaid > 0
                                     ? 'You are eligible for a full refund or can choose to reschedule to an alternative available date.'
-                                    : 'This booking is unpaid. You can reschedule to an alternative available date or acknowledge this cancellation.'}
+                                    : 'This booking is unpaid and has been cancelled. Your reservation spot has been released.'}
                             </CustomText>
                         </View>
 
@@ -223,7 +225,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 </TouchableOpacity>
                             )}
 
-                            {onReschedule && (
+                            {onReschedule && totalAmountPaid > 0 && (
                                 <TouchableOpacity
                                     style={styles.outlineBtn}
                                     onPress={onReschedule}
@@ -400,14 +402,16 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                             )}
                         </View>
 
-                        <View style={styles.previousReasonBox}>
-                            <CustomText variant="caption" style={styles.previousReasonLabel}>
-                                Cancellation Reason:
-                            </CustomText>
-                            <CustomText style={styles.previousReasonText}>
-                                {`"${userReason}"`}
-                            </CustomText>
-                        </View>
+                        {Boolean(userReason && userReason !== 'No reason provided by user.') && (
+                            <View style={styles.previousReasonBox}>
+                                <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                    Cancellation Reason:
+                                </CustomText>
+                                <CustomText style={styles.previousReasonText}>
+                                    {`"${userReason}"`}
+                                </CustomText>
+                            </View>
+                        )}
                     </>
                 )}
             </View>

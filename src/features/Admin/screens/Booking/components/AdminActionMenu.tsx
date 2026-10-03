@@ -19,6 +19,7 @@ import { Colors } from '@/src/constants/colors';
  * @param onRescheduleClick - Callback when "Reschedule Booking" is pressed.
  * @param onRefundClick - Callback when "Issue Refund" is pressed.
  * @param onCancelClick - Callback when "Cancel Booking" is pressed.
+ * @param hasPendingCancellation - Whether a cancellation request is currently pending or active.
  */
 interface AdminActionMenuProps {
     visible: boolean;
@@ -28,6 +29,7 @@ interface AdminActionMenuProps {
     onRescheduleClick: () => void;
     onRefundClick: () => void;
     onCancelClick: () => void;
+    hasPendingCancellation?: boolean;
 }
 
 /**
@@ -41,7 +43,8 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
     totalAmountPaid, 
     onRescheduleClick, 
     onRefundClick, 
-    onCancelClick 
+    onCancelClick,
+    hasPendingCancellation = false
 }) => {
     return (
         <Modal 
@@ -89,7 +92,7 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                             Issue Refund
                                         </CustomText>
                                     </TouchableOpacity>
-                                ) : (
+                                ) : !hasPendingCancellation ? (
                                     <TouchableOpacity 
                                         style={styles.actionItem} 
                                         onPress={onCancelClick}
@@ -101,7 +104,7 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                             Cancel Booking
                                         </CustomText>
                                     </TouchableOpacity>
-                                )}
+                                ) : null}
                             </>
                         ) : (
                             <View style={styles.lockedStateBox}>
