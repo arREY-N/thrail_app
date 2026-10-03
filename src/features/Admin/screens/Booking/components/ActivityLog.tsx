@@ -68,19 +68,56 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 2. Documents status
-    if (booking.status === 'reservation-rejected') {
+    // 2. Phone Verifications
+    if (booking.user?.phoneVerifiedAt) {
+        timelineEvents.push({
+            title: "Personal Phone Verified",
+            time: formatDateToStandard(booking.user.phoneVerifiedAt),
+            desc: `Verified hiker phone number (${booking.user.phoneNumber}).`,
+            status: "VERIFIED",
+            color: Colors.PRIMARY,
+            sortDate: getEventDate(booking.user.phoneVerifiedAt)
+        });
+    }
+
+    const rawEmergencyVerified = booking.emergencyContact?.phoneVerifiedAt ?? (booking.emergencyContact as { verifiedAt?: unknown })?.verifiedAt;
+    if (rawEmergencyVerified) {
+        const emergencyDate = getEventDate(rawEmergencyVerified);
+        timelineEvents.push({
+            title: "Emergency Contact Verified",
+            time: formatDateToStandard(emergencyDate),
+            desc: `Verified emergency contact (${booking.emergencyContact.name} - ${booking.emergencyContact.contactNumber}).`,
+            status: "VERIFIED",
+            color: Colors.PRIMARY,
+            sortDate: emergencyDate
+        });
+    }
+
+    const hasRejectedDocs = Array.isArray(booking.documents) && booking.documents.some(d => d.valid === 'rejected');
+    const hasAllDocsApproved = Array.isArray(booking.documents) && booking.documents.length > 0 && booking.documents.every(d => d.valid === 'approved');
+    const docRejectionNote = (booking as unknown as { documentRejectionReason?: string }).documentRejectionReason || (hasRejectedDocs ? booking.cancellationReason : undefined);
+
+    // 3. Documents Review & Decision
+    if (booking.status === 'for-reservation' || booking.status === 'pending-docs') {
+        timelineEvents.push({
+            title: "Documents Under Review",
+            time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : formatDateToStandard(booking.createdAt),
+            desc: "Hiker uploaded required documents. Awaiting organizer review.",
+            status: getStatusConfig('for-reservation', 'admin').label,
+            color: getStatusThemeColor('for-reservation'),
+            sortDate: getEventDate(booking.updatedAt || booking.createdAt)
+        });
+    } else if (booking.status === 'reservation-rejected' || (booking.status === 'cancelled' && hasRejectedDocs)) {
         timelineEvents.push({
             title: "Reservation Rejected",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
-            desc: `Rejected by ${booking.cancelledBy || 'Admin'}.`,
-            reason: booking.cancellationReason || 'N/A',
+            desc: `Rejected by ${booking.cancelledBy && booking.cancelledBy !== 'user' ? booking.cancelledBy : 'Organizer'}.`,
+            reason: docRejectionNote || 'N/A',
             status: getStatusConfig('reservation-rejected', 'admin').label,
             color: getStatusThemeColor('reservation-rejected'),
-            sortDate: getEventDate(booking.updatedAt)
+            sortDate: getEventDate(booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 1000) : booking.updatedAt)
         });
-    } else if (booking.status === 'approved-docs' || booking.status === 'for-payment' || 
-               ['paid', 'downpayment', 'completed', 'finished', 'for-cancellation', 'cancellation-rejected', 'cancelled', 'refund', 'refunded', 'for-reschedule', 'reschedule-rejected', 'rescheduled'].includes(booking.status)) {
+    } else if (!hasRejectedDocs && (hasAllDocsApproved || ['approved-docs', 'for-payment', 'paid', 'downpayment', 'completed', 'finished'].includes(booking.status))) {
         timelineEvents.push({
             title: "Documents Verified",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
@@ -91,7 +128,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 3. Payment Transitions
+    // 4. Payment Transitions
     if (Array.isArray(booking.payment)) {
         booking.payment.forEach((paymentRecord: IPayment<Date>) => {
             const paymentDate = getEventDate(paymentRecord.createdAt);
@@ -115,11 +152,41 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
                     color: getStatusThemeColor('refund'),
                     sortDate: paymentDate
                 });
+            } else if (paymentRecord.status === 'failed') {
+                timelineEvents.push({
+                    title: "Payment Attempt Failed",
+                    time: paymentRecord.createdAt ? formatDateToStandard(paymentRecord.createdAt) : '',
+                    desc: `Payment attempt of ₱${paymentRecord.amount.toFixed(2)} via ${paymentRecord.gateway.toUpperCase()} failed.`,
+                    status: "FAILED",
+                    color: Colors.ERROR,
+                    sortDate: paymentDate
+                });
+            } else if (paymentRecord.status === 'pending') {
+                timelineEvents.push({
+                    title: "Payment Processing",
+                    time: paymentRecord.createdAt ? formatDateToStandard(paymentRecord.createdAt) : '',
+                    desc: `Payment of ₱${paymentRecord.amount.toFixed(2)} via ${paymentRecord.gateway.toUpperCase()} is currently pending.`,
+                    status: "PENDING",
+                    color: Colors.STATUS_WARNING_TEXT,
+                    sortDate: paymentDate
+                });
             }
         });
     }
 
-    // 4. Reschedule Transitions
+    // 5. Payment Submitted (Awaiting Organizer Verification)
+    if (booking.status === 'paid') {
+        timelineEvents.push({
+            title: "Payment Submitted",
+            time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
+            desc: "Hiker submitted full payment. Awaiting organizer payment verification.",
+            status: getStatusConfig('paid', 'admin').label,
+            color: getStatusThemeColor('paid'),
+            sortDate: getEventDate(booking.updatedAt)
+        });
+    }
+
+    // 6. Reschedule Transitions
     if (booking.status === 'for-reschedule') {
         timelineEvents.push({
             title: "Reschedule Requested",
@@ -151,13 +218,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 5. Cancellation transitions
+    // 7. Cancellation transitions
     if (booking.status === 'cancelled') {
+        const isUserCancelled = booking.cancelledBy === 'user' || hasRejectedDocs || !booking.cancellationReason || booking.cancelledBy !== 'admin';
         timelineEvents.push({
             title: "Booking Cancelled",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
-            desc: "Cancelled by Hiker.",
-            reason: booking.cancellationReason || 'N/A',
+            desc: isUserCancelled ? "Cancelled by Hiker." : `Cancelled by ${booking.cancelledBy || 'Organizer'}.`,
+            reason: hasRejectedDocs ? undefined : (booking.cancellationReason || undefined),
             status: getStatusConfig('cancelled', 'admin').label,
             color: getStatusThemeColor('cancelled'),
             sortDate: getEventDate(booking.updatedAt)
@@ -184,7 +252,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 6. Explicit Refund Status
+    // 8. Explicit Refund Status
     if (booking.status === 'refund' || booking.status === 'refunded') {
         timelineEvents.push({
             title: "Booking Refunded",
@@ -197,7 +265,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 7. Booking Completed
+    // 9. Booking Completed
     if (booking.status === 'completed' || booking.status === 'finished') {
         timelineEvents.push({
             title: "Booking Completed",
@@ -209,7 +277,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 8. Booking Finished
+    // 10. Booking Finished
     if (booking.status === 'finished') {
         timelineEvents.push({
             title: "Hike Concluded",
@@ -221,7 +289,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
-    // 9. Booking Expired
+    // 11. Booking Expired
     if (currentStatus === 'expired') {
         const expiredDate = booking.offer?.date ? new Date(booking.offer.date) : new Date();
         timelineEvents.push({
