@@ -12,7 +12,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
-import { forwardRef, memo, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
@@ -313,6 +313,22 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
   const isSelectedLkl = selectedHiker ? getElapsedMinutes(selectedHiker.timestamp) >= 2 : false;
 
+  // Multi-segment breadcrumb handling (supports multiple pause/resume intervals with clean gaps)
+  const validSegments: [number, number][][] = useMemo(() => {
+    if (!routeCoordinates || !Array.isArray(routeCoordinates) || routeCoordinates.length === 0) {
+      return [];
+    }
+    // Handle backwards compatibility if routeCoordinates is legacy flat array: [[lon, lat], [lon, lat], ...]
+    if (typeof routeCoordinates[0]?.[0] === "number") {
+      const flat = routeCoordinates as unknown as [number, number][];
+      return flat.length >= 2 ? [flat] : [];
+    }
+    // Multi-segment format: [ [[lon, lat], [lon, lat]], [[lon, lat], [lon, lat]] ]
+    return (routeCoordinates as unknown as [number, number][][]).filter(
+      (seg) => Array.isArray(seg) && seg.length >= 2
+    );
+  }, [routeCoordinates]);
+
   const cameraRef = useRef<CameraRef | null>(null);
   const lastZoomRef = useRef<number>(16);
   const lastCenterRef = useRef<[number, number] | null>(null);
@@ -339,11 +355,16 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const actuallyOffline = forceOffline || !isOnline;
+
   useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout | null = null;
+
     async function resolveGeoJson() {
       const [geoAsset] = await Asset.loadAsync(rawMapDataAsset);
       const uri = geoAsset.localUri || geoAsset.uri;
-      if (uri) setGeoJsonUrl(uri);
+      if (uri && isMounted) setGeoJsonUrl(uri);
     }
 
     async function resolveOfflineMap() {
@@ -352,7 +373,7 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
 
       if (isCachedValid) {
         console.log("✅ Offline map cache is healthy & verified.");
-        setOfflineTileUrl(`pmtiles://${fileUri}`);
+        if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
         return;
       }
 
@@ -389,20 +410,56 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
       }
 
       console.log(`✅ Offline map installed and verified successfully.`);
-      setOfflineTileUrl(`pmtiles://${fileUri}`);
+      if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
     }
 
-    Promise.all([
-      resolveGeoJson(),
-      resolveOfflineMap(),
-      resolveOfflineFonts().then((dir) => setFontBaseDir(dir)),
-    ])
-      .then(() => setLoadState("ready"))
-      .catch((err) => {
+    async function loadAssets() {
+      if (isMounted) setLoadState("loading");
+
+      try {
+        // Item 9: Wrap asset loading in a 15-second timeout to prevent indefinite freeze on filesystem locks
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error("Map asset extraction timed out after 15 seconds. Please check device storage and retry."));
+          }, 15000);
+        });
+
+        const tasks: Promise<unknown>[] = [resolveGeoJson()];
+
+        // Item 7: Guard offline copying in online mode.
+        // Only resolve heavy offline PMTiles (~34MB) and glyph fonts when offline mode is active.
+        if (actuallyOffline) {
+          tasks.push(resolveOfflineMap());
+          tasks.push(resolveOfflineFonts().then((dir) => {
+            if (isMounted) setFontBaseDir(dir);
+          }));
+        }
+
+        await Promise.race([
+          Promise.all(tasks),
+          timeoutPromise,
+        ]);
+
+        if (isMounted) {
+          setLoadState("ready");
+        }
+      } catch (err) {
         console.error("❌ Failed to load map assets:", err);
-        setLoadState("error");
-      });
-  }, [reloadKey]);
+        if (isMounted) {
+          setLoadState("error");
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    loadAssets();
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [reloadKey, actuallyOffline]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -450,9 +507,8 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     stopBackgroundTracking,
   }));
 
-  const actuallyOffline = forceOffline || !isOnline;
-
-  if (loadState === "error") {
+  // Item 6: If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
+  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir))) {
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
@@ -470,11 +526,13 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
     );
   }
 
-  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && !offlineTileUrl)) {
+  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && (!offlineTileUrl || !fontBaseDir))) {
     return <LoadingScreen />;
   }
 
-  const activeStyle: StyleSpecification | string = (actuallyOffline && offlineTileUrl && fontBaseDir)
+  // Item 6: Prevent silent fallback to onlineStyle when offline.
+  // When actuallyOffline is true, activeStyle strictly uses buildOfflineStyle and never requests MapTiler over the network.
+  const activeStyle: StyleSpecification | string = actuallyOffline
     ? (buildOfflineStyle(offlineTileUrl, fontBaseDir) as unknown as StyleSpecification)
     : onlineStyle;
 
@@ -505,13 +563,13 @@ const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLa
           </GeoJSONSource>
         )}
 
-        {/* ✅ Red dashed line will only draw when routeCoordinates actually receives data */}
-        {routeCoordinates.length >= 2 && (
+        {/* ✅ Orange solid line rendered as MultiLineString to prevent pause/resume gap snapping */}
+        {validSegments.length > 0 && (
           <GeoJSONSource
             id="walkedPathSource"
             data={{
               type: "Feature",
-              geometry: { type: "LineString", coordinates: routeCoordinates },
+              geometry: { type: "MultiLineString", coordinates: validSegments },
               properties: {},
             }}
           >

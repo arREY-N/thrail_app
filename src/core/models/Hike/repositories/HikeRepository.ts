@@ -79,17 +79,38 @@ export const HikeRepository = (db: Firestore) => ({
     /**
      * Writes the complete consolidated route for a hike to Firestore.
      * Stored in a single document: users/{userId}/hikes/{hikeId}/route/session
+     * Stores both `segments` (multi-segment array preserving pause/resume gaps)
+     * and flattened `coordinates` for backwards compatibility.
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
-     * @param route - Complete array of [lon, lat] coordinates.
+     * @param route - Route coordinates as [lon, lat][] or segments [lon, lat][][].
      */
-    async writeRoute(userId: string, hikeId: string, route: [number, number][]): Promise<void> {
+    async writeRoute(userId: string, hikeId: string, route: [number, number][] | [number, number][][]): Promise<void> {
         try {
             if (!route || route.length === 0) return;
+
+            let segments: [number, number][][] = [];
+            let flatCoordinates: [number, number][] = [];
+
+            // Detect whether route is multi-segment ([lon, lat][][]) or legacy flat ([lon, lat][])
+            if (typeof route[0]?.[0] === 'number') {
+                // Flat [lon, lat][]
+                flatCoordinates = route as [number, number][];
+                segments = [flatCoordinates];
+            } else {
+                // Multi-segment [lon, lat][][]
+                segments = (route as [number, number][][]).filter(seg => Array.isArray(seg) && seg.length > 0);
+                flatCoordinates = segments.flat();
+            }
+
+            if (flatCoordinates.length === 0) return;
+
             const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
             await setDoc(routeRef, {
-                coordinates: route,
-                pointCount: route.length,
+                segments,
+                coordinates: flatCoordinates,
+                pointCount: flatCoordinates.length,
+                segmentCount: segments.length,
                 updatedAt: Timestamp.now(),
             });
         } catch (error) {
@@ -101,17 +122,23 @@ export const HikeRepository = (db: Firestore) => ({
 
     /**
      * Fetches the consolidated route for a completed hike.
+     * Returns segments if available, otherwise wraps legacy coordinates in a single segment.
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
-     * @returns Array of [lon, lat] coordinates or empty array.
+     * @returns Array of segments ([lon, lat][][]) or empty array.
      */
-    async fetchRoute(userId: string, hikeId: string): Promise<[number, number][]> {
+    async fetchRoute(userId: string, hikeId: string): Promise<[number, number][][]> {
         try {
             const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
             const snapshot = await getDoc(routeRef);
             if (snapshot.exists()) {
                 const data = snapshot.data();
-                return (data.coordinates as [number, number][]) || [];
+                if (data.segments && Array.isArray(data.segments)) {
+                    return data.segments as [number, number][][];
+                }
+                if (data.coordinates && Array.isArray(data.coordinates)) {
+                    return [data.coordinates as [number, number][]];
+                }
             }
             return [];
         } catch (error) {
@@ -133,8 +160,10 @@ export const HikeRepository = (db: Firestore) => ({
             if (route.length > 0) {
                 const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
                 await setDoc(routeRef, {
+                    segments: [route],
                     coordinates: route,
                     pointCount: route.length,
+                    segmentCount: 1,
                     updatedAt: Timestamp.now(),
                 }, { merge: true });
             }

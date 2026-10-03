@@ -1,14 +1,14 @@
+import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
+import { calculateVerificationValidity } from "@/src/core/flows/PhoneVerificationFlow";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Booking, BookingLogic, newBooking, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useGroupStore } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { usePaymentUser } from "@/src/core/models/Payment/Payment";
-import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
-import { calculateVerificationValidity } from "@/src/core/flows/PhoneVerificationFlow";
-import { IEmergencyContact, newUser, useAuthHook, useAuthStore, UserLogic, useUserStore, UserRepo } from "@/src/core/models/User/User";
-import { catchError } from "@/src/core/utility/errorFormatter";
-import { normalizePhoneNumber } from "@/src/core/utility/phone";
+import { IEmergencyContact, newUser, useAuthHook, useAuthStore, UserLogic, UserRepo, useUserStore } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
+import { catchError, logger } from "@/src/core/utility/errorFormatter";
+import { normalizePhoneNumber } from "@/src/core/utility/phone";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { produce } from "immer";
 import { useState } from "react";
@@ -24,7 +24,6 @@ export function CreateBookingFlow() {
     const fetchOffer = useOfferStore(s => s.fetchOfferById);
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
     const createBooking = useBookingsStore(s => s.create);
-    const joinGroup = useGroupStore(s => s.joinGroup);
     const error = useBookingsStore(s => s.error);
     const userBookings = useBookingsStore(s => s.userBookings);
 
@@ -98,7 +97,7 @@ export function CreateBookingFlow() {
             };
 
             const isEmergencyPhoneChanged = bookingEmergency.contactNumber !== currentEmergencyPhone;
-            const isEmergencyChanged = 
+            const isEmergencyChanged =
                 (bookingEmergency.name && bookingEmergency.name !== currentEmergencyName) ||
                 (bookingEmergency.contactNumber && isEmergencyPhoneChanged) ||
                 (bookingEmergency.userId && bookingEmergency.userId !== (profile.emergencyContact?.userId || '')) ||
@@ -115,7 +114,7 @@ export function CreateBookingFlow() {
             );
 
             bookingEmergency.phoneVerifiedAt = resolvedEmergencyPhoneVerifiedAt;
-    
+
             const formattedDocs: Requirements[] = payload?.uploadedDocs && Object.keys(payload.uploadedDocs).length > 0
                 ? Object.keys(payload.uploadedDocs).map((name) => ({
                     name,
@@ -135,7 +134,7 @@ export function CreateBookingFlow() {
                 emergencyContact: bookingEmergency,
                 documents: formattedDocs,
             });
-            
+
             const group = await checkGroupExists(offer.id);
 
             if (!group)
@@ -165,14 +164,6 @@ export function CreateBookingFlow() {
                 }
             }
 
-            const member = {
-                ...UserLogic.toSummary(profile),
-                bookingId: created.id,
-            };
-            
-            // TODO MOVE JOIN GROUP LOGIC AFTER BOOKING IS APPROVED
-
-            await joinGroup(group, member);
             setBooking(newBooking());
             setLocalError(null);
             return true;
@@ -186,10 +177,10 @@ export function CreateBookingFlow() {
     const onSetOffer = (offer: Offer) => {
         try {
             const offerDateStr = formatDateToStandard(offer.date);
-            const existingBooking = userBookings.find(b => 
-                !BookingLogic.isInactiveStatus(b.status) && 
-                (b.offer?.id === offer.id || 
-                (offerDateStr && formatDateToStandard(b.offer?.date) === offerDateStr))
+            const existingBooking = userBookings.find(b =>
+                !BookingLogic.isInactiveStatus(b.status) &&
+                (b.offer?.id === offer.id ||
+                    (offerDateStr && formatDateToStandard(b.offer?.date) === offerDateStr))
             );
 
             if (existingBooking) {
@@ -274,7 +265,7 @@ export function CreateBookingFlow() {
             if (profile && (updatedPhone !== undefined || updatedEmergency !== undefined)) {
                 const cleanedPhone = updatedPhone !== undefined ? normalizePhoneNumber(updatedPhone) : profile.phoneNumber;
                 const isPhoneChanged = updatedPhone !== undefined && normalizePhoneNumber(profile.phoneNumber) !== cleanedPhone;
-                
+
                 const isEmergencyPhoneChanged = updatedEmergency !== undefined &&
                     normalizePhoneNumber(profile.emergencyContact?.contactNumber || '') !== normalizePhoneNumber(updatedEmergency.contactNumber || '');
 
@@ -333,8 +324,8 @@ export function CreateBookingFlow() {
                     : null;
                 draft.emergencyContact = {
                     ...emergencyContact,
-                    phoneVerifiedAt: isEmergencyPhoneChanged 
-                        ? (emergencyContact.phoneVerifiedAt || null) 
+                    phoneVerifiedAt: isEmergencyPhoneChanged
+                        ? (emergencyContact.phoneVerifiedAt || null)
                         : (draft.emergencyContact?.phoneVerifiedAt ?? emergencyContact.phoneVerifiedAt ?? profileEmergencyVerifiedAt ?? null),
                 };
             });
@@ -360,7 +351,7 @@ export function CreateBookingFlow() {
                     await useUserStore.getState().create(updatedUser);
                     useAuthStore.setState({ profile: updatedUser });
                 } catch (profileErr) {
-                    console.warn("[CreateBookingFlow] Failed syncing user profile updates in onUpdateBookingContacts:", profileErr);
+                    logger('CreateBookingFlow', 'Failed syncing user profile updates in onUpdateBookingContacts: ', profileErr);
                 }
             }
 
