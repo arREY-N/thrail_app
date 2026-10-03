@@ -130,26 +130,32 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     if (isGpsLost.current) {
                         isGpsLost.current = false;
                         setGpsError(null);
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(timestamp),
-                            status: 'GPS_SIGNAL_RESTORED',
-                        }));
+                        const { active, currentHike } = useHikeStore.getState();
+                        if (active && currentHike?.status === 'started') {
+                            addCoordinate(newLocation({
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt,
+                                timestamp: new Date(timestamp),
+                                status: 'GPS_SIGNAL_RESTORED',
+                            }));
+                        }
                     }
 
                     if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
                     gpsTimeoutTimer.current = setTimeout(() => {
                         isGpsLost.current = true;
                         setGpsError("GPS signal lost. Searching for satellites...");
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(),
-                            status: 'GPS_SIGNAL_LOST',
-                        }));
+                        const { active, currentHike } = useHikeStore.getState();
+                        if (active && currentHike?.status === 'started') {
+                            addCoordinate(newLocation({
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt,
+                                timestamp: new Date(),
+                                status: 'GPS_SIGNAL_LOST',
+                            }));
+                        }
                     }, GPS_TIMEOUT_MS);
 
                     if (location.coords.accuracy && location.coords.accuracy > 25) return;
@@ -157,16 +163,21 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     // Always update the Blue Dot position
                     setUserLocation([lon, lat]);
 
+                    const latestCoord = newLocation({
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt,
+                        timestamp: new Date(timestamp),
+                        status: 'ACTIVE',
+                    });
+
+                    // Continuous Pre-Hike GPS Availability: always update currentLocation for Emergency SOS & SMS (Finding 5)
+                    useHikeStore.getState().setCurrentLocation(latestCoord);
+
                     // Global Store Integration: only record breadcrumbs when hike is actively started
                     const { active, currentHike } = useHikeStore.getState();
                     if (active && currentHike?.status === 'started') {
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(timestamp),
-                            status: 'ACTIVE',
-                        }));
+                        addCoordinate(latestCoord);
                     }
                 },
             );
