@@ -179,89 +179,89 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             set({ currentLocation: coordinate });
             logger('HikeStoreCreator', 'Current Location', coordinate);
 
-            // Only record session trail and calculate distance when hike is actively started
-            if (!active || !currentHike || currentHike.status !== 'started') {
-                return;
-            }
-
             if (!profile) {
                 console.warn("[addCoordinate] Skipped: No user profile found.");
                 return;
             }
 
-            set((state) => {
-                if (state.currentHike && state.active && state.currentHike.status === 'started') {
-                    if (!state.coordinates) state.coordinates = [];
-                    if (!state.walkedRoute || state.walkedRoute.length === 0) {
-                        state.walkedRoute = [[]];
-                    }
-
-                    let currentSegment = state.walkedRoute[state.walkedRoute.length - 1];
-                    if (!currentSegment) {
-                        currentSegment = [];
-                        state.walkedRoute.push(currentSegment);
-                    }
-
-                    // If this coordinate is the first point of a new segment (after start or resume),
-                    // skip displacement calculation so pause distance is not counted, and set as segment anchor
-                    if (state.isSegmentFirstPoint || state.coordinates.length === 0) {
-                        state.isSegmentFirstPoint = false;
-                        state.coordinates.push(coordinate);
-                        currentSegment.push([coordinate.longitude, coordinate.latitude]);
-                        return;
-                    }
-
-                    const lastCoord = state.coordinates[state.coordinates.length - 1];
-
-                    if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
-                        const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
-
-                        // 1. Stationary deadband filter (suppresses resting jitter < 3.5m from last committed anchor)
-                        if (distMeters < 3.5) {
-                            return; // Hiker is stationary; ignore noise to prevent ghost distance & spiderweb scribbles
+            // 1. Session route drawing & distance (STRICTLY started hikes only)
+            if (active && currentHike && currentHike.status === 'started') {
+                set((state) => {
+                    if (state.currentHike && state.active && state.currentHike.status === 'started') {
+                        if (!state.coordinates) state.coordinates = [];
+                        if (!state.walkedRoute || state.walkedRoute.length === 0) {
+                            state.walkedRoute = [[]];
                         }
 
-                        // 2. Speed plausibility filter (suppresses impossible jumps > 7.5 m/s or ~27 km/h)
-                        const lastTime = lastCoord.timestamp ? new Date(lastCoord.timestamp).getTime() : 0;
-                        const currTime = coordinate.timestamp ? new Date(coordinate.timestamp).getTime() : Date.now();
-                        const timeDeltaSec = (lastTime > 0 && currTime > lastTime)
-                            ? Math.max(1, (currTime - lastTime) / 1000)
-                            : 2;
-                        const speedMps = distMeters / timeDeltaSec;
+                        let currentSegment = state.walkedRoute[state.walkedRoute.length - 1];
+                        if (!currentSegment) {
+                            currentSegment = [];
+                            state.walkedRoute.push(currentSegment);
+                        }
 
-                        const MAX_HIKE_SPEED_MPS = 7.5; // ~27 km/h (maximum plausible mountain descent sprint)
-                        if (speedMps > MAX_HIKE_SPEED_MPS) {
-                            console.warn(`[addCoordinate] Discarded impossible GPS jump: ${distMeters.toFixed(1)}m in ${timeDeltaSec.toFixed(1)}s (${(speedMps * 3.6).toFixed(1)} km/h)`);
+                        // If this coordinate is the first point of a new segment (after start or resume),
+                        // skip displacement calculation so pause distance is not counted, and set as segment anchor
+                        if (state.isSegmentFirstPoint || state.coordinates.length === 0) {
+                            state.isSegmentFirstPoint = false;
+                            state.coordinates.push(coordinate);
+                            currentSegment.push([coordinate.longitude, coordinate.latitude]);
                             return;
                         }
 
-                        // 3. Commit valid displacement
-                        state.totalDistance += distMeters;
+                        const lastCoord = state.coordinates[state.coordinates.length - 1];
 
-                        // 4. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
-                        const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
-                        if (altDiff > 2.5 && altDiff < 35) {
-                            state.totalElevationGain += altDiff;
+                        if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
+                            const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
+
+                            // 1. Stationary deadband filter (suppresses resting jitter < 3.5m from last committed anchor)
+                            if (distMeters < 3.5) {
+                                return; // Hiker is stationary; ignore noise to prevent ghost distance & spiderweb scribbles
+                            }
+
+                            // 2. Speed plausibility filter (suppresses impossible jumps > 7.5 m/s or ~27 km/h)
+                            const lastTime = lastCoord.timestamp ? new Date(lastCoord.timestamp).getTime() : 0;
+                            const currTime = coordinate.timestamp ? new Date(coordinate.timestamp).getTime() : Date.now();
+                            const timeDeltaSec = (lastTime > 0 && currTime > lastTime)
+                                ? Math.max(1, (currTime - lastTime) / 1000)
+                                : 2;
+                            const speedMps = distMeters / timeDeltaSec;
+
+                            const MAX_HIKE_SPEED_MPS = 7.5; // ~27 km/h (maximum plausible mountain descent sprint)
+                            if (speedMps > MAX_HIKE_SPEED_MPS) {
+                                console.warn(`[addCoordinate] Discarded impossible GPS jump: ${distMeters.toFixed(1)}m in ${timeDeltaSec.toFixed(1)}s (${(speedMps * 3.6).toFixed(1)} km/h)`);
+                                return;
+                            }
+
+                            // 3. Commit valid displacement
+                            state.totalDistance += distMeters;
+
+                            // 4. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
+                            const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
+                            if (altDiff > 2.5 && altDiff < 35) {
+                                state.totalElevationGain += altDiff;
+                            }
+
+                            // 5. Append to session telemetry & active segment
+                            state.coordinates.push(coordinate);
+                            currentSegment.push([coordinate.longitude, coordinate.latitude]);
                         }
-
-                        // 5. Append to session telemetry & active segment
-                        state.coordinates.push(coordinate);
-                        currentSegment.push([coordinate.longitude, coordinate.latitude]);
                     }
-                }
-            });
+                });
+            }
 
-            // Live SAR group pin sharing (only 1 merged document per active group member)
-            if (get().live && get().shareLocationEnabled && activeGroupId) {
-                try {
-                    const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                    const coordinateWithHikerName = newLocation({
-                        ...coordinate,
-                        hikerName: name
-                    });
-                    await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
-                } catch (shareError) {
-                    console.error('[addCoordinate] Background location share failed:', shareError);
+            // 2. Emergency live location pin sharing (BOTH started and paused hikes)
+            if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                if (get().live && get().shareLocationEnabled && activeGroupId) {
+                    try {
+                        const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                        const coordinateWithHikerName = newLocation({
+                            ...coordinate,
+                            hikerName: name
+                        });
+                        await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+                    } catch (shareError) {
+                        console.error('[addCoordinate] Background location share failed:', shareError);
+                    }
                 }
             }
         } catch (error) {
@@ -280,13 +280,24 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             if (!profile) throw new Error("User profile not found.");
 
             if (get().shareLocationEnabled) {
-                const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                const lastCoordinate = get().getLastKnownCoordinate() || newLocation();
-                const coordinateWithHikerName = newLocation({
-                    ...lastCoordinate,
-                    hikerName: name
-                });
-                await HikeRepo.shareLocation(profile.id, groupId, coordinateWithHikerName);
+                const lastCoordinate = get().getLastKnownCoordinate();
+                if (
+                    lastCoordinate &&
+                    typeof lastCoordinate.latitude === 'number' &&
+                    typeof lastCoordinate.longitude === 'number' &&
+                    !isNaN(lastCoordinate.latitude) &&
+                    !isNaN(lastCoordinate.longitude) &&
+                    !(lastCoordinate.latitude === 0 && lastCoordinate.longitude === 0) &&
+                    lastCoordinate.latitude >= -90 && lastCoordinate.latitude <= 90 &&
+                    lastCoordinate.longitude >= -180 && lastCoordinate.longitude <= 180
+                ) {
+                    const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
+                    const coordinateWithHikerName = newLocation({
+                        ...lastCoordinate,
+                        hikerName: name
+                    });
+                    await HikeRepo.shareLocation(profile.id, groupId, coordinateWithHikerName);
+                }
             }
 
             const unsubscribe = HikeRepo.listenToLocations(
