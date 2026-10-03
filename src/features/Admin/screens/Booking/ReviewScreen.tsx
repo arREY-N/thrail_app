@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -43,10 +44,12 @@ import { User } from '@/src/core/models/User/User';
 import { 
     CANCELLATION_DECLINE_REASONS,
     getDynamicRejectionSuggestions, 
+    getLockedVerificationToastMessage,
     getVerificationWarningMessage, 
     REVIEW_MODALS, 
     REVIEW_TOASTS 
 } from '@/src/features/Admin/utils/reviewMessages';
+import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 
 /**
  * Props for ReviewScreen component.
@@ -69,7 +72,7 @@ import {
  */
 export interface ReviewScreenProps {
     isLoading: boolean;
-    booking: Booking;
+    booking?: Booking | null;
     offers: Offer[];
     onBackPress: () => void;
     onApprove: (docStates: DocState[], personalVerifiedAt: Date | null, emergencyVerifiedAt: Date | null, booking?: Booking) => Promise<void>;
@@ -166,7 +169,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
     const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
-    const isRejecting = hasRejections || isRejectingBooking || rejectionReason.trim().length > 0;
+    const isRejecting = hasRejections || isRejectingBooking;
 
     const hasUnverifiedPhone = personalStatus !== 'verified' || (emergencyStatus !== 'verified' && !!booking?.emergencyContact);
     const isSecondaryVisible = isRejecting 
@@ -179,6 +182,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+
+    const handleLockedVerifyPress = useCallback((vStatus: VerificationStatus) => {
+        const message = getLockedVerificationToastMessage(currentStatus, vStatus);
+        setToastConfig({
+            visible: true,
+            message,
+            type: 'info',
+        });
+    }, [currentStatus]);
 
     const handleViewFile = async (url: string, index: number) => {
         if (!url) return Alert.alert("Notice", "No file uploaded.");
@@ -211,10 +223,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             }
 
             if (allApproved) {
-                await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt, booking);
+                await onApprove(docStates, personalVerifiedAt, emergencyVerifiedAt, booking ?? undefined);
                 setActiveTab('payment');
             } else {
-                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt, booking);
+                await onReject(rejectionReason, docStates, personalVerifiedAt, emergencyVerifiedAt, booking ?? undefined);
             }
         } finally {
             setIsProcessingAction(false);
@@ -490,12 +502,35 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, approvalGuard?.requiresOverride, personalStatus, emergencyStatus]);
 
-    if (isLoading || !booking || !booking.user) {
+    if (isLoading) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
                 <CustomHeader title="Review Booking" centerTitle={true} onBackPress={onBackPress} />
                 <View style={styles.centerContent}>
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
+    if (!booking || !booking.user) {
+        return (
+            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                <CustomHeader title="Review Booking" centerTitle={true} onBackPress={onBackPress} />
+                <View style={styles.emptyContainer}>
+                    <CustomIcon library="Feather" name="alert-circle" size={48} color={Colors.GRAY_MEDIUM} />
+                    <CustomText variant="h3" style={styles.emptyTitle}>
+                        Booking Not Available
+                    </CustomText>
+                    <CustomText variant="caption" style={styles.emptySubtitle}>
+                        This booking is no longer available or has been cancelled.
+                    </CustomText>
+                    <CustomButton
+                        title="Return to Bookings"
+                        variant="primary"
+                        onPress={onBackPress}
+                        style={styles.backButton}
+                    />
                 </View>
             </ScreenWrapper>
         );
@@ -549,7 +584,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 statusBgColor={adminStatusConfig.bgColor}
                                 statusTextColor={adminStatusConfig.textColor}
                                 isMinor={isMinor}
+                                isEditable={currentStatus === 'for-reservation'}
+                                onLockedVerifyPress={handleLockedVerifyPress}
                             />
+                            {isWide && (
+                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                            )}
                         </View>
 
                         {/* Right Column: Documents and Payment Verification */}
@@ -557,11 +597,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             <AdminCancellationCard
                                 status={currentStatus}
                                 cancellation={cancellationRequest}
-                                cancellationReason={cancellationRequest?.reason || booking.cancellationReason}
+                                cancellationReason={cancellationRequest?.reason || (hasRejections ? undefined : booking.cancellationReason)}
                                 declineReason={cancellationRequest?.adminNote}
                                 totalAmountPaid={totalAmountPaid}
                                 requestedAt={cancellationRequest?.createdAt || booking.updatedAt}
-                                cancelledBy={booking.cancelledBy || cancellationRequest?.cancelledBy}
+                                cancelledBy={cancellationRequest?.cancelledBy || (hasRejections ? 'user' : booking.cancelledBy)}
                                 onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
                                 isReverting={isProcessingAction}
                             />
@@ -577,6 +617,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         suggestions={[...CANCELLATION_DECLINE_REASONS]}
                                         variant="danger"
                                     />
+                                </View>
+                            )}
+
+                            {isHikerCancellationPending && (
+                                <View style={styles.cancellationPendingBanner}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
+                                    <CustomText variant="caption" style={styles.cancellationPendingText}>
+                                        {['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus)
+                                            ? "A cancellation request is currently pending. Please approve or decline the cancellation request below before reviewing payment."
+                                            : "A cancellation request is currently pending. Please approve or decline the cancellation request below before completing document verification."}
+                                    </CustomText>
                                 </View>
                             )}
 
@@ -610,6 +661,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     docStates={docStates}
                                     setDocStates={(newStates: DocState[]) => {
                                         setDocStates(newStates);
+                                        const hasAnyRejected = newStates.some(d => d.valid === 'rejected');
+                                        if (!hasAnyRejected && !isRejectingBooking) {
+                                            setRejectionReason('');
+                                        }
                                         if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
                                     }}
                                     viewedDocs={viewedDocs}
@@ -648,7 +703,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 />
                             )}
 
-                            <ActivityLog booking={booking} currentStatus={currentStatus} />
+                            {!isWide && (
+                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                            )}
                         </View>
                     </View>
                 </View>
@@ -902,6 +959,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 onClose={() => setShowActionMenu(false)}
                 isCancelledStatus={isCancelledStatus || currentStatus === 'completed'}
                 totalAmountPaid={totalAmountPaid}
+                hasPendingCancellation={isHikerCancellationPending || Boolean(cancellationRequest)}
                 onRescheduleClick={() => {
                     setShowActionMenu(false);
                     setTimeout(() => setShowRescheduleModal(true), 300);
@@ -997,8 +1055,48 @@ const styles = StyleSheet.create({
     cancellationReasonBox: {
         marginBottom: 20
     },
-
-
+    cancellationPendingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_CANCELLED_BORDER,
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 16,
+        gap: 8,
+    },
+    cancellationPendingText: {
+        color: Colors.ERROR,
+        fontSize: 12,
+        lineHeight: 18,
+        fontWeight: '500',
+        flex: 1,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        paddingBottom: 64,
+        gap: 12,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginTop: 8,
+    },
+    emptySubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    backButton: {
+        marginTop: 16,
+        minWidth: 200,
+        borderRadius: 12,
+    },
 });
 
 export default ReviewScreen;
