@@ -51,6 +51,7 @@ export interface HikeState {
 
     getLastKnownCoordinate: () => Location | null;
     addCoordinate: (coordinate: Location) => void;
+    setCurrentLocation: (location: Location | null) => void;
     clearWalkedRoute: () => void;
     startNewSegment: () => void;
     updateCurrentHike: (patch: Partial<Hike>) => void;
@@ -101,6 +102,27 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
         state.isSegmentFirstPoint = true;
     }),
     currentLocation: null,
+    setCurrentLocation: (location: Location | null) => {
+        if (!location) {
+            set({ currentLocation: null });
+            return;
+        }
+
+        // Validate coordinate bounds and reject Null Island
+        if (
+            typeof location.latitude !== 'number' ||
+            typeof location.longitude !== 'number' ||
+            isNaN(location.latitude) ||
+            isNaN(location.longitude) ||
+            (location.latitude === 0 && location.longitude === 0) ||
+            location.latitude < -90 || location.latitude > 90 ||
+            location.longitude < -180 || location.longitude > 180
+        ) {
+            return;
+        }
+
+        set({ currentLocation: location });
+    },
 
     reset: () => {
         const listeners = get().activeListeners || {};
@@ -140,9 +162,6 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const active = get().active;
             const profile = get().profile;
 
-            set({ currentLocation: coordinate });
-
-            logger('HikeStoreCreator', 'Current Location', coordinate);
             // Reject invalid coordinates and Null Island
             if (
                 !coordinate ||
@@ -156,6 +175,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             ) {
                 return;
             }
+
+            set({ currentLocation: coordinate });
+            logger('HikeStoreCreator', 'Current Location', coordinate);
 
             // Only record session trail and calculate distance when hike is actively started
             if (!active || !currentHike || currentHike.status !== 'started') {
@@ -181,30 +203,51 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                     }
 
                     // If this coordinate is the first point of a new segment (after start or resume),
-                    // skip displacement calculation so pause distance is not counted
-                    if (state.isSegmentFirstPoint) {
+                    // skip displacement calculation so pause distance is not counted, and set as segment anchor
+                    if (state.isSegmentFirstPoint || state.coordinates.length === 0) {
                         state.isSegmentFirstPoint = false;
-                    } else {
-                        const lastCoord = state.coordinates[state.coordinates.length - 1];
-
-                        if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
-                            const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
-
-                            // Ignore sub-meter jitter (< 1m) and impossible GPS jumps (> 250m per tick)
-                            if (distMeters > 1 && distMeters < 250) {
-                                state.totalDistance += distMeters;
-                            }
-
-                            const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
-                            if (altDiff > 2 && altDiff < 100) {
-                                state.totalElevationGain += altDiff;
-                            }
-                        }
+                        state.coordinates.push(coordinate);
+                        currentSegment.push([coordinate.longitude, coordinate.latitude]);
+                        return;
                     }
 
-                    // Append to session telemetry & active segment
-                    state.coordinates.push(coordinate);
-                    currentSegment.push([coordinate.longitude, coordinate.latitude]);
+                    const lastCoord = state.coordinates[state.coordinates.length - 1];
+
+                    if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
+                        const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
+
+                        // 1. Stationary deadband filter (suppresses resting jitter < 3.5m from last committed anchor)
+                        if (distMeters < 3.5) {
+                            return; // Hiker is stationary; ignore noise to prevent ghost distance & spiderweb scribbles
+                        }
+
+                        // 2. Speed plausibility filter (suppresses impossible jumps > 7.5 m/s or ~27 km/h)
+                        const lastTime = lastCoord.timestamp ? new Date(lastCoord.timestamp).getTime() : 0;
+                        const currTime = coordinate.timestamp ? new Date(coordinate.timestamp).getTime() : Date.now();
+                        const timeDeltaSec = (lastTime > 0 && currTime > lastTime)
+                            ? Math.max(1, (currTime - lastTime) / 1000)
+                            : 2;
+                        const speedMps = distMeters / timeDeltaSec;
+
+                        const MAX_HIKE_SPEED_MPS = 7.5; // ~27 km/h (maximum plausible mountain descent sprint)
+                        if (speedMps > MAX_HIKE_SPEED_MPS) {
+                            console.warn(`[addCoordinate] Discarded impossible GPS jump: ${distMeters.toFixed(1)}m in ${timeDeltaSec.toFixed(1)}s (${(speedMps * 3.6).toFixed(1)} km/h)`);
+                            return;
+                        }
+
+                        // 3. Commit valid displacement
+                        state.totalDistance += distMeters;
+
+                        // 4. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
+                        const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
+                        if (altDiff > 2.5 && altDiff < 35) {
+                            state.totalElevationGain += altDiff;
+                        }
+
+                        // 5. Append to session telemetry & active segment
+                        state.coordinates.push(coordinate);
+                        currentSegment.push([coordinate.longitude, coordinate.latitude]);
+                    }
                 }
             });
 
@@ -320,7 +363,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
     getLastKnownCoordinate: (): Location | null => {
         const coordinates = get().coordinates;
-        if (!coordinates || coordinates.length === 0) return null;
+        if (!coordinates || coordinates.length === 0) return get().currentLocation || null;
         return coordinates[coordinates.length - 1];
     },
 
