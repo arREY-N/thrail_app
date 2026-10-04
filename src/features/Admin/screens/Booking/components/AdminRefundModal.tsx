@@ -1,16 +1,19 @@
 /**
  * @file AdminRefundModal.tsx
- * @description A bottom-sheet modal allowing admins to select between 100% full refund, 10% partial refund, or a custom refund amount.
+ * @description An adaptive, responsive modal allowing admins to select between 100% full refund, 10% partial refund, or a custom refund amount.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from 'react-native';
 
@@ -19,6 +22,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { toDateOrNull } from '@/src/core/utility/date';
 
 export type RefundType = 'full' | 'partial' | 'custom';
 
@@ -29,6 +33,7 @@ export type RefundType = 'full' | 'partial' | 'custom';
  * @param onSelect - Callback when a refund type selection is made.
  * @param amountPaid - Total amount paid by the hiker to calculate refund percentages.
  * @param isLoading - Optional loading state when refund processing is in flight.
+ * @param paymentCapturedAt - Optional timestamp when the payment was captured, used for same-day gateway rules.
  */
 export interface AdminRefundModalProps {
     visible: boolean;
@@ -36,26 +41,45 @@ export interface AdminRefundModalProps {
     onSelect: (refundType: RefundType, customAmount?: number) => void;
     amountPaid?: number;
     isLoading?: boolean;
+    paymentCapturedAt?: Date | string | null;
 }
 
 /**
- * AdminRefundModal — A modal to select full, standard partial, or custom refund.
+ * AdminRefundModal — An adaptive modal to select full, standard partial, or custom refund.
  */
 const AdminRefundModal: React.FC<AdminRefundModalProps> = ({ 
     visible, 
     onClose, 
     onSelect, 
     amountPaid = 0,
-    isLoading = false
+    isLoading = false,
+    paymentCapturedAt = null
 }) => {
     const fullRefundAmount = amountPaid;
     const partialRefundAmount = Math.round(amountPaid * 0.10 * 100) / 100;
+
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768 || Platform.OS === 'web';
+    const scrollViewRef = useRef<ScrollView>(null);
 
     const [selectedType, setSelectedType] = useState<RefundType>('full');
     const [customAmountText, setCustomAmountText] = useState<string>('');
     const [inputError, setInputError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const isSubmittingRef = useRef<boolean>(false);
+
+    // Check if the payment was captured on the same calendar day
+    const isCapturedToday = useMemo(() => {
+        if (!paymentCapturedAt) return false;
+        const captured = toDateOrNull(paymentCapturedAt);
+        if (!captured) return false;
+        const now = new Date();
+        return (
+            captured.getFullYear() === now.getFullYear() &&
+            captured.getMonth() === now.getMonth() &&
+            captured.getDate() === now.getDate()
+        );
+    }, [paymentCapturedAt]);
 
     // Reset internal state whenever modal opens
     useEffect(() => {
@@ -84,6 +108,8 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             setInputError('Minimum refund amount is ₱1.00');
         } else if (val > amountPaid) {
             setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
+        } else if (isCapturedToday && val < amountPaid) {
+            setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
             setInputError(null);
         }
@@ -92,11 +118,20 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const handlePresetChip = (percentage: number) => {
         const val = Math.round((amountPaid * (percentage / 100)) * 100) / 100;
         setCustomAmountText(val.toFixed(2));
-        setInputError(null);
+        if (isCapturedToday && val < amountPaid) {
+            setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
+        } else {
+            setInputError(null);
+        }
     };
 
     const handleConfirm = (type: RefundType) => {
         if (isSubmittingRef.current || isSubmitting || isLoading) return;
+
+        if (type === 'partial' && isCapturedToday) {
+            setInputError('PayMongo Policy: Partial refunds cannot be processed on the same calendar day the payment was captured. Please issue a 100% full refund today, or wait until tomorrow after daily settlement.');
+            return;
+        }
 
         if (type === 'custom') {
             if (isNaN(parsedCustomAmount) || parsedCustomAmount < 1.00) {
@@ -105,6 +140,10 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             }
             if (parsedCustomAmount > amountPaid) {
                 setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
+                return;
+            }
+            if (isCapturedToday && parsedCustomAmount < amountPaid) {
+                setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. Please enter ₱${amountPaid.toFixed(2)} for a full refund or wait until tomorrow.`);
                 return;
             }
             isSubmittingRef.current = true;
@@ -121,7 +160,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         ? Math.min(100, Math.round((parsedCustomAmount / amountPaid) * 100))
         : 0;
 
-    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid;
+    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid || (isCapturedToday && parsedCustomAmount < amountPaid);
 
     return (
         <Modal 
@@ -131,210 +170,268 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             onRequestClose={onClose}
         >
             <TouchableOpacity 
-                style={styles.overlay} 
+                style={[styles.overlay, isDesktop && styles.overlayDesktop]} 
                 activeOpacity={1} 
                 onPress={onClose}
             >
-                <View style={styles.bottomSheetWrapper}>
-                    <TouchableOpacity activeOpacity={1} style={styles.bottomSheet}>
-                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                            <View style={styles.headerRow}>
-                                <CustomText variant="h2" style={styles.title}>
-                                    Select Refund Amount
-                                </CustomText>
-                                <TouchableOpacity onPress={onClose} style={styles.closeBtn} disabled={isSubmitting || isLoading}>
-                                    <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_SECONDARY} />
-                                </TouchableOpacity>
-                            </View>
-
-                            <CustomText variant="caption" style={styles.subtitle}>
-                                Please choose the appropriate refund policy or enter a custom amount for this cancellation.
-                            </CustomText>
-
-                            {/* Option 1: Full Refund (100%) */}
-                            <TouchableOpacity 
-                                style={[
-                                    styles.optionCard,
-                                    selectedType === 'full' && styles.optionCardSelected
-                                ]} 
-                                onPress={() => {
-                                    setSelectedType('full');
-                                    handleConfirm('full');
-                                }}
-                                disabled={isSubmitting || isLoading}
-                                activeOpacity={0.7}
+                <View 
+                    style={[
+                        styles.bottomSheetWrapper, 
+                        isDesktop && styles.bottomSheetWrapperDesktop
+                    ]}
+                >
+                    <TouchableOpacity 
+                        activeOpacity={1} 
+                        style={[
+                            styles.bottomSheet, 
+                            isDesktop && styles.bottomSheetDesktop
+                        ]}
+                    >
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+                            style={styles.keyboardAvoid}
+                        >
+                            <ScrollView 
+                                ref={scrollViewRef}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="interactive"
+                                automaticallyAdjustKeyboardInsets={true}
+                                showsVerticalScrollIndicator={false} 
+                                contentContainerStyle={styles.scrollContent}
                             >
-                                <View style={[styles.iconWrapper, { backgroundColor: Colors.STATUS_APPROVED_BG }]}>
-                                    <CustomIcon library="Feather" name="refresh-ccw" size={20} color={Colors.STATUS_APPROVED_TEXT} />
-                                </View>
-                                
-                                <View style={styles.optionContent}>
-                                    <CustomText variant="body" style={styles.optionLabel}>
-                                        Full Refund (100%)
+                                <View style={styles.headerRow}>
+                                    <CustomText variant="h2" style={styles.title}>
+                                        Select Refund Amount
                                     </CustomText>
-                                    <CustomText variant="caption" style={styles.optionSubLabel}>
-                                        Return the entire amount paid.
-                                    </CustomText>
-                                </View>
-                                
-                                <CustomText variant="h3" style={styles.amountText}>
-                                    ₱{fullRefundAmount.toFixed(2)}
-                                </CustomText>
-                            </TouchableOpacity>
-
-                            {/* Option 2: Partial Refund (10%) */}
-                            <TouchableOpacity 
-                                style={[
-                                    styles.optionCard,
-                                    selectedType === 'partial' && styles.optionCardSelected
-                                ]} 
-                                onPress={() => {
-                                    setSelectedType('partial');
-                                    handleConfirm('partial');
-                                }}
-                                disabled={isSubmitting || isLoading}
-                                activeOpacity={0.7}
-                            >
-                                <View style={[styles.iconWrapper, { backgroundColor: Colors.STATUS_WARNING_BG }]}>
-                                    <CustomIcon library="Feather" name="pie-chart" size={20} color={Colors.STATUS_WARNING_TEXT} />
-                                </View>
-
-                                <View style={styles.optionContent}>
-                                    <CustomText variant="body" style={styles.optionLabel}>
-                                        Partial Refund (10%)
-                                    </CustomText>
-                                    <CustomText variant="caption" style={styles.optionSubLabel}>
-                                        Standard cancellation policy.
-                                    </CustomText>
-                                </View>
-                                
-                                <CustomText variant="h3" style={styles.amountText}>
-                                    ₱{partialRefundAmount.toFixed(2)}
-                                </CustomText>
-                            </TouchableOpacity>
-
-                            {/* Option 3: Custom Amount */}
-                            <TouchableOpacity 
-                                style={[
-                                    styles.optionCard,
-                                    selectedType === 'custom' && styles.optionCardSelected,
-                                    { marginBottom: selectedType === 'custom' ? 8 : 12 }
-                                ]} 
-                                onPress={() => setSelectedType('custom')}
-                                disabled={isSubmitting || isLoading}
-                                activeOpacity={0.7}
-                            >
-                                <View style={[styles.iconWrapper, { backgroundColor: '#EDE9FE' }]}>
-                                    <CustomIcon library="Feather" name="edit-3" size={20} color="#7C3AED" />
-                                </View>
-
-                                <View style={styles.optionContent}>
-                                    <CustomText variant="body" style={styles.optionLabel}>
-                                        Custom Amount
-                                    </CustomText>
-                                    <CustomText variant="caption" style={styles.optionSubLabel}>
-                                        Specify exact refund sum or percentage.
-                                    </CustomText>
-                                </View>
-
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name={selectedType === 'custom' ? 'chevron-up' : 'chevron-down'} 
-                                    size={20} 
-                                    color={Colors.TEXT_SECONDARY} 
-                                />
-                            </TouchableOpacity>
-
-                            {/* Custom Amount Expanded Container */}
-                            {selectedType === 'custom' && (
-                                <View style={styles.customContainer}>
-                                    {/* Preset Chips */}
-                                    <View style={styles.chipsRow}>
-                                        <TouchableOpacity 
-                                            style={styles.chip} 
-                                            onPress={() => handlePresetChip(25)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText style={styles.chipText}>25%</CustomText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity 
-                                            style={styles.chip} 
-                                            onPress={() => handlePresetChip(50)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText style={styles.chipText}>50%</CustomText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity 
-                                            style={styles.chip} 
-                                            onPress={() => handlePresetChip(75)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText style={styles.chipText}>75%</CustomText>
-                                        </TouchableOpacity>
-                                    </View>
-
-                                    {/* Input Field */}
-                                    <View style={[styles.inputWrapper, inputError ? styles.inputWrapperError : null]}>
-                                        <CustomText style={styles.currencyPrefix}>₱</CustomText>
-                                        <TextInput
-                                            style={styles.textInput}
-                                            value={customAmountText}
-                                            onChangeText={handleCustomAmountChange}
-                                            placeholder="0.00"
-                                            placeholderTextColor={Colors.TEXT_SECONDARY}
-                                            keyboardType="decimal-pad"
-                                            editable={!isSubmitting && !isLoading}
-                                            autoFocus={true}
-                                        />
-                                        {parsedCustomAmount > 0 && (
-                                            <View style={styles.percentageBadge}>
-                                                <CustomText style={styles.percentageBadgeText}>
-                                                    {customPercentage}%
-                                                </CustomText>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    {/* Error or Calculation Breakdown */}
-                                    {inputError ? (
-                                        <CustomText style={styles.errorText}>
-                                            {inputError}
-                                        </CustomText>
-                                    ) : parsedCustomAmount > 0 ? (
-                                        <CustomText style={styles.breakdownText}>
-                                            ₱{parsedCustomAmount.toFixed(2)} will be refunded ({customPercentage}% of ₱{amountPaid.toFixed(2)})
-                                        </CustomText>
-                                    ) : null}
-
-                                    {/* PayMongo Gateway Warning Box */}
-                                    <View style={styles.warningBox}>
-                                        <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
-                                        <CustomText style={styles.warningText}>
-                                            Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured.
-                                        </CustomText>
-                                    </View>
-
-                                    {/* Custom Confirm Button */}
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.confirmBtn,
-                                            isCustomDisabled && styles.confirmBtnDisabled
-                                        ]}
-                                        onPress={() => handleConfirm('custom')}
-                                        disabled={isCustomDisabled}
-                                        activeOpacity={0.8}
-                                    >
-                                        {isSubmitting || isLoading ? (
-                                            <ActivityIndicator size="small" color={Colors.WHITE} />
-                                        ) : (
-                                            <CustomText style={styles.confirmBtnText}>
-                                                Confirm Refund of ₱{parsedCustomAmount > 0 ? parsedCustomAmount.toFixed(2) : '0.00'}
-                                            </CustomText>
-                                        )}
+                                    <TouchableOpacity onPress={onClose} style={styles.closeBtn} disabled={isSubmitting || isLoading}>
+                                        <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_SECONDARY} />
                                     </TouchableOpacity>
                                 </View>
-                            )}
-                        </ScrollView>
+
+                                <CustomText variant="caption" style={styles.subtitle}>
+                                    Please choose the appropriate refund policy or enter a custom amount for this cancellation.
+                                </CustomText>
+
+                                {/* Option 1: Full Refund (100%) */}
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.optionCard,
+                                        selectedType === 'full' && styles.optionCardSelected
+                                    ]} 
+                                    onPress={() => {
+                                        setSelectedType('full');
+                                        handleConfirm('full');
+                                    }}
+                                    disabled={isSubmitting || isLoading}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconWrapper, { backgroundColor: Colors.STATUS_APPROVED_BG }]}>
+                                        <CustomIcon library="Feather" name="refresh-ccw" size={20} color={Colors.STATUS_APPROVED_TEXT} />
+                                    </View>
+                                    
+                                    <View style={styles.optionContent}>
+                                        <CustomText variant="body" style={styles.optionLabel}>
+                                            Full Refund (100%)
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.optionSubLabel}>
+                                            Return the entire amount paid.
+                                        </CustomText>
+                                    </View>
+                                    
+                                    <CustomText variant="h3" style={styles.amountText}>
+                                        ₱{fullRefundAmount.toFixed(2)}
+                                    </CustomText>
+                                </TouchableOpacity>
+
+                                {/* Option 2: Partial Refund (10%) */}
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.optionCard,
+                                        selectedType === 'partial' && styles.optionCardSelected
+                                    ]} 
+                                    onPress={() => {
+                                        setSelectedType('partial');
+                                        if (isCapturedToday) {
+                                            setInputError('PayMongo Policy: Partial refunds (< 100%) cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after daily settlement.');
+                                        } else {
+                                            handleConfirm('partial');
+                                        }
+                                    }}
+                                    disabled={isSubmitting || isLoading}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconWrapper, { backgroundColor: Colors.STATUS_WARNING_BG }]}>
+                                        <CustomIcon library="Feather" name="pie-chart" size={20} color={Colors.STATUS_WARNING_TEXT} />
+                                    </View>
+
+                                    <View style={styles.optionContent}>
+                                        <View style={styles.optionTitleRow}>
+                                            <CustomText variant="body" style={styles.optionLabel}>
+                                                Partial Refund (10%)
+                                            </CustomText>
+                                            {isCapturedToday && (
+                                                <View style={styles.sameDayBadge}>
+                                                    <CustomIcon library="Feather" name="clock" size={11} color="#B45309" />
+                                                    <CustomText style={styles.sameDayBadgeText}>Available Tomorrow</CustomText>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <CustomText variant="caption" style={styles.optionSubLabel}>
+                                            Standard cancellation policy.
+                                        </CustomText>
+                                    </View>
+                                    
+                                    <CustomText variant="h3" style={styles.amountText}>
+                                        ₱{partialRefundAmount.toFixed(2)}
+                                    </CustomText>
+                                </TouchableOpacity>
+
+                                {/* Same-Day Warning Box for Partial Refund */}
+                                {selectedType === 'partial' && isCapturedToday && (
+                                    <View style={styles.sameDayWarningBox}>
+                                        <CustomIcon library="Feather" name="alert-triangle" size={16} color="#B45309" />
+                                        <CustomText style={styles.sameDayWarningText}>
+                                            PayMongo Policy: This payment was captured today. The gateway requires payments to settle overnight before partial refunds can be processed. You can issue a 100% Full Refund today, or wait until tomorrow after gateway settlement.
+                                        </CustomText>
+                                    </View>
+                                )}
+
+                                {/* Option 3: Custom Amount */}
+                                <TouchableOpacity 
+                                    style={[
+                                        styles.optionCard,
+                                        selectedType === 'custom' && styles.optionCardSelected,
+                                        { marginBottom: selectedType === 'custom' ? 8 : 12 }
+                                    ]} 
+                                    onPress={() => {
+                                        setSelectedType('custom');
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, 150);
+                                    }}
+                                    disabled={isSubmitting || isLoading}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconWrapper, { backgroundColor: '#EDE9FE' }]}>
+                                        <CustomIcon library="Feather" name="edit-3" size={20} color="#7C3AED" />
+                                    </View>
+
+                                    <View style={styles.optionContent}>
+                                        <CustomText variant="body" style={styles.optionLabel}>
+                                            Custom Amount
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.optionSubLabel}>
+                                            Specify exact refund sum or percentage.
+                                        </CustomText>
+                                    </View>
+
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name={selectedType === 'custom' ? 'chevron-up' : 'chevron-down'} 
+                                        size={20} 
+                                        color={Colors.TEXT_SECONDARY} 
+                                    />
+                                </TouchableOpacity>
+
+                                {/* Custom Amount Expanded Container */}
+                                {selectedType === 'custom' && (
+                                    <View style={styles.customContainer}>
+                                        {/* Preset Chips */}
+                                        <View style={styles.chipsRow}>
+                                            <TouchableOpacity 
+                                                style={styles.chip} 
+                                                onPress={() => handlePresetChip(25)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <CustomText style={styles.chipText}>25%</CustomText>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={styles.chip} 
+                                                onPress={() => handlePresetChip(50)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <CustomText style={styles.chipText}>50%</CustomText>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={styles.chip} 
+                                                onPress={() => handlePresetChip(75)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <CustomText style={styles.chipText}>75%</CustomText>
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        {/* Input Field */}
+                                        <View style={[styles.inputWrapper, inputError ? styles.inputWrapperError : null]}>
+                                            <CustomText style={styles.currencyPrefix}>₱</CustomText>
+                                            <TextInput
+                                                style={styles.textInput}
+                                                value={customAmountText}
+                                                onChangeText={handleCustomAmountChange}
+                                                placeholder="0.00"
+                                                placeholderTextColor={Colors.TEXT_SECONDARY}
+                                                keyboardType="decimal-pad"
+                                                editable={!isSubmitting && !isLoading}
+                                                onFocus={() => {
+                                                    setTimeout(() => {
+                                                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                    }, Platform.OS === 'android' ? 200 : 100);
+                                                }}
+                                            />
+                                            {parsedCustomAmount > 0 && (
+                                                <View style={styles.percentageBadge}>
+                                                    <CustomText style={styles.percentageBadgeText}>
+                                                        {customPercentage}%
+                                                    </CustomText>
+                                                </View>
+                                            )}
+                                        </View>
+
+                                        {/* Error or Calculation Breakdown */}
+                                        {inputError ? (
+                                            <CustomText style={styles.errorText}>
+                                                {inputError}
+                                            </CustomText>
+                                        ) : parsedCustomAmount > 0 ? (
+                                            <CustomText style={styles.breakdownText}>
+                                                ₱{parsedCustomAmount.toFixed(2)} will be refunded ({customPercentage}% of ₱{amountPaid.toFixed(2)})
+                                            </CustomText>
+                                        ) : null}
+
+                                        {/* PayMongo Gateway Warning Box */}
+                                        <View style={styles.warningBox}>
+                                            <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
+                                            <CustomText style={styles.warningText}>
+                                                {isCapturedToday
+                                                    ? "Note: This payment was captured today. PayMongo requires payments to settle overnight before partial refunds can be processed. Only 100% Full Refunds are available today."
+                                                    : "Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured."
+                                                }
+                                            </CustomText>
+                                        </View>
+
+                                        {/* Custom Confirm Button */}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.confirmBtn,
+                                                isCustomDisabled && styles.confirmBtnDisabled
+                                            ]}
+                                            onPress={() => handleConfirm('custom')}
+                                            disabled={isCustomDisabled}
+                                            activeOpacity={0.8}
+                                        >
+                                            {isSubmitting || isLoading ? (
+                                                <ActivityIndicator size="small" color={Colors.WHITE} />
+                                            ) : (
+                                                <CustomText style={styles.confirmBtnText}>
+                                                    Confirm Refund of ₱{parsedCustomAmount > 0 ? parsedCustomAmount.toFixed(2) : '0.00'}
+                                                </CustomText>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </ScrollView>
+                        </KeyboardAvoidingView>
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -349,21 +446,44 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
     },
+    overlayDesktop: {
+        justifyContent: 'center',
+        padding: 20,
+    },
     bottomSheetWrapper: {
         width: '100%',
         maxWidth: Layout.MAX_WIDTH,
-        maxHeight: '90%',
+        maxHeight: '92%',
+    },
+    bottomSheetWrapperDesktop: {
+        maxWidth: 520,
+        maxHeight: '85%',
+        alignSelf: 'center',
     },
     bottomSheet: {
         backgroundColor: Colors.WHITE,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        padding: 24,
-        paddingBottom: 40,
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 36,
         width: '100%',
+        maxHeight: '100%',
+    },
+    bottomSheetDesktop: {
+        borderRadius: 24,
+        paddingBottom: 24,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        ...GlobalStyles.dropShadow(5),
+    },
+    keyboardAvoid: {
+        width: '100%',
+        maxHeight: '100%',
     },
     scrollContent: {
-        paddingBottom: 16,
+        paddingBottom: 20,
+        flexGrow: 0,
     },
     headerRow: {
         flexDirection: 'row',
@@ -408,10 +528,48 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingRight: 8,
     },
+    optionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 4,
+    },
     optionLabel: {
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
-        marginBottom: 4,
+    },
+    sameDayBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 4,
+    },
+    sameDayBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#B45309',
+    },
+    sameDayWarningBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 12,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+    },
+    sameDayWarningText: {
+        flex: 1,
+        color: '#92400E',
+        fontSize: 12,
+        lineHeight: 16,
+        fontWeight: '500',
     },
     optionSubLabel: {
         color: Colors.TEXT_SECONDARY,
@@ -451,10 +609,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.WHITE,
+        borderRadius: 12,
         borderWidth: 1.5,
         borderColor: Colors.GRAY_LIGHT,
-        borderRadius: 12,
-        paddingHorizontal: 14,
+        paddingHorizontal: 12,
         height: 52,
     },
     inputWrapperError: {
@@ -469,7 +627,7 @@ const styles = StyleSheet.create({
     textInput: {
         flex: 1,
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: '700',
         color: Colors.TEXT_PRIMARY,
         paddingVertical: 0,
     },
