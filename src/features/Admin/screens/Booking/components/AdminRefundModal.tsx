@@ -3,7 +3,7 @@
  * @description An adaptive, responsive modal allowing admins to select between 100% full refund, 10% partial refund, or a custom refund amount.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -81,16 +81,17 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         );
     }, [paymentCapturedAt]);
 
-    // Reset internal state whenever modal opens
-    useEffect(() => {
+    // Reset internal state when modal opens by tracking previous visible state (React pattern: adjusting state during render)
+    const [prevVisible, setPrevVisible] = useState<boolean>(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
             setSelectedType('full');
             setCustomAmountText('');
             setInputError(null);
             setIsSubmitting(false);
-            isSubmittingRef.current = false;
         }
-    }, [visible]);
+    }
 
     const parsedCustomAmount = parseFloat(customAmountText) || 0;
 
@@ -125,6 +126,11 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         }
     };
 
+    const handleClose = () => {
+        isSubmittingRef.current = false;
+        onClose();
+    };
+
     const handleConfirm = (type: RefundType) => {
         if (isSubmittingRef.current || isSubmitting || isLoading) return;
 
@@ -149,10 +155,16 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             isSubmittingRef.current = true;
             setIsSubmitting(true);
             onSelect('custom', parsedCustomAmount);
+            setTimeout(() => {
+                isSubmittingRef.current = false;
+            }, 300);
         } else {
             isSubmittingRef.current = true;
             setIsSubmitting(true);
             onSelect(type);
+            setTimeout(() => {
+                isSubmittingRef.current = false;
+            }, 300);
         }
     };
 
@@ -167,12 +179,12 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             transparent={true} 
             visible={visible} 
             animationType="fade" 
-            onRequestClose={onClose}
+            onRequestClose={handleClose}
         >
             <TouchableOpacity 
                 style={[styles.overlay, isDesktop && styles.overlayDesktop]} 
                 activeOpacity={1} 
-                onPress={onClose}
+                onPress={handleClose}
             >
                 <View 
                     style={[
@@ -204,7 +216,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                     <CustomText variant="h2" style={styles.title}>
                                         Select Refund Amount
                                     </CustomText>
-                                    <TouchableOpacity onPress={onClose} style={styles.closeBtn} disabled={isSubmitting || isLoading}>
+                                    <TouchableOpacity onPress={handleClose} style={styles.closeBtn} disabled={isSubmitting || isLoading}>
                                         <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_SECONDARY} />
                                     </TouchableOpacity>
                                 </View>
