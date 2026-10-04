@@ -13,10 +13,76 @@ class PayMongoProvider {
      * @param {string} [webhookSecret=null] - The PayMongo Webhook Secret for signature verification.
      */
     constructor(secretKey, webhookSecret = null) {
-        this.secretKey = secretKey;
+        if (!secretKey) {
+            throw new Error('PayMongoProvider requires a secretKey.');
+        }
+        this.secretKey = secretKey.trim();
         this.webhookSecret = webhookSecret;
-        this.encodedKey = Buffer.from(this.secretKey).toString('base64');
+        // RFC 7617: HTTP Basic Auth requires username:password format.
+        // PayMongo uses secretKey as the username with an empty password.
+        this.encodedKey = Buffer.from(`${this.secretKey}:`).toString('base64');
         this.baseUrl = 'https://api.paymongo.com/v1';
+    }
+
+    /**
+     * Centralized, standard HTTP client for all PayMongo API interactions.
+     * Enforces RFC compliance, standard headers, and clean structured error parsing.
+     * 
+     * @private
+     * @param {string} endpoint - API path (e.g. '/checkout_sessions' or '/refunds').
+     * @param {Object} options - Fetch options (method, body, custom headers).
+     * @returns {Promise<Object>} Parsed JSON response.
+     * @throws {Error} If the API request fails.
+     */
+    async _request(endpoint, options = {}) {
+        const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${this.encodedKey}`,
+            'User-Agent': 'ThrailApp-Backend/1.0 (Firebase-Cloud-Functions)',
+            ...(options.headers || {})
+        };
+
+        const config = {
+            ...options,
+            headers
+        };
+
+        if (config.body && typeof config.body === 'object') {
+            config.body = JSON.stringify(config.body);
+        }
+
+        const response = await fetch(url, config);
+
+        if (!response.ok) {
+            let errorMessage = `Payment Gateway Error (${response.status})`;
+            try {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const errorJson = await response.json();
+                    if (errorJson.errors && Array.isArray(errorJson.errors) && errorJson.errors.length > 0) {
+                        errorMessage = errorJson.errors.map(e => e.detail || e.code).join('; ');
+                    }
+                } else {
+                    // Prevent leaking raw HTML/WAF error pages into user dialogs
+                    const rawText = await response.text();
+                    if (response.status === 403) {
+                        errorMessage = 'Payment gateway access denied. Please verify your PayMongo API credentials.';
+                    } else if (response.status >= 500) {
+                        errorMessage = 'Payment gateway server is temporarily unavailable. Please try again shortly.';
+                    } else {
+                        errorMessage = rawText.slice(0, 150);
+                    }
+                }
+            } catch {
+                // Keep fallback status message
+            }
+            console.error(`[PayMongoProvider] API Error (${response.status} on ${endpoint}):`, errorMessage);
+            throw new Error(`PayMongo API Error: ${errorMessage}`);
+        }
+
+        return await response.json();
     }
 
     /**
@@ -31,15 +97,16 @@ class PayMongoProvider {
      */
     async createCheckout(amount, type, redirectUrl, metadata) {
         console.log(`[PayMongoProvider] Creating checkout session for amount: ${amount}, method: ${type}`);
-        const sourceType = type === 'maya' ? 'paymaya' : type;
+        const supportedMethods = ['gcash', 'paymaya'];
+        const primaryMethod = type === 'maya' ? 'paymaya' : type;
+        const paymentMethodTypes = [
+            primaryMethod,
+            ...supportedMethods.filter((m) => m !== primaryMethod)
+        ];
 
-        const response = await fetch(`${this.baseUrl}/checkout_sessions`, {
+        const data = await this._request('/checkout_sessions', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${this.encodedKey}`
-            },
-            body: JSON.stringify({
+            body: {
                 data: {
                     attributes: {
                         send_email_receipt: false,
@@ -53,22 +120,15 @@ class PayMongoProvider {
                                 quantity: 1
                             }
                         ],
-                        payment_method_types: [sourceType],
+                        payment_method_types: paymentMethodTypes,
                         success_url: redirectUrl,
                         cancel_url: redirectUrl,
                         reference_number: metadata.bookingId // Link session to booking
                     }
                 }
-            })
+            }
         });
 
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error(`[PayMongoProvider] Checkout Error: ${errorDetails}`);
-            throw new Error(`PayMongo Checkout Error: ${errorDetails}`);
-        }
-
-        const data = await response.json();
         return {
             id: data.data.id,
             checkout_url: data.data.attributes.checkout_url,
@@ -88,20 +148,9 @@ class PayMongoProvider {
      */
     async getCheckoutSession(sessionId) {
         console.log(`[PayMongoProvider] Fetching checkout session: ${sessionId}`);
-        const response = await fetch(`${this.baseUrl}/checkout_sessions/${sessionId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${this.encodedKey}`
-            }
+        const data = await this._request(`/checkout_sessions/${sessionId}`, {
+            method: 'GET'
         });
-
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error(`[PayMongoProvider] GetCheckoutSession Error: ${errorDetails}`);
-            throw new Error(`PayMongo GetCheckoutSession Error: ${errorDetails}`);
-        }
-
-        const data = await response.json();
         return data.data;
     }
 
@@ -151,31 +200,27 @@ class PayMongoProvider {
      */
     async issueRefund(paymentGatewayId, amount, reason) {
         console.log(`[PayMongoProvider] Issuing refund for payment: ${paymentGatewayId}, amount: ${amount}`);
-        // PayMongo refund requires the payment ID (not the checkout session ID)
-        const response = await fetch(`${this.baseUrl}/refunds`, {
+        
+        if (!paymentGatewayId || !paymentGatewayId.startsWith('pay_')) {
+            throw new Error(`Invalid payment gateway ID: '${paymentGatewayId}'. PayMongo refunds require a payment ID starting with 'pay_'.`);
+        }
+
+        const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
+        const sanitizedReason = validReasons.includes(reason) ? reason : 'requested_by_customer';
+
+        const data = await this._request('/refunds', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${this.encodedKey}`
-            },
-            body: JSON.stringify({
+            body: {
                 data: {
                     attributes: {
                         amount: Math.round(amount * 100),
                         payment_id: paymentGatewayId,
-                        reason: reason
+                        reason: sanitizedReason
                     }
                 }
-            })
+            }
         });
 
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error(`[PayMongoProvider] Refund Error: ${errorDetails}`);
-            throw new Error(`PayMongo Refund Error: ${errorDetails}`);
-        }
-
-        const data = await response.json();
         return data.data;
     }
 }
