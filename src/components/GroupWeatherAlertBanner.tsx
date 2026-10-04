@@ -21,6 +21,29 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export interface GroupWeatherAlertBannerProps {
     groupId?: string | null;
+    hikeDate?: Date | any | null;
+}
+
+function parseDateToMs(dateVal: any): number | null {
+    if (!dateVal) return null;
+    if (typeof dateVal?.toDate === 'function') {
+        const d = dateVal.toDate();
+        return d instanceof Date && !isNaN(d.getTime()) ? d.getTime() : null;
+    }
+    if (dateVal instanceof Date) {
+        return !isNaN(dateVal.getTime()) ? dateVal.getTime() : null;
+    }
+    if (typeof dateVal === 'number') {
+        return dateVal;
+    }
+    if (typeof dateVal === 'string') {
+        const parsed = new Date(dateVal).getTime();
+        return isNaN(parsed) ? null : parsed;
+    }
+    if (typeof dateVal?.seconds === 'number') {
+        return dateVal.seconds * 1000;
+    }
+    return null;
 }
 
 function getPhaseLabel(phase: string): string {
@@ -38,12 +61,33 @@ function getPhaseLabel(phase: string): string {
     }
 }
 
-export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId }) => {
+export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
     const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
     if (isLoading || !latestAlert) {
         return null;
+    }
+
+    // Expiration Defense-in-Depth: Hide banner if hike concluded more than 24 hours ago
+    const resolvedHikeDate = hikeDate ?? latestAlert.hikeDate;
+    if (resolvedHikeDate) {
+        const hikeMs = parseDateToMs(resolvedHikeDate);
+        if (hikeMs != null) {
+            const diffHours = (hikeMs - Date.now()) / (1000 * 60 * 60);
+            if (diffHours < -24) {
+                return null;
+            }
+        }
+    } else if (latestAlert.createdAt) {
+        // Fallback: If no explicit hike date is provided, check if a T-3 final departure alert is older than 27 hours
+        const createdMs = parseDateToMs(latestAlert.createdAt);
+        if (createdMs != null) {
+            const hoursSinceAlert = (Date.now() - createdMs) / (1000 * 60 * 60);
+            if (latestAlert.phase === 'T-3' && hoursSinceAlert > 27) {
+                return null;
+            }
+        }
     }
 
     const isDanger = latestAlert.status === 'DANGER';
