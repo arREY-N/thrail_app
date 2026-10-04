@@ -27,10 +27,15 @@ export function HandleGroupMemberFlow() {
 
         const group = await getGroupById(groupId);
 
-        if (!group) throw new Error(`Group with ID ${groupId} not found.`);
+        if (!group) {
+            logger('HandleGroupMemberFlow', `Group with ID ${groupId} not found. Skipping member removal.`);
+            return;
+        }
 
-        if (!group.participantsIds.find(u => u === userId))
-            throw new Error(`User ${userId} not found in group ${groupId}`);
+        if (!group.participantsIds || !group.participantsIds.find(u => u === userId)) {
+            logger('HandleGroupMemberFlow', `User ${userId} not found in group ${groupId}. Skipping member removal.`);
+            return;
+        }
 
         const updatedGroup: Group = newGroup({
             ...group,
