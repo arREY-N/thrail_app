@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type { Timestamp } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -19,17 +20,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+export type HikeDateValue = Date | Timestamp | string | number | null | undefined;
+
 export interface GroupWeatherAlertBannerProps {
     groupId?: string | null;
-    hikeDate?: Date | any | null;
+    hikeDate?: HikeDateValue;
 }
 
-function parseDateToMs(dateVal: any): number | null {
+function parseDateToMs(dateVal: unknown): number | null {
     if (!dateVal) return null;
-    if (typeof dateVal?.toDate === 'function') {
-        const d = dateVal.toDate();
-        return d instanceof Date && !isNaN(d.getTime()) ? d.getTime() : null;
-    }
     if (dateVal instanceof Date) {
         return !isNaN(dateVal.getTime()) ? dateVal.getTime() : null;
     }
@@ -40,10 +39,46 @@ function parseDateToMs(dateVal: any): number | null {
         const parsed = new Date(dateVal).getTime();
         return isNaN(parsed) ? null : parsed;
     }
-    if (typeof dateVal?.seconds === 'number') {
-        return dateVal.seconds * 1000;
+    if (
+        typeof dateVal === 'object' &&
+        dateVal !== null &&
+        'toDate' in dateVal &&
+        typeof (dateVal as { toDate: () => unknown }).toDate === 'function'
+    ) {
+        const d = (dateVal as { toDate: () => unknown }).toDate();
+        return d instanceof Date && !isNaN(d.getTime()) ? d.getTime() : null;
+    }
+    if (
+        typeof dateVal === 'object' &&
+        dateVal !== null &&
+        'seconds' in dateVal &&
+        typeof (dateVal as { seconds: unknown }).seconds === 'number'
+    ) {
+        return (dateVal as { seconds: number }).seconds * 1000;
     }
     return null;
+}
+
+function checkIsAlertExpired(targetHikeDate: unknown, alertCreatedAt: unknown, alertPhase: string): boolean {
+    const now = Date.now();
+    if (targetHikeDate) {
+        const hikeMs = parseDateToMs(targetHikeDate);
+        if (hikeMs != null) {
+            const diffHours = (hikeMs - now) / (1000 * 60 * 60);
+            if (diffHours < -24) {
+                return true;
+            }
+        }
+    } else if (alertCreatedAt) {
+        const createdMs = parseDateToMs(alertCreatedAt);
+        if (createdMs != null) {
+            const hoursSinceAlert = (now - createdMs) / (1000 * 60 * 60);
+            if (alertPhase === 'T-3' && hoursSinceAlert > 27) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function getPhaseLabel(phase: string): string {
@@ -64,30 +99,19 @@ function getPhaseLabel(phase: string): string {
 export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
     const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [isExpired, setIsExpired] = useState<boolean>(false);
 
-    if (isLoading || !latestAlert) {
+    const resolvedHikeDate = hikeDate ?? latestAlert?.hikeDate;
+    const alertCreatedAt = latestAlert?.createdAt;
+    const alertPhase = latestAlert?.phase ?? '';
+
+    // Expiration Defense-in-Depth: Run time calculation inside useEffect to maintain render purity
+    useEffect(() => {
+        setIsExpired(checkIsAlertExpired(resolvedHikeDate, alertCreatedAt, alertPhase));
+    }, [resolvedHikeDate, alertCreatedAt, alertPhase]);
+
+    if (isLoading || !latestAlert || isExpired) {
         return null;
-    }
-
-    // Expiration Defense-in-Depth: Hide banner if hike concluded more than 24 hours ago
-    const resolvedHikeDate = hikeDate ?? latestAlert.hikeDate;
-    if (resolvedHikeDate) {
-        const hikeMs = parseDateToMs(resolvedHikeDate);
-        if (hikeMs != null) {
-            const diffHours = (hikeMs - Date.now()) / (1000 * 60 * 60);
-            if (diffHours < -24) {
-                return null;
-            }
-        }
-    } else if (latestAlert.createdAt) {
-        // Fallback: If no explicit hike date is provided, check if a T-3 final departure alert is older than 27 hours
-        const createdMs = parseDateToMs(latestAlert.createdAt);
-        if (createdMs != null) {
-            const hoursSinceAlert = (Date.now() - createdMs) / (1000 * 60 * 60);
-            if (latestAlert.phase === 'T-3' && hoursSinceAlert > 27) {
-                return null;
-            }
-        }
     }
 
     const isDanger = latestAlert.status === 'DANGER';
