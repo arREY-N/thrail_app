@@ -84,7 +84,7 @@ export interface ReviewScreenProps {
     error?: string;
     hikerProfile?: User | null;
     cancellationRequest?: Cancellation | null;
-    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking) => Promise<void>;
+    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number) => Promise<void>;
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
     onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
@@ -182,6 +182,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => p.status === 'refunded' ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
     const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
     const paymentCapturedAt = lastCapturedPayment?.createdAt || null;
 
@@ -433,7 +434,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 fontWeight: 'bold' as const,
             },
             onPress: () => {
-                setIsConfirmCancellationVisible(true);
+                if (totalAmountPaid > 0) {
+                    setShowRefundModal(true);
+                } else {
+                    setIsConfirmCancellationVisible(true);
+                }
             },
         };
     }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, totalAmountPaid]);
@@ -602,6 +607,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 cancellationReason={cancellationRequest?.reason || (hasRejections ? undefined : booking.cancellationReason)}
                                 declineReason={cancellationRequest?.adminNote}
                                 totalAmountPaid={totalAmountPaid}
+                                totalRefundedAmount={totalRefundedAmount}
                                 requestedAt={cancellationRequest?.createdAt || booking.updatedAt}
                                 cancelledBy={cancellationRequest?.cancelledBy || (hasRejections ? 'user' : booking.cancelledBy)}
                                 onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
@@ -939,16 +945,24 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 onSelect={(refundType: RefundType, customAmount?: number) => {
                     setShowRefundModal(false);
                     setTimeout(async () => {
-                        if (onRefund) {
-                            setIsProcessingAction(true);
-                            try {
+                        setIsProcessingAction(true);
+                        try {
+                            if (isHikerCancellationPending && onApproveCancellation) {
+                                await onApproveCancellation(cancellationRequest, booking, refundType, customAmount);
+                                setToastConfig({
+                                    visible: true,
+                                    message: 'Cancellation approved and refund processed successfully via PayMongo.',
+                                    type: 'success',
+                                });
+                            } else if (onRefund) {
                                 await onRefund(booking, refundType, customAmount);
                                 setToastConfig({
                                     visible: true,
                                     message: 'Refund processed successfully via PayMongo.',
                                     type: 'success',
                                 });
-                            } catch (err: unknown) {
+                            }
+                        } catch (err: unknown) {
                                 const rawMessage = err instanceof Error ? err.message : String(err || '');
                                 let displayMessage = 'Failed to process refund. Please try again.';
 
@@ -968,10 +982,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             } finally {
                                 setIsProcessingAction(false);
                             }
-                        }
-                    }, 300);
-                }}
-            />
+                        }, 300);
+                    }}
+                />
 
             <ImagePreviewModal
                 visible={!!previewImageUrl}
