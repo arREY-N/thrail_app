@@ -182,6 +182,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
+    const paymentCapturedAt = lastCapturedPayment?.createdAt || null;
 
     const handleLockedVerifyPress = useCallback((vStatus: VerificationStatus) => {
         const message = getLockedVerificationToastMessage(currentStatus, vStatus);
@@ -932,6 +934,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <AdminRefundModal
                 visible={showRefundModal}
                 amountPaid={totalAmountPaid}
+                paymentCapturedAt={paymentCapturedAt}
                 onClose={() => setShowRefundModal(false)}
                 onSelect={(refundType: RefundType, customAmount?: number) => {
                     setShowRefundModal(false);
@@ -940,6 +943,28 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             setIsProcessingAction(true);
                             try {
                                 await onRefund(booking, refundType, customAmount);
+                                setToastConfig({
+                                    visible: true,
+                                    message: 'Refund processed successfully via PayMongo.',
+                                    type: 'success',
+                                });
+                            } catch (err: unknown) {
+                                const rawMessage = err instanceof Error ? err.message : String(err || '');
+                                let displayMessage = 'Failed to process refund. Please try again.';
+
+                                if (rawMessage.includes('Cannot partially refund') || rawMessage.includes('same day')) {
+                                    displayMessage = 'PayMongo Policy: Partial refunds cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after gateway settlement.';
+                                } else if (rawMessage.includes('Insufficient') || rawMessage.includes('balance')) {
+                                    displayMessage = 'Your PayMongo account has insufficient merchant balance to cover this refund.';
+                                } else if (rawMessage) {
+                                    displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
+                                }
+
+                                setToastConfig({
+                                    visible: true,
+                                    message: displayMessage,
+                                    type: 'error',
+                                });
                             } finally {
                                 setIsProcessingAction(false);
                             }
@@ -957,7 +982,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <AdminActionMenu
                 visible={showActionMenu}
                 onClose={() => setShowActionMenu(false)}
-                isCancelledStatus={isCancelledStatus || currentStatus === 'completed'}
+                isCancelledStatus={isCancelledStatus}
+                isCompletedStatus={currentStatus === 'completed'}
                 totalAmountPaid={totalAmountPaid}
                 hasPendingCancellation={isHikerCancellationPending || Boolean(cancellationRequest)}
                 onRescheduleClick={() => {
