@@ -66,9 +66,16 @@ export function useCancellationAdmin(bookingId: string) {
         request,
         approved,
         refund,
+        refundType = 'full',
+        customAmount,
         adminNote,
     }: {
-        request?: Cancellation | null, approved: boolean, refund?: number, adminNote?: string
+        request?: Cancellation | null;
+        approved: boolean;
+        refund?: number;
+        refundType?: 'full' | 'partial' | 'custom';
+        customAmount?: number;
+        adminNote?: string;
     }) => {
         try {
             setWritingError(null);
@@ -103,24 +110,33 @@ export function useCancellationAdmin(bookingId: string) {
 
                 const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
 
-
                 const totalPaid = booking.payment.reduce(
                     (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
                     0
                 ) || 0;
 
                 if (totalPaid > 0) {
-                    logger('UseCancellationAdmin', 'Implement variable refund amount')
-
-                    if (!refund) {
-                        logger('UseCancellation', 'If error is thrown, update call to processCancellationRequest to include refund percentage (in decimal format).')
-                        throw new Error('Refund percentage not provided');
+                    let determinedType: 'full' | 'partial' | 'custom' = refundType;
+                    let determinedCustom: number | undefined = customAmount;
+                    if (refund !== undefined && refundType === 'full' && customAmount === undefined) {
+                        if (refund === 1 || refund === 100) {
+                            determinedType = 'full';
+                        } else if (refund === 0.1 || refund === 10) {
+                            determinedType = 'partial';
+                        } else if (refund > 0) {
+                            determinedType = 'custom';
+                            determinedCustom = Math.round((totalPaid * (refund <= 1 ? refund : refund / 100)) * 100) / 100;
+                        }
                     }
-
-                    await onRefund(updatedBooking, 'full');
+                    await onRefund(updatedBooking, determinedType, determinedCustom);
                 }
 
-                await onRemoveMemberToGroup({ userId: booking.user.id, groupId: booking.offer.id });
+                try {
+                    await onRemoveMemberToGroup({ userId: booking.user.id, groupId: booking.offer.id });
+                } catch (groupError) {
+                    logger('useCancellationAdmin', 'Failed to remove user from group (non-fatal): ', groupError);
+                }
+
                 await createBooking(updatedBooking, true, true);
                 await createOffer(updatedOffer);
             } else {
@@ -146,6 +162,7 @@ export function useCancellationAdmin(bookingId: string) {
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationAdmin()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
+            throw error;
         }
     }
 
