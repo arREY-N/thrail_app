@@ -1234,18 +1234,39 @@ function resolveMountainCoords(trailName, customCoords) {
     return null;
 }
 
-function evaluateWeatherSafety(weatherData, trailName, phase) {
-    const weatherCode = weatherData.current?.weather_code ?? weatherData.daily?.weathercode?.[0] ?? 0;
-    const precipProb = weatherData.daily?.precipitation_probability_max?.[0] ?? weatherData.hourly?.precipitation_probability?.[0] ?? 0;
-    const windSpeed = weatherData.current?.wind_speed_10m ?? weatherData.daily?.windspeed_10m_max?.[0] ?? 0;
-    const uvIndex = weatherData.daily?.uv_index_max?.[0] ?? weatherData.current?.uv_index ?? 0;
+function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0) {
+    // Determine the target index in the forecast arrays based on hours until the hike
+    const targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
+    const targetHourIndex = Math.min(Math.max(0, Math.floor(diffHours)), 167);
+
+    let weatherCode = 0;
+    let precipProb = 0;
+    let windSpeed = 0;
+    let uvIndex = 0;
+    let temperature = 0;
+
+    if (phase === 'T-3' || phase === 'T-24') {
+        // Use hourly data for near-term precision
+        weatherCode = weatherData.hourly?.weathercode?.[targetHourIndex] ?? weatherData.daily?.weathercode?.[targetDayIndex] ?? 0;
+        precipProb = weatherData.hourly?.precipitation_probability?.[targetHourIndex] ?? weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
+        windSpeed = weatherData.hourly?.windspeed_10m?.[targetHourIndex] ?? weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
+        temperature = weatherData.hourly?.temperature_2m?.[targetHourIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0; // UV is daily max
+    } else {
+        // Use daily data for T-72 and T-168
+        weatherCode = weatherData.daily?.weathercode?.[targetDayIndex] ?? 0;
+        precipProb = weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
+        windSpeed = weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
+        temperature = weatherData.daily?.temperature_2m_max?.[targetDayIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0;
+    }
 
     const isSevereCode = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
     const isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
     const isHighWind = windSpeed >= 40;
     const isExtremeUv = uvIndex >= 11;
 
-    const dailyRainMm = weatherData.daily?.precipitation_sum?.[0] ?? 0;
+    const dailyRainMm = weatherData.daily?.precipitation_sum?.[targetDayIndex] ?? 0;
     const isTorrential = dailyRainMm >= 100;
 
     let status = 'SAFE';
@@ -1254,28 +1275,6 @@ function evaluateWeatherSafety(weatherData, trailName, phase) {
     } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8 || precipProb >= 40) {
         status = 'CAUTION';
     }
-
-    const checklist = [];
-    if (status === 'DANGER') {
-        checklist.push({ id: 'guide-consult', label: 'Consult organizer / guide regarding possible itinerary adjustment', category: 'advisory', icon: 'shield-alert-outline', library: 'MaterialCommunityIcons' });
-        checklist.push({ id: 'ridge-safety', label: 'Avoid exposed ridges & peaks during lightning or torrential squalls', category: 'safety', icon: 'flash-outline', library: 'Ionicons' });
-    }
-
-    if (isRain || precipProb >= 40) {
-        checklist.push({ id: 'waterproof-cover', label: 'Pack waterproof bag rain cover and dry bags for electronics', category: 'gear', icon: 'bag-personal-outline', library: 'MaterialCommunityIcons' });
-        checklist.push({ id: 'rainwear', label: 'Bring durable lightweight rain poncho / waterproof jacket', category: 'gear', icon: 'weather-pouring', library: 'MaterialCommunityIcons' });
-        checklist.push({ id: 'traction-shoes', label: 'Wear high-traction trail shoes with deep lugs for mud', category: 'gear', icon: 'shoe-sneaker', library: 'MaterialCommunityIcons' });
-        checklist.push({ id: 'trekking-pole', label: 'Trekking poles recommended for slippery descent control', category: 'gear', icon: 'walk', library: 'Ionicons' });
-    }
-
-    if (isExtremeUv) {
-        checklist.push({ id: 'extra-water', label: 'Bring at least 2.5L - 3L hydration + electrolyte salts', category: 'hydration', icon: 'water-outline', library: 'Ionicons' });
-        checklist.push({ id: 'sun-protection', label: 'Apply SPF 50+ sunscreen, wear wide-brim hat & arm sleeves', category: 'gear', icon: 'sunny-outline', library: 'Ionicons' });
-    } else {
-        checklist.push({ id: 'standard-water', label: 'Pack standard 1.5L - 2L trail hydration', category: 'hydration', icon: 'water-outline', library: 'Ionicons' });
-    }
-
-    checklist.push({ id: 'charged-phone', label: 'Keep phone sealed in waterproof pouch with powerbank', category: 'safety', icon: 'battery-charging-outline', library: 'Ionicons' });
 
     let phasePrefix = '';
     if (phase === 'T-168') phasePrefix = '7-Day Forecast';
@@ -1303,13 +1302,12 @@ function evaluateWeatherSafety(weatherData, trailName, phase) {
         headline,
         message,
         metrics: {
-            temperature: Math.round(weatherData.current?.temperature_2m ?? 0),
+            temperature: Math.round(temperature),
             precipitationProbability: precipProb,
             weatherCode,
             windSpeed: Math.round(windSpeed),
             uvIndex: Math.round(uvIndex),
         },
-        checklist,
     };
 }
 
@@ -1350,8 +1348,19 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     }
 
     if (!currentPhase) {
+        // Expiration/Cleanup: If hike is over (diffHours < -24), delete stale alerts
+        if (diffHours != null && diffHours < -24) {
+            console.log(`[checkGroupWeatherAlerts] Hike for group ${groupId} ended. Cleaning up alerts.`);
+            const oldAlerts = await db.collection('groups').doc(groupId).collection('alerts').get();
+            const batch = db.batch();
+            oldAlerts.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            return { skipped: true, reason: 'Hike has passed. Cleaned up alerts.' };
+        }
+
         if (force) {
             currentPhase = 'T-168';
+            diffHours = 168; // mock 7 days out
         } else {
             return { skipped: true, reason: 'Hike date is outside the 7-day forecast window or date is invalid.', hikeDate: rawDate };
         }
@@ -1367,10 +1376,33 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
         if (!lastAlertSnap.empty) {
             const lastAlert = lastAlertSnap.docs[0].data();
             const lastAlertTime = lastAlert.createdAt?.toDate ? DateTime.fromJSDate(lastAlert.createdAt.toDate()) : null;
-            if (lastAlertTime) {
-                const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
-                if (lastAlert.phase === currentPhase && hoursSinceLastAlert < maxRecheckHours) {
-                    return { skipped: true, reason: `Already alerted for ${currentPhase} within the last ${Math.round(hoursSinceLastAlert)} hours. Use force=true to override.`, phase: currentPhase };
+
+            if (lastAlert.phase === currentPhase) {
+                // Phase T-3: One-time final departure alert. Once emitted, monitoring is complete.
+                if (currentPhase === 'T-3') {
+                    return { skipped: true, reason: 'Final pre-departure alert for T-3 has already been issued. Monitoring complete.', phase: currentPhase };
+                }
+
+                // If previous alert for current milestone phase was SAFE, sleep until the next milestone phase
+                if (lastAlert.status === 'SAFE') {
+                    return { 
+                        skipped: true, 
+                        reason: `Phase ${currentPhase} conditions are SAFE. Sleeping until next milestone phase. Use force=true to override.`, 
+                        phase: currentPhase 
+                    };
+                }
+
+                // If previous alert was adverse (CAUTION or DANGER), enforce recheck interval
+                // (daily recheck for T-168/T-72; 3-hour watch for T-24)
+                if (lastAlertTime) {
+                    const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
+                    if (hoursSinceLastAlert < maxRecheckHours) {
+                        return { 
+                            skipped: true, 
+                            reason: `Already issued adverse alert for ${currentPhase} ${Math.round(hoursSinceLastAlert)} hours ago (recheck window is ${maxRecheckHours}h). Use force=true to override.`, 
+                            phase: currentPhase 
+                        };
+                    }
                 }
             }
         }
@@ -1385,7 +1417,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
 
     const roundLat = coords.lat.toFixed(4);
     const roundLon = coords.lon.toFixed(4);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=precipitation_probability,weathercode&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=7`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=7`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -1394,7 +1426,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     }
 
     const weatherData = await res.json();
-    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase);
+    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase, diffHours);
 
     // Save alert document to /groups/{groupId}/alerts/{alertId}
     const alertRef = await db.collection('groups').doc(groupId).collection('alerts').add({
@@ -1405,7 +1437,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
         headline: evaluation.headline,
         message: evaluation.message,
         metrics: evaluation.metrics,
-        checklist: evaluation.checklist,
+        hikeDate: rawDate || (hikeDate?.isValid ? hikeDate.toJSDate() : null),
         createdAt: FieldValue.serverTimestamp(),
     });
 
