@@ -561,7 +561,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
 
             <View style={[styles.container, { alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
-                    <GroupWeatherAlertBanner groupId={currentGroup?.id} />
+                    <GroupWeatherAlertBanner groupId={currentGroup?.id} hikeDate={currentGroup?.offer?.date} />
                     <Chat
                         disableKeyboardProvider={true}
                         colorScheme='light'
