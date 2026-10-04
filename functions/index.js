@@ -180,6 +180,7 @@ exports.onAddBooking = functions.firestore
 
 
             // Cleanup invalid tokens if any failed
+            // eslint-disable-next-line no-unused-vars
             const tokensToRemove = uniqueTokens.filter((token, idx) => {
                 const res = response.responses.at(idx);
                 if (!res || res.success) return false;
@@ -1129,7 +1130,31 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     PaymentManager.registerProvider('paymongo', provider);
 
     try {
-        const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
+        let gatewayId = capturedPayment.gatewayId;
+
+        // Self-Healing: If gatewayId is missing or is a bal_txn_ ID, attempt to resolve true 'pay_' ID from checkout session
+        if ((!gatewayId || !gatewayId.startsWith('pay_')) && capturedPayment.sessionId) {
+            try {
+                console.log(`[refundBooking] Attempting to resolve true pay_ ID from sessionId ${capturedPayment.sessionId}`);
+                const sessionData = await provider.getCheckoutSession(capturedPayment.sessionId);
+                const paymentItem = sessionData?.attributes?.payments?.[0];
+                if (paymentItem?.id && paymentItem.id.startsWith('pay_')) {
+                    gatewayId = paymentItem.id;
+                    capturedPayment.gatewayId = gatewayId;
+                    console.log(`[refundBooking] Successfully resolved pay_ ID from session: ${gatewayId}`);
+                }
+            } catch (sessionErr) {
+                console.warn(`[refundBooking] Could not resolve payment ID from session ${capturedPayment.sessionId}:`, sessionErr.message);
+            }
+        }
+
+        if (!gatewayId && capturedPayment.referenceCode?.startsWith('pay_')) {
+            gatewayId = capturedPayment.referenceCode;
+        }
+
+        if (!gatewayId || !gatewayId.startsWith('pay_')) {
+            throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refunds require a valid payment ID starting with 'pay_'.`);
+        }
         
         // Ensure reason is one of the accepted PayMongo values
         const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
