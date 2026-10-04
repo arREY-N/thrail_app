@@ -944,7 +944,7 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                 } else {
                     // Booking was already cancelled, issue automatic refund!
                     try {
-                        await provider.issueRefund(gatewayId, amount, 'requested_by_customer');
+                        await provider.issueRefund(gatewayId, amount, 'others', 'Auto-refund for cancelled booking');
                         console.log(`Auto-refunded late payment for cancelled booking: ${bookingDoc.id}`);
                     } catch (e) {
                         console.error("Failed to auto-refund cancelled booking", e);
@@ -1156,11 +1156,12 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
             throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refunds require a valid payment ID starting with 'pay_'.`);
         }
         
-        // Ensure reason is one of the accepted PayMongo values
-        const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
-        const sanitizedReason = validReasons.includes(reason) ? reason : 'requested_by_customer';
+        // Ensure reason is strictly one of the accepted PayMongo values ('duplicate', 'fraudulent', 'others')
+        const validReasons = ['duplicate', 'fraudulent', 'others'];
+        const sanitizedReason = validReasons.includes(reason) ? reason : 'others';
+        const refundNotes = reason && reason !== sanitizedReason ? `Reason: ${reason}` : 'Cancellation refund requested';
         
-        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason);
+        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason, refundNotes);
 
         capturedPayment.status = 'refunded';
         capturedPayment.refundedAmount = refundAmount;
