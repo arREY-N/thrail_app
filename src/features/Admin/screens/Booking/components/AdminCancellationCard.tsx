@@ -27,6 +27,7 @@ export interface AdminCancellationCardProps {
     cancellationReason?: string;
     declineReason?: string;
     totalAmountPaid: number;
+    totalRefundedAmount?: number;
     requestedAt?: Date | null;
     cancelledBy?: string;
     onRevert?: () => void;
@@ -42,6 +43,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     cancellationReason,
     declineReason,
     totalAmountPaid,
+    totalRefundedAmount = 0,
     requestedAt,
     cancelledBy,
     onRevert,
@@ -206,7 +208,11 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         PAYMENT CAPTURED
                     </CustomText>
                     <CustomText style={styles.impactValue}>
-                        {isPaid ? `₱${totalAmountPaid.toFixed(2)}` : '₱0.00 (Unpaid)'}
+                        {isPaid 
+                            ? `₱${totalAmountPaid.toFixed(2)}` 
+                            : (totalRefundedAmount > 0 
+                                ? `₱${totalRefundedAmount.toFixed(2)} (Refunded)` 
+                                : '₱0.00 (Unpaid)')}
                     </CustomText>
                 </View>
                 <View style={styles.impactDivider} />
