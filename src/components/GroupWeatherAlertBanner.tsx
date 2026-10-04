@@ -1,5 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -25,6 +25,35 @@ export type HikeDateValue = Date | Timestamp | string | number | null | undefine
 export interface GroupWeatherAlertBannerProps {
     groupId?: string | null;
     hikeDate?: HikeDateValue;
+}
+
+let cachedCurrentTime = Date.now();
+const timeSubscribers = new Set<() => void>();
+let timeIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function subscribeToCurrentTime(callback: () => void): () => void {
+    timeSubscribers.add(callback);
+    if (!timeIntervalId && typeof setInterval !== 'undefined') {
+        timeIntervalId = setInterval(() => {
+            cachedCurrentTime = Date.now();
+            timeSubscribers.forEach(cb => cb());
+        }, 60000);
+    }
+    return () => {
+        timeSubscribers.delete(callback);
+        if (timeSubscribers.size === 0 && timeIntervalId) {
+            clearInterval(timeIntervalId);
+            timeIntervalId = null;
+        }
+    };
+}
+
+function getCurrentTimeSnapshot(): number {
+    return cachedCurrentTime;
+}
+
+function useCurrentTime(): number {
+    return useSyncExternalStore(subscribeToCurrentTime, getCurrentTimeSnapshot, getCurrentTimeSnapshot);
 }
 
 function parseDateToMs(dateVal: unknown): number | null {
@@ -59,28 +88,6 @@ function parseDateToMs(dateVal: unknown): number | null {
     return null;
 }
 
-function checkIsAlertExpired(targetHikeDate: unknown, alertCreatedAt: unknown, alertPhase: string): boolean {
-    const now = Date.now();
-    if (targetHikeDate) {
-        const hikeMs = parseDateToMs(targetHikeDate);
-        if (hikeMs != null) {
-            const diffHours = (hikeMs - now) / (1000 * 60 * 60);
-            if (diffHours < -24) {
-                return true;
-            }
-        }
-    } else if (alertCreatedAt) {
-        const createdMs = parseDateToMs(alertCreatedAt);
-        if (createdMs != null) {
-            const hoursSinceAlert = (now - createdMs) / (1000 * 60 * 60);
-            if (alertPhase === 'T-3' && hoursSinceAlert > 27) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 function getPhaseLabel(phase: string): string {
     switch (phase) {
         case 'T-168':
@@ -99,19 +106,31 @@ function getPhaseLabel(phase: string): string {
 export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
     const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
-    const [isExpired, setIsExpired] = useState<boolean>(false);
+    const currentTime = useCurrentTime();
 
-    const resolvedHikeDate = hikeDate ?? latestAlert?.hikeDate;
-    const alertCreatedAt = latestAlert?.createdAt;
-    const alertPhase = latestAlert?.phase ?? '';
-
-    // Expiration Defense-in-Depth: Run time calculation inside useEffect to maintain render purity
-    useEffect(() => {
-        setIsExpired(checkIsAlertExpired(resolvedHikeDate, alertCreatedAt, alertPhase));
-    }, [resolvedHikeDate, alertCreatedAt, alertPhase]);
-
-    if (isLoading || !latestAlert || isExpired) {
+    if (isLoading || !latestAlert) {
         return null;
+    }
+
+    // Expiration Defense-in-Depth: Hide banner if hike concluded more than 24 hours ago
+    const resolvedHikeDate = hikeDate ?? latestAlert.hikeDate;
+    if (resolvedHikeDate) {
+        const hikeMs = parseDateToMs(resolvedHikeDate);
+        if (hikeMs != null) {
+            const diffHours = (hikeMs - currentTime) / (1000 * 60 * 60);
+            if (diffHours < -24) {
+                return null;
+            }
+        }
+    } else if (latestAlert.createdAt) {
+        // Fallback: If no explicit hike date is provided, check if a T-3 final departure alert is older than 27 hours
+        const createdMs = parseDateToMs(latestAlert.createdAt);
+        if (createdMs != null) {
+            const hoursSinceAlert = (currentTime - createdMs) / (1000 * 60 * 60);
+            if (latestAlert.phase === 'T-3' && hoursSinceAlert > 27) {
+                return null;
+            }
+        }
     }
 
     const isDanger = latestAlert.status === 'DANGER';
