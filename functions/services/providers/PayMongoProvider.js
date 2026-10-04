@@ -37,10 +37,11 @@ class PayMongoProvider {
     async _request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
         const headers = {
-            'Accept': 'application/json',
+            'Accept': 'application/json, application/vnd.api+json',
             'Content-Type': 'application/json',
             'Authorization': `Basic ${this.encodedKey}`,
-            'User-Agent': 'ThrailApp-Backend/1.0 (Firebase-Cloud-Functions)',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
             ...(options.headers || {})
         };
 
@@ -59,24 +60,25 @@ class PayMongoProvider {
             let errorMessage = `Payment Gateway Error (${response.status})`;
             try {
                 const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
+                // PayMongo returns 'application/vnd.api+json' per the JSON:API standard
+                if (contentType.includes('json')) {
                     const errorJson = await response.json();
                     if (errorJson.errors && Array.isArray(errorJson.errors) && errorJson.errors.length > 0) {
                         errorMessage = errorJson.errors.map(e => e.detail || e.code).join('; ');
                     }
                 } else {
-                    // Prevent leaking raw HTML/WAF error pages into user dialogs
                     const rawText = await response.text();
+                    console.error(`[PayMongoProvider] Non-JSON Gateway Error (${response.status} on ${endpoint}):`, rawText);
                     if (response.status === 403) {
-                        errorMessage = 'Payment gateway access denied. Please verify your PayMongo API credentials.';
+                        errorMessage = 'Payment gateway access denied (403 Forbidden). Please check your PayMongo API credentials or gateway permissions.';
                     } else if (response.status >= 500) {
                         errorMessage = 'Payment gateway server is temporarily unavailable. Please try again shortly.';
                     } else {
                         errorMessage = rawText.slice(0, 150);
                     }
                 }
-            } catch {
-                // Keep fallback status message
+            } catch (parseErr) {
+                console.error(`[PayMongoProvider] Error parsing failure response (${response.status} on ${endpoint}):`, parseErr);
             }
             console.error(`[PayMongoProvider] API Error (${response.status} on ${endpoint}):`, errorMessage);
             throw new Error(`PayMongo API Error: ${errorMessage}`);
@@ -194,29 +196,39 @@ class PayMongoProvider {
      * 
      * @param {string} paymentGatewayId - The PayMongo Payment ID (pay_...).
      * @param {number} amount - The amount to refund in PHP.
-     * @param {string} reason - The reason for the refund.
+     * @param {string} [reason] - The reason for the refund ('duplicate', 'fraudulent', 'others').
+     * @param {string} [notes] - Optional internal notes for the refund.
      * @returns {Promise<Object>} The refund object details.
      * @throws {Error} If the API request fails.
      */
-    async issueRefund(paymentGatewayId, amount, reason) {
-        console.log(`[PayMongoProvider] Issuing refund for payment: ${paymentGatewayId}, amount: ${amount}`);
+    async issueRefund(paymentGatewayId, amount, reason, notes) {
+        console.log(`[PayMongoProvider] Issuing refund for payment: ${paymentGatewayId}, amount: ${amount}, reason: ${reason}`);
         
         if (!paymentGatewayId || !paymentGatewayId.startsWith('pay_')) {
             throw new Error(`Invalid payment gateway ID: '${paymentGatewayId}'. PayMongo refunds require a payment ID starting with 'pay_'.`);
         }
 
-        const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
-        const sanitizedReason = validReasons.includes(reason) ? reason : 'requested_by_customer';
+        // PayMongo strictly accepts only: 'duplicate', 'fraudulent', or 'others'
+        const validReasons = ['duplicate', 'fraudulent', 'others'];
+        const sanitizedReason = validReasons.includes(reason) ? reason : 'others';
+
+        const attributes = {
+            amount: Math.round(amount * 100),
+            payment_id: paymentGatewayId,
+            reason: sanitizedReason
+        };
+
+        if (notes && typeof notes === 'string' && notes.trim().length > 0) {
+            attributes.notes = notes.trim().slice(0, 255);
+        } else if (reason && reason !== sanitizedReason) {
+            attributes.notes = `Refund requested: ${reason}`.slice(0, 255);
+        }
 
         const data = await this._request('/refunds', {
             method: 'POST',
             body: {
                 data: {
-                    attributes: {
-                        amount: Math.round(amount * 100),
-                        payment_id: paymentGatewayId,
-                        reason: sanitizedReason
-                    }
+                    attributes
                 }
             }
         });
