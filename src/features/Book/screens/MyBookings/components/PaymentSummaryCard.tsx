@@ -14,7 +14,7 @@ export interface PaymentSummaryCardProps {
     /** Remaining balance to pay */
     remainingBalance: number;
     /** Array of payment history */
-    payments?: IPayment<any>[];
+    payments?: IPayment<Date>[];
 }
 
 /**
@@ -24,10 +24,9 @@ export interface PaymentSummaryCardProps {
  */
 const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }: PaymentSummaryCardProps) => {
     const refundedPayments = payments.filter(p => p.status === 'refunded');
-    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (((p as unknown as { refundedAmount?: number }).refundedAmount) || 0), 0);
+    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
     const hasUnrecordedRefund = refundedPayments.some(p => {
-        const refundedAmount = (p as unknown as { refundedAmount?: number }).refundedAmount;
-        return refundedAmount === undefined || refundedAmount === null;
+        return p.refundedAmount === undefined || p.refundedAmount === null;
     });
 
     const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -96,10 +95,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        
-        
-        
-        
         ...GlobalStyles.dropShadow(3),
     },
     title: {
