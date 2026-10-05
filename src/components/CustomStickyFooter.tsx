@@ -177,6 +177,7 @@ const styles = StyleSheet.create({
         //     offset: { width: 0, height: -4 },
         //     radius: 4
         // }), 
+        
     },
     buttonRow: { 
         flexDirection: 'row', 
