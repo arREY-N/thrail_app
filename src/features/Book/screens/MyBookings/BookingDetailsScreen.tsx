@@ -5,7 +5,7 @@
 
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -18,31 +18,30 @@ import EmergencySetupModal, { UserSearchResult } from '@/src/components/Emergenc
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
-import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { calculateVerificationValidity, formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
-import { IActivity, IOffer, ISchedule } from "@/src/core/models/Offer/Offer";
-import { IEmergencyContact, User, UserRepo } from '@/src/core/models/User/User';
-import { formatTime } from '@/src/utils/dateFormatter';
+import { IOffer } from "@/src/core/models/Offer/Offer";
+import { IEmergencyContact, User } from '@/src/core/models/User/User';
+import { logger } from '@/src/core/utility/errorFormatter';
 
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
+import BookingActionMenuModal from '@/src/features/Book/screens/MyBookings/components/BookingActionMenuModal';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
 import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
+import ItinerarySection from '@/src/features/Book/screens/MyBookings/components/ItinerarySection';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
 import RequiredDocumentsSection from '@/src/features/Book/screens/MyBookings/components/RequiredDocumentsSection';
 import RescheduleModal from '@/src/features/Book/screens/MyBookings/components/RescheduleModal';
-import {
-    getResubmitButtonTitle,
-    getResubmitModalContent,
-    RESUBMIT_TOASTS,
-} from '@/src/features/Book/screens/MyBookings/utils/bookingResubmitMessages';
+import { useBookingContactVerification } from '@/src/features/Book/screens/MyBookings/hooks/useBookingContactVerification';
+import { useBookingResubmit } from '@/src/features/Book/screens/MyBookings/hooks/useBookingResubmit';
+import { getResubmitModalContent, RESUBMIT_TOASTS } from '@/src/features/Book/screens/MyBookings/utils/bookingResubmitMessages';
+import { getBookingFooterConfig } from '@/src/features/Book/screens/MyBookings/utils/getBookingFooterConfig';
 
 export interface BookingDetailsScreenProps {
     /** The booking data */
@@ -70,8 +69,6 @@ export interface BookingDetailsScreenProps {
     ) => Promise<boolean>;
     /** Callback when updating contact details on rejected bookings */
     onUpdateContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
-    /** Optional callback for update press */
-    onUpdatePress?: () => void;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
     /** Active cancellation associated with this booking, if any */
@@ -103,10 +100,8 @@ const BookingDetailsScreen = ({
     onProceedToPayment,
     onReschedule,
     onViewReceipt,
-    onCancelConfirm,
-    onRefundConfirm,
-    onResubmitDocuments,
-    onUpdateContacts,
+    onCancelConfirm, onRefundConfirm,
+    onResubmitDocuments, onUpdateContacts,
     currentUserProfile,
     onSyncBookingVerification,
     onSearchUser,
@@ -115,7 +110,7 @@ const BookingDetailsScreen = ({
     onWithdrawCancellation,
     onUpdateCancellationReason,
     onAcceptAdminCancellation,
-}: BookingDetailsScreenProps) => {
+}: BookingDetailsScreenProps): React.JSX.Element => {
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
     const [showCancelDraftModal, setShowCancelDraftModal] = useState<boolean>(false);
     const [isCancelingDraft, setIsCancelingDraft] = useState<boolean>(false);
@@ -133,21 +128,9 @@ const BookingDetailsScreen = ({
     const [localDocs, setLocalDocs] = useState<Requirements[]>(booking?.documents || []);
     const [localStatus, setLocalStatus] = useState<BookingStatus | undefined>(booking?.status);
 
-    const [stagedReplacements, setStagedReplacements] = useState<Record<number, string>>({});
-    const [isSubmittingDocs, setIsSubmittingDocs] = useState<boolean>(false);
-    const [confirmResubmitModalVisible, setConfirmResubmitModalVisible] = useState<boolean>(false);
-
-    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string; type: 'error' | 'success' }>({
-        visible: false,
-        message: '',
-        type: 'error',
-    });
-
     const [localUserPhone, setLocalUserPhone] = useState<string>(booking?.user?.phoneNumber || '');
     const [localEmergencyContact, setLocalEmergencyContact] = useState<IEmergencyContact | undefined>(booking?.emergencyContact);
     const [hasStagedContactChanges, setHasStagedContactChanges] = useState<boolean>(false);
-    const [linkedEmergencyVerifiedAt, setLinkedEmergencyVerifiedAt] = useState<Date | null>(null);
     const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
     const [prevBooking, setPrevBooking] = useState(booking);
@@ -155,9 +138,6 @@ const BookingDetailsScreen = ({
         setPrevBooking(booking);
         setLocalDocs(booking?.documents || []);
         setLocalStatus(booking?.status);
-        setStagedReplacements({});
-        setHasAttemptedSubmit(false);
-        setToastConfig({ visible: false, message: '', type: 'error' });
         setLocalUserPhone(booking?.user?.phoneNumber || '');
         setLocalEmergencyContact(booking?.emergencyContact);
         setHasStagedContactChanges(false);
@@ -188,7 +168,7 @@ const BookingDetailsScreen = ({
                     const fetchedData = await getBookOffer(booking.offer.id);
                     setFullOffer(fetchedData);
                 } catch (error) {
-                    console.error("Failed to load offer details:", error);
+                    logger('BookingDetailsScreen', 'Failed to load offer details', error);
                 } finally {
                     setIsLoadingOffer(false);
                 }
@@ -235,93 +215,19 @@ const BookingDetailsScreen = ({
     }
 
     const user = booking?.user;
-    const cancellationReason = booking?.cancellationReason;
 
-    // Determine effective user phone verification:
-    // If the booking itself has a valid timestamp and phone matches localUserPhone, use it.
-    // If missing on booking, fallback to currentUserProfile.phoneVerifiedAt if phone matches.
-    const effectiveUserPhoneVerifiedAt = useMemo(() => {
-        const bookingClean = cleanPhoneNumber(booking?.user?.phoneNumber || '');
-        const currentClean = cleanPhoneNumber(localUserPhone);
-
-        if (booking?.user?.phoneVerifiedAt && bookingClean === currentClean) {
-            return booking.user.phoneVerifiedAt;
-        }
-
-        if (currentUserProfile?.phoneVerifiedAt && currentUserProfile?.phoneNumber) {
-            const profileClean = cleanPhoneNumber(currentUserProfile.phoneNumber);
-            if (currentClean && currentClean === profileClean) {
-                return currentUserProfile.phoneVerifiedAt;
-            }
-        }
-
-        return null;
-    }, [booking?.user, localUserPhone, currentUserProfile]);
-
-    // Resolve linked emergency contact user profile if linked via userId
-    useEffect(() => {
-        let isMounted = true;
-
-        const resolveLinkedEmergencyContact = async () => {
-            if (localEmergencyContact?.userId && !localEmergencyContact.phoneVerifiedAt) {
-                try {
-                    const contactUser = await UserRepo.fetchById(localEmergencyContact.userId);
-                    if (isMounted && contactUser) {
-                        const contactPhoneClean = cleanPhoneNumber(contactUser.phoneNumber || '');
-                        const emergencyPhoneClean = cleanPhoneNumber(localEmergencyContact.contactNumber || '');
-
-                        if (contactPhoneClean && contactPhoneClean === emergencyPhoneClean && contactUser.phoneVerifiedAt) {
-                            setLinkedEmergencyVerifiedAt(contactUser.phoneVerifiedAt);
-                            return;
-                        }
-                    }
-                } catch {
-                    // Fail silently, fallback to null
-                }
-            }
-            if (isMounted) {
-                setLinkedEmergencyVerifiedAt(null);
-            }
-        };
-
-        resolveLinkedEmergencyContact();
-        return () => {
-            isMounted = false;
-        };
-    }, [localEmergencyContact?.userId, localEmergencyContact?.phoneVerifiedAt, localEmergencyContact?.contactNumber]);
-
-    const effectiveEmergencyPhoneVerifiedAt = useMemo(() => {
-        const contactClean = cleanPhoneNumber(localEmergencyContact?.contactNumber || '');
-
-        if (localEmergencyContact?.phoneVerifiedAt) {
-            return localEmergencyContact.phoneVerifiedAt;
-        }
-
-        if (linkedEmergencyVerifiedAt) {
-            return linkedEmergencyVerifiedAt;
-        }
-
-        if (currentUserProfile?.emergencyContact?.phoneVerifiedAt && currentUserProfile?.emergencyContact?.contactNumber) {
-            const profileContactClean = cleanPhoneNumber(currentUserProfile.emergencyContact.contactNumber);
-            if (contactClean && contactClean === profileContactClean) {
-                return currentUserProfile.emergencyContact.phoneVerifiedAt;
-            }
-        }
-
-        return null;
-    }, [localEmergencyContact, linkedEmergencyVerifiedAt, currentUserProfile]);
-
-    const userPhoneValidity = calculateVerificationValidity(effectiveUserPhoneVerifiedAt);
-    const emergencyPhoneValidity = calculateVerificationValidity(effectiveEmergencyPhoneVerifiedAt);
-    const userExpiryText = formatVerificationExpiry(effectiveUserPhoneVerifiedAt);
-    const emergencyExpiryText = formatVerificationExpiry(effectiveEmergencyPhoneVerifiedAt);
-
-    // Trigger flow-level verification synchronization if provided
-    useEffect(() => {
-        if (onSyncBookingVerification && booking) {
-            onSyncBookingVerification(booking);
-        }
-    }, [booking, onSyncBookingVerification]);
+    const {
+        userPhoneValidity,
+        emergencyPhoneValidity,
+        userExpiryText,
+        emergencyExpiryText,
+    } = useBookingContactVerification({
+        booking,
+        localUserPhone,
+        localEmergencyContact,
+        currentUserProfile,
+        onSyncBookingVerification,
+    });
 
 
     const hasPendingCancellation = cancellation?.status === 'pending';
@@ -359,9 +265,30 @@ const BookingDetailsScreen = ({
     const showMenuIcon = canCancelDraft || canCancelBooking || canRefund || canReschedule;
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
 
-    const inclusions = fullOffer?.inclusions || [];
-    const thingsToBring = fullOffer?.thingsToBring || [];
-    const reminders = fullOffer?.reminders || [];
+    const inclusions = useMemo((): string[] => {
+        const raw = fullOffer?.inclusions;
+        if (!raw || !Array.isArray(raw)) return [];
+        return raw
+            .map((item: string) => (typeof item === 'string' ? item.trim() : String(item ?? '').trim()))
+            .filter((item: string) => item.length > 0);
+    }, [fullOffer?.inclusions]);
+
+    const thingsToBring = useMemo((): string[] => {
+        const raw = fullOffer?.thingsToBring;
+        if (!raw || !Array.isArray(raw)) return [];
+        return raw
+            .map((item: string) => (typeof item === 'string' ? item.trim() : String(item ?? '').trim()))
+            .filter((item: string) => item.length > 0);
+    }, [fullOffer?.thingsToBring]);
+
+    const reminders = useMemo((): string[] => {
+        const raw = fullOffer?.reminders;
+        if (!raw || !Array.isArray(raw)) return [];
+        return raw
+            .map((item: string) => (typeof item === 'string' ? item.trim() : String(item ?? '').trim()))
+            .filter((item: string) => item.length > 0);
+    }, [fullOffer?.reminders]);
+
     const schedule = fullOffer?.schedule || [];
 
     const enhancedBooking = {
@@ -378,188 +305,59 @@ const BookingDetailsScreen = ({
         }
     };
 
-    const isPhoneRejection = Boolean(cancellationReason && /phone|contact|unreachable/i.test(cancellationReason));
-    const isRejectedReservation = !isCancelled && displayStatus === 'reservation-rejected';
-
-    const originalRejectedIndices = useMemo(() => {
-        return (booking?.documents || [])
-            .map((doc, index) => (doc.valid === 'rejected' ? index : -1))
-            .filter((index): index is number => index !== -1);
-    }, [booking?.documents]);
-
-    const totalRejectedCount = originalRejectedIndices.length;
-    const stagedCount = originalRejectedIndices.filter((idx) => Boolean(stagedReplacements[idx])).length;
-    const remainingRejectedCount = totalRejectedCount - stagedCount;
-
-    const docsReady = totalRejectedCount === 0 || remainingRejectedCount === 0;
-    const contactReady = !isPhoneRejection || hasStagedContactChanges || localUserPhone !== booking?.user?.phoneNumber;
-    const canResubmitAll = isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges) && docsReady && contactReady;
-
-    const handleExecuteResubmit = async () => {
-        setConfirmResubmitModalVisible(false);
-        setIsSubmittingDocs(true);
-
-        try {
-            const updatedDocs: Requirements[] = localDocs.map((doc, idx) => {
-                const stagedUrl = stagedReplacements[idx];
-                if (stagedUrl) {
-                    return {
-                        name: doc.name || 'Document',
-                        file: stagedUrl,
-                        valid: 'pending' as const
-                    };
-                }
-                return doc;
-            });
-
-            let success = false;
-
-            if (onResubmitDocuments) {
-                success = await onResubmitDocuments(
-                    booking,
-                    updatedDocs,
-                    localUserPhone,
-                    localEmergencyContact
-                );
-            }
-
-            if (success) {
-                setLocalDocs(updatedDocs);
-                setLocalStatus('for-reservation');
-                setStagedReplacements({});
-                setHasStagedContactChanges(false);
-                setToastConfig({
-                    visible: true,
-                    message: RESUBMIT_TOASTS.RESUBMIT_SUCCESS,
-                    type: 'success',
-                });
-            } else {
-                setToastConfig({
-                    visible: true,
-                    message: RESUBMIT_TOASTS.RESUBMIT_ERROR,
-                    type: 'error',
-                });
-            }
-        } catch (err: unknown) {
-            console.error('Error in handleExecuteResubmit:', err);
-            setToastConfig({
-                visible: true,
-                message: err instanceof Error ? err.message : RESUBMIT_TOASTS.RESUBMIT_ERROR,
-                type: 'error',
-            });
-        } finally {
-            setIsSubmittingDocs(false);
-        }
-    };
-
-    const handleResubmitPress = () => {
-        if (!canResubmitAll) {
-            setHasAttemptedSubmit(true);
-            let msg: string = RESUBMIT_TOASTS.DOCS_REPLACE_REQUIRED(remainingRejectedCount);
-            if (isPhoneRejection && !contactReady && totalRejectedCount > 0 && remainingRejectedCount > 0) {
-                msg = RESUBMIT_TOASTS.BOTH_UPDATE_REQUIRED;
-            } else if (isPhoneRejection && !contactReady) {
-                msg = RESUBMIT_TOASTS.CONTACT_UPDATE_REQUIRED;
-            } else if (remainingRejectedCount === 1) {
-                msg = RESUBMIT_TOASTS.DOC_REPLACE_REQUIRED;
-            }
-            setToastConfig({
-                visible: true,
-                message: msg,
-                type: 'error',
-            });
-            return;
-        }
-
-        setConfirmResubmitModalVisible(true);
-    };
-
-    const getFooterConfig = () => {
-        if (isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges)) {
-            const buttonTitle = getResubmitButtonTitle(
-                isSubmittingDocs,
-                canResubmitAll,
-                stagedCount,
-                totalRejectedCount,
-                isPhoneRejection && !contactReady
-            );
-
-            return {
-                primaryButton: {
-                    title: buttonTitle,
-                    variant: "primary" as const,
-                    disabled: isSubmittingDocs,
-                    style: {
-                        borderRadius: 12,
-                        backgroundColor: canResubmitAll
-                            ? Colors.PRIMARY
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
-                        borderColor: canResubmitAll
-                            ? Colors.PRIMARY
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
-                        borderWidth: 1.5,
-                    },
-                    textStyle: {
-                        color: canResubmitAll
-                            ? Colors.WHITE
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
-                        fontWeight: 'bold' as const,
-                    },
-                    onPress: handleResubmitPress,
-                }
-            };
-        }
-
-        if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
-            return {
-                primaryButton: {
-                    title: "Complete Payment",
-                    variant: "primary" as const,
-                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
-                    onPress: () => onProceedToPayment(booking)
-                }
-            };
-        }
-
-        if (displayStatus === 'downpayment') {
-            return {
-                secondaryButton: {
-                    title: "View Receipt",
-                    variant: "outline" as const,
-                    style: { borderColor: Colors.PRIMARY, borderRadius: 12 },
-                    textStyle: { color: Colors.PRIMARY },
-                    onPress: () => onViewReceipt(booking)
-                },
-                primaryButton: {
-                    title: "Pay Balance",
-                    variant: "primary" as const,
-                    style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
-                    onPress: () => onProceedToPayment(booking)
-                }
-            };
-        }
-
-        if (isConfirmed || (isCancelled && hasHistoricalPayments)) {
-            return {
-                primaryButton: {
-                    title: "View Receipt",
-                    variant: "primary" as const,
-                    style: { borderRadius: 12 },
-                    onPress: () => onViewReceipt(booking)
-                }
-            };
-        }
-
-        return null;
-    };
-
+    const {
+        stagedReplacements, setStagedReplacements,
+        isSubmittingDocs,
+        confirmResubmitModalVisible, setConfirmResubmitModalVisible,
+        hasAttemptedSubmit, setHasAttemptedSubmit,
+        toastConfig, setToastConfig,
+        originalRejectedIndices,
+        totalRejectedCount,
+        stagedCount,
+        isPhoneRejection,
+        isRejectedReservation,
+        contactReady,
+        canResubmitAll,
+        handleExecuteResubmit,
+        handleResubmitPress,
+    } = useBookingResubmit({
+        booking,
+        localDocs,
+        localUserPhone,
+        localEmergencyContact,
+        onResubmitDocuments,
+        setLocalDocs,
+        setLocalStatus,
+        setHasStagedContactChanges,
+        displayStatus,
+        isCancelled,
+        hasStagedContactChanges,
+    });
 
     const resubmitModalContent = getResubmitModalContent(
         totalRejectedCount,
         hasStagedContactChanges || isPhoneRejection
     );
 
-    const footerConfig = getFooterConfig();
+    const footerConfig = getBookingFooterConfig({
+        booking,
+        displayStatus,
+        isRejectedReservation,
+        totalRejectedCount,
+        isPhoneRejection,
+        hasStagedContactChanges,
+        isSubmittingDocs,
+        canResubmitAll,
+        stagedCount,
+        contactReady,
+        hasAttemptedSubmit,
+        isConfirmed,
+        isCancelled,
+        hasHistoricalPayments,
+        handleResubmitPress,
+        onProceedToPayment,
+        onViewReceipt,
+    });
 
     if (isLoadingOffer) {
         return (
@@ -582,7 +380,7 @@ const BookingDetailsScreen = ({
                 rightActions={
                     showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
-                            <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.TEXT_PRIMARY} />
+                            <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     ) : undefined
                 }
@@ -737,7 +535,9 @@ const BookingDetailsScreen = ({
                             {inclusions.map((item: string, idx: number) => (
                                 <View key={idx} style={styles.bulletRow}>
                                     <View style={styles.tinyDot} />
-                                    <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
+                                    <CustomText variant="caption" style={styles.bulletText}>
+                                        {item}
+                                    </CustomText>
                                 </View>
                             ))}
                         </AccordionItem>
@@ -748,51 +548,26 @@ const BookingDetailsScreen = ({
                             {thingsToBring.map((item: string, idx: number) => (
                                 <View key={idx} style={styles.bulletRow}>
                                     <View style={styles.tinyDot} />
-                                    <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
+                                    <CustomText variant="caption" style={styles.bulletText}>
+                                        {item}
+                                    </CustomText>
                                 </View>
                             ))}
                         </AccordionItem>
                     )}
 
-                    {schedule.length > 0 && (
-                        <AccordionItem title="Itinerary" icon="map" defaultOpen={isConfirmed}>
-                            <View style={styles.timelineContainer}>
-                                {schedule.map((dayData: ISchedule<Date>, dayIdx: number) => (
-                                    <View key={dayIdx} style={styles.timelineDay}>
-                                        <CustomText variant="label" style={styles.dayLabelText}>Day {dayData.day}</CustomText>
-                                        {dayData.activities?.map((act: IActivity<Date>, actIdx: number) => (
-                                            <View key={actIdx} style={styles.timelineRow}>
-                                                <View style={styles.timelineDot} />
-                                                <View style={styles.timelineContent}>
-                                                    <CustomText variant="label" style={styles.timelineTime}>
-                                                        {formatTime(act.time)} — {act.event.split(' - ')[0] || 'Activity'}
-                                                    </CustomText>
-                                                    {act.event.includes(' - ') && (
-                                                        <CustomText variant="caption" style={styles.timelineSubEvent}>
-                                                            {act.event.split(' - ')[1]}
-                                                        </CustomText>
-                                                    )}
-                                                </View>
-                                            </View>
-                                        ))}
-                                    </View>
-                                ))}
-                            </View>
-                        </AccordionItem>
-                    )}
+                    <ItinerarySection schedule={schedule} isConfirmed={isConfirmed} />
 
                     {reminders.length > 0 && (
                         <AccordionItem title="Important Reminders" icon="alert-circle" defaultOpen={!isCancelled}>
-                            {Array.isArray(reminders) ? (
-                                reminders.map((item: string, idx: number) => (
-                                    <View key={idx} style={styles.bulletRow}>
-                                        <View style={styles.tinyDot} />
-                                        <CustomText variant="caption" style={styles.bulletText}>{item}</CustomText>
-                                    </View>
-                                ))
-                            ) : (
-                                <CustomText variant="caption" style={styles.bulletText}>{reminders}</CustomText>
-                            )}
+                            {reminders.map((item: string, idx: number) => (
+                                <View key={idx} style={styles.bulletRow}>
+                                    <View style={styles.tinyDot} />
+                                    <CustomText variant="caption" style={styles.bulletText}>
+                                        {item}
+                                    </CustomText>
+                                </View>
+                            ))}
                         </AccordionItem>
                     )}
 
@@ -809,12 +584,10 @@ const BookingDetailsScreen = ({
             </ScrollView>
 
             {footerConfig && (
-                <View style={styles.floatingFooterContainer}>
-                    <CustomStickyFooter
-                        primaryButton={footerConfig.primaryButton}
-                        secondaryButton={footerConfig.secondaryButton}
-                    />
-                </View>
+                <CustomStickyFooter
+                    primaryButton={footerConfig.primaryButton}
+                    secondaryButton={footerConfig.secondaryButton}
+                />
             )}
 
             <CancelBookingModal
@@ -945,89 +718,18 @@ const BookingDetailsScreen = ({
                 }}
             />
 
-            <ConfirmationModal
-                visible={confirmResubmitModalVisible}
-                onClose={() => !isSubmittingDocs && setConfirmResubmitModalVisible(false)}
-                onConfirm={handleExecuteResubmit}
-                title={resubmitModalContent.title}
-                message={resubmitModalContent.message}
-                confirmText={resubmitModalContent.confirmText}
-                cancelText={resubmitModalContent.cancelText}
-                iconName={resubmitModalContent.iconName}
-                iconLibrary={resubmitModalContent.iconLibrary}
-                iconColor={resubmitModalContent.iconColor}
+            <BookingActionMenuModal
+                visible={showActionMenu}
+                onClose={() => setShowActionMenu(false)}
+                canReschedule={canReschedule}
+                canCancelDraft={canCancelDraft}
+                canCancelBooking={canCancelBooking}
+                canRefund={canRefund}
+                onReschedulePress={() => setShowRescheduleModal(true)}
+                onCancelDraftPress={() => setShowCancelDraftModal(true)}
+                onCancelBookingPress={() => setActiveCancelModal('cancel')}
+                onRefundPress={() => setActiveCancelModal('refund')}
             />
-
-            <Modal transparent={true} visible={showActionMenu} animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
-                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowActionMenu(false)}>
-                    <View style={styles.actionSheetWrapper}>
-                        <View style={styles.actionSheet}>
-                            <View style={styles.actionSheetHandle} />
-                            <CustomText variant="h3" style={styles.actionSheetTitle}>Booking Options</CustomText>
-
-                            {canReschedule && (
-                                <TouchableOpacity
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        setShowActionMenu(false);
-                                        setTimeout(() => setShowRescheduleModal(true), 300);
-                                    }}
-                                >
-                                    <View style={styles.actionIconBgPrimary}>
-                                        <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
-                                    </View>
-                                    <CustomText style={styles.actionItemText}>Reschedule Booking</CustomText>
-                                </TouchableOpacity>
-                            )}
-
-                            {canCancelDraft && (
-                                <TouchableOpacity
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        setShowActionMenu(false);
-                                        setTimeout(() => setShowCancelDraftModal(true), 300);
-                                    }}
-                                >
-                                    <View style={styles.actionIconBgError}>
-                                        <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
-                                    </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel Reservation</CustomText>
-                                </TouchableOpacity>
-                            )}
-
-                            {canCancelBooking && (
-                                <TouchableOpacity
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        setShowActionMenu(false);
-                                        setTimeout(() => setActiveCancelModal('cancel'), 300);
-                                    }}
-                                >
-                                    <View style={styles.actionIconBgError}>
-                                        <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
-                                    </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel Booking</CustomText>
-                                </TouchableOpacity>
-                            )}
-
-                            {canRefund && (
-                                <TouchableOpacity
-                                    style={styles.actionItem}
-                                    onPress={() => {
-                                        setShowActionMenu(false);
-                                        setTimeout(() => setActiveCancelModal('refund'), 300);
-                                    }}
-                                >
-                                    <View style={styles.actionIconBgError}>
-                                        <CustomIcon library="Feather" name="refresh-ccw" size={18} color={Colors.ERROR} />
-                                    </View>
-                                    <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>Cancel & Request Refund</CustomText>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
 
             {/* Confirmation Modal for canceling pre-approval draft reservations */}
             <ConfirmationModal
@@ -1170,108 +872,6 @@ const styles = StyleSheet.create({
     bulletText: {
         flex: 1,
         lineHeight: 22
-    },
-    timelineContainer: {
-        borderLeftWidth: 1,
-        borderLeftColor: Colors.GRAY_LIGHT,
-        marginLeft: 8,
-        paddingLeft: 16,
-        marginTop: 8
-    },
-    timelineDay: {
-        marginBottom: 20
-    },
-    dayLabelText: {
-        fontWeight: 'bold',
-        color: Colors.PRIMARY,
-        marginBottom: 12
-    },
-    timelineRow: {
-        flexDirection: 'row',
-        marginBottom: 16,
-        position: 'relative'
-    },
-    timelineDot: {
-        position: 'absolute',
-        left: -20.5,
-        top: 6,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: Colors.PRIMARY
-    },
-    timelineContent: {
-        flex: 1
-    },
-    timelineTime: {
-        fontWeight: 'bold',
-        fontSize: 13,
-        color: Colors.TEXT_PRIMARY
-    },
-    timelineSubEvent: {
-        lineHeight: 20,
-        marginTop: 2
-    },
-    floatingFooterContainer: {
-        paddingBottom: 20,
-        paddingHorizontal: 10,
-        backgroundColor: 'transparent'
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-        alignItems: 'center'
-    },
-    actionSheetWrapper: {
-        width: '100%',
-        maxWidth: 768
-    },
-    actionSheet: {
-        backgroundColor: Colors.WHITE,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-        paddingBottom: 40
-    },
-    actionSheetHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: Colors.GRAY_LIGHT,
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: 16
-    },
-    actionSheetTitle: {
-        marginBottom: 20
-    },
-    actionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.GRAY_ULTRALIGHT,
-        gap: 16
-    },
-    actionIconBgPrimary: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    actionIconBgError: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.ERROR_BG,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    actionItemText: {
-        fontSize: 16,
-        fontWeight: '600',
     },
 });
 
