@@ -3,15 +3,24 @@
  * @description Main container screen for displaying a user's booking list, filtering, payment overview, and receipt views.
  */
 
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 import CustomFilterModal from '@/src/components/CustomFilterModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomLoading from "@/src/components/CustomLoading";
+import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
 import CustomToast from '@/src/components/CustomToast';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -22,14 +31,17 @@ import BookTabs from '@/src/features/Book/components/BookTabs';
 import useBookingFilters from '@/src/features/Book/hooks/useBookingFilters';
 
 import BookingDetailsScreen from '@/src/features/Book/screens/MyBookings/BookingDetailsScreen';
+import MyBookingsEmptyState from '@/src/features/Book/screens/MyBookings/components/MyBookingsEmptyState';
+import MyBookingsSkeleton from '@/src/features/Book/screens/MyBookings/components/MyBookingsSkeleton';
+import { MyBookingsView, useMyBookingsWorkflow } from '@/src/features/Book/screens/MyBookings/hooks/useMyBookingsWorkflow';
 import PaymentScreen, { PaymentResultResponse } from '@/src/features/Book/screens/Payment/PaymentScreen';
 import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
+import { UserSearchResult } from '@/src/components/EmergencyModal';
 import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
-import { UserSearchResult } from '@/src/components/EmergencyModal';
 
 export interface MyBookingsScreenProps {
     /** Array of user's bookings */
@@ -64,7 +76,7 @@ export interface MyBookingsScreenProps {
     /** Initial booking ID to open */
     initialBookingId?: string | null;
     /** Initial view mode */
-    initialView?: 'list' | 'overview' | 'payment' | 'receipt';
+    initialView?: MyBookingsView;
     /** Callback for Terms of Service */
     onTermsPress: () => void;
     /** Callback for Privacy Policy */
@@ -83,6 +95,12 @@ export interface MyBookingsScreenProps {
     onSyncBookingVerification?: (booking: Booking) => Promise<void>;
     /** Async user search passed to emergency setup modal */
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
+    /** Callback to explore trails when zero bookings exist */
+    onExplorePress?: () => void;
+    /** Callback to retry loading on error */
+    onRetry?: () => void;
+    /** Loading indicator for active retry request */
+    isRetrying?: boolean;
 }
 
 /**
@@ -90,10 +108,10 @@ export interface MyBookingsScreenProps {
  * 
  * @param {MyBookingsScreenProps} props - Component props
  */
-const MyBookingsScreen = ({
-    userBookings,
+const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
+    userBookings = [],
     error,
-    isLoading,
+    isLoading = false,
     onBackPress,
     onCancelBookingPress,
     onRefundBookingPress,
@@ -110,169 +128,185 @@ const MyBookingsScreen = ({
     currentUserProfile,
     onSyncBookingVerification,
     onSearchUser,
-    userCancellations,
+    userCancellations = [],
     onWithdrawCancellation,
     onUpdateCancellationReason,
     onAcceptAdminCancellation,
-}: MyBookingsScreenProps) => {
-    const initialKey = `${initialView || 'list'}_${initialBookingId || ''}`;
-    const [prevInitialKey, setPrevInitialKey] = useState(initialKey);
-    const [currentView, setCurrentView] = useState<'list' | 'overview' | 'payment' | 'receipt'>(initialView || 'list'); 
-    const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId || null);
+    onExplorePress,
+    onRetry,
+    isRetrying = false,
+}) => {
     const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
-    const [toastConfig, setToastConfig] = useState<{
-        visible: boolean;
-        type: 'success' | 'error';
-        message: string;
-    }>({
-        visible: false,
-        type: 'success',
-        message: '',
+
+    // Coordinate workflows, view transitions, selection, and toast notifications
+    const {
+        currentView, setCurrentView,
+        selectedBooking,
+        selectedBookingCancellation,
+        toastConfig,
+        hideToast,
+        handleHeaderBackPress,
+        handleBookingSelectPress,
+        handleProceedToPaymentPress,
+        handleViewReceiptPress,
+        handleCancelConfirm,
+        handleRescheduleConfirm,
+        handleRefundConfirm,
+    } = useMyBookingsWorkflow({
+        userBookings,
+        userCancellations,
+        initialBookingId,
+        initialView,
+        onBackPress,
+        onCancelBookingPress,
+        onRescheduleBooking,
+        onRefundBookingPress,
     });
 
-    if (initialKey !== prevInitialKey) {
-        setPrevInitialKey(initialKey);
-        if (initialView && initialBookingId) {
-            setSelectedBookingId(initialBookingId);
-            setCurrentView(initialView);
-        }
-    }
-
-    const selectedBooking = userBookings?.find(b => b.id === selectedBookingId) || null;
-    const selectedBookingCancellation =
-        userCancellations?.find(c => c.bookingId === selectedBookingId) || null;
-
-    const { 
-        tabs, 
-        activeTab, 
-        setActiveTab, 
+    // In-memory tab, sort, and status filtering
+    const {
+        tabs,
+        activeTab, setActiveTab,
         filteredBookings,
-        sortBy,
-        setSortBy,
-        filterBy,
-        setFilterBy
+        filterSections,
+        sortBy, setSortBy,
+        sortOrder, setSortOrder,
+        filterBy, setFilterBy,
     } = useBookingFilters(userBookings, userCancellations);
-
-    const onHeaderBackPress = () => {
-        if (currentView === 'overview') {
-            setCurrentView('list');
-            return;
-        }
-        if (currentView === 'payment') {
-            setCurrentView('overview');
-            return;
-        }
-        if (currentView === 'receipt') {
-            setCurrentView('overview');
-            return;
-        }
-        onBackPress();
-    };
-
-    const onBookingSelectPress = (booking: Booking) => {
-        setSelectedBookingId(booking.id);
-        setCurrentView('overview'); 
-    };
-
-    const onProceedToPaymentPress = () => {
-        setCurrentView('payment');
-    };
-
-    const filterSections = [
-        {
-            id: 'sortBy',
-            title: 'Sort By',
-            type: 'radio' as const,
-            options: [
-                { label: 'Hike Date', value: 'hike-date' },
-                { label: 'Date Booked', value: 'booked-date' },
-                { label: 'Recently Updated', value: 'last-updated' } 
-            ]
-        },
-        {
-            id: 'filterBy',
-            title: 'Filter By',
-            type: 'pill' as const,
-            multiSelect: false,
-            options: [
-                { label: 'Show All', value: 'all' },
-                { label: 'Action Needed', value: 'action-needed' },
-                { label: 'Waiting on Provider', value: 'waiting' },
-                { label: 'Partially Paid', value: 'partial' }
-            ]
-        }
-    ];
 
     const displayError = error === 'No trail ID provided' ? null : error;
 
+    const flatListRef = useRef<FlatList<Booking>>(null);
+    const scrollOffsetY = useRef<number>(0);
+
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        scrollOffsetY.current = event.nativeEvent.contentOffset.y;
+    }, []);
+
+    const handleTabPress = useCallback((tabId: import('@/src/features/Book/hooks/useBookingFilters').TabId) => {
+        if (tabId === activeTab) {
+            if (scrollOffsetY.current > 0) {
+                const shouldAnimate = scrollOffsetY.current < 3000;
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: shouldAnimate });
+            }
+        } else {
+            setActiveTab(tabId);
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+        }
+    }, [activeTab, setActiveTab]);
+
+    // View 1: Main Bookings List
     if (currentView === 'list') {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader 
-                    title="My Bookings" 
-                    centerTitle={true} 
-                    onBackPress={onHeaderBackPress} 
+                <CustomHeader
+                    title="My Bookings"
+                    centerTitle={true}
+                    onBackPress={handleHeaderBackPress}
                     rightActions={
-                        <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowFilterModal(true)} activeOpacity={0.7}>
-                            <CustomIcon library="Feather" name="sliders" size={22} color={Colors.PRIMARY} />
+                        <TouchableOpacity
+                            style={styles.headerOptionsBtn}
+                            onPress={() => setShowFilterModal(true)}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon
+                                library="Feather"
+                                name="sliders"
+                                size={22}
+                                color={Colors.PRIMARY}
+                            />
                         </TouchableOpacity>
                     }
                 />
 
-                <View style={styles.constrainer}>
-                    <BookTabs 
+                <View style={[styles.constrainer, styles.stickyTabsContainer]}>
+                    <BookTabs
                         tabs={tabs}
                         activeTab={activeTab}
-                        onTabChange={(id: string) => setActiveTab(id as import('@/src/features/Book/hooks/useBookingFilters').TabId)}
+                        onTabChange={(id: string) =>
+                            handleTabPress(id as import('@/src/features/Book/hooks/useBookingFilters').TabId)
+                        }
                     />
                 </View>
 
-                <ScrollView 
-                    showsVerticalScrollIndicator={false} 
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    <View style={styles.constrainer}>
-                        {displayError && (
-                            <View style={styles.errorBox}>
-                                <CustomText variant="caption" color={Colors.ERROR}>
-                                    {displayError}
-                                </CustomText>
-                            </View>
-                        )}
-
-                        {filteredBookings.length > 0 ? (
-                            filteredBookings.map((booking: Booking) => (
-                                <BookingCard 
-                                    key={booking.id} 
-                                    booking={booking} 
-                                    cancellation={userCancellations?.find(c => c.bookingId === booking.id)}
-                                    onSelectBooking={onBookingSelectPress} 
+                <FlatList
+                    ref={flatListRef}
+                    data={filteredBookings}
+                    keyExtractor={(item) => item.id}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    renderItem={({ item }) => (
+                        <View style={styles.constrainer}>
+                            <BookingCard
+                                booking={item}
+                                cancellation={userCancellations.find(c => c.bookingId === item.id)}
+                                onSelectBooking={handleBookingSelectPress}
+                            />
+                        </View>
+                    )}
+                    ListHeaderComponent={
+                        displayError ? (
+                            <View style={styles.constrainer}>
+                                <ErrorMessage
+                                    error={displayError}
+                                    onRetry={onRetry}
+                                    isRetrying={isRetrying}
                                 />
-                            ))
-                        ) : (
-                            <View style={styles.emptyState}>
-                                <CustomIcon library="Feather" name="inbox" size={48} color={Colors.GRAY_LIGHT} />
-                                <CustomText variant="body" style={styles.emptyText}>
-                                    No bookings found with current filters.
+                            </View>
+                        ) : null
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.constrainer}>
+                            {isLoading ? (
+                                <MyBookingsSkeleton count={3} />
+                            ) : (
+                                <MyBookingsEmptyState
+                                    activeTab={activeTab}
+                                    filterBy={filterBy}
+                                    isZeroBookingsAccount={userBookings.length === 0}
+                                    onExplorePress={onExplorePress}
+                                    onResetFiltersPress={() => setFilterBy('all')}
+                                />
+                            )}
+                        </View>
+                    }
+                    ListFooterComponent={
+                        filteredBookings.length > 0 && !isLoading ? (
+                            <View style={[styles.constrainer, styles.footerContainer]}>
+                                <CustomText variant="caption" style={styles.footerText}>
+                                    No more bookings to show.
                                 </CustomText>
                             </View>
-                        )}
-                    </View>
-                </ScrollView>
+                        ) : null
+                    }
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.listContent}
+                    initialNumToRender={5}
+                    windowSize={5}
+                    maxToRenderPerBatch={5}
+                    removeClippedSubviews={Platform.OS !== 'web'}
+                />
 
                 <CustomFilterModal
                     visible={showFilterModal}
                     onClose={() => setShowFilterModal(false)}
                     title="Sort & Filter"
                     sections={filterSections}
-                    initialValues={{ sortBy, filterBy }}
-                    defaultValues={{ sortBy: 'hike-date', filterBy: 'all' }}
+                    initialValues={{ sortBy, sortOrder, filterBy }}
+                    defaultValues={{
+                        sortBy: activeTab === 'pending' ? 'last-updated' : 'hike-date',
+                        sortOrder: activeTab === 'upcoming' ? 'asc' : 'desc',
+                        filterBy: 'all',
+                    }}
                     onApply={(values: Record<string, unknown>) => {
                         if (typeof values.sortBy === 'string') {
-                            setSortBy(values.sortBy as 'hike-date' | 'booked-date' | 'last-updated');
+                            setSortBy(values.sortBy as import('@/src/features/Book/hooks/useBookingFilters').SortBy);
+                        }
+                        if (typeof values.sortOrder === 'string') {
+                            setSortOrder(values.sortOrder as import('@/src/features/Book/hooks/useBookingFilters').SortOrder);
                         }
                         if (typeof values.filterBy === 'string') {
-                            setFilterBy(values.filterBy as 'all' | 'action-needed' | 'waiting' | 'partial');
+                            setFilterBy(values.filterBy as import('@/src/features/Book/hooks/useBookingFilters').FilterBy);
                         }
                     }}
                 />
@@ -283,17 +317,18 @@ const MyBookingsScreen = ({
                     message={toastConfig.message}
                     mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
                     position="tabbar"
-                    onHide={() => setToastConfig(prev => ({ ...prev, visible: false }))}
+                    onHide={hideToast}
                 />
-
             </ScreenWrapper>
         );
     }
 
+    // View 2: Booking Details / Overview
     if (currentView === 'overview') {
         if (!selectedBooking) {
             return (
                 <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                    <CustomHeader title="Booking Details" onBackPress={handleHeaderBackPress} />
                     <CustomLoading visible={true} message="Loading booking details..." />
                 </ScreenWrapper>
             );
@@ -304,9 +339,9 @@ const MyBookingsScreen = ({
                 booking={selectedBooking}
                 getBookOffer={getBookOffer}
                 availableFutureOffers={availableFutureOffers}
-                onBackPress={onHeaderBackPress}
-                onProceedToPayment={onProceedToPaymentPress}
-                onViewReceipt={() => setCurrentView('receipt')}
+                onBackPress={handleHeaderBackPress}
+                onProceedToPayment={handleProceedToPaymentPress}
+                onViewReceipt={handleViewReceiptPress}
                 onResubmitDocuments={onResubmitDocuments}
                 onUpdateContacts={onUpdateBookingContacts}
                 currentUserProfile={currentUserProfile}
@@ -316,66 +351,29 @@ const MyBookingsScreen = ({
                 onWithdrawCancellation={onWithdrawCancellation}
                 onUpdateCancellationReason={onUpdateCancellationReason}
                 onAcceptAdminCancellation={onAcceptAdminCancellation}
-                onCancelConfirm={async (booking, reason) => {
-                    const isDraft = booking.status === 'for-reservation';
-                    try {
-                        await onCancelBookingPress(booking, reason);
-                        if (isDraft) {
-                            setCurrentView('list');
-                            setToastConfig({
-                                visible: true,
-                                type: 'success',
-                                message: 'Reservation cancelled successfully.',
-                            });
-                        }
-                    } catch (err: unknown) {
-                        if (isDraft) {
-                            setCurrentView('list');
-                            setToastConfig({
-                                visible: true,
-                                type: 'error',
-                                message: err instanceof Error ? err.message : 'Failed to cancel reservation.',
-                            });
-                        }
-                        throw err;
-                    }
-                }}
-                onRefundConfirm={async (booking, reason) => {
-                    if (onRefundBookingPress) {
-                        await onRefundBookingPress(booking, reason);
-                    }
-                }}
-                onReschedule={async (booking, newOffer) => {
-                    if (onRescheduleBooking) {
-                        try {
-                            await onRescheduleBooking(booking, newOffer);
-                            setCurrentView('list');
-                            setToastConfig({
-                                visible: true,
-                                type: 'success',
-                                message: 'Booking rescheduled successfully.',
-                            });
-                        } catch (err: unknown) {
-                            setCurrentView('list');
-                            setToastConfig({
-                                visible: true,
-                                type: 'error',
-                                message: err instanceof Error ? err.message : 'Failed to reschedule booking.',
-                            });
-                        }
-                    }
-                }}
+                onCancelConfirm={handleCancelConfirm}
+                onRefundConfirm={handleRefundConfirm}
+                onReschedule={handleRescheduleConfirm}
             />
         );
     }
 
+    // View 3: Payment Screen
     if (currentView === 'payment') {
-        if (!selectedBooking) return null; 
+        if (!selectedBooking) {
+            return (
+                <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                    <CustomHeader title="Payment" onBackPress={handleHeaderBackPress} />
+                    <CustomLoading visible={true} message="Loading payment details..." />
+                </ScreenWrapper>
+            );
+        }
+
         return (
-            <PaymentScreen 
+            <PaymentScreen
                 bookingData={selectedBooking}
                 onContinue={() => setCurrentView('overview')}
-                onBackPress={onHeaderBackPress}
+                onBackPress={handleHeaderBackPress}
                 onPayOffer={onPayOffer}
                 onTermsPress={onTermsPress}
                 onPrivacyPress={onPrivacyPress}
@@ -383,10 +381,19 @@ const MyBookingsScreen = ({
         );
     }
 
+    // View 4: Receipt Screen
     if (currentView === 'receipt') {
-        if (!selectedBooking) return null; 
+        if (!selectedBooking) {
+            return (
+                <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+                    <CustomHeader title="Receipt" onBackPress={handleHeaderBackPress} />
+                    <CustomLoading visible={true} message="Loading receipt..." />
+                </ScreenWrapper>
+            );
+        }
+
         return (
-            <ReceiptScreen 
+            <ReceiptScreen
                 bookingData={selectedBooking}
                 onFinish={() => setCurrentView('overview')}
             />
@@ -402,33 +409,25 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH,
         alignSelf: 'center',
     },
-    scrollContent: { 
-        padding: 16, 
+    listContent: {
+        paddingHorizontal: 16,
         paddingBottom: 40,
     },
     headerOptionsBtn: {
-        paddingHorizontal: 8
+        paddingHorizontal: 8,
     },
-    errorBox: { 
-        backgroundColor: Colors.ERROR_BG, 
-        padding: 12, 
-        borderRadius: 8, 
-        marginBottom: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.ERROR_BORDER,
+    stickyTabsContainer: {
+        zIndex: 10,
+        backgroundColor: Colors.BACKGROUND,
     },
-    emptyState: { 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        paddingVertical: 60, 
-        backgroundColor: Colors.WHITE, 
-        borderRadius: 16, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT,
+    footerContainer: {
+        paddingVertical: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    emptyText: { 
-        marginTop: 12, 
+    footerText: {
         color: Colors.TEXT_SECONDARY,
+        fontStyle: 'italic',
     },
 });
 
