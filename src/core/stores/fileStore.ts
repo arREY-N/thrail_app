@@ -53,7 +53,11 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 return "https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing"
             }
 
-            console.error('Error uploading document:', err);
+            const errMsg = err instanceof Error ? err.message : String(err);
+            const isCanceled = errMsg.toLowerCase().includes('cancel');
+            if (!isCanceled) {
+                console.error('Error uploading document:', err);
+            }
             throw err instanceof Error ? err : new Error('Failed to upload document');
         }
     },

@@ -9,10 +9,11 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import DocumentUploadCard, { getStrictDocKey } from '@/src/components/DocumentUploadCard';
+import ErrorMessage from '@/src/components/ErrorMessage';
 import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { BookingStatus, Requirements } from '@/src/core/models/Booking/Booking';
-import DocumentUploadCard, { getStrictDocKey } from '@/src/components/DocumentUploadCard';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 
 export interface RequiredDocumentsSectionProps {
@@ -51,6 +52,8 @@ const RequiredDocumentsSection = ({
     onUploadSuccess,
     onPreviewDoc,
 }: RequiredDocumentsSectionProps): React.JSX.Element | null => {
+    const [uploadError, setUploadError] = React.useState<string | null>(null);
+
     if (!localDocs || localDocs.length === 0) {
         return null;
     }
@@ -82,11 +85,16 @@ const RequiredDocumentsSection = ({
                     docName={docName}
                     docKey={getStrictDocKey(docName)}
                     variant="row"
+                    contentStyle={styles.documentRowContent}
                     showDivider={idx < localDocs.length - 1}
                     isUploaded={effectiveFileUrl}
                     isRejected={isStillRejected}
                     onUploadSuccess={(url: string) => {
+                        setUploadError(null);
                         onUploadSuccess(idx, url, docName);
+                    }}
+                    onError={(msg: string) => {
+                        setUploadError(`Failed to upload ${docName}: ${msg}`);
                     }}
                 />
             );
@@ -177,6 +185,14 @@ const RequiredDocumentsSection = ({
                     />
                 </View>
             )}
+            
+            {uploadError && (
+                <ErrorMessage 
+                    error={uploadError} 
+                    style={styles.errorBanner} 
+                />
+            )}
+
             {localDocs.map((doc: Requirements, idx: number) => renderDocumentRow(doc, idx))}
         </AccordionItem>
     );
@@ -205,8 +221,15 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         fontWeight: '500',
     },
+    errorBanner: {
+        marginBottom: 16,
+        width: 'auto',
+    },
     approvedRowWrapper: {
         width: '100%',
+    },
+    documentRowContent: {
+        paddingHorizontal: 0,
     },
     rowDivider: {
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -217,22 +240,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 14,
-        paddingHorizontal: 16,
+        paddingHorizontal: 0,
         backgroundColor: Colors.WHITE,
     },
     uploadInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-        paddingRight: 12,
+        paddingRight: 8,
     },
     iconWrapper: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 10,
     },
     iconWrapperSuccess: {
         backgroundColor: Colors.STATUS_APPROVED_BG,
@@ -257,6 +280,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         flexShrink: 0,
+        marginLeft: 'auto',
     },
     docViewBtn: {
         paddingVertical: 5,
