@@ -44,13 +44,14 @@ export interface IWeatherAlertBase<T> {
         windSpeed: number;
         uvIndex: number;
     };
-    checklist: {
+    checklist?: {
         id: string;
         label: string;
         category: 'gear' | 'safety' | 'hydration' | 'advisory';
         icon: string;
         library: string;
     }[];
+    hikeDate?: T | string | null;
     createdAt: T;
 }
 

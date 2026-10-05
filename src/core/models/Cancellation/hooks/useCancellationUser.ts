@@ -255,36 +255,16 @@ export function useCancellationUser() {
     }
     
     /**
-     * Requests a refund securely via Firebase Cloud Functions.
-     * Invokes PayMongo refund API and updates the booking status.
+     * Submits a refund and cancellation request for a paid booking for organizer review.
+     * Delegates to cancelBooking to register a pending cancellation request in Firestore.
      * 
-     * @param {Booking} booking - The booking object to refund.
+     * @param {Booking} booking - The booking object to request a refund for.
      * @param {string} reason - The user's reason for requesting a refund.
      * @returns {Promise<void>}
      */
-    const onRefundBooking = async (booking: Booking, reason: string) => {
-        try {
-            throw new Error("Refund processing is not yet implemented. This function is a placeholder for future development.");    
-        } catch (error) {
-            catchError(error as Error, 'writingError', 'onRefundBooking()');
-            setWritingError((error as Error).message || "An unexpected error occurred.");
-        }
-
-        // try {
-        //     if(!booking) throw new Error('No booking selected');
-            
-        //     const refundBookingFn = httpsCallable(functions, 'refundBooking');
-        //     await refundBookingFn({
-        //         bookingId: booking.id,
-        //         userId: profile?.id || profile?.uid,
-        //         reason: reason || 'User requested refund'
-        //     });
-
-        //     router.back();
-        // } catch (error) {
-        //     setLocalError((error as Error).message || 'Failed processing refund')  
-        // }
-    }
+    const onRefundBooking = async (booking: Booking, reason: string): Promise<void> => {
+        await cancelBooking(booking, reason);
+    };
 
     return {
         cancelBooking,

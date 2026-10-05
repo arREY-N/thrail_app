@@ -187,7 +187,7 @@ export const GroupRepository = (db: Firestore) => ({
                     windSpeed: 0,
                     uvIndex: 0,
                 },
-                checklist: docData.checklist || [],
+                hikeDate: docData.hikeDate?.toDate ? docData.hikeDate.toDate() : (docData.hikeDate || null),
                 createdAt: docData.createdAt?.toDate ? docData.createdAt.toDate() : new Date(),
             };
             onUpdate(alert);
