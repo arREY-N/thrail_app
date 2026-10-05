@@ -4,11 +4,11 @@
  * featuring organizer suggestion chips (weather, trail closures, safety) and custom reason input.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
-    Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -26,8 +26,6 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { ORGANIZER_CANCEL_REASONS } from '@/src/features/Admin/utils/reviewMessages';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface AdminCancelBookingModalProps {
     /** Whether the modal is visible */
@@ -57,6 +55,8 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     if (visible && !renderModal) {
         setRenderModal(true);
@@ -97,6 +97,26 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
         await onConfirm(reason.trim());
     };
 
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSub = Keyboard.addListener(showEvent, () => {
+            setIsKeyboardVisible(true);
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            setIsKeyboardVisible(false);
+        });
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
+
     if (!renderModal) return null;
 
     return (
@@ -105,10 +125,18 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
             visible={renderModal}
             animationType="none"
             onRequestClose={onClose}
+            statusBarTranslucent={true}
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.modalContainer}
+                style={[
+                    styles.modalContainer,
+                    {
+                        justifyContent: isKeyboardVisible ? 'flex-start' : 'center',
+                        paddingTop: isKeyboardVisible ? Math.max(insets.top + 16, 24) : 16,
+                        paddingBottom: isKeyboardVisible ? 16 : Math.max(insets.bottom + 16, 16),
+                    },
+                ]}
             >
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
                     <TouchableOpacity
@@ -121,18 +149,18 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
                 <Animated.View
                     style={[
                         styles.modalContent,
-                        isWideScreen ? styles.modalContentDesktop : styles.modalContentMobile,
-                        { paddingBottom: isWideScreen ? 24 : Math.max(insets.bottom + 20, 24) },
                         {
+                            maxWidth: isWideScreen ? 540 : 420,
+                            maxHeight: isKeyboardVisible ? '62%' : '88%',
+                            opacity: animValue,
                             transform: [
                                 {
-                                    translateY: animValue.interpolate({
+                                    scale: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
+                                        outputRange: [0.95, 1],
                                     }),
                                 },
                             ],
-                            opacity: isWideScreen ? animValue : 1,
                         },
                     ]}
                 >
@@ -161,6 +189,7 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
                     <View style={styles.divider} />
 
                     <ScrollView
+                        ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollBody}
                         keyboardShouldPersistTaps="handled"
@@ -252,7 +281,8 @@ const AdminCancelBookingModal: React.FC<AdminCancelBookingModalProps> = ({
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
-        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: 16,
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
@@ -264,20 +294,9 @@ const styles = StyleSheet.create({
     modalContent: {
         backgroundColor: Colors.WHITE,
         width: '100%',
-        maxHeight: '90%',
-        ...GlobalStyles.dropShadow(3),
-    },
-    modalContentMobile: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-    },
-    modalContentDesktop: {
-        alignSelf: 'center',
-        marginBottom: 'auto',
-        marginTop: 'auto',
-        width: '92%',
-        maxWidth: 580,
         borderRadius: 24,
+        paddingBottom: 20,
+        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 12 }),
     },
     header: {
         flexDirection: 'row',

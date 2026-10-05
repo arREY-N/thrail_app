@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
-    Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -20,8 +20,6 @@ import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface CancelBookingModalProps {
     /** Whether the modal is visible */
@@ -97,12 +95,34 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     }, [visible, animValue]);
 
     const isSubmittingRef = useRef(false);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
     useEffect(() => {
         if (!visible) {
             isSubmittingRef.current = false;
         }
     }, [visible]);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSub = Keyboard.addListener(showEvent, () => {
+            setIsKeyboardVisible(true);
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            setIsKeyboardVisible(false);
+        });
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
 
     const isRefund = actionType === 'refund';
 
@@ -161,10 +181,18 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
             visible={renderModal}
             animationType="none"
             onRequestClose={onClose}
+            statusBarTranslucent={true}
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.modalContainer}
+                style={[
+                    styles.modalContainer,
+                    {
+                        justifyContent: isKeyboardVisible ? 'flex-start' : 'center',
+                        paddingTop: isKeyboardVisible ? Math.max(insets.top + 16, 24) : 16,
+                        paddingBottom: isKeyboardVisible ? 16 : Math.max(insets.bottom + 16, 16),
+                    },
+                ]}
             >
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
                     <TouchableOpacity
@@ -177,18 +205,18 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                 <Animated.View
                     style={[
                         styles.modalContent,
-                        isWideScreen ? styles.modalContentDesktop : styles.modalContentMobile,
-                        { paddingBottom: isWideScreen ? 24 : Math.max(insets.bottom + 20, 24) },
                         {
+                            maxWidth: isWideScreen ? 540 : 420,
+                            maxHeight: isKeyboardVisible ? '62%' : '88%',
+                            opacity: animValue,
                             transform: [
                                 {
-                                    translateY: animValue.interpolate({
+                                    scale: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
+                                        outputRange: [0.95, 1],
                                     }),
                                 },
                             ],
-                            opacity: isWideScreen ? animValue : 1,
                         },
                     ]}
                 >
@@ -217,6 +245,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                     <View style={styles.divider} />
 
                     <ScrollView
+                        ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollBody}
                         keyboardShouldPersistTaps="handled"
@@ -323,7 +352,8 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
-        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: 16,
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
@@ -335,20 +365,9 @@ const styles = StyleSheet.create({
     modalContent: {
         backgroundColor: Colors.WHITE,
         width: '100%',
-        maxHeight: '90%',
-        ...GlobalStyles.dropShadow(3),
-    },
-    modalContentMobile: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-    },
-    modalContentDesktop: {
-        alignSelf: 'center',
-        marginBottom: 'auto',
-        marginTop: 'auto',
-        width: '92%',
-        maxWidth: 580,
         borderRadius: 24,
+        paddingBottom: 20,
+        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 12 }),
     },
     header: {
         flexDirection: 'row',

@@ -7,13 +7,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
-    ActivityIndicator, 
-    StyleProp, 
-    StyleSheet, 
-    TouchableOpacity, 
-    View, 
-    ViewStyle 
+import {
+    ActivityIndicator,
+    StyleProp,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    ViewStyle
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -89,6 +89,10 @@ interface DocumentUploadCardProps {
     onUploadPress?: () => void | Promise<void>;
     /** Optional container style override */
     style?: StyleProp<ViewStyle>;
+    /** Optional inner content style override for row/card container */
+    contentStyle?: StyleProp<ViewStyle>;
+    /** Optional callback when an error occurs (skips inline error box if provided) */
+    onError?: (msg: string) => void;
 }
 
 /**
@@ -112,6 +116,8 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     variant = 'card',
     showDivider = false,
     style,
+    contentStyle,
+    onError,
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
@@ -150,13 +156,16 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             const msg = error instanceof Error ? error.message : 'An error occurred during upload.';
             const isCanceled = msg.toLowerCase().includes('cancel');
             if (isCanceled) {
-                // User intentionally cancelled picker. Gracefully reset.
+                // User intentionally cancelled picker. Gracefully reset to idle.
                 setIsError(false);
                 setErrorMessage('');
             } else {
                 console.error(`Upload failed for ${docKey}:`, error);
                 setIsError(true);
                 setErrorMessage(msg);
+                if (onError) {
+                    onError(msg);
+                }
             }
         } finally {
             setIsUploading(false);
@@ -217,7 +226,8 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         <View style={[isRow ? styles.rowContainer : styles.cardContainer, showDivider && styles.rowDivider, style]}>
             <View style={[
                 isRow ? styles.uploadRow : styles.uploadCard, 
-                (isError || isRejected) && (isRow ? styles.uploadRowError : styles.uploadCardError)
+                (isError || isRejected) && (isRow ? styles.uploadRowError : styles.uploadCardError),
+                contentStyle,
             ]}>
                 <View style={styles.uploadInfo}>
                     <View style={[styles.iconWrapper, wrapperStyle]}>

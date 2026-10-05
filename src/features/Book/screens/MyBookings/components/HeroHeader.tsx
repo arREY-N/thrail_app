@@ -8,7 +8,7 @@ import { Booking } from '@/src/core/models/Booking/Booking';
 
 export interface HeroHeaderProps {
     /** The booking data */
-    booking: Booking | any; // To allow for the enhancedBooking passed from details screen
+    booking: Booking;
 }
 
 /**
@@ -47,8 +47,8 @@ const HeroHeader = ({ booking }: HeroHeaderProps) => {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 24,
+        paddingTop: 8,
+        paddingBottom: 16,
         backgroundColor: Colors.BACKGROUND,
         // alignItems: 'center',
     },
