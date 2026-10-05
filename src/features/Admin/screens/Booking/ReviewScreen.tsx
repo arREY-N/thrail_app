@@ -37,19 +37,19 @@ import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/Hi
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 
+import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
-import { 
+import {
     CANCELLATION_DECLINE_REASONS,
-    getDynamicRejectionSuggestions, 
+    getDynamicRejectionSuggestions,
     getLockedVerificationToastMessage,
-    getVerificationWarningMessage, 
-    REVIEW_MODALS, 
-    REVIEW_TOASTS 
+    getVerificationWarningMessage,
+    REVIEW_MODALS,
+    REVIEW_TOASTS
 } from '@/src/features/Admin/utils/reviewMessages';
-import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 
 /**
  * Props for ReviewScreen component.
@@ -992,9 +992,9 @@ const styles = StyleSheet.create({
         alignSelf: 'center'
     },
     scrollContent: {
-        padding: 16,
+        paddingHorizontal: 16,
         paddingBottom: 120,
-        paddingTop: 20
+        paddingTop: 8
     },
     tabContainer: {
         flexDirection: 'row',
