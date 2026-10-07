@@ -7,10 +7,57 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
-import { formatBookingDate, getRecentUpdateText, safeParseDateString } from '@/src/utils/dateFormatter';
+import { DateInput, formatBookingDate, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+
+const getFormattedUpdateStatus = (
+    updatedAt: DateInput,
+    createdAt: DateInput,
+    status?: string,
+    offerDate?: DateInput
+): string => {
+    let prefix = 'Updated';
+    let targetDateInput: DateInput = updatedAt || createdAt;
+
+    if (status === 'expired') {
+        prefix = 'Expired';
+        targetDateInput = offerDate || updatedAt || createdAt;
+    } else if (status === 'finished' || status === 'completed') {
+        prefix = 'Completed';
+        targetDateInput = offerDate || updatedAt || createdAt;
+    } else if (status === 'cancelled') {
+        prefix = 'Cancelled';
+        targetDateInput = updatedAt || createdAt;
+    } else if (status === 'refund' || status === 'refunded') {
+        prefix = 'Refunded';
+        targetDateInput = updatedAt || createdAt;
+    } else {
+        const updateTime = updatedAt ? safeParseDateString(updatedAt).getTime() : 0;
+        const createTime = createdAt ? safeParseDateString(createdAt).getTime() : 0;
+        const isUpdated = updateTime > 0 && Math.abs(updateTime - createTime) > 60000;
+        prefix = isUpdated ? 'Updated' : 'Booked';
+        targetDateInput = isUpdated ? updatedAt : createdAt;
+    }
+
+    if (!targetDateInput) return '';
+
+    const targetDate = safeParseDateString(targetDateInput);
+    const now = new Date();
+    const diffMs = now.getTime() - targetDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return `${prefix} just now`;
+    if (diffMins < 60) return `${prefix} ${diffMins}m ago`;
+    if (diffHours < 24) return `${prefix} ${diffHours}h ago`;
+    if (diffDays < 7) return `${prefix} ${diffDays}d ago`;
+
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${prefix} ${shortMonths[targetDate.getMonth()]} ${targetDate.getDate()}`;
+};
 
 export interface BookingCardProps {
     booking: Booking | null;
@@ -94,6 +141,20 @@ const BookingCard: React.FC<BookingCardProps> = ({
         }
     }
 
+    const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '');
+    const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '');
+    const isDownpayment = displayStatus === 'downpayment';
+
+    const borderHighlightStyle = !isPast && !isDead
+        ? isRejection
+            ? styles.rejectionBorder
+            : isPaymentNeeded
+              ? styles.paymentBorder
+              : isDownpayment
+                ? styles.downpaymentBorder
+                : null
+        : null;
+
     const bookingUpdateTime = booking?.updatedAt ? safeParseDateString(booking.updatedAt).getTime() : 0;
     const cancelUpdateTime = cancellation?.updatedAt
         ? safeParseDateString(cancellation.updatedAt).getTime()
@@ -103,7 +164,12 @@ const BookingCard: React.FC<BookingCardProps> = ({
         ? (cancellation?.updatedAt || cancellation?.createdAt)
         : booking?.updatedAt;
 
-    const recentUpdateText = getRecentUpdateText(effectiveUpdatedAt, booking?.createdAt);
+    const updateStatusText = getFormattedUpdateStatus(
+        effectiveUpdatedAt,
+        booking?.createdAt,
+        displayStatus,
+        booking?.offer?.date
+    );
     const trailName = booking?.trail?.name || 'Hiking Package';
     const businessName = booking?.business?.name || 'Independent Guide';
     const formattedDate = formatBookingDate(booking?.offer?.date, undefined, true);
@@ -111,7 +177,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     return (
         <TouchableOpacity 
-            style={styles.cardContainer}
+            style={[styles.cardContainer, borderHighlightStyle]}
             onPress={() => onSelectBooking(booking)}
             activeOpacity={0.7}
         >
@@ -224,7 +290,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
                 <View style={styles.actionCol}>
                     <CustomText variant="caption" style={styles.updateLabel}>
-                        {recentUpdateText || ' '} 
+                        {updateStatusText || ' '} 
                     </CustomText>
                     
                     <View style={styles.viewDetailsContainer}>
@@ -258,11 +324,19 @@ const styles = StyleSheet.create({
         marginBottom: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-         
-         
-         
-         
         ...GlobalStyles.dropShadow(3), 
+    },
+    rejectionBorder: {
+        borderColor: Colors.ERROR,
+        borderWidth: 1.5,
+    },
+    paymentBorder: {
+        borderColor: Colors.PRIMARY,
+        borderWidth: 1.5,
+    },
+    downpaymentBorder: {
+        borderColor: Colors.WARNING,
+        borderWidth: 1.5,
     },
     topRow: { 
         flexDirection: 'row', 

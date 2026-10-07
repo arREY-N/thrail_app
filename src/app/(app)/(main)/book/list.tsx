@@ -1,11 +1,8 @@
 
-import CustomLoading from "@/src/components/CustomLoading";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
-import { Colors } from "@/src/constants/colors";
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
-import { useBookingUserList } from "@/src/core/models/Booking/Booking";
+import { useBookingUserList, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useCancellationUser, useCancellationUserList } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
@@ -13,6 +10,7 @@ import { useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 import { useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 
 export default function ListBook() {
     const { bookingId: rawBookingId, view: rawView } = useLocalSearchParams();
@@ -25,7 +23,8 @@ export default function ListBook() {
     const { profile } = useAuthHook();
 
     const {
-        onBackPress
+        onBackPress,
+        onSeeMoreOffersPress
     } = useAppNavigation();
 
     const {
@@ -65,19 +64,29 @@ export default function ListBook() {
         findUser,
     } = CreateBookingFlow();
 
-    if (isFetching) {
-        return (
-            <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomLoading visible={true} message="Fetching your bookings..." />
-            </ScreenWrapper>
-        );
-    }
+    const [isRetrying, setIsRetrying] = useState(false);
+    const isStoreLoading = useBookingsStore(s => s.isLoading);
+    const profileId = profile?.id;
+
+    const onRetry = useCallback(async () => {
+        if (!profileId) return;
+        setIsRetrying(true);
+        try {
+            await useBookingsStore.getState().refresh(profileId, 'user');
+            useBookingsStore.getState().subscribeToUserBookings(profileId);
+        } catch (error) {
+            console.error('Failed to retry loading bookings:', error);
+        } finally {
+            setIsRetrying(false);
+        }
+    }, [profileId]);
 
     return (
         <MyBookingsScreen
             userBookings={bookings || []}
-            userCancellations={userCancellations}
-            isLoading={isFetching}
+            userCancellations={userCancellations || []}
+            isLoading={isFetching || isStoreLoading || isRetrying}
+            isRetrying={isRetrying}
             error={subscriptionError || cancellationError || cancellationsListError || undefined}
             onBackPress={onBackPress}
             onCancelBookingPress={cancelBooking}
@@ -98,6 +107,8 @@ export default function ListBook() {
             currentUserProfile={profile}
             onSyncBookingVerification={onSyncBookingVerification}
             onSearchUser={findUser}
+            onExplorePress={onSeeMoreOffersPress}
+            onRetry={onRetry}
         />
     );
 }

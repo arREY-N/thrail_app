@@ -273,3 +273,39 @@ export function getVerificationBadgeConfig(
         textColor: Colors.TEXT_SECONDARY,
     };
 }
+
+/**
+ * Returns scenario-specific toast messages when an admin attempts to click a phone verification
+ * badge on a booking whose intake review has already been sealed.
+ *
+ * @param status - The current booking status.
+ * @param verificationStatus - The verification status of the clicked contact.
+ * @returns Human-friendly reminder explanation.
+ */
+export function getLockedVerificationToastMessage(
+    status: string | null | undefined,
+    verificationStatus: VerificationStatus
+): string {
+    if (status === 'for-payment') {
+        return verificationStatus === 'verified'
+            ? 'Phone number was verified during document review and cannot be modified while awaiting payment.'
+            : 'Phone verification is locked. This reservation was already approved to proceed to payment without verifying this number.';
+    }
+
+    if (['paid', 'downpayment', 'completed'].includes(status || '')) {
+        return verificationStatus === 'verified'
+            ? 'Phone number was verified during initial intake and is locked for confirmed bookings.'
+            : 'Phone verification is locked. This booking was approved and confirmed without phone verification.';
+    }
+
+    if (['cancelled', 'refund', 'refunded', 'expired'].includes(status || '')) {
+        return 'Phone verification cannot be modified on cancelled or refunded bookings.';
+    }
+
+    if (status === 'reservation-rejected') {
+        return 'Phone verification cannot be modified while documents are rejected. Changes can be made when the hiker re-uploads documents.';
+    }
+
+    return 'Phone numbers can only be verified during the initial reservation review (for-reservation).';
+}
+

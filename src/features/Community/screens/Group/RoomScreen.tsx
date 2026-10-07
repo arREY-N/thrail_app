@@ -40,7 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import GroupWeatherAlertBanner from '@/src/components/GroupWeatherAlertBanner';
+import { GroupWeatherAlertBanner } from '@/src/components/GroupWeatherAlertBanner';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -424,7 +424,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         );
     }, [isUploading]);
 
-    const renderActions = useCallback((props: any) => {
+    const renderActions = useCallback((_props: unknown) => {
         return (
             <View style={styles.actionButtonContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -478,9 +478,10 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         let dateString = '';
         let timeString = '';
         if (currentGroup.createdAt) {
-            const d = typeof currentGroup.createdAt === 'object' && 'toDate' in currentGroup.createdAt
-                ? (currentGroup.createdAt as any).toDate()
-                : new Date(currentGroup.createdAt as any);
+            const rawDate = currentGroup.createdAt as unknown;
+            const d = typeof rawDate === 'object' && rawDate !== null && 'toDate' in rawDate
+                ? (rawDate as { toDate: () => Date }).toDate()
+                : new Date(rawDate as string | number | Date);
             dateString = d.toLocaleDateString();
             timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
@@ -561,7 +562,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
 
             <View style={[styles.container, { alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
-                    <GroupWeatherAlertBanner groupId={currentGroup?.id} />
+                    <GroupWeatherAlertBanner groupId={currentGroup?.id} hikeDate={currentGroup?.offer?.date} />
                     <Chat
                         disableKeyboardProvider={true}
                         colorScheme='light'

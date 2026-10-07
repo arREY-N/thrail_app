@@ -15,10 +15,10 @@ import {
 import {
     getGroup,
     Group,
-    updateGroupOnCancellation,
     useGroupStore
 } from "@/src/core/models/Group/Group";
 
+import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
@@ -35,6 +35,7 @@ export function useCancellationAdmin(bookingId: string) {
     const { profile, role, businessId } = useAuthHook();
     const { onBackPress } = useAppNavigation();
     const { onRefund } = usePaymentAdmin();
+    const { onRemoveMemberToGroup } = HandleGroupMemberFlow();
 
     const [writingError, setWritingError] = useState<string | null>(null);
     const storeError = useCancellationStore(s => s.error);
@@ -65,9 +66,16 @@ export function useCancellationAdmin(bookingId: string) {
         request,
         approved,
         refund,
+        refundType = 'full',
+        customAmount,
         adminNote,
     }: {
-        request?: Cancellation | null, approved: boolean, refund?: number, adminNote?: string
+        request?: Cancellation | null;
+        approved: boolean;
+        refund?: number;
+        refundType?: 'full' | 'partial' | 'custom';
+        customAmount?: number;
+        adminNote?: string;
     }) => {
         try {
             setWritingError(null);
@@ -102,27 +110,35 @@ export function useCancellationAdmin(bookingId: string) {
 
                 const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
 
-                const updatedGroup: Group = updateGroupOnCancellation(group, booking.user.id);
-
                 const totalPaid = booking.payment.reduce(
                     (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
                     0
                 ) || 0;
 
                 if (totalPaid > 0) {
-                    logger('UseCancellationAdmin', 'Implement variable refund amount')
-
-                    if (!refund) {
-                        logger('UseCancellation', 'If error is thrown, update call to processCancellationRequest to include refund percentage (in decimal format).')
-                        throw new Error('Refund percentage not provided');
+                    let determinedType: 'full' | 'partial' | 'custom' = refundType;
+                    let determinedCustom: number | undefined = customAmount;
+                    if (refund !== undefined && refundType === 'full' && customAmount === undefined) {
+                        if (refund === 1 || refund === 100) {
+                            determinedType = 'full';
+                        } else if (refund === 0.1 || refund === 10) {
+                            determinedType = 'partial';
+                        } else if (refund > 0) {
+                            determinedType = 'custom';
+                            determinedCustom = Math.round((totalPaid * (refund <= 1 ? refund : refund / 100)) * 100) / 100;
+                        }
                     }
+                    await onRefund(updatedBooking, determinedType, determinedCustom);
+                }
 
-                    await onRefund(updatedBooking, 'full');
+                try {
+                    await onRemoveMemberToGroup({ userId: booking.user.id, groupId: booking.offer.id });
+                } catch (groupError) {
+                    logger('useCancellationAdmin', 'Failed to remove user from group (non-fatal): ', groupError);
                 }
 
                 await createBooking(updatedBooking, true, true);
                 await createOffer(updatedOffer);
-                await createGroup(updatedGroup);
             } else {
                 if (!adminNote || adminNote.trim() === "") {
                     throw new Error("Admin note is required when rejecting a cancellation request.");
@@ -146,29 +162,9 @@ export function useCancellationAdmin(bookingId: string) {
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationAdmin()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
+            throw error;
         }
     }
-
-    const handleApproveCancellation = async (
-        request?: Cancellation | null,
-        currentBooking?: Booking
-    ) => {
-        const activeBooking = currentBooking;
-        if (!activeBooking || !request) return;
-
-        const totalPaid = activeBooking.payment?.reduce(
-            (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
-            0
-        ) || 0;
-
-        if (totalPaid > 0) {
-            // Paid booking: triggers refund and inventory updates via backend
-            await processCancellationRequest({
-                request,
-                approved: true
-            })
-        };
-    };
 
     /**
      * Creates a cancellation request on behalf of a user booking. This function is intended for admin use only.

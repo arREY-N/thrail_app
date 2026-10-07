@@ -1,8 +1,10 @@
+import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
+import { IGroupMember } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
@@ -17,7 +19,7 @@ export function useBookingAdmin() {
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
     const updateReservedPaxInOffer = useOfferStore(s => s.updateReservedPaxInOffer);
-
+    const { onAddMemberToGroup } = HandleGroupMemberFlow();
     const { onBackPress } = useAppNavigation();
 
     const onApproveBooking = async (
@@ -28,12 +30,8 @@ export function useBookingAdmin() {
     ) => {
         try {
             if (!booking) {
-
                 refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
                 return;
-
-                // TODO clean up (by REYN) once UI is refactored
-                // throw new Error('Missing booking information');
             }
 
             const resolvedPersonalVerified = personalVerifiedAt !== undefined
@@ -73,6 +71,19 @@ export function useBookingAdmin() {
             }
 
             await updateReservedPaxInOffer(booking.offer.id, 'add');
+
+            const user = booking.user;
+
+            const groupMember: IGroupMember = {
+                id: user.id,
+                username: user.username,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.lastname,
+                bookingId: approvedBook.id,
+            }
+
+            await onAddMemberToGroup(groupMember, booking.offer.id,);
 
             onBackPress();
         } catch (error) {

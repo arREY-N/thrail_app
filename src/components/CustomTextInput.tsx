@@ -99,6 +99,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     dateFormat?: string;
     iconPosition?: 'left' | 'right';
     rightElement?: ReactNode;
+    innerRightElement?: ReactNode;
     suffix?: string;
 }
 
@@ -128,6 +129,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     dateFormat = 'MM/DD/YYYY',
     iconPosition,
     rightElement,
+    innerRightElement,
     onFocus,
     onBlur,
     ...props
@@ -135,7 +137,11 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     const [isFocused, setIsFocused] = useState(false);
     const [internalShowPassword, setInternalShowPassword] = useState(false);
 
-    const [localValue, setLocalValue] = useState(value !== null && value !== undefined ? String(value) : '');
+    const [localValue, setLocalValue] = useState(() => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        return type === 'phone' ? formatLocalPhoneNumber(str) : str;
+    });
     const [prevValue, setPrevValue] = useState(value);
 
     if (value !== prevValue) {
@@ -145,6 +151,11 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             const isMidDecimal = localValue.endsWith('.') && parseFloat(incomingStr) === parseFloat(localValue);
             if (!isMidDecimal && incomingStr !== localValue) {
                 setLocalValue(incomingStr);
+            }
+        } else if (type === 'phone') {
+            const formatted = formatLocalPhoneNumber(incomingStr);
+            if (formatted !== localValue) {
+                setLocalValue(formatted);
             }
         } else {
             setLocalValue(incomingStr);
@@ -306,6 +317,8 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                         </CustomText>
                     </View>
                 )}
+
+                {innerRightElement}
 
                 {secureTextEntry && (
                     <TouchableOpacity 

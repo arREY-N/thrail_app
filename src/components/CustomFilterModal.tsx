@@ -20,17 +20,19 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface FilterOption {
+export interface FilterOption {
     label: string;
     value: string;
+    defaultSortOrder?: 'asc' | 'desc';
 }
 
-interface FilterSection {
+export interface FilterSection {
     id: string;
     title: string;
     type: 'radio' | 'pill';
     multiSelect?: boolean;
     options: FilterOption[];
+    sortOrderKey?: string;
 }
 
 export type FilterValue = string | number | boolean | string[] | null | undefined;
@@ -205,12 +207,67 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                         {sections.map((section: FilterSection, index: number) => {
                             const isMulti = section.multiSelect;
                             const currentValue = localValues[section.id];
+                            const currentSortOrder = section.sortOrderKey
+                                ? (localValues[section.sortOrderKey] as 'asc' | 'desc' | undefined)
+                                : undefined;
+
+                            const handleOptionPress = (opt: FilterOption) => {
+                                if (section.sortOrderKey) {
+                                    if (currentValue === opt.value) {
+                                        // Already selected: toggle direction
+                                        const cur = currentSortOrder || 'asc';
+                                        const next = cur === 'asc' ? 'desc' : 'asc';
+                                        setLocalValues(prev => ({
+                                            ...prev,
+                                            [section.sortOrderKey!]: next,
+                                        }));
+                                        return;
+                                    }
+                                    // Selecting new option: use option's defaultSortOrder if provided
+                                    const nextOrder = opt.defaultSortOrder || 'asc';
+                                    setLocalValues(prev => ({
+                                        ...prev,
+                                        [section.id]: opt.value,
+                                        [section.sortOrderKey!]: nextOrder,
+                                    }));
+                                    return;
+                                }
+
+                                toggleValue(section.id, opt.value, isMulti);
+                            };
                             
                             return (
                                 <View key={section.id}>
-                                    <CustomText variant="caption" style={styles.sectionHeader}>
-                                        {section.title}
-                                    </CustomText>
+                                    <View style={styles.sectionHeaderRow}>
+                                        <CustomText variant="caption" style={styles.sectionHeader}>
+                                            {section.title}
+                                        </CustomText>
+
+                                        {section.sortOrderKey && (
+                                            <TouchableOpacity
+                                                style={styles.sortOrderToggle}
+                                                onPress={() => {
+                                                    const cur = currentSortOrder || 'asc';
+                                                    const next = cur === 'asc' ? 'desc' : 'asc';
+                                                    setLocalValues(prev => ({
+                                                        ...prev,
+                                                        [section.sortOrderKey!]: next,
+                                                    }));
+                                                }}
+                                                activeOpacity={0.7}
+                                            >
+                                                <CustomText style={styles.sortOrderText}>
+                                                    {currentSortOrder === 'desc' ? 'Descending' : 'Ascending'}
+                                                </CustomText>
+                                                <CustomIcon
+                                                    library="Feather"
+                                                    name={currentSortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                                                    size={14}
+                                                    color={Colors.PRIMARY}
+                                                />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                     
                                     {section.type === 'radio' && (
                                         <View style={styles.radioGroup}>
@@ -220,17 +277,27 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                                                     <TouchableOpacity 
                                                         key={opt.value} 
                                                         style={styles.radioRow} 
-                                                        onPress={() => toggleValue(section.id, opt.value, false)}
+                                                        onPress={() => handleOptionPress(opt)}
                                                     >
-                                                        <CustomText 
-                                                            variant="body" 
-                                                            style={[
-                                                                styles.radioText, 
-                                                                isSelected && styles.radioTextActive
-                                                            ]}
-                                                        >
-                                                            {opt.label}
-                                                        </CustomText>
+                                                        <View style={styles.radioLabelRow}>
+                                                            <CustomText 
+                                                                variant="body" 
+                                                                style={[
+                                                                    styles.radioText, 
+                                                                    isSelected && styles.radioTextActive
+                                                                ]}
+                                                            >
+                                                                {opt.label}
+                                                            </CustomText>
+                                                            {isSelected && currentSortOrder && (
+                                                                <CustomIcon
+                                                                    library="Feather"
+                                                                    name={currentSortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                                                                    size={14}
+                                                                    color={Colors.PRIMARY}
+                                                                />
+                                                            )}
+                                                        </View>
                                                         
                                                         <View style={styles.radioOuter}>
                                                             {isSelected && (
@@ -256,17 +323,27 @@ const CustomFilterModal: React.FC<CustomFilterModalProps> = ({
                                                             styles.pill, 
                                                             isSelected && styles.pillActive
                                                         ]}
-                                                        onPress={() => toggleValue(section.id, opt.value, isMulti)}
+                                                        onPress={() => handleOptionPress(opt)}
                                                         activeOpacity={0.7}
                                                     >
-                                                        <CustomText 
-                                                            style={[
-                                                                styles.pillText, 
-                                                                isSelected && styles.pillTextActive
-                                                            ]}
-                                                        >
-                                                            {opt.label}
-                                                        </CustomText>
+                                                        <View style={styles.pillContent}>
+                                                            <CustomText 
+                                                                style={[
+                                                                    styles.pillText, 
+                                                                    isSelected && styles.pillTextActive
+                                                                ]}
+                                                            >
+                                                                {opt.label}
+                                                            </CustomText>
+                                                            {isSelected && currentSortOrder && (
+                                                                <CustomIcon
+                                                                    library="Feather"
+                                                                    name={currentSortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+                                                                    size={13}
+                                                                    color={Colors.PRIMARY}
+                                                                />
+                                                            )}
+                                                        </View>
                                                     </TouchableOpacity>
                                                 );
                                             })}
@@ -358,12 +435,32 @@ const styles = StyleSheet.create({
     scrollBody: { 
         padding: 24 
     },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
     sectionHeader: { 
         color: Colors.TEXT_SECONDARY, 
         letterSpacing: 1, 
         fontWeight: 'bold', 
-        marginBottom: 12, 
+        marginBottom: 0, 
         textTransform: 'uppercase' 
+    },
+    sortOrderToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+    },
+    sortOrderText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
     },
     radioGroup: { 
         gap: 4 
@@ -373,6 +470,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between', 
         alignItems: 'center', 
         paddingVertical: 12 
+    },
+    radioLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     radioText: { 
         color: Colors.TEXT_PRIMARY, 
@@ -409,6 +511,11 @@ const styles = StyleSheet.create({
         borderRadius: 20, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT 
+    },
+    pillContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     pillActive: { 
         backgroundColor: Colors.STATUS_APPROVED_BG, 

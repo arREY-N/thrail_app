@@ -22,23 +22,10 @@ import { Review } from '@/src/core/models/Review/Review';
 import { IUser, Role } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { getInitials } from '@/src/utils/dateFormatter';
 
 import HikeLogTab from '@/src/features/Profile/tabs/HikeLogTab';
 import MilestonesTab from '@/src/features/Profile/tabs/MilestonesTab';
-
-/**
- * Helper function to extract initials from a user's first and last name.
- * 
- * @param {string} firstName - The user's first name
- * @param {string} lastName - The user's last name
- * @returns {string} The extracted initials (1 or 2 characters)
- */
-const getInitials = (firstName?: string, lastName?: string): string => {
-    if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    if (firstName) return firstName.charAt(0).toUpperCase();
-    if (lastName) return lastName.charAt(0).toUpperCase();
-    return '?';
-};
 
 /**
  * Props for the ProfileScreen component.

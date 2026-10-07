@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type { Timestamp } from 'firebase/firestore';
+import React, { useState, useSyncExternalStore } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -19,8 +20,72 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+export type HikeDateValue = Date | Timestamp | string | number | null | undefined;
+
 export interface GroupWeatherAlertBannerProps {
     groupId?: string | null;
+    hikeDate?: HikeDateValue;
+}
+
+let cachedCurrentTime = Date.now();
+const timeSubscribers = new Set<() => void>();
+let timeIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function subscribeToCurrentTime(callback: () => void): () => void {
+    timeSubscribers.add(callback);
+    if (!timeIntervalId && typeof setInterval !== 'undefined') {
+        timeIntervalId = setInterval(() => {
+            cachedCurrentTime = Date.now();
+            timeSubscribers.forEach(cb => cb());
+        }, 60000);
+    }
+    return () => {
+        timeSubscribers.delete(callback);
+        if (timeSubscribers.size === 0 && timeIntervalId) {
+            clearInterval(timeIntervalId);
+            timeIntervalId = null;
+        }
+    };
+}
+
+function getCurrentTimeSnapshot(): number {
+    return cachedCurrentTime;
+}
+
+function useCurrentTime(): number {
+    return useSyncExternalStore(subscribeToCurrentTime, getCurrentTimeSnapshot, getCurrentTimeSnapshot);
+}
+
+function parseDateToMs(dateVal: unknown): number | null {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) {
+        return !isNaN(dateVal.getTime()) ? dateVal.getTime() : null;
+    }
+    if (typeof dateVal === 'number') {
+        return dateVal;
+    }
+    if (typeof dateVal === 'string') {
+        const parsed = new Date(dateVal).getTime();
+        return isNaN(parsed) ? null : parsed;
+    }
+    if (
+        typeof dateVal === 'object' &&
+        dateVal !== null &&
+        'toDate' in dateVal &&
+        typeof (dateVal as { toDate: () => unknown }).toDate === 'function'
+    ) {
+        const d = (dateVal as { toDate: () => unknown }).toDate();
+        return d instanceof Date && !isNaN(d.getTime()) ? d.getTime() : null;
+    }
+    if (
+        typeof dateVal === 'object' &&
+        dateVal !== null &&
+        'seconds' in dateVal &&
+        typeof (dateVal as { seconds: unknown }).seconds === 'number'
+    ) {
+        return (dateVal as { seconds: number }).seconds * 1000;
+    }
+    return null;
 }
 
 function getPhaseLabel(phase: string): string {
@@ -38,12 +103,34 @@ function getPhaseLabel(phase: string): string {
     }
 }
 
-export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId }) => {
+export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
     const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const currentTime = useCurrentTime();
 
     if (isLoading || !latestAlert) {
         return null;
+    }
+
+    // Expiration Defense-in-Depth: Hide banner if hike concluded more than 24 hours ago
+    const resolvedHikeDate = hikeDate ?? latestAlert.hikeDate;
+    if (resolvedHikeDate) {
+        const hikeMs = parseDateToMs(resolvedHikeDate);
+        if (hikeMs != null) {
+            const diffHours = (hikeMs - currentTime) / (1000 * 60 * 60);
+            if (diffHours < -24) {
+                return null;
+            }
+        }
+    } else if (latestAlert.createdAt) {
+        // Fallback: If no explicit hike date is provided, check if a T-3 final departure alert is older than 27 hours
+        const createdMs = parseDateToMs(latestAlert.createdAt);
+        if (createdMs != null) {
+            const hoursSinceAlert = (currentTime - createdMs) / (1000 * 60 * 60);
+            if (latestAlert.phase === 'T-3' && hoursSinceAlert > 27) {
+                return null;
+            }
+        }
     }
 
     const isDanger = latestAlert.status === 'DANGER';

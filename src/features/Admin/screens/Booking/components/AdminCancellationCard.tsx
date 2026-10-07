@@ -27,6 +27,7 @@ export interface AdminCancellationCardProps {
     cancellationReason?: string;
     declineReason?: string;
     totalAmountPaid: number;
+    totalRefundedAmount?: number;
     requestedAt?: Date | null;
     cancelledBy?: string;
     onRevert?: () => void;
@@ -42,6 +43,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     cancellationReason,
     declineReason,
     totalAmountPaid,
+    totalRefundedAmount = 0,
     requestedAt,
     cancelledBy,
     onRevert,
@@ -69,14 +71,18 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     }
 
     const isPaid = totalAmountPaid > 0;
+    const isDirectCancellation = !cancellation && status === 'cancelled' && totalAmountPaid === 0;
 
-    const isApproved =
+    const isApproved = !isDirectCancellation && (
         cancellation?.status === 'approved' ||
-        status === 'cancelled' ||
+        (status === 'cancelled' && Boolean(cancellation)) ||
         status === 'refund' ||
-        status === 'refunded';
+        status === 'refunded'
+    );
 
-    const headerTitle = isCancelledByAdmin
+    const headerTitle = isDirectCancellation
+        ? 'Reservation Cancelled'
+        : isCancelledByAdmin
         ? 'Hike Cancelled by Organizer'
         : isDeclined
         ? 'Cancellation Request Declined'
@@ -84,7 +90,9 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? (isRefunded ? 'Cancellation Approved & Refunded' : 'Cancellation Approved')
         : 'Cancellation Review';
 
-    const headerIcon = isCancelledByAdmin
+    const headerIcon = isDirectCancellation
+        ? 'x-circle'
+        : isCancelledByAdmin
         ? 'slash'
         : isDeclined
         ? 'x-circle'
@@ -92,11 +100,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? 'check-circle'
         : 'alert-triangle';
 
-    const iconColor = isCancelledByAdmin || isDeclined || isPending
+    const iconColor = isDirectCancellation || isCancelledByAdmin || isDeclined || isPending
         ? Colors.ERROR
         : Colors.SUCCESS;
 
-    const subtitleText = isCancelledByAdmin
+    const subtitleText = isDirectCancellation
+        ? 'Booking cancelled by Hiker. Reserved slot released.'
+        : isCancelledByAdmin
         ? (isPending
             ? 'You cancelled this reservation. Hiker has been notified.'
             : 'Booking cancelled by organizer. Reserved slot released.')
@@ -106,10 +116,11 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             ? 'Organizer declined this request. Hiker can submit an appeal.'
             : isRefunded
             ? 'Cancellation approved and refund issued via PayMongo.'
-            : `Booking cancelled by ${cancelledBy || 'Hiker'}. Reserved slot released.`);
+            : `Booking cancelled by ${cancelledBy && cancelledBy !== 'admin' ? cancelledBy : 'Hiker'}. Reserved slot released.`);
 
-    const resolvedReason =
-        cancellation?.reason || cancellationReason;
+    const resolvedReason = isDirectCancellation
+        ? undefined
+        : (cancellation?.reason || cancellationReason);
     const resolvedDeclineReason =
         declineReason || cancellation?.adminNote;
     const resolvedTimestamp =
@@ -197,7 +208,11 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         PAYMENT CAPTURED
                     </CustomText>
                     <CustomText style={styles.impactValue}>
-                        {isPaid ? `₱${totalAmountPaid.toFixed(2)}` : '₱0.00 (Unpaid)'}
+                        {isPaid 
+                            ? `₱${totalAmountPaid.toFixed(2)}` 
+                            : (totalRefundedAmount > 0 
+                                ? `₱${totalRefundedAmount.toFixed(2)} (Refunded)` 
+                                : '₱0.00 (Unpaid)')}
                     </CustomText>
                 </View>
                 <View style={styles.impactDivider} />

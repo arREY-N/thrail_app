@@ -9,6 +9,7 @@ export function useGroup() {
     const checkGroupExists = useGroupStore(s => s.checkGroupExists);
     const isLoading = useGroupStore(s => s.isLoading);
     const isFetching = useGroupStore(s => s.isFetching);
+    const isWriting = useGroupStore(s => s.isWriting);
     const error = useGroupStore(s => s.error);
 
     return {
@@ -19,6 +20,7 @@ export function useGroup() {
         markGroupAsVisited,
         checkGroupExists,
         isLoading,
+        isWriting,
         isFetching,
         error,
     };

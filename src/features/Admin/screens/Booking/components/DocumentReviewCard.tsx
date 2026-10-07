@@ -126,31 +126,6 @@ const DocumentReviewCard = ({
                     <TouchableOpacity 
                         style={[
                             styles.decisionBtn,
-                            doc.valid === 'approved' && styles.btnActiveApprove,
-                            (isReviewComplete || needsReview) && { opacity: 0.4 }
-                        ]}
-                        onPress={() => !isReviewComplete && !needsReview && onToggleDecision(index, 'approved')}
-                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
-                    >
-                        <CustomIcon 
-                            library="Feather" 
-                            name="check" 
-                            size={16} 
-                            color={doc.valid === 'approved' ? Colors.WHITE : Colors.SUCCESS} 
-                        />
-                        <CustomText 
-                            style={[
-                                styles.btnText, 
-                                doc.valid === 'approved' ? { color: Colors.WHITE } : { color: Colors.SUCCESS }
-                            ]}
-                        >
-                            Approve
-                        </CustomText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={[
-                            styles.decisionBtn,
                             doc.valid === 'rejected' && styles.btnActiveReject,
                             (isReviewComplete || needsReview) && { opacity: 0.4 }
                         ]}
@@ -170,6 +145,31 @@ const DocumentReviewCard = ({
                             ]}
                         >
                             Reject
+                        </CustomText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[
+                            styles.decisionBtn,
+                            doc.valid === 'approved' && styles.btnActiveApprove,
+                            (isReviewComplete || needsReview) && { opacity: 0.4 }
+                        ]}
+                        onPress={() => !isReviewComplete && !needsReview && onToggleDecision(index, 'approved')}
+                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
+                    >
+                        <CustomIcon 
+                            library="Feather" 
+                            name="check" 
+                            size={16} 
+                            color={doc.valid === 'approved' ? Colors.WHITE : Colors.SUCCESS} 
+                        />
+                        <CustomText 
+                            style={[
+                                styles.btnText, 
+                                doc.valid === 'approved' ? { color: Colors.WHITE } : { color: Colors.SUCCESS }
+                            ]}
+                        >
+                            Approve
                         </CustomText>
                     </TouchableOpacity>
                 </View>

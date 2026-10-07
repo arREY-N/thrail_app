@@ -171,7 +171,7 @@ export const parseTimeToDate = (timeString: string): Date => {
         if (period === 'AM' && hours === 12) hours = 0;
 
         d.setHours(hours, minutes, 0, 0);
-    } catch(e) {}
+    } catch {}
     
     return d; 
 };
@@ -304,17 +304,29 @@ export const getShortTimeElapsed = (dateInput: string | number | Date): string =
 };
 
 /**
- * Extracts initials from a given name string.
- * - If there are multiple words, returns the first letter of the first word and the first letter of the second word.
+ * Extracts initials from a given name string or separate first and last names.
+ * - If two arguments (firstName, lastName) are supplied, returns the first letter of each.
+ * - If a single string with multiple words is supplied, returns the first letter of the first and second words.
  * - If there is only one word, returns the first two letters of that word.
  * - Returns "?" if the name is invalid or empty.
  * 
- * @param {string} [name] - The name to extract initials from
+ * @param {string} [firstNameOrFullName] - The full name or first name
+ * @param {string} [lastName] - Optional last name
  * @returns {string} The computed initials in uppercase
  */
-export const getInitials = (name?: string): string => {
-    if (!name) return '?';
-    const trimmed = name.trim();
+export const getInitials = (firstNameOrFullName?: string, lastName?: string): string => {
+    if (!firstNameOrFullName && !lastName) return '?';
+
+    if (lastName !== undefined) {
+        const first = firstNameOrFullName?.trim();
+        const last = lastName?.trim();
+        if (first && last) return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+        if (first) return first.charAt(0).toUpperCase();
+        if (last) return last.charAt(0).toUpperCase();
+        return '?';
+    }
+
+    const trimmed = (firstNameOrFullName || '').trim();
     if (!trimmed) return '?';
 
     const words = trimmed.split(/\s+/).filter(Boolean);

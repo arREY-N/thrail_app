@@ -8,9 +8,21 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
+export interface QuickInfoBookingOffer {
+    date?: Date;
+    price?: number;
+    id?: string;
+    duration?: string;
+    endDate?: Date;
+}
+
+export type QuickInfoBooking = Omit<Booking, 'offer'> & {
+    offer?: QuickInfoBookingOffer;
+};
+
 export interface QuickInfoCardProps {
     /** The booking data */
-    booking: Booking | any;
+    booking: QuickInfoBooking;
 }
 
 /**

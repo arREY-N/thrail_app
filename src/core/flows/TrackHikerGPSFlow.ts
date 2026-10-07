@@ -40,7 +40,7 @@ const onlineListeners = new Set<(online: boolean) => void>();
  * @property {boolean} permissionGranted - True if location permissions (foreground) have been authorized.
  * @property {boolean} isOnline - Real-time network reachability status.
  * @property {[number, number] | null} userLocation - Current `[longitude, latitude]` for immediate map centering.
- * @property {[number, number][]} routeCoordinates - Breadcrumb path of the current session as `[lon, lat]` array.
+ * @property {[number, number][][]} routeCoordinates - Multi-segment breadcrumb path of the current session as array of segments `[lon, lat][][]`.
  * @property {Function} exportHikeData - Utility to trigger a file export of the recorded hike data.
  * @property {() => Promise<void>} onStartGps - Starts the GPS tracking session (foreground and background).
  * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
@@ -130,26 +130,32 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     if (isGpsLost.current) {
                         isGpsLost.current = false;
                         setGpsError(null);
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(timestamp),
-                            status: 'GPS_SIGNAL_RESTORED',
-                        }));
+                        const { active, currentHike } = useHikeStore.getState();
+                        if (active && currentHike?.status === 'started') {
+                            addCoordinate(newLocation({
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt,
+                                timestamp: new Date(timestamp),
+                                status: 'GPS_SIGNAL_RESTORED',
+                            }));
+                        }
                     }
 
                     if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
                     gpsTimeoutTimer.current = setTimeout(() => {
                         isGpsLost.current = true;
                         setGpsError("GPS signal lost. Searching for satellites...");
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(),
-                            status: 'GPS_SIGNAL_LOST',
-                        }));
+                        const { active, currentHike } = useHikeStore.getState();
+                        if (active && currentHike?.status === 'started') {
+                            addCoordinate(newLocation({
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt,
+                                timestamp: new Date(),
+                                status: 'GPS_SIGNAL_LOST',
+                            }));
+                        }
                     }, GPS_TIMEOUT_MS);
 
                     if (location.coords.accuracy && location.coords.accuracy > 25) return;
@@ -157,16 +163,21 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     // Always update the Blue Dot position
                     setUserLocation([lon, lat]);
 
-                    // Global Store Integration: only record breadcrumbs when hike is actively started
+                    const latestCoord = newLocation({
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt,
+                        timestamp: new Date(timestamp),
+                        status: 'ACTIVE',
+                    });
+
+                    // Continuous Pre-Hike GPS Availability: always update currentLocation for Emergency SOS & SMS (Finding 5)
+                    useHikeStore.getState().setCurrentLocation(latestCoord);
+
+                    // Global Store Integration: record breadcrumbs when hike is started, stream live location when started or paused (Finding 4)
                     const { active, currentHike } = useHikeStore.getState();
-                    if (active && currentHike?.status === 'started') {
-                        addCoordinate(newLocation({
-                            latitude: lat,
-                            longitude: lon,
-                            altitude: alt,
-                            timestamp: new Date(timestamp),
-                            status: 'ACTIVE',
-                        }));
+                    if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                        addCoordinate(latestCoord);
                     }
                 },
             );

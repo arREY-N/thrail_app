@@ -307,6 +307,39 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                             </View>
                         )
                     )}
+
+                    {/* PayMongo Refund & Settlement Rules Card */}
+                    <View style={styles.refundPolicyCard}>
+                        <View style={styles.refundPolicyHeader}>
+                            <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.refundPolicyTitle}>
+                                PayMongo Refund & Settlement Rules
+                            </CustomText>
+                        </View>
+                        <View style={styles.refundPolicyContent}>
+                            <View style={styles.refundPolicyRow}>
+                                <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
+                                <CustomText style={styles.refundPolicyText}>
+                                    <CustomText style={styles.policyHighlight}>Full Refund (100%): </CustomText>
+                                    Can be processed immediately at any time, including on the same calendar day.
+                                </CustomText>
+                            </View>
+                            <View style={styles.refundPolicyRow}>
+                                <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
+                                <CustomText style={styles.refundPolicyText}>
+                                    <CustomText style={styles.policyHighlight}>Partial Refunds: </CustomText>
+                                    PayMongo requires overnight daily settlement. Partial refunds become available on the next calendar day.
+                                </CustomText>
+                            </View>
+                            <View style={styles.refundPolicyRow}>
+                                <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
+                                <CustomText style={styles.refundPolicyText}>
+                                    <CustomText style={styles.policyHighlight}>Custom Amounts: </CustomText>
+                                    Admins can refund exact sums (₱1.00 minimum up to total paid) under the same settlement rules.
+                                </CustomText>
+                            </View>
+                        </View>
+                    </View>
                 </View>
             )}
 
@@ -601,7 +634,47 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         flex: 1,
-    }
+    },
+    refundPolicyCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 16,
+        padding: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    refundPolicyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 10,
+    },
+    refundPolicyTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    refundPolicyContent: {
+        gap: 8,
+    },
+    refundPolicyRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+    },
+    policyIcon: {
+        marginTop: 2,
+    },
+    refundPolicyText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 17,
+        color: Colors.TEXT_SECONDARY,
+    },
+    policyHighlight: {
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
 });
 
 export default PaymentTab;

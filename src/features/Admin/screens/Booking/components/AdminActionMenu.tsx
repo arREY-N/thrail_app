@@ -19,6 +19,7 @@ import { Colors } from '@/src/constants/colors';
  * @param onRescheduleClick - Callback when "Reschedule Booking" is pressed.
  * @param onRefundClick - Callback when "Issue Refund" is pressed.
  * @param onCancelClick - Callback when "Cancel Booking" is pressed.
+ * @param hasPendingCancellation - Whether a cancellation request is currently pending or active.
  */
 interface AdminActionMenuProps {
     visible: boolean;
@@ -28,6 +29,8 @@ interface AdminActionMenuProps {
     onRescheduleClick: () => void;
     onRefundClick: () => void;
     onCancelClick: () => void;
+    hasPendingCancellation?: boolean;
+    isCompletedStatus?: boolean;
 }
 
 /**
@@ -41,8 +44,19 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
     totalAmountPaid, 
     onRescheduleClick, 
     onRefundClick, 
-    onCancelClick 
+    onCancelClick,
+    hasPendingCancellation = false,
+    isCompletedStatus = false,
 }) => {
+    // Business rules:
+    // - Reschedule & Cancel are original behavior: ONLY for active/upcoming bookings, NEVER for completed.
+    // - Cancel is ONLY for unpaid bookings (when totalAmountPaid === 0).
+    // - Refund is unlocked whenever payments exist (totalAmountPaid > 0), even on completed bookings.
+    const canReschedule = !isCancelledStatus && !isCompletedStatus;
+    const canRefund = !isCancelledStatus && totalAmountPaid > 0;
+    const canCancel = !isCancelledStatus && !isCompletedStatus && totalAmountPaid === 0 && !hasPendingCancellation;
+    const hasAnyAction = canReschedule || canRefund || canCancel;
+
     return (
         <Modal 
             transparent={true} 
@@ -63,21 +77,23 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                             Manage Booking
                         </CustomText>
                         
-                        {!isCancelledStatus ? (
+                        {hasAnyAction ? (
                             <>
-                                <TouchableOpacity 
-                                    style={styles.actionItem} 
-                                    onPress={onRescheduleClick}
-                                >
-                                    <View style={styles.actionIconBg}>
-                                        <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
-                                    </View>
-                                    <CustomText style={styles.actionItemText}>
-                                        Reschedule Booking
-                                    </CustomText>
-                                </TouchableOpacity>
+                                {canReschedule && (
+                                    <TouchableOpacity 
+                                        style={styles.actionItem} 
+                                        onPress={onRescheduleClick}
+                                    >
+                                        <View style={styles.actionIconBg}>
+                                            <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
+                                        </View>
+                                        <CustomText style={styles.actionItemText}>
+                                            Reschedule Booking
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                )}
 
-                                {totalAmountPaid > 0 ? (
+                                {canRefund && (
                                     <TouchableOpacity 
                                         style={styles.actionItem} 
                                         onPress={onRefundClick}
@@ -89,7 +105,9 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                             Issue Refund
                                         </CustomText>
                                     </TouchableOpacity>
-                                ) : (
+                                )}
+
+                                {canCancel && (
                                     <TouchableOpacity 
                                         style={styles.actionItem} 
                                         onPress={onCancelClick}

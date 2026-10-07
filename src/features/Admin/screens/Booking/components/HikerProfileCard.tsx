@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 
+import * as Clipboard from 'expo-clipboard';
+
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -20,6 +22,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking, IUserBooking } from '@/src/core/models/Booking/Booking';
 import { User } from '@/src/core/models/User/User';
+import { formatDate } from '@/src/core/utility/date';
 import { getVerificationBadgeConfig } from '@/src/features/Admin/utils/reviewMessages';
 import { calculateAge, formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
@@ -55,6 +58,8 @@ export interface HikerProfileCardProps {
     statusBgColor?: string;
     statusTextColor?: string;
     isMinor: boolean;
+    isEditable?: boolean;
+    onLockedVerifyPress?: (status: 'verified' | 'expired' | 'unverified') => void;
 }
 
 /**
@@ -75,7 +80,9 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     statusText,
     statusBgColor,
     statusTextColor,
-    isMinor
+    isMinor,
+    isEditable = true,
+    onLockedVerifyPress,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -109,6 +116,8 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     const [confirmIcon, setConfirmIcon] = useState('phone-call');
     const [isConfirmDestructive, setIsConfirmDestructive] = useState(false);
 
+    const [copiedEmail, setCopiedEmail] = useState(false);
+
     const handleCall = async (phoneNumber: string) => {
         if (!phoneNumber) return;
         const url = `tel:${phoneNumber}`;
@@ -117,7 +126,18 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
         }
     };
 
+    const handleCopyEmail = async (email?: string) => {
+        if (!email) return;
+        await Clipboard.setStringAsync(email);
+        setCopiedEmail(true);
+        setTimeout(() => {
+            setCopiedEmail(false);
+        }, 2000);
+    };
+
     const userPhone = user?.phoneNumber;
+    const hikerEmail = user?.email || hikerProfile?.email;
+    const memberSince = hikerProfile?.createdAt ? formatDate(hikerProfile.createdAt) : null;
 
     const handleVerifyPress = (
         type: 'personal' | 'emergency', 
@@ -186,6 +206,32 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     ) => {
         const config = getVerificationBadgeConfig(status, monthsRemaining);
 
+        if (!isEditable) {
+            return (
+                <TouchableOpacity 
+                    style={[
+                        styles.verifyBtn,
+                        {
+                            backgroundColor: config.backgroundColor,
+                            borderColor: config.borderColor,
+                        }
+                    ]} 
+                    onPress={() => onLockedVerifyPress?.(status)}
+                    activeOpacity={0.7}
+                >
+                    <CustomIcon 
+                        library="Feather" 
+                        name={config.iconName} 
+                        size={14} 
+                        color={config.iconColor} 
+                    />
+                    <CustomText style={[styles.verifyBtnText, { color: config.textColor }]}>
+                        {config.label}
+                    </CustomText>
+                </TouchableOpacity>
+            );
+        }
+
         return (
             <TouchableOpacity 
                 style={[
@@ -235,6 +281,12 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                             {user?.firstname} {user?.lastname}
                         </CustomText>
                         
+                        {memberSince && (
+                            <CustomText variant="caption" style={styles.memberSinceText}>
+                                Member since {memberSince}
+                            </CustomText>
+                        )}
+                        
                         {/* WRAPPING BADGES CONTAINER */}
                         <View style={styles.badgesWrapper}>
                             {/* Booking Status Badge */}
@@ -278,9 +330,16 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                 {isExpanded && (
                     <View style={styles.expandedContent}>
                         <View style={styles.inlineRow}>
-                            <CustomText style={styles.inlineLabel}>Age / Birthday</CustomText>
+                            <CustomText style={styles.inlineLabel}>Age</CustomText>
                             <CustomText style={styles.inlineValue}>
-                                {calculateAge(user?.birthday || hikerProfile?.birthday)} years old {isMinor && "(Minor)"} ({formatDateToStandard(user?.birthday || hikerProfile?.birthday)})
+                                {calculateAge(user?.birthday || hikerProfile?.birthday)} years old
+                            </CustomText>
+                        </View>
+
+                        <View style={styles.inlineRow}>
+                            <CustomText style={styles.inlineLabel}>Birthday</CustomText>
+                            <CustomText style={styles.inlineValue}>
+                                {formatDateToStandard(user?.birthday || hikerProfile?.birthday)}
                             </CustomText>
                         </View>
                         
@@ -288,6 +347,27 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
                             <View style={styles.inlineRow}>
                                 <CustomText style={styles.inlineLabel}>Address</CustomText>
                                 <CustomText style={styles.inlineValue}>{hikerProfile.address}</CustomText>
+                            </View>
+                        )}
+
+                        {hikerEmail && (
+                            <View style={styles.inlineRow}>
+                                <CustomText style={styles.inlineLabel}>Email</CustomText>
+                                <TouchableOpacity 
+                                    style={styles.copyableValueRow} 
+                                    onPress={() => handleCopyEmail(hikerEmail)}
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomText style={styles.emailText} numberOfLines={1}>
+                                        {hikerEmail}
+                                    </CustomText>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name={copiedEmail ? "check" : "copy"} 
+                                        size={13} 
+                                        color={copiedEmail ? Colors.PRIMARY : Colors.TEXT_SECONDARY} 
+                                    />
+                                </TouchableOpacity>
                             </View>
                         )}
 
@@ -481,7 +561,12 @@ const styles = StyleSheet.create({
         fontSize: 18, 
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY,
-        marginBottom: 4
+        marginBottom: 2
+    },
+    memberSinceText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 6
     },
     badgesWrapper: {
         flexDirection: 'row',
@@ -695,6 +780,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 11,
         color: Colors.MEDICAL_BADGE_TEXT,
+    },
+    copyableValueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flexShrink: 1,
+        justifyContent: 'flex-end',
+    },
+    emailText: {
+        color: Colors.PRIMARY,
+        fontSize: 12,
+        fontWeight: '600',
     }
 });
 

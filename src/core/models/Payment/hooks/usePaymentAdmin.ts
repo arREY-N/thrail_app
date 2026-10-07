@@ -1,7 +1,6 @@
 import { functions } from "@/src/core/config/Firebase";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { useAuthHook } from "@/src/core/models/User/User";
-import { catchError } from "@/src/core/utility/errorFormatter";
 import { RefundType } from "@/src/features/Admin/screens/Booking/components/AdminRefundModal";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
@@ -50,9 +49,10 @@ export function usePaymentAdmin() {
             }
 
             await refundBookingFunction(payload);
-        } catch (error) {
-            catchError(error as Error, 'writingError', 'onRefund()');
-            setLocalError((error as Error).message || 'Failed to refund booking');
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : 'Failed to refund booking';
+            console.error('[usePaymentAdmin] Refund error:', errorMsg);
+            setLocalError(errorMsg);
             throw error;
         } finally {
             setIsRefunding(false);

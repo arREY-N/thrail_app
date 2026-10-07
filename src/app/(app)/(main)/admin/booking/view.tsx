@@ -5,7 +5,6 @@
  */
 
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Text } from "react-native";
 
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
@@ -69,8 +68,7 @@ export default function AdminViewBooking() {
         hikerProfile,
     } = useHikerProfile(booking?.user.id);
 
-
-    if (!booking || isFetching) {
+    if (isFetching && !booking) {
         return (
             <>
                 <Stack.Screen options={{ headerShown: false }} />
@@ -78,8 +76,6 @@ export default function AdminViewBooking() {
             </>
         );
     }
-
-    if (!booking) return <Text>Booking not found</Text>;
 
     const combinedError = cancellationWritingError || bookingError || undefined;
     const combinedLoading = isBookingLoading || isCancellationWriting;
@@ -102,9 +98,11 @@ export default function AdminViewBooking() {
                 error={combinedError}
                 hikerProfile={hikerProfile}
                 cancellationRequest={cancellationRequest}
-                onApproveCancellation={(request, booking) => processCancellationRequest({
+                onApproveCancellation={(request, booking, refundType, customAmount) => processCancellationRequest({
                     request,
                     approved: true,
+                    refundType,
+                    customAmount,
                 })}
                 onDeclineCancellation={(declineNote, request, currentBooking) => processCancellationRequest({
                     adminNote: declineNote,
