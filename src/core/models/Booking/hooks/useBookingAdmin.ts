@@ -79,7 +79,7 @@ export function useBookingAdmin() {
                 username: user.username,
                 firstname: user.firstname,
                 lastname: user.lastname,
-                email: user.lastname,
+                email: user.email,
                 bookingId: approvedBook.id,
             }
 
