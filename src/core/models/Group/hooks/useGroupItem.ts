@@ -18,11 +18,11 @@ export function useGroupItem(id?: string | null) {
     }, [id]);
 
     const getGroupById = async (id: string) => {
-        const group = useGroupStore.getState().groups.find(g => g.id === id);
+        const cached = useGroupStore.getState().groups.find(g => g.id === id);
+        if (cached) return cached;
 
-        if (!group) await useGroupStore.getState().fetchGroupById(id);
-
-        return group;
+        const fetched = await useGroupStore.getState().fetchGroupById(id);
+        return fetched || null;
     }
 
     return {
