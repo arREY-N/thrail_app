@@ -1,4 +1,4 @@
-import { RelativePathString, router } from "expo-router";
+import { router } from "expo-router";
 /**
  * @returns - Access to common navigation functions
  */
@@ -111,7 +111,7 @@ export function useAppNavigation() {
     }
 
     const onTestSettingsPress = () => {
-        router.push('/settings/test' as unknown as RelativePathString);
+        router.push('/settings/test');
     }
 
     const onHelpSettingsPress = () => {
