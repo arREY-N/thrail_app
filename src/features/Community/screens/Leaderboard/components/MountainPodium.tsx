@@ -13,6 +13,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
+import { formatMetricValue } from '@/src/features/Community/screens/Leaderboard/utils/leaderboardFormatters';
 import { getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -27,23 +28,6 @@ interface MountainPodiumProps {
     activeMetric: LeaderboardMetric;
     onSelectUser: (user: RankedUsers<Date>) => void;
 }
-
-/**
- * Helper to format metric display string based on current selected tab.
- * 
- * @param user - Ranked user data
- * @param metric - Currently selected leaderboard metric
- * @returns {string} Formatted metric string
- */
-const formatMetricValue = (user: RankedUsers<Date>, metric: LeaderboardMetric): string => {
-    if (metric === 'distance') {
-        return `${user.totalDistance.toFixed(1)} km`;
-    }
-    if (metric === 'elevation') {
-        return `${user.totalElevation.toLocaleString()} m`;
-    }
-    return `${user.totalHikes} ${user.totalHikes === 1 ? 'hike' : 'hikes'}`;
-};
 
 export const MOUNTAIN_ICON_CONFIG = {
     library: 'MaterialCommunityIcons' as const,

@@ -56,6 +56,7 @@ const TopUserDetailModal = ({
 
     const getRankTitle = () => {
         if (user.rank > 0 && user.rank <= 3) return `Peak #${user.rank} Champion`;
+        if (user.rank > 99) return 'Rank #99+ Hiker';
         if (user.rank > 3) return `Rank #${user.rank} Hiker`;
         return 'Unranked Hiker';
     };
@@ -109,7 +110,7 @@ const TopUserDetailModal = ({
                             <View style={styles.statCard}>
                                 <CustomIcon library="MaterialCommunityIcons" name="map-marker-distance" size={22} color={Colors.PRIMARY} />
                                 <CustomText variant="h2" style={styles.statValue}>
-                                    {user.totalDistance.toFixed(1)}
+                                    {(user.totalDistance ?? 0).toFixed(1)}
                                 </CustomText>
                                 <CustomText variant="caption" style={styles.statLabel}>
                                     km Hiked
@@ -119,7 +120,7 @@ const TopUserDetailModal = ({
                             <View style={styles.statCard}>
                                 <CustomIcon library="MaterialCommunityIcons" name="image-filter-hdr" size={22} color={Colors.PRIMARY} />
                                 <CustomText variant="h2" style={styles.statValue}>
-                                    {user.totalElevation.toLocaleString()}
+                                    {(user.totalElevation ?? 0).toLocaleString()}
                                 </CustomText>
                                 <CustomText variant="caption" style={styles.statLabel}>
                                     m Elevation
@@ -129,7 +130,7 @@ const TopUserDetailModal = ({
                             <View style={styles.statCard}>
                                 <CustomIcon library="MaterialCommunityIcons" name="hiking" size={22} color={Colors.PRIMARY} />
                                 <CustomText variant="h2" style={styles.statValue}>
-                                    {user.totalHikes}
+                                    {user.totalHikes ?? 0}
                                 </CustomText>
                                 <CustomText variant="caption" style={styles.statLabel}>
                                     Completed
@@ -159,7 +160,7 @@ const TopUserDetailModal = ({
                                         </View>
                                         <View style={styles.recordMetrics}>
                                             <CustomText variant="caption" style={styles.recordMetricText}>
-                                                {record.distance.toFixed(1)} km • {record.elevation} m
+                                                {(record.distance ?? 0).toFixed(1)} km • {(record.elevation ?? 0).toLocaleString()} m
                                             </CustomText>
                                         </View>
                                     </View>
