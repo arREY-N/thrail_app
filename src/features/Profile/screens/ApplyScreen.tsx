@@ -144,6 +144,7 @@ const ApplyScreen = ({
                 visible={showConfirm}
                 title="Submit Application"
                 message="Are you sure all your business details and permits are correct?"
+                iconName="check-circle"
                 confirmText="Submit"
                 cancelText="Check"
                 onConfirm={handleConfirmSubmit}

@@ -186,6 +186,8 @@ const MountainWriteScreen: React.FC<MountainWriteScreenProps> = ({
                 message="You have unsaved changes in this form. Are you sure you want to leave without saving?"
                 confirmText="Discard & Leave"
                 cancelText="Keep Editing"
+                isDestructive={true}
+                iconName="alert-triangle"
                 onConfirm={handleConfirmDiscard}
                 onClose={() => setShowDiscardModal(false)}
             />
@@ -198,6 +200,7 @@ const MountainWriteScreen: React.FC<MountainWriteScreenProps> = ({
                 confirmText="Delete Mountain"
                 cancelText="Cancel"
                 isDestructive={true}
+                iconName="trash-2"
                 onConfirm={handleConfirmDelete}
                 onClose={() => setShowDeleteModal(false)}
             />

@@ -495,7 +495,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 confirmText: REVIEW_MODALS.SAFETY_OVERRIDE.confirmText,
                 cancelText: REVIEW_MODALS.SAFETY_OVERRIDE.cancelText,
                 iconName: "alert-triangle",
-                isDestructive: false,
+                isDestructive: true,
             };
         }
 
@@ -776,6 +776,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 message={REVIEW_MODALS.CONFIRM_PAYMENT.message}
                 confirmText={REVIEW_MODALS.CONFIRM_PAYMENT.confirmText}
                 cancelText={REVIEW_MODALS.CONFIRM_PAYMENT.cancelText}
+                iconName="check-circle"
             />
 
             <AdminCancelBookingModal

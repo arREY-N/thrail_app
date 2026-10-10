@@ -908,7 +908,16 @@ const ProfileInfoScreen = ({
             </ScrollView>
 
             {/* Modals */}
-            <ConfirmationModal visible={isEditModalVisible} title="Edit Profile" message="Are you sure you want to edit this profile information? You will be redirected to the edit screen." onConfirm={handleConfirmEdit} onClose={() => setIsEditModalVisible(false)} confirmText="Edit" cancelText="Cancel" />
+            <ConfirmationModal
+                visible={isEditModalVisible}
+                title="Edit Profile"
+                message="Are you sure you want to edit this profile information? You will be redirected to the edit screen."
+                iconName="edit-3"
+                onConfirm={handleConfirmEdit}
+                onClose={() => setIsEditModalVisible(false)}
+                confirmText="Edit"
+                cancelText="Cancel"
+            />
             <ConfirmationModal
                 visible={isSaveModalVisible}
                 title={willResetAnyVerification ? "Reset Verification Warning" : "Save Changes"}
@@ -917,12 +926,23 @@ const ProfileInfoScreen = ({
                         ? "Modifying your verified phone number (or emergency contact) will reset its verification status and require tour organizers to re-verify it on your next reservation. Do you wish to proceed and save changes?"
                         : "You have made changes to your profile. Do you want to save them?"
                 }
+                iconName="check-circle"
                 onConfirm={() => { setIsSaveModalVisible(false); handleSave(); }}
                 onClose={() => setIsSaveModalVisible(false)}
                 confirmText="Save"
                 cancelText="Keep Editing"
             />
-            <ConfirmationModal visible={isCancelModalVisible} title="Discard Changes" message="You have unsaved changes. Are you sure you want to discard them?" onConfirm={() => { setIsCancelModalVisible(false); if (onCancelPress) onCancelPress(); }} onClose={() => setIsCancelModalVisible(false)} confirmText="Discard" cancelText="Keep Editing" />
+            <ConfirmationModal
+                visible={isCancelModalVisible}
+                title="Discard Changes"
+                message="You have unsaved changes. Are you sure you want to discard them?"
+                isDestructive={true}
+                iconName="alert-triangle"
+                onConfirm={() => { setIsCancelModalVisible(false); if (onCancelPress) onCancelPress(); }}
+                onClose={() => setIsCancelModalVisible(false)}
+                confirmText="Discard"
+                cancelText="Keep Editing"
+            />
 
             {clearanceImages.length > 0 && (
                 <ImagePreviewModal visible={isImageModalVisible} images={clearanceImages} onClose={() => setIsImageModalVisible(false)} />
