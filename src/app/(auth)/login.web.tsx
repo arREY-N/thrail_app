@@ -9,7 +9,6 @@ import { StyleSheet, View } from 'react-native';
 
 import LoadingScreen from '@/src/app/loading';
 import CustomLoading from '@/src/components/CustomLoading';
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import { useNotifyPermission } from '@/src/core/hook/useNotifyPermission';
 import { useAuthHook } from '@/src/core/models/User/User';
@@ -28,26 +27,23 @@ export default function Login() {
     const { mode } = useLocalSearchParams<{
         mode?: 'login' | 'signup' | 'forgot';
     }>();
-    const { onBackPress } = useAppNavigation();
-
-    // TODO(backend): Deprecate and remove "remember" and "onRememberMePress" from useAuthHook & authStore.
-    // The frontend no longer renders or uses "Remember Me" functionality.
     const {
-        user,
-        profile,
-        isLoading,
-        error,
-        reset,
-        onLogIn,
+        onBackToLanding,
+        onSwitchToSignUp,
         onForgotPassword,
-        onGmailLogIn,
-    } = useAuthHook();
-
-    const {
-        onSignUp,
         onPrivacy,
         onTerms,
     } = useLandingNavigation();
+
+    const {
+        user,
+        profile,
+        reset,
+        onLogIn,
+        onGmailLogIn,
+        error,
+        isLoading,
+    } = useAuthHook();
 
     useEffect(() => {
         reset();
@@ -72,13 +68,14 @@ export default function Login() {
         <View style={styles.container}>
             <LogInScreen
                 onLogInPress={onLogIn}
-                onSignUpPress={onSignUp}
+                onSignUpPress={onSwitchToSignUp}
                 error={error}
                 onForgotPasswordPress={onForgotPassword}
-                onBackPress={onBackPress}
+                onBackPress={onBackToLanding}
                 onGmailLogIn={onGmailLogIn}
                 onTermsPress={onTerms}
                 onPrivacyPress={onPrivacy}
+                isLoading={isLoading}
             />
 
             <CustomLoading
