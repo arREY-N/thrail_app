@@ -4,6 +4,7 @@ import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
+import { saveToCSV } from "@/src/core/utility/hikeStorage";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -44,6 +45,8 @@ export interface HikeState {
     isSegmentFirstPoint?: boolean;
     live: boolean;
     activeGroupId: string | null;
+    lastShareTime?: number;
+    lastShareCoord?: { latitude: number; longitude: number } | null;
 
     locationByGroup: Record<string, Location[]>;
     activeListeners: Record<string, Unsubscribe>;
@@ -89,6 +92,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     locationByGroup: {},
     activeListeners: {},
     activeGroupId: null,
+    lastShareTime: 0,
+    lastShareCoord: null,
     shareLocationEnabled: true,
     profile: null,
 
@@ -148,6 +153,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             locationByGroup: {},
             activeListeners: {},
             activeGroupId: null,
+            lastShareTime: 0,
+            lastShareCoord: null,
             shareLocationEnabled: true,
             profile: null,
             currentLocation: null,
@@ -178,11 +185,6 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             set({ currentLocation: coordinate });
             logger('HikeStoreCreator', 'Current Location', coordinate);
-
-            if (!profile) {
-                console.warn("[addCoordinate] Skipped: No user profile found.");
-                return;
-            }
 
             // 1. Session route drawing & distance (STRICTLY started hikes only)
             if (active && currentHike && currentHike.status === 'started') {
@@ -247,20 +249,44 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                         }
                     }
                 });
+
+                // Persist committed points locally to CSV for crash recovery & offline export
+                const isoTime = coordinate.timestamp instanceof Date
+                    ? coordinate.timestamp.toISOString()
+                    : new Date(coordinate.timestamp || Date.now()).toISOString();
+                saveToCSV(coordinate.latitude, coordinate.longitude, coordinate.altitude ?? 0, isoTime).catch(() => {});
             }
 
-            // 2. Emergency live location pin sharing (BOTH started and paused hikes)
+            // 2. Emergency live location pin sharing with throttling (BOTH started and paused hikes)
             if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
-                if (get().live && get().shareLocationEnabled && activeGroupId) {
-                    try {
-                        const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
-                        const coordinateWithHikerName = newLocation({
-                            ...coordinate,
-                            hikerName: name
+                if (get().live && get().shareLocationEnabled && activeGroupId && profile?.id) {
+                    const nowMs = Date.now();
+                    const lastShareTime = get().lastShareTime || 0;
+                    const lastShareCoord = get().lastShareCoord;
+
+                    const timeSinceLastShare = (nowMs - lastShareTime) / 1000;
+                    const distFromLastShare = lastShareCoord
+                        ? calculateDistance(lastShareCoord.latitude, lastShareCoord.longitude, coordinate.latitude, coordinate.longitude)
+                        : 999;
+
+                    // Throttle: broadcast at most once every 12 seconds, OR when moved >= 10m, OR on first share
+                    const shouldShare = timeSinceLastShare >= 12 || distFromLastShare >= 10 || lastShareTime === 0;
+
+                    if (shouldShare) {
+                        set({
+                            lastShareTime: nowMs,
+                            lastShareCoord: { latitude: coordinate.latitude, longitude: coordinate.longitude },
                         });
-                        await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
-                    } catch (shareError) {
-                        console.error('[addCoordinate] Background location share failed:', shareError);
+                        try {
+                            const name = `${profile.firstname || ''} ${profile.lastname || ''}`.trim() || 'Anonymous Hiker';
+                            const coordinateWithHikerName = newLocation({
+                                ...coordinate,
+                                hikerName: name,
+                            });
+                            await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+                        } catch (shareError) {
+                            console.error('[addCoordinate] Background location share failed:', shareError);
+                        }
                     }
                 }
             }

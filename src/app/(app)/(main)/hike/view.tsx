@@ -15,6 +15,7 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
 import Unauthorized from "@/src/app/unauthorized";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
@@ -36,10 +37,12 @@ export default function HikeView() {
 
     const storedHike = useHikeStore((s) => s.currentHike);
     const resolvedBookingId = bookingId || (storedHike?.mode === 'booked' ? storedHike.bookingId : undefined);
+    const userBookings = useBookingsStore((s) => s.userBookings);
+    const activeBooking = resolvedBookingId ? userBookings.find(b => b.id === resolvedBookingId) : null;
 
     const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
         g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
-    )?.id) || undefined;
+    )?.id) || activeBooking?.offer?.id || undefined;
 
     const {
         currentHike,

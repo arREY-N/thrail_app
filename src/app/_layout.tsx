@@ -1,6 +1,7 @@
 import LoadingScreen from "@/src/app/loading";
 import { MaintenanceScreen } from "@/src/app/maintenance";
 import useMaintenance from "@/src/core/hook/useMaintenance";
+import "@/src/core/utility/locationTask";
 import { useAuthHook } from "@/src/core/models/User/User";
 import {
 	AntDesign,
