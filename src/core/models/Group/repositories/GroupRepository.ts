@@ -39,12 +39,17 @@ export const GroupRepository = (db: Firestore) => ({
     listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe {
         const q = query(
             collection(db, 'groups'),
-            where('participantsIds', 'array-contains', userId),
-            orderBy('updatedAt', 'desc')
+            where('participantsIds', 'array-contains', userId)
         ).withConverter(groupConverter);
 
         return onSnapshot(q, (snapshot) => {
-            onUpdate(snapshot.docs.map(d => d.data()));
+            const list = snapshot.docs.map(d => d.data());
+            list.sort((a, b) => {
+                const bTime = b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0;
+                const aTime = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+                return bTime - aTime;
+            });
+            onUpdate(list);
         }, (error) => {
             console.error('Error in listenToUserGroups: ', error);
         });
