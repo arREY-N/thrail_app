@@ -12,10 +12,15 @@ export function HandleGroupMemberFlow() {
 
         if (!group) throw new Error(`Group with ID ${groupId} not found.`);
 
+        if (group.participantsIds?.includes(user.id)) {
+            logger('HandleGroupMemberFlow', `User ${user.id} is already in group ${groupId}`);
+            return;
+        }
+
         const updatedGroup: Group = newGroup({
             ...group,
-            participantsIds: [...group.participantsIds, user.id],
-            members: [...group.members, user],
+            participantsIds: [...(group.participantsIds || []), user.id],
+            members: [...(group.members || []), user],
         });
 
         logger('HandleGroupMemberFlow', 'Updated Group Chat: ', updatedGroup);
