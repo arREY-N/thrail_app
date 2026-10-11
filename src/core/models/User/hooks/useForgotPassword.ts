@@ -1,5 +1,7 @@
 import { auth } from '@/src/core/config/Firebase';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
+import { UserRepo } from '@/src/core/models/User/repositories/UserRepository';
 import { confirmPasswordReset, sendPasswordResetEmail } from 'firebase/auth';
 import { useState } from 'react';
 
@@ -16,12 +18,13 @@ export interface ForgotPasswordController {
     reset: () => void;
 }
 
-export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
+export const useForgotPassword = (oobCode?: string): ForgotPasswordController => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    const { onLanding, onBackPress, onLogIn } = useAppNavigation();
+    const { onBackPress } = useAppNavigation();
+    const { onBackToLanding, onSwitchToLogIn } = useLandingNavigation();
 
     const onSendResetEmail = async (email: string) => {
         try {
@@ -44,8 +47,8 @@ export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
                 handleCodeInApp: false,
             });
             setSuccess(true);
-        } catch (err: any) {
-            setError(err.message || 'Failed to send reset email.');
+        } catch (err: unknown) {
+            setError((err as Error).message || 'Failed to send reset email.');
         } finally {
             setLoading(false);
         }
@@ -69,19 +72,19 @@ export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
             if (!oobCode || (oobCode && typeof oobCode !== 'string')) {
                 throw new Error('Invalid or expired reset link.');
             }
-            const test = true
+            const test = true;
 
             if (test) {
                 console.log("Simulating password reset...");
                 console.log(auth, oobCode, password);
                 setSuccess(true);
-                return
-            };
+                return;
+            }
 
             await confirmPasswordReset(auth, oobCode, password);
-            onLanding();
-        } catch (err: any) {
-            setError(err.message || 'Failed to reset password.');
+            onBackToLanding();
+        } catch (err: unknown) {
+            setError((err as Error).message || 'Failed to reset password.');
         } finally {
             setLoading(false);
         }
@@ -94,11 +97,11 @@ export const useForgotPassword = (oobCode?: any): ForgotPasswordController => {
     };
 
     return {
-        onLanding,
+        onLanding: onBackToLanding,
         onSendResetEmail,
         onBackPress,
         onResetPassword,
-        onLogIn,
+        onLogIn: onSwitchToLogIn,
         loading,
         error,
         success,
