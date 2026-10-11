@@ -102,6 +102,7 @@ const HikingPreferencesScreen = ({ preferences, onBackPress, onEditPress }: Hiki
                 visible={showEditModal}
                 title="Edit Preferences"
                 message="Are you sure you want to edit your hiking preferences?"
+                iconName="edit-3"
                 confirmText="Edit"
                 cancelText="Cancel"
                 onConfirm={handleConfirmEdit}

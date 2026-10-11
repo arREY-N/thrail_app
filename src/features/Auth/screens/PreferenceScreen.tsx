@@ -212,6 +212,7 @@ const PreferenceScreen = ({
                 visible={showSaveConfirmation}
                 title="Save Hiking Preferences"
                 message="Are you ready to submit your preferences and find your trail?"
+                iconName="check-circle"
                 onConfirm={handleConfirmSave}
                 onClose={() => setShowSaveConfirmation(false)}
                 confirmText="Save"

@@ -352,6 +352,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 onClose={() => setShowEditModal(false)}
                 title="Edit Active Offer?"
                 message="Editing this offer will change the details and requirements for all future bookings. Are you sure you want to proceed?"
+                iconName="edit-3"
                 confirmText="Yes, Edit Offer"
                 cancelText="Cancel"
                 onConfirm={confirmEdit}
