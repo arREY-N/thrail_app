@@ -1,8 +1,9 @@
 import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
 import { calculateVerificationValidity } from "@/src/core/flows/PhoneVerificationFlow";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
+import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { Booking, BookingLogic, newBooking, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
-import { useGroupStore } from "@/src/core/models/Group/Group";
+import { IGroupMember, useGroupStore } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { usePaymentUser } from "@/src/core/models/Payment/Payment";
 import { IEmergencyContact, newUser, useAuthHook, useAuthStore, UserLogic, UserRepo, useUserStore } from "@/src/core/models/User/User";
@@ -26,6 +27,7 @@ export function CreateBookingFlow() {
     const createBooking = useBookingsStore(s => s.create);
     const error = useBookingsStore(s => s.error);
     const userBookings = useBookingsStore(s => s.userBookings);
+    const { onAddMemberToGroup } = HandleGroupMemberFlow();
 
     const onUpdatePress = (params: TEdit<Booking>) => {
         const { section, id, value } = params;
@@ -416,6 +418,20 @@ export function CreateBookingFlow() {
                         });
                     }
                 }
+            }
+
+            // Self-heal group membership if the booking is approved
+            const isApproved = ['for-payment', 'paid', 'downpayment', 'completed'].includes(bookingToCheck.status);
+            if (isApproved && bookingToCheck.offer?.id) {
+                const groupMember: IGroupMember = {
+                    id: profile.id,
+                    username: profile.username,
+                    firstname: profile.firstname,
+                    lastname: profile.lastname,
+                    email: profile.email,
+                    bookingId: bookingToCheck.id,
+                };
+                await onAddMemberToGroup(groupMember, bookingToCheck.offer.id);
             }
         } catch (err: unknown) {
             console.warn('[CreateBookingFlow] onSyncBookingVerification failed:', err);
