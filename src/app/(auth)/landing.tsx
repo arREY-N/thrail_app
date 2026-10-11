@@ -7,10 +7,10 @@ export default function Landing() {
     const { isLargeScreen } = useBreakpoints();
     const { mode } = useLocalSearchParams<{ mode?: 'login' | 'signup' | 'forgot' }>();
     const {
-        onLogIn,
-        onSignUp,
+        onOpenLogIn,
+        onOpenSignUp,
         onPrivacy,
-        onTerms
+        onTerms,
     } = useLandingNavigation();
 
     if (!isLargeScreen && mode) {
@@ -27,8 +27,8 @@ export default function Landing() {
 
     return (
         <LandingScreen
-            onLogInPress={onLogIn}
-            onSignUpPress={onSignUp}
+            onLogInPress={onOpenLogIn}
+            onSignUpPress={onOpenSignUp}
             onPrivacyPress={onPrivacy}
             onTermsPress={onTerms}
             initialMode={mode}

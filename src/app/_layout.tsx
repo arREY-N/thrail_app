@@ -15,7 +15,7 @@ import {
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -36,6 +36,12 @@ export default function RootLayout() {
 		initialize,
 		isLoading
 	} = useAuthHook();
+
+	const [hasInitialAuthResolved, setHasInitialAuthResolved] = useState(false);
+
+	if (!isLoading && !hasInitialAuthResolved) {
+		setHasInitialAuthResolved(true);
+	}
 
 	const [fontsLoaded, fontError] = useFonts({
 		...AntDesign.font,
@@ -65,7 +71,7 @@ export default function RootLayout() {
 		return null;
 	}
 
-	if (!checked || isLoading) {
+	if (!checked || !hasInitialAuthResolved) {
 		return (
 			<GestureHandlerRootView style={{ flex: 1 }}>
 				<LoadingScreen />

@@ -80,13 +80,26 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     }
 
     const loginHook = useAuthHook();
-    const signupHook = useSignUp(true);
+    const signupHook = useSignUp(false);
     const forgotHook = useForgotPassword();
-
     const updateAuthMode = (mode: 'login' | 'signup' | 'forgot') => {
         setAuthMode(mode);
         onModeChange?.(mode);
         forgotHook.reset();
+        loginHook.reset();
+    };
+
+    const handleDesktopLogIn = async (email?: string, password?: string) => {
+        if (!email || !password) return;
+        await loginHook.onLogIn(email, password);
+    };
+
+    const handleDesktopGmailLogIn = async () => {
+        await loginHook.onGmailLogIn();
+    };
+
+    const handleDesktopGmailSignUp = async () => {
+        await signupHook.onGmailSignUp();
     };
 
     if (isLargeScreen) {
@@ -122,27 +135,29 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                         {authMode === 'login' ? (
                             <LogInScreen
                                 isSplitScreen={true}
-                                onLogInPress={loginHook.onLogIn as (email?: string, password?: string) => void}
+                                onLogInPress={handleDesktopLogIn}
                                 onSignUpPress={() => updateAuthMode('signup')}
-                                onBackPress={undefined as unknown as () => void}
+                                onBackPress={() => {}}
                                 onForgotPasswordPress={() => updateAuthMode('forgot')}
                                 onRememberMePress={loginHook.onRememberMePress}
-                                onGmailLogIn={loginHook.onGmailLogIn}
+                                onGmailLogIn={handleDesktopGmailLogIn}
                                 onTermsPress={onTermsPress}
                                 onPrivacyPress={onPrivacyPress}
                                 error={loginHook.error}
                                 remember={loginHook.remember}
+                                isLoading={loginHook.isLoading}
                             />
                         ) : authMode === 'signup' ? (
                             <SignUpScreen
                                 isSplitScreen={true}
-                                onSignUpPress={signupHook.onSignUpPress as (email?: string, password?: string, username?: string, confirmPassword?: string) => void}
+                                onSignUpPress={signupHook.onSignUpPress as (email: string, password: string, username: string, confirmPassword: string) => void}
                                 onLogInPress={() => updateAuthMode('login')}
-                                onBackPress={undefined as unknown as () => void}
-                                onGmailSignUp={signupHook.onGmailSignUp}
+                                onBackPress={() => {}}
+                                onGmailSignUp={handleDesktopGmailSignUp}
                                 onTermsPress={onTermsPress}
                                 onPrivacyPress={onPrivacyPress}
                                 error={signupHook.error}
+                                isLoading={signupHook.isLoading}
                             />
                         ) : (
                             <ForgotPasswordScreen

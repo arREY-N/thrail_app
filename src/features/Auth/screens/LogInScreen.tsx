@@ -16,6 +16,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import { Colors } from '@/src/constants/colors';
+import { useAuthValidation } from '@/src/features/Auth/hooks/useAuthValidation';
+import { sanitizeEmail, sanitizePassword } from '@/src/features/Auth/utils/authValidation';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
@@ -32,6 +34,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param error - Error message to display, if any.
  * @param remember - Current state of the remember me checkbox.
  * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
+ * @param isLoading - Indicates if an authentication request is currently processing.
  */
 export interface LogInScreenProps {
     onLogInPress: (email: string, password: string) => void;
@@ -45,6 +48,7 @@ export interface LogInScreenProps {
     error?: string | null;
     remember?: boolean;
     isSplitScreen?: boolean;
+    isLoading?: boolean;
 }
 
 /**
@@ -62,10 +66,19 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
     error,
     remember,
     isSplitScreen,
+    isLoading,
 }) => {
     const { isLargeScreen } = useBreakpoints();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const { activeError, validateLogIn, clearError } = useAuthValidation(error);
+
+    const handleLogInSubmit = () => {
+        if (activeError) clearError();
+        if (validateLogIn(email, password)) {
+            onLogInPress(email.trim(), password);
+        }
+    };
 
     // Shared form content — reused in both split-screen and mobile render paths.
     const formContent = (
@@ -84,7 +97,10 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 label="Email Address"
                 placeholder="name@example.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text: string) => {
+                    setEmail(sanitizeEmail(text));
+                    if (activeError) clearError();
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
             />
@@ -93,10 +109,18 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 label="Password"
                 placeholder="Enter your password"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text: string) => {
+                    setPassword(sanitizePassword(text));
+                    if (activeError) clearError();
+                }}
                 secureTextEntry
                 rightElement={
-                    <TouchableOpacity onPress={onForgotPasswordPress}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (activeError) clearError();
+                            onForgotPasswordPress();
+                        }}
+                    >
                         <CustomText variant="caption" style={AuthStyles.forgotText}>
                             Forgot Password?
                         </CustomText>
@@ -104,13 +128,15 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 }
             />
 
-            <ErrorMessage error={error} />
+            <ErrorMessage error={activeError} />
 
             <View style={[AuthStyles.buttonContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
                 <CustomButton
                     title="Log In"
-                    onPress={() => onLogInPress(email, password)}
+                    onPress={handleLogInSubmit}
                     variant="primary"
+                    disabled={isLoading}
+                    isLoading={isLoading}
                 />
             </View>
 
@@ -124,7 +150,10 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
 
             <TouchableOpacity
                 style={[AuthStyles.googleButton, isSplitScreen && AuthStyles.splitScreenSection]}
-                onPress={onGmailLogIn}
+                onPress={() => {
+                    if (activeError) clearError();
+                    onGmailLogIn();
+                }}
                 activeOpacity={0.8}
             >
                 <CustomIcon
@@ -142,7 +171,12 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 <CustomText variant="caption" style={AuthStyles.footerText}>
                     {"Don't have an account? "}
                 </CustomText>
-                <TouchableOpacity onPress={onSignUpPress}>
+                <TouchableOpacity
+                    onPress={() => {
+                        if (activeError) clearError();
+                        onSignUpPress();
+                    }}
+                >
                     <CustomText variant="caption" style={AuthStyles.signUpLink}>
                         Sign Up
                     </CustomText>
@@ -156,7 +190,10 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                         <CustomText
                             variant="caption"
                             style={AuthStyles.termsLink}
-                            onPress={onTermsPress}
+                            onPress={() => {
+                                if (activeError) clearError();
+                                onTermsPress();
+                            }}
                         >
                             Terms of Service
                         </CustomText>
@@ -164,7 +201,10 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                         <CustomText
                             variant="caption"
                             style={AuthStyles.termsLink}
-                            onPress={onPrivacyPress}
+                            onPress={() => {
+                                if (activeError) clearError();
+                                onPrivacyPress();
+                            }}
                         >
                             Privacy Policy
                         </CustomText>
@@ -193,7 +233,12 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
-            <CustomHeader onBackPress={onBackPress} />
+            <CustomHeader
+                onBackPress={() => {
+                    if (activeError) clearError();
+                    onBackPress();
+                }}
+            />
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}
