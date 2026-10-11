@@ -12,20 +12,23 @@ export default function Index() {
 
 	const { isLargeScreen } = useBreakpoints();
 	const { mode } = useLocalSearchParams<{ mode?: 'login' | 'signup' | 'forgot' }>();
-	const { user, profile, isLoading } = useAuthHook();
+	const { user, profile } = useAuthHook();
 
-	const { onLogIn, onSignUp, onPrivacy, onTerms } = useLandingNavigation();
+	const {
+		onOpenLogIn,
+		onOpenSignUp,
+		onPrivacy,
+		onTerms
+	} = useLandingNavigation();
 
 	if (user) {
 		if (!profile) return <LoadingScreen />;
 
 		if (profile && profile.onBoardingComplete)
-			return <Redirect href={"/(tabs)" as any} />;
+			return <Redirect href="/(app)/(tabs)" />;
 		else
-			return <Redirect href={"/(auth)/preference" as any} />;
+			return <Redirect href="/(auth)/preference" />;
 	}
-
-	if (isLoading) return <LoadingScreen />
 
 	if (!isLargeScreen && mode) {
 		if (mode === 'login') return <Redirect href="/(auth)/login" />;
@@ -35,8 +38,8 @@ export default function Index() {
 
 	return (
 		<LandingScreen
-			onLogInPress={onLogIn}
-			onSignUpPress={onSignUp}
+			onLogInPress={onOpenLogIn}
+			onSignUpPress={onOpenSignUp}
 			onPrivacyPress={onPrivacy}
 			onTermsPress={onTerms}
 			initialMode={mode}
