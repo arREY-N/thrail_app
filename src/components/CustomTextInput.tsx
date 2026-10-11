@@ -72,6 +72,20 @@ export const formatCoordinate = (text?: string): string => {
 };
 
 /**
+ * Comprehensive Unicode regex matching all standard and compound emojis,
+ * skin tone modifiers, regional indicator flags, keycaps, and variation selectors.
+ */
+export const EMOJI_REGEX = /(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\uFE00-\uFE0F\u200D\u20E3]*|[#*0-9]\uFE0F?\u20E3|[\uFE0E\uFE0F\u200D\u20E3]/gu;
+
+/**
+ * Strips all emoji characters, compound emoji sequences, and variation selectors from a string.
+ *
+ * @param text - The raw input text.
+ * @returns {string} The text stripped of emojis.
+ */
+export const stripEmojis = (text: string): string => text.replace(EMOJI_REGEX, '');
+
+/**
  * A highly customizable text input component that supports passwords, numbers, coordinates, dates, and calendars.
  */
 interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeText' | 'style'> {
@@ -101,6 +115,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     rightElement?: ReactNode;
     innerRightElement?: ReactNode;
     suffix?: string;
+    allowEmojis?: boolean;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -109,7 +124,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     value, 
     onChangeText, 
     secureTextEntry, 
-    keyboardType,
+    keyboardType, 
     isPasswordVisible, 
     onTogglePassword,
     type = 'text',
@@ -132,6 +147,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     innerRightElement,
     onFocus,
     onBlur,
+    allowEmojis = false,
     ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
@@ -139,14 +155,20 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
 
     const [localValue, setLocalValue] = useState(() => {
         if (value === null || value === undefined) return '';
-        const str = String(value);
+        let str = String(value);
+        if (!allowEmojis) {
+            str = stripEmojis(str);
+        }
         return type === 'phone' ? formatLocalPhoneNumber(str) : str;
     });
     const [prevValue, setPrevValue] = useState(value);
 
     if (value !== prevValue) {
         setPrevValue(value);
-        const incomingStr = value !== null && value !== undefined ? String(value) : '';
+        let incomingStr = value !== null && value !== undefined ? String(value) : '';
+        if (!allowEmojis) {
+            incomingStr = stripEmojis(incomingStr);
+        }
         if (type === 'coordinate' || type === 'numerical') {
             const isMidDecimal = localValue.endsWith('.') && parseFloat(incomingStr) === parseFloat(localValue);
             if (!isMidDecimal && incomingStr !== localValue) {
@@ -165,15 +187,19 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     const handleTextChange = (text: string) => {
         let processedText = text;
 
+        if (!allowEmojis) {
+            processedText = stripEmojis(processedText);
+        }
+
         if (type === 'phone') {
-            processedText = formatLocalPhoneNumber(text);
+            processedText = formatLocalPhoneNumber(processedText);
         } else if (type === 'coordinate') {
-            processedText = formatCoordinate(text);
+            processedText = formatCoordinate(processedText);
         } else if (type === 'numerical') {
             if (keyboardType === 'number-pad' || keyboardType === 'numeric') {
-                processedText = text.replace(/[^0-9]/g, '');
+                processedText = processedText.replace(/[^0-9]/g, '');
             } else {
-                let cleaned = text.replace(/[^0-9.]/g, '');
+                let cleaned = processedText.replace(/[^0-9.]/g, '');
                 const parts = cleaned.split('.');
                 if (parts.length > 2) {
                     cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
