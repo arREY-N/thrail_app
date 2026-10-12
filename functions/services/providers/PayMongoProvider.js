@@ -97,7 +97,7 @@ class PayMongoProvider {
      * @returns {Promise<Object>} The checkout session details.
      * @throws {Error} If the API request fails.
      */
-    async createCheckout(amount, type, redirectUrl, metadata) {
+    async createCheckout(amount, type, redirectUrl, metadata, customerInfo = null) {
         console.log(`[PayMongoProvider] Creating checkout session for amount: ${amount}, method: ${type}`);
         const supportedMethods = ['gcash', 'paymaya'];
         const primaryMethod = type === 'maya' ? 'paymaya' : type;
@@ -106,27 +106,45 @@ class PayMongoProvider {
             ...supportedMethods.filter((m) => m !== primaryMethod)
         ];
 
+        const sessionAttributes = {
+            send_email_receipt: false,
+            show_description: false,
+            show_line_items: true,
+            line_items: [
+                {
+                    currency: 'PHP',
+                    amount: Math.round(amount * 100),
+                    name: 'Booking Payment',
+                    quantity: 1
+                }
+            ],
+            payment_method_types: paymentMethodTypes,
+            success_url: redirectUrl,
+            cancel_url: redirectUrl,
+            reference_number: metadata.bookingId // Link session to booking
+        };
+
+        if (customerInfo && (customerInfo.name || customerInfo.email || customerInfo.phone)) {
+            const billing = {};
+            if (customerInfo.name && customerInfo.name.trim().length > 0) {
+                billing.name = customerInfo.name.trim();
+            }
+            if (customerInfo.email && customerInfo.email.trim().length > 0) {
+                billing.email = customerInfo.email.trim();
+            }
+            if (customerInfo.phone && customerInfo.phone.trim().length > 0) {
+                billing.phone = customerInfo.phone.trim();
+            }
+            if (Object.keys(billing).length > 0) {
+                sessionAttributes.billing = billing;
+            }
+        }
+
         const data = await this._request('/checkout_sessions', {
             method: 'POST',
             body: {
                 data: {
-                    attributes: {
-                        send_email_receipt: false,
-                        show_description: false,
-                        show_line_items: true,
-                        line_items: [
-                            {
-                                currency: 'PHP',
-                                amount: Math.round(amount * 100),
-                                name: 'Booking Payment',
-                                quantity: 1
-                            }
-                        ],
-                        payment_method_types: paymentMethodTypes,
-                        success_url: redirectUrl,
-                        cancel_url: redirectUrl,
-                        reference_number: metadata.bookingId // Link session to booking
-                    }
+                    attributes: sessionAttributes
                 }
             }
         });
