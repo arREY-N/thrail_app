@@ -133,7 +133,21 @@ class PayMongoProvider {
                 billing.email = customerInfo.email.trim();
             }
             if (customerInfo.phone && customerInfo.phone.trim().length > 0) {
-                billing.phone = customerInfo.phone.trim();
+                // Strip all formatting except digits and plus sign
+                let cleanPhone = customerInfo.phone.trim().replace(/[^\d+]/g, '');
+                if (cleanPhone.startsWith('+63')) {
+                    cleanPhone = cleanPhone.slice(3);
+                } else if (cleanPhone.startsWith('63') && cleanPhone.length >= 12) {
+                    cleanPhone = cleanPhone.slice(2);
+                }
+                // Strip leading 0 so PayMongo's +63 country code prefix formats correctly as +63 9XX...
+                if (cleanPhone.startsWith('0')) {
+                    cleanPhone = cleanPhone.replace(/^0+/, '');
+                }
+                cleanPhone = cleanPhone.trim();
+                if (cleanPhone.length > 0) {
+                    billing.phone = cleanPhone;
+                }
             }
             if (Object.keys(billing).length > 0) {
                 sessionAttributes.billing = billing;
