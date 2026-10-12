@@ -316,7 +316,10 @@ export const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        transform: Platform.OS === 'web' ? [{ scaleY: -1 }] : undefined,
+        transform: Platform.select({
+            android: [{ rotate: '180deg' }],
+            default: [{ scaleY: -1 }],
+        }),
     },
     chatEmptyText: {
         color: Colors.TEXT_SECONDARY,

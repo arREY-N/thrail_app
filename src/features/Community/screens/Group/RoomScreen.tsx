@@ -596,7 +596,10 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         }}
                         listProps={{
                             ...listViewProps,
-                            contentContainerStyle: { flexGrow: 1 },
+                            contentContainerStyle: {
+                                flexGrow: 1,
+                                justifyContent: displayMessages.length === 0 ? 'center' : undefined,
+                            },
                             keyboardDismissMode: 'on-drag' as const,
                             keyboardShouldPersistTaps: 'never' as const,
                         }}
