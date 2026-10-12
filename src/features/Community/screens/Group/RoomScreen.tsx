@@ -462,11 +462,11 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         );
     }, []);
 
-    const renderChatEmpty = useCallback(() => {
+    const renderChatEmpty = useCallback((): React.JSX.Element => {
         return (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scaleY: -1 }] }}>
+            <View style={styles.chatEmptyContainer}>
                 <CustomIcon library="Ionicons" name="chatbubbles-outline" size={64} color={Colors.GRAY_MEDIUM} />
-                <CustomText variant="body" style={{ color: Colors.TEXT_SECONDARY, marginTop: 16, textAlign: 'center' }}>
+                <CustomText variant="body" style={styles.chatEmptyText}>
                     No messages yet.{"\n"}Send a message to start the conversation!
                 </CustomText>
             </View>

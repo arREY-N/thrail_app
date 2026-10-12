@@ -312,4 +312,15 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 2,
     },
+    chatEmptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: Platform.OS === 'web' ? [{ scaleY: -1 }] : undefined,
+    },
+    chatEmptyText: {
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 16,
+        textAlign: 'center',
+    },
 });
