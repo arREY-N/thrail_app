@@ -226,13 +226,19 @@ export const styles = StyleSheet.create({
         paddingBottom: 8 
     },
     inputToolbarPrimary: { 
-        alignItems: 'flex-end' 
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        width: '100%',
+    },
+    composerWrapper: {
+        flex: 1,
+        justifyContent: 'center',
     },
     actionButtonContainer: { 
-        height: 44, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginRight: 8 
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        marginRight: 6,
     },
     actionButton: { 
         width: 36, 
@@ -247,10 +253,10 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         fontSize: 15, 
         lineHeight: 20, 
-        paddingHorizontal: 16, 
-        paddingTop: Platform.OS === 'web' ? 10 : 12, 
-        paddingBottom: Platform.OS === 'web' ? 10 : 12, 
-        borderRadius: 24, 
+        paddingHorizontal: 14, 
+        paddingTop: Platform.OS === 'web' ? 10 : 8, 
+        paddingBottom: Platform.OS === 'web' ? 10 : 8, 
+        borderRadius: 22, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         minHeight: 44, 
@@ -266,8 +272,7 @@ export const styles = StyleSheet.create({
     sendContainer: { 
         justifyContent: 'center', 
         alignItems: 'center', 
-        marginBottom: 4, 
-        marginRight: 4 
+        marginBottom: 2, 
     },
     sendButton: { 
         width: 40, 

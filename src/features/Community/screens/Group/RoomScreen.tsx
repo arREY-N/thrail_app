@@ -12,7 +12,6 @@ import {
     Day,
     DayProps,
     IMessage as IChatMessage,
-    InputToolbar,
     InputToolbarProps,
     MessageImageProps,
     MessageText,
@@ -139,15 +138,20 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
  */
 const CustomComposer: React.FC<ComposerProps & { onFocusInput?: () => void }> = (props) => {
     const [isFocused, setIsFocused] = React.useState<boolean>(false);
+    const [inputHeight, setInputHeight] = React.useState<number>(44);
     const text = props.text ?? '';
-    const lines = text.split('\n').length;
-    const currentHeight = Math.min(Math.max(40, lines * 20), 120);
+    const effectiveHeight = !text ? 44 : inputHeight;
 
     return (
         <Composer
             {...props}
             textInputProps={{
                 ...props.textInputProps,
+                numberOfLines: !text ? 1 : undefined,
+                onContentSizeChange: (e) => {
+                    const nextH = Math.min(Math.max(44, Math.ceil(e.nativeEvent.contentSize.height)), 120);
+                    setInputHeight(nextH);
+                },
                 onFocus: () => {
                     setIsFocused(true);
                     props.onFocusInput && props.onFocusInput();
@@ -157,8 +161,11 @@ const CustomComposer: React.FC<ComposerProps & { onFocusInput?: () => void }> = 
                     styles.composerTextInput,
                     isFocused && styles.composerTextInputFocused,
                     Platform.OS === 'web' && ({ outlineStyle: 'none' } as unknown as TextStyle),
-                    { height: currentHeight, textAlignVertical: 'top' }
-                ]
+                    {
+                        height: effectiveHeight,
+                        textAlignVertical: effectiveHeight > 44 ? 'top' : 'center',
+                    },
+                ],
             }}
         />
     );
@@ -407,13 +414,6 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         );
     }, []);
 
-    const renderInputToolbar = useCallback((props: InputToolbarProps<CustomMessage>) =>
-        <InputToolbar
-            {...props}
-            containerStyle={[styles.inputToolbar, { width: '100%', paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) }]}
-            primaryStyle={styles.inputToolbarPrimary}
-        />, [insets.bottom, isKeyboardVisible]);
-
     const renderFooter = useCallback(() => {
         if (!isUploading) return null;
         return (
@@ -427,16 +427,14 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     const renderActions = useCallback((_props: unknown) => {
         return (
             <View style={styles.actionButtonContainer}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
-                        <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
+                <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
+                    <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
+                </TouchableOpacity>
+                {Platform.OS !== 'web' && (
+                    <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
+                        <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
                     </TouchableOpacity>
-                    {Platform.OS !== 'web' && (
-                        <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
-                            <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                )}
             </View>
         );
     }, [onAttachPhotoPress, onCapturePhotoPress]);
@@ -461,6 +459,18 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
             </TouchableOpacity>
         );
     }, []);
+
+    const renderInputToolbar = useCallback((props: InputToolbarProps<CustomMessage>) =>
+        <View style={[styles.inputToolbar, { width: '100%', paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) }]}>
+            <View style={styles.inputToolbarPrimary}>
+                {renderActions(props)}
+                <View style={styles.composerWrapper}>
+                    {renderComposer(props as unknown as ComposerProps)}
+                </View>
+                {renderSend(props as unknown as SendProps<CustomMessage>)}
+            </View>
+        </View>,
+    [insets.bottom, isKeyboardVisible, renderActions, renderComposer, renderSend]);
 
     const renderChatEmpty = useCallback((): React.JSX.Element => {
         return (
