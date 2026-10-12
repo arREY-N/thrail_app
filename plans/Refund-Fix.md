@@ -161,7 +161,7 @@ const attributes = {
     billing: {
         name: customerInfo.name,       // Full Name of Hiker
         email: customerInfo.email,     // Customer Email
-        phone: customerInfo.phone      // Mobile Phone Number (e.g. 09171234567 or +639171234567)
+        phone: customerInfo.phone      // Cleaned 10-digit number (stripped leading '0' / '+63' / '63' so gateway renders '+63 9XX...')
     }
 };
 ```
@@ -169,7 +169,8 @@ const attributes = {
 In [`functions/index.js`](file:///d:/thrail_app/functions/index.js#L705) (`createPaymongoCheckout`):
 - Fetch the customer profile from `bookingDoc.data().user` or the authenticated caller's profile.
 - Pass sanitized `customerInfo` to `createCheckout`.
-- PayMongo will automatically pre-fill the checkout gateway.
+- In [`PayMongoProvider.js`](file:///d:/thrail_app/functions/services/providers/PayMongoProvider.js), sanitize phone number: remove non-digits, strip country codes (`+63`/`63`), and strip leading `0` so the gateway pre-fills as `+63 9XX XXX XXXX`.
+- PayMongo will automatically pre-fill the checkout gateway without duplicate prefix or zero errors.
 
 ---
 
@@ -466,7 +467,7 @@ This test matrix covers all functional scenarios, boundary conditions, edge case
 
 | Test Case ID | Test Category | Scenario Description | Pre-Conditions & Inputs | Expected Outcome | Verification Status |
 | :---: | :--- | :--- | :--- | :--- | :---: |
-| **TC-AUTO-01** | **Full Profile Autofill** | Hiker initiates GCash/Maya checkout with full profile details populated. | • User: `Firstname = "Juan"`, `Lastname = "Dela Cruz"`, `Email = "juan@example.com"`, `Phone = "09171234567"` | • `createPaymongoCheckout` injects `billing: { name: "Juan Dela Cruz", email: "juan@example.com", phone: "09171234567" }`.<br>• PayMongo hosted checkout page automatically pre-populates Name, Email, and Phone fields.<br>• Hiker bypasses manual data entry and proceeds straight to payment. | ✅ **PASSED** |
+| **TC-AUTO-01** | **Full Profile Autofill** | Hiker initiates GCash/Maya checkout with full profile details populated. | • User: `Firstname = "Juan"`, `Lastname = "Dela Cruz"`, `Email = "juan@example.com"`, `Phone = "09171234567"` | • `cleanPhone` sanitizes raw phone: removes formatting, strips `+63`/`63` if present, and removes leading `0` so `phone = "9171234567"`.<br>• `createPaymongoCheckout` injects `billing: { name: "Juan Dela Cruz", email: "juan@example.com", phone: "9171234567" }`.<br>• PayMongo hosted checkout page automatically formats with `+63`, pre-populating as `+63 917 123 4567` without redundant leading zeros or validation errors.<br>• Hiker bypasses manual data entry and proceeds straight to payment. | ✅ **PASSED** |
 | **TC-AUTO-02** | **Sparse / Partial Profile** | Hiker has email and name, but phone number is blank or missing. | • User: `name = "Maria Santos"`, `email = "maria@example.com"`, `phone = ""` | • In `PayMongoProvider.js`, empty `phone` key is safely omitted from `billing`.<br>• PayMongo API accepts payload without 400 validation error.<br>• Name and Email are pre-filled; phone remains blank for user to input. | ✅ **PASSED** (Bug Guard Verified) |
 | **TC-AUTO-03** | **Unauthenticated / Fallback Profile** | Booking document lacks complete user details, but `users/{userId}` profile document contains them. | • `booking.user` lacks phone.<br>• `users/{userId}` contains `phoneNumber = "09289876543"`. | • Cloud function queries fallback `users` profile doc and successfully resolves full billing details before calling checkout. | ✅ **PASSED** |
 
