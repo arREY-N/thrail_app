@@ -216,7 +216,10 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         try {
             set({ isLoading: true, error: null });
             await GroupRepo.writeGroup(group);
-            set({ isLoading: false });
+            set({
+                isLoading: false,
+                groups: upsertItem(get().groups, group),
+            });
         } catch (error) {
             set({ isLoading: false, error: error instanceof Error ? error.message : "Failed to create group" });
             throw error;

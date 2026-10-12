@@ -640,6 +640,7 @@ const OfferWriteScreen = ({
                 visible={showSaveConfirmModal} 
                 title="Save Changes?" 
                 message="Apply these changes to all new hikers?" 
+                iconName="check-circle"
                 confirmText={isLoading ? "Saving..." : "Save Changes"} 
                 cancelText="Cancel" 
                 onConfirm={() => { 

@@ -8,7 +8,6 @@ import { StyleSheet, View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
 import { Colors } from '@/src/constants/colors';
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import { useSignUp } from '@/src/core/models/User/User';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
@@ -29,13 +28,10 @@ export default function Signup() {
     } = useSignUp(true);
 
     const {
-        onLogIn,
-        onBackPress,
-    } = useAppNavigation();
-
-    const {
-        onPrivacy,
+        onBackToLanding,
+        onSwitchToLogIn,
         onTerms,
+        onPrivacy,
     } = useLandingNavigation();
 
     if (isLargeScreen) {
@@ -46,12 +42,13 @@ export default function Signup() {
         <View style={styles.container}>
             <SignUpScreen
                 onSignUpPress={onSignUpPress}
-                onLogInPress={onLogIn}
-                onBackPress={onBackPress}
+                onLogInPress={onSwitchToLogIn}
+                onBackPress={onBackToLanding}
                 onGmailSignUp={onGmailSignUp}
                 onTermsPress={onTerms}
                 onPrivacyPress={onPrivacy}
                 error={error}
+                isLoading={isLoading}
             />
 
             <CustomLoading

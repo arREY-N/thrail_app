@@ -79,7 +79,7 @@ export function useBookingAdmin() {
                 username: user.username,
                 firstname: user.firstname,
                 lastname: user.lastname,
-                email: user.lastname,
+                email: user.email,
                 bookingId: approvedBook.id,
             }
 
@@ -116,6 +116,17 @@ export function useBookingAdmin() {
             if (!success) {
                 throw new Error('Failed to finalize booking to completed status.');
             }
+
+            const user = booking.user;
+            const groupMember: IGroupMember = {
+                id: user.id,
+                username: user.username,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                bookingId: completedBook.id,
+            };
+            await onAddMemberToGroup(groupMember, booking.offer.id);
 
             onBackPress();
         } catch (error) {
