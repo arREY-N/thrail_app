@@ -126,7 +126,6 @@ export const UserRepository = (db: Firestore) => ({
 
             return true;
         } catch (err) {
-            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
@@ -152,7 +151,6 @@ export const UserRepository = (db: Firestore) => ({
 
             return user;
         } catch (err) {
-            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
@@ -194,7 +192,6 @@ export const UserRepository = (db: Firestore) => ({
                 { merge: true }
             );
         } catch (err) {
-            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
@@ -236,7 +233,6 @@ export const UserRepository = (db: Firestore) => ({
             );
 
         } catch (err) {
-            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
@@ -249,7 +245,6 @@ export const UserRepository = (db: Firestore) => ({
                 data.password
             );
         } catch (err) {
-            console.log(err);
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
