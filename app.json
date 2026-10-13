@@ -71,7 +71,15 @@
       ],
       "expo-sharing",
       "expo-splash-screen",
-      "expo-image"
+      "expo-image",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "thrail-app"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

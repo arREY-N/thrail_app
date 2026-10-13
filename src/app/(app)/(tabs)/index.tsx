@@ -6,6 +6,7 @@
 
 import { HomeFlow } from '@/src/core/flows/HomeFlow';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
+import React from 'react';
 
 /**
  * Controller for the Home Tab.

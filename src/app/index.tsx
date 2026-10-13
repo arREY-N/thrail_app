@@ -5,6 +5,7 @@ import { useNotifyPermission } from "@/src/core/hook/useNotifyPermission";
 import LandingScreen from "@/src/features/Auth/screens/LandingScreen";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
+import React from "react";
 import LoadingScreen from "./loading";
 
 export default function Index() {
