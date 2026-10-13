@@ -1,7 +1,6 @@
 
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
 import { useBookingUserList, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useCancellationUser, useCancellationUserList } from "@/src/core/models/Cancellation/Cancellation";
 import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
@@ -26,11 +25,6 @@ export default function ListBook() {
         onBackPress,
         onSeeMoreOffersPress
     } = useAppNavigation();
-
-    const {
-        onTerms: onTermsPress,
-        onPrivacy: onPrivacyPress
-    } = useLandingNavigation();
 
     const {
         cancelBooking,
@@ -102,8 +96,6 @@ export default function ListBook() {
             availableFutureOffers={[newOffer(), newOffer()]}
             initialBookingId={bookingId}
             initialView={view}
-            onTermsPress={onTermsPress}
-            onPrivacyPress={onPrivacyPress}
             currentUserProfile={profile}
             onSyncBookingVerification={onSyncBookingVerification}
             onSearchUser={findUser}

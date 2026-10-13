@@ -219,20 +219,27 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold' 
     },
     inputToolbar: { 
-        backgroundColor: Colors.BACKGROUND, 
-        borderTopWidth: 0, 
+        backgroundColor: Colors.WHITE, 
+        borderTopWidth: 1, 
+        borderTopColor: Colors.GRAY_LIGHT, 
         paddingHorizontal: 12, 
         paddingTop: 8, 
-        paddingBottom: 8 
+        paddingBottom: 8, 
     },
     inputToolbarPrimary: { 
-        alignItems: 'flex-end' 
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        width: '100%',
+    },
+    composerWrapper: {
+        flex: 1,
+        justifyContent: 'flex-end',
     },
     actionButtonContainer: { 
-        height: 44, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        marginRight: 8 
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        marginRight: 6,
     },
     actionButton: { 
         width: 36, 
@@ -247,14 +254,15 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         fontSize: 15, 
         lineHeight: 20, 
-        paddingHorizontal: 16, 
-        paddingTop: Platform.OS === 'web' ? 10 : 12, 
-        paddingBottom: Platform.OS === 'web' ? 10 : 12, 
-        borderRadius: 24, 
+        includeFontPadding: false,
+        paddingHorizontal: 14, 
+        paddingTop: Platform.OS === 'web' ? 10 : 8, 
+        paddingBottom: Platform.OS === 'web' ? 10 : 8, 
+        borderRadius: 22, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         minHeight: 44, 
-        maxHeight: 120, 
+        maxHeight: 110, 
         marginTop: 0, 
         marginBottom: 0, 
         marginRight: 8 
@@ -266,8 +274,7 @@ export const styles = StyleSheet.create({
     sendContainer: { 
         justifyContent: 'center', 
         alignItems: 'center', 
-        marginBottom: 4, 
-        marginRight: 4 
+        marginBottom: 2, 
     },
     sendButton: { 
         width: 40, 
@@ -311,5 +318,19 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
         marginTop: 2,
+    },
+    chatEmptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: Platform.select({
+            android: [{ rotate: '180deg' }],
+            default: [{ scaleY: -1 }],
+        }),
+    },
+    chatEmptyText: {
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 16,
+        textAlign: 'center',
     },
 });

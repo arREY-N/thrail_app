@@ -6,7 +6,6 @@
 import LoadingScreen from "@/src/app/loading";
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
 import { useOfferTrails } from "@/src/core/models/Offer/Offer";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
@@ -17,11 +16,6 @@ export default function ListOffer() {
     const trailId = getSearchParam(rawId);
 
     const { onBackPress } = useAppNavigation();
-
-    const {
-        onTerms,
-        onPrivacy
-    } = useLandingNavigation();
 
     const {
         trailOffers,
@@ -43,11 +37,11 @@ export default function ListOffer() {
     const handleViewBookingDetails = (bookingId?: string) => {
         if (bookingId) {
             router.replace({
-                pathname: '/(main)/book/list',
+                pathname: '/book/list',
                 params: { bookingId, view: 'overview' },
             });
         } else {
-            router.replace('/(main)/book/list');
+            router.replace('/book/list');
         }
     };
 
@@ -62,8 +56,6 @@ export default function ListOffer() {
             onBackPress={onBackPress}
             onUpdatePress={onUpdatePress}
             onCompleteOffer={onCompleteBook}
-            onTermsPress={onTerms}
-            onPrivacyPress={onPrivacy}
             onViewBookingDetails={handleViewBookingDetails}
             onSearchUser={findUser}
         />  
