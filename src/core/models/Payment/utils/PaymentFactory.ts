@@ -41,12 +41,20 @@ export const newPayment = (init?: Partial<Payment>): Payment => {
 const paymentFromFirestore = (id: string, data: IPaymentDB): Payment => {
     return {
         id,
+        bookingId: data.bookingId,
+        gatewayId: data.gatewayId,
+        gateway: data.gateway,
+        method: data.method,
+        status: data.status,
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
+        refundedAt: data.refundedAt ? toDate(data.refundedAt) : undefined,
+        refundReason: data.refundReason,
         business: data.business ?? { id: "", name: "" },
         receipt: {
             id: data.receipt?.id ?? "",
             amount: data.receipt?.amount ?? 0,
+            refundedAmount: data.receipt?.refundedAmount,
             date: toDate(data.receipt?.date),
             gateway: data.receipt?.gateway ?? "",
             referenceCode: data.receipt?.referenceCode || "",
@@ -62,7 +70,7 @@ const paymentFromFirestore = (id: string, data: IPaymentDB): Payment => {
 const paymentToFirestore = (payment: Payment): IPaymentDB => {
     const isNew = payment.id === "";
 
-    return {
+    const doc: IPaymentDB = {
         id: payment.id,
         createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(toDate(payment.createdAt)),
         updatedAt: serverTimestamp(),
@@ -78,6 +86,16 @@ const paymentToFirestore = (payment: Payment): IPaymentDB => {
         },
         user: payment.user,
     };
+
+    if (payment.bookingId) doc.bookingId = payment.bookingId;
+    if (payment.gatewayId) doc.gatewayId = payment.gatewayId;
+    if (payment.gateway) doc.gateway = payment.gateway;
+    if (payment.method) doc.method = payment.method;
+    if (payment.status) doc.status = payment.status;
+    if (payment.refundReason) doc.refundReason = payment.refundReason;
+    if (payment.refundedAt) doc.refundedAt = Timestamp.fromDate(toDate(payment.refundedAt));
+
+    return doc;
 };
 
 export const paymentConverter: FirestoreDataConverter<Payment> = {

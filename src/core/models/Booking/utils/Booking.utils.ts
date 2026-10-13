@@ -10,7 +10,7 @@ export const updateBookingOnCancellation = (
         ...booking,
         updatedAt: new Date(),
         status: approved
-            ? "refund"
+            ? "refunded"
             : booking.status,
     }
 

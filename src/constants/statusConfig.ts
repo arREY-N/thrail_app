@@ -90,7 +90,7 @@ export const STATUS_UI_CONFIG = {
     'refunded': {
         userLabel: 'REFUNDED', userType: 'ERROR',         
         adminLabel: 'REFUNDED', adminType: 'ERROR',
-        icon: 'refresh-ccw'
+        icon: 'check-circle'
     },
     'finished': {
         userLabel: 'FINISHED', userType: 'SUCCESS',

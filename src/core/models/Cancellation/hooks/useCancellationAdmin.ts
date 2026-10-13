@@ -129,6 +129,17 @@ export function useCancellationAdmin(bookingId: string) {
                         }
                     }
                     await onRefund(updatedBooking, determinedType, determinedCustom);
+
+                    // Sync local payment records so createBooking doesn't overwrite backend with stale captured state
+                    updatedBooking.payment = (updatedBooking.payment || []).map(p => {
+                        if (p.status === 'captured') {
+                            return { ...p, status: 'refunded' };
+                        }
+                        return p;
+                    });
+                    updatedBooking.status = 'refunded';
+                } else {
+                    updatedBooking.status = 'cancelled';
                 }
 
                 try {
