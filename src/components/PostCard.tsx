@@ -30,7 +30,22 @@ import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpe
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
-import { formatDateToStandard, formatDuration } from "@/src/utils/dateFormatter";
+import { formatDateToStandard, formatDuration, getInitials } from "@/src/utils/dateFormatter";
+
+interface UserAvatarCandidate {
+    avatar?: string;
+    photoUrl?: string;
+    profileImage?: string;
+}
+
+const getUserPhotoUri = (userCandidate: unknown): string | null => {
+    if (!userCandidate || typeof userCandidate !== 'object') return null;
+    const u = userCandidate as UserAvatarCandidate;
+    if (typeof u.avatar === 'string' && u.avatar.trim().length > 0) return u.avatar.trim();
+    if (typeof u.photoUrl === 'string' && u.photoUrl.trim().length > 0) return u.photoUrl.trim();
+    if (typeof u.profileImage === 'string' && u.profileImage.trim().length > 0) return u.profileImage.trim();
+    return null;
+};
 
 /**
  * Shape of legacy untyped review fields preserved for backwards compatibility.
@@ -124,15 +139,6 @@ const PostCard = <T extends IReview = Review>({
         return typeof img === 'string' ? { uri: img } : img;
     };
 
-    const getInitials = (name?: string): string => {
-        if (!name) return '?';
-        const parts = name.trim().split(' ');
-        if (parts.length > 1) {
-            return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-        }
-        return name.substring(0, 2).toUpperCase();
-    };
-
     const formatStat = (val: unknown, type: string): string => {
         if (val === undefined || val === null || val === '--') return '--';
         
@@ -210,19 +216,37 @@ const PostCard = <T extends IReview = Review>({
     const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
     const displayText = isExpanded ? reviewText : truncatedText;
 
+    const userPhotoUri = getUserPhotoUri(review?.user);
+    const hasUserName = Boolean(review?.user?.firstname || review?.user?.username || review?.user?.lastname);
+    const userName = review?.user?.username || review?.user?.firstname || (review?.user?.lastname ? `Hiker ${review.user.lastname}` : "Hiker Name");
+    const userInitials = hasUserName
+        ? getInitials(review?.user?.firstname || review?.user?.username, review?.user?.lastname)
+        : null;
+
     return (
         <View style={styles.card}>
 
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <View style={styles.avatarPlaceholder}>
-                        <CustomText variant="label" style={styles.avatarText}>
-                            {getInitials(review?.user?.username || review?.user?.firstname)}
-                        </CustomText>
-                    </View>
+                    {userPhotoUri ? (
+                        <CustomImage
+                            source={{ uri: userPhotoUri }}
+                            style={styles.avatarImage}
+                        />
+                    ) : userInitials ? (
+                        <View style={styles.avatarPlaceholder}>
+                            <CustomText variant="label" style={styles.avatarText}>
+                                {userInitials}
+                            </CustomText>
+                        </View>
+                    ) : (
+                        <View style={styles.avatarFallback}>
+                            <CustomIcon library="Ionicons" name="person" size={20} color={Colors.GRAY_MEDIUM} />
+                        </View>
+                    )}
                     <View style={styles.userInfo}>
                         <CustomText variant="h3" style={styles.userName}>
-                            {review?.user?.username || review?.user?.firstname || "Hiker Name"}
+                            {userName}
                         </CustomText>
                         <CustomText variant="caption" style={styles.dateText}>
                             {formatDateToStandard(review?.createdAt || review?.hikeDate || new Date())}
@@ -478,6 +502,20 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarImage: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    avatarFallback: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         justifyContent: 'center',
         alignItems: 'center',
     },
