@@ -6,6 +6,8 @@ import { Alert } from "react-native";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
 export interface FileState {
     uploadDocument(): Promise<string>;
     capturePhoto(): Promise<string>;
@@ -51,6 +53,11 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                     Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
 
                     throw new Error('Only image and PDF files are allowed')
+                }
+
+                if (size && size > MAX_FILE_SIZE_BYTES) {
+                    Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                    throw new Error('File size exceeds the 5MB limit');
                 }
 
                 const selectedFile = { uri, name, mimeType, size };
@@ -109,6 +116,11 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
 
+            if (size && size > MAX_FILE_SIZE_BYTES) {
+                Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                throw new Error('File size exceeds the 5MB limit');
+            }
+
             const selectedFile = {
                 uri,
                 name: fileName ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
@@ -142,35 +154,37 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 throw new Error('Permission to access media library is required!');
             }
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: false,
-                quality: 0.8,
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*'],
+                copyToCacheDirectory: true,
             });
 
             if (result.canceled) {
                 throw new Error('Photo selection canceled');
             }
 
-            const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
+            const { uri, name, mimeType, size } = result.assets[0];
 
             const isImage = mimeType?.startsWith('image/');
 
-            const isPdf = mimeType === 'application/pdf';
+            const extension = name?.split('.').pop()?.toLocaleLowerCase();
 
-            const extension = fileName?.split('.').pop()?.toLocaleLowerCase();
+            const isAllowedExt = ['png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
 
-            const isAllowedExt = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
-
-            if (!isImage && !isPdf && !isAllowedExt) {
+            if (!isImage && !isAllowedExt) {
                 Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
 
-                throw new Error('Only image and PDF files are allowed')
+                throw new Error('Only image files are allowed')
+            }
+
+            if (size && size > MAX_FILE_SIZE_BYTES) {
+                Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                throw new Error('File size exceeds the 5MB limit');
             }
 
             const selectedFile = {
                 uri,
-                name: fileName ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
+                name: name ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
                 mimeType: mimeType ?? 'image/jpeg',
                 size
             };
