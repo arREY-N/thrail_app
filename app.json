@@ -79,7 +79,8 @@
           "project": "react-native",
           "organization": "thrail-app"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true
