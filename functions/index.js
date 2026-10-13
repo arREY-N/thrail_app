@@ -2,7 +2,7 @@ const admin = require("firebase-admin");
 const {setGlobalOptions} = require("firebase-functions/v2");
 const { https } = require("firebase-functions/v2");
 const { HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
+const { defineSecret, defineString } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { DateTime } = require('luxon');
@@ -20,6 +20,10 @@ const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const paymongoWebhookSecret = defineSecret('PAYMONGO_WEBHOOK_SECRET'); // Optional
 const { Buffer } = require('buffer');
 const PaymentManager = require('./services/PaymentManager');
+const LoginLimiter = require('./services/LoginLimiter');
+
+// Firebase Web API key (public value) used to verify passwords via the Identity Toolkit REST API.
+const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
 
 admin.initializeApp();
@@ -613,6 +617,19 @@ exports.checkEmail = https.onCall(async (request) => {
         emailAvailable: !userRecord 
     };
 })
+
+/**
+ * Email/password login with server-enforced brute-force protection.
+ * Limits: 5 failures per email, 20 per IP (15 min window) -> 15 min lockout.
+ * On success returns a custom token for signInWithCustomToken on the client.
+ *
+ * @param {Object} request.data - { email: string, password: string }
+ * @returns {Promise<{ token: string }>}
+ * @throws {HttpsError} invalid-argument | unauthenticated | resource-exhausted | permission-denied | internal
+ */
+exports.secureLogin = https.onCall((request) =>
+    LoginLimiter.handleSecureLogin(request, { apiKey: authWebApiKey.value() })
+);
 
 /**
  * Maps raw PayMongo API errors to user-friendly HttpsErrors with localized messaging.

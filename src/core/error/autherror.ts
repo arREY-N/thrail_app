@@ -26,6 +26,17 @@ export const getAuthErrorMessage = (error: FirebaseError) => {
         case 'backend/invalid-credentials':
             return error.message;
 
+        // secureLogin Cloud Function (server-side login limiter)
+        case 'functions/unauthenticated':
+        case 'functions/resource-exhausted':
+        case 'functions/invalid-argument':
+        case 'functions/permission-denied':
+            return error.message;
+
+        case 'functions/unavailable':
+        case 'functions/internal':
+            return 'Something went wrong. Please try again later.';
+
         default:
             return `Something went wrong. Please try again. \n${error.message}`
     }
