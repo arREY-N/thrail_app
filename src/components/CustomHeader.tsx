@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomSearchBar from '@/src/components/CustomSearchBar';
+import CustomSearchBar, { CustomSearchBarProps } from '@/src/components/CustomSearchBar';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
@@ -54,7 +54,7 @@ export interface CustomHeaderProps {
     showDefaultIcons?: boolean;
     centerTitle?: boolean;
     hasSearch?: boolean;
-    searchProps?: Record<string, any>;
+    searchProps?: Partial<CustomSearchBarProps> & { onChangeText?: (text: string) => void; };
     style?: StyleProp<ViewStyle>;
     children?: ReactNode;
     variant?: 'standard' | 'dashboard' | 'hybrid';
@@ -81,7 +81,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     onBackPress,
     leftAction,
     rightActions,
-    showDefaultIcons = false,
+    showDefaultIcons,
     centerTitle = false,
     hasSearch = false,
     searchProps = {},
@@ -308,7 +308,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
     const isWeb = Platform.OS === 'web';
     const isWebDrawerActive = isWeb && !!activeDrawerToggle;
-    const displayDefaultIcons = showDefaultIcons || isWebDrawerActive;
+    const displayDefaultIcons = showDefaultIcons !== false && (showDefaultIcons || isWebDrawerActive);
 
     return (
         <View style={hasSearch ? { overflow: 'hidden', paddingBottom: 15 } : { zIndex: 100 }}>

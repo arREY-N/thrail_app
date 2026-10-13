@@ -260,7 +260,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 ]}>
                     <CustomHeader 
                         title="Community"
-                        showDefaultIcons={false}
+                        showDefaultIcons={true}
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search posts or hikers...",
@@ -278,35 +278,6 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                             activeTab: activeTab,
                             onTabSelect: handleTabSelect
                         }}
-                        rightActions={
-                            <>
-                                <TouchableOpacity 
-                                    style={styles.headerActionIcon} 
-                                    onPress={onNotificationPress}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="notifications" 
-                                        size={24} 
-                                        color={Colors.PRIMARY} 
-                                    />
-                                </TouchableOpacity>
-
-                                <TouchableOpacity 
-                                    style={styles.headerActionIcon} 
-                                    onPress={onBookingPress}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomIcon 
-                                        library="Ionicons" 
-                                        name="calendar-clear" 
-                                        size={24} 
-                                        color={Colors.PRIMARY} 
-                                    />
-                                </TouchableOpacity>
-                            </>
-                        }
                     />
                 </Animated.View>
 
@@ -356,9 +327,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 10,
-    },
-    headerActionIcon: {
-        padding: 4,
     },
     feedWrapper: {
         flex: 1,
