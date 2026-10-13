@@ -5,7 +5,7 @@ import { LogIn, User } from '@/src/core/models/User/interfaces/User.types';
 import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
-import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithCustomToken, signInWithPopup, } from 'firebase/auth';
 import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 
@@ -237,13 +237,16 @@ export const UserRepository = (db: Firestore) => ({
         }
     },
 
+    /**
+     * Logs in through the `secureLogin` Cloud Function, which enforces the
+     * server-side attempt limiter and returns a custom token on success.
+     */
     async logIn(data: LogIn): Promise<void> {
         try {
-            await signInWithEmailAndPassword(
-                auth,
-                data.email,
-                data.password
-            );
+            const secureLogin = httpsCallable<LogIn, { token: string }>(functions, 'secureLogin');
+            const response = await secureLogin({ email: data.email, password: data.password });
+            console.log('response: ', response.data.token);
+            await signInWithCustomToken(auth, response.data.token);
         } catch (err) {
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
