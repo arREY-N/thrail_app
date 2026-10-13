@@ -20,6 +20,10 @@ export const useHikeStore = create<HikeState>()(
                 profile: state.profile,
                 activeGroupId: state.activeGroupId,
                 shareLocationEnabled: state.shareLocationEnabled,
+                live: state.live,
+                walkedRoute: state.walkedRoute,
+                coordinates: state.coordinates,
+                events: state.events,
             }),
         }
     )
