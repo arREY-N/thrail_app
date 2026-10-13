@@ -1,7 +1,7 @@
 # THRAIL GPS, MAP & GROUP LOCATION SYSTEM AUDIT
 
 **Document:** Comprehensive Codebase Verification, Remediation Plan & Task Tracker  
-**Status:** ✅ **Remediation Complete (All 20 Audit Tasks Implemented & Verified)**  
+**Status:** 🚀 **Phase 1 Complete (Tasks T-01 to T-20 Verified) | Phase 2 Complete (Tasks T-21 to T-28 Implemented & Verified)**  
 **Target Systems:**  
 - `TrailMap.native.tsx` & `TrailMap.tsx` (MapLibre Native, PMTiles, Offline Layer Rendering)  
 - `TrackHikerGPSFlow.ts` (Expo Location, Foreground Engine, Heartbeat, Permissions)  
@@ -26,7 +26,7 @@ Here is the exact technical distinction verified in the code:
 | **How It Was Previously** | Continuous writes: A new doc was created every 5 GPS fixes in `coordinates/{timestamp}` (1,000–1,500 docs per hike). | Unbound continuous writes on every fix (every 2s). |
 | **What Was Implemented** | **Batch Save on Completion:** Stopped continuous subcollection writes! The complete trail is accumulated in device memory (`walkedRoute: [number, number][][]`). Only upon `onCompleteHike()` does `HikeRepo.writeRoute` write the entire multi-segment route as **one single consolidated document**. | **Throttled Live Writes:** `HikeRepo.shareLocation` is throttled to at most once every **12 seconds** or upon **$\ge 10\text{m}$ displacement** (or immediately upon Emergency SOS). Cuts Firestore writes by $>85\%$. |
 | **Current Status** | ✅ **Working as intended for completed routes.** (Reduces writes from ~1,500 down to 1 per hike). | ✅ **Fixed & Throttled.** Firestore writes capped at ~4-5/min per hiker. Battery saved in dead zones. |
-| **Local File Storage** | `saveToCSV` wired to `addCoordinate` so points are written to local disk in real time. | Remote listeners receive throttled updates; local CSV export ready. |
+| **Local File Storage** | `saveLocalTrackPoint` wired to `addCoordinate` so points are written to local disk in real time. | Remote listeners receive throttled updates; local CSV export ready. |
 
 ---
 
@@ -38,6 +38,7 @@ This tracker monitors all historical fixes, identified bugs in recent commits, a
 - ✅ **Finished (Verified Working):** Implemented in codebase and verified operational.
 - ⚠️ **Partially Implemented (Has Active Bug):** Implementation attempted in past commits, but contains bugs or leaks.
 - ❌ **Not Started (Pending):** Not yet implemented; requires coding.
+- 💡 **TD (To-Do Proposal):** Proposal only; not yet verified or approved by the team.
 
 ---
 
@@ -62,9 +63,22 @@ This tracker monitors all historical fixes, identified bugs in recent commits, a
 | **T-15** | Stopwatch Rerender Decoupling | Decouple 1,000ms `liveTime` timer from `HikeRecordingScreen` root into an isolated timer component. | ✅ **Finished** | Extracted memoized `<HikeDurationTimer>` sub-component; root screen no longer re-renders every 1s. |
 | **T-16** | Memoize `TrailMap` & `buildOfflineStyle` | Wrap `TrailMap` in `React.memo` and memoize `buildOfflineStyle` using `useMemo`. | ✅ **Finished** | Wrapped `TrailMap` with `memo(forwardRef(...))` and memoized `activeStyle` and `walkedPathGeoJson`. |
 | **T-17** | Marker 60 FPS Loop Optimization | Decongest JS bridge by removing 60 FPS `setCoords` React state update loop inside `AnimatedHikerMarker`. | ✅ **Finished** | Throttled `animValue` state updates to 80ms (~12 FPS) and prevented interruption snapping. |
-| **T-18** | Local Device File Persistence (CSV) | Wire `saveToCSV` in `hikeStorage.ts` to `addCoordinate` so points are saved to disk during the hike. | ✅ **Finished** | Wired `saveToCSV` in `hikeStoreCreator.ts` on valid accepted coordinate additions. |
+| **T-18** | Local Device File Persistence (CSV) | Wire `saveLocalTrackPoint` in `hikeStorage.ts` to `addCoordinate` so points are saved to disk during the hike. | ✅ **Finished** | Wired `saveLocalTrackPoint` in `hikeStoreCreator.ts` on valid accepted coordinate additions. |
 | **T-19** | Remove Duplicate GPS Watchers | Consolidate foreground GPS watcher into a singleton or store service to prevent duplicate watchers. | ✅ **Finished** | Made `globalLocationSub` and GPS listeners a module-level singleton in `TrackHikerGPSFlow.ts`. |
 | **T-20** | Offline Map Toggle Without Remount | Smoothly swap `mapStyle` on offline toggle without setting `loadState = 'loading'` and destroying `<Map>`. | ✅ **Finished** | Decoupled `actuallyOffline` from `loadAssets` reload effect; vector styles swap dynamically without unmounting `<Map>`. |
+| **T-21** | Resume Location Sharing & Stale Offline Status | Ensure `live: true` and live location broadcast resume immediately when unpausing a hike; fix stale offline badge. | ✅ **Finished** | Persisted `live` in AsyncStorage; re-established `live: true` and immediate location broadcast with fresh timestamp on `onResumeHike`. |
+| **T-22** | Route Trace Line Session Persistence | Persist `walkedRoute` and `coordinates` in AsyncStorage so trail lines survive app close during a paused session. | ✅ **Finished** | Added `walkedRoute`, `coordinates`, and `events` to `partialize` in `hikeStore.native.ts`; trail lines and points survive termination. |
+| **T-23** | "Share My Location" Toggle State Synchronization | Connect Map Options toggle directly to `useHikeStore.shareLocationEnabled` so toggle UI responds and syncs with backend state. | ✅ **Finished** | Connected `setShareLocationEnabled` in `CreateHikeFlow.ts` to `useHikeStore.setShareLocationEnabled`; toggles state, removes/publishes pin, updates UI. |
+| **T-24** | Hiker Status Board Time Formatting | Add time (`hh:mm a`) alongside date on the member status board so users know the exact minute signal was last received. | ✅ **Finished** | Added `dateTime` option to `formatDate` and exported `formatDateTime` in `date.ts`; updated `HikeRecordingScreen.tsx` status board. |
+| **T-25** | Extended Marker Eviction for Lost Hikers | Retain remote hiker pins on map until hike session/booking date ends instead of 4-hour hard cutoff. | ✅ **Finished** | Updated `MAX_GHOST_AGE_MS` in `TrailMap.native.tsx` & `HikeRecordingScreen.tsx` from 4 hours to 24 hours (session day validity). |
+| **T-26** | Lifecycle & Signal Event Telemetry Logger | Log `GPS_SIGNAL_LOST`, `GPS_SIGNAL_RESTORED`, `APP_BACKGROUNDED`, `APP_RESUMED`, `HIKE_PAUSED`, `HIKE_RESUMED` events. | ✅ **Finished** | Implemented `logHikeEvent` in `hikeStoreCreator.ts` and wired triggers across `TrackHikerGPSFlow.ts` and `CreateHikeFlow.ts`. |
+| **T-27** | Offline Caching & Store-and-Forward Sync Queue | Cache coordinates and telemetry events during cellular blackout and batch sync to Firestore upon reconnect. | ✅ **Finished** | Implemented `syncOfflineData` in `hikeStoreCreator.ts` and wired automatic re-sync on `NetInfo` reconnection & app resume. |
+| **T-28** | Active Hike Resume Banner on Navigation Lobby | Add floating "Hike in Progress" pill on NavigationScreen to easily resume an active session without re-bypassing date lock. | ✅ **Finished** | Rendered floating glassmorphic resume pill on `NavigationScreen.tsx` when an active session exists; preserved 100% of date locks and bypass modals. |
+| **T-29** | Map Compass Repositioning Under Center Button | Move MapLibre compass from top-right (behind Emergency SOS) to directly under the center/locate button (`compassPosition={{ bottom: 175, right: 18 }}`). | ✅ **Finished** | Relocated compass to right edge beneath locate FAB in `TrailMap.native.tsx`; clears SOS header overlap completely. |
+| **T-30** | Field-Test Session Reset Floating Action Button | Add temporary amber reset FAB (`rotate-ccw`) on `HikeRecordingScreen` to instantly discard test hikes without holding finish button. | ✅ **Finished** | Added reset FAB to `mapControls` in `HikeRecordingScreen.tsx`, wired `onResetHike` to stop tracking, delete live pin, wipe store, and return to lobby. |
+| **TD-01** | Guide / Admin Group Hike Session Completion | Enable guides/admins to officially end the hike for the entire group and synchronize member timers and completion state. | 💡 **Proposal Only (To-Do / Not Verified by Team)** | Feature proposal only. Currently timers are 100% individual; guides have no group master completion action. |
+
+
 
 ---
 
@@ -106,7 +120,7 @@ Every item from the original audit plan has been verified line-by-line against t
 | **M8** | Stale `globalIsBackgroundTrackingRunning` module flag | **CONFIRMED** | In-memory module flag can diverge from native TaskManager state. |
 | **M9** | Rescue share depends on Google Maps web link | **CONFIRMED** | The rescue card exports a web URL which cannot load in offline mountain areas. |
 | **M10** | Camera zoom 18-20 vs PMTiles maxzoom 14 | **CONFIRMED** | `offlineStyle.ts` configures `maxzoom: 14` for `protomaps`. Zooming to 18-20 triggers excessive client-side overscaling. |
-| **M11** | CSV save dead code / sequential I/O | **CONFIRMED** | `saveToCSV` is never called anywhere in the app; `exportHikeData` consistently alerts "No Data". |
+| **M11** | Local disk persistence / recovery | **RESOLVED** | Renamed `saveToCSV` to `saveLocalTrackPoint`, wired to committed session breadcrumbs for offline recovery. |
 
 ---
 
@@ -305,3 +319,376 @@ Before closing the task or submitting code changes in future steps, the followin
 - [x] **Stale Ghost Hiker Removal:** Remote hiker pins with timestamps older than 4 hours must not be displayed on the map.
 - [x] **Offline Mode Smooth Switch:** Toggling offline must NOT destroy the Map instance or show a full-screen loading spinner.
 - [x] **Headless Launch:** Simulate an OS headless background wakeup; TaskManager must execute without crashing or dropping points due to a null profile.
+
+---
+
+## 8. Phase 2: Analysis of New Field Issues & Action Plans (Tasks T-21 to T-27)
+
+This section provides comprehensive root cause investigations, technical mechanics, and architectural blueprints for the 7 new field issues reported during testing.
+
+---
+
+### 8.1 Task T-21: Resume Location Sharing Failure & False "Offline" Status
+
+#### Observed Behavior
+- Location sharing operates normally upon initial hike start.
+- When the hike is paused and subsequently resumed, location sharing stops broadcasting, and the hiker's card permanently displays "Offline" on the team status board even when cellular data / internet connection is fully active.
+
+#### Technical Root Cause Analysis
+1. **`live` Flag Missing from Persistence Whitelist:**
+   - In `src/core/models/Hike/stores/hikeStore.native.ts`, `partialize` persists `currentHike`, `totalDistance`, `active`, `profile`, `activeGroupId`, and `shareLocationEnabled`, but **omits `live`**.
+   - If the app is paused and backgrounded for several minutes, the OS memory manager may suspend or rehydrate the JS runtime. On rehydration, `live` defaults back to `false`.
+2. **`onResumeHike` Does Not Re-establish Live Sharing:**
+   - In `src/core/flows/CreateHikeFlow.ts`, `onStartHike` explicitly calls:
+     ```typescript
+     updateHikeStore({ activeGroupId: groupId });
+     await shareLocation(groupId);
+     ```
+     which sets `live: true` and initializes `HikeRepo.listenToLocations`.
+   - In contrast, `onResumeHike` only updates `{ status: 'started' }`, `{ timerStartTime, active: true }`, and calls `startBackgroundTracking()`. It **never checks `live`** and **never re-invokes `shareLocation(activeGroupId)`**.
+3. **Resting Stationary Deadband Blocks Re-broadcast on Resume:**
+   - In `src/core/models/Hike/stores/hikeStoreCreator.ts`, `addCoordinate` applies a 3.5m stationary deadband (`distMeters < 3.5`).
+   - Hikers resuming a hike are typically stationary at that exact moment. Because no displacement is registered, no immediate coordinate is accepted, and live location sharing is not triggered.
+   - The status board comparator in `HikeRecordingScreen.tsx` checks:
+     ```typescript
+     const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 120000) : true;
+     ```
+     Because the last broadcast occurred before the pause ($> 2$ minutes ago), the hiker's status is permanently classified as "Offline".
+
+#### Concrete Remediation Plan
+1. Add `live: state.live` to `partialize` in `hikeStore.native.ts`.
+2. In `CreateHikeFlow.ts` (`onResumeHike`):
+   - Check if `activeGroupId` exists and `shareLocationEnabled` is true.
+   - Force `live: true` and immediately broadcast the current location to `HikeRepo.shareLocation` to refresh the timestamp in Firestore.
+3. In `hikeStoreCreator.ts`:
+   - On `updateCurrentHike({ status: 'started' })`, reset `lastShareTime: 0` so the first coordinate fix after resume immediately bypasses the 12s throttling window.
+
+---
+
+### 8.2 Task T-22: Route Trace Line Vanishes on App Close During Pause
+
+#### Observed Behavior
+- Hiker pauses the hike, closes the app completely, and re-launches.
+- Cumulative metrics (distance in km, elevation gain, elapsed time) are preserved, but the orange walked trail line on the map disappears.
+
+#### Technical Root Cause Analysis
+1. **`walkedRoute` and `coordinates` Missing from Persistence Whitelist:**
+   - In `src/core/models/Hike/stores/hikeStore.native.ts`:
+     ```typescript
+     partialize: (state) => ({
+       currentHike: state.currentHike,
+       elapsedTime: state.elapsedTime,
+       timerStartTime: state.timerStartTime,
+       totalDistance: state.totalDistance,
+       totalElevationGain: state.totalElevationGain,
+       active: state.active,
+       profile: state.profile,
+       activeGroupId: state.activeGroupId,
+       shareLocationEnabled: state.shareLocationEnabled,
+     })
+     ```
+   - Notice that `walkedRoute: [number, number][][]` and `coordinates: Location[]` are **not persisted**.
+   - They reside purely in volatile JS heap memory.
+   - When the user kills and reopens the app, `walkedRoute` initializes to `[]`.
+   - Although `totalDistance` is intact, MapLibre's `GeoJSONSource` receives an empty MultiLineString, so no breadcrumbs are rendered.
+
+#### Concrete Remediation Plan
+1. Include `walkedRoute` and `coordinates` in `partialize` inside `hikeStore.native.ts`.
+2. Ensure store rehydration validates the structure of `walkedRoute`:
+   - If the restored hike status is `'paused'`, ensure a clean segment boundary exists so subsequent movement on resume appends to a new segment (`walkedRoute.push([])`) without connecting across the closed-app gap.
+3. Fallback: If `walkedRoute` is empty upon launch during an active hike, parse existing points from `loadWalkedPathCoords()` in `hikeStorage.ts` (local CSV) to reconstruct the path.
+
+---
+
+### 8.3 Task T-23: "Share My Location" Toggle UI Stuck on "ON"
+
+#### Observed Behavior
+- In the Map Options bottom sheet modal, tapping "Share My Location" triggers backend calls, but the toggle switch visually remains "ON" and never displays "OFF".
+
+#### Technical Root Cause Analysis
+1. **Disconnected State Dispatcher:**
+   - In `src/core/flows/CreateHikeFlow.ts`:
+     ```typescript
+     setShareLocationEnabled: async (enabled: boolean) => {
+       if (enabled) {
+         await onStartSharingLocation();
+       } else {
+         onStopSharingLocation();
+       }
+     }
+     ```
+   - Inside `onStartSharingLocation()` and `onStopSharingLocation()`:
+     - `onStartSharingLocation` calls `shareLocation(groupId)` (which toggles `live: true`).
+     - `onStopSharingLocation` calls `stopSharingLocation(groupId)` (which deletes the Firestore pin and unsubs listeners).
+   - **Crucially: Neither function ever calls `updateHikeStore({ shareLocationEnabled: enabled })`!**
+2. **Permanent Default in UI:**
+   - In `src/core/models/Hike/stores/hikeStoreCreator.ts`, line 95 sets `shareLocationEnabled: true` by default.
+   - `HikeRecordingScreen.tsx` reads `shareLocationEnabled` from the store:
+     ```tsx
+     <CustomText style={shareLocationEnabled ? styles.toggleTextActive : styles.toggleTextInactive}>
+       {shareLocationEnabled ? "ON" : "OFF"}
+     </CustomText>
+     ```
+   - Because the store variable is never modified, it remains permanently `true`. Every tap passes `!shareLocationEnabled` (which is `!true = false`), but the store state never updates, leaving the toggle perpetually stuck on "ON".
+
+#### Concrete Remediation Plan
+1. In `hikeStoreCreator.ts`, define a dedicated action `setShareLocationEnabled: (enabled: boolean) => void` that directly updates `state.shareLocationEnabled = enabled`.
+2. In `CreateHikeFlow.ts`, wire `setShareLocationEnabled` to:
+   ```typescript
+   setShareLocationEnabled: async (enabled: boolean) => {
+     updateHikeStore({ shareLocationEnabled: enabled });
+     if (enabled) {
+       await onStartSharingLocation();
+     } else {
+       onStopSharingLocation();
+     }
+   }
+   ```
+3. In `addCoordinate`, respect `state.shareLocationEnabled` so toggling it off immediately halts live Firestore broadcasting without terminating route recording.
+
+---
+
+### 8.4 Task T-24: Hiker Status Board Missing Time Component
+
+#### Observed Behavior
+- The team status board modal displays the last updated date (e.g., `Updated: Oct 13, 2026`), but provides no time (hours/minutes), making it impossible to determine whether the hiker was seen 2 minutes or 5 hours ago.
+
+#### Technical Root Cause Analysis
+1. In `src/features/Navigation/screens/HikeRecordingScreen.tsx` line 633:
+   ```tsx
+   <CustomText variant="caption">
+     {locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}
+   </CustomText>
+   ```
+2. In `src/core/utility/date.ts`:
+   ```typescript
+   export const formatDate = (
+     date: Date | string | number | Timestamp | unknown,
+     options: 'full' | 'short' | 'time' = 'full'
+   ): string => { ... }
+   ```
+   - When called without an options parameter, `formatDate` defaults to `'full'`.
+   - Option `'full'` specifies `{ month: 'short', day: 'numeric', year: 'numeric' }`.
+   - It **does not output hour, minute, or AM/PM**.
+
+#### Concrete Remediation Plan
+1. In `src/core/utility/date.ts`, add a `'dateTime'` formatting configuration:
+   ```typescript
+   dateTime: { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }
+   ```
+2. In `HikeRecordingScreen.tsx`, render:
+   - For recent signals ($< 60\text{ min}$): Relative elapsed time + timestamp (e.g., `2m ago • 2:45 PM`).
+   - For older signals: Full date and time (e.g., `Oct 13, 2026 • 2:45 PM`).
+
+---
+
+### 8.5 Task T-25: Remote Hiker Pin Eviction Strategy: Retain Throughout Active Hike/Booking Date
+
+#### Observed Behavior & Requirement
+- The current implementation purges hiker markers whose timestamp is older than 4 hours (`MAX_GHOST_AGE_MS = 4 * 60 * 60 * 1000`).
+- On mountain trails and Search & Rescue (SAR) operations, a hiker who lost signal or battery $> 4$ hours ago still needs their Last Known Location (LKL) displayed on the map.
+- The marker should persist throughout the active hike session or scheduled booking date (e.g., until the end of Oct 20).
+
+#### Technical Root Cause Analysis
+1. In `src/features/Map/TrailMap.native.tsx` (lines 648–653) and `src/features/Navigation/screens/HikeRecordingScreen.tsx` (lines 270–280):
+   - A rigid 4-hour filter was implemented in Task T-12 to remove test pins from previous days.
+   - However, in real hikes, cellular dead zones regularly exceed 4 hours. Deleting the marker removes critical emergency rescue coordinates.
+
+#### Concrete Remediation Plan
+1. **Session & Date-Aware Eviction:**
+   - Determine the hike session boundary from `booking.date` / `fullOffer.schedule` / `currentHike.startTime`.
+   - Keep pins visible for the entire calendar date of the scheduled hike (until 23:59:59 of that day), or until the hike is officially completed/cancelled.
+2. **Visual Differentiation (LKL vs Live):**
+   - Signal $< 2\text{ min}$: Green marker, pulsing dot, "Live Signal".
+   - Signal $> 2\text{ min}$: Amber marker, "⚠️ Last Known Location • [Time Recorded]", rescue card showing exact coordinates and Google Maps share link.
+   - Pins are **never** removed during an active hike session solely due to elapsed time.
+
+---
+
+### 8.6 Task T-26: Comprehensive Telemetry & Diagnostic Lifecycle Event Logging
+
+#### Observed Behavior & Requirement
+- The system needs structured event logging for events such as `GPS_SIGNAL_LOST`, `GPS_SIGNAL_RESTORED`, `APP_BACKGROUNDED`, `APP_RESUMED`, `HIKE_PAUSED`, and `HIKE_RESUMED`.
+- These logs are required for audit trails, post-hike analysis, and Search & Rescue diagnostics.
+
+#### Technical Gap Analysis
+1. `LocationStatus` in `Location.types.ts` defines statuses, but:
+   - `APP_RESUMED` is never dispatched anywhere in the codebase.
+   - `APP_BACKGROUNDED` is only attached to background location fixes, not dispatched as a discrete lifecycle event.
+   - `AppState.addEventListener` in `TrackHikerGPSFlow.ts` prints to `console.log` but does not persist events.
+   - `GPS_SIGNAL_LOST` creates an in-memory coordinate fix, but does not persist an event record.
+
+#### Concrete Remediation Plan
+1. **Define Structured `HikeEvent` Schema:**
+   ```typescript
+   export interface HikeEvent {
+     id: string;
+     hikeId: string;
+     userId: string;
+     type: 'GPS_SIGNAL_LOST' | 'GPS_SIGNAL_RESTORED' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'HIKE_PAUSED' | 'HIKE_RESUMED' | 'BATTERY_LOW' | 'SOS_TRIGGERED';
+     timestamp: Date | string;
+     latitude?: number;
+     longitude?: number;
+     altitude?: number;
+     batteryLevel?: number;
+   }
+   ```
+2. **Dispatch Lifecycle Events:**
+   - On `AppState` change to background/active in `TrackHikerGPSFlow.ts`: log `APP_BACKGROUNDED` and `APP_RESUMED`.
+   - On GPS heartbeat timeout/restoration: log `GPS_SIGNAL_LOST` and `GPS_SIGNAL_RESTORED`.
+   - On pause/resume actions: log `HIKE_PAUSED` and `HIKE_RESUMED`.
+3. **Storage & Persistence:**
+   - Append to local session event array in `hikeStoreCreator.ts`.
+   - Persist locally in AsyncStorage / SQLite.
+   - Include event telemetry in consolidated Firestore hike route/session document on completion or sync.
+
+---
+
+### 8.7 Task T-27: Offline Caching & Store-and-Forward Sync Queue
+
+#### Observed Behavior & Requirement
+- When a hiker enters a dead zone (no cellular signal), data must be cached locally on the device.
+- When network connectivity returns, the phone should automatically flush cached telemetry and updates to Firebase.
+
+#### Technical Gap Analysis
+1. **Local CSV Storage Limitations:**
+   - In `src/core/utility/hikeStorage.ts`, `saveLocalTrackPoint` reads the entire file into memory and rewrites the full string on every single GPS fix (`readAsStringAsync` + `writeAsStringAsync`).
+   - For a 4-hour hike with $> 3,000$ points, this causes massive file I/O overhead.
+   - Furthermore, `saveLocalTrackPoint` is write-only for manual export; there is **no mechanism that synchronizes CSV data back to Firestore**.
+2. **Firestore Offline Behavior:**
+   - Firestore SDK maintains an internal offline cache for document writes, but pending single-document updates (`liveLocations/{userId}`) only overwrite the latest state, losing the historical signal loss and event timeline.
+
+#### Concrete Remediation Plan
+1. **Store-and-Forward Sync Queue:**
+   - Maintain a local sync queue in Zustand / AsyncStorage for telemetry events and coordinates.
+   - Each queue item has `{ id, collection, data, status: 'pending' | 'synced', timestamp }`.
+2. **Automatic Network Reconnection Trigger:**
+   - In `TrackHikerGPSFlow.ts`, monitor `NetInfo` state changes.
+   - When `isOnline` transitions from `false` to `true`:
+     - Trigger `syncPendingEvents()` to batch-upload all queued offline events to Firestore.
+     - Immediately update `HikeRepo.shareLocation` with the latest coordinates so the user's pin jumps to live status without manual user intervention.
+3. **Streamlined Local Disk Persistence:**
+   - Replace full-file read/rewrite in `saveLocalTrackPoint` with an efficient batch write or SQLite storage to prevent UI lag.
+
+---
+
+### 8.8 Task T-28: Active Hike Resume Banner on Navigation Lobby (Seamless Re-entry)
+
+#### Problem & Testing Context
+- When a user is in the middle of an active hike session and deliberately closes or switches away from the app, re-opening Thrail lands on the home navigation screen (`NavigationScreen.tsx`).
+- For guided hikes that are not on today's calendar date, the bottom card button is disabled and greyed out (*"Starts on [Date]"* with a lock icon).
+- During testing, the team uses the **Developer Bypass / Admin Override** (2-second long-press on the locked button) to initiate a test session. If the user accidentally exits or closes the app, returning to the hike currently requires navigating back or repeating actions, while the bottom card remains locked.
+- **Requirement:** Add an intuitive "Return to Hike" shortcut **without altering or relaxing the existing date locks, greyed-out button states, or developer bypass safeguards**.
+
+#### Safeguards & Testing Compatibility Analysis
+1. **Preserving 100% of Existing Safeguards:**
+   - The date check `isToday` in `NavigationScreen.tsx` remains completely untouched.
+   - The greyed-out locked button (`disabledLaunchButton`), `handleDisabledPress` alert dialog, and the 2-second long-press `onDeveloperBypass` modal remain **identical and intact**.
+   - No date restrictions or booking safeguards are removed or loosened.
+2. **Compatibility with Current Testing Method:**
+   - The team's current testing workflow (long-pressing the locked button to trigger `onDeveloperBypass`) continues to function exactly as before.
+   - When the developer bypass initiates the hike, `CreateHikeFlow.startHike()` sets `active = true` and `currentHike.status = 'started'` in the store.
+   - Once an active session exists in the store, the new resume banner appears, allowing testers and hikers to effortlessly jump back into the recording screen without having to long-press the bypass a second time.
+
+#### Concrete Implementation Plan
+1. **Floating "Active Hike in Progress" Sticky Pill:**
+   - In `NavigationScreen.tsx`, observe `useHikeStore(s => ({ active: s.active, status: s.currentHike?.status, trailName: s.currentHike?.trail?.name, elapsedTime: s.elapsedTime, timerStartTime: s.timerStartTime }))`.
+   - If `active && (status === 'started' || status === 'paused')`:
+     - Render a sleek floating glass pill near the top of the map (beneath the search bar):
+       ```tsx
+       <TouchableOpacity 
+         style={styles.activeHikePill} 
+         onPress={() => router.push({ pathname: '/(main)/hike/view', params: { hikeId: currentHike.id } })}
+       >
+         <View style={[styles.pulseDot, status === 'started' ? styles.bgEmerald : styles.bgAmber]} />
+         <CustomText style={styles.activeHikeText}>
+           {status === 'started' ? 'Hike in Progress' : 'Hike Paused'} • {currentHike.trail?.name}
+         </CustomText>
+         <CustomIcon library="Feather" name="chevron-right" size={16} color={Colors.PRIMARY} />
+       </TouchableOpacity>
+       ```
+2. **Persistent Foreground Service Notification Tap:**
+   - Configure the notification `clickAction` or Expo Router deep link so tapping the Android notification shade returns directly to `/(main)/hike/view`.
+
+---
+
+### 8.9 Proposal TD-01: Guide / Admin Group Hike Session Completion Architecture (To-Do / Not Verified by Team)
+
+#### Current System Status & Verification
+- **Hikes & Timers are 100% Individual:**
+  - In `CreateHikeFlow.ts`, `onStartHike()`, `onPauseHike()`, and `onCompleteHike()` operate strictly on individual user documents (`users/{userId}/hikes/{hikeId}`).
+  - Each hiker's stopwatch timer (`timerStartTime`, `elapsedTime`) exists solely inside their local phone's Zustand store (`useHikeStore`).
+  - There is **no group master switch**; guides and admins cannot start, pause, or end a hike session for the group.
+  - When a guide taps "Hold to Finish", only their own personal hike document is finalized. Members' timers continue running and their GPS continues broadcasting until each member individually presses finish.
+
+#### Proposed Architectural Solutions
+
+##### Option A: Central Group Hike Session Document on Firestore (Recommended)
+1. **Schema Addition (`groups/{groupId}/session/hike` or `groups/{groupId}.session`):**
+   ```typescript
+   export interface IGroupHikeSession {
+     status: 'unhiked' | 'started' | 'paused' | 'completed';
+     startTime: Timestamp | null;
+     pausedAt: Timestamp | null;
+     endTime: Timestamp | null;
+     startedBy: { id: string; name: string };
+     completedBy?: { id: string; name: string } | null;
+     trailId: string;
+     bookingId?: string;
+   }
+   ```
+2. **Guide Flow (Master Controls):**
+   - The app verifies if `profile.id` is in `currentGroup.admins`.
+   - If user is a guide/admin, `HikeRecordingScreen` provides an **"End Group Hike"** button with a confirmation modal:
+     *"Are you sure you want to end the hike for the entire group? This will finalize the session and record completion for all registered hikers."*
+   - When confirmed, it writes `status: 'completed'`, `endTime: serverTimestamp()`, and `completedBy: profile` to the group session document.
+   - It updates all associated bookings (`bookings/{bookingId}`) to `status: 'completed'`.
+3. **Member Phone Behavior (Real-time Sync):**
+   - In `useGroupLocation.ts` or a new hook `useGroupHikeSession(groupId)`, members listen via `onSnapshot` to the group session document.
+   - When `session.status === 'completed'`:
+     - If the member's local hike is still active or paused, a completion modal automatically appears:
+       *"🎉 Your Guide has completed the hike session! Finalizing your trail stats..."*
+     - The member's phone automatically stops background GPS tracking.
+     - Finalizes their local route: sets `endTime = session.endTime`, calculates final distance/elevation gain, and writes their personal hike record to `users/{userId}/hikes/{hikeId}`.
+     - Automatically transitions the member to the Trail Review / Summary screen (`onAddReview`).
+4. **Synchronized Timer Mechanics:**
+   - Rather than each member having drift across individual stopwatch intervals, the official duration is derived from `session.startTime` (server timestamp).
+   - Each member still maintains their personal GPS walked route, distance in km, and elevation gain based on their own device's sensor path.
+5. **Offline Mountain Resilience:**
+   - If a member is in a cellular dead zone when the guide ends the hike, the member's phone continues recording locally.
+   - As soon as connectivity returns, the Firestore snapshot fires, gracefully reconciling and completing their hike with the official guide end time.
+   - If a member separates or wishes to continue solo, an option *"Continue as Solo Hike"* can decouple them from the group session.
+
+---
+
+### 8.10 Task T-29: Map Compass Repositioning Above MapLibre Logo (Bottom-Left)
+
+#### Problem & UI Conflict
+- In MapLibre Native, default top-right or right-side placement collided with top header SOS buttons or bottom-right action controls.
+- When placed at `{ bottom: 175, right: 18 }`, it collided with the bottom metrics dashboard card on various screen densities.
+
+#### Technical Solution
+- In `TrailMap.native.tsx` and `HikeRecordingScreen.tsx`, positioned the compass directly above the MapLibre logo on the bottom-left:
+  ```tsx
+  compassPosition={{ bottom: 245, left: 16 }}
+  compassHiddenFacingNorth={true}
+  ```
+- Default fallback in `TrailMap.native.tsx`: `{ bottom: bottomInset + 32, left: 16 }`.
+- This ensures clean separation from the bottom dashboard, clears the right-side FAB button stack, and aligns neatly with the MapLibre attribution logo on the left.
+
+---
+
+### 8.11 Task T-30: Field-Test Session Reset Floating Action Button
+
+#### Problem & Testing Context
+- During field testing of GPS tracking and location sharing, resetting a test hike required holding down the "Hold to Finish" button for 1.5 seconds, saving a hike document, and dismissing modals.
+- Furthermore, attempting to reset previously routed to an unmapped path (`/(app)/(tabs)/navigation`), triggering the Expo Router "Page Not Found" screen.
+
+#### Technical Solution
+- Added a high-visibility amber/yellow FAB (`rotate-ccw`) to the `mapControls` vertical button stack in `HikeRecordingScreen.tsx`.
+- Connects directly to `onResetHike` passed from `CreateHikeFlow.ts`:
+  1. Stops foreground and background GPS tracking engines.
+  2. Removes live location marker from `groups/{groupId}/liveLocations/{userId}`.
+  3. Resets Zustand store and AsyncStorage back to lobby state.
+  4. Navigates cleanly back to the navigation lobby via `router.back()` (with fallback to `/(app)/(tabs)/hike`).
+- Protected with a native confirmation alert to prevent accidental data loss.
