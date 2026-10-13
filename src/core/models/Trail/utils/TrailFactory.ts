@@ -10,7 +10,6 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
         createdAt: new Date(),
         updatedAt: new Date(),
         offlinePoints: [],
-        ...init,
         description: {
             classificationDescription: "",
             lascoRatingDescription: "",
@@ -66,6 +65,7 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
             network_connection: false,
             ...init?.tourism,
         },
+        ...init,
     };
 };
 

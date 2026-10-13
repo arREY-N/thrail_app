@@ -4,7 +4,7 @@
  * Provides the WebDrawerContext and sliding navigation drawer overlay for both (tabs) and (main) routes.
  */
 import { Slot } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -20,6 +20,7 @@ import { WebDrawerContext } from "@/src/core/context/WebDrawerContext";
 import { useAppSubscriptions } from "@/src/core/hook/useAppSubscriptions";
 import { useAuthHook, useRouteGuard } from "@/src/core/models/User/User";
 import { HomeSidebar } from "@/src/features/Web/Home/HomePageNavBar";
+
 
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.8, 280);
 

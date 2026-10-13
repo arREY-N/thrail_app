@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 
+import { RecalculateTrailRating } from '@/src/core/flows/RecalculateTrailRating';
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useOfferList } from '@/src/core/models/Offer/Offer';
-import { useReview } from '@/src/core/models/Review/Review';
 import { useTrailList, useTrailNavigation } from '@/src/core/models/Trail/Trail';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
+import React from 'react';
 
 /**
  * Controller component for the Explore tab.
@@ -28,7 +29,7 @@ export default function Explore() {
 
     const {
         getItemRating,
-    } = useReview();
+    } = RecalculateTrailRating();
 
     const {
         offers

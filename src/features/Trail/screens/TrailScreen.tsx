@@ -86,9 +86,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
     const address = trail?.general?.address || location;
 
-    const validReviewsCount = reviews?.length || 1;
-    const totalRating = reviews?.reduce((acc, r) => acc + (r?.overallRating || 0), 0) ?? 0;
-    const rating = (totalRating / validReviewsCount) || 0;
+    const rating = trail?.general.rating
     const reviewsCount = reviews?.length || 0;
 
     const stats = {
@@ -97,8 +95,8 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
         elevation: (trail?.difficulty?.gain !== undefined && trail?.difficulty?.gain !== null && Number(trail.difficulty.gain) > 0)
             ? `${trail.difficulty.gain} m`
             : (trail?.difficulty?.elevation && Number(trail.difficulty.elevation) > 0)
-            ? `${trail.difficulty.elevation} m`
-            : "--",
+                ? `${trail.difficulty.elevation} m`
+                : "--",
     };
 
     const latitude = trail?.geography?.startLat ?? null;
@@ -200,7 +198,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                                     />
 
                                     <CustomText style={styles.ratingText}>
-                                        {rating.toFixed(1)} ({reviewsCount})
+                                        {rating?.toFixed(1)} ({reviewsCount})
                                     </CustomText>
                                 </View>
 

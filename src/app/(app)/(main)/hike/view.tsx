@@ -15,11 +15,12 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
 import Unauthorized from "@/src/app/unauthorized";
-import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
+import React from "react";
 
 const SCREEN_OPTIONS = { headerShown: false };
 
@@ -63,11 +64,11 @@ export default function HikeView() {
         onCompleteHike,
         onResumeHike,
         onResetHike,
-    } = CreateHikeFlow({ 
-        hikeId, 
-        trailId, 
-        bookingId: resolvedBookingId || bookingId, 
-        groupId: resolvedGroupId || groupId 
+    } = CreateHikeFlow({
+        hikeId,
+        trailId,
+        bookingId: resolvedBookingId || bookingId,
+        groupId: resolvedGroupId || groupId
     });
 
     const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
