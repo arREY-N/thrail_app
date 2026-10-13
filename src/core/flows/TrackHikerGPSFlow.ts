@@ -18,6 +18,7 @@ let globalActiveInstances = 0;
 let globalAppStateSub: NativeEventSubscription | null = null;
 let globalNetInfoSub: NetInfoSubscription | null = null;
 let globalLastAppState = "active";
+let globalLastReach = true;
 let globalIsBackgroundTrackingRunning = false;
 let globalIsBackgroundStarting = false;
 const onlineListeners = new Set<(online: boolean) => void>();
@@ -148,7 +149,12 @@ export const TrackHikerGPSFlow = () => {
                         globalIsGpsLost = false;
                         setGpsError(null);
                         const { active, currentHike } = useHikeStore.getState();
-                        if (active && currentHike?.status === 'started') {
+                        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                            useHikeStore.getState().logHikeEvent('GPS_SIGNAL_RESTORED', {
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt ?? undefined,
+                            });
                             addCoordinate(newLocation({
                                 latitude: lat,
                                 longitude: lon,
@@ -165,7 +171,12 @@ export const TrackHikerGPSFlow = () => {
                         globalIsGpsLost = true;
                         setGpsError("GPS signal lost. Searching for satellites...");
                         const { active, currentHike } = useHikeStore.getState();
-                        if (active && currentHike?.status === 'started') {
+                        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                            useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt ?? undefined,
+                            });
                             addCoordinate(newLocation({
                                 latitude: lat,
                                 longitude: lon,
@@ -281,7 +292,13 @@ export const TrackHikerGPSFlow = () => {
         if (globalActiveInstances === 1) {
             globalNetInfoSub = NetInfo.addEventListener((state) => {
                 const reach = state.isInternetReachable === null ? true : !!state.isInternetReachable;
+                const wasOffline = !globalLastReach;
+                globalLastReach = reach;
                 onlineListeners.forEach((fn) => fn(reach));
+                if (reach && wasOffline) {
+                    console.log('[TrackHikerGPSFlow] Internet restored, syncing offline data...');
+                    useHikeStore.getState().syncOfflineData();
+                }
             });
 
             globalAppStateSub = AppState.addEventListener(
@@ -290,10 +307,15 @@ export const TrackHikerGPSFlow = () => {
                     if ((nextState === "background" || nextState === "inactive") && globalLastAppState === "active") {
                         globalLastAppState = nextState;
                         console.log('[TrackHikerGPSFlow] App transitioned to background/inactive');
+                        useHikeStore.getState().logHikeEvent('APP_BACKGROUNDED');
                     }
                     if (nextState === "active" && globalLastAppState !== "active") {
                         globalLastAppState = "active";
                         console.log('[TrackHikerGPSFlow] App transitioned to active foreground');
+                        useHikeStore.getState().logHikeEvent('APP_RESUMED');
+                        if (globalLastReach) {
+                            useHikeStore.getState().syncOfflineData();
+                        }
                     }
                 },
             );
