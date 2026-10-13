@@ -15,7 +15,7 @@ import { Group, IGroupMember } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { IUserSummary, User } from "@/src/core/models/User/User";
-import { formatDate } from "@/src/core/utility/date";
+import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
@@ -83,7 +83,7 @@ interface HikeRecordingScreenProps {
     onPauseHike: () => void;
     onResumeHike: () => void;
     onCompleteHike: () => void;
-    onResetHike: () => void;
+    onResetHike?: () => void;
     onAddReview: () => void;
     onBackPress: () => void;
     onTriggerBackendSOS?: () => void;
@@ -100,7 +100,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     hike, booking, currentGroup, hikerLocations, error, fullOffer,
     baseElapsedTime, timerStartTime, totalDistance, totalElevationGain,
     isLoading, lon, lat,
-    onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
+    onStartHike, onPauseHike, onResumeHike, onCompleteHike, onResetHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
     shareLocationEnabled, setShareLocationEnabled, profile, onSendSMS,
 }) => {
@@ -127,6 +127,28 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isPaused = hike.status === "paused";
     const isCompleted = hike.status === "completed";
     const isTracking = isStarted || isPaused || isCompleted;
+
+    const handleResetSession = () => {
+        Alert.alert(
+            "Reset Hike (Dev/Test)",
+            "Do you want to discard this hike session and return to the lobby? All active tracking, background services, and trail lines will be cleared.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Reset",
+                    style: "destructive",
+                    onPress: () => {
+                        onResetHike?.();
+                        if (router.canGoBack()) {
+                            router.back();
+                        } else {
+                            router.replace('/(app)/(tabs)/hike');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     useEffect(() => {
         if (isStarted) {
@@ -267,7 +289,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const enrichedHikerLocations = useMemo(() => {
         if (!hikerLocations) return [];
-        const MAX_GHOST_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours TTL to purge ghost pins
+        const MAX_GHOST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours TTL to retain Last Known Location pins throughout hike day
 
         return hikerLocations
             .filter(hiker => {
@@ -305,6 +327,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 initialLon={lon}
                 initialLat={lat}
                 bottomInset={210}
+                compassPosition={{ bottom: 245, left: 16 }}
                 hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
@@ -331,6 +354,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             </View>
 
             <View style={[styles.mapControls, { bottom: 230 }]}>
+                {/* Dev/Test Reset FAB */}
+                <TouchableOpacity
+                    style={[styles.fabBtn, styles.devResetFab]}
+                    onPress={handleResetSession}
+                    activeOpacity={0.8}
+                >
+                    <CustomIcon library="Feather" name="rotate-ccw" size={19} color={Colors.WHITE} />
+                </TouchableOpacity>
+
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
                         <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -630,7 +662,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         </View>
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
-                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+                                            <CustomText variant="caption">{locData ? `Updated: ${formatDateTime(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
                                             {locData && (
                                                 <TouchableOpacity
                                                     style={styles.trackHikerBtn}
@@ -670,6 +702,7 @@ const styles = StyleSheet.create({
 
     mapControls: { position: 'absolute', right: 16, gap: 12, zIndex: 30 },
     fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    devResetFab: { backgroundColor: '#F59E0B' },
 
     dashboardWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 40, alignItems: 'center' },
     errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
