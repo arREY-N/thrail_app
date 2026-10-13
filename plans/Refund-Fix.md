@@ -554,8 +554,27 @@ During our comprehensive architectural audit of the payment and refund codebase,
 - **Impact**: When the frontend read payments from `/payments`, all enriched audit and tracking metadata was lost.
 - **Resolution**: Updated `PaymentFactory.ts` to map and serialize all enriched audit fields seamlessly to and from Firestore.
 
+### 🐛 Bug 9: Issue #141 — Missing Admin Cancellation & Reschedule in Manage Booking
+- **Location**: [`AdminActionMenu.tsx:55-58`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminActionMenu.tsx) & [`ReviewScreen.tsx:1000-1005`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx)
+- **Defect**:
+  - `canCancel` was locked by `totalAmountPaid === 0 && !isCompletedStatus`.
+  - `canReschedule` was locked by `!isCompletedStatus`.
+  - In Thrail, approving payment sets `booking.status = 'completed'` (representing confirmed registration for an upcoming hike).
+  - Consequently, once a booking was paid and approved, both **Cancel Booking** and **Reschedule Booking** were completely hidden, leaving **only "Issue Refund"** in the action menu.
+- **Impact**: Admins could not cancel bookings for legitimate organizer reasons (e.g., severe weather, trail closure by DENR/LGU) or reschedule/rebook hikers to a new date once paid/completed.
+- **Architecture Decision (Independent Actions)**:
+  - Keep **Reschedule Booking**, **Cancel Booking**, and **Issue Refund** as separate, independent actions in the "Manage Booking" menu.
+  - When the admin cancels a booking, it logs the organizer cancellation reason via [`AdminCancelBookingModal`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancelBookingModal.tsx) without forcing an immediate refund.
+  - The admin can independently decide whether to issue a refund via "Issue Refund" or reschedule/rebook via "Reschedule Booking" based on mutual agreement between the organizer and hiker.
+- **Resolution**:
+  - `canReschedule = !isCancelledStatus`: Rescheduling is unlocked for active/confirmed/completed bookings so future dates can be selected.
+  - `canCancel = !isCancelledStatus && !hasPendingCancellation`: Cancellation is unlocked regardless of payment amount, allowing organizer-initiated cancellations with structured reasons.
+  - `canRefund = !isCancelledStatus && totalAmountPaid > 0`: Gateway refunds remain available whenever captured payments exist.
+  - Updated `hasPendingCancellation` in `ReviewScreen.tsx` to bind directly to `isCancellationPending` to prevent rejected/closed cancellation records from permanently locking the cancel button.
+
 ---
 
 ### 🏁 Final Audit Verdict
-All 8 identified gaps and bugs have been **eliminated**. All 20 validation test cases across 4 testing dimensions have been designed and confirmed against the active codebase. The payment and refund pipeline is hardened, fully documented, and backward-compatible.
+All 9 identified gaps and bugs have been **eliminated**. All 20 validation test cases across 4 testing dimensions have been designed and confirmed against the active codebase. The payment, cancellation, and refund pipeline is hardened, fully documented, and backward-compatible.
+
 
