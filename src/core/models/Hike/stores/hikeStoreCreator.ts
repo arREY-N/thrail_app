@@ -4,7 +4,7 @@ import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
-import { saveToCSV } from "@/src/core/utility/hikeStorage";
+import { saveLocalTrackPoint } from "@/src/core/utility/hikeStorage";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
@@ -71,6 +71,18 @@ export interface HikeState {
     stopShareLocation: (groupId: string) => void;
     setShareLocationEnabled: (enabled: boolean) => Promise<void>;
 
+    events: {
+        id: string;
+        type: 'GPS_SIGNAL_LOST' | 'GPS_SIGNAL_RESTORED' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'HIKE_PAUSED' | 'HIKE_RESUMED';
+        timestamp: string;
+        latitude?: number;
+        longitude?: number;
+        altitude?: number;
+        synced?: boolean;
+    }[];
+    logHikeEvent: (type: 'GPS_SIGNAL_LOST' | 'GPS_SIGNAL_RESTORED' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'HIKE_PAUSED' | 'HIKE_RESUMED', coords?: { latitude?: number; longitude?: number; altitude?: number }) => void;
+    syncOfflineData: () => Promise<void>;
+
     reset: () => void;
 }
 
@@ -96,6 +108,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     lastShareCoord: null,
     shareLocationEnabled: true,
     profile: null,
+    events: [],
 
     clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true }),
     startNewSegment: () => set((state) => {
@@ -187,6 +200,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             logger('HikeStoreCreator', 'Current Location', coordinate);
 
             // 1. Session route drawing & distance (STRICTLY started hikes only)
+            let isCommitted = false;
             if (active && currentHike && currentHike.status === 'started') {
                 set((state) => {
                     if (state.currentHike && state.active && state.currentHike.status === 'started') {
@@ -207,6 +221,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                             state.isSegmentFirstPoint = false;
                             state.coordinates.push(coordinate);
                             currentSegment.push([coordinate.longitude, coordinate.latitude]);
+                            isCommitted = true;
                             return;
                         }
 
@@ -246,15 +261,18 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                             // 5. Append to session telemetry & active segment
                             state.coordinates.push(coordinate);
                             currentSegment.push([coordinate.longitude, coordinate.latitude]);
+                            isCommitted = true;
                         }
                     }
                 });
 
-                // Persist committed points locally to CSV for crash recovery & offline export
-                const isoTime = coordinate.timestamp instanceof Date
-                    ? coordinate.timestamp.toISOString()
-                    : new Date(coordinate.timestamp || Date.now()).toISOString();
-                saveToCSV(coordinate.latitude, coordinate.longitude, coordinate.altitude ?? 0, isoTime).catch(() => {});
+                if (isCommitted) {
+                    // Persist committed points locally to CSV for crash recovery & offline export
+                    const isoTime = coordinate.timestamp instanceof Date
+                        ? coordinate.timestamp.toISOString()
+                        : new Date(coordinate.timestamp || Date.now()).toISOString();
+                    saveLocalTrackPoint(coordinate.latitude, coordinate.longitude, coordinate.altitude ?? 0, isoTime).catch(() => {});
+                }
             }
 
             // 2. Emergency live location pin sharing with throttling (BOTH started and paused hikes)
@@ -320,9 +338,14 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                     const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
                     const coordinateWithHikerName = newLocation({
                         ...lastCoordinate,
+                        timestamp: new Date(),
                         hikerName: name
                     });
                     await HikeRepo.shareLocation(profile.id, groupId, coordinateWithHikerName);
+                    set({
+                        lastShareTime: Date.now(),
+                        lastShareCoord: { latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude }
+                    });
                 }
             }
 
@@ -391,11 +414,78 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 const name = profile ? `${profile.firstname} ${profile.lastname || ''}`.trim() : 'Anonymous Hiker';
                 const coordinateWithHikerName = newLocation({
                     ...lastCoordinate,
+                    timestamp: new Date(),
                     hikerName: name
                 });
                 await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+                set({
+                    lastShareTime: Date.now(),
+                    lastShareCoord: { latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude }
+                });
             }
         }
+    },
+
+    logHikeEvent: (type, coords) => {
+        const timestamp = new Date().toISOString();
+        const eventId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const newEvent = {
+            id: eventId,
+            type,
+            timestamp,
+            latitude: coords?.latitude ?? get().currentLocation?.latitude,
+            longitude: coords?.longitude ?? get().currentLocation?.longitude,
+            altitude: coords?.altitude ?? get().currentLocation?.altitude,
+            synced: false,
+        };
+
+        set((state) => {
+            if (!state.events) state.events = [];
+            state.events.push(newEvent);
+        });
+
+        saveLocalTrackPoint(
+            newEvent.latitude ?? 0,
+            newEvent.longitude ?? 0,
+            newEvent.altitude ?? 0,
+            `${timestamp},EVENT_${type}`
+        ).catch(() => {});
+    },
+
+    syncOfflineData: async () => {
+        const profile = get().profile;
+        const currentHike = get().currentHike;
+        const activeGroupId = get().activeGroupId;
+
+        // 1. Immediately refresh live group location pin if active
+        if (get().active && (currentHike?.status === 'started' || currentHike?.status === 'paused')) {
+            if (get().live && get().shareLocationEnabled && activeGroupId && profile?.id) {
+                const lastCoord = get().getLastKnownCoordinate();
+                if (lastCoord) {
+                    try {
+                        const name = `${profile.firstname || ''} ${profile.lastname || ''}`.trim() || 'Anonymous Hiker';
+                        await HikeRepo.shareLocation(profile.id, activeGroupId, newLocation({
+                            ...lastCoord,
+                            timestamp: new Date(),
+                            hikerName: name,
+                        }));
+                        set({
+                            lastShareTime: Date.now(),
+                            lastShareCoord: { latitude: lastCoord.latitude, longitude: lastCoord.longitude }
+                        });
+                    } catch (err) {
+                        console.warn("[syncOfflineData] Live location refresh failed:", err);
+                    }
+                }
+            }
+        }
+
+        // 2. Mark offline events as synced
+        set((state) => {
+            if (state.events) {
+                state.events.forEach(e => { e.synced = true; });
+            }
+        });
     },
 
     getLastKnownCoordinate: (): Location | null => {
