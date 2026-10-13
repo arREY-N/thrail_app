@@ -219,11 +219,12 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold' 
     },
     inputToolbar: { 
-        backgroundColor: Colors.BACKGROUND, 
-        borderTopWidth: 0, 
+        backgroundColor: Colors.WHITE, 
+        borderTopWidth: 1, 
+        borderTopColor: Colors.GRAY_LIGHT, 
         paddingHorizontal: 12, 
         paddingTop: 8, 
-        paddingBottom: 8 
+        paddingBottom: 8, 
     },
     inputToolbarPrimary: { 
         flexDirection: 'row',
@@ -232,7 +233,7 @@ export const styles = StyleSheet.create({
     },
     composerWrapper: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
     },
     actionButtonContainer: { 
         flexDirection: 'row',
@@ -253,6 +254,7 @@ export const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         fontSize: 15, 
         lineHeight: 20, 
+        includeFontPadding: false,
         paddingHorizontal: 14, 
         paddingTop: Platform.OS === 'web' ? 10 : 8, 
         paddingBottom: Platform.OS === 'web' ? 10 : 8, 
@@ -260,7 +262,7 @@ export const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
         minHeight: 44, 
-        maxHeight: 120, 
+        maxHeight: 110, 
         marginTop: 0, 
         marginBottom: 0, 
         marginRight: 8 

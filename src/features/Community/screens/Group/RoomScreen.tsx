@@ -7,8 +7,6 @@ import {
     Bubble,
     BubbleProps,
     Chat,
-    Composer,
-    ComposerProps,
     Day,
     DayProps,
     IMessage as IChatMessage,
@@ -16,7 +14,6 @@ import {
     MessageImageProps,
     MessageText,
     MessageTextProps,
-    SendProps,
     SystemMessage,
     SystemMessageProps,
     Time,
@@ -29,6 +26,8 @@ import {
     Linking,
     Platform,
     StyleSheet,
+    TextInput,
+    TextInputProps,
     TextStyle,
     TouchableOpacity,
     View,
@@ -134,40 +133,124 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
 };
 
 /**
- * Custom text input field wrapper for Chat.
+ * Props for RoomInputToolbar.
  */
-const CustomComposer: React.FC<ComposerProps & { onFocusInput?: () => void }> = (props) => {
+interface RoomInputToolbarProps extends InputToolbarProps<CustomMessage> {
+    isKeyboardVisible: boolean;
+    bottomInset: number;
+    onAttachPhotoPress: () => void;
+    onCapturePhotoPress: () => void;
+    onSend?: (messages: Partial<CustomMessage> | Partial<CustomMessage>[], shouldResetInputToolbar: boolean) => void;
+    textInputProps?: TextInputProps;
+}
+
+/**
+ * Custom Input Toolbar handling responsive multiline auto-grow, focus-triggered expansion,
+ * and bottom-aligned text display on collapse.
+ */
+const RoomInputToolbar: React.FC<RoomInputToolbarProps> = ({
+    isKeyboardVisible,
+    bottomInset,
+    onAttachPhotoPress,
+    onCapturePhotoPress,
+    ...props
+}) => {
     const [isFocused, setIsFocused] = React.useState<boolean>(false);
-    const [inputHeight, setInputHeight] = React.useState<number>(44);
+    const [contentHeight, setContentHeight] = React.useState<number>(44);
+    const [selection, setSelection] = React.useState<{ start: number; end: number } | undefined>(undefined);
+    const inputRef = React.useRef<TextInput | null>(null);
+
     const text = props.text ?? '';
-    const effectiveHeight = !text ? 44 : inputHeight;
+    const hasText = text.trim().length > 0;
+
+    // Effective height: Only expands when focused with content; resets to 44px when empty or unfocused
+    const currentHeight = isFocused && text.length > 0
+        ? Math.min(Math.max(44, contentHeight), 110)
+        : 44;
 
     return (
-        <Composer
-            {...props}
-            textInputProps={{
-                ...props.textInputProps,
-                numberOfLines: !text ? 1 : undefined,
-                onContentSizeChange: (e) => {
-                    const nextH = Math.min(Math.max(44, Math.ceil(e.nativeEvent.contentSize.height)), 120);
-                    setInputHeight(nextH);
-                },
-                onFocus: () => {
-                    setIsFocused(true);
-                    props.onFocusInput && props.onFocusInput();
-                },
-                onBlur: () => setIsFocused(false),
-                style: [
-                    styles.composerTextInput,
-                    isFocused && styles.composerTextInputFocused,
-                    Platform.OS === 'web' && ({ outlineStyle: 'none' } as unknown as TextStyle),
-                    {
-                        height: effectiveHeight,
-                        textAlignVertical: effectiveHeight > 44 ? 'top' : 'center',
-                    },
-                ],
-            }}
-        />
+        <View style={[styles.inputToolbar, { width: '100%', paddingBottom: isKeyboardVisible ? 8 : Math.max(bottomInset, 8) }]}>
+            <View style={[styles.inputToolbarPrimary, { minHeight: currentHeight }]}>
+                {/* Left Media Actions */}
+                <View style={styles.actionButtonContainer}>
+                    <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
+                        <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
+                    </TouchableOpacity>
+                    {Platform.OS !== 'web' && (
+                        <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
+                            <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Center Text Input Pill */}
+                <View style={[styles.composerWrapper, { height: currentHeight }]}>
+                    <TextInput
+                        ref={inputRef}
+                        testID="chat-composer-input"
+                        accessible
+                        accessibilityLabel="Type a message"
+                        placeholder={props.textInputProps?.placeholder ?? 'Type a message...'}
+                        placeholderTextColor={Colors.GRAY_MEDIUM}
+                        value={text}
+                        onChangeText={(val) => {
+                            props.textInputProps?.onChangeText?.(val);
+                        }}
+                        multiline={true}
+                        scrollEnabled={true}
+                        selection={selection}
+                        onContentSizeChange={(e) => {
+                            const nextH = Math.ceil(e.nativeEvent.contentSize.height);
+                            setContentHeight(nextH);
+                        }}
+                        onFocus={() => {
+                            setSelection(undefined);
+                            setIsFocused(true);
+                        }}
+                        onBlur={() => {
+                            setIsFocused(false);
+                            if (text.length > 0) {
+                                setSelection({ start: text.length, end: text.length });
+                            }
+                            if (Platform.OS === 'web' && inputRef.current) {
+                                const el = inputRef.current as unknown as HTMLTextAreaElement;
+                                if (el && el.scrollHeight) {
+                                    el.scrollTop = el.scrollHeight;
+                                }
+                            }
+                        }}
+                        style={[
+                            styles.composerTextInput,
+                            isFocused && styles.composerTextInputFocused,
+                            Platform.OS === 'web' && ({ outlineStyle: 'none' } as unknown as TextStyle),
+                            {
+                                height: currentHeight,
+                                textAlignVertical: isFocused
+                                    ? (currentHeight > 44 ? 'top' : 'center')
+                                    : (contentHeight > 44 ? 'bottom' : 'center'),
+                            },
+                        ]}
+                    />
+                </View>
+
+                {/* Right Send Button */}
+                <TouchableOpacity
+                    style={styles.sendContainer}
+                    disabled={!hasText}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                        if (hasText && props.onSend) {
+                            props.onSend({ text: text.trim() }, true);
+                            setContentHeight(44);
+                        }
+                    }}
+                >
+                    <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
+                        <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
+                    </View>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
@@ -424,53 +507,15 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         );
     }, [isUploading]);
 
-    const renderActions = useCallback((_props: unknown) => {
-        return (
-            <View style={styles.actionButtonContainer}>
-                <TouchableOpacity onPress={onAttachPhotoPress} style={styles.mediaIconButton}>
-                    <CustomIcon library="Ionicons" name="images" size={24} color={Colors.PRIMARY} />
-                </TouchableOpacity>
-                {Platform.OS !== 'web' && (
-                    <TouchableOpacity onPress={onCapturePhotoPress} style={styles.mediaIconButton}>
-                        <CustomIcon library="Ionicons" name="camera" size={26} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-            </View>
-        );
-    }, [onAttachPhotoPress, onCapturePhotoPress]);
-
-    const renderComposer = useCallback((props: ComposerProps) => (
-        <CustomComposer
-            {...props}
-            onFocusInput={() => { }}
+    const renderInputToolbar = useCallback((toolbarProps: InputToolbarProps<CustomMessage>) => (
+        <RoomInputToolbar
+            {...toolbarProps}
+            isKeyboardVisible={isKeyboardVisible}
+            bottomInset={insets.bottom}
+            onAttachPhotoPress={onAttachPhotoPress}
+            onCapturePhotoPress={onCapturePhotoPress}
         />
-    ), []);
-
-    const renderSend = useCallback((props: SendProps<CustomMessage>) => {
-        const hasText = props.text && props.text.trim().length > 0;
-        return (
-            <TouchableOpacity
-                style={styles.sendContainer} disabled={!hasText} activeOpacity={0.7}
-                onPress={() => hasText && props.onSend && props.onSend({ text: props.text!.trim() }, true)}
-            >
-                <View style={[styles.sendButton, hasText ? styles.sendButtonActive : styles.sendButtonInactive]}>
-                    <CustomIcon library="Ionicons" name="send" size={16} color={hasText ? Colors.WHITE : Colors.GRAY_MEDIUM} style={styles.sendIcon} />
-                </View>
-            </TouchableOpacity>
-        );
-    }, []);
-
-    const renderInputToolbar = useCallback((props: InputToolbarProps<CustomMessage>) =>
-        <View style={[styles.inputToolbar, { width: '100%', paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) }]}>
-            <View style={styles.inputToolbarPrimary}>
-                {renderActions(props)}
-                <View style={styles.composerWrapper}>
-                    {renderComposer(props as unknown as ComposerProps)}
-                </View>
-                {renderSend(props as unknown as SendProps<CustomMessage>)}
-            </View>
-        </View>,
-    [insets.bottom, isKeyboardVisible, renderActions, renderComposer, renderSend]);
+    ), [insets.bottom, isKeyboardVisible, onAttachPhotoPress, onCapturePhotoPress]);
 
     const renderChatEmpty = useCallback((): React.JSX.Element => {
         return (
@@ -575,6 +620,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                     <GroupWeatherAlertBanner groupId={currentGroup?.id} hikeDate={currentGroup?.offer?.date} />
                     <Chat
                         disableKeyboardProvider={true}
+                        keyboardAvoidingViewProps={{ enabled: false }}
                         colorScheme='light'
                         // renderAvatar={null}
                         messages={displayMessages}
@@ -585,9 +631,6 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         renderMessageImage={renderMessageImage}
                         renderCustomView={renderCustomView}
                         renderInputToolbar={renderInputToolbar}
-                        renderActions={renderActions}
-                        renderComposer={renderComposer}
-                        renderSend={renderSend}
                         renderDay={renderDay}
                         renderTime={renderTime}
                         renderFooter={renderFooter}
