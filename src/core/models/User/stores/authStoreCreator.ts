@@ -47,7 +47,7 @@ export interface AuthState {
     initialize: () => Unsubscribe | undefined;
     signOut: () => Promise<void>;
     reset: () => void;
-    logIn: (email: string, password: string) => Promise<void>;
+    logIn: (email: string, password: string) => Promise<boolean>;
     rememberMe: () => void;
     forgotPassword: (email: string) => Promise<void>;
     validateSignUp: () => Promise<boolean>;
@@ -200,18 +200,21 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
         }
     },
 
-    logIn: async (email: string, password: string) => {
+    logIn: async (email: string, password: string): Promise<boolean> => {
         try {
             set({ isChecking: true, error: null, isLoading: true });
             await UserRepo.logIn({ email, password });
             set({ isChecking: false, error: null });
+            return true;
         } catch (err) {
             logger("authStoreCreator", "LogIn Error", err);
             set({
                 error: (err as Error).message ?? "Error logging in",
                 isLoading: false,
+                isChecking: false,
             });
-            throw new Error((err as Error).message ?? "Error logging in");
+            return false;
+            // throw new Error((err as Error).message ?? "Error logging in");
         }
     },
 
