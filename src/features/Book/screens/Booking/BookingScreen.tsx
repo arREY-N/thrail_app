@@ -21,9 +21,9 @@ import { IEmergencyContact } from '@/src/core/models/User/User';
 import { toDateOrNull } from '@/src/core/utility/date';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
 
+import { UserSearchResult } from '@/src/components/EmergencyModal';
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
-import { UserSearchResult } from '@/src/components/EmergencyModal';
 import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
 import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/Booking/StatusScreen';
 
@@ -42,8 +42,6 @@ export interface BookingScreenProps {
         uploadedDocs?: Record<string, string> | null;
     }) => Promise<boolean>;
     onUpdatePress?: (params: TEdit<Booking>) => void;
-    onTermsPress?: () => void;
-    onPrivacyPress?: () => void;
     onViewBookingDetails?: (bookingId?: string) => void;
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
@@ -70,8 +68,6 @@ const BookingScreen = ({
     onSetOffer,
     onCompleteOffer,
     onUpdatePress,
-    onTermsPress,
-    onPrivacyPress,
     onViewBookingDetails,
     onSearchUser,
 }: BookingScreenProps): React.JSX.Element => {
@@ -427,8 +423,6 @@ const BookingScreen = ({
                         isSubmitting={isSubmitting}
                         onContinue={handleReserve}
                         onProgressChange={setIsDetailsDirty}
-                        onTermsPress={onTermsPress}
-                        onPrivacyPress={onPrivacyPress}
                         onSearchUser={onSearchUser}
                     />
                 )}
