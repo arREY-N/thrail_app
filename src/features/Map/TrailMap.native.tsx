@@ -11,7 +11,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
@@ -286,6 +286,7 @@ export interface TrailMapProps {
   showControls?: boolean;
   showRecenter?: boolean;
   bottomInset?: number;
+  compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
   hikerLocations?: HikerLocation[];
   currentUserId?: string;
 }
@@ -300,7 +301,17 @@ export interface TrailMapRef {
   stopBackgroundTracking: () => Promise<void>;
 }
 
-const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, initialLat, showControls = true, showRecenter = false, bottomInset = 280, hikerLocations = [], currentUserId }, ref) => {
+const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
+  initialLon,
+  initialLat,
+  showControls = true,
+  showRecenter = false,
+  bottomInset = 280,
+  compassPosition,
+  hikerLocations = [],
+  currentUserId
+}, ref) => {
+  const resolvedCompassPosition = compassPosition || { bottom: bottomInset + 32, left: 16 };
   const {
     userLocation,
     routeCoordinates,
@@ -594,6 +605,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, init
         style={styles.map}
         logoPosition={{ bottom: bottomInset, left: 16 }}
         attributionPosition={{ bottom: bottomInset, left: 100 }}
+        compassPosition={resolvedCompassPosition}
+        compassHiddenFacingNorth={true}
         mapStyle={activeStyle}
         onDidFinishLoadingMap={() => setMapReady(true)}
         onRegionWillChange={handleRegionWillChange}
@@ -643,11 +656,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({ initialLon, init
           if (!hiker || !isValidCoordinate(hiker.latitude, hiker.longitude)) return null;
           if (currentUserId && hiker.id === currentUserId) return null;
 
-          // Ghost pin filter: purge pins older than 4 hours (dead batteries / uncompleted past sessions)
+          // Ghost pin filter: retain pins for the active hike day (24 hours TTL).
+          // Allows search & rescue and group members to view Last Known Location (LKL) pins during prolonged dead zones.
           const timestampMs = hiker.timestamp instanceof Date
             ? hiker.timestamp.getTime()
             : new Date(hiker.timestamp || 0).getTime();
-          if (timestampMs > 0 && (Date.now() - timestampMs) > 4 * 60 * 60 * 1000) {
+          if (timestampMs > 0 && (Date.now() - timestampMs) > 24 * 60 * 60 * 1000) {
             return null;
           }
 
