@@ -116,15 +116,27 @@ export const HikeRepository = (db: Firestore) => ({
                 coordinates: segments,
             });
 
-            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
-            await setDoc(routeRef, {
+            const payload = {
                 segments: structuredSegments,
                 coordinates: structuredCoordinates,
                 geoJson: geoJsonString,
                 pointCount: flatCoordinates.length,
                 segmentCount: segments.length,
                 updatedAt: Timestamp.now(),
-            });
+            };
+
+            // 1. Primary write to coordinates/session:
+            // Explicitly authorized by deployed Firestore security rules (match /coordinates/{coordinateId})
+            const coordinatesRef = doc(db, "users", userId, "hikes", hikeId, "coordinates", "session");
+            await setDoc(coordinatesRef, payload);
+
+            // 2. Secondary write to route/session (if route subcollection rule is active/deployed)
+            try {
+                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+                await setDoc(routeRef, payload);
+            } catch {
+                // Non-critical: coordinates/session is already securely persisted
+            }
         } catch (error) {
             console.error("Error writing consolidated hike route: ", error);
             if (error instanceof Error) throw error;
@@ -134,6 +146,7 @@ export const HikeRepository = (db: Firestore) => ({
 
     /**
      * Fetches the consolidated route for a completed hike.
+     * Checks coordinates/session first, then falls back to route/session.
      * Returns segments if available, otherwise wraps legacy coordinates in a single segment.
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
@@ -141,9 +154,27 @@ export const HikeRepository = (db: Firestore) => ({
      */
     async fetchRoute(userId: string, hikeId: string): Promise<[number, number][][]> {
         try {
-            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
-            const snapshot = await getDoc(routeRef);
-            if (snapshot.exists()) {
+            // Check coordinates/session first (primary), then fallback to route/session
+            let snapshot = null;
+            try {
+                const coordinatesRef = doc(db, "users", userId, "hikes", hikeId, "coordinates", "session");
+                const coordSnap = await getDoc(coordinatesRef);
+                if (coordSnap.exists()) {
+                    snapshot = coordSnap;
+                }
+            } catch {
+                // Ignore and try fallback
+            }
+
+            if (!snapshot) {
+                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+                const routeSnap = await getDoc(routeRef);
+                if (routeSnap.exists()) {
+                    snapshot = routeSnap;
+                }
+            }
+
+            if (snapshot && snapshot.exists()) {
                 const data = snapshot.data();
                 // 1. Prefer GeoJSON string
                 if (data.geoJson && typeof data.geoJson === 'string') {
