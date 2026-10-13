@@ -28,7 +28,7 @@ export const timestampToISO = (ts: Timestamp | FieldValue | Date | undefined | n
 
 export const formatDate = (
     date: Date | string | number | Timestamp | unknown,
-    options: 'full' | 'short' | 'time' = 'full'
+    options: 'full' | 'short' | 'time' | 'dateTime' = 'full'
 ): string => {
     if (!date) return 'N/A';
     const parsedDate = date instanceof Date
@@ -42,10 +42,17 @@ export const formatDate = (
     const configs = {
         full: { month: 'short', day: 'numeric', year: 'numeric' },
         short: { month: '2-digit', day: '2-digit', year: '2-digit' },
-        time: { hour: '2-digit', minute: '2-digit', hour12: true }
+        time: { hour: '2-digit', minute: '2-digit', hour12: true },
+        dateTime: { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }
     } as const;
     const config = configs[options];
     return new Intl.DateTimeFormat('en-US', config).format(parsedDate);
+};
+
+export const formatDateTime = (
+    date: Date | string | number | Timestamp | unknown
+): string => {
+    return formatDate(date, 'dateTime');
 };
 
 export const toDate = (value: Timestamp | FieldValue | Date | string | number | unknown): Date => {
