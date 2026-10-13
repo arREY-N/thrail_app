@@ -3,11 +3,24 @@ import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { CredentialResponse, SignUp, UserCredential } from '@/src/core/models/User/interfaces/SignUp.types';
 import { LogIn, User } from '@/src/core/models/User/interfaces/User.types';
 import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory';
+import NetInfo from "@react-native-community/netinfo";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithCustomToken, signInWithPopup, } from 'firebase/auth';
 import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
+
+const isOffline = async (): Promise<boolean> => {
+    try {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            return true;
+        }
+        const state = await NetInfo.fetch();
+        return state.isConnected === false || state.isInternetReachable === false;
+    } catch {
+        return false;
+    }
+};
 
 GoogleSignin.configure({
     webClientId: '672035725620-l5sdrcnscegfqmh43o6sj7rpcsggj7vi.apps.googleusercontent.com',
@@ -126,6 +139,9 @@ export const UserRepository = (db: Firestore) => ({
 
             return true;
         } catch (err) {
+            if (await isOffline()) {
+                throw new Error(getAuthErrorMessage('auth/network-request-failed'));
+            }
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
@@ -245,9 +261,13 @@ export const UserRepository = (db: Firestore) => ({
         try {
             const secureLogin = httpsCallable<LogIn, { token: string }>(functions, 'secureLogin');
             const response = await secureLogin({ email: data.email, password: data.password });
-            console.log('response: ', response.data.token);
+
             await signInWithCustomToken(auth, response.data.token);
         } catch (err) {
+            console.log(err);
+            if (await isOffline()) {
+                throw new Error(getAuthErrorMessage('auth/network-request-failed'));
+            }
             throw new Error(getAuthErrorMessage(err as FirebaseError));
         }
     },
