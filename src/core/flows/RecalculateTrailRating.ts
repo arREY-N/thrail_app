@@ -3,7 +3,7 @@ import { newTrail, useTrailList, useTrailStore } from "@/src/core/models/Trail/T
 import { catchError } from "@/src/core/utility/errorFormatter";
 
 export function RecalculateTrailRating() {
-    const { trails } = useTrailList();
+    const { trails, trailLoading } = useTrailList();
     const { retrieveAll } = useReviewList();
     const create = useTrailStore(s => s.create);
 
@@ -68,6 +68,7 @@ export function RecalculateTrailRating() {
     }
 
     return {
+        trailLoading,
         updateTrailRating,
         getItemRating,
         calculateTrailRating,

@@ -43,7 +43,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
     const totalDistance = useHikeStore(s => s.totalDistance);
     const totalElevationGain = useHikeStore(s => s.totalElevationGain);
 
-    const { updateTrailRating } = RecalculateTrailRating();
+    const { updateTrailRating, trailLoading } = RecalculateTrailRating();
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -191,7 +191,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
 
     return {
         review,
-        isLoading,
+        isLoading: isLoading || trailLoading,
         error: error || localError,
         onUpdatePress,
         onSaveReview,
