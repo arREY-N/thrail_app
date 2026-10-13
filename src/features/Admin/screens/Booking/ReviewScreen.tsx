@@ -130,6 +130,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         isApprovedStatus,
         isRejectedStatus,
         isCancelledStatus,
+        isCancellationPending,
         isHikerCancellationPending,
         isAdminCancellationPending,
         isReviewComplete,
@@ -999,7 +1000,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 isCancelledStatus={isCancelledStatus}
                 isCompletedStatus={currentStatus === 'completed'}
                 totalAmountPaid={totalAmountPaid}
-                hasPendingCancellation={isHikerCancellationPending || Boolean(cancellationRequest)}
+                hasPendingCancellation={isCancellationPending}
                 onRescheduleClick={() => {
                     setShowActionMenu(false);
                     setTimeout(() => setShowRescheduleModal(true), 300);
