@@ -1,7 +1,8 @@
-// metro.config.js
-const { getDefaultConfig } = require("expo/metro-config");
+const {
+  getSentryExpoConfig
+} = require("@sentry/react-native/metro");
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
 // Tell Metro to treat .pmtiles and .geojson as valid asset files
 config.resolver.assetExts.push("pmtiles", "geojson");

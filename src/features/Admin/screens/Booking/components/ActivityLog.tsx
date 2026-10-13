@@ -144,13 +144,18 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
                     sortDate: paymentDate
                 });
             } else if (paymentRecord.status === 'refunded') {
+                const refundDate = getEventDate(paymentRecord.refundedAt || paymentRecord.createdAt);
+                const refundTimeStr = (paymentRecord.refundedAt || paymentRecord.createdAt) 
+                    ? formatDateToStandard(paymentRecord.refundedAt || paymentRecord.createdAt) 
+                    : '';
+                const reasonSnippet = paymentRecord.refundReason ? ` (Reason: ${paymentRecord.refundReason})` : '';
                 timelineEvents.push({
                     title: "Payment Refunded",
-                    time: paymentRecord.createdAt ? formatDateToStandard(paymentRecord.createdAt) : '',
-                    desc: `Refunded via ${paymentRecord.gateway.toUpperCase()}. Amount: ₱${(paymentRecord.refundedAmount || paymentRecord.amount).toFixed(2)}`,
+                    time: refundTimeStr,
+                    desc: `Refunded via ${paymentRecord.gateway.toUpperCase()}. Amount: ₱${(paymentRecord.refundedAmount || paymentRecord.amount).toFixed(2)}${reasonSnippet}`,
                     status: "REFUNDED",
                     color: getStatusThemeColor('refund'),
-                    sortDate: paymentDate
+                    sortDate: refundDate
                 });
             } else if (paymentRecord.status === 'failed') {
                 timelineEvents.push({

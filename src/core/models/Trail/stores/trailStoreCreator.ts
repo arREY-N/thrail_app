@@ -147,14 +147,13 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 			const hasDuplicate = data.some((t) => {
 				const existingName = (t.general?.name || '').toUpperCase().trim();
 				const save = (trail.general?.name || '').toUpperCase().trim();
+				console.log('has duplicate: ', existingName === save && t.id !== trail.id);
 				return existingName === save && t.id !== trail.id;
 			});
 
 			if (hasDuplicate) {
 				throw new Error("A trail with the same name already exists.");
 			}
-
-			console.log("New:", trail);
 
 			const saved = await TrailRepo.write(trail);
 

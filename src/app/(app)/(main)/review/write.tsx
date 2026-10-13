@@ -3,6 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 
 import { CreateReviewFlow } from "@/src/core/flows/CreateReviewFlow";
 import WriteReviewScreen from "@/src/features/Navigation/screens/WriteReviewScreen";
+import React from "react";
 
 export default function WriteReview() {
     const { reviewId: rawId, trailId: rawTrail, hikeId: rawHike, distance, duration, elevation } = useLocalSearchParams();

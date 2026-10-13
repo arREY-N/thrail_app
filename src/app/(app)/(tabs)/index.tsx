@@ -6,6 +6,7 @@
 
 import { HomeFlow } from '@/src/core/flows/HomeFlow';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
+import React from 'react';
 
 /**
  * Controller for the Home Tab.
@@ -35,6 +36,7 @@ export default function Home() {
         isRefreshing,
         onRefreshPress,
     } = HomeFlow();
+
 
     return (
         <HomeScreen
