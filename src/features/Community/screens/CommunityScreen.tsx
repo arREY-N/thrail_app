@@ -30,9 +30,8 @@ import PostCardSkeleton from '@/src/components/PostCardSkeleton';
 import { Colors } from '@/src/constants/colors';
 import { Review } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { ScrollToTopPill } from '../components/ScrollToTopPill';
 import { useCommunity } from '../hooks/useCommunity';
-
-
 
 /**
  * Props for the CommunityScreen component.
@@ -73,7 +72,7 @@ export interface CommunityScreenProps {
 
 /**
  * CommunityScreen — Displays user reviews, posts, and leaderboard activities.
- * Implements smooth absolute scrolling, pagination loaders, and error reloads.
+ * Implements smooth absolute scrolling, progressive 5-by-5 pagination loaders, and error reloads.
  */
 const CommunityScreen: React.FC<CommunityScreenProps> = ({ 
     reviews, 
@@ -87,8 +86,8 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
     onNotificationPress,
     onBookingPress,
     onLoadMore,
-    isFetchingMore = false,
-    hasMore = false,
+    isFetchingMore: propIsFetchingMore,
+    hasMore: propHasMore,
     isError = false,
     onReload,
 }) => {
@@ -97,12 +96,21 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         setSearchQuery, 
         activeTab, 
         setActiveTab, 
-        filteredReviews 
+        paginatedReviews,
+        hasMore: hookHasMore,
+        isFetchingMore: hookIsFetchingMore,
+        handleLoadMore: hookHandleLoadMore,
+        resetPagination,
     } = useCommunity(reviews);
+
+    const effectiveIsFetchingMore = propIsFetchingMore !== undefined ? propIsFetchingMore : hookIsFetchingMore;
+    const effectiveHasMore = propHasMore !== undefined ? propHasMore : hookHasMore;
 
     // Header animated scroll visibility states
     const [headerVisible, setHeaderVisible] = useState<boolean>(true);
+    const [showScrollTopPill, setShowScrollTopPill] = useState<boolean>(false);
     const lastOffsetY = useRef<number>(0);
+    const isScrollingToTop = useRef<boolean>(false);
     const [animatedHeaderHeight] = useState(() => new Animated.Value(1)); // 1 = visible, 0 = hidden
 
     useEffect(() => {
@@ -128,11 +136,25 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
 
     const handleTabSelect = (tab: string) => {
         setActiveTab(tab);
-        // If user is near the top (like, within 3000px), animate smoothly. 
-        // If they are deep in the list, snap instantly to prevent lag/crashes.
+        setShowScrollTopPill(false);
         const shouldAnimate = lastOffsetY.current < 3000;
         flatListRef.current?.scrollToOffset({ offset: 0, animated: shouldAnimate });
     };
+
+    const handleScrollToTop = useCallback(() => {
+        isScrollingToTop.current = true;
+        setHeaderVisible(true);
+        setShowScrollTopPill(false);
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        setTimeout(() => {
+            isScrollingToTop.current = false;
+        }, 800);
+    }, []);
+
+    const handleRefresh = useCallback(() => {
+        resetPagination();
+        onRefresh();
+    }, [resetPagination, onRefresh]);
     
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
@@ -147,8 +169,18 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         />
     ), [likeReview, isLiked, onWriteReviewPress]);
 
+    const handleLoadMore = useCallback(() => {
+        if (effectiveHasMore && !effectiveIsFetchingMore && !isError) {
+            if (onLoadMore) {
+                onLoadMore();
+            } else {
+                hookHandleLoadMore();
+            }
+        }
+    }, [effectiveHasMore, effectiveIsFetchingMore, isError, onLoadMore, hookHandleLoadMore]);
+
     const renderFooter = useCallback(() => {
-        if (isFetchingMore) {
+        if (effectiveIsFetchingMore) {
             return (
                 <View style={styles.footerLoaderContainer}>
                     <ActivityIndicator size="small" color={Colors.PRIMARY} />
@@ -160,7 +192,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 <View style={styles.footerLoaderContainer}>
                     <TouchableOpacity 
                         style={styles.retryButton} 
-                        onPress={onLoadMore}
+                        onPress={handleLoadMore}
                         activeOpacity={0.7}
                     >
                         <CustomText style={styles.retryButtonText}>
@@ -170,7 +202,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 </View>
             );
         }
-        if (!hasMore && reviews.length > 0) {
+        if (!effectiveHasMore && reviews.length > 0) {
             return (
                 <View style={styles.footerLoaderContainer}>
                     <CustomText style={styles.emptyStateText}>
@@ -180,7 +212,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
             );
         }
         return null;
-    }, [isFetchingMore, isError, hasMore, reviews.length, onLoadMore]);
+    }, [effectiveIsFetchingMore, isError, reviews.length, handleLoadMore, effectiveHasMore]);
 
     const renderEmptyComponent = useCallback(() => {
         if (isLoading) {
@@ -201,7 +233,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                     </CustomText>
                     <TouchableOpacity 
                         style={styles.mainRetryButton} 
-                        onPress={onReload}
+                        onPress={onReload || onRefresh}
                         activeOpacity={0.7}
                     >
                         <CustomText style={styles.mainRetryButtonText}>
@@ -219,10 +251,19 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 </CustomText>
             </View>
         );
-    }, [isLoading, isError, onReload, searchQuery]);
+    }, [isLoading, isError, onReload, onRefresh, searchQuery]);
 
     const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (isScrollingToTop.current) return;
+
         const currentOffsetY = event.nativeEvent.contentOffset.y;
+
+        if (currentOffsetY > 150) {
+            setShowScrollTopPill(true);
+        } else if (currentOffsetY <= 50) {
+            setShowScrollTopPill(false);
+        }
+
         if (currentOffsetY <= 50) {
             setHeaderVisible(true);
             lastOffsetY.current = currentOffsetY;
@@ -243,12 +284,6 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         }
         lastOffsetY.current = currentOffsetY;
     }, [headerVisible]);
-
-    const handleLoadMore = useCallback(() => {
-        if (hasMore && !isFetchingMore && !isError && onLoadMore) {
-            onLoadMore();
-        }
-    }, [hasMore, isFetchingMore, isError, onLoadMore]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -284,7 +319,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                 <View style={styles.feedWrapper}>
                     <FlatList
                         ref={flatListRef}
-                        data={filteredReviews}
+                        data={paginatedReviews}
                         keyExtractor={(item, index) => item.id || `post-${index}`}
                         contentContainerStyle={[
                             styles.scrollContent,
@@ -292,7 +327,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                         ]}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
-                            <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={Colors.PRIMARY} />
+                            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={Colors.PRIMARY} />
                         }
                         renderItem={renderPostCard}
                         scrollEventThrottle={16}
@@ -308,6 +343,12 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                         ListEmptyComponent={renderEmptyComponent}
                     />
                 </View>
+
+                <ScrollToTopPill
+                    visible={showScrollTopPill}
+                    onPress={handleScrollToTop}
+                    animatedHeaderHeight={animatedHeaderHeight}
+                />
 
                 <CustomFAB onPress={onGroupPress} />
 
