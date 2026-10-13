@@ -24,13 +24,34 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
     uploadDocument: async (): Promise<string> => {
         try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                throw new Error('Permission to access media library is required!');
+            }
+
             const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*',
+                type: ['image/*', 'application/pdf'],
                 copyToCacheDirectory: true,
             });
 
             if (!result.canceled) {
                 const { uri, name, mimeType, size } = result.assets[0];
+
+                const isImage = mimeType?.startsWith('image/');
+
+                const isPdf = mimeType === 'application/pdf';
+
+                const extension = name?.split('.').pop()?.toLocaleLowerCase();
+
+                const isAllowedExt = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
+
+
+                if (!isImage && !isPdf && !isAllowedExt) {
+                    Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
+
+                    throw new Error('Only image and PDF files are allowed')
+                }
 
                 const selectedFile = { uri, name, mimeType, size };
 
@@ -132,6 +153,20 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
             }
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
+
+            const isImage = mimeType?.startsWith('image/');
+
+            const isPdf = mimeType === 'application/pdf';
+
+            const extension = fileName?.split('.').pop()?.toLocaleLowerCase();
+
+            const isAllowedExt = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
+
+            if (!isImage && !isPdf && !isAllowedExt) {
+                Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
+
+                throw new Error('Only image and PDF files are allowed')
+            }
 
             const selectedFile = {
                 uri,
