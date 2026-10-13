@@ -54,6 +54,23 @@ export const ReviewRepository = (db: Firestore) => {
             }
         },
 
+        async retrieveAll(): Promise<Review[]> {
+            try {
+                const reviewCollection = createReviewsCollection();
+                let q = query(
+                    reviewCollection,
+                    orderBy('createdAt', 'desc'),
+                );
+
+                const snapshot = await getDocs(q);
+                return snapshot.docs.map((docsnap) => docsnap.data());
+            } catch (error: unknown) {
+                console.error('Error fetching reviews: ', error);
+                throw new Error('Failed to fetch reviews');
+            }
+
+        },
+
         listenToReviews(onUpdate: (reviews: Review[]) => void): Unsubscribe {
             try {
                 const reviewCollection = createReviewsCollection();

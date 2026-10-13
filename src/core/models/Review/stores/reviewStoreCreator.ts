@@ -20,6 +20,7 @@ export interface ReviewState {
     create: (review: Review) => Promise<void>;
     remove: (id: string) => Promise<void>;
     likeReview: (review: Review) => Promise<void>;
+    retrieveAll: () => Promise<Review[]>;
 }
 
 let activeReviewsUnsubscribe: Unsubscribe | null = null;
@@ -105,6 +106,20 @@ export const reviewStoreCreator: StateCreator<
         } catch (err) {
             console.error(err);
             set({ error: (err as Error).message ?? 'Failed to load reviews', isLoading: false });
+        }
+    },
+
+    retrieveAll: async (): Promise<Review[]> => {
+        set({ isLoading: true, error: null });
+
+        try {
+            const reviews = await ReviewRepo.retrieveAll();
+            set({ reviews, isLoading: false });
+            return reviews;
+        } catch (err) {
+            console.error(err);
+            set({ error: (err as Error).message ?? 'Failed to load reviews', isLoading: false });
+            return []
         }
     },
 

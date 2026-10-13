@@ -1,3 +1,4 @@
+import { RecalculateTrailRating } from "@/src/core/flows/RecalculateTrailRating";
 import { HikeRepo, useHikesStore, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { newReview, Review, ReviewLogic, useReviewStore } from "@/src/core/models/Review/Review";
@@ -41,6 +42,8 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
     const elapsedTime = useHikeStore(s => s.elapsedTime);
     const totalDistance = useHikeStore(s => s.totalDistance);
     const totalElevationGain = useHikeStore(s => s.totalElevationGain);
+
+    const { updateTrailRating } = RecalculateTrailRating();
 
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -175,7 +178,10 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                 draft.trail = location
             });
 
-            await create(finalReviewToSave)
+            await Promise.all([
+                updateTrailRating(review.trail.id, review.overallRating),
+                create(finalReviewToSave)
+            ])
 
             router.replace('/');
         } catch (error) {

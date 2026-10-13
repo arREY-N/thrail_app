@@ -1,24 +1,6 @@
 import React from "react";
 import { SafeAreaView, Text, View } from "react-native";
 
-// export default function HomeIndex() {
-//   // We get these from your existing navigation hook
-//   const { onMountainPress, onDownloadPress } = useAppNavigation();
-
-//   // These are empty for now so the app doesn't crash on missing data
-//   const recommendedTrails = [];
-//   const discoverTrails = [];
-
-//   return (
-//     <HomeScreen
-//       onMountainPress={onMountainPress}
-//       onDownloadPress={onDownloadPress}
-//       recommendedTrails={recommendedTrails}
-//       discoverTrails={discoverTrails}
-//     />
-//   );
-// }
-
 export default function HomeIndex() {
   console.log("!!! THE HOME PAGE HAS LOADED !!!");
   return (

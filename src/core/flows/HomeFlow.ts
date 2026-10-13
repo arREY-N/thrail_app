@@ -1,9 +1,10 @@
+import { RecalculateTrailRating } from "@/src/core/flows/RecalculateTrailRating";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useHomeRefresh } from "@/src/core/hook/useHomeRefresh";
 import { useTrailOffers } from "@/src/core/hook/useTrailOffers";
 import { useOfferList } from "@/src/core/models/Offer/Offer";
 import { useRecommendationItem } from "@/src/core/models/Recommendation/Recommendation";
-import { useReview, useReviewList } from "@/src/core/models/Review/Review";
+import { useReviewList } from "@/src/core/models/Review/Review";
 import { useTrailList, useTrailNavigation } from "@/src/core/models/Trail/Trail";
 import { useAuthHook } from "@/src/core/models/User/User";
 
@@ -47,8 +48,9 @@ export function HomeFlow() {
     } = useReviewList()
 
     const {
-        getItemRating
-    } = useReview();
+        getItemRating,
+    } = RecalculateTrailRating();
+
 
     // recommendation
     const {
@@ -83,6 +85,6 @@ export function HomeFlow() {
         isNewAccount,
         getItemRating,
         recommendationIsLoading,
-        recommendationError,
+        recommendationError
     }
 }

@@ -2,6 +2,7 @@ import { HikeTempFlow } from "@/src/core/flows/HikeTempFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import NavigationScreen from "@/src/features/Navigation/screens/NavigationScreen";
 import { StatusBar } from "expo-status-bar";
+import React from "react";
 import { View } from "react-native";
 
 export default function Hike() {

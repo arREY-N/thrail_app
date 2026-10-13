@@ -24,12 +24,12 @@ export function useReview() {
     const onWriteReviewPress = (id?: string) => {
         if (id) {
             router.push({
-                pathname: '/(main)/review/write',
+                pathname: '/(app)/(main)/review/write',
                 params: { reviewId: id }
             })
         } else {
             router.push({
-                pathname: '/(main)/review/write',
+                pathname: '/(app)/(main)/review/write',
             })
         }
     }
@@ -67,13 +67,6 @@ export function useReview() {
         }
     }
 
-    const getItemRating = (itemId: string): number => {
-        const itemReviews = reviews.filter(r => r.trail.id === itemId);
-        if (itemReviews.length === 0) return 0;
-        const totalRating = itemReviews.reduce((sum, review) => sum + review.overallRating, 0);
-        return totalRating / itemReviews.length;
-    }
-
     const myReviews = reviews.filter(r => isOwned(r));
 
     return {
@@ -82,7 +75,6 @@ export function useReview() {
         likeReview,
         isLiked,
         refreshFeed,
-        getItemRating,
         reviews,
         isLoading,
         error: error || localError,

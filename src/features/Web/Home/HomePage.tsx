@@ -2,6 +2,7 @@ import { HomeFlow } from "@/src/core/flows/HomeFlow";
 import { useLocalSearchParams } from "expo-router";
 
 import HomeScreen from "@/src/features/Home/screens/HomeScreen";
+import React from "react";
 
 const HomePage = () => {
   const { filter } = useLocalSearchParams<{ filter?: string }>();
@@ -32,7 +33,7 @@ const HomePage = () => {
     recommendationIsLoading,
     offers,
     trailsWithOffers,
-    offerIsLoading,
+    trailOfferIsLoading,
     isRefreshing,
     onRefreshPress,
     trailLoading
@@ -51,7 +52,7 @@ const HomePage = () => {
       discoverTrails={trails}
       discoverError={trailError}
       trailsWithOffers={trailsWithOffers}
-      isOffersLoading={offerIsLoading}
+      isOffersLoading={trailOfferIsLoading}
       onMountainPress={onViewTrail}
       onDownloadPress={onDownloadPress}
       onGroupPress={onGroupPress}
