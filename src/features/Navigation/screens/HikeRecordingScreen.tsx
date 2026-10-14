@@ -17,6 +17,7 @@ import { Offer } from "@/src/core/models/Offer/Offer";
 import { IUserSummary, User } from "@/src/core/models/User/User";
 import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
+import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
 
@@ -128,26 +129,36 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isCompleted = hike.status === "completed";
     const isTracking = isStarted || isPaused || isCompleted;
 
-    const handleResetSession = () => {
-        Alert.alert(
-            "Reset Hike (Dev/Test)",
-            "Do you want to discard this hike session and return to the lobby? All active tracking, background services, and trail lines will be cleared.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Reset",
-                    style: "destructive",
-                    onPress: () => {
-                        onResetHike?.();
-                        if (router.canGoBack()) {
-                            router.back();
-                        } else {
-                            router.replace('/(app)/(tabs)/hike');
-                        }
-                    }
-                }
-            ]
-        );
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const [isDiscarding, setIsDiscarding] = useState(false);
+
+    const handleDiscardPrompt = () => {
+        setShowDiscardConfirm(true);
+    };
+
+    const handleExecuteDiscard = async () => {
+        try {
+            setIsDiscarding(true);
+            mapRef.current?.stopBackgroundTracking?.();
+            await clearLocalTrack();
+            await onResetHike?.();
+            setShowDiscardConfirm(false);
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace('/(app)/(tabs)/hike');
+            }
+        } catch (err) {
+            console.warn("Failed to cleanly discard hike:", err);
+            setShowDiscardConfirm(false);
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace('/(app)/(tabs)/hike');
+            }
+        } finally {
+            setIsDiscarding(false);
+        }
     };
 
     useEffect(() => {
@@ -354,15 +365,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             </View>
 
             <View style={[styles.mapControls, { bottom: 230 }]}>
-                {/* Dev/Test Reset FAB */}
-                <TouchableOpacity
-                    style={[styles.fabBtn, styles.devResetFab]}
-                    onPress={handleResetSession}
-                    activeOpacity={0.8}
-                >
-                    <CustomIcon library="Feather" name="rotate-ccw" size={19} color={Colors.WHITE} />
-                </TouchableOpacity>
-
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
                         <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -472,6 +474,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     )}
                 </View>
+
+                {isPaused && (
+                    <TouchableOpacity
+                        style={styles.discardRowBtn}
+                        onPress={handleDiscardPrompt}
+                        activeOpacity={0.8}
+                    >
+                        <CustomIcon library="Feather" name="trash-2" size={18} color={Colors.ERROR} />
+                        <CustomText style={styles.discardRowText}>Discard Hike</CustomText>
+                    </TouchableOpacity>
+                )}
             </View>
 
             <Modal visible={showSosMenu} transparent animationType="fade">
@@ -527,6 +540,27 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 cancelText="Cancel"
                 isDestructive={false}
                 iconName="shield"
+            />
+
+            <ConfirmationModal
+                visible={showDiscardConfirm}
+                onClose={() => !isDiscarding && setShowDiscardConfirm(false)}
+                onConfirm={handleExecuteDiscard}
+                title="Discard Hike?"
+                message={
+                    (totalDistance < 100 && (baseElapsedTime / 1000) < 120)
+                        ? "Are you sure you want to discard this recording? No hike data will be saved."
+                        : `You have recorded ${liveDistanceStr} over ${formatTime(baseElapsedTime)}. Discarding will permanently erase all GPS breadcrumbs, elevation stats, and live telemetry. This activity will NOT be saved to your profile or hike history.`
+                }
+                confirmText={
+                    (totalDistance < 100 && (baseElapsedTime / 1000) < 120)
+                        ? "Discard Session"
+                        : "Discard Anyway"
+                }
+                cancelText="Keep Recording"
+                isDestructive={true}
+                isLoading={isDiscarding}
+                iconName="trash-2"
             />
 
             <Modal visible={showTrailInfo} transparent animationType="slide">
@@ -702,7 +736,6 @@ const styles = StyleSheet.create({
 
     mapControls: { position: 'absolute', right: 16, gap: 12, zIndex: 30 },
     fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
-    devResetFab: { backgroundColor: '#F59E0B' },
 
     dashboardWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 40, alignItems: 'center' },
     errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
@@ -727,6 +760,28 @@ const styles = StyleSheet.create({
     progressFillFinish: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: Colors.ERROR_BG },
     btnContent: { zIndex: 2 },
     actionTextFinish: { color: Colors.ERROR, fontWeight: "bold", fontSize: 16 },
+
+    discardRowBtn: {
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: Colors.ERROR_BG,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 10,
+        ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }),
+    },
+    discardRowText: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 16,
+        letterSpacing: 0.2,
+    },
 
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", padding: 24 },
     actionSheet: { backgroundColor: Colors.WHITE, borderRadius: 24, padding: 24, alignItems: "center" },
