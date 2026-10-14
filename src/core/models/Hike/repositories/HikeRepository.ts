@@ -268,6 +268,9 @@ export const HikeRepository = (db: Firestore) => ({
      */
     async shareLocation(userId: string, groupId: string, coordinate: Location): Promise<void> {
         try {
+            if (!userId || !groupId || groupId === 'new_diy_session' || groupId === 'diy') {
+                return;
+            }
             const locationRef = doc(collection(db, "groups", groupId, "liveLocations"), userId).withConverter(locationConverter);
 
             await setDoc(
@@ -289,10 +292,13 @@ export const HikeRepository = (db: Firestore) => ({
      */
     async deleteLocation(userId: string, groupId: string): Promise<void> {
         try {
+            if (!userId || !groupId || groupId === 'new_diy_session' || groupId === 'diy') {
+                return;
+            }
             const locationRef = doc(collection(db, "groups", groupId, "liveLocations"), userId);
             await deleteDoc(locationRef);
         } catch (error) {
-            console.error("Error deleting group location: ", error);
+            console.warn("Could not delete group location pin (safe to ignore if session reset): ", error);
         }
     },
 
