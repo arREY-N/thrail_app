@@ -6,11 +6,15 @@ export const updateBookingOnCancellation = (
     request: Cancellation,
     approved: boolean,
 ): Booking => {
+    const hasPaid = booking.payment.length > 0;
+
     const updatedBooking: Booking = {
         ...booking,
         updatedAt: new Date(),
         status: approved
-            ? "refund"
+            ? hasPaid
+                ? 'refund'
+                : 'cancelled'
             : booking.status,
     }
 

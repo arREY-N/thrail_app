@@ -4,17 +4,25 @@ import { IUserSummary } from "@/src/core/models/User/User";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IReceipt<T> {
-    id: string;
+    id?: string;
     date: T;
     amount: number;
+    refundedAmount?: number;
     gateway: string;
     referenceCode?: string;
 }
 
 export interface IPaymentBase<T> {
     id: string;
+    bookingId?: string;
+    gatewayId?: string;
+    gateway?: string;
+    method?: string;
+    status?: 'captured' | 'refunded';
     createdAt: T;
     updatedAt: T;
+    refundedAt?: T;
+    refundReason?: string;
     receipt: IReceipt<T>;
     offer: IOfferSummary<T>;
     business: IBusinessSummary;

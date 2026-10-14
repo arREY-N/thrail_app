@@ -144,10 +144,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         });
 
         updateCurrentHike({ status: 'paused' });
+        useHikeStore.getState().logHikeEvent('HIKE_PAUSED');
         stopBackgroundTracking();
     }
 
-    const onResumeHike = () => {
+    const onResumeHike = async () => {
         if (!profile) {
             setLocalError("User ID is required to resume hike");
             return;
@@ -164,12 +165,29 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         updateHikeStore({
             timerStartTime: newStartTime,
             active: true,
+            lastShareTime: 0,
             profile: {
                 id: profile.id,
                 firstname: profile.firstname,
                 lastname: profile.lastname
             }
         });
+
+        // Ensure live location sharing is active if group exists and sharing is enabled
+        const targetGroupId = groupId || useHikeStore.getState().activeGroupId;
+        if (targetGroupId && useHikeStore.getState().shareLocationEnabled !== false) {
+            updateHikeStore({
+                activeGroupId: targetGroupId,
+                live: true,
+            });
+            try {
+                await shareLocation(targetGroupId);
+            } catch (shareErr) {
+                console.warn("[onResumeHike] Location share initialization warning:", shareErr);
+            }
+        }
+
+        useHikeStore.getState().logHikeEvent('HIKE_RESUMED');
         startBackgroundTracking();
     }
 
@@ -340,10 +358,15 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         onCompleteHike,
         onResetHike,
         setShareLocationEnabled: async (enabled: boolean) => {
-            if (enabled) {
-                await onStartSharingLocation();
-            } else {
-                onStopSharingLocation();
+            try {
+                await useHikeStore.getState().setShareLocationEnabled(enabled);
+                const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+                if (enabled && targetGroup && !useHikeStore.getState().live) {
+                    await shareLocation(targetGroup);
+                }
+            } catch (error) {
+                catchError(error as Error);
+                setLocalError(error instanceof Error ? error.message : "Failed to toggle location sharing.");
             }
         },
         onStartSharingLocation,

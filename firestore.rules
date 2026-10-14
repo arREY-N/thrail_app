@@ -7,6 +7,11 @@ service cloud.firestore {
         allow read: if true;
     }
 
+    // Login attempt counters (brute-force limiter). Server-only via Admin SDK.
+    match /loginAttempts/{attemptId} {
+        allow read, write: if false;
+    }
+
     match /leaderboards/{leaderboardId} {
         allow read: if request.auth != null;
         allow create, update, delete: 
@@ -52,6 +57,13 @@ service cloud.firestore {
     }
 
     match /users/{userId}/hikes/{hikeId}/coordinates/{coordinateId} {
+        allow read: 
+            if request.auth != null;
+        allow create, update, delete:   
+            if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/hikes/{hikeId}/route/{routeId} {
         allow read: 
             if request.auth != null;
         allow create, update, delete:   
@@ -328,12 +340,32 @@ service cloud.firestore {
     
     match /trails/{trailId}{
     	allow read: if request.auth != null;
-      allow create, update, delete:
+      allow create, delete:
       	if request.auth != null
         && (
           request.auth.token.role == 'superadmin' 
           || request.auth.token.role == 'admin'
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['superadmin', 'admin']
+        );
+      allow update:
+      	if request.auth != null
+        && (
+          request.auth.token.role == 'superadmin' 
+          || request.auth.token.role == 'admin'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['superadmin', 'admin']
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['general', 'updatedAt'])
+            && request.resource.data.general.diff(resource.data.general).affectedKeys().hasOnly(['rating', 'reviewCount'])
+            && request.resource.data.general.rating is number
+            && request.resource.data.general.rating >= 0
+            && request.resource.data.general.rating <= 5
+            && request.resource.data.general.reviewCount is number
+            && request.resource.data.general.reviewCount >= 0
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt'])
+              || request.resource.data.updatedAt is timestamp
+            )
+          )
         );
     }
 

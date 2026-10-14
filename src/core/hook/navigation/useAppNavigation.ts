@@ -1,4 +1,4 @@
-import { RelativePathString, router } from "expo-router";
+import { router } from "expo-router";
 /**
  * @returns - Access to common navigation functions
  */
@@ -29,13 +29,6 @@ export function useAppNavigation() {
         console.log('Downloading: ', id);
     }
 
-    const onSignUpPress = () => {
-        router.replace('/signup');
-    }
-
-    const onLogIn = () => {
-        router.replace('/login');
-    }
 
     const onNotificationPress = () => {
         router.push('/home/notification');
@@ -94,9 +87,6 @@ export function useAppNavigation() {
         })
     }
 
-    const onLanding = () => {
-        router.replace('/(auth)/landing');
-    }
 
     const onSecuritySettingsPress = () => {
         router.push('/settings/security');
@@ -111,7 +101,7 @@ export function useAppNavigation() {
     }
 
     const onTestSettingsPress = () => {
-        router.push('/settings/test' as unknown as RelativePathString);
+        router.push('/settings/test');
     }
 
     const onHelpSettingsPress = () => {
@@ -123,12 +113,9 @@ export function useAppNavigation() {
     }
 
     return {
-        onLanding,
         onTrailPress,
         onBackPress,
         onDownloadPress,
-        onSignUpPress,
-        onLogIn,
         onBookingPress,
         onNotificationPress,
         onWeatherPress,

@@ -21,14 +21,34 @@ const ReceiptScreen = ({
     bookingData, 
     onFinish 
 }: ReceiptScreenProps) => {
-    const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
+    const payments = Array.isArray(bookingData?.payment) 
+        ? bookingData.payment.filter((p: IPayment<Date>) => p.status !== 'abandoned')
+        : [];
     const capturedPayments = payments.filter((p: IPayment<Date>) => p.status === 'captured');
     const refundedPayments = payments.filter((p: IPayment<Date>) => p.status === 'refunded');
     
-    const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || payments[0];
+    const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || refundedPayments[refundedPayments.length - 1] || payments[0];
     
-    const transactionRef = latestPayment?.referenceCode || latestPayment?.sessionId || `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
-    const paymentMethod = latestPayment?.gateway || 'Online Payment';
+    // Prioritize official Payment ID (pay_...) over internal ledger ID (bal_...) or checkout sessionId (cs_...)
+    const transactionRef = 
+        (latestPayment?.gatewayId?.startsWith('pay_') ? latestPayment.gatewayId : null) ||
+        (latestPayment?.referenceCode?.startsWith('pay_') ? latestPayment.referenceCode : null) ||
+        latestPayment?.gatewayId ||
+        latestPayment?.referenceCode ||
+        latestPayment?.sessionId ||
+        `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
+
+    // Clean payment channel display (GCash / Maya / Card)
+    const formatMethod = (method?: string, gateway?: string) => {
+        const m = (method || '').toLowerCase();
+        if (m === 'gcash') return 'GCash';
+        if (m === 'maya' || m === 'paymaya') return 'Maya';
+        if (m === 'card') return 'Credit / Debit Card';
+        if (gateway?.toLowerCase() === 'paymongo') return 'PayMongo';
+        return method || gateway || 'Online Payment';
+    };
+
+    const paymentMethod = formatMethod(latestPayment?.method, latestPayment?.gateway);
     
     const totalAmount = bookingData?.offer?.price || 0;
     const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
@@ -71,8 +91,8 @@ const ReceiptScreen = ({
     if (isRefunded) {
         headerTitle = "Refund Processed!";
         headerSubtitle = "A refund has been processed for this booking. The refunded amount has been returned to your original payment method.";
-        headerColor = Colors.ERROR;
-        headerIcon = "refresh-ccw";
+        headerColor = Colors.SUCCESS;
+        headerIcon = "check-circle";
     }
 
     return (
@@ -115,7 +135,7 @@ const ReceiptScreen = ({
                         <View style={styles.infoSection}>
                             <View style={styles.dataRow}>
                                 <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>Payment Method</CustomText>
-                                <CustomText variant="body" style={[styles.value, { textTransform: 'capitalize' }]}>
+                                <CustomText variant="body" style={styles.value}>
                                     {paymentMethod}
                                 </CustomText>
                             </View>
@@ -144,6 +164,22 @@ const ReceiptScreen = ({
                             </View>
 
                             <View style={styles.divider} />
+
+                            {capturedPayments.length > 1 && (
+                                <>
+                                    {capturedPayments.map((cp, cIdx) => (
+                                        <View key={cIdx} style={styles.dataRow}>
+                                            <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
+                                                {cIdx === 0 ? "Deposit (50%)" : "Remaining Balance"} ({formatMethod(cp.method, cp.gateway)})
+                                            </CustomText>
+                                            <CustomText variant="body" style={styles.value}>
+                                                ₱{(cp.amount || 0).toFixed(2)}
+                                            </CustomText>
+                                        </View>
+                                    ))}
+                                    <View style={styles.divider} />
+                                </>
+                            )}
 
                             {refundedPayments.length > 0 && (
                                 <>

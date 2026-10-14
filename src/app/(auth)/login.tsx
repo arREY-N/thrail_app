@@ -3,12 +3,10 @@
  * @description Route controller for the native mobile authentication login flow.
  */
 
-import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomLoading from '@/src/components/CustomLoading';
-import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import useLandingNavigation from '@/src/core/hook/navigation/useLandingNavigation';
 import { useAuthHook } from '@/src/core/models/User/User';
 import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
@@ -20,49 +18,37 @@ import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
  */
 export default function Login() {
     const {
-        onLanding,
-        onSignUpPress,
-    } = useAppNavigation();
-
-    const {
-        onPrivacy,
+        onBackToLanding,
+        onSwitchToSignUp,
+        onForgotPassword,
         onTerms,
+        onPrivacy,
     } = useLandingNavigation();
 
-    // TODO(backend): Deprecate and remove "remember" and "onRememberMePress" from useAuthHook & authStore.
-    // The frontend no longer renders or uses "Remember Me" functionality.
     const {
-        error,
-        reset,
         onLogIn,
-        onForgotPassword,
         onGmailLogIn,
+        error,
         isLoading,
+        reset,
     } = useAuthHook();
 
     useEffect(() => {
         reset();
     }, [reset]);
 
-    const handleBack = () => {
-        if (router.canGoBack()) {
-            router.back();
-        } else {
-            onLanding();
-        }
-    };
-
     return (
         <View style={styles.container}>
             <LogInScreen
                 onLogInPress={onLogIn}
-                onSignUpPress={onSignUpPress}
+                onSignUpPress={onSwitchToSignUp}
                 error={error}
                 onForgotPasswordPress={onForgotPassword}
-                onBackPress={handleBack}
+                onBackPress={onBackToLanding}
                 onGmailLogIn={onGmailLogIn}
                 onTermsPress={onTerms}
                 onPrivacyPress={onPrivacy}
+                isLoading={isLoading}
             />
 
             <CustomLoading

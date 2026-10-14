@@ -18,9 +18,9 @@ import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/Custo
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { calculateVerificationValidity, formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact, useAuthStore } from "@/src/core/models/User/User";
-import { calculateVerificationValidity, formatVerificationExpiry } from '@/src/core/flows/PhoneVerificationFlow';
 import { toDateOrNull } from '@/src/core/utility/date';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
@@ -37,8 +37,6 @@ export interface DetailsScreenProps {
     onContinue: (payload: { hikerDetails: HikerBookingDetails; uploadedDocs: Record<string, string> }) => void;
     onProgressChange?: (hasProgress: boolean) => void;
     isSubmitting?: boolean;
-    onTermsPress?: () => void;
-    onPrivacyPress?: () => void;
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
 
@@ -48,9 +46,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     savedDocs, 
     onContinue, 
     onProgressChange,
-    isSubmitting, 
-    onTermsPress, 
-    onPrivacyPress,
+    isSubmitting,
     onSearchUser,
 }) => {
     const profile = useAuthStore(s => s.profile);
@@ -167,8 +163,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
             setToastConfig({
                 visible: true,
                 message: isMinor
-                    ? "Parent / Guardian signature is required to accept the terms."
-                    : "Please type your full name in the signature field to accept terms.",
+                    ? "Parent / Guardian signature and policy review are required to proceed."
+                    : "Please review all policies and type your full name in the signature field to reserve.",
             });
             return;
         }
@@ -333,18 +329,9 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                     {activeDocuments.length > 0 && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeaderRow}>
-                                <CustomText variant="h2" style={styles.sectionTitleFlatDocuments}>Required Documents</CustomText>
-                                <View style={[styles.statusBadge, areAllDocsUploaded ? styles.statusBadgeSuccess : styles.statusBadgeNeutral]}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name={areAllDocsUploaded ? "check-circle" : "file-text"} 
-                                        size={12} 
-                                        color={areAllDocsUploaded ? Colors.STATUS_APPROVED_TEXT : Colors.TEXT_SECONDARY} 
-                                    />
-                                    <CustomText style={[styles.statusBadgeText, areAllDocsUploaded ? styles.statusBadgeTextSuccess : styles.statusBadgeTextNeutral]}>
-                                        {uploadedCount} of {activeDocuments.length} Completed
-                                    </CustomText>
-                                </View>
+                                <CustomText variant="h2" style={styles.sectionTitleFlat}>
+                                    Required Documents
+                                </CustomText>
                             </View>
                             <CustomText variant="caption" style={styles.sectionSubtitle}>
                                 Please upload requirements specific to this reservation.
@@ -376,8 +363,15 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                             minorName={profileFullName} 
                             expectedName={isMinor ? formData.emergencyContact.name || '' : profileFullName} 
                             showTitle={true}
+                            requireReadToAgree={true}
                             onValidChange={(valid) => {
                                 setIsSignatureValid(valid);
+                            }}
+                            onShowToast={(message) => {
+                                setToastConfig({
+                                    visible: true,
+                                    message,
+                                });
                             }}
                         />
                     </View>
@@ -490,55 +484,8 @@ const styles = StyleSheet.create({
     sectionTitleFlat: { 
         marginBottom: 0,
     },
-    sectionTitleFlatDocuments: { 
-        marginBottom: 0,
-    },
     sectionSubtitle: { 
         marginBottom: 16, 
-        color: Colors.TEXT_SECONDARY,
-    },
-    
-    // Status Badge System (Law of Prägnanz)
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-        borderWidth: 1,
-        gap: 4,
-    },
-    statusBadgeSuccess: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-    },
-    statusBadgeWarning: {
-        backgroundColor: Colors.STATUS_WARNING_BG,
-        borderColor: Colors.STATUS_WARNING_BORDER,
-    },
-    statusBadgeError: {
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
-        borderColor: Colors.STATUS_CANCELLED_BORDER,
-    },
-    statusBadgeNeutral: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    statusBadgeText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        letterSpacing: 0.3,
-    },
-    statusBadgeTextSuccess: {
-        color: Colors.STATUS_APPROVED_TEXT,
-    },
-    statusBadgeTextWarning: {
-        color: Colors.STATUS_WARNING_TEXT,
-    },
-    statusBadgeTextError: {
-        color: Colors.STATUS_CANCELLED_TEXT,
-    },
-    statusBadgeTextNeutral: {
         color: Colors.TEXT_SECONDARY,
     },
     

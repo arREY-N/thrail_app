@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -38,36 +39,77 @@ export interface LegalTermsModalProps {
     visible: boolean;
     onClose: () => void;
     initialTab?: LegalTabType;
+    /** If true, user must scroll all 3 policies to the bottom to acknowledge. Default: true */
+    requireReadToAgree?: boolean;
+    /** True if user has already acknowledged all policies (shows 'Done' button on re-entry) */
+    isAlreadyAcknowledged?: boolean;
+    /** Callback fired when modal is dismissed via close button or backdrop before acknowledging */
+    onDismissWithStatus?: (status: { readCount: number; hasReadAll: boolean }) => void;
+    /** Callback fired when user successfully completes and acknowledges all legal terms */
+    onAcknowledgeAll?: () => void;
 }
 
+interface TabConfig {
+    key: LegalTabType;
+    icon: 'file-text' | 'shield' | 'calendar';
+    label: string;
+    isRead: boolean;
+}
+
+/**
+ * LegalTermsModal — Responsive modal bottom-sheet for reviewing Terms, Privacy,
+ * and Booking policies with per-tab scroll tracking and adaptive tab presentation.
+ */
 const LegalTermsModal = ({
     visible,
     onClose,
     initialTab = 'terms',
+    requireReadToAgree = true,
+    isAlreadyAcknowledged = false,
+    onDismissWithStatus,
+    onAcknowledgeAll,
 }: LegalTermsModalProps): React.JSX.Element | null => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
-    if (visible && !renderModal) {
-        setRenderModal(true);
-    }
     const [activeTab, setActiveTab] = useState<LegalTabType>(initialTab);
     const [isAtBottom, setIsAtBottom] = useState<boolean>(false);
-    const [animValue] = useState(() => new Animated.Value(0));
+    const [animValue] = useState(() => new Animated.Value(visible ? 1 : 0));
 
-    const [prevVisible, setPrevVisible] = useState(visible);
-    const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+    // Per-tab scroll completion tracking
+    const [hasReadTerms, setHasReadTerms] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);
+    const [hasReadPrivacy, setHasReadPrivacy] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);
+    const [hasReadBooking, setHasReadBooking] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);
 
-    if (visible !== prevVisible || initialTab !== prevInitialTab) {
+    // Inline state derivation matching systematic-debugging protocol for prop changes
+    const [prevVisible, setPrevVisible] = useState<boolean>(visible);
+    const [prevInitialTab, setPrevInitialTab] = useState<LegalTabType>(initialTab);
+    const [prevIsAlreadyAcknowledged, setPrevIsAlreadyAcknowledged] = useState<boolean>(isAlreadyAcknowledged);
+
+    if (visible !== prevVisible || initialTab !== prevInitialTab || isAlreadyAcknowledged !== prevIsAlreadyAcknowledged) {
         setPrevVisible(visible);
         setPrevInitialTab(initialTab);
+        setPrevIsAlreadyAcknowledged(isAlreadyAcknowledged);
         if (visible) {
+            setRenderModal(true);
             setActiveTab(initialTab);
             setIsAtBottom(false);
+            if (isAlreadyAcknowledged) {
+                setHasReadTerms(true);
+                setHasReadPrivacy(true);
+                setHasReadBooking(true);
+            }
         }
     }
+
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [hasAttemptedAcknowledge, setHasAttemptedAcknowledge] = useState<boolean>(false);
+
+    const hasReadAll = hasReadTerms && hasReadPrivacy && hasReadBooking;
+    const canAcknowledge = !requireReadToAgree || hasReadAll;
+    const readCount = [hasReadTerms, hasReadPrivacy, hasReadBooking].filter(Boolean).length;
 
     useEffect(() => {
         if (visible) {
@@ -77,7 +119,7 @@ const LegalTermsModal = ({
                 easing: Easing.out(Easing.cubic),
                 useNativeDriver: Platform.OS !== 'web',
             }).start();
-        } else {
+        } else if (renderModal) {
             Animated.timing(animValue, {
                 toValue: 0,
                 duration: 200,
@@ -87,7 +129,7 @@ const LegalTermsModal = ({
                 setRenderModal(false);
             });
         }
-    }, [visible, animValue]);
+    }, [visible, animValue, renderModal]);
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -95,6 +137,35 @@ const LegalTermsModal = ({
         const reachedBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
         if (reachedBottom !== isAtBottom) {
             setIsAtBottom(reachedBottom);
+        }
+        if (reachedBottom) {
+            if (activeTab === 'terms' && !hasReadTerms) setHasReadTerms(true);
+            if (activeTab === 'privacy' && !hasReadPrivacy) setHasReadPrivacy(true);
+            if (activeTab === 'booking' && !hasReadBooking) setHasReadBooking(true);
+        }
+    };
+
+    const handleTabChange = (tab: LegalTabType) => {
+        setActiveTab(tab);
+        setIsAtBottom(false);
+        setHasAttemptedAcknowledge(false);
+        setToastMessage(null);
+    };
+
+    const handleDismiss = () => {
+        if (!isAlreadyAcknowledged && onDismissWithStatus) {
+            onDismissWithStatus({ readCount, hasReadAll });
+        }
+        onClose();
+    };
+
+    const handleAcknowledgePress = () => {
+        if (canAcknowledge) {
+            if (onAcknowledgeAll) onAcknowledgeAll();
+            onClose();
+        } else {
+            setHasAttemptedAcknowledge(true);
+            setToastMessage(`Please scroll to the bottom of all 3 policies to acknowledge (${readCount}/3 read).`);
         }
     };
 
@@ -110,14 +181,41 @@ const LegalTermsModal = ({
         }
     };
 
+    const tabs: TabConfig[] = [
+        {
+            key: 'terms',
+            icon: 'file-text',
+            label: isDesktop ? 'Terms & Conditions' : 'Terms',
+            isRead: hasReadTerms,
+        },
+        {
+            key: 'privacy',
+            icon: 'shield',
+            label: isDesktop ? 'Privacy Policy' : 'Privacy',
+            isRead: hasReadPrivacy,
+        },
+        {
+            key: 'booking',
+            icon: 'calendar',
+            label: isDesktop ? 'Booking Policies' : 'Booking',
+            isRead: hasReadBooking,
+        },
+    ];
+
     if (!renderModal) return null;
+
+    const modalDialogStyle = isDesktop
+        ? styles.bottomSheetDesktop
+        : isTablet
+            ? styles.bottomSheetTablet
+            : styles.bottomSheetMobile;
 
     return (
         <Modal
             transparent
             visible={renderModal}
             animationType="none"
-            onRequestClose={onClose}
+            onRequestClose={handleDismiss}
         >
             <KeyboardAvoidingView 
                 style={styles.modalContainer}
@@ -128,15 +226,15 @@ const LegalTermsModal = ({
                     <TouchableOpacity
                         style={styles.backdropTouch}
                         activeOpacity={1}
-                        onPress={onClose}
+                        onPress={handleDismiss}
                     />
                 </Animated.View>
 
-                {/* Bottom Sheet Card */}
+                {/* Bottom Sheet / Centered Modal Card */}
                 <Animated.View
                     style={[
                         styles.bottomSheet,
-                        isWideScreen ? styles.bottomSheetDesktop : styles.bottomSheetMobile,
+                        modalDialogStyle,
                         { paddingBottom: isWideScreen ? 24 : Math.max(insets.bottom + 16, 20) },
                         {
                             transform: [
@@ -157,7 +255,7 @@ const LegalTermsModal = ({
                             Terms & Conditions
                         </CustomText>
                         <TouchableOpacity
-                            onPress={onClose}
+                            onPress={handleDismiss}
                             style={styles.closeBtn}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
@@ -170,51 +268,60 @@ const LegalTermsModal = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* 3-Tab Selector Bar */}
+                    {/* Adaptive 3-Tab Selector Bar with Single-Icon Replacement */}
                     <View style={styles.tabContainer}>
-                        <TouchableOpacity
-                            style={[styles.tabButton, activeTab === 'terms' && styles.activeTab]}
-                            onPress={() => { setActiveTab('terms'); setIsAtBottom(false); }}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText 
-                                numberOfLines={1}
-                                style={[styles.tabText, activeTab === 'terms' && styles.activeTabText]}
-                            >
-                                Terms
-                            </CustomText>
-                        </TouchableOpacity>
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.key;
+                            const showLabel = isDesktop || isActive;
+                            // When read, icon replaces category icon with check
+                            const iconName = tab.isRead ? 'check' : tab.icon;
 
-                        <TouchableOpacity
-                            style={[styles.tabButton, activeTab === 'privacy' && styles.activeTab]}
-                            onPress={() => { setActiveTab('privacy'); setIsAtBottom(false); }}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText 
-                                numberOfLines={1}
-                                style={[styles.tabText, activeTab === 'privacy' && styles.activeTabText]}
-                            >
-                                Privacy
-                            </CustomText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.tabButton, activeTab === 'booking' && styles.activeTab]}
-                            onPress={() => { setActiveTab('booking'); setIsAtBottom(false); }}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText 
-                                numberOfLines={1}
-                                style={[styles.tabText, activeTab === 'booking' && styles.activeTabText]}
-                            >
-                                Booking
-                            </CustomText>
-                        </TouchableOpacity>
+                            return (
+                                <TouchableOpacity
+                                    key={tab.key}
+                                    style={[
+                                        styles.tabButton,
+                                        isActive && styles.activeTab,
+                                        !isDesktop && isActive && styles.activeTabExpanded,
+                                        !isDesktop && !isActive && styles.inactiveTabCollapsed,
+                                    ]}
+                                    onPress={() => handleTabChange(tab.key)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.tabInnerRow}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name={iconName}
+                                            size={14}
+                                            color={
+                                                tab.isRead
+                                                    ? (isActive ? Colors.PRIMARY : Colors.SUCCESS)
+                                                    : (isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
+                                            }
+                                        />
+                                        {showLabel && (
+                                            <CustomText 
+                                                numberOfLines={1}
+                                                style={[
+                                                    styles.tabText,
+                                                    isActive && styles.activeTabText,
+                                                    tab.isRead && !isActive && styles.readTabText,
+                                                ]}
+                                            >
+                                                {tab.label}
+                                            </CustomText>
+                                        )}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
 
-                    {/* Scrollable Document Text with Fade Overlay */}
+                    {/* Scrollable Document Text with Fresh Instance per Tab to Reset Scroll */}
                     <View style={styles.contentWrapper}>
                         <ResponsiveScrollView
+                            key={activeTab}
+                            minHeight={0}
                             onScroll={handleScroll}
                             scrollEventThrottle={16}
                             showsVerticalScrollIndicator={true}
@@ -235,12 +342,46 @@ const LegalTermsModal = ({
                         )}
                     </View>
 
-                    {/* Close / Action Button via CustomButton */}
+                    {/* Interactive Action Button with Error / Incomplete Feedback */}
                     <CustomButton
-                        title="I Understand & Close"
-                        onPress={onClose}
-                        variant="primary"
-                        style={styles.closeBtnWrapper}
+                        title={
+                            isAlreadyAcknowledged
+                                ? "Done"
+                                : (canAcknowledge
+                                    ? "I Understand & Agree"
+                                    : `Read All 3 Policies (${readCount}/3)`)
+                        }
+                        onPress={isAlreadyAcknowledged ? onClose : handleAcknowledgePress}
+                        variant={isAlreadyAcknowledged || canAcknowledge ? "primary" : "outline"}
+                        icon={isAlreadyAcknowledged ? "check" : undefined}
+                        iconLibrary={isAlreadyAcknowledged ? "Feather" : undefined}
+                        style={[
+                            styles.closeBtnWrapper,
+                            !isAlreadyAcknowledged && !canAcknowledge && (
+                                hasAttemptedAcknowledge 
+                                    ? styles.closeBtnError 
+                                    : styles.closeBtnIncomplete
+                            ),
+                        ]}
+                        textStyle={
+                            !isAlreadyAcknowledged && !canAcknowledge
+                                ? (hasAttemptedAcknowledge ? styles.closeBtnTextError : styles.closeBtnTextIncomplete)
+                                : undefined
+                        }
+                    />
+
+                    {/* Floating Toast Alert inside Modal */}
+                    <CustomToast
+                        visible={!!toastMessage}
+                        message={toastMessage || ''}
+                        onHide={() => {
+                            setToastMessage(null);
+                            setHasAttemptedAcknowledge(false);
+                        }}
+                        type="warning"
+                        mode="simple"
+                        position="floating"
+                        bottomOffset={82}
                     />
                 </Animated.View>
             </KeyboardAvoidingView>
@@ -263,28 +404,43 @@ const styles = StyleSheet.create({
     },
     bottomSheet: {
         backgroundColor: Colors.WHITE,
-        paddingHorizontal: 24,
         paddingTop: 24,
         maxHeight: '90%',
+        flexDirection: 'column',
         ...GlobalStyles.dropShadow(3),
     },
     bottomSheetMobile: {
         width: '100%',
+        height: '85%',
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
+        paddingHorizontal: 20,
+    },
+    bottomSheetTablet: {
+        alignSelf: 'center',
+        marginBottom: 'auto',
+        marginTop: 'auto',
+        width: 520,
+        height: 620,
+        maxHeight: '85%',
+        borderRadius: 24,
+        paddingHorizontal: 28,
     },
     bottomSheetDesktop: {
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 500,
+        width: 640,
+        height: 660,
+        maxHeight: '85%',
         borderRadius: 24,
+        paddingHorizontal: 32,
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16,
+        marginBottom: 14,
     },
     headerTitle: {
         fontSize: 18,
@@ -305,13 +461,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 12,
         padding: 4,
-        marginBottom: 14,
-        gap: 4,
+        marginBottom: 10,
+        gap: 6,
     },
     tabButton: {
         flex: 1,
         paddingVertical: 8,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
@@ -319,6 +475,18 @@ const styles = StyleSheet.create({
     activeTab: {
         backgroundColor: Colors.WHITE,
         ...GlobalStyles.dropShadow(2),
+    },
+    activeTabExpanded: {
+        flex: 1.8,
+    },
+    inactiveTabCollapsed: {
+        flex: 1,
+    },
+    tabInnerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
     },
     tabText: {
         fontSize: 12,
@@ -330,8 +498,14 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: 'bold',
     },
+    readTabText: {
+        color: Colors.SUCCESS,
+        fontWeight: '600',
+    },
     contentWrapper: {
-        height: 520,
+        flex: 1,
+        flexShrink: 1,
+        minHeight: 180,
         backgroundColor: Colors.BACKGROUND,
         borderRadius: 16,
         borderWidth: 1,
@@ -357,7 +531,25 @@ const styles = StyleSheet.create({
     },
     closeBtnWrapper: {
         marginTop: 14,
-        borderRadius: 14,
+        borderRadius: 16,
+    },
+    closeBtnIncomplete: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
+        borderWidth: 1.5,
+    },
+    closeBtnTextIncomplete: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: 'bold',
+    },
+    closeBtnError: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.STATUS_CANCELLED_TEXT,
+        borderWidth: 1.5,
+    },
+    closeBtnTextError: {
+        color: Colors.STATUS_CANCELLED_TEXT,
+        fontWeight: 'bold',
     },
 });
 

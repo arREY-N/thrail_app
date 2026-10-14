@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,7 +15,7 @@ import { Group, IGroupMember } from "@/src/core/models/Group/Group";
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { IUserSummary, User } from "@/src/core/models/User/User";
-import { formatDate } from "@/src/core/utility/date";
+import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
@@ -27,6 +27,41 @@ const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName) return firstName.charAt(0).toUpperCase();
     return '?';
 };
+
+interface HikeDurationTimerProps {
+    isStarted: boolean;
+    timerStartTime: number;
+    baseElapsedTime: number;
+}
+
+/**
+ * Isolated duration timer sub-component:
+ * Decouples the 1-second ticking interval from HikeRecordingScreen root,
+ * preventing cascading re-renders across the MapLibre map and marker trees.
+ */
+const HikeDurationTimer = memo(({ isStarted, timerStartTime, baseElapsedTime }: HikeDurationTimerProps) => {
+    const [elapsed, setElapsed] = useState(() => (isStarted && timerStartTime > 0 ? Date.now() - timerStartTime : baseElapsedTime));
+
+    useEffect(() => {
+        if (!isStarted || timerStartTime <= 0) return;
+        const interval = setInterval(() => {
+            setElapsed(Date.now() - timerStartTime);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isStarted, timerStartTime]);
+
+    const displayTime = isStarted && timerStartTime > 0 ? elapsed : baseElapsedTime;
+
+    return (
+        <View style={styles.metricItem}>
+            <CustomText style={[styles.metricValue, { fontSize: 28, color: Colors.PRIMARY }]}>
+                {formatTime(displayTime)}
+            </CustomText>
+            <CustomText style={styles.metricLabel}>Duration</CustomText>
+        </View>
+    );
+});
+HikeDurationTimer.displayName = "HikeDurationTimer";
 
 interface HikeRecordingScreenProps {
     hike: Hike;
@@ -48,7 +83,7 @@ interface HikeRecordingScreenProps {
     onPauseHike: () => void;
     onResumeHike: () => void;
     onCompleteHike: () => void;
-    onResetHike: () => void;
+    onResetHike?: () => void;
     onAddReview: () => void;
     onBackPress: () => void;
     onTriggerBackendSOS?: () => void;
@@ -65,7 +100,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     hike, booking, currentGroup, hikerLocations, error, fullOffer,
     baseElapsedTime, timerStartTime, totalDistance, totalElevationGain,
     isLoading, lon, lat,
-    onStartHike, onPauseHike, onResumeHike, onCompleteHike, onAddReview, onBackPress,
+    onStartHike, onPauseHike, onResumeHike, onCompleteHike, onResetHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
     shareLocationEnabled, setShareLocationEnabled, profile, onSendSMS,
 }) => {
@@ -88,12 +123,32 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const [showOtherHikers, setShowOtherHikers] = useState(true);
     const [showMapOptions, setShowMapOptions] = useState(false);
 
-    const [liveTime, setLiveTime] = useState(baseElapsedTime);
-
     const isStarted = hike.status === "started";
     const isPaused = hike.status === "paused";
     const isCompleted = hike.status === "completed";
     const isTracking = isStarted || isPaused || isCompleted;
+
+    const handleResetSession = () => {
+        Alert.alert(
+            "Reset Hike (Dev/Test)",
+            "Do you want to discard this hike session and return to the lobby? All active tracking, background services, and trail lines will be cleared.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Reset",
+                    style: "destructive",
+                    onPress: () => {
+                        onResetHike?.();
+                        if (router.canGoBack()) {
+                            router.back();
+                        } else {
+                            router.replace('/(app)/(tabs)/hike');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     useEffect(() => {
         if (isStarted) {
@@ -102,14 +157,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             mapRef.current?.stopBackgroundTracking?.();
         }
     }, [isStarted, isPaused, isCompleted]);
-
-    useEffect(() => {
-        if (!isStarted || timerStartTime <= 0) return;
-        const interval = setInterval(() => {
-            setLiveTime(Date.now() - timerStartTime);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [isStarted, timerStartTime]);
 
     const [currentTime, setCurrentTime] = useState(() => Date.now());
     useEffect(() => {
@@ -216,7 +263,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
         const membersWithLoc = allMembers.map(member => {
             const locData = hikerLocations?.find(loc => loc.id === member.id);
-            const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 10000) : true;
+            // Treat as inactive if no location reported or older than 2 minutes (aligned with LKL)
+            const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 120000) : true;
             return {
                 ...member,
                 locData,
@@ -225,8 +273,9 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         });
 
         return membersWithLoc.sort((a, b) => {
-            if (a.isInactive && !b.isInactive) return -1;
-            if (!a.isInactive && b.isInactive) return 1;
+            // Active members first, inactive/offline members below
+            if (a.isInactive && !b.isInactive) return 1;
+            if (!a.isInactive && b.isInactive) return -1;
             return 0;
         });
     }, [currentGroup, hikerLocations, currentTime]);
@@ -240,18 +289,27 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const enrichedHikerLocations = useMemo(() => {
         if (!hikerLocations) return [];
-        return hikerLocations.map(hiker => {
-            if (hiker.hikerName) return hiker;
-            const member = sortedMembers?.find(m => m.id === hiker.id);
-            if (member) {
-                return {
-                    ...hiker,
-                    hikerName: `${member.firstname} ${member.lastname || ''}`.trim()
-                };
-            }
-            return hiker;
-        });
-    }, [hikerLocations, sortedMembers]);
+        const MAX_GHOST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours TTL to retain Last Known Location pins throughout hike day
+
+        return hikerLocations
+            .filter(hiker => {
+                if (!hiker?.timestamp) return true;
+                const timeMs = hiker.timestamp instanceof Date ? hiker.timestamp.getTime() : new Date(hiker.timestamp).getTime();
+                if (isNaN(timeMs)) return true;
+                return (currentTime - timeMs) <= MAX_GHOST_AGE_MS;
+            })
+            .map(hiker => {
+                if (hiker.hikerName) return hiker;
+                const member = sortedMembers?.find(m => m.id === hiker.id);
+                if (member) {
+                    return {
+                        ...hiker,
+                        hikerName: `${member.firstname} ${member.lastname || ''}`.trim()
+                    };
+                }
+                return hiker;
+            });
+    }, [hikerLocations, sortedMembers, currentTime]);
 
     if (Platform.OS === 'web') {
         return (
@@ -269,6 +327,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 initialLon={lon}
                 initialLat={lat}
                 bottomInset={210}
+                compassPosition={{ bottom: 245, left: 16 }}
                 hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
@@ -295,6 +354,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             </View>
 
             <View style={[styles.mapControls, { bottom: 230 }]}>
+                {/* Dev/Test Reset FAB */}
+                <TouchableOpacity
+                    style={[styles.fabBtn, styles.devResetFab]}
+                    onPress={handleResetSession}
+                    activeOpacity={0.8}
+                >
+                    <CustomIcon library="Feather" name="rotate-ccw" size={19} color={Colors.WHITE} />
+                </TouchableOpacity>
+
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
                         <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -339,10 +407,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             <CustomText style={styles.metricLabel}>Distance</CustomText>
                         </View>
                         <View style={styles.metricDivider} />
-                        <View style={styles.metricItem}>
-                            <CustomText style={[styles.metricValue, { fontSize: 28, color: Colors.PRIMARY }]}>{formatTime(liveTime)}</CustomText>
-                            <CustomText style={styles.metricLabel}>Duration</CustomText>
-                        </View>
+                        <HikeDurationTimer
+                            isStarted={isStarted}
+                            timerStartTime={timerStartTime}
+                            baseElapsedTime={baseElapsedTime}
+                        />
                         <View style={styles.metricDivider} />
                         <View style={styles.metricItem}>
                             <CustomText style={styles.metricValue}>{liveElevationStr}</CustomText>
@@ -593,7 +662,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                         </View>
                                         <View style={styles.memberInfo}>
                                             <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
-                                            <CustomText variant="caption">{locData ? `Updated: ${formatDate(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+                                            <CustomText variant="caption">{locData ? `Updated: ${formatDateTime(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
                                             {locData && (
                                                 <TouchableOpacity
                                                     style={styles.trackHikerBtn}
@@ -633,6 +702,7 @@ const styles = StyleSheet.create({
 
     mapControls: { position: 'absolute', right: 16, gap: 12, zIndex: 30 },
     fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    devResetFab: { backgroundColor: '#F59E0B' },
 
     dashboardWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 40, alignItems: 'center' },
     errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },

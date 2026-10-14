@@ -12,6 +12,7 @@ interface LocationTaskPayload {
       latitude: number;
       longitude: number;
       altitude?: number | null;
+      accuracy?: number | null;
     };
     timestamp: number;
   }[];
@@ -27,15 +28,29 @@ if (Platform.OS !== 'web') {
       return;
     }
     try {
-      const locations = data?.locations;
-      if (!locations || locations.length === 0) return;
+      const rawLocations = data?.locations;
+      if (!rawLocations || rawLocations.length === 0) return;
+
+      // Ensure Zustand persistence rehydration has completed in headless mode
+      if (useHikeStore.persist && !useHikeStore.persist.hasHydrated()) {
+        await useHikeStore.persist.rehydrate();
+      }
+
+      const { active, currentHike } = useHikeStore.getState();
+      if (!active || !currentHike || (currentHike.status !== 'started' && currentHike.status !== 'paused')) {
+        return;
+      }
 
       const addCoordinate = useHikeStore.getState().addCoordinate;
 
-      for (const location of locations) {
+      // Sort batch ascending by timestamp to preserve temporal continuity
+      const sortedLocations = [...rawLocations].sort((a, b) => a.timestamp - b.timestamp);
+
+      for (const location of sortedLocations) {
         const lat = location.coords.latitude;
         const lon = location.coords.longitude;
-        const alt = location.coords.altitude ?? 0;
+        const alt = location.coords.altitude;
+        const accuracy = location.coords.accuracy;
 
         // Strictly validate coordinates and reject Null Island / corrupted fixes
         if (
@@ -50,12 +65,17 @@ if (Platform.OS !== 'web') {
           continue;
         }
 
+        // Apply quality filter: reject zero, negative, or wild scatter fixes > 25m
+        if (accuracy == null || accuracy <= 0 || accuracy > 25) {
+          continue;
+        }
+
         const timestamp = new Date(location.timestamp).toISOString();
 
         await addCoordinate(newLocation({
           latitude: lat,
           longitude: lon,
-          altitude: alt,
+          altitude: alt ?? undefined,
           timestamp: new Date(timestamp),
           status: 'APP_BACKGROUNDED',
         }));

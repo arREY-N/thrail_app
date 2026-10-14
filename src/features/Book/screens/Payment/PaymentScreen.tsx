@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
+import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -30,8 +31,6 @@ export interface PaymentScreenProps {
     onBackPress: () => void;
     onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
-    onTermsPress: () => void;
-    onPrivacyPress: () => void;
 }
 
 const PaymentScreen = ({
@@ -39,8 +38,6 @@ const PaymentScreen = ({
     onBackPress,
     onContinue,
     onPayOffer,
-    onTermsPress,
-    onPrivacyPress,
 }: PaymentScreenProps) => {
     const { profile } = useAuthStore();
     const popupRef = useRef<Window | null>(null);
@@ -89,6 +86,11 @@ const PaymentScreen = ({
     const [paymentType, setPaymentType] = useState<'full' | 'downpayment'>('full');
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
+        visible: false,
+        message: '',
+    });
 
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
     const latestPayment: IPayment<Date> | undefined = payments[payments.length - 1];
@@ -145,6 +147,26 @@ const PaymentScreen = ({
 
         if (currentStep === 1) {
             setPaymentError(null);
+
+            if (!selectedMethod) {
+                setHasAttemptedSubmit(true);
+                setToastConfig({
+                    visible: true,
+                    message: "Please select a payment method to proceed.",
+                });
+                return;
+            }
+
+            if (!isSignatureValid) {
+                setHasAttemptedSubmit(true);
+                setToastConfig({
+                    visible: true,
+                    message: isUserMinor
+                        ? "Parent / Guardian signature is required to authorize payment."
+                        : "Please type your full name in the signature field to authorize payment.",
+                });
+                return;
+            }
 
             if (selectedMethod && ['gcash', 'maya'].includes(selectedMethod)) {
                 isSubmittingRef.current = true;
@@ -270,7 +292,9 @@ const PaymentScreen = ({
         onPayOffer,
         effectivePaymentType,
         onContinue,
-        latestPayment
+        latestPayment,
+        isSignatureValid,
+        isUserMinor,
     ]);
 
     const handleHeaderBackPress = useCallback(() => {
@@ -307,12 +331,26 @@ const PaymentScreen = ({
             };
         }
         if (currentStep === 1) {
+            const isReady = Boolean(selectedMethod && isSignatureValid);
             return {
-                title: "Continue to Payment",
+                title: isSubmitting ? "Opening Gateway..." : "Continue to Payment",
                 onPress: handleNextStep,
-                variant: "primary" as const,
-                disabled: !(selectedMethod && isSignatureValid) || isSubmitting || isWaitingForVerification,
+                disabled: isSubmitting || isWaitingForVerification,
                 isLoading: isSubmitting,
+                style: {
+                    backgroundColor: isReady
+                        ? Colors.PRIMARY
+                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
+                    borderColor: isReady
+                        ? Colors.PRIMARY
+                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
+                    borderWidth: 1.5,
+                },
+                textStyle: {
+                    color: isReady
+                        ? Colors.WHITE
+                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                },
             };
         }
         if (currentStep === 2) {
@@ -331,7 +369,7 @@ const PaymentScreen = ({
             disabled: false,
             isLoading: false,
         };
-    }, [isWaitingForVerification, currentStep, selectedMethod, isSignatureValid, isSubmitting, handleNextStep, handleCancelVerification]);
+    }, [isWaitingForVerification, currentStep, selectedMethod, isSignatureValid, isSubmitting, hasAttemptedSubmit, handleNextStep, handleCancelVerification]);
 
     const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
@@ -400,8 +438,6 @@ const PaymentScreen = ({
                         isPayingBalance={isPayingBalance}
                         isMinor={isUserMinor}
                         minorName={hikerFullName}
-                        onTermsPress={onTermsPress}
-                        onPrivacyPress={onPrivacyPress}
                     />
                 )}
                 {currentStep === 2 && (
@@ -421,6 +457,20 @@ const PaymentScreen = ({
                     disabled: footerConfig.disabled,
                     isLoading: footerConfig.isLoading,
                     variant: footerConfig.variant,
+                    style: footerConfig.style,
+                    textStyle: footerConfig.textStyle,
+                }}
+            />
+
+            <CustomToast
+                visible={toastConfig.visible}
+                message={toastConfig.message}
+                type="error"
+                mode="dismissible"
+                position="sticky_footer"
+                onHide={() => {
+                    setToastConfig(prev => ({ ...prev, visible: false }));
+                    setHasAttemptedSubmit(false);
                 }}
             />
         </ScreenWrapper>
@@ -438,10 +488,6 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 20,
         backgroundColor: Colors.BACKGROUND,
-
-
-
-
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_LIGHT,
         borderBottomLeftRadius: 24,

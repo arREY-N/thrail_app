@@ -244,7 +244,7 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
 
 const styles = StyleSheet.create({
     container: {
-        width: '100%',
+        marginHorizontal: 16,
         borderRadius: 14,
         borderWidth: 1,
         marginVertical: 8,

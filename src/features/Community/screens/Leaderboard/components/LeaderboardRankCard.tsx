@@ -12,6 +12,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
+import { formatMetricValue } from '@/src/features/Community/screens/Leaderboard/utils/leaderboardFormatters';
 import { getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -19,6 +20,8 @@ import { getInitials } from '@/src/utils/dateFormatter';
  * 
  * @param user - Ranked user data
  * @param activeMetric - Active leaderboard metric selection
+ * @param onSelectUser - Handler invoked when a rank card is tapped
+ * @param currentUserId - ID of the currently logged-in user
  */
 interface LeaderboardRankCardProps {
     user: RankedUsers<Date>;
@@ -26,23 +29,6 @@ interface LeaderboardRankCardProps {
     onSelectUser?: (user: RankedUsers<Date>) => void;
     currentUserId?: string;
 }
-
-/**
- * Helper to format metric values into readable strings.
- * 
- * @param user - Ranked user data
- * @param metric - Active metric filter
- * @returns {string} Formatted metric string
- */
-const formatMetricValue = (user: RankedUsers<Date>, metric: LeaderboardMetric): string => {
-    if (metric === 'distance') {
-        return `${user.totalDistance.toFixed(1)} km`;
-    }
-    if (metric === 'elevation') {
-        return `${user.totalElevation.toLocaleString()} m`;
-    }
-    return `${user.totalHikes} ${user.totalHikes === 1 ? 'hike' : 'hikes'}`;
-};
 
 /**
  * LeaderboardRankCard — Individual card row for hikers #4 and below.

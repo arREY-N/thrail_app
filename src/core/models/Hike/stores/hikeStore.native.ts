@@ -17,6 +17,13 @@ export const useHikeStore = create<HikeState>()(
                 totalDistance: state.totalDistance,
                 totalElevationGain: state.totalElevationGain,
                 active: state.active,
+                profile: state.profile,
+                activeGroupId: state.activeGroupId,
+                shareLocationEnabled: state.shareLocationEnabled,
+                live: state.live,
+                walkedRoute: state.walkedRoute,
+                coordinates: state.coordinates,
+                events: state.events,
             }),
         }
     )

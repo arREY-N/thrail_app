@@ -1,17 +1,39 @@
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/interfaces/Group.types";
 import { GroupRepo } from "@/src/core/models/Group/repositories/GroupRepository";
-import { newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
+import { HikeRepo, newHike, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newMessage } from "@/src/core/models/Message/Message";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import { logger } from "@/src/core/utility/errorFormatter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, Platform } from "react-native";
 
 export function useGroupLocation(groupId: string) {
     const { profile } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
+
+    // Automatically subscribe to group member locations on mount; unsubscribe on unmount
+    useEffect(() => {
+        if (!groupId) return;
+
+        const unsub = HikeRepo.listenToLocations(groupId, (locations) => {
+            useHikeStore.setState((state) => ({
+                locationByGroup: { ...state.locationByGroup, [groupId]: locations }
+            }));
+        });
+
+        return () => {
+            if (typeof unsub === "function") {
+                unsub();
+            }
+            useHikeStore.setState((state) => {
+                const newLocations = { ...state.locationByGroup };
+                delete newLocations[groupId];
+                return { locationByGroup: newLocations };
+            });
+        };
+    }, [groupId]);
 
     const isLive = useHikeStore(s => s.live);
 
@@ -90,11 +112,7 @@ export function useGroupLocation(groupId: string) {
 
         const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation?.latitude},${currentLocation?.longitude}`;
 
-        const message = currentLocation
-            ? `Send emergency help! I'm at ${mapLink}`
-            : `Send emergency help! I'm at ${currentHike?.trail.name}`
-
-        const chatId = profile.emergencyContact.chatId
+        const chatId = profile.emergencyContact.chatId;
 
         if (!currentLocation) {
             setLocalError("No location data available to send emergency alert");

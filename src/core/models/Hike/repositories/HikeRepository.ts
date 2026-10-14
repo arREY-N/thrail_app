@@ -79,8 +79,8 @@ export const HikeRepository = (db: Firestore) => ({
     /**
      * Writes the complete consolidated route for a hike to Firestore.
      * Stored in a single document: users/{userId}/hikes/{hikeId}/route/session
-     * Stores both `segments` (multi-segment array preserving pause/resume gaps)
-     * and flattened `coordinates` for backwards compatibility.
+     * Note: Firestore strictly forbids nested arrays (e.g. [[lon, lat]]).
+     * Coordinates are structured as map objects { lon, lat } and full GeoJSON string.
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
      * @param route - Route coordinates as [lon, lat][] or segments [lon, lat][][].
@@ -105,14 +105,38 @@ export const HikeRepository = (db: Firestore) => ({
 
             if (flatCoordinates.length === 0) return;
 
-            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
-            await setDoc(routeRef, {
-                segments,
-                coordinates: flatCoordinates,
+            // Transform into Firestore-compatible structures (NO nested arrays!)
+            const structuredSegments = segments.map((seg, idx) => ({
+                index: idx,
+                points: seg.map(([lon, lat]) => ({ lon, lat })),
+            }));
+            const structuredCoordinates = flatCoordinates.map(([lon, lat]) => ({ lon, lat }));
+            const geoJsonString = JSON.stringify({
+                type: "MultiLineString",
+                coordinates: segments,
+            });
+
+            const payload = {
+                segments: structuredSegments,
+                coordinates: structuredCoordinates,
+                geoJson: geoJsonString,
                 pointCount: flatCoordinates.length,
                 segmentCount: segments.length,
                 updatedAt: Timestamp.now(),
-            });
+            };
+
+            // 1. Primary write to coordinates/session:
+            // Explicitly authorized by deployed Firestore security rules (match /coordinates/{coordinateId})
+            const coordinatesRef = doc(db, "users", userId, "hikes", hikeId, "coordinates", "session");
+            await setDoc(coordinatesRef, payload);
+
+            // 2. Secondary write to route/session (if route subcollection rule is active/deployed)
+            try {
+                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+                await setDoc(routeRef, payload);
+            } catch {
+                // Non-critical: coordinates/session is already securely persisted
+            }
         } catch (error) {
             console.error("Error writing consolidated hike route: ", error);
             if (error instanceof Error) throw error;
@@ -122,6 +146,7 @@ export const HikeRepository = (db: Firestore) => ({
 
     /**
      * Fetches the consolidated route for a completed hike.
+     * Checks coordinates/session first, then falls back to route/session.
      * Returns segments if available, otherwise wraps legacy coordinates in a single segment.
      * @param userId - The ID of the user.
      * @param hikeId - The ID of the hike.
@@ -129,15 +154,69 @@ export const HikeRepository = (db: Firestore) => ({
      */
     async fetchRoute(userId: string, hikeId: string): Promise<[number, number][][]> {
         try {
-            const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
-            const snapshot = await getDoc(routeRef);
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                if (data.segments && Array.isArray(data.segments)) {
-                    return data.segments as [number, number][][];
+            // Check coordinates/session first (primary), then fallback to route/session
+            let snapshot = null;
+            try {
+                const coordinatesRef = doc(db, "users", userId, "hikes", hikeId, "coordinates", "session");
+                const coordSnap = await getDoc(coordinatesRef);
+                if (coordSnap.exists()) {
+                    snapshot = coordSnap;
                 }
+            } catch {
+                // Ignore and try fallback
+            }
+
+            if (!snapshot) {
+                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
+                const routeSnap = await getDoc(routeRef);
+                if (routeSnap.exists()) {
+                    snapshot = routeSnap;
+                }
+            }
+
+            if (snapshot && snapshot.exists()) {
+                const data = snapshot.data();
+                // 1. Prefer GeoJSON string
+                if (data.geoJson && typeof data.geoJson === 'string') {
+                    try {
+                        const parsed = JSON.parse(data.geoJson);
+                        if (parsed.type === "MultiLineString" && Array.isArray(parsed.coordinates)) {
+                            return parsed.coordinates as [number, number][][];
+                        }
+                    } catch {
+                        // ignore and try next format
+                    }
+                }
+                // 2. Structured segments: Array<{ index: number, points: Array<{ lon: number, lat: number }> }>
+                if (data.segments && Array.isArray(data.segments)) {
+                    if (data.segments.length > 0 && data.segments[0]?.points) {
+                        return data.segments.map((seg: { points?: { lon: number; lat: number }[] }) =>
+                            (seg.points || []).map(p => [p.lon, p.lat] as [number, number])
+                        );
+                    }
+                    if (Array.isArray(data.segments[0]) && Array.isArray(data.segments[0][0])) {
+                        return data.segments as [number, number][][];
+                    }
+                }
+                // 3. Structured coordinates: Array<{ lon: number, lat: number }>
                 if (data.coordinates && Array.isArray(data.coordinates)) {
-                    return [data.coordinates as [number, number][]];
+                    const coords = (data.coordinates as unknown[]).map((p) => {
+                        if (Array.isArray(p)) {
+                            return typeof p[0] === 'number' && typeof p[1] === 'number'
+                                ? ([p[0], p[1]] as [number, number])
+                                : null;
+                        }
+                        if (p && typeof p === 'object') {
+                            const point = p as { lon?: unknown; lat?: unknown; longitude?: unknown; latitude?: unknown };
+                            const lon = typeof point.lon === 'number' ? point.lon : typeof point.longitude === 'number' ? point.longitude : null;
+                            const lat = typeof point.lat === 'number' ? point.lat : typeof point.latitude === 'number' ? point.latitude : null;
+                            if (lon !== null && lat !== null) {
+                                return [lon, lat] as [number, number];
+                            }
+                        }
+                        return null;
+                    }).filter((c): c is [number, number] => c !== null);
+                    return coords.length > 0 ? [coords] : [];
                 }
             }
             return [];
@@ -158,14 +237,7 @@ export const HikeRepository = (db: Firestore) => ({
                 .filter(c => typeof c.longitude === 'number' && typeof c.latitude === 'number' && !isNaN(c.longitude) && !isNaN(c.latitude))
                 .map(c => [c.longitude, c.latitude]);
             if (route.length > 0) {
-                const routeRef = doc(db, "users", userId, "hikes", hikeId, "route", "session");
-                await setDoc(routeRef, {
-                    segments: [route],
-                    coordinates: route,
-                    pointCount: route.length,
-                    segmentCount: 1,
-                    updatedAt: Timestamp.now(),
-                }, { merge: true });
+                await this.writeRoute(userId, hikeId, route);
             }
         } catch (error) {
             console.error("Error in writeCoordinates: ", error);

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
@@ -24,77 +25,77 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
+import { User } from '@/src/core/models/User/User';
 import LeaderboardRankCard from '@/src/features/Community/screens/Leaderboard/components/LeaderboardRankCard';
 import MetricFilterTabs, { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import MountainPodium from '@/src/features/Community/screens/Leaderboard/components/MountainPodium';
 import TopUserDetailModal from '@/src/features/Community/screens/Leaderboard/components/TopUserDetailModal';
+import { useLeaderboardView } from '@/src/features/Community/screens/Leaderboard/hooks/useLeaderboardView';
+import { formatMetricValue } from '@/src/features/Community/screens/Leaderboard/utils/leaderboardFormatters';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
 
 /**
  * Interface representing the properties for LeaderboardScreen.
  * 
- * @param topThree - Top 3 ranked users
- * @param restOfList - Remaining ranked users
- * @param currentUserData - Standing of the currently logged-in user
+ * @param userRankings - The raw array of ranked users fetched from the backend or dummy data
  * @param activeMetric - Selected metric filter ('distance' | 'elevation' | 'hikes')
  * @param onMetricChange - Callback when switching metric filters
  * @param onBackPress - Callback to navigate back
+ * @param onExplorePress - Callback to navigate to explore trails from empty state
  * @param isLoading - Optional flag indicating data loading state
- * @param currentMonthStr - Formatted current month string
- * @param nextMonthStr - Formatted next month string
+ * @param activeUserId - Optional logged-in user ID
+ * @param activeUsername - Optional logged-in username
+ * @param profile - Optional logged-in user profile
  */
 export interface LeaderboardScreenProps {
-    topThree: RankedUsers<Date>[];
-    restOfList: RankedUsers<Date>[];
-    currentUserData?: RankedUsers<Date>;
+    userRankings: RankedUsers<Date>[];
     activeMetric: LeaderboardMetric;
     onMetricChange: (metric: LeaderboardMetric) => void;
     onBackPress: () => void;
+    onExplorePress?: () => void;
     isLoading?: boolean;
-    currentMonthStr: string;
-    nextMonthStr: string;
+    activeUserId?: string;
+    activeUsername?: string;
+    profile?: Partial<User> | null;
 }
 
 /**
- * Helper to format metric display for current user standing footer.
- * 
- * @param user - User standing data
- * @param metric - Currently active metric
- * @returns {string} Formatted string
- */
-const formatMetricValue = (user: RankedUsers<Date>, metric: LeaderboardMetric): string => {
-    if (metric === 'distance') {
-        return `${user.totalDistance.toFixed(1)} km`;
-    }
-    if (metric === 'elevation') {
-        return `${user.totalElevation.toLocaleString()} m`;
-    }
-    return `${user.totalHikes} ${user.totalHikes === 1 ? 'hike' : 'hikes'}`;
-};
-
-/**
- * LeaderboardScreen — Pure dumb UI view for community leaderboard.
+ * LeaderboardScreen — Mountain-themed community leaderboard view with internal view processing.
  * 
  * @param props - LeaderboardScreenProps
  * @returns {React.JSX.Element} The rendered leaderboard screen layout.
  */
 const LeaderboardScreen = ({
-    topThree,
-    restOfList,
-    currentUserData,
+    userRankings,
     activeMetric,
     onMetricChange,
     onBackPress,
+    onExplorePress,
     isLoading = false,
-    currentMonthStr,
-    nextMonthStr,
+    activeUserId,
+    activeUsername,
+    profile,
 }: LeaderboardScreenProps): React.JSX.Element => {
     const { isDesktop } = useBreakpoints();
     const insets = useSafeAreaInsets();
     const safeBottomPadding = Math.max(insets.bottom, 16);
     const [selectedTopUser, setSelectedTopUser] = useState<RankedUsers<Date> | null>(null);
     const [showResetToast, setShowResetToast] = useState(false);
+
+    const {
+        topThree,
+        restOfList,
+        currentUserData,
+        currentMonthStr,
+        nextMonthStr,
+    } = useLeaderboardView({
+        userRankings,
+        activeMetric,
+        activeUserId,
+        activeUsername,
+        profile,
+    });
 
     const renderListItem = useCallback(
         ({ item }: ListRenderItemInfo<RankedUsers<Date>>) => (
@@ -164,6 +165,16 @@ const LeaderboardScreen = ({
                         <CustomText variant="caption" style={styles.emptySubtitle}>
                             Be the first! Complete a hike this month to claim the #1 spot on the podium.
                         </CustomText>
+                        {onExplorePress && (
+                            <CustomButton
+                                title="Explore Trails"
+                                icon="compass"
+                                iconLibrary="Feather"
+                                variant="primary"
+                                onPress={onExplorePress}
+                                style={styles.emptyButton}
+                            />
+                        )}
                     </View>
                 ) : (
                     <FlatList
@@ -173,7 +184,7 @@ const LeaderboardScreen = ({
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={[styles.listContent, { paddingBottom: 110 + insets.bottom }]}
                         ListHeaderComponent={
-                            <View style={{ marginBottom: 16 }}>
+                            <View style={styles.podiumWrapper}>
                                 <MountainPodium
                                     topThree={topThree}
                                     activeMetric={activeMetric}
@@ -189,13 +200,22 @@ const LeaderboardScreen = ({
             {currentUserData && (
                 <TouchableOpacity 
                     style={[styles.currentUserFooter, { paddingBottom: safeBottomPadding }]}
-                    activeOpacity={0.8}
-                    onPress={() => setSelectedTopUser(currentUserData)}
+                    activeOpacity={currentUserData.rank > 0 ? 0.8 : 1}
+                    disabled={currentUserData.rank === 0}
+                    onPress={() => {
+                        if (currentUserData.rank > 0) {
+                            setSelectedTopUser(currentUserData);
+                        }
+                    }}
                 >
                     <View style={styles.footerRow}>
                         <View style={styles.footerRankBox}>
                             <CustomText variant="label" style={styles.footerRankText}>
-                                {currentUserData.rank > 0 ? `#${currentUserData.rank}` : '--'}
+                                {currentUserData.rank > 99
+                                    ? '99+'
+                                    : currentUserData.rank > 0
+                                    ? `#${currentUserData.rank}`
+                                    : '--'}
                             </CustomText>
                         </View>
 
@@ -221,7 +241,7 @@ const LeaderboardScreen = ({
                                 {currentUserData.username} (You)
                             </CustomText>
                             <CustomText variant="caption" style={styles.footerSubtext}>
-                                Your Standing
+                                {currentUserData.rank > 0 ? 'Your Standing' : 'Unranked'}
                             </CustomText>
                         </View>
 
@@ -241,7 +261,7 @@ const LeaderboardScreen = ({
             />
 
             <CustomToast
-                message={`Rankings reset on ${nextMonthStr}.`}
+                message={`Next rankings update on ${nextMonthStr}.`}
                 visible={showResetToast}
                 onHide={() => setShowResetToast(false)}
                 type="info"
@@ -280,6 +300,13 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
         fontSize: 13,
+    },
+    emptyButton: {
+        marginTop: 20,
+        paddingHorizontal: 24,
+    },
+    podiumWrapper: {
+        marginBottom: 16,
     },
     listContent: {
         // paddingTop: 12,

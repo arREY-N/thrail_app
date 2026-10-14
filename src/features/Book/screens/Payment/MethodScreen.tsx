@@ -1,4 +1,3 @@
-import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -43,8 +42,6 @@ export interface MethodScreenProps {
     isPayingBalance: boolean;
     isMinor: boolean;
     minorName?: string;
-    onTermsPress: () => void;
-    onPrivacyPress: () => void;
 }
 
 const MethodScreen = ({
@@ -59,8 +56,6 @@ const MethodScreen = ({
     isPayingBalance,
     isMinor,
     minorName,
-    onTermsPress,
-    onPrivacyPress
 }: MethodScreenProps) => {
 
     return (
@@ -174,9 +169,8 @@ const MethodScreen = ({
                             expectedName={profileFullName}
                             isMinor={isMinor}
                             minorName={minorName}
+                            requireReadToAgree={false}
                             onValidChange={setIsSignatureValid}
-                            onTermsPress={onTermsPress}
-                            onPrivacyPress={onPrivacyPress}
                         />
                     </View>
                 </View>

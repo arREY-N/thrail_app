@@ -246,6 +246,8 @@ const TrailMapEditorScreen = ({
                 message="You have unsaved changes to your offline map points. Are you sure you want to leave without saving?"
                 confirmText="Discard & Leave"
                 cancelText="Keep Editing"
+                isDestructive={true}
+                iconName="alert-triangle"
                 onConfirm={handleConfirmDiscard}
                 onClose={() => setShowDiscardModal(false)}
             />

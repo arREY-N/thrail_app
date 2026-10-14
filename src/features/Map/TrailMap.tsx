@@ -20,6 +20,7 @@ export interface TrailMapProps {
     showControls?: boolean;
     showRecenter?: boolean;
     bottomInset?: number;
+    compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
     hikerLocations?: HikerLocation[];
     currentUserId?: string;
 }

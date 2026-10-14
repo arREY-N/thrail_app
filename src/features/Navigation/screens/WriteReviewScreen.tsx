@@ -292,6 +292,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 visible={showSaveConfirmation}
                 title="Submit Review?"
                 message="Thanks for sharing your thoughts! Your review helps other hikers and improves our trail recommendations."
+                iconName="check-circle"
                 onConfirm={onSaveReview}
                 onClose={() => setShowSaveConfirmation(false)}
                 confirmText={isLoading ? "Submitting..." : "Submit"}

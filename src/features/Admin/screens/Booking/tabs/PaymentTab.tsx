@@ -219,7 +219,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                         Transaction Summary
                     </CustomText>
                     
-                    {booking?.payment?.map((paymentRecord: IPayment<Date>, idx: number) => {
+                    {booking?.payment?.filter((p: IPayment<Date>) => p.status !== 'abandoned').map((paymentRecord: IPayment<Date>, idx: number) => {
                         const statusColor = paymentRecord.status === 'captured' 
                             ? Colors.SUCCESS 
                             : (paymentRecord.status === 'refunded' ? Colors.ERROR : Colors.STATUS_PENDING_TEXT);
@@ -233,6 +233,20 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                         {renderGatewayBadge(paymentRecord.gateway)}
                                     </View>
                                 </View>
+
+                                {/* Method / Channel Row */}
+                                {paymentRecord.method && (
+                                    <View style={styles.paymentRow}>
+                                        <CustomText style={styles.paymentLabel}>Channel</CustomText>
+                                        <CustomText style={[styles.paymentValue, { textTransform: 'capitalize' }]}>
+                                            {paymentRecord.method === 'maya' || paymentRecord.method === 'paymaya' 
+                                                ? 'Maya' 
+                                                : paymentRecord.method === 'gcash' 
+                                                    ? 'GCash' 
+                                                    : paymentRecord.method}
+                                        </CustomText>
+                                    </View>
+                                )}
                                 
                                 {/* Status Row */}
                                 <View style={styles.paymentRow}>
@@ -272,11 +286,21 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                     </View>
                                 )}
 
-                                {/* Reference Code (stacked row) */}
+                                {/* Refund Reason (if refunded) */}
+                                {paymentRecord.status === 'refunded' && paymentRecord.refundReason && (
+                                    <View style={styles.paymentRow}>
+                                        <CustomText style={styles.paymentLabel}>Refund Reason</CustomText>
+                                        <CustomText style={[styles.paymentValue, { textTransform: 'capitalize' }]}>
+                                            {paymentRecord.refundReason}
+                                        </CustomText>
+                                    </View>
+                                )}
+
+                                {/* Reference Code (stacked row - prioritizes pay_ ID) */}
                                 <View style={[styles.paymentRowStacked, styles.noBorder]}>
                                     <CustomText style={styles.paymentLabelStacked}>Reference No.</CustomText>
                                     <CustomText style={styles.paymentValueStacked} selectable={true}>
-                                        {paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
+                                        {paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
                                     </CustomText>
                                 </View>
                             </View>

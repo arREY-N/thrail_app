@@ -14,12 +14,14 @@ import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail } from "@/src/core/models/Trail/Trail";
-import TrailMap from "@/src/features/Map/TrailMap";
+import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
+import { useHikeStore } from "@/src/core/models/Hike/Hike";
+import { formatTime } from "@/src/core/utility/formatTime";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
 
 interface NavigationScreenProps {
@@ -72,11 +74,16 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isLargeScreen = isDesktop || isTablet;
 
-    const mapRef = useRef<any>(null);
+    const mapRef = useRef<TrailMapRef | null>(null);
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [activeBooking, setActiveBooking] = useState<Booking | null>(upcomingBookings[0] || null);
+
+    const activeHikeSession = useHikeStore((s) => (s.active && s.currentHike && (s.currentHike.status === 'started' || s.currentHike.status === 'paused') ? s.currentHike : null));
+    const activeHikeElapsed = useHikeStore((s) => s.elapsedTime);
+    const activeHikeDistance = useHikeStore((s) => s.totalDistance);
+
     const prevTrailRef = useRef<Trail | null>(null);
     const [prevUpcomingLength, setPrevUpcomingLength] = useState(upcomingBookings.length);
     if (upcomingBookings.length !== prevUpcomingLength) {
@@ -111,7 +118,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const navigateToGroupChat = (booking: Booking) => {
         const targetGroup = groups?.find((g: Group) => g.members?.some((m: { id: string; bookingId?: string }) => m.id === currentUserId && m.bookingId === booking.id));
         if (targetGroup) {
-            router.push({ pathname: '/(main)/group/room', params: { roomId: targetGroup.id } });
+            router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: targetGroup.id } });
         } else {
             onGroupPress();
         }
@@ -160,6 +167,46 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         activeTab={undefined}
                         onTabSelect={undefined}
                     />
+
+                    {activeHikeSession && !showDropdown && (
+                        <TouchableOpacity
+                            style={styles.resumeBannerContainer}
+                            activeOpacity={0.88}
+                            onPress={() => {
+                                router.push({
+                                    pathname: '/(app)/(main)/hike/view',
+                                    params: {
+                                        hikeId: activeHikeSession.id,
+                                        trailId: activeHikeSession.trail?.id,
+                                        bookingId: activeHikeSession.bookingId || undefined,
+                                    }
+                                });
+                            }}
+                        >
+                            <View style={styles.resumeBannerContent}>
+                                <View style={[styles.resumeStatusDot, activeHikeSession.status === 'paused' ? styles.bgAmber : styles.bgEmerald]} />
+                                <View style={{ flex: 1 }}>
+                                    <View style={styles.resumeHeaderRow}>
+                                        <CustomText style={styles.resumeTitle} numberOfLines={1}>
+                                            {activeHikeSession.trail?.name || "Active Hike Session"}
+                                        </CustomText>
+                                        <View style={[styles.resumeBadge, activeHikeSession.status === 'paused' ? styles.badgeAmber : styles.badgeEmerald]}>
+                                            <CustomText style={styles.resumeBadgeText}>
+                                                {activeHikeSession.status === 'paused' ? 'PAUSED' : 'RECORDING'}
+                                            </CustomText>
+                                        </View>
+                                    </View>
+                                    <CustomText variant="caption" style={styles.resumeStats}>
+                                        {formatTime(activeHikeElapsed)} • {activeHikeDistance >= 1000 ? `${(activeHikeDistance / 1000).toFixed(2)} km` : `${Math.round(activeHikeDistance)} m`}
+                                    </CustomText>
+                                </View>
+                                <View style={styles.resumeCtaBox}>
+                                    <CustomText style={styles.resumeCtaText}>Resume</CustomText>
+                                    <CustomIcon library="Feather" name="chevron-right" size={14} color={Colors.PRIMARY} />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    )}
 
                     {showDropdown && (
                         <View style={styles.dropdownContainer}>
@@ -211,7 +258,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 onPress={() => {
                     // Pass a real trailId so the map loads, but pass the fake DEV_TEST booking ID
                     router.push({
-                        pathname: '/(main)/hike/view',
+                        pathname: '/(app)/(main)/hike/view',
                         params: { 
                             hikeId: "new_diy_session",
                             // trailId: filteredTrails[0]?.id || "mock_batulao", // Uses first available trail
@@ -383,6 +430,81 @@ const styles = StyleSheet.create({
     activeLaunchText: { color: Colors.WHITE, fontWeight: "bold", fontSize: 16 },
     disabledLaunchButton: { flexDirection: "row", backgroundColor: Colors.GRAY_ULTRALIGHT, paddingVertical: 16, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: Colors.GRAY_LIGHT },
     disabledLaunchText: { color: Colors.TEXT_SECONDARY, fontWeight: "700", fontSize: 16 },
+
+    resumeBannerContainer: {
+        marginHorizontal: 16,
+        marginTop: 8,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: '#A7F3D0',
+        overflow: 'hidden',
+        ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }),
+    },
+    resumeBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        gap: 10,
+    },
+    resumeStatusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    bgEmerald: {
+        backgroundColor: '#10B981',
+    },
+    bgAmber: {
+        backgroundColor: '#F59E0B',
+    },
+    resumeHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    resumeTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        flexShrink: 1,
+    },
+    resumeBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    badgeEmerald: {
+        backgroundColor: '#D1FAE5',
+    },
+    badgeAmber: {
+        backgroundColor: '#FEF3C7',
+    },
+    resumeBadgeText: {
+        fontSize: 9,
+        fontWeight: '800',
+        color: '#065F46',
+    },
+    resumeStats: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+    },
+    resumeCtaBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        backgroundColor: Colors.BACKGROUND,
+        borderRadius: 10,
+        gap: 2,
+    },
+    resumeCtaText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+    },
 });
 
 export default NavigationScreen;

@@ -12,7 +12,7 @@ import {
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
-import Customicon from '@/src/components/CustomIcon';
+import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import ErrorMessage from '@/src/components/ErrorMessage';
@@ -20,6 +20,13 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { useAuthValidation } from '@/src/features/Auth/hooks/useAuthValidation';
+import {
+    calculatePasswordStrength,
+    sanitizeEmail,
+    sanitizePassword,
+    sanitizeUsername,
+} from '@/src/features/Auth/utils/authValidation';
 import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
@@ -33,6 +40,7 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param onPrivacyPress - Callback when Privacy Policy link is pressed.
  * @param error - Error message to display, if any.
  * @param isSplitScreen - When true, renders without ScreenWrapper/ResponsiveScrollView for the split-screen layout.
+ * @param isLoading - Indicates if a registration or validation request is in flight.
  */
 export interface SignUpScreenProps {
     onLogInPress: () => void;
@@ -43,6 +51,7 @@ export interface SignUpScreenProps {
     onPrivacyPress: () => void;
     error?: string | null;
     isSplitScreen?: boolean;
+    isLoading?: boolean;
 }
 
 /**
@@ -57,6 +66,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
     onPrivacyPress,
     error,
     isSplitScreen,
+    isLoading,
 }) => {
 
     const [email, setEmail] = useState('');
@@ -66,28 +76,14 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
     const [showPasswords, setShowPasswords] = useState(false);
 
-    let strength = 0;
-    if (password.length > 0) {
-        const hasLength = password.length >= 8;
-        const hasUpper = /[A-Z]/.test(password);
-        const hasLower = /[a-z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const { strength, color: strengthColor } = calculatePasswordStrength(password);
+    const { activeError, validateSignUp, clearError } = useAuthValidation(error);
 
-        if (hasLength && hasUpper && hasLower && hasNumber && hasSpecial) {
-            strength = 3;
-        } else if (hasLength && (hasNumber || hasSpecial)) {
-            strength = 2;
-        } else {
-            strength = 1;
+    const handleSignUpSubmit = () => {
+        if (activeError) clearError();
+        if (validateSignUp(email, username, password, confirmPassword)) {
+            onSignUpPress(email.trim(), password, username.trim(), confirmPassword);
         }
-    }
-
-    const getStrengthColor = () => {
-        if (strength === 1) return Colors.STRENGTH_WEAK;
-        if (strength === 2) return Colors.STRENGTH_MEDIUM;
-        if (strength === 3) return Colors.STRENGTH_STRONG;
-        return Colors.STRENGTH_EMPTY;
     };
 
     const { isLargeScreen } = useBreakpoints();
@@ -109,7 +105,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 label="Email Address *"
                 placeholder="name@example.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text: string) => {
+                    setEmail(sanitizeEmail(text));
+                    if (activeError) clearError();
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
             />
@@ -118,7 +117,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 label="Username *"
                 placeholder="Choose a username"
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(text: string) => {
+                    setUsername(sanitizeUsername(text));
+                    if (activeError) clearError();
+                }}
                 autoCapitalize="none"
             />
 
@@ -127,7 +129,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                     label="Password *"
                     placeholder="Type your password"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(text: string) => {
+                        setPassword(sanitizePassword(text));
+                        if (activeError) clearError();
+                    }}
                     secureTextEntry
                     isPasswordVisible={showPasswords}
                     onTogglePassword={() => setShowPasswords(!showPasswords)}
@@ -142,7 +147,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                                 AuthStyles.strengthBar,
                                 {
                                     backgroundColor: strength >= level
-                                        ? getStrengthColor()
+                                        ? strengthColor
                                         : Colors.STRENGTH_EMPTY
                                 }
                             ]}
@@ -155,19 +160,24 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 label="Confirm Password *"
                 placeholder="Retype your password"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text: string) => {
+                    setConfirmPassword(sanitizePassword(text));
+                    if (activeError) clearError();
+                }}
                 secureTextEntry
                 isPasswordVisible={showPasswords}
                 onTogglePassword={() => setShowPasswords(!showPasswords)}
             />
 
-            <ErrorMessage error={error} />
+            <ErrorMessage error={activeError} />
 
             <View style={[AuthStyles.buttonContainer, isSplitScreen && AuthStyles.splitScreenSection]}>
                 <CustomButton
                     title="Continue with Email"
-                    onPress={() => onSignUpPress(email, password, username, confirmPassword)}
+                    onPress={handleSignUpSubmit}
                     variant="primary"
+                    disabled={isLoading}
+                    isLoading={isLoading}
                 />
             </View>
 
@@ -181,10 +191,13 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
             <TouchableOpacity
                 style={[AuthStyles.googleButton, isSplitScreen && AuthStyles.splitScreenSection]}
-                onPress={onGmailSignUp}
+                onPress={() => {
+                    if (activeError) clearError();
+                    onGmailSignUp();
+                }}
                 activeOpacity={0.8}
             >
-                <Customicon
+                <CustomIcon
                     library="AntDesign"
                     name="google"
                     size={20}
@@ -199,7 +212,12 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 <CustomText variant="caption" style={AuthStyles.footerText}>
                     {"Already have an account? "}
                 </CustomText>
-                <TouchableOpacity onPress={onLogInPress}>
+                <TouchableOpacity
+                    onPress={() => {
+                        if (activeError) clearError();
+                        onLogInPress();
+                    }}
+                >
                     <CustomText variant="caption" style={AuthStyles.signUpLink}>
                         Log In
                     </CustomText>
@@ -213,7 +231,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                         <CustomText
                             variant="caption"
                             style={AuthStyles.termsLink}
-                            onPress={onTermsPress}
+                            onPress={() => {
+                                if (activeError) clearError();
+                                onTermsPress();
+                            }}
                         >
                             Terms of Service
                         </CustomText>
@@ -221,7 +242,10 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                         <CustomText
                             variant="caption"
                             style={AuthStyles.termsLink}
-                            onPress={onPrivacyPress}
+                            onPress={() => {
+                                if (activeError) clearError();
+                                onPrivacyPress();
+                            }}
                         >
                             Privacy Policy
                         </CustomText>
@@ -250,7 +274,12 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
-            <CustomHeader onBackPress={onBackPress} />
+            <CustomHeader
+                onBackPress={() => {
+                    if (activeError) clearError();
+                    onBackPress();
+                }}
+            />
 
             <ResponsiveScrollView
                 minHeight={isLargeScreen ? 0 : 600}

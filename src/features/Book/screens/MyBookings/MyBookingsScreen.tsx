@@ -77,10 +77,6 @@ export interface MyBookingsScreenProps {
     initialBookingId?: string | null;
     /** Initial view mode */
     initialView?: MyBookingsView;
-    /** Callback for Terms of Service */
-    onTermsPress: () => void;
-    /** Callback for Privacy Policy */
-    onPrivacyPress: () => void;
     /** Array of active cancellations for user's bookings */
     userCancellations?: Cancellation[];
     /** Callback to withdraw cancellation */
@@ -123,8 +119,6 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
     availableFutureOffers,
     initialBookingId,
     initialView,
-    onTermsPress,
-    onPrivacyPress,
     currentUserProfile,
     onSyncBookingVerification,
     onSearchUser,
@@ -375,8 +369,6 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 onContinue={() => setCurrentView('overview')}
                 onBackPress={handleHeaderBackPress}
                 onPayOffer={onPayOffer}
-                onTermsPress={onTermsPress}
-                onPrivacyPress={onPrivacyPress}
             />
         );
     }

@@ -1,3 +1,4 @@
+import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
 import { useEffect } from "react";
 
@@ -7,21 +8,26 @@ export function useReviewList() {
     const reviewError = useReviewStore(s => s.error);
 
     useEffect(() => {
-        const fetch = async () => {
-            await useReviewStore.getState().fetchAll();
-        };
+        const unsub = useReviewStore.getState().subscribeToReviews();
 
-        fetch();
+        return () => unsub?.();
     }, []);
 
     const refresh = async () => {
-        await useReviewStore.getState().fetchAll();
+        await useReviewStore.getState().refresh();
     };
+
+    const retrieveAll = async (): Promise<Review[]> => {
+        const reviews = await useReviewStore.getState().retrieveAll();
+        return reviews;
+    }
+
 
     return {
         reviews,
         reviewIsLoading,
         reviewError,
+        retrieveAll,
         refresh,
     };
 }

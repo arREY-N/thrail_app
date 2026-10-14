@@ -358,17 +358,17 @@ When an admin marks a hike as completed (`currentStatus === 'completed'`), the b
 1. **Issue Refund (UNLOCKED on Completed)**:
    - Accessible on `completed` bookings as long as payments were captured (`totalAmountPaid > 0`).
    - Admins can issue partial or full refunds with an audit reason securely processed through PayMongo.
-2. **Reschedule Booking (ORIGINAL BEHAVIOR - Locked on Completed)**:
-   - Kept strictly for active/upcoming bookings (`!isCancelledStatus && !isCompletedStatus`).
-   - Rationale: Completed hikes cannot be rescheduled back into future slots without corrupting slot availability counters, attendee rosters, and event auditing history.
-3. **Cancel Booking (ORIGINAL BEHAVIOR - Locked on Completed & Unpaid Only)**:
-   - Kept strictly for active, unpaid bookings (`!isCancelledStatus && !isCompletedStatus && totalAmountPaid === 0 && !hasPendingCancellation`).
-   - Rationale: Completed bookings cannot be cancelled without refunding; if funds were captured, the admin must use "Issue Refund" rather than an unrefunded cancellation.
+2. **Reschedule Booking (Updated per Issue #141 - Unlocked on Non-Cancelled Bookings)**:
+   - Available on all non-cancelled bookings (`!isCancelledStatus`).
+   - Rationale: In Thrail, confirming payment marks the booking as `completed` (confirmed registration) even though the expedition date is in the future. Unlocking reschedule allows rebooking to alternate dates.
+3. **Cancel Booking (Updated per Issue #141 - Unlocked on Non-Cancelled Bookings)**:
+   - Available on non-cancelled bookings without an active pending cancellation (`!isCancelledStatus && !hasPendingCancellation`).
+   - Rationale: Admins can cancel bookings with structured organizer reasons (e.g. weather, trail closure) regardless of whether funds were captured, keeping cancellation and refund decisions independent.
 4. **Implementation Details**:
-   - [`ReviewScreen.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx): Decoupled `currentStatus === 'completed'` from `isCancelledStatus` and explicitly passed `isCompletedStatus={currentStatus === 'completed'}` to [`AdminActionMenu`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminActionMenu.tsx).
+   - [`ReviewScreen.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx): Binds `hasPendingCancellation={isCancellationPending}`.
    - [`AdminActionMenu.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminActionMenu.tsx):
-     - `canReschedule = !isCancelledStatus && !isCompletedStatus`
-     - `canCancel = !isCancelledStatus && !isCompletedStatus && totalAmountPaid === 0 && !hasPendingCancellation`
+     - `canReschedule = !isCancelledStatus`
+     - `canCancel = !isCancelledStatus && !hasPendingCancellation`
      - `canRefund = !isCancelledStatus && totalAmountPaid > 0`
    - [`useBookingAdmin.ts`](file:///d:/thrail_app/src/core/models/Booking/hooks/useBookingAdmin.ts): Retained in its original pristine state without any schema-altering persistence hacks.
 

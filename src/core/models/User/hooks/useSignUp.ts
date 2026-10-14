@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { newSignUp } from "@/src/core/models/User/utils/UserFactory";
+import { logger } from "@/src/core/utility/errorFormatter";
 import { router } from "expo-router";
 import { useEffect } from "react";
 
@@ -27,7 +28,9 @@ export function useSignUp(isNew: boolean = false) {
     ) => {
         const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
         const convertedBirthday = new Date(birthday);
+
         editAccount(newSignUp({
+            ...account,
             phoneNumber: cleanPhoneNumber,
             firstname,
             lastname,
@@ -40,7 +43,6 @@ export function useSignUp(isNew: boolean = false) {
         }
     }
 
-    // TODO change parameters to SignUp object
     const onSignUpPress = async (
         email: string,
         password: string,
@@ -66,12 +68,11 @@ export function useSignUp(isNew: boolean = false) {
             await signUp();
             router.replace('/(auth)/preference');
         } catch (error) {
-            console.error("Sign up error:", error);
+            logger('useSignUp', 'Sign up error: ', error)
         }
     }
 
     const onDeclinePress = async () => {
-        console.log('Alert user that this will cancel the whole process');
         router.replace('/(auth)/landing');
     }
 

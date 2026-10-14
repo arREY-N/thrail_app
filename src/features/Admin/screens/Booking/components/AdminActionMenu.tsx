@@ -48,13 +48,14 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
     hasPendingCancellation = false,
     isCompletedStatus = false,
 }) => {
-    // Business rules:
-    // - Reschedule & Cancel are original behavior: ONLY for active/upcoming bookings, NEVER for completed.
-    // - Cancel is ONLY for unpaid bookings (when totalAmountPaid === 0).
-    // - Refund is unlocked whenever payments exist (totalAmountPaid > 0), even on completed bookings.
-    const canReschedule = !isCancelledStatus && !isCompletedStatus;
+    // Business rules (Refined per Issue #141):
+    // - Reschedule, Cancel, and Refund are independent options exposed to admins on active/confirmed bookings.
+    // - Reschedule: Available on non-cancelled bookings (!isCancelledStatus).
+    // - Cancel: Available on non-cancelled bookings without an already pending cancellation (!isCancelledStatus && !hasPendingCancellation).
+    // - Refund: Available whenever payments exist (totalAmountPaid > 0) on non-cancelled/refunded bookings.
+    const canReschedule = !isCancelledStatus;
     const canRefund = !isCancelledStatus && totalAmountPaid > 0;
-    const canCancel = !isCancelledStatus && !isCompletedStatus && totalAmountPaid === 0 && !hasPendingCancellation;
+    const canCancel = !isCancelledStatus && !hasPendingCancellation;
     const hasAnyAction = canReschedule || canRefund || canCancel;
 
     return (

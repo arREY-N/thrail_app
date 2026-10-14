@@ -2,7 +2,7 @@ const admin = require("firebase-admin");
 const {setGlobalOptions} = require("firebase-functions/v2");
 const { https } = require("firebase-functions/v2");
 const { HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
+const { defineSecret, defineString } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { DateTime } = require('luxon');
@@ -20,6 +20,10 @@ const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const paymongoWebhookSecret = defineSecret('PAYMONGO_WEBHOOK_SECRET'); // Optional
 const { Buffer } = require('buffer');
 const PaymentManager = require('./services/PaymentManager');
+const LoginLimiter = require('./services/LoginLimiter');
+
+// Firebase Web API key (public value) used to verify passwords via the Identity Toolkit REST API.
+const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
 
 admin.initializeApp();
@@ -615,6 +619,19 @@ exports.checkEmail = https.onCall(async (request) => {
 })
 
 /**
+ * Email/password login with server-enforced brute-force protection.
+ * Limits: 5 failures per email, 20 per IP (15 min window) -> 15 min lockout.
+ * On success returns a custom token for signInWithCustomToken on the client.
+ *
+ * @param {Object} request.data - { email: string, password: string }
+ * @returns {Promise<{ token: string }>}
+ * @throws {HttpsError} invalid-argument | unauthenticated | resource-exhausted | permission-denied | internal
+ */
+exports.secureLogin = https.onCall((request) =>
+    LoginLimiter.handleSecureLogin(request, { apiKey: authWebApiKey.value() })
+);
+
+/**
  * Maps raw PayMongo API errors to user-friendly HttpsErrors with localized messaging.
  * Handles specific gateway issues like transaction limits, system downtime, and invalid parameters.
  * 
@@ -705,7 +722,8 @@ function handlePaymongoError(err) {
 exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
     const { amount, type, returnUrl, bookingId, userId } = request.data;
 
-    console.log(`[createPaymongoCheckout] Initiating checkout for user ${userId || request.auth?.uid}, booking ${bookingId}`);
+    const targetUserId = userId || request.auth?.uid;
+    console.log(`[createPaymongoCheckout] Initiating checkout for user ${targetUserId}, booking ${bookingId}`);
 
     if (!request.auth) throw new HttpsError('unauthenticated', 'Authentication Required');
     if (!amount || !type || !bookingId) throw new HttpsError('invalid-argument', 'Amount, type, and bookingId are required');
@@ -715,6 +733,41 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
         throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing.');
     }
 
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(targetUserId).collection('bookings').doc(bookingId);
+    const bookingDoc = await bookingRef.get();
+
+    let customerInfo = null;
+    let existingBookingData = null;
+    if (bookingDoc.exists) {
+        existingBookingData = bookingDoc.data();
+        const userObj = existingBookingData?.user || {};
+        const fullName = [userObj.firstname || userObj.firstName || '', userObj.lastname || userObj.lastName || ''].filter(Boolean).join(' ') || userObj.name || userObj.displayName || '';
+        customerInfo = {
+            name: fullName.trim(),
+            email: (userObj.email || '').trim(),
+            phone: (userObj.phone || userObj.phoneNumber || '').trim()
+        };
+    }
+
+    // Fallback: Query user profile doc if email or phone is missing
+    if (!customerInfo?.name || !customerInfo?.email || !customerInfo?.phone) {
+        try {
+            const userProfileDoc = await db.collection('users').doc(targetUserId).get();
+            if (userProfileDoc.exists) {
+                const uData = userProfileDoc.data();
+                const uFullName = [uData?.firstname || uData?.firstName || '', uData?.lastname || uData?.lastName || ''].filter(Boolean).join(' ') || uData?.name || uData?.displayName || '';
+                customerInfo = {
+                    name: customerInfo?.name || uFullName.trim(),
+                    email: customerInfo?.email || (uData?.email || '').trim(),
+                    phone: customerInfo?.phone || (uData?.phone || uData?.phoneNumber || '').trim()
+                };
+            }
+        } catch (uErr) {
+            console.warn('[createPaymongoCheckout] Could not fetch user profile for billing info:', uErr.message);
+        }
+    }
+
     // Initialize provider and register to manager
     const paymongoProvider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
     PaymentManager.registerProvider('paymongo', paymongoProvider);
@@ -722,36 +775,52 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
     const redirectUrl = returnUrl || 'thrailapp://';
 
     try {
-        const session = await PaymentManager.getProvider('paymongo').createCheckout(amount, type, redirectUrl, { bookingId, userId });
+        const session = await PaymentManager.getProvider('paymongo').createCheckout(
+            amount, 
+            type, 
+            redirectUrl, 
+            { bookingId, userId: targetUserId },
+            customerInfo
+        );
         
-        // Update booking to mark it as pending payment
-        await admin.firestore()
-            .collection('users')
-            .doc(userId || request.auth.uid)
-            .collection('bookings')
-            .doc(bookingId)
-            .update({
-                payment: admin.firestore.FieldValue.arrayUnion({
-                    gateway: 'paymongo',
-                    sessionId: session.id,
-                    referenceCode: null,
-                    status: 'pending',
-                    amount: amount,
-                    createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000))
-                }),
-                // Root-level field so the webhook can query by payment_intent_id
-                paymentIntentId: session.paymentIntentId,
-                updatedAt: FieldValue.serverTimestamp()
-            });
+        // Clean up older pending sessions to 'abandoned'
+        const currentPayments = existingBookingData?.payment || [];
+        const updatedPayments = currentPayments.map(p => {
+            if (p.status === 'pending') {
+                return { ...p, status: 'abandoned' };
+            }
+            return p;
+        });
+
+        const channelMethod = type === 'paymaya' ? 'maya' : type;
+        const newPaymentRecord = {
+            gateway: 'paymongo',
+            method: channelMethod,
+            sessionId: session.id,
+            referenceCode: null,
+            status: 'pending',
+            amount: amount,
+            createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000))
+        };
+        updatedPayments.push(newPaymentRecord);
+
+        // Update booking with payment records and paymentIntentIds array
+        await bookingRef.update({
+            payment: updatedPayments,
+            paymentIntentId: session.paymentIntentId, // Root-level for backwards compatibility
+            paymentIntentIds: admin.firestore.FieldValue.arrayUnion(session.paymentIntentId),
+            updatedAt: FieldValue.serverTimestamp()
+        });
 
         const response = {
             gateway: 'paymongo',
+            method: channelMethod,
             sessionId: session.id,
             referenceCode: null,
             status: 'pending',
             amount: amount,
             createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000)),
-            // Included so the frontend can still redirect the user
+            // Included so the frontend can redirect the user
             checkout_url: session.checkout_url
         };
 
@@ -862,45 +931,63 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
     if (event?.data?.attributes?.type === 'payment.paid') {
         const paymentData = event.data.attributes.data.attributes;
         
-        const referenceCode = paymentData.balance_transaction_id || event.data.attributes.data.id;
         const gatewayId = event.data.attributes.data.id;
+        // Prioritize official Payment ID (pay_...) over internal ledger ID (bal_...)
+        const referenceCode = event.data.attributes.data.id || paymentData.balance_transaction_id;
         const amount = paymentData.amount / 100;
 
         // Use payment_intent_id to find the booking.
-        // We store paymentIntentId on the booking document when creating the checkout session.
+        // We store paymentIntentId and paymentIntentIds on the booking document when creating the checkout session.
         const paymentIntentId = paymentData.payment_intent_id;
         console.log(`[paymentWebhook] Looking up booking with paymentIntentId: ${paymentIntentId}, amount: ${amount}`);
 
         if (paymentIntentId) {
             const db = admin.firestore();
-            const bookingsSnapshot = await db.collectionGroup('bookings')
+            let bookingsSnapshot = await db.collectionGroup('bookings')
                 .where('paymentIntentId', '==', paymentIntentId)
                 .get();
+
+            // Fallback: Check paymentIntentIds array
+            if (bookingsSnapshot.empty) {
+                bookingsSnapshot = await db.collectionGroup('bookings')
+                    .where('paymentIntentIds', 'array-contains', paymentIntentId)
+                    .get();
+            }
 
             if (!bookingsSnapshot.empty) {
                 const bookingDoc = bookingsSnapshot.docs[0];
                 const bookingData = bookingDoc.data();
                 console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
 
+                const payments = bookingData.payment || [];
+
+                // Idempotency guard: prevent duplicate captured payments if webhook is retried
+                if (payments.some(p => p.gatewayId === gatewayId && p.status === 'captured')) {
+                    console.log(`[paymentWebhook] Payment ${gatewayId} already captured for booking ${bookingDoc.id}. Skipping duplicate webhook.`);
+                    return res.status(200).send('Already Processed');
+                }
+
                 if (bookingData.status !== 'cancelled') {
                     // 10 days before hike for refund policy
                     const refundableUntil = new Date(bookingData.offer.date.toDate());
                     refundableUntil.setDate(refundableUntil.getDate() - 10);
 
-                    const payments = bookingData.payment || [];
                     const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
-                    
                     const existingSessionId = pendingIdx >= 0 ? payments[pendingIdx].sessionId : null;
-                    
+                    const rawMethod = paymentData.source?.type || paymentData.payment_method_type || (pendingIdx >= 0 ? payments[pendingIdx].method : 'gcash');
+                    const method = rawMethod === 'paymaya' ? 'maya' : rawMethod;
+
                     const capturedPayment = {
                         gateway: 'paymongo',
                         gatewayId: gatewayId,
+                        method: method,
                         sessionId: existingSessionId,
                         referenceCode: referenceCode,
                         status: 'captured',
                         refundableUntil: Timestamp.fromDate(refundableUntil),
                         amount: amount,
-                        createdAt: Timestamp.now()
+                        createdAt: pendingIdx >= 0 && payments[pendingIdx].createdAt ? payments[pendingIdx].createdAt : Timestamp.now(),
+                        capturedAt: Timestamp.now()
                     };
 
                     if (pendingIdx >= 0) {
@@ -911,13 +998,13 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
 
                     // Determine the new booking status based on total paid vs offer price
                     const totalPaid = payments.reduce((sum, p) => {
-                        if (p.status === 'captured' || (p === capturedPayment)) {
+                        if (p.status === 'captured') {
                             return sum + (p.amount || 0);
                         }
                         return sum;
                     }, 0);
                     const offerPrice = bookingData.offer?.price || 0;
-                    const newBookingStatus = totalPaid >= offerPrice ? 'paid' : 'downpayment';
+                    const newBookingStatus = totalPaid >= (offerPrice - 0.01) ? 'paid' : 'downpayment';
 
                     await bookingDoc.ref.update({
                         payment: payments,
@@ -925,8 +1012,13 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                         updatedAt: FieldValue.serverTimestamp()
                     });
 
-                    // Create Payment Receipt Record
+                    // Create Payment Receipt Record in global /payments collection
                     await db.collection('payments').add({
+                        bookingId: bookingDoc.id,
+                        gatewayId: gatewayId,
+                        gateway: 'paymongo',
+                        method: method,
+                        status: 'captured',
                         createdAt: FieldValue.serverTimestamp(),
                         updatedAt: FieldValue.serverTimestamp(),
                         receipt: {
@@ -1055,20 +1147,21 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         throw new HttpsError('failed-precondition', 'A refund is already in progress for this booking. Please wait.');
     }
 
-    const capturedPayment = payments.find(p => p.status === 'captured');
+    // Phase 1 / T1.1: Multi-Payment Iteration - Collect all captured payments
+    const capturedPayments = payments.filter(p => p.status === 'captured');
 
-    if (!capturedPayment) {
+    if (capturedPayments.length === 0) {
         if (payments.some(p => p.status === 'refunded')) {
             throw new HttpsError('failed-precondition', 'This booking has already been refunded.');
         }
-        throw new HttpsError('failed-precondition', 'Cannot refund a booking that is not captured.');
+        throw new HttpsError('failed-precondition', 'Cannot refund a booking that has no captured payments.');
     }
 
     // Dual-System Authorization Check
     const adminBusinessId = caller.token.businessId || caller.token.owner;
-    const isAdmin = caller.token.role === 'admin' && adminBusinessId === data.business.id;
+    const isAdmin = caller.token.role === 'admin' && adminBusinessId === data.business?.id;
     const isSuperAdmin = caller.token.role === 'superadmin';
-    const isOwner = caller.uid === data.user.id;
+    const isOwner = caller.uid === data.user?.id;
 
     if (!isAdmin && !isSuperAdmin && !isOwner) {
         throw new HttpsError('permission-denied', 'Not authorized to refund this booking.');
@@ -1079,14 +1172,25 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         throw new HttpsError('permission-denied', 'Only admins can set a custom refund amount.');
     }
 
-    // User-triggered timeframe check
+    // User-triggered timeframe check: check against latest payment's refundable deadline
     if (isOwner && !isAdmin && !isSuperAdmin) {
         const now = Timestamp.now().toDate();
-        const refundableUntil = capturedPayment.refundableUntil ? capturedPayment.refundableUntil.toDate() : new Date(0);
+        const latestCaptured = capturedPayments[capturedPayments.length - 1];
+        const refundableUntil = latestCaptured.refundableUntil ? latestCaptured.refundableUntil.toDate() : new Date(0);
         
         if (now > refundableUntil) {
             throw new HttpsError('failed-precondition', 'The automated refund timeframe has expired. Please contact the organizer.');
         }
+    }
+
+    // Phase 1 / T1.2: Aggregate Bounds Checking across ALL captured installments
+    const totalCapturedAmount = capturedPayments.reduce((sum, p) => {
+        const available = (p.amount || 0) - (p.refundedAmount || 0);
+        return sum + Math.max(0, available);
+    }, 0);
+
+    if (totalCapturedAmount <= 0) {
+        throw new HttpsError('failed-precondition', 'All captured payments for this booking have already been fully refunded.');
     }
 
     // Calculate Refund Amount
@@ -1098,11 +1202,11 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         if (parsedCustom < 1.00) {
             throw new HttpsError('invalid-argument', 'Minimum refund amount is ₱1.00.');
         }
-        if (parsedCustom > capturedPayment.amount) {
-            throw new HttpsError('invalid-argument', `Custom refund amount cannot exceed total paid (₱${capturedPayment.amount.toFixed(2)}).`);
+        if (parsedCustom > totalCapturedAmount) {
+            throw new HttpsError('invalid-argument', `Custom refund amount (₱${parsedCustom.toFixed(2)}) cannot exceed total refundable amount (₱${totalCapturedAmount.toFixed(2)}).`);
         }
         refundAmount = parsedCustom;
-        const pct = Math.round((refundAmount / capturedPayment.amount) * 100);
+        const pct = Math.round((refundAmount / totalCapturedAmount) * 100);
         refundLabel = `₱${refundAmount.toFixed(2)} (${pct}%)`;
     } else {
         let multiplier = 0.10; // Normal users are strictly limited to 10%
@@ -1113,12 +1217,14 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
                 multiplier = 0.10;
             }
         }
-        refundAmount = Math.round((capturedPayment.amount * multiplier) * 100) / 100;
+        refundAmount = Math.round((totalCapturedAmount * multiplier) * 100) / 100;
         refundLabel = multiplier === 1.0 ? '100%' : '10%';
     }
 
     // Acquire In-Flight Distributed Lock to prevent duplicate charge calls
-    capturedPayment.status = 'processing_refund';
+    capturedPayments.forEach(p => {
+        p.status = 'processing_refund';
+    });
     await bookingRef.update({
         payment: payments.map(p => ({ ...p })),
         updatedAt: FieldValue.serverTimestamp()
@@ -1129,50 +1235,162 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
     PaymentManager.registerProvider('paymongo', provider);
 
+    const validReasons = ['duplicate', 'fraudulent', 'others'];
+    const sanitizedReason = validReasons.includes(reason) ? reason : 'others';
+    const refundNotes = reason && reason !== sanitizedReason ? `Reason: ${reason}` : 'Cancellation refund requested';
+
     try {
-        let gatewayId = capturedPayment.gatewayId;
+        let remainingToRefund = refundAmount;
+        const refundResults = [];
 
-        // Self-Healing: If gatewayId is missing or is a bal_txn_ ID, attempt to resolve true 'pay_' ID from checkout session
-        if ((!gatewayId || !gatewayId.startsWith('pay_')) && capturedPayment.sessionId) {
-            try {
-                console.log(`[refundBooking] Attempting to resolve true pay_ ID from sessionId ${capturedPayment.sessionId}`);
-                const sessionData = await provider.getCheckoutSession(capturedPayment.sessionId);
-                const paymentItem = sessionData?.attributes?.payments?.[0];
-                if (paymentItem?.id && paymentItem.id.startsWith('pay_')) {
-                    gatewayId = paymentItem.id;
-                    capturedPayment.gatewayId = gatewayId;
-                    console.log(`[refundBooking] Successfully resolved pay_ ID from session: ${gatewayId}`);
-                }
-            } catch (sessionErr) {
-                console.warn(`[refundBooking] Could not resolve payment ID from session ${capturedPayment.sessionId}:`, sessionErr.message);
+        // Phase 1 / T1.3 & T1.4: Waterfall Drain Allocation Loop
+        for (const payment of capturedPayments) {
+            if (remainingToRefund <= 0.001) {
+                payment.status = 'captured';
+                continue;
             }
+
+            const availableInPayment = (payment.amount || 0) - (payment.refundedAmount || 0);
+            if (availableInPayment <= 0.001) {
+                payment.status = 'refunded';
+                continue;
+            }
+
+            const amountToDrain = Math.min(availableInPayment, Math.round(remainingToRefund * 100) / 100);
+
+            // Self-Healing: Resolve true 'pay_' ID from checkout session if missing or bal_txn_
+            let gatewayId = payment.gatewayId;
+            if ((!gatewayId || !gatewayId.startsWith('pay_')) && payment.sessionId) {
+                try {
+                    console.log(`[refundBooking] Attempting to resolve true pay_ ID from sessionId ${payment.sessionId}`);
+                    const sessionData = await provider.getCheckoutSession(payment.sessionId);
+                    const paymentItem = sessionData?.attributes?.payments?.[0];
+                    if (paymentItem?.id && paymentItem.id.startsWith('pay_')) {
+                        gatewayId = paymentItem.id;
+                        payment.gatewayId = gatewayId;
+                        console.log(`[refundBooking] Successfully resolved pay_ ID from session: ${gatewayId}`);
+                    }
+                } catch (sessionErr) {
+                    console.warn(`[refundBooking] Could not resolve payment ID from session ${payment.sessionId}:`, sessionErr.message);
+                }
+            }
+
+            if (!gatewayId && payment.referenceCode?.startsWith('pay_')) {
+                gatewayId = payment.referenceCode;
+            }
+
+            if (!gatewayId || !gatewayId.startsWith('pay_')) {
+                throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refunds require a valid payment ID starting with 'pay_'.`);
+            }
+
+            console.log(`[refundBooking] Draining ₱${amountToDrain} from payment ${gatewayId} (target: ₱${refundAmount}, remaining: ₱${remainingToRefund})`);
+
+            // Phase 1 / T1.4: Execute PayMongo API refund call for this specific payment
+            const refundRes = await PaymentManager.getProvider(payment.gateway || 'paymongo').issueRefund(
+                gatewayId, 
+                amountToDrain, 
+                sanitizedReason, 
+                refundNotes
+            );
+
+            // Phase 1 / T1.5 & Phase 5 / T5.1: Record refundedAmount, refundedAt, and refundReason
+            payment.refundedAmount = (payment.refundedAmount || 0) + amountToDrain;
+            payment.status = payment.refundedAmount >= (payment.amount - 0.01) ? 'refunded' : 'captured';
+            payment.refundedAt = Timestamp.now();
+            payment.refundReason = sanitizedReason;
+
+            remainingToRefund = Math.max(0, Math.round((remainingToRefund - amountToDrain) * 100) / 100);
+            refundResults.push({ gatewayId, amount: amountToDrain, refundId: refundRes?.id });
         }
 
-        if (!gatewayId && capturedPayment.referenceCode?.startsWith('pay_')) {
-            gatewayId = capturedPayment.referenceCode;
-        }
+        // Restore any untouched payment back to 'captured'
+        capturedPayments.forEach(p => {
+            if (p.status === 'processing_refund') {
+                p.status = 'captured';
+            }
+        });
 
-        if (!gatewayId || !gatewayId.startsWith('pay_')) {
-            throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refunds require a valid payment ID starting with 'pay_'.`);
-        }
-        
-        // Ensure reason is strictly one of the accepted PayMongo values ('duplicate', 'fraudulent', 'others')
-        const validReasons = ['duplicate', 'fraudulent', 'others'];
-        const sanitizedReason = validReasons.includes(reason) ? reason : 'others';
-        const refundNotes = reason && reason !== sanitizedReason ? `Reason: ${reason}` : 'Cancellation refund requested';
-        
-        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason, refundNotes);
-
-        capturedPayment.status = 'refunded';
-        capturedPayment.refundedAmount = refundAmount;
+        // Phase 1 / T1.6: Finalize booking status in Firestore
+        // If all captured payments are fully refunded or target was a 100% full refund, status is 'refunded'
+        const hasRemainingUnrefunded = payments.some(p => p.status === 'captured' && ((p.amount || 0) - (p.refundedAmount || 0)) > 0.01);
+        const finalBookingStatus = hasRemainingUnrefunded ? 'cancelled' : 'refunded';
 
         await bookingRef.update({
-            status: 'cancelled',
+            status: finalBookingStatus,
             payment: payments.map(p => ({ ...p })),
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        return { success: true, gatewayId, message: `Refunded ${refundLabel} successfully` };
+        // Phase 1 / T1.7: Release Offer Slot if booking was active before this refund
+        // Exclude 'for-cancellation' because useCancellationAdmin handles slot decrement when approving user cancellation requests
+        if (data.offer?.id && data.business?.id && data.status !== 'cancelled' && data.status !== 'refunded' && data.status !== 'for-cancellation') {
+            try {
+                const offerRef = db.collection('businesses').doc(data.business.id).collection('offers').doc(data.offer.id);
+                const offerSnap = await offerRef.get();
+                if (offerSnap.exists) {
+                    const currentReserved = offerSnap.data()?.reservedPax || 0;
+                    if (currentReserved > 0) {
+                        await offerRef.update({
+                            reservedPax: admin.firestore.FieldValue.increment(-1),
+                            updatedAt: FieldValue.serverTimestamp()
+                        });
+                        console.log(`[refundBooking] Decremented reservedPax for offer ${data.offer.id}`);
+                    }
+                }
+            } catch (offerErr) {
+                console.warn(`[refundBooking] Failed to decrement offer reservedPax:`, offerErr.message);
+            }
+        }
+
+        // Phase 5 / T5.2: Synchronize refund entries with global /payments collection
+        try {
+            const paymentsQuery = await db.collection('payments')
+                .where('bookingId', '==', bookingId)
+                .get();
+
+            if (!paymentsQuery.empty) {
+                const batch = db.batch();
+                paymentsQuery.docs.forEach(docSnap => {
+                    batch.update(docSnap.ref, {
+                        status: finalBookingStatus === 'refunded' ? 'refunded' : 'captured',
+                        'receipt.refundedAmount': FieldValue.increment(refundAmount),
+                        refundedAt: FieldValue.serverTimestamp(),
+                        refundReason: sanitizedReason,
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                console.log(`[refundBooking] Synchronized refund to ${paymentsQuery.size} payments collection documents`);
+            } else {
+                for (const res of refundResults) {
+                    const paySnap = await db.collection('payments')
+                        .where('gatewayId', '==', res.gatewayId)
+                        .get();
+                    if (!paySnap.empty) {
+                        const batch = db.batch();
+                        paySnap.docs.forEach(docSnap => {
+                            batch.update(docSnap.ref, {
+                                status: 'refunded',
+                                'receipt.refundedAmount': res.amount,
+                                refundedAt: FieldValue.serverTimestamp(),
+                                refundReason: sanitizedReason,
+                                updatedAt: FieldValue.serverTimestamp()
+                            });
+                        });
+                        await batch.commit();
+                    }
+                }
+            }
+        } catch (paymentsSyncErr) {
+            console.warn(`[refundBooking] Could not sync to /payments collection:`, paymentsSyncErr.message);
+        }
+
+        return { 
+            success: true, 
+            refundResults, 
+            totalRefunded: refundAmount,
+            message: `Refunded ${refundLabel} successfully` 
+        };
     } catch (error) {
         console.error("[refundBooking] PayMongo Refund Error:", error);
         
@@ -1181,9 +1399,14 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
             const freshDoc = await bookingRef.get();
             if (freshDoc.exists) {
                 const freshPayments = freshDoc.data().payment || [];
-                const inFlight = freshPayments.find(p => p.status === 'processing_refund');
-                if (inFlight) {
-                    inFlight.status = 'captured';
+                let modified = false;
+                freshPayments.forEach(p => {
+                    if (p.status === 'processing_refund') {
+                        p.status = 'captured';
+                        modified = true;
+                    }
+                });
+                if (modified) {
                     await bookingRef.update({ 
                         payment: freshPayments.map(p => ({ ...p })),
                         updatedAt: FieldValue.serverTimestamp()

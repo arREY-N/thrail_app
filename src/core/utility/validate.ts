@@ -2,21 +2,21 @@ import { IFormField } from "@/src/core/interface/formFieldInterface";
 import { SignUp } from "@/src/core/models/User/User";
 
 export function validate<T>(
-    object: Record<string, unknown> | object, 
+    object: Record<string, unknown> | object,
     structure: IFormField<T>[],
 ): string[] {
     const errors: string[] = [];
 
     structure.forEach((field) => {
         const { section, id, label, required } = field;
-        
+
         if (required) {
             const sectionRecord = (section as string) === 'root'
                 ? (object as Record<string, unknown>)
                 : ((object as Record<string, unknown>)?.[section as string] as Record<string, unknown> | undefined);
-            
+
             const value = sectionRecord?.[id];
-            
+
             const isMissing = value === null ||
                 value === undefined ||
                 (typeof value === 'string' && value.trim() === '') ||
@@ -28,7 +28,7 @@ export function validate<T>(
 
             // Trail length cannot be 0 km
             const isInvalidLength = id === 'length' && value === 0;
-            
+
             if (isMissing || isInvalidCoordinate || isInvalidLength) {
                 errors.push(label);
             }
@@ -42,17 +42,19 @@ export function validate<T>(
 
 export function validateSignUp(
     signUpData: SignUp
-){
-    const { 
-        email, 
-        password, 
-        username, 
-        confirmPassword 
-    } = signUpData; 
-    
-    if(!email || !password || !username || !confirmPassword) throw new Error('Please fill up all information');
-    
-    if(
+) {
+    const {
+        email,
+        password,
+        username,
+        confirmPassword
+    } = signUpData;
+
+    if (!email || !password || !username || !confirmPassword) throw new Error('Please fill up all information');
+
+    if (!/^[A-Za-z0-9.]+@[A-Za-z0-9._]+\.[A-Za-z]+$/.test(email)) throw new Error('Email is invalid');
+
+    if (
         password.length < 8 ||
         !/[A-Z]/.test(password) ||
         !/[a-z]/.test(password) ||
@@ -60,26 +62,26 @@ export function validateSignUp(
         !/[!@#$%^&*]/.test(password)
     ) throw new Error('Password must be at least 8 characters consists of an uppercase, lowercase, special, and numerical characters');
 
-    if(password !== confirmPassword) throw new Error('Passwords does not match.');
+    if (password !== confirmPassword) throw new Error('Passwords does not match.');
 
-    if(username.length < 6) throw new Error('Username must be at least 6 characters');
+    if (username.length < 6) throw new Error('Username must be at least 6 characters');
 }
 
 export function validateInfo(
     userInfo: SignUp
-){
+) {
     const { phoneNumber, firstname, lastname, birthday, address } = userInfo
 
-    if(!phoneNumber && !firstname && !lastname && !birthday && !address) 
+    if (!phoneNumber && !firstname && !lastname && !birthday && !address)
         throw new Error('Please fill up all information');
 
-    if(!/^(09|\+639)\d{9}$/.test(phoneNumber)) throw new Error('Invalid phone number');
+    if (!/^(09|\+639)\d{9}$/.test(phoneNumber)) throw new Error('Invalid phone number');
 
-    if(!firstname.trim()) throw new Error('First name is required');
-    
-    if(!lastname.trim()) throw new Error('Last name is required');
+    if (!firstname.trim()) throw new Error('First name is required');
 
-    if(!birthday) throw new Error('Birthday is required');
-    
-    if(!address.trim()) throw new Error('Address is required');
+    if (!lastname.trim()) throw new Error('Last name is required');
+
+    if (!birthday) throw new Error('Birthday is required');
+
+    if (!address.trim()) throw new Error('Address is required');
 }

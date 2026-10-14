@@ -64,7 +64,6 @@ export default function ViewTrail() {
     return (
         <View style={{ flex: 1 }}>
             <StatusBar style="light" />
-
             <TrailScreen
                 trail={trail}
                 onBackPress={onBackPress}

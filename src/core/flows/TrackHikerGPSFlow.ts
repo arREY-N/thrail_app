@@ -1,6 +1,6 @@
 import NetInfo, { NetInfoSubscription } from "@react-native-community/netinfo";
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Alert,
     AppState,
@@ -9,20 +9,31 @@ import {
     PermissionsAndroid,
     Platform,
 } from "react-native";
-// NOTE: `loadWalkedPathCoords` (which uses parseCSV) is intentionally NOT imported anymore
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
 import { exportHikeData } from "@/src/core/utility/hikeStorage";
 import { LOCATION_TASK } from "@/src/core/utility/locationTask";
 
-
 let globalActiveInstances = 0;
 let globalAppStateSub: NativeEventSubscription | null = null;
 let globalNetInfoSub: NetInfoSubscription | null = null;
 let globalLastAppState = "active";
+let globalLastReach = true;
 let globalIsBackgroundTrackingRunning = false;
 let globalIsBackgroundStarting = false;
 const onlineListeners = new Set<(online: boolean) => void>();
+
+// Singleton foreground GPS state & listeners to prevent duplicate watchPositionAsync instances
+let globalLocationSub: Location.LocationSubscription | null = null;
+let globalIsInitializingForeground = false;
+let globalUserLocation: [number, number] | null = null;
+let globalPermissionGranted = false;
+let globalGpsTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+let globalIsGpsLost = false;
+const GPS_TIMEOUT_MS = 180000;
+
+const userLocationListeners = new Set<(loc: [number, number] | null) => void>();
+const permissionListeners = new Set<(granted: boolean) => void>();
 
 /**
  * A comprehensive hook that manages real-time and background GPS tracking for hikers.
@@ -50,26 +61,27 @@ export const TrackHikerGPSFlow = () => {
     const updateHikeStore = useHikeStore((state) => state.updateHikeStore);
     const routeCoordinates = useHikeStore((state) => state.walkedRoute);
 
-    const [permissionGranted, setPermissionGranted] = useState(false);
+    const [permissionGranted, setPermissionGranted] = useState(globalPermissionGranted);
     const [isOnline, setIsOnline] = useState(true);
-    const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+    const [userLocation, setUserLocation] = useState<[number, number] | null>(globalUserLocation);
 
     const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
-    const locationSubscription = useRef<Location.LocationSubscription | null>(null);
-    const gpsTimeoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isGpsLost = useRef(false);
-    const GPS_TIMEOUT_MS = 180000;
-
     /**
-     * MODE 1: FOREGROUND PRE-WARMING
+     * MODE 1: FOREGROUND PRE-WARMING (SINGLETON)
      * Gets GPS lock and updates the blue dot on the map.
-x     * Will ONLY record data and draw the red line if the global store says active === true.
+     * Shares single watchPositionAsync across all callers.
      */
     const initForegroundGps = async () => {
         if (Platform.OS === "web") return;
-        if (locationSubscription.current) return;
+        if (globalLocationSub) {
+            setPermissionGranted(true);
+            if (globalUserLocation) setUserLocation(globalUserLocation);
+            return;
+        }
+        if (globalIsInitializingForeground) return;
 
+        globalIsInitializingForeground = true;
         try {
             let isGpsEnabled = await Location.hasServicesEnabledAsync();
             if (!isGpsEnabled) {
@@ -113,60 +125,76 @@ x     * Will ONLY record data and draw the red line if the global store says act
                 ]);
                 return;
             }
-            setPermissionGranted(true);
+            globalPermissionGranted = true;
+            permissionListeners.forEach((fn) => fn(true));
 
-            locationSubscription.current = await Location.watchPositionAsync(
+            globalLocationSub = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.High,
                     distanceInterval: 0,
                     timeInterval: 2000,
                 },
                 (location) => {
+                    const accuracy = location.coords.accuracy;
+
+                    // Quality gate: strictly reject invalid or inaccurate fixes (> 20m)
+                    if (accuracy == null || accuracy <= 0 || accuracy > 20) return;
+
                     const lat = location.coords.latitude;
                     const lon = location.coords.longitude;
-                    const alt = location.coords.altitude ?? 0;
+                    const alt = location.coords.altitude;
                     const timestamp = new Date(location.timestamp).toISOString();
 
-                    if (isGpsLost.current) {
-                        isGpsLost.current = false;
+                    if (globalIsGpsLost) {
+                        globalIsGpsLost = false;
                         setGpsError(null);
                         const { active, currentHike } = useHikeStore.getState();
-                        if (active && currentHike?.status === 'started') {
+                        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                            useHikeStore.getState().logHikeEvent('GPS_SIGNAL_RESTORED', {
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt ?? undefined,
+                            });
                             addCoordinate(newLocation({
                                 latitude: lat,
                                 longitude: lon,
-                                altitude: alt,
+                                altitude: alt ?? undefined,
                                 timestamp: new Date(timestamp),
                                 status: 'GPS_SIGNAL_RESTORED',
                             }));
                         }
                     }
 
-                    if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
-                    gpsTimeoutTimer.current = setTimeout(() => {
-                        isGpsLost.current = true;
+                    // Reset heartbeat timer only for valid accepted fixes
+                    if (globalGpsTimeoutTimer) clearTimeout(globalGpsTimeoutTimer);
+                    globalGpsTimeoutTimer = setTimeout(() => {
+                        globalIsGpsLost = true;
                         setGpsError("GPS signal lost. Searching for satellites...");
                         const { active, currentHike } = useHikeStore.getState();
-                        if (active && currentHike?.status === 'started') {
+                        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                            useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
+                                latitude: lat,
+                                longitude: lon,
+                                altitude: alt ?? undefined,
+                            });
                             addCoordinate(newLocation({
                                 latitude: lat,
                                 longitude: lon,
-                                altitude: alt,
+                                altitude: alt ?? undefined,
                                 timestamp: new Date(),
                                 status: 'GPS_SIGNAL_LOST',
                             }));
                         }
                     }, GPS_TIMEOUT_MS);
 
-                    if (location.coords.accuracy && location.coords.accuracy > 25) return;
-
-                    // Always update the Blue Dot position
-                    setUserLocation([lon, lat]);
+                    // Always update the Blue Dot position across all listeners
+                    globalUserLocation = [lon, lat];
+                    userLocationListeners.forEach((fn) => fn([lon, lat]));
 
                     const latestCoord = newLocation({
                         latitude: lat,
                         longitude: lon,
-                        altitude: alt,
+                        altitude: alt ?? undefined,
                         timestamp: new Date(timestamp),
                         status: 'ACTIVE',
                     });
@@ -185,6 +213,8 @@ x     * Will ONLY record data and draw the red line if the global store says act
             console.error("Failed to start location tracking:", err);
             const message = err instanceof Error ? err.message : String(err);
             setGpsError("Failed to initialize GPS: " + message);
+        } finally {
+            globalIsInitializingForeground = false;
         }
     };
 
@@ -209,34 +239,35 @@ x     * Will ONLY record data and draw the red line if the global store says act
             if (bgStatus === "granted") {
                 await Location.startLocationUpdatesAsync(LOCATION_TASK, {
                     accuracy: Location.Accuracy.High,
-                    distanceInterval: 5,
+                    distanceInterval: 10,
                     timeInterval: 5000,
+                    deferredUpdatesInterval: 5000,
                     showsBackgroundLocationIndicator: true,
                     foregroundService: {
-                        notificationTitle: "Thrail is recording your hike",
-                        notificationBody: "GPS is active in the background",
-                        notificationColor: "#228B22",
+                        notificationTitle: "Thrail Hike Tracking Active",
+                        notificationBody: "Recording your trail coordinates and elevation...",
+                        notificationColor: "#2E7D32",
                     },
                 });
                 globalIsBackgroundTrackingRunning = true;
-                console.log("✅ Background task started");
+                console.log("✅ Background tracking active via TaskManager");
             } else {
-                console.warn("Background location permission was not granted.");
+                console.warn("Background location permission denied");
             }
         } catch (err) {
-            console.error("Background tracking failed to start:", err);
+            console.error("Failed to start background tracking task:", err);
         } finally {
             globalIsBackgroundStarting = false;
         }
     };
 
-    /**
-     * Stops the background TaskManager.
-     */
     const stopBackgroundTracking = async () => {
         if (Platform.OS === "web") return;
         try {
-            await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+            const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
+            if (hasStarted) {
+                await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+            }
             globalIsBackgroundTrackingRunning = false;
             console.log("✅ Background task stopped");
         } catch (err) {
@@ -249,14 +280,25 @@ x     * Will ONLY record data and draw the red line if the global store says act
         if (Platform.OS === "web") return;
 
         const handleOnlineChange = (online: boolean) => setIsOnline(online);
+        const handleLocationChange = (loc: [number, number] | null) => setUserLocation(loc);
+        const handlePermissionChange = (granted: boolean) => setPermissionGranted(granted);
+
         onlineListeners.add(handleOnlineChange);
+        userLocationListeners.add(handleLocationChange);
+        permissionListeners.add(handlePermissionChange);
 
         globalActiveInstances++;
 
         if (globalActiveInstances === 1) {
             globalNetInfoSub = NetInfo.addEventListener((state) => {
-                const reach = !!state.isInternetReachable;
+                const reach = state.isInternetReachable === null ? true : !!state.isInternetReachable;
+                const wasOffline = !globalLastReach;
+                globalLastReach = reach;
                 onlineListeners.forEach((fn) => fn(reach));
+                if (reach && wasOffline) {
+                    console.log('[TrackHikerGPSFlow] Internet restored, syncing offline data...');
+                    useHikeStore.getState().syncOfflineData();
+                }
             });
 
             globalAppStateSub = AppState.addEventListener(
@@ -265,10 +307,15 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     if ((nextState === "background" || nextState === "inactive") && globalLastAppState === "active") {
                         globalLastAppState = nextState;
                         console.log('[TrackHikerGPSFlow] App transitioned to background/inactive');
+                        useHikeStore.getState().logHikeEvent('APP_BACKGROUNDED');
                     }
                     if (nextState === "active" && globalLastAppState !== "active") {
                         globalLastAppState = "active";
                         console.log('[TrackHikerGPSFlow] App transitioned to active foreground');
+                        useHikeStore.getState().logHikeEvent('APP_RESUMED');
+                        if (globalLastReach) {
+                            useHikeStore.getState().syncOfflineData();
+                        }
                     }
                 },
             );
@@ -276,6 +323,8 @@ x     * Will ONLY record data and draw the red line if the global store says act
 
         return () => {
             onlineListeners.delete(handleOnlineChange);
+            userLocationListeners.delete(handleLocationChange);
+            permissionListeners.delete(handlePermissionChange);
             globalActiveInstances = Math.max(0, globalActiveInstances - 1);
 
             if (globalActiveInstances === 0) {
@@ -287,14 +336,21 @@ x     * Will ONLY record data and draw the red line if the global store says act
                     globalNetInfoSub();
                     globalNetInfoSub = null;
                 }
+                if (globalLocationSub) {
+                    globalLocationSub.remove();
+                    globalLocationSub = null;
+                }
+                if (globalGpsTimeoutTimer) {
+                    clearTimeout(globalGpsTimeoutTimer);
+                    globalGpsTimeoutTimer = null;
+                }
             }
 
-            if (locationSubscription.current) {
-                locationSubscription.current.remove();
-                locationSubscription.current = null;
+            // Only stop background tracking if no hike is actively recording
+            const { active, currentHike } = useHikeStore.getState();
+            if (!active || !currentHike || currentHike.status !== 'started') {
+                stopBackgroundTracking();
             }
-            if (gpsTimeoutTimer.current) clearTimeout(gpsTimeoutTimer.current);
-            stopBackgroundTracking();
         };
     }, []);
 

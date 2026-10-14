@@ -181,22 +181,24 @@ const BookingDetailsScreen = ({
     }, [booking?.offer, getBookOffer]);
 
     const totalAmount = booking?.offer?.price || 0;
-    const amountPaid = booking?.payment?.reduce((sum, p) => {
+    const payments = booking?.payment || [];
+    const amountPaid = payments.reduce((sum, p) => {
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0) || 0;
-    const remainingBalance = totalAmount - amountPaid;
 
     const isAdminCancelled =
         cancellation?.cancelledBy === 'admin' ||
         (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
+
+    const hasRefund = payments.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
 
     let displayStatus: BookingStatus | undefined = localStatus;
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
-        displayStatus = amountPaid > 0 ? 'refund' : 'cancelled';
+        displayStatus = (hasRefund || localStatus === 'refunded') ? 'refunded' : (amountPaid > 0 ? 'refund' : 'cancelled');
     } else if (
         cancellation?.status === 'rejected' &&
         localStatus !== 'cancelled' &&
@@ -206,13 +208,15 @@ const BookingDetailsScreen = ({
         displayStatus = localStatus;
     }
 
-    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation') {
-        const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded');
-        if (hasRefund) {
+    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
+        if (hasRefund || localStatus === 'refunded') {
             displayStatus = 'refunded';
         }
     }
+
+    // Ensure cancelled or refunded bookings do not display a false remaining balance
+    const isInactiveBooking = displayStatus === 'cancelled' || displayStatus === 'refunded' || localStatus === 'cancelled' || localStatus === 'refunded';
+    const remainingBalance = isInactiveBooking ? 0 : Math.max(0, totalAmount - amountPaid);
 
     const user = booking?.user;
 
