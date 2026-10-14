@@ -23,7 +23,6 @@ export const BookingRepository = (db: any) => ({
 
             if (snapshot.empty) return [];
 
-            console.log(`Fetched ${snapshot.docs.length} bookings for user ${id}`);
             return snapshot.docs.filter((docsnap) => docsnap.id !== "init").map((docsnap) => docsnap.data());
         } catch (err) {
             if (err instanceof Error) throw err;
@@ -236,4 +235,4 @@ export const BookingRepository = (db: any) => ({
     },
 });
 
-export const BookingRepo = BookingRepository(db);
+export const BookingRepo = BookingRepository(db);
