@@ -8,6 +8,8 @@ import {
     Firestore,
     getDocs,
     onSnapshot,
+    orderBy,
+    query,
     setDoc,
     Unsubscribe,
     updateDoc,
@@ -22,8 +24,9 @@ export const NotificationRepository = (db: Firestore) => {
         listenToNotifications(userId: string, onUpdate: (notifications: Notification[]) => void): Unsubscribe {
             try {
                 const colRef = createNotificationsCollection(userId);
+                const q = query(colRef, orderBy('createdAt', 'desc'));
 
-                return onSnapshot(colRef, (snapshot) => {
+                return onSnapshot(q, (snapshot) => {
                     onUpdate(snapshot.docs.map(doc => doc.data()));
                 }, (error) => {
                     console.error("Failed to listen to notifications:", error);
@@ -47,7 +50,8 @@ export const NotificationRepository = (db: Firestore) => {
         async fetchByUserId(userId: string): Promise<Notification[]> {
             try {
                 const colRef = createNotificationsCollection(userId);
-                const snapshot = await getDocs(colRef);
+                const q = query(colRef, orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(q);
                 return snapshot.docs.map(d => d.data());
             } catch (error) {
                 console.error("Failed to fetch notifications:", error);
