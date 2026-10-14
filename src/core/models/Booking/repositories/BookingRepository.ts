@@ -42,9 +42,7 @@ export const BookingRepository = (db: any) => ({
             const bookingsRef = collectionGroup(db, "bookings").withConverter(bookingConverter);
             const snapshot = await getDocs(query(bookingsRef, where("offer.id", "==", offerId)));
 
-            console.log(`Querying bookings for offer ID: ${offerId}`);
             if (snapshot.empty) return [];
-            console.log(`Fetched ${snapshot.docs.length} bookings for offer ${offerId}`);
             return snapshot.docs.map((docsnap) => docsnap.data());
         } catch (err) {
             console.log("Error fetching offer bookings: ", err);
