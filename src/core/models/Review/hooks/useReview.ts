@@ -1,0 +1,83 @@
+import { useReviewList } from "@/src/core/models/Review/hooks/useReviewList";
+import { Review } from "@/src/core/models/Review/interfaces/Review.types";
+import { useReviewStore } from "@/src/core/models/Review/stores/reviewStore";
+import { newReview } from "@/src/core/models/Review/utils/ReviewFactory";
+import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
+import { router } from "expo-router";
+import { useState } from "react";
+
+
+export type ReviewDomainParams = {
+    reviewId?: string;
+}
+
+export function useReview() {
+    const { profile } = useAuthHook();
+    const { reviews } = useReviewList();
+    const like = useReviewStore(s => s.likeReview);
+    const isLoading = useReviewStore(s => s.isLoading);
+    const error = useReviewStore(s => s.error);
+    const refreshFeed = useReviewStore(s => s.refresh);
+
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const onWriteReviewPress = (id?: string) => {
+        if (id) {
+            router.push({
+                pathname: '/(app)/(main)/review/write',
+                params: { reviewId: id }
+            })
+        } else {
+            router.push({
+                pathname: '/(app)/(main)/review/write',
+            })
+        }
+    }
+
+    const isOwned = (review: Review): boolean => {
+        return review.user.id === profile?.id;
+    }
+
+    const likeReview = async (review: Review) => {
+        try {
+            if (!profile)
+                throw new Error('User must be logged in to like a review')
+
+            let updated = isLiked(review)
+                ? review.likes.filter(u => u.id !== profile.id)
+                : [...review.likes, UserLogic.toSummary(profile)]
+
+            await like(newReview({ ...review, likes: updated }))
+        } catch (error) {
+            console.error(error);
+            setLocalError((error as Error).message)
+        }
+    }
+
+    const isLiked = (review: Review): boolean => {
+        try {
+            if (!profile) return false;
+
+
+            return review.likes.some(r => r.id === profile?.id);
+        } catch (error) {
+            console.error(error);
+            setLocalError((error as Error).message)
+            return false;
+        }
+    }
+
+    const myReviews = reviews.filter(r => isOwned(r));
+
+    return {
+        onWriteReviewPress,
+        isOwned,
+        likeReview,
+        isLiked,
+        refreshFeed,
+        reviews,
+        isLoading,
+        error: error || localError,
+        myReviews
+    }
+}

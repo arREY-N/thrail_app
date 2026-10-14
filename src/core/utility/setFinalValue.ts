@@ -1,6 +1,6 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 
-export interface ISetFinalValue<T> extends TEdit{
+export interface ISetFinalValue<T> extends TEdit<T>{
     objects?: object[];
     fieldConfig: any;
     option?: string;

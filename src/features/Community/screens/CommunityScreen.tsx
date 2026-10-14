@@ -1,0 +1,424 @@
+/**
+ * @file CommunityScreen.tsx
+ * @description Main community feed screen rendering user review cards, sorting filters, collapsible header transition animations, and infinite scroll pagination.
+ */
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    ListRenderItemInfo,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { useFocusEffect } from 'expo-router';
+
+import CustomFAB from '@/src/components/CustomFAB';
+import CustomHeader from '@/src/components/CustomHeader';
+import CustomIcon from '@/src/components/CustomIcon';
+import CustomText from '@/src/components/CustomText';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
+
+import PostCard from '@/src/components/PostCard';
+import PostCardSkeleton from '@/src/components/PostCardSkeleton';
+import { Colors } from '@/src/constants/colors';
+import { Review } from '@/src/core/models/Review/Review';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { ScrollToTopPill } from '../components/ScrollToTopPill';
+import { useCommunity } from '../hooks/useCommunity';
+
+/**
+ * Props for the CommunityScreen component.
+ * 
+ * @param reviews - Array of review/post data to display in the feed.
+ * @param isLoading - Indicates if the reviews query is currently loading/refreshing.
+ * @param onRefresh - Callback triggered on pull-to-refresh action.
+ * @param onLeaderboardPress - Callback to navigate to the leaderboard screen.
+ * @param likeReview - Callback to toggle likes on reviews.
+ * @param isLiked - Helper function to check if the current user has liked a review.
+ * @param onWriteReviewPress - Callback to edit/write reviews.
+ * @param onGroupPress - Callback for floating action button to create groups.
+ * @param onNotificationPress - Callback to open notification screen.
+ * @param onBookingPress - Callback to open booking screen.
+ * @param onLoadMore - Callback fired when scrolling close to the bottom to fetch more reviews.
+ * @param isFetchingMore - Flag showing if additional pagination pages are fetching.
+ * @param hasMore - Flag indicating if more reviews are available from the backend.
+ * @param isError - Flag showing if the query has failed.
+ * @param onReload - Callback triggered to reload the review feed.
+ */
+export interface CommunityScreenProps {
+    reviews: Review[];
+    isLoading: boolean;
+    onRefresh: () => void;
+    onLeaderboardPress: () => void;
+    likeReview: (review: Review) => void;
+    isLiked: (review: Review) => boolean;
+    onWriteReviewPress: (id?: string) => void;
+    onGroupPress: () => void;
+    onNotificationPress: () => void;
+    onBookingPress: () => void;
+    onLoadMore?: () => void;
+    isFetchingMore?: boolean;
+    hasMore?: boolean;
+    isError?: boolean;
+    onReload?: () => void;
+}
+
+/**
+ * CommunityScreen — Displays user reviews, posts, and leaderboard activities.
+ * Implements smooth absolute scrolling, progressive 5-by-5 pagination loaders, and error reloads.
+ */
+const CommunityScreen: React.FC<CommunityScreenProps> = ({ 
+    reviews, 
+    isLoading, 
+    onRefresh, 
+    onLeaderboardPress,
+    likeReview,
+    isLiked,
+    onWriteReviewPress,
+    onGroupPress,
+    onNotificationPress,
+    onBookingPress,
+    onLoadMore,
+    isFetchingMore: propIsFetchingMore,
+    hasMore: propHasMore,
+    isError = false,
+    onReload,
+}) => {
+    const { 
+        searchQuery, 
+        setSearchQuery, 
+        activeTab, 
+        setActiveTab, 
+        paginatedReviews,
+        hasMore: hookHasMore,
+        isFetchingMore: hookIsFetchingMore,
+        handleLoadMore: hookHandleLoadMore,
+        resetPagination,
+    } = useCommunity(reviews);
+
+    const effectiveIsFetchingMore = propIsFetchingMore !== undefined ? propIsFetchingMore : hookIsFetchingMore;
+    const effectiveHasMore = propHasMore !== undefined ? propHasMore : hookHasMore;
+
+    // Header animated scroll visibility states
+    const [headerVisible, setHeaderVisible] = useState<boolean>(true);
+    const [showScrollTopPill, setShowScrollTopPill] = useState<boolean>(false);
+    const lastOffsetY = useRef<number>(0);
+    const isScrollingToTop = useRef<boolean>(false);
+    const [animatedHeaderHeight] = useState(() => new Animated.Value(1)); // 1 = visible, 0 = hidden
+
+    useEffect(() => {
+        Animated.timing(animatedHeaderHeight, {
+            toValue: headerVisible ? 1 : 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    }, [headerVisible, animatedHeaderHeight]);
+
+    const translateY = animatedHeaderHeight.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-260, 0], // Fully slide header off-screen vertically
+    });
+
+    useFocusEffect(
+        useCallback(() => {
+            setHeaderVisible(true);
+        }, [])
+    );
+
+    const flatListRef = useRef<FlatList>(null);
+
+    const handleTabSelect = (tab: string) => {
+        setActiveTab(tab);
+        setShowScrollTopPill(false);
+        const shouldAnimate = lastOffsetY.current < 3000;
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: shouldAnimate });
+    };
+
+    const handleScrollToTop = useCallback(() => {
+        isScrollingToTop.current = true;
+        setHeaderVisible(true);
+        setShowScrollTopPill(false);
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        setTimeout(() => {
+            isScrollingToTop.current = false;
+        }, 800);
+    }, []);
+
+    const handleRefresh = useCallback(() => {
+        resetPagination();
+        onRefresh();
+    }, [resetPagination, onRefresh]);
+    
+    const { isDesktop, isTablet } = useBreakpoints();
+    const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
+
+    const renderPostCard = useCallback(({ item }: ListRenderItemInfo<Review>) => (
+        <PostCard 
+            review={item}
+            variant="community"
+            onLike={() => likeReview(item)}
+            isLiked={isLiked}
+            onEdit={() => onWriteReviewPress(item.id)}
+        />
+    ), [likeReview, isLiked, onWriteReviewPress]);
+
+    const handleLoadMore = useCallback(() => {
+        if (effectiveHasMore && !effectiveIsFetchingMore && !isError) {
+            if (onLoadMore) {
+                onLoadMore();
+            } else {
+                hookHandleLoadMore();
+            }
+        }
+    }, [effectiveHasMore, effectiveIsFetchingMore, isError, onLoadMore, hookHandleLoadMore]);
+
+    const renderFooter = useCallback(() => {
+        if (effectiveIsFetchingMore) {
+            return (
+                <View style={styles.footerLoaderContainer}>
+                    <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                </View>
+            );
+        }
+        if (isError && reviews.length > 0) {
+            return (
+                <View style={styles.footerLoaderContainer}>
+                    <TouchableOpacity 
+                        style={styles.retryButton} 
+                        onPress={handleLoadMore}
+                        activeOpacity={0.7}
+                    >
+                        <CustomText style={styles.retryButtonText}>
+                            Failed to load more. Tap to retry
+                        </CustomText>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        if (!effectiveHasMore && reviews.length > 0) {
+            return (
+                <View style={styles.footerLoaderContainer}>
+                    <CustomText style={styles.emptyStateText}>
+                        No more posts to show.
+                    </CustomText>
+                </View>
+            );
+        }
+        return null;
+    }, [effectiveIsFetchingMore, isError, reviews.length, handleLoadMore, effectiveHasMore]);
+
+    const renderEmptyComponent = useCallback(() => {
+        if (isLoading) {
+            return (
+                <View style={{ gap: 16 }}>
+                    <PostCardSkeleton />
+                    <PostCardSkeleton />
+                    <PostCardSkeleton />
+                </View>
+            );
+        }
+        if (isError) {
+            return (
+                <View style={styles.emptyStateContainer}>
+                    <CustomIcon library="Feather" name="alert-triangle" size={32} color={Colors.GRAY_MEDIUM} />
+                    <CustomText variant="caption" style={styles.emptyStateText}>
+                        Failed to load community reviews.
+                    </CustomText>
+                    <TouchableOpacity 
+                        style={styles.mainRetryButton} 
+                        onPress={onReload || onRefresh}
+                        activeOpacity={0.7}
+                    >
+                        <CustomText style={styles.mainRetryButtonText}>
+                            Reload Feed
+                        </CustomText>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyStateContainer}>
+                <CustomIcon library="Ionicons" name="trail-sign-outline" size={32} color={Colors.GRAY_MEDIUM} />
+                <CustomText variant="caption" style={styles.emptyStateText}>
+                    {searchQuery ? "No posts found matching search." : "No community posts found."}
+                </CustomText>
+            </View>
+        );
+    }, [isLoading, isError, onReload, onRefresh, searchQuery]);
+
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (isScrollingToTop.current) return;
+
+        const currentOffsetY = event.nativeEvent.contentOffset.y;
+
+        if (currentOffsetY > 150) {
+            setShowScrollTopPill(true);
+        } else if (currentOffsetY <= 50) {
+            setShowScrollTopPill(false);
+        }
+
+        if (currentOffsetY <= 50) {
+            setHeaderVisible(true);
+            lastOffsetY.current = currentOffsetY;
+            return;
+        }
+        const diff = currentOffsetY - lastOffsetY.current;
+        
+        // Ignore layout size reflow changes / jumps
+        if (Math.abs(diff) > 100) {
+            lastOffsetY.current = currentOffsetY;
+            return;
+        }
+
+        if (diff > 15 && headerVisible) {
+            setHeaderVisible(false);
+        } else if (diff < -15 && !headerVisible) {
+            setHeaderVisible(true);
+        }
+        lastOffsetY.current = currentOffsetY;
+    }, [headerVisible]);
+
+    return (
+        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+            <View style={styles.container}>
+                
+                <Animated.View style={[
+                    styles.headerAnimatedWrapper,
+                    { transform: [{ translateY }] }
+                ]}>
+                    <CustomHeader 
+                        title="Community"
+                        showDefaultIcons={true}
+                        hasSearch={true}
+                        searchProps={{
+                            searchPlaceholder: "Search posts or hikers...",
+                            searchValue: searchQuery,
+                            onSearchChange: setSearchQuery,
+                            onChangeText: setSearchQuery,
+                            rightIconLibrary: "MaterialCommunityIcons",
+                            rightIconName: "podium",
+                            onRightButtonPress: onLeaderboardPress,
+                            tabs: [
+                                'Latest', 
+                                'Popular',
+                                'Rating'
+                            ],
+                            activeTab: activeTab,
+                            onTabSelect: handleTabSelect
+                        }}
+                    />
+                </Animated.View>
+
+                <View style={styles.feedWrapper}>
+                    <FlatList
+                        ref={flatListRef}
+                        data={paginatedReviews}
+                        keyExtractor={(item, index) => item.id || `post-${index}`}
+                        contentContainerStyle={[
+                            styles.scrollContent,
+                            { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%', paddingTop: 215 }
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={Colors.PRIMARY} />
+                        }
+                        renderItem={renderPostCard}
+                        scrollEventThrottle={16}
+                        onScroll={handleScroll}
+                        initialNumToRender={5}
+                        maxToRenderPerBatch={5}
+                        windowSize={5}
+                        removeClippedSubviews={Platform.OS !== 'web'}
+                        updateCellsBatchingPeriod={30}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={renderFooter}
+                        ListEmptyComponent={renderEmptyComponent}
+                    />
+                </View>
+
+                <ScrollToTopPill
+                    visible={showScrollTopPill}
+                    onPress={handleScrollToTop}
+                    animatedHeaderHeight={animatedHeaderHeight}
+                />
+
+                <CustomFAB onPress={onGroupPress} />
+
+            </View>
+        </ScreenWrapper>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND, 
+    },
+    headerAnimatedWrapper: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+    },
+    feedWrapper: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 48,
+        paddingHorizontal: 16,
+        gap: 16
+    },
+    emptyStateContainer: {
+        paddingTop: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        gap: 12,
+    },
+    emptyStateText: {
+        color: Colors.TEXT_PLACEHOLDER,
+        fontStyle: 'italic',
+        fontSize: 16,
+    },
+    footerLoaderContainer: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    retryButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    retryButtonText: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+    },
+    mainRetryButton: {
+        marginTop: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        backgroundColor: Colors.PRIMARY,
+    },
+    mainRetryButtonText: {
+        fontSize: 14,
+        color: Colors.WHITE,
+        fontWeight: 'bold',
+    },
+});
+
+export default CommunityScreen;

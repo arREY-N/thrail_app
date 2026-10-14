@@ -1,13 +1,18 @@
+import { useAuthStore } from "@/src/core/models/User/User";
 import { FileRepository } from "@/src/core/repositories/fileRepository";
-import { useAuthStore } from "@/src/core/stores/authStores/authStore";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Alert } from "react-native";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export interface FileState {
     uploadDocument(): Promise<string>;
     capturePhoto(): Promise<string>;
+    selectPhoto(): Promise<string>;
+    reset(): void;
 
     error: string | null;
 }
@@ -15,20 +20,50 @@ export interface FileState {
 export const useFilesStore = create<FileState>()(immer((set, get) => ({
     error: null,
 
-    uploadDocument: async (): Promise<string> => { 
+    reset: () => {
+        set({ error: null });
+    },
+
+    uploadDocument: async (): Promise<string> => {
         try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                throw new Error('Permission to access media library is required!');
+            }
+
             const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*', 
+                type: ['image/*', 'application/pdf'],
                 copyToCacheDirectory: true,
             });
 
             if (!result.canceled) {
                 const { uri, name, mimeType, size } = result.assets[0];
 
+                const isImage = mimeType?.startsWith('image/');
+
+                const isPdf = mimeType === 'application/pdf';
+
+                const extension = name?.split('.').pop()?.toLocaleLowerCase();
+
+                const isAllowedExt = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
+
+
+                if (!isImage && !isPdf && !isAllowedExt) {
+                    Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
+
+                    throw new Error('Only image and PDF files are allowed')
+                }
+
+                if (size && size > MAX_FILE_SIZE_BYTES) {
+                    Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                    throw new Error('File size exceeds the 5MB limit');
+                }
+
                 const selectedFile = { uri, name, mimeType, size };
 
                 const downloadURL = await FileRepository.uploadDocuments(selectedFile);
-                
+
                 if (!downloadURL) {
                     throw new Error('Failed to upload document');
                 }
@@ -39,7 +74,18 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 throw new Error('Document selection canceled');
             }
         } catch (err) {
-            console.error('Error uploading document:', err);
+            const regex = /\(storage\/quota-exceeded\)/g;
+            const matches = (err as Error).message.match(regex);
+            if (matches) {
+                Alert.alert("Quota exceeded error detected. Please check your Firebase storage plan and usage. For now a sample image will be used for testing purposes.");
+                return "https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing"
+            }
+
+            const errMsg = err instanceof Error ? err.message : String(err);
+            const isCanceled = errMsg.toLowerCase().includes('cancel');
+            if (!isCanceled) {
+                console.error('Error uploading document:', err);
+            }
             throw err instanceof Error ? err : new Error('Failed to upload document');
         }
     },
@@ -48,14 +94,14 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
         try {
             const { profile } = useAuthStore.getState();
 
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
-            if(!profile) {
+            if (!profile) {
                 throw new Error('User profile not found. Please log in again.');
             }
 
             if (status !== 'granted') {
-                throw new Error('Permission to access media library is required!');
+                throw new Error('Permission to access camera is required!');
             }
 
             const result = await ImagePicker.launchCameraAsync({
@@ -64,21 +110,26 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 base64: false,
             });
 
-            if(result.canceled) {
+            if (result.canceled) {
                 throw new Error('Photo capture canceled');
             }
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
 
-            const selectedFile = { 
-                uri, 
+            if (size && size > MAX_FILE_SIZE_BYTES) {
+                Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                throw new Error('File size exceeds the 5MB limit');
+            }
+
+            const selectedFile = {
+                uri,
                 name: fileName ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
-                mimeType, 
-                size 
+                mimeType,
+                size
             };
 
             const downloadURL = await FileRepository.uploadDocuments(selectedFile);
-            
+
             if (!downloadURL) {
                 throw new Error('Failed to upload document');
             }
@@ -86,6 +137,67 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
             return downloadURL;
         } catch (error) {
             throw error instanceof Error ? error : new Error('An unexpected error occurred while requesting permissions.');
+        }
+    },
+
+    selectPhoto: async (): Promise<string> => {
+        try {
+            const { profile } = useAuthStore.getState();
+
+            if (!profile) {
+                throw new Error('User profile not found. Please log in again.');
+            }
+
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                throw new Error('Permission to access media library is required!');
+            }
+
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*'],
+                copyToCacheDirectory: true,
+            });
+
+            if (result.canceled) {
+                throw new Error('Photo selection canceled');
+            }
+
+            const { uri, name, mimeType, size } = result.assets[0];
+
+            const isImage = mimeType?.startsWith('image/');
+
+            const extension = name?.split('.').pop()?.toLocaleLowerCase();
+
+            const isAllowedExt = ['png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
+
+            if (!isImage && !isAllowedExt) {
+                Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
+
+                throw new Error('Only image files are allowed')
+            }
+
+            if (size && size > MAX_FILE_SIZE_BYTES) {
+                Alert.alert('File too large', 'Please upload a file smaller than 5MB');
+                throw new Error('File size exceeds the 5MB limit');
+            }
+
+            const selectedFile = {
+                uri,
+                name: name ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
+                mimeType: mimeType ?? 'image/jpeg',
+                size
+            };
+
+            const downloadURL = await FileRepository.uploadDocuments(selectedFile);
+
+            if (!downloadURL) {
+                throw new Error('Failed to upload document');
+            }
+
+            return downloadURL;
+        } catch (error) {
+            throw error instanceof Error ? error : new Error('An unexpected error occurred while selecting photo.');
         }
     }
 })))

@@ -1,16 +1,50 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors } from "@/src/constants/colors";
+import { GlobalStyles } from "@/src/constants/globalStyles";
 import React, { forwardRef, useImperativeHandle } from "react";
 import { StyleSheet, Text, View } from "react-native";
+
+export interface HikerLocation {
+    id?: string;
+    latitude: number;
+    longitude: number;
+    timestamp?: Date | string | number;
+    altitude?: number | null;
+    status?: string;
+    hikerName?: string;
+}
+
+export interface TrailMapProps {
+    initialLon?: number | string | (number | string)[];
+    initialLat?: number | string | (number | string)[];
+    showControls?: boolean;
+    showRecenter?: boolean;
+    bottomInset?: number;
+    compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
+    hikerLocations?: HikerLocation[];
+    currentUserId?: string;
+}
+
+export interface TrailMapRef {
+    centerOnUser: () => void;
+    centerOnCoordinate: (lon: number, lat: number) => void;
+    flyTo?: (options: { center: [number, number]; zoom?: number; duration?: number }) => void;
+    toggleOffline: () => void;
+    exportHikeData: () => void;
+    startBackgroundTracking?: () => Promise<void>;
+    stopBackgroundTracking?: () => Promise<void>;
+}
 
 /**
  * Premium Web Fallback for TrailMap.
  * Expo/Metro will automatically serve this file when running on Platform.OS === 'web'
  * bypassing MapLibreGL completely to avoid native crashes.
  */
-const TrailMap = forwardRef(({ bottomInset = 0 }: any, ref) => {
+const TrailMap = forwardRef<TrailMapRef, TrailMapProps>(({ bottomInset = 0 }, ref) => {
     useImperativeHandle(ref, () => ({
         centerOnUser: () => console.log("Web: centerOnUser ignored"),
+        centerOnCoordinate: () => console.log("Web: centerOnCoordinate ignored"),
+        flyTo: () => console.log("Web: flyTo ignored"),
         toggleOffline: () => console.log("Web: toggleOffline ignored"),
         exportHikeData: () => console.log("Web: exportHikeData ignored"),
     }));
@@ -31,6 +65,8 @@ const TrailMap = forwardRef(({ bottomInset = 0 }: any, ref) => {
     );
 });
 
+TrailMap.displayName = "TrailMap";
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -49,8 +85,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         
-        boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.04)',
-    } as any,
+        ...GlobalStyles.dropShadow(12, 0.04, Colors.SHADOW, { radius: 24 }),
+    },
     iconRing: {
         width: 80,
         height: 80,

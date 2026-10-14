@@ -1,0 +1,24 @@
+#!/bin/sh
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+echo "🔄 Git Hook Triggered: Switched to $current_branch"
+
+if [ "$current_branch" = "main" ]; then
+    echo "⚡ Switching to Production Firebase..."
+    firebase use default
+    echo "📄 Copying .env.production to .env.local..."
+    cp .env.production .env.local
+elif [ "$current_branch" = "qa" ] || [ "$current_branch" = "staging" ]; then
+    echo "🧪 Switching to Sandbox Firebase..."
+    firebase use staging
+    echo "📄 Copying .env.preview to .env.local..."
+    cp .env.preview .env.local
+else
+    echo "🧪 Switching to Sandbox Firebase (Fallback)..."
+    firebase use staging
+    echo "📄 Copying .env.preview to .env.local..."
+    cp .env.preview .env.local
+fi
+
+echo "✅ Environment update complete!"
+exit 0

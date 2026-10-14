@@ -1,0 +1,11 @@
+import { IPaymentSummary, Payment } from "@/src/core/models/Payment/interfaces/Payment.types";
+
+export const PaymentLogic = {
+    toSummary(payment: Payment): IPaymentSummary<Date> {
+        return {
+            id: payment.id,
+            date: payment.receipt.date,
+            amount: payment.receipt.amount,
+        };
+    },
+};

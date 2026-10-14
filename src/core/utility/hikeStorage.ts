@@ -12,10 +12,10 @@ export const CSV_FILE_URI =
   (documentDirectory as string) + "thrail_current_hike.csv";
 
 /**
- * Saves a new GPS coordinate row to the CSV file.
- * Used internally by the background location task.
+ * Saves a new GPS coordinate row to local device storage.
+ * Used for session crash recovery and offline trail data backup.
  */
-export const saveToCSV = async (
+export const saveLocalTrackPoint = async (
   lat: number | string,
   lon: number | string,
   alt: number | string,
@@ -34,11 +34,14 @@ export const saveToCSV = async (
     }
 
     await writeAsStringAsync(CSV_FILE_URI, currentContent + newRow);
-    console.log("💾 Saved to CSV:", newRow.trim());
+    console.log("💾 [LocalTrack] Saved point:", newRow.trim());
   } catch (error) {
-    console.log("Error saving to CSV:", error);
+    console.log("Error saving track point locally:", error);
   }
 };
+
+/** Backwards-compatibility alias */
+export const saveToCSV = saveLocalTrackPoint;
 
 /**
  * Loads and parses the latest continuous session recorded in the CSV.

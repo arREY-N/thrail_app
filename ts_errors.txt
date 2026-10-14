@@ -1,0 +1,109 @@
+﻿node_modules/react-native-gifted-chat/src/Bubble/index.tsx(376,8): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'false | "" | ViewStyle | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | RegisteredStyle<...> | RecursiveArray<...> | null | undefined' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[] | null' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>>'.
+          The types returned by 'pop()' are incompatible between these types.
+            Type 'TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+              Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+                Type 'TextStyle' is not assignable to type 'ViewStyle'.
+                  Types of property 'cursor' are incompatible.
+                    Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+                      Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[] | null' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type '(TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>)[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>>'.
+          The types returned by 'pop()' are incompatible between these types.
+            Type 'TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | StyleProp<...>' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+              Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+                Type 'TextStyle' is not assignable to type 'ViewStyle'.
+                  Types of property 'cursor' are incompatible.
+                    Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+                      Type 'string' is not assignable to type 'CursorValue | undefined'.
+node_modules/react-native-gifted-chat/src/Composer.tsx(76,72): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'ViewStyle' is not assignable to type 'TextStyle'.
+      Types of property 'userSelect' are incompatible.
+        Type 'string | undefined' is not assignable to type '"text" | "none" | "auto" | "contain" | "all" | undefined'.
+          Type 'string' is not assignable to type '"text" | "none" | "auto" | "contain" | "all" | undefined'.
+node_modules/react-native-gifted-chat/src/Message/index.tsx(179,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'false | "" | ViewStyle | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | RegisteredStyle<...> | RecursiveArray<...> | null | undefined' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'false | "" | ViewStyle | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | RegisteredStyle<...> | RecursiveArray<...> | null | undefined' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+node_modules/react-native-gifted-chat/src/Time.tsx(56,11): error TS2322: Type 'false | "" | ViewStyle | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | RegisteredStyle<...> | RecursiveArray<...> | null | undefined' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'ViewStyle' is not assignable to type 'TextStyle'.
+      Types of property 'userSelect' are incompatible.
+        Type 'string | undefined' is not assignable to type '"text" | "none" | "auto" | "contain" | "all" | undefined'.
+          Type 'string' is not assignable to type '"text" | "none" | "auto" | "contain" | "all" | undefined'.
+node_modules/react-native-zoom-reanimated/src/index.tsx(1060,21): error TS2322: Type 'DefaultStyle' is not assignable to type 'false | "" | (false & Partial<CSSAnimationProperties> & Partial<CSSTransitionProperties>) | ("" & Partial<...> & Partial<...>) | ... 14 more ... | undefined'.
+  Type 'TextStyle' is not assignable to type 'false | "" | (false & Partial<CSSAnimationProperties> & Partial<CSSTransitionProperties>) | ("" & Partial<...> & Partial<...>) | ... 14 more ... | undefined'.
+    Type 'TextStyle' is not assignable to type '(false & Partial<CSSAnimationProperties> & Partial<CSSTransitionProperties>) | ("" & Partial<CSSAnimationProperties> & Partial<...>) | ... 12 more ... | readonly (false | ... 15 more ... | undefined)[]'.
+      Type 'TextStyle' is not assignable to type '{ backfaceVisibility?: MaybeSharedValue<"visible"> | MaybeSharedValue<"hidden"> | undefined; backgroundColor?: string | OpaqueColorValue | SharedValueDisableContravariance<...> | SharedValueDisableContravariance<...> | { ...; } | undefined; ... 171 more ...; translateY?: number | ... 4 more ... | undefined; }'.
+        Types of property 'cursor' are incompatible.
+          Type 'string | undefined' is not assignable to type '"auto" | "pointer" | SharedValueDisableContravariance<"auto"> | SharedValueDisableContravariance<"pointer"> | undefined'.
+            Type 'string' is not assignable to type '"auto" | "pointer" | SharedValueDisableContravariance<"auto"> | SharedValueDisableContravariance<"pointer"> | undefined'.
+src/app/(auth)/tempHike.tsx(8,17): error TS2740: Type '{}' is missing the following properties from type 'NavigationScreenProps': upcomingBookings, groups, searchQuery, filteredTrails, and 8 more.
+src/app/(main)/admin/offer/list.tsx(45,17): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/(main)/superadmin/_layout.tsx(24,44): error TS2345: Argument of type '"trail"' is not assignable to parameter of type 'never'.
+src/core/hook/hike/useHikeWrite.ts(104,17): error TS2741: Property 'location' is missing in type '{ id: string; name: string; }' but required in type 'ITrailSummary'.
+src/core/models/Booking/logic/Booking.logic.ts(34,9): error TS2741: Property 'location' is missing in type '{ id: string; name: string; }' but required in type 'ITrailSummary'.
+src/core/stores/dummy/dummyBookings.ts(19,3): error TS2741: Property 'id' is missing in type '{ date: Date; price: number; }' but required in type 'Pick<IOfferBase<Date>, "id" | "date" | "price">'.
+src/core/stores/dummy/dummyBookings.ts(23,3): error TS2739: Type '{ id: string; username: string; firstname: string; lastname: string; email: string; }' is missing the following properties from type 'IUserBooking<Date>': birthday, phoneNumber
+src/core/stores/dummy/dummyBookings.ts(28,3): error TS2741: Property 'location' is missing in type '{ id: string; name: string; }' but required in type 'ITrailSummary'.
+src/core/stores/dummy/dummyBookings.ts(31,5): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'IPayment<Date>'.
+src/core/stores/dummy/dummyBookings.ts(46,3): error TS2741: Property 'id' is missing in type '{ date: Date; price: number; }' but required in type 'Pick<IOfferBase<Date>, "id" | "date" | "price">'.
+src/core/stores/dummy/dummyBookings.ts(50,3): error TS2739: Type '{ id: string; username: string; firstname: string; lastname: string; email: string; }' is missing the following properties from type 'IUserBooking<Date>': birthday, phoneNumber
+src/core/stores/dummy/dummyBookings.ts(55,3): error TS2741: Property 'location' is missing in type '{ id: string; name: string; }' but required in type 'ITrailSummary'.
+src/core/stores/dummy/dummyBookings.ts(58,5): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'IPayment<Date>'.
+src/core/stores/dummy/dummyBookings.ts(63,5): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'IPayment<Date>'.
+src/core/stores/dummy/dummyBookings.ts(77,3): error TS2741: Property 'id' is missing in type '{ date: Date; price: number; }' but required in type 'Pick<IOfferBase<Date>, "id" | "date" | "price">'.
+src/core/stores/dummy/dummyBookings.ts(81,3): error TS2739: Type '{ id: string; username: string; firstname: string; lastname: string; email: string; }' is missing the following properties from type 'IUserBooking<Date>': birthday, phoneNumber
+src/core/stores/dummy/dummyBookings.ts(86,3): error TS2741: Property 'location' is missing in type '{ id: string; name: string; }' but required in type 'ITrailSummary'.
+src/core/stores/dummy/dummyBookings.ts(89,5): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'IPayment<Date>'.
+src/core/stores/dummy/dummyHike.ts(8,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(24,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(40,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(57,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(73,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(89,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(106,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(123,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(139,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyHike.ts(155,3): error TS2561: Object literal may only specify known properties, but 'trailId' does not exist in type 'Partial<IHike>'. Did you mean to write 'trail'?
+src/core/stores/dummy/dummyReviews.ts(20,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(39,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(58,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(77,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(96,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(115,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(134,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(153,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(172,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyReviews.ts(191,3): error TS2353: Object literal may only specify known properties, and 'hike' does not exist in type 'Partial<IReview>'.
+src/core/stores/dummy/dummyTrails.ts(6,3): error TS2739: Type '{ name: string; address: string; province: string[]; mountain: string[]; rating: number; reviewCount: number; }' is missing the following properties from type 'IGeneral': active, description, guidelines
+src/core/stores/dummy/dummyTrails.ts(17,3): error TS2739: Type '{ name: string; address: string; province: string[]; mountain: string[]; rating: number; reviewCount: number; }' is missing the following properties from type 'IGeneral': active, description, guidelines
+src/core/stores/dummy/dummyTrails.ts(28,3): error TS2739: Type '{ name: string; address: string; province: string[]; mountain: string[]; rating: number; reviewCount: number; }' is missing the following properties from type 'IGeneral': active, description, guidelines
+src/core/stores/recommendationsStore.ts(67,5): error TS2322: Type '(property: Property) => void' is not assignable to type '(property: TEdit<Recommendation>) => void'.
+  Types of parameters 'property' and 'property' are incompatible.
+    Type 'TEdit<Recommendation>' is missing the following properties from type 'Property': key, type

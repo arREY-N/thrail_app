@@ -1,48 +1,24 @@
-import { ILocation, ILocationDB } from "@/src/core/models/Location/Location.types";
-import { toDate } from "@/src/core/utility/date";
-import { FirestoreDataConverter, GeoPoint, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+// TYPES
+export * from "@/src/core/models/Location/interfaces/Location.types";
 
-export class Location implements ILocation {
-    id?: string;
-    latitude: number = 0;
-    longitude: number = 0;
-    altitude: number = 0;
-    status: 'ACTIVE' | 'APP_BACKGROUNDED' | 'APP_RESUMED' | 'GPS_SIGNAL_RESTORED' | 'GPS_SIGNAL_LOST' = 'ACTIVE';
-    timestamp: Date = new Date();
+// FACTORY & CONVERTER
+export {
+    locationConverter,
+    newLocation
+} from "@/src/core/models/Location/utils/LocationFactory";
 
-    constructor(init?: Partial<ILocation>) {
-        Object.assign(this, init);
-    }
+// STORES
+export {
+    useLocationsStore, useLocationStore
+} from "@/src/core/models/Location/stores/locationStore";
 
-    static fromFirestore(data: ILocationDB): Location {
-        const mapped: ILocation = {
-            ...data,
-            latitude: data.point.latitude,
-            longitude: data.point.longitude,
-            timestamp: data.timestamp ? toDate(data.timestamp) : new Date(),
-        }
+// HOOKS
+export { useLocation } from "@/src/core/models/Location/hooks/useLocation";
+export { useLocationItem } from "@/src/core/models/Location/hooks/useLocationItem";
+export { useLocationList } from "@/src/core/models/Location/hooks/useLocationList";
 
-        return new Location(mapped)
-    }
+// REPOSITORIES
+export { LocationRepo, LocationRepository } from "@/src/core/models/Location/repositories/LocationRepository";
 
-    toFirestore(): ILocationDB {
-        const mapped: ILocationDB = {
-            status: this.status,
-            point: new GeoPoint(this.latitude, this.longitude),
-            altitude: this.altitude,
-            timestamp: this.timestamp ? Timestamp.fromDate(this.timestamp) : serverTimestamp(),
-        };
-
-        return mapped;
-    }
-}
-
-export const locationConverter: FirestoreDataConverter<Location> = {
-    toFirestore: (location: Location) => {
-        return location.toFirestore();
-    },
-    fromFirestore: (snapshot: QueryDocumentSnapshot): Location => {
-        const data = snapshot.data() as ILocationDB;
-        return Location.fromFirestore(data);
-    }
-}
+// utils
+export { getReverseGeocode } from "@/src/core/models/Location/utils/GetLocationName";

@@ -56,13 +56,12 @@
     "public": "dist",
     "ignore": [
       "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      "**/.*"
     ],
     "rewrites": [
       {
         "source": "**",
-        "destination": "/maintenance.html"
+        "destination": "/index.html"
       }
     ]
   }

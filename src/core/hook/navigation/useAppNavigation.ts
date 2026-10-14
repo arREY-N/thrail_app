@@ -5,89 +5,133 @@ import { router } from "expo-router";
 export function useAppNavigation() {
     const onTrailPress = (id: string) => {
         router.push({
-            pathname: '/(main)/trail/view',
-            params: { trailId: id},
+            pathname: '/trail/view',
+            params: { trailId: id },
         })
     }
 
     const onBackPress = () => {
-        router.back();
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/');
+        }
+    };
+
+    const onUserViewPress = (id?: string) => {
+        if (!id) return;
+        router.push({
+            pathname: '/user/view',
+        });
     };
 
     const onDownloadPress = (id: string) => {
         console.log('Downloading: ', id);
     }
 
-    const onSignUpPress = () => {
-        router.replace('/(auth)/signup');
-    }
-
-    const onLogIn = () => {
-        router.replace('/(auth)/login');
-    }
 
     const onNotificationPress = () => {
-        router.push('/(main)/home/notification');
+        router.push('/home/notification');
     }
 
     const onBookingPress = () => {
-        router.push('/(main)/book/list');
+        router.push('/book/list');
     }
 
     const onWeatherPress = () => {
-        router.push('/(main)/home/weather')
+        router.push('/home/weather')
     }
 
-    const onViewAllRecommendationPress = () => {
+    const onSeeMoreRecommendationsPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'recommendations'}
+            params: { filter: 'recommendations' }
         })
     }
-    
-    const onViewAllTrendingPress = () => {
+
+    const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending'}
+            params: { filter: 'trending' }
+        })
+    }
+
+    const onSeeMoreOffersPress = () => {
+        router.replace({
+            pathname: '/explore',
+            params: { filter: 'offers' }
         })
     }
 
     const onGroupPress = () => {
         router.push({
-            pathname: '/(main)/group/list',
+            pathname: '/group/list',
         })
     }
 
     const onLeaderBoardPress = () => {
         router.push({
-            pathname: '/(main)/leaderboard/view',
+            pathname: '/leaderboard/view',
+        })
+    }
+
+    const onProfilePress = () => {
+        router.replace({
+            pathname: '/profile',
         })
     }
 
     const onSettingsPress = () => {
         router.push({
-            pathname: '/(main)/settings',
+            pathname: '/settings',
         })
     }
 
-    const onLanding = () => {
-        router.replace('/(auth)/landing');
+
+    const onSecuritySettingsPress = () => {
+        router.push('/settings/security');
+    }
+
+    const onPrivacySettingsPress = () => {
+        router.push('/settings/privacy');
+    }
+
+    const onAboutSettingsPress = () => {
+        router.push('/settings/about');
+    }
+
+    const onTestSettingsPress = () => {
+        router.push('/settings/test');
+    }
+
+    const onHelpSettingsPress = () => {
+        router.push('/settings/help');
+    }
+
+    const onHikingPreferencesPress = () => {
+        router.push('/settings/preferences');
     }
 
     return {
-        onLanding,
         onTrailPress,
         onBackPress,
         onDownloadPress,
-        onSignUpPress,
-        onLogIn,
-        onBookingPress, 
+        onBookingPress,
         onNotificationPress,
         onWeatherPress,
-        onViewAllRecommendationPress,
-        onViewAllTrendingPress,
+        onSeeMoreRecommendationsPress,
+        onSeeMoreDiscoverPress,
+        onSeeMoreOffersPress,
         onGroupPress,
         onLeaderBoardPress,
-        onSettingsPress
+        onProfilePress,
+        onSettingsPress,
+        onSecuritySettingsPress,
+        onPrivacySettingsPress,
+        onAboutSettingsPress,
+        onTestSettingsPress,
+        onHelpSettingsPress,
+        onHikingPreferencesPress,
+        onUserViewPress
     }
 }

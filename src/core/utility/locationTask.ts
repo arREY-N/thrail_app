@@ -1,29 +1,87 @@
-import { Location } from "@/src/core/models/Location/Location";
-import { useHikesStore } from "@/src/core/stores/hikeStores/hikesStore";
+import { Platform } from "react-native";
+import { useHikeStore } from "@/src/core/models/Hike/Hike";
+import { newLocation } from "@/src/core/models/Location/Location";
 import * as TaskManager from "expo-task-manager";
 
 
 export const LOCATION_TASK = "background-location-task";
 
-// ✅ Background task defined strictly as a utility module
-TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
-  const addCoordinate = useHikesStore.getInitialState().addCoordinate;
+interface LocationTaskPayload {
+  locations?: {
+    coords: {
+      latitude: number;
+      longitude: number;
+      altitude?: number | null;
+      accuracy?: number | null;
+    };
+    timestamp: number;
+  }[];
+}
 
-  if (error) return;
-  const { locations } = data;
-  const location = locations[0];
+// ✅ Background task defined strictly as a utility module (native only)
+if (Platform.OS !== 'web') {
+  TaskManager.defineTask<LocationTaskPayload>(
+    LOCATION_TASK,
+    async ({ data, error }: TaskManager.TaskManagerTaskBody<LocationTaskPayload>) => {
+    if (error) {
+      console.error('[locationTask] Background location task error:', error);
+      return;
+    }
+    try {
+      const rawLocations = data?.locations;
+      if (!rawLocations || rawLocations.length === 0) return;
 
-  const lat = location.coords.latitude;
-  const lon = location.coords.longitude;
-  const alt = location.coords.altitude ?? 0;
-  const timestamp = new Date(location.timestamp).toISOString();
+      // Ensure Zustand persistence rehydration has completed in headless mode
+      if (useHikeStore.persist && !useHikeStore.persist.hasHydrated()) {
+        await useHikeStore.persist.rehydrate();
+      }
 
-  // await saveToCSV(lat, lon, alt, timestamp);
-  addCoordinate(new Location({
-    latitude: lat,
-    longitude: lon,
-    altitude: alt,
-    timestamp: new Date(timestamp),
-    status: 'APP_BACKGROUNDED',
-  }));
-});
+      const { active, currentHike } = useHikeStore.getState();
+      if (!active || !currentHike || (currentHike.status !== 'started' && currentHike.status !== 'paused')) {
+        return;
+      }
+
+      const addCoordinate = useHikeStore.getState().addCoordinate;
+
+      // Sort batch ascending by timestamp to preserve temporal continuity
+      const sortedLocations = [...rawLocations].sort((a, b) => a.timestamp - b.timestamp);
+
+      for (const location of sortedLocations) {
+        const lat = location.coords.latitude;
+        const lon = location.coords.longitude;
+        const alt = location.coords.altitude;
+        const accuracy = location.coords.accuracy;
+
+        // Strictly validate coordinates and reject Null Island / corrupted fixes
+        if (
+          typeof lat !== 'number' ||
+          typeof lon !== 'number' ||
+          isNaN(lat) ||
+          isNaN(lon) ||
+          (lat === 0 && lon === 0) ||
+          lat < -90 || lat > 90 ||
+          lon < -180 || lon > 180
+        ) {
+          continue;
+        }
+
+        // Apply quality filter: reject zero, negative, or wild scatter fixes > 25m
+        if (accuracy == null || accuracy <= 0 || accuracy > 25) {
+          continue;
+        }
+
+        const timestamp = new Date(location.timestamp).toISOString();
+
+        await addCoordinate(newLocation({
+          latitude: lat,
+          longitude: lon,
+          altitude: alt ?? undefined,
+          timestamp: new Date(timestamp),
+          status: 'APP_BACKGROUNDED',
+        }));
+      }
+    } catch (err) {
+      console.error('[locationTask] Failed to log background coordinates batch:', err);
+    }
+  });
+}

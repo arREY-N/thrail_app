@@ -2,20 +2,28 @@ const admin = require("firebase-admin");
 const {setGlobalOptions} = require("firebase-functions/v2");
 const { https } = require("firebase-functions/v2");
 const { HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
+const { defineSecret, defineString } = require("firebase-functions/params");
 const functions = require('firebase-functions/v1')
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
-const cors = require('cors')({origin: true});
-const { FieldPath } = admin.firestore;
-const { CloudTasksClient } = require('@google-cloud/tasks');
 const { DateTime } = require('luxon');
+const { CloudTasksClient } = require('@google-cloud/tasks');
 
-const tasksClient = new CloudTasksClient();
+let _tasksClient = null;
+function getTasksClient() {
+    if (!_tasksClient) {
+        _tasksClient = new CloudTasksClient();
+    }
+    return _tasksClient;
+}
 
 const paymongoSecret = defineSecret('PAYMONGO_SECRET_KEY');
 const paymongoWebhookSecret = defineSecret('PAYMONGO_WEBHOOK_SECRET'); // Optional
 const { Buffer } = require('buffer');
 const PaymentManager = require('./services/PaymentManager');
+const LoginLimiter = require('./services/LoginLimiter');
+
+// Firebase Web API key (public value) used to verify passwords via the Identity Toolkit REST API.
+const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
 
 admin.initializeApp();
@@ -110,7 +118,7 @@ exports.onAddBooking = functions.firestore
     .onCreate(async (snapshot, context) => {
         try {
             const data = snapshot.data();
-            const { userId, bookingId } = context.params;
+            const { userId } = context.params;
 
             const businessId = data.business?.id;
             if (!businessId) {
@@ -175,15 +183,13 @@ exports.onAddBooking = functions.firestore
             });
 
 
-            const validTokens = tokens.filter((t, i) => {
-                const res = response.responses[i];
-                if (res?.success) return true;
-
-                const error = res?.error?.code;
-                return ![
-                    'messaging/registration-token-not-registered',
-                    'messaging/invalid-registration-token'
-                ].includes(error);
+            // Cleanup invalid tokens if any failed
+            // eslint-disable-next-line no-unused-vars
+            const tokensToRemove = uniqueTokens.filter((token, idx) => {
+                const res = response.responses.at(idx);
+                if (!res || res.success) return false;
+                const error = res.error?.code;
+                return error === 'messaging/registration-token-not-registered' || error === 'messaging/invalid-registration-token';
             });
         } catch (error) {
             throw new HttpsError('internal', 'Error processing new booking: ' + error.message);
@@ -270,7 +276,7 @@ exports.onBookingStatusChange = functions.firestore
                 const project = JSON.parse(process.env.FIREBASE_CONFIG).projectId;
                 const location = 'us-central1'; 
                 const queue = 'booking-reminders';
-                const queuePath = tasksClient.queuePath(project, location, queue);
+                const queuePath = getTasksClient().queuePath(project, location, queue);
 
                 const url = `https://${location}-${project}.cloudfunctions.net/sendUserReminder`;
                 
@@ -295,7 +301,7 @@ exports.onBookingStatusChange = functions.firestore
                             seconds: Math.floor(reminderDateWeek.toSeconds()),
                         },
                     };
-                    await tasksClient.createTask({ parent: queuePath, task: weekTask });
+                    await getTasksClient().createTask({ parent: queuePath, task: weekTask });
                 }
 
                 if (reminderDateDay > DateTime.now()) {
@@ -310,7 +316,7 @@ exports.onBookingStatusChange = functions.firestore
                             seconds: Math.floor(reminderDateDay.toSeconds()),
                         },
                     };
-                    await tasksClient.createTask({ parent: queuePath, task: dayTask });
+                    await getTasksClient().createTask({ parent: queuePath, task: dayTask });
                 }
             }
         } catch (error) {
@@ -385,8 +391,9 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 .update({ fcmTokens: validTokens });
         }
 
-        res.status(200).send('Success')
+        res.status(200).send('Success');
     } catch (error) {
+        console.error('Error in sendUserReminder: ', error);
         res.status(500).send('Internal server error');
     }
 });
@@ -503,7 +510,7 @@ exports.createBusiness = https.onCall(async (request) => {
             const appRef = db.collection('applications').doc(appId);
             const userRef = db.collection('users').doc(userId);
 
-            const [busSnap, appSnap, userSnap] = await Promise.all([
+            const [, appSnap, userSnap] = await Promise.all([
                 transaction.get(busRef),
                 transaction.get(appRef),
                 transaction.get(userRef)
@@ -612,6 +619,19 @@ exports.checkEmail = https.onCall(async (request) => {
 })
 
 /**
+ * Email/password login with server-enforced brute-force protection.
+ * Limits: 5 failures per email, 20 per IP (15 min window) -> 15 min lockout.
+ * On success returns a custom token for signInWithCustomToken on the client.
+ *
+ * @param {Object} request.data - { email: string, password: string }
+ * @returns {Promise<{ token: string }>}
+ * @throws {HttpsError} invalid-argument | unauthenticated | resource-exhausted | permission-denied | internal
+ */
+exports.secureLogin = https.onCall((request) =>
+    LoginLimiter.handleSecureLogin(request, { apiKey: authWebApiKey.value() })
+);
+
+/**
  * Maps raw PayMongo API errors to user-friendly HttpsErrors with localized messaging.
  * Handles specific gateway issues like transaction limits, system downtime, and invalid parameters.
  * 
@@ -636,7 +656,7 @@ function handlePaymongoError(err) {
         let errorBody;
         try {
             errorBody = JSON.parse(jsonStr);
-        } catch (e) {
+        } catch (_e) {
             // Check for HTML/Network level errors (503, 500, 502)
             if (jsonStr.includes('503') || jsonStr.includes('500') || jsonStr.includes('<html>')) {
                 throw new HttpsError('unavailable', 'GCash/Maya is currently experiencing temporary system downtime. Please try again in a few minutes.');
@@ -702,7 +722,8 @@ function handlePaymongoError(err) {
 exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
     const { amount, type, returnUrl, bookingId, userId } = request.data;
 
-    console.log(`[createPaymongoCheckout] Initiating checkout for user ${userId || request.auth?.uid}, booking ${bookingId}`);
+    const targetUserId = userId || request.auth?.uid;
+    console.log(`[createPaymongoCheckout] Initiating checkout for user ${targetUserId}, booking ${bookingId}`);
 
     if (!request.auth) throw new HttpsError('unauthenticated', 'Authentication Required');
     if (!amount || !type || !bookingId) throw new HttpsError('invalid-argument', 'Amount, type, and bookingId are required');
@@ -712,6 +733,41 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
         throw new HttpsError('internal', 'Server configuration error: PayMongo Secret Key missing.');
     }
 
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(targetUserId).collection('bookings').doc(bookingId);
+    const bookingDoc = await bookingRef.get();
+
+    let customerInfo = null;
+    let existingBookingData = null;
+    if (bookingDoc.exists) {
+        existingBookingData = bookingDoc.data();
+        const userObj = existingBookingData?.user || {};
+        const fullName = [userObj.firstname || userObj.firstName || '', userObj.lastname || userObj.lastName || ''].filter(Boolean).join(' ') || userObj.name || userObj.displayName || '';
+        customerInfo = {
+            name: fullName.trim(),
+            email: (userObj.email || '').trim(),
+            phone: (userObj.phone || userObj.phoneNumber || '').trim()
+        };
+    }
+
+    // Fallback: Query user profile doc if email or phone is missing
+    if (!customerInfo?.name || !customerInfo?.email || !customerInfo?.phone) {
+        try {
+            const userProfileDoc = await db.collection('users').doc(targetUserId).get();
+            if (userProfileDoc.exists) {
+                const uData = userProfileDoc.data();
+                const uFullName = [uData?.firstname || uData?.firstName || '', uData?.lastname || uData?.lastName || ''].filter(Boolean).join(' ') || uData?.name || uData?.displayName || '';
+                customerInfo = {
+                    name: customerInfo?.name || uFullName.trim(),
+                    email: customerInfo?.email || (uData?.email || '').trim(),
+                    phone: customerInfo?.phone || (uData?.phone || uData?.phoneNumber || '').trim()
+                };
+            }
+        } catch (uErr) {
+            console.warn('[createPaymongoCheckout] Could not fetch user profile for billing info:', uErr.message);
+        }
+    }
+
     // Initialize provider and register to manager
     const paymongoProvider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
     PaymentManager.registerProvider('paymongo', paymongoProvider);
@@ -719,36 +775,52 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
     const redirectUrl = returnUrl || 'thrailapp://';
 
     try {
-        const session = await PaymentManager.getProvider('paymongo').createCheckout(amount, type, redirectUrl, { bookingId, userId });
+        const session = await PaymentManager.getProvider('paymongo').createCheckout(
+            amount, 
+            type, 
+            redirectUrl, 
+            { bookingId, userId: targetUserId },
+            customerInfo
+        );
         
-        // Update booking to mark it as pending payment
-        await admin.firestore()
-            .collection('users')
-            .doc(userId || request.auth.uid)
-            .collection('bookings')
-            .doc(bookingId)
-            .update({
-                payment: admin.firestore.FieldValue.arrayUnion({
-                    gateway: 'paymongo',
-                    sessionId: session.id,
-                    referenceCode: null,
-                    status: 'pending',
-                    amount: amount,
-                    createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000))
-                }),
-                // Root-level field so the webhook can query by payment_intent_id
-                paymentIntentId: session.paymentIntentId,
-                updatedAt: FieldValue.serverTimestamp()
-            });
+        // Clean up older pending sessions to 'abandoned'
+        const currentPayments = existingBookingData?.payment || [];
+        const updatedPayments = currentPayments.map(p => {
+            if (p.status === 'pending') {
+                return { ...p, status: 'abandoned' };
+            }
+            return p;
+        });
+
+        const channelMethod = type === 'paymaya' ? 'maya' : type;
+        const newPaymentRecord = {
+            gateway: 'paymongo',
+            method: channelMethod,
+            sessionId: session.id,
+            referenceCode: null,
+            status: 'pending',
+            amount: amount,
+            createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000))
+        };
+        updatedPayments.push(newPaymentRecord);
+
+        // Update booking with payment records and paymentIntentIds array
+        await bookingRef.update({
+            payment: updatedPayments,
+            paymentIntentId: session.paymentIntentId, // Root-level for backwards compatibility
+            paymentIntentIds: admin.firestore.FieldValue.arrayUnion(session.paymentIntentId),
+            updatedAt: FieldValue.serverTimestamp()
+        });
 
         const response = {
             gateway: 'paymongo',
+            method: channelMethod,
             sessionId: session.id,
             referenceCode: null,
             status: 'pending',
             amount: amount,
             createdAt: Timestamp.fromDate(new Date(session.createdAt * 1000)),
-            // Included so the frontend can still redirect the user
+            // Included so the frontend can redirect the user
             checkout_url: session.checkout_url
         };
 
@@ -780,21 +852,42 @@ exports.paymongoRedirect = functions.https.onRequest((req, res) => {
     }
     console.log(`[paymongoRedirect] Generating proxy HTML for redirect to: ${targetUrl}`);
 
-    // Using an HTML meta-refresh and JS redirect ensures the app scheme 
-    // is correctly invoked by the WebView, avoiding standard 302 errors.
+    // If opened via window.open on web, notify parent opener, redirect opener, and close popup.
+    // For mobile native WebBrowser, window.opener is absent; redirects via deep link scheme.
+    const safeTargetJson = JSON.stringify(targetUrl);
     const html = `
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta http-equiv="refresh" content="0;url=${targetUrl}">
+            <title>Payment Complete</title>
         </head>
-        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-            <p>Returning to app...</p>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding-top: 60px; color: #1e293b;">
+            <div style="max-width: 400px; margin: 0 auto; padding: 20px;">
+                <h3 style="margin-bottom: 8px;">Payment Successful</h3>
+                <p style="color: #64748b; font-size: 14px;">Returning to your application...</p>
+            </div>
             <script>
-                setTimeout(function() {
-                    window.location.href = "${targetUrl}";
-                }, 100);
+                (function() {
+                    var target = ${safeTargetJson};
+                    try {
+                        if (window.opener && !window.opener.closed) {
+                            try {
+                                window.opener.postMessage({ type: 'PAYMONGO_PAYMENT_SUCCESS', url: target }, '*');
+                            } catch (e) {}
+                            try {
+                                window.opener.location.href = target;
+                            } catch (e) {}
+                            setTimeout(function() {
+                                window.close();
+                            }, 300);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('[paymongoRedirect] Opener communication error:', err);
+                    }
+                    window.location.href = target;
+                })();
             </script>
         </body>
         </html>
@@ -838,45 +931,63 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
     if (event?.data?.attributes?.type === 'payment.paid') {
         const paymentData = event.data.attributes.data.attributes;
         
-        const referenceCode = paymentData.balance_transaction_id || event.data.attributes.data.id;
         const gatewayId = event.data.attributes.data.id;
+        // Prioritize official Payment ID (pay_...) over internal ledger ID (bal_...)
+        const referenceCode = event.data.attributes.data.id || paymentData.balance_transaction_id;
         const amount = paymentData.amount / 100;
 
         // Use payment_intent_id to find the booking.
-        // We store paymentIntentId on the booking document when creating the checkout session.
+        // We store paymentIntentId and paymentIntentIds on the booking document when creating the checkout session.
         const paymentIntentId = paymentData.payment_intent_id;
         console.log(`[paymentWebhook] Looking up booking with paymentIntentId: ${paymentIntentId}, amount: ${amount}`);
 
         if (paymentIntentId) {
             const db = admin.firestore();
-            const bookingsSnapshot = await db.collectionGroup('bookings')
+            let bookingsSnapshot = await db.collectionGroup('bookings')
                 .where('paymentIntentId', '==', paymentIntentId)
                 .get();
+
+            // Fallback: Check paymentIntentIds array
+            if (bookingsSnapshot.empty) {
+                bookingsSnapshot = await db.collectionGroup('bookings')
+                    .where('paymentIntentIds', 'array-contains', paymentIntentId)
+                    .get();
+            }
 
             if (!bookingsSnapshot.empty) {
                 const bookingDoc = bookingsSnapshot.docs[0];
                 const bookingData = bookingDoc.data();
                 console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
 
+                const payments = bookingData.payment || [];
+
+                // Idempotency guard: prevent duplicate captured payments if webhook is retried
+                if (payments.some(p => p.gatewayId === gatewayId && p.status === 'captured')) {
+                    console.log(`[paymentWebhook] Payment ${gatewayId} already captured for booking ${bookingDoc.id}. Skipping duplicate webhook.`);
+                    return res.status(200).send('Already Processed');
+                }
+
                 if (bookingData.status !== 'cancelled') {
                     // 10 days before hike for refund policy
                     const refundableUntil = new Date(bookingData.offer.date.toDate());
                     refundableUntil.setDate(refundableUntil.getDate() - 10);
 
-                    const payments = bookingData.payment || [];
                     const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
-                    
                     const existingSessionId = pendingIdx >= 0 ? payments[pendingIdx].sessionId : null;
-                    
+                    const rawMethod = paymentData.source?.type || paymentData.payment_method_type || (pendingIdx >= 0 ? payments[pendingIdx].method : 'gcash');
+                    const method = rawMethod === 'paymaya' ? 'maya' : rawMethod;
+
                     const capturedPayment = {
                         gateway: 'paymongo',
                         gatewayId: gatewayId,
+                        method: method,
                         sessionId: existingSessionId,
                         referenceCode: referenceCode,
                         status: 'captured',
                         refundableUntil: Timestamp.fromDate(refundableUntil),
                         amount: amount,
-                        createdAt: Timestamp.now()
+                        createdAt: pendingIdx >= 0 && payments[pendingIdx].createdAt ? payments[pendingIdx].createdAt : Timestamp.now(),
+                        capturedAt: Timestamp.now()
                     };
 
                     if (pendingIdx >= 0) {
@@ -887,13 +998,13 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
 
                     // Determine the new booking status based on total paid vs offer price
                     const totalPaid = payments.reduce((sum, p) => {
-                        if (p.status === 'captured' || (p === capturedPayment)) {
+                        if (p.status === 'captured') {
                             return sum + (p.amount || 0);
                         }
                         return sum;
                     }, 0);
                     const offerPrice = bookingData.offer?.price || 0;
-                    const newBookingStatus = totalPaid >= offerPrice ? 'paid' : 'downpayment';
+                    const newBookingStatus = totalPaid >= (offerPrice - 0.01) ? 'paid' : 'downpayment';
 
                     await bookingDoc.ref.update({
                         payment: payments,
@@ -901,8 +1012,13 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                         updatedAt: FieldValue.serverTimestamp()
                     });
 
-                    // Create Payment Receipt Record
+                    // Create Payment Receipt Record in global /payments collection
                     await db.collection('payments').add({
+                        bookingId: bookingDoc.id,
+                        gatewayId: gatewayId,
+                        gateway: 'paymongo',
+                        method: method,
+                        status: 'captured',
                         createdAt: FieldValue.serverTimestamp(),
                         updatedAt: FieldValue.serverTimestamp(),
                         receipt: {
@@ -920,7 +1036,7 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                 } else {
                     // Booking was already cancelled, issue automatic refund!
                     try {
-                        await provider.issueRefund(gatewayId, amount, 'requested_by_customer');
+                        await provider.issueRefund(gatewayId, amount, 'others', 'Auto-refund for cancelled booking');
                         console.log(`Auto-refunded late payment for cancelled booking: ${bookingDoc.id}`);
                     } catch (e) {
                         console.error("Failed to auto-refund cancelled booking", e);
@@ -1010,7 +1126,7 @@ exports.cancelBooking = https.onCall(async (request) => {
  * @throws {HttpsError} 403 if unauthorized, 400 if timeframe expired or gateway error.
  */
 exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
-    const { bookingId, userId, reason, refundPercentage } = request.data;
+    const { bookingId, userId, reason, refundPercentage, customAmount } = request.data;
     const caller = request.auth;
 
     console.log(`[refundBooking] Refund requested for booking ${bookingId} by user ${caller?.uid}`);
@@ -1025,41 +1141,74 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     const data = bookingDoc.data();
 
     const payments = data.payment || [];
-    const capturedPayment = payments.find(p => p.status === 'captured');
 
-    if (!capturedPayment) {
-        throw new HttpsError('failed-precondition', 'Cannot refund a booking that is not captured.');
+    // Concurrency Check: Ensure no refund is already in-flight
+    if (payments.some(p => p.status === 'processing_refund')) {
+        throw new HttpsError('failed-precondition', 'A refund is already in progress for this booking. Please wait.');
+    }
+
+    // Phase 1 / T1.1: Multi-Payment Iteration - Collect all captured payments
+    const capturedPayments = payments.filter(p => p.status === 'captured');
+
+    if (capturedPayments.length === 0) {
+        if (payments.some(p => p.status === 'refunded')) {
+            throw new HttpsError('failed-precondition', 'This booking has already been refunded.');
+        }
+        throw new HttpsError('failed-precondition', 'Cannot refund a booking that has no captured payments.');
     }
 
     // Dual-System Authorization Check
     const adminBusinessId = caller.token.businessId || caller.token.owner;
-    const isAdmin = caller.token.role === 'admin' && adminBusinessId === data.business.id;
+    const isAdmin = caller.token.role === 'admin' && adminBusinessId === data.business?.id;
     const isSuperAdmin = caller.token.role === 'superadmin';
-    const isOwner = caller.uid === data.user.id;
+    const isOwner = caller.uid === data.user?.id;
 
     if (!isAdmin && !isSuperAdmin && !isOwner) {
         throw new HttpsError('permission-denied', 'Not authorized to refund this booking.');
     }
 
-    // User-triggered timeframe check
+    // Custom amount privilege guard: strictly admin/superadmin only
+    if (customAmount !== undefined && customAmount !== null && !isAdmin && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only admins can set a custom refund amount.');
+    }
+
+    // User-triggered timeframe check: check against latest payment's refundable deadline
     if (isOwner && !isAdmin && !isSuperAdmin) {
         const now = Timestamp.now().toDate();
-        const refundableUntil = capturedPayment.refundableUntil ? capturedPayment.refundableUntil.toDate() : new Date(0);
+        const latestCaptured = capturedPayments[capturedPayments.length - 1];
+        const refundableUntil = latestCaptured.refundableUntil ? latestCaptured.refundableUntil.toDate() : new Date(0);
         
         if (now > refundableUntil) {
             throw new HttpsError('failed-precondition', 'The automated refund timeframe has expired. Please contact the organizer.');
         }
     }
 
-    // Execute Refund via PaymentManager
-    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
-    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
-    PaymentManager.registerProvider('paymongo', provider);
+    // Phase 1 / T1.2: Aggregate Bounds Checking across ALL captured installments
+    const totalCapturedAmount = capturedPayments.reduce((sum, p) => {
+        const available = (p.amount || 0) - (p.refundedAmount || 0);
+        return sum + Math.max(0, available);
+    }, 0);
 
-    try {
-        const gatewayId = capturedPayment.gatewayId || capturedPayment.referenceCode;
-        
-        // Calculate Refund Amount
+    if (totalCapturedAmount <= 0) {
+        throw new HttpsError('failed-precondition', 'All captured payments for this booking have already been fully refunded.');
+    }
+
+    // Calculate Refund Amount
+    let refundAmount;
+    let refundLabel;
+
+    if ((isAdmin || isSuperAdmin) && typeof customAmount === 'number' && !isNaN(customAmount) && customAmount > 0) {
+        const parsedCustom = Math.round(customAmount * 100) / 100;
+        if (parsedCustom < 1.00) {
+            throw new HttpsError('invalid-argument', 'Minimum refund amount is ₱1.00.');
+        }
+        if (parsedCustom > totalCapturedAmount) {
+            throw new HttpsError('invalid-argument', `Custom refund amount (₱${parsedCustom.toFixed(2)}) cannot exceed total refundable amount (₱${totalCapturedAmount.toFixed(2)}).`);
+        }
+        refundAmount = parsedCustom;
+        const pct = Math.round((refundAmount / totalCapturedAmount) * 100);
+        refundLabel = `₱${refundAmount.toFixed(2)} (${pct}%)`;
+    } else {
         let multiplier = 0.10; // Normal users are strictly limited to 10%
         if (isAdmin || isSuperAdmin) {
             if (refundPercentage === 'full' || refundPercentage === 1 || refundPercentage === 100) {
@@ -1068,35 +1217,661 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
                 multiplier = 0.10;
             }
         }
-        
-        const refundAmount = capturedPayment.amount * multiplier;
-        const refundLabel = multiplier === 1.0 ? '100%' : '10%';
-        
-        // Ensure reason is one of the accepted PayMongo values
-        const validReasons = ['duplicate', 'fraudulent', 'requested_by_customer', 'others'];
-        const sanitizedReason = validReasons.includes(reason) ? reason : 'requested_by_customer';
-        
-        await PaymentManager.getProvider(capturedPayment.gateway || 'paymongo').issueRefund(gatewayId, refundAmount, sanitizedReason);
+        refundAmount = Math.round((totalCapturedAmount * multiplier) * 100) / 100;
+        refundLabel = multiplier === 1.0 ? '100%' : '10%';
+    }
 
-        capturedPayment.status = 'refunded';
-        capturedPayment.refundedAmount = refundAmount;
+    // Acquire In-Flight Distributed Lock to prevent duplicate charge calls
+    capturedPayments.forEach(p => {
+        p.status = 'processing_refund';
+    });
+    await bookingRef.update({
+        payment: payments.map(p => ({ ...p })),
+        updatedAt: FieldValue.serverTimestamp()
+    });
+
+    // Execute Refund via PaymentManager
+    const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+    const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
+    PaymentManager.registerProvider('paymongo', provider);
+
+    const validReasons = ['duplicate', 'fraudulent', 'others'];
+    const sanitizedReason = validReasons.includes(reason) ? reason : 'others';
+    const refundNotes = reason && reason !== sanitizedReason ? `Reason: ${reason}` : 'Cancellation refund requested';
+
+    try {
+        let remainingToRefund = refundAmount;
+        const refundResults = [];
+
+        // Phase 1 / T1.3 & T1.4: Waterfall Drain Allocation Loop
+        for (const payment of capturedPayments) {
+            if (remainingToRefund <= 0.001) {
+                payment.status = 'captured';
+                continue;
+            }
+
+            const availableInPayment = (payment.amount || 0) - (payment.refundedAmount || 0);
+            if (availableInPayment <= 0.001) {
+                payment.status = 'refunded';
+                continue;
+            }
+
+            const amountToDrain = Math.min(availableInPayment, Math.round(remainingToRefund * 100) / 100);
+
+            // Self-Healing: Resolve true 'pay_' ID from checkout session if missing or bal_txn_
+            let gatewayId = payment.gatewayId;
+            if ((!gatewayId || !gatewayId.startsWith('pay_')) && payment.sessionId) {
+                try {
+                    console.log(`[refundBooking] Attempting to resolve true pay_ ID from sessionId ${payment.sessionId}`);
+                    const sessionData = await provider.getCheckoutSession(payment.sessionId);
+                    const paymentItem = sessionData?.attributes?.payments?.[0];
+                    if (paymentItem?.id && paymentItem.id.startsWith('pay_')) {
+                        gatewayId = paymentItem.id;
+                        payment.gatewayId = gatewayId;
+                        console.log(`[refundBooking] Successfully resolved pay_ ID from session: ${gatewayId}`);
+                    }
+                } catch (sessionErr) {
+                    console.warn(`[refundBooking] Could not resolve payment ID from session ${payment.sessionId}:`, sessionErr.message);
+                }
+            }
+
+            if (!gatewayId && payment.referenceCode?.startsWith('pay_')) {
+                gatewayId = payment.referenceCode;
+            }
+
+            if (!gatewayId || !gatewayId.startsWith('pay_')) {
+                throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refunds require a valid payment ID starting with 'pay_'.`);
+            }
+
+            console.log(`[refundBooking] Draining ₱${amountToDrain} from payment ${gatewayId} (target: ₱${refundAmount}, remaining: ₱${remainingToRefund})`);
+
+            // Phase 1 / T1.4: Execute PayMongo API refund call for this specific payment
+            const refundRes = await PaymentManager.getProvider(payment.gateway || 'paymongo').issueRefund(
+                gatewayId, 
+                amountToDrain, 
+                sanitizedReason, 
+                refundNotes
+            );
+
+            // Phase 1 / T1.5 & Phase 5 / T5.1: Record refundedAmount, refundedAt, and refundReason
+            payment.refundedAmount = (payment.refundedAmount || 0) + amountToDrain;
+            payment.status = payment.refundedAmount >= (payment.amount - 0.01) ? 'refunded' : 'captured';
+            payment.refundedAt = Timestamp.now();
+            payment.refundReason = sanitizedReason;
+
+            remainingToRefund = Math.max(0, Math.round((remainingToRefund - amountToDrain) * 100) / 100);
+            refundResults.push({ gatewayId, amount: amountToDrain, refundId: refundRes?.id });
+        }
+
+        // Restore any untouched payment back to 'captured'
+        capturedPayments.forEach(p => {
+            if (p.status === 'processing_refund') {
+                p.status = 'captured';
+            }
+        });
+
+        // Phase 1 / T1.6: Finalize booking status in Firestore
+        // If all captured payments are fully refunded or target was a 100% full refund, status is 'refunded'
+        const hasRemainingUnrefunded = payments.some(p => p.status === 'captured' && ((p.amount || 0) - (p.refundedAmount || 0)) > 0.01);
+        const finalBookingStatus = hasRemainingUnrefunded ? 'cancelled' : 'refunded';
 
         await bookingRef.update({
-            status: 'cancelled',
-            payment: payments,
+            status: finalBookingStatus,
+            payment: payments.map(p => ({ ...p })),
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        return { success: true, gatewayId, message: `Refunded ${refundLabel} successfully` };
+        // Phase 1 / T1.7: Release Offer Slot if booking was active before this refund
+        // Exclude 'for-cancellation' because useCancellationAdmin handles slot decrement when approving user cancellation requests
+        if (data.offer?.id && data.business?.id && data.status !== 'cancelled' && data.status !== 'refunded' && data.status !== 'for-cancellation') {
+            try {
+                const offerRef = db.collection('businesses').doc(data.business.id).collection('offers').doc(data.offer.id);
+                const offerSnap = await offerRef.get();
+                if (offerSnap.exists) {
+                    const currentReserved = offerSnap.data()?.reservedPax || 0;
+                    if (currentReserved > 0) {
+                        await offerRef.update({
+                            reservedPax: admin.firestore.FieldValue.increment(-1),
+                            updatedAt: FieldValue.serverTimestamp()
+                        });
+                        console.log(`[refundBooking] Decremented reservedPax for offer ${data.offer.id}`);
+                    }
+                }
+            } catch (offerErr) {
+                console.warn(`[refundBooking] Failed to decrement offer reservedPax:`, offerErr.message);
+            }
+        }
+
+        // Phase 5 / T5.2: Synchronize refund entries with global /payments collection
+        try {
+            const paymentsQuery = await db.collection('payments')
+                .where('bookingId', '==', bookingId)
+                .get();
+
+            if (!paymentsQuery.empty) {
+                const batch = db.batch();
+                paymentsQuery.docs.forEach(docSnap => {
+                    batch.update(docSnap.ref, {
+                        status: finalBookingStatus === 'refunded' ? 'refunded' : 'captured',
+                        'receipt.refundedAmount': FieldValue.increment(refundAmount),
+                        refundedAt: FieldValue.serverTimestamp(),
+                        refundReason: sanitizedReason,
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                console.log(`[refundBooking] Synchronized refund to ${paymentsQuery.size} payments collection documents`);
+            } else {
+                for (const res of refundResults) {
+                    const paySnap = await db.collection('payments')
+                        .where('gatewayId', '==', res.gatewayId)
+                        .get();
+                    if (!paySnap.empty) {
+                        const batch = db.batch();
+                        paySnap.docs.forEach(docSnap => {
+                            batch.update(docSnap.ref, {
+                                status: 'refunded',
+                                'receipt.refundedAmount': res.amount,
+                                refundedAt: FieldValue.serverTimestamp(),
+                                refundReason: sanitizedReason,
+                                updatedAt: FieldValue.serverTimestamp()
+                            });
+                        });
+                        await batch.commit();
+                    }
+                }
+            }
+        } catch (paymentsSyncErr) {
+            console.warn(`[refundBooking] Could not sync to /payments collection:`, paymentsSyncErr.message);
+        }
+
+        return { 
+            success: true, 
+            refundResults, 
+            totalRefunded: refundAmount,
+            message: `Refunded ${refundLabel} successfully` 
+        };
     } catch (error) {
         console.error("[refundBooking] PayMongo Refund Error:", error);
         
+        // Rollback lock to 'captured' so the admin can safely retry
+        try {
+            const freshDoc = await bookingRef.get();
+            if (freshDoc.exists) {
+                const freshPayments = freshDoc.data().payment || [];
+                let modified = false;
+                freshPayments.forEach(p => {
+                    if (p.status === 'processing_refund') {
+                        p.status = 'captured';
+                        modified = true;
+                    }
+                });
+                if (modified) {
+                    await bookingRef.update({ 
+                        payment: freshPayments.map(p => ({ ...p })),
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        } catch (rollbackErr) {
+            console.error("[refundBooking] Failed to rollback processing_refund lock:", rollbackErr);
+        }
+
         // Handle specific PayMongo API Errors gracefully
         const errorMessage = error.message || '';
         if (errorMessage.includes('same_day_partial_refund_not_allowed')) {
-            throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please try again tomorrow.');
+            throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please issue a full (100%) refund or try again tomorrow.');
         }
         
         throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);
+    }
+});// ─── GROUP-CENTRIC PROGRESSIVE T-MINUS WEATHER ALERT ENGINE ──────────────────
+// Monitors active hike groups (/groups/{groupId}) across the T-minus schedule:
+// T-168h (7 days), T-72h (3 days), T-24h (1 day with 3-hr watch), T-3h (Departure)
+// Saves alerts to /groups/{groupId}/alerts/{alertId} and sends notifications to group.participantsIds
+
+const MOUNTAIN_COORDINATES = {
+    tagapo: { lat: 14.3392772, lon: 121.2325293 },
+    marami: { lat: 14.1986108, lon: 120.6858334 },
+    batulao: { lat: 14.0399434, lon: 120.8023782 },
+    makiling: { lat: 14.1352241, lon: 121.1944517 },
+    maculot: { lat: 13.9208682, lon: 121.0516961 },
+    daraitan: { lat: 14.6152778, lon: 121.4344444 },
+    pulag: { lat: 16.5986, lon: 120.8986 },
+    ulap: { lat: 16.3267, lon: 120.6406 },
+    pinatubo: { lat: 15.1433, lon: 120.3506 },
+    pico: { lat: 14.2144, lon: 120.6483 },
+};
+
+function resolveMountainCoords(trailName, customCoords) {
+    if (customCoords && typeof customCoords.latitude === 'number' && typeof customCoords.longitude === 'number') {
+        return { lat: customCoords.latitude, lon: customCoords.longitude };
+    }
+    if (customCoords && typeof customCoords.lat === 'number' && typeof customCoords.lon === 'number') {
+        return { lat: customCoords.lat, lon: customCoords.lon };
+    }
+    const lower = (trailName || '').toLowerCase();
+    for (const [key, coords] of Object.entries(MOUNTAIN_COORDINATES)) {
+        if (lower.includes(key)) return coords;
+    }
+    return null;
+}
+
+function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0) {
+    // Determine the target index in the forecast arrays based on hours until the hike
+    const targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
+    const targetHourIndex = Math.min(Math.max(0, Math.floor(diffHours)), 167);
+
+    let weatherCode = 0;
+    let precipProb = 0;
+    let windSpeed = 0;
+    let uvIndex = 0;
+    let temperature = 0;
+
+    if (phase === 'T-3' || phase === 'T-24') {
+        // Use hourly data for near-term precision
+        weatherCode = weatherData.hourly?.weathercode?.[targetHourIndex] ?? weatherData.daily?.weathercode?.[targetDayIndex] ?? 0;
+        precipProb = weatherData.hourly?.precipitation_probability?.[targetHourIndex] ?? weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
+        windSpeed = weatherData.hourly?.windspeed_10m?.[targetHourIndex] ?? weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
+        temperature = weatherData.hourly?.temperature_2m?.[targetHourIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0; // UV is daily max
+    } else {
+        // Use daily data for T-72 and T-168
+        weatherCode = weatherData.daily?.weathercode?.[targetDayIndex] ?? 0;
+        precipProb = weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
+        windSpeed = weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
+        temperature = weatherData.daily?.temperature_2m_max?.[targetDayIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0;
+    }
+
+    const isSevereCode = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
+    const isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
+    const isHighWind = windSpeed >= 40;
+    const isExtremeUv = uvIndex >= 11;
+
+    const dailyRainMm = weatherData.daily?.precipitation_sum?.[targetDayIndex] ?? 0;
+    const isTorrential = dailyRainMm >= 100;
+
+    let status = 'SAFE';
+    if (isSevereCode || isTorrential || windSpeed >= 60 || uvIndex >= 13) {
+        status = 'DANGER';
+    } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8 || precipProb >= 40) {
+        status = 'CAUTION';
+    }
+
+    let phasePrefix = '';
+    if (phase === 'T-168') phasePrefix = '7-Day Forecast';
+    else if (phase === 'T-72') phasePrefix = '3-Day Advisory';
+    else if (phase === 'T-24') phasePrefix = 'Eve-of-Hike Update';
+    else if (phase === 'T-3') phasePrefix = 'Final Departure Alert';
+
+    let headline = `${phasePrefix}: ${trailName}`;
+    let message = `Weather is clear and optimal for your upcoming hike at ${trailName}.`;
+
+    if (status === 'DANGER') {
+        headline = `⚠️ Severe Weather Warning: ${trailName} (${phasePrefix})`;
+        message = isSevereCode 
+            ? `Thunderstorms and heavy downpours forecast at ${trailName}. Please check group chat and coordinate with guides.`
+            : `Severe weather conditions (${precipProb}% rain, ${Math.round(windSpeed)} km/h wind) expected. High hazard on exposed terrain.`;
+    } else if (status === 'CAUTION') {
+        headline = `🌧️ Weather Advisory: ${trailName} (${phasePrefix})`;
+        message = isRain 
+            ? `Rain expected (${precipProb}% chance) at ${trailName}. Pack waterproof rain covers and traction footwear.`
+            : `Breezy winds (${Math.round(windSpeed)} km/h) or high UV index expected. Prepare appropriate sun protection.`;
+    }
+
+    return {
+        status,
+        headline,
+        message,
+        metrics: {
+            temperature: Math.round(temperature),
+            precipitationProbability: precipProb,
+            weatherCode,
+            windSpeed: Math.round(windSpeed),
+            uvIndex: Math.round(uvIndex),
+        },
+    };
+}
+
+async function processGroupWeatherAlert(db, groupDoc, force = false) {
+    const group = groupDoc.data();
+    const groupId = groupDoc.id;
+    const trailName = group.trail?.name || group.trail?.general?.name || 'Scheduled Mountain';
+    const nowManila = DateTime.now().setZone('Asia/Manila');
+
+    let hikeDate = null;
+    const rawDate = group.offer?.date || group.offer?.startDate || group.date;
+    if (rawDate?.toDate) {
+        hikeDate = DateTime.fromJSDate(rawDate.toDate()).setZone('Asia/Manila');
+    } else if (typeof rawDate === 'string') {
+        hikeDate = DateTime.fromISO(rawDate).setZone('Asia/Manila');
+    }
+
+    let diffHours = hikeDate && hikeDate.isValid ? hikeDate.diff(nowManila, 'hours').hours : null;
+
+    // Determine T-minus stage
+    let currentPhase = null;
+    let maxRecheckHours = 24;
+
+    if (diffHours != null) {
+        if (diffHours >= 0 && diffHours <= 3) {
+            currentPhase = 'T-3';
+            maxRecheckHours = 4;
+        } else if (diffHours > 3 && diffHours <= 24) {
+            currentPhase = 'T-24';
+            maxRecheckHours = 3;
+        } else if (diffHours > 24 && diffHours <= 72) {
+            currentPhase = 'T-72';
+            maxRecheckHours = 20;
+        } else if (diffHours > 72 && diffHours <= 168) {
+            currentPhase = 'T-168';
+            maxRecheckHours = 20;
+        }
+    }
+
+    if (!currentPhase) {
+        // Expiration/Cleanup: If hike is over (diffHours < -24), delete stale alerts
+        if (diffHours != null && diffHours < -24) {
+            console.log(`[checkGroupWeatherAlerts] Hike for group ${groupId} ended. Cleaning up alerts.`);
+            const oldAlerts = await db.collection('groups').doc(groupId).collection('alerts').get();
+            const batch = db.batch();
+            oldAlerts.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            return { skipped: true, reason: 'Hike has passed. Cleaned up alerts.' };
+        }
+
+        if (force) {
+            currentPhase = 'T-168';
+            diffHours = 168; // mock 7 days out
+        } else {
+            return { skipped: true, reason: 'Hike date is outside the 7-day forecast window or date is invalid.', hikeDate: rawDate };
+        }
+    }
+
+    // Check last alert in /groups/{groupId}/alerts
+    if (!force) {
+        const lastAlertSnap = await db.collection('groups').doc(groupId).collection('alerts')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (!lastAlertSnap.empty) {
+            const lastAlert = lastAlertSnap.docs[0].data();
+            const lastAlertTime = lastAlert.createdAt?.toDate ? DateTime.fromJSDate(lastAlert.createdAt.toDate()) : null;
+
+            if (lastAlert.phase === currentPhase) {
+                // Phase T-3: One-time final departure alert. Once emitted, monitoring is complete.
+                if (currentPhase === 'T-3') {
+                    return { skipped: true, reason: 'Final pre-departure alert for T-3 has already been issued. Monitoring complete.', phase: currentPhase };
+                }
+
+                // If previous alert for current milestone phase was SAFE, sleep until the next milestone phase
+                if (lastAlert.status === 'SAFE') {
+                    return { 
+                        skipped: true, 
+                        reason: `Phase ${currentPhase} conditions are SAFE. Sleeping until next milestone phase. Use force=true to override.`, 
+                        phase: currentPhase 
+                    };
+                }
+
+                // If previous alert was adverse (CAUTION or DANGER), enforce recheck interval
+                // (daily recheck for T-168/T-72; 3-hour watch for T-24)
+                if (lastAlertTime) {
+                    const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
+                    if (hoursSinceLastAlert < maxRecheckHours) {
+                        return { 
+                            skipped: true, 
+                            reason: `Already issued adverse alert for ${currentPhase} ${Math.round(hoursSinceLastAlert)} hours ago (recheck window is ${maxRecheckHours}h). Use force=true to override.`, 
+                            phase: currentPhase 
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    // Resolve mountain coordinates
+    const coords = resolveMountainCoords(trailName, group.trail?.coordinates || group.trail?.general?.coordinates);
+    if (!coords) {
+        console.log(`[checkGroupWeatherAlerts] No coordinates resolved for ${trailName}`);
+        return null;
+    }
+
+    const roundLat = coords.lat.toFixed(4);
+    const roundLon = coords.lon.toFixed(4);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=7`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.error(`[checkGroupWeatherAlerts] Open-Meteo API failed for ${trailName}`);
+        return null;
+    }
+
+    const weatherData = await res.json();
+    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase, diffHours);
+
+    // Save alert document to /groups/{groupId}/alerts/{alertId}
+    const alertRef = await db.collection('groups').doc(groupId).collection('alerts').add({
+        groupId,
+        trailName,
+        phase: currentPhase,
+        status: evaluation.status,
+        headline: evaluation.headline,
+        message: evaluation.message,
+        metrics: evaluation.metrics,
+        hikeDate: rawDate || (hikeDate?.isValid ? hikeDate.toJSDate() : null),
+        createdAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[checkGroupWeatherAlerts] Created alert ${alertRef.id} for group ${groupId} (${currentPhase}: ${evaluation.status})`);
+
+    // Target ONLY participants of the group
+    const participantIds = Array.isArray(group.participantsIds) && group.participantsIds.length > 0
+        ? group.participantsIds
+        : (group.members || []).map(m => m.id).filter(Boolean);
+
+    if (participantIds.length === 0) {
+        return { alertId: alertRef.id, recipientsCount: 0 };
+    }
+
+    // Write in-app notifications for all participants
+    const userDocs = await Promise.all(
+        participantIds.map(id => db.collection('users').doc(id).get())
+    );
+
+    const tokenList = [];
+    const notificationPromises = [];
+
+    for (const uDoc of userDocs) {
+        if (!uDoc.exists) continue;
+        const uId = uDoc.id;
+        const uData = uDoc.data();
+
+        // 1. In-app notification
+        notificationPromises.push(
+            db.collection('users').doc(uId).collection('notifications').add({
+                title: evaluation.headline,
+                message: evaluation.message,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type: 'weather_alert',
+                    groupId,
+                    alertId: alertRef.id,
+                    trailName,
+                    phase: currentPhase,
+                    severity: evaluation.status,
+                    precipitationProbability: evaluation.metrics.precipitationProbability,
+                    uvIndex: evaluation.metrics.uvIndex,
+                }
+            })
+        );
+
+        // 2. Collect tokens
+        const userTokens = uData.fcmTokens || [];
+        userTokens.forEach(t => {
+            const tok = typeof t === 'string' ? t : t.token;
+            if (tok) tokenList.push({ userId: uId, token: tok });
+        });
+    }
+
+    await Promise.all(notificationPromises);
+
+    // Multicast push notifications
+    const uniqueTokens = [...new Set(tokenList.map(t => t.token))];
+    if (uniqueTokens.length > 0) {
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: uniqueTokens,
+            notification: {
+                title: evaluation.headline,
+                body: evaluation.message,
+            },
+            data: {
+                type: 'weather_alert',
+                groupId,
+                alertId: alertRef.id,
+                trailName,
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'default',
+                    clickAction: 'fcm.ACTION.HELLO',
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                        sound: 'default',
+                        priority: 10,
+                    },
+                },
+            },
+        });
+
+        // Cleanup stale tokens
+        const tokensToRemove = [];
+        response.responses.forEach((r, idx) => {
+            if (!r.success) {
+                const errCode = r.error?.code;
+                if (errCode === 'messaging/registration-token-not-registered' || errCode === 'messaging/invalid-registration-token') {
+                    tokensToRemove.push(uniqueTokens[idx]);
+                }
+            }
+        });
+
+        if (tokensToRemove.length > 0) {
+            for (const uDoc of userDocs) {
+                if (!uDoc.exists) continue;
+                const existingTokens = uDoc.data().fcmTokens || [];
+                const cleaned = existingTokens.filter(t => {
+                    const tokStr = typeof t === 'string' ? t : t.token;
+                    return !tokensToRemove.includes(tokStr);
+                });
+                if (cleaned.length !== existingTokens.length) {
+                    await db.collection('users').doc(uDoc.id).update({ fcmTokens: cleaned });
+                }
+            }
+        }
+    }
+
+    return {
+        alertId: alertRef.id,
+        phase: currentPhase,
+        status: evaluation.status,
+        recipientsCount: participantIds.length,
+    };
+}
+
+// Scheduled Cron: Runs hourly to check groups across T-168, T-72, T-24, and T-3
+exports.checkHikeWeatherAlerts = functions.pubsub
+    .schedule('0 * * * *')
+    .timeZone('Asia/Manila')
+    .onRun(async () => {
+        console.log('[checkHikeWeatherAlerts] Running Group T-minus weather monitor...');
+        const db = admin.firestore();
+
+        try {
+            const activeGroupsSnap = await db.collection('groups')
+                .where('status', '==', 'active')
+                .get();
+
+            if (activeGroupsSnap.empty) {
+                console.log('[checkHikeWeatherAlerts] No active groups found.');
+                return null;
+            }
+
+            console.log(`[checkHikeWeatherAlerts] Evaluating ${activeGroupsSnap.size} active groups...`);
+            for (const doc of activeGroupsSnap.docs) {
+                await processGroupWeatherAlert(db, doc);
+            }
+
+            console.log('[checkHikeWeatherAlerts] Completed cycle.');
+            return null;
+        } catch (err) {
+            console.error('[checkHikeWeatherAlerts] Error in weather monitoring cron:', err);
+            return null;
+        }
+    });
+
+// HTTP Test Endpoint: Allows 1-click test for any group or custom trail
+exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
+    try {
+        const db = admin.firestore();
+        const groupId = req.query.groupId || req.body.groupId;
+        const trailName = req.query.trail || req.body.trail || 'Mt. Daraitan';
+        const userId = req.query.userId || req.body.userId;
+        const force = req.query.force === 'true' || req.body.force === true;
+
+        if (groupId) {
+            const groupDoc = await db.collection('groups').doc(groupId).get();
+            if (!groupDoc.exists) {
+                res.status(404).json({
+                    error: `Group ${groupId} not found in this Firebase project (${process.env.GCLOUD_PROJECT}).`,
+                    tip: 'Check if this group was created in staging (thrail-sandbox) vs production (thrail).'
+                });
+                return;
+            }
+            const result = await processGroupWeatherAlert(db, groupDoc, force);
+            res.status(200).json({ success: true, result });
+            return;
+        }
+
+        // Direct test by trail & user
+        const coords = resolveMountainCoords(trailName, null) || MOUNTAIN_COORDINATES.batulao;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1`;
+        
+        const weatherRes = await fetch(url);
+        const weatherData = await weatherRes.json();
+        const evaluation = evaluateWeatherSafety(weatherData, trailName, 'T-24');
+
+        if (userId) {
+            await db.collection('users').doc(userId).collection('notifications').add({
+                title: evaluation.headline,
+                message: evaluation.message,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type: 'weather_alert',
+                    trailName,
+                    phase: 'T-24',
+                    severity: evaluation.status,
+                    precipitationProbability: evaluation.metrics.precipitationProbability,
+                    uvIndex: evaluation.metrics.uvIndex,
+                },
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            trailName,
+            evaluation,
+            note: userId ? `Notification added to user ${userId}` : 'No userId provided; evaluation returned only.',
+        });
+    } catch (err) {
+        console.error('[testGroupWeatherAlert] Error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
