@@ -195,7 +195,6 @@ export const BookingRepository = (db: any) => ({
 
     async write(booking: Booking): Promise<Booking> {
         try {
-            console.log("to create: ", booking);
 
             const bookingRef = booking.id !== ""
                 ? doc(createBookingCollection(db, booking.user.id), booking.id)
