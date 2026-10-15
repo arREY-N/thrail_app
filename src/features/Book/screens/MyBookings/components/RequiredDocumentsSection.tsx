@@ -5,16 +5,26 @@
  */
 
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    LayoutAnimation,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    UIManager,
+    View
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard, { getStrictDocKey } from '@/src/components/DocumentUploadCard';
-import ErrorMessage from '@/src/components/ErrorMessage';
 import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { BookingStatus, Requirements } from '@/src/core/models/Booking/Booking';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export interface RequiredDocumentsSectionProps {
     /** The documents to display */
@@ -52,8 +62,6 @@ const RequiredDocumentsSection = ({
     onUploadSuccess,
     onPreviewDoc,
 }: RequiredDocumentsSectionProps): React.JSX.Element | null => {
-    const [uploadError, setUploadError] = React.useState<string | null>(null);
-
     if (!localDocs || localDocs.length === 0) {
         return null;
     }
@@ -90,11 +98,8 @@ const RequiredDocumentsSection = ({
                     isUploaded={effectiveFileUrl}
                     isRejected={isStillRejected}
                     onUploadSuccess={(url: string) => {
-                        setUploadError(null);
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         onUploadSuccess(idx, url, docName);
-                    }}
-                    onError={(msg: string) => {
-                        setUploadError(`Failed to upload ${docName}: ${msg}`);
                     }}
                 />
             );
@@ -185,13 +190,6 @@ const RequiredDocumentsSection = ({
                     />
                 </View>
             )}
-            
-            {uploadError && (
-                <ErrorMessage 
-                    error={uploadError} 
-                    style={styles.errorBanner} 
-                />
-            )}
 
             {localDocs.map((doc: Requirements, idx: number) => renderDocumentRow(doc, idx))}
         </AccordionItem>
@@ -220,10 +218,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
         fontWeight: '500',
-    },
-    errorBanner: {
-        marginBottom: 16,
-        width: 'auto',
     },
     approvedRowWrapper: {
         width: '100%',
