@@ -5,7 +5,7 @@ import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary, newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
-import { catchError } from "@/src/core/utility/errorFormatter";
+import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -43,6 +43,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     const startHike = useHikeStore(s => s.startHike);
     const timerStartTime = useHikeStore(s => s.timerStartTime);
     const elapsedTime = useHikeStore(s => s.elapsedTime);
+    const deleteHike = useHikeStore(s => s.remove);
     const activeHike = useHikesStore(s => {
         const storedHike = s.currentHike;
 
@@ -101,7 +102,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         }
 
         if (activeHike && currentHike?.status === 'paused') {
-            onResumeHike();
+            await onResumeHike();
             return;
         }
 
@@ -243,25 +244,41 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     }
 
     const onResetHike = async () => {
-        stopBackgroundTracking();
-        const targetGroup = groupId || useHikeStore.getState().activeGroupId;
-        if (targetGroup) {
-            stopSharingLocation(targetGroup);
+
+        try {
+
+            if (!profile) {
+                throw new Error('User profile is required to reset hike');
+            }
+            if (!currentHike) {
+                throw new Error('No hike recorded to reset');
+            }
+            stopBackgroundTracking();
+            const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+            if (targetGroup) {
+                stopSharingLocation(targetGroup);
+            }
+            await clearLocalTrack();
+            updateHikeStore({
+                currentHike: null,
+                active: false,
+                elapsedTime: 0,
+                timerStartTime: 0,
+                totalDistance: 0,
+                totalElevationGain: 0,
+                coordinates: [],
+                walkedRoute: [],
+                isSegmentFirstPoint: true,
+                activeGroupId: null,
+                live: false,
+            });
+
+            logger('CreateHikeFlow', 'resetting hike', currentHike);
+            await deleteHike(currentHike?.id, profile.id);
+        } catch (error) {
+            catchError((error as Error), 'error', 'CreateHikeFlow()')
+            setLocalError((error as Error).message);
         }
-        await clearLocalTrack();
-        updateHikeStore({
-            currentHike: null,
-            active: false,
-            elapsedTime: 0,
-            timerStartTime: 0,
-            totalDistance: 0,
-            totalElevationGain: 0,
-            coordinates: [],
-            walkedRoute: [],
-            isSegmentFirstPoint: true,
-            activeGroupId: null,
-            live: false,
-        });
     };
 
     const onAddReview = (trailId: string) => {

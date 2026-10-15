@@ -4,7 +4,15 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    UIManager,
+    View
+} from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
@@ -24,6 +32,10 @@ import { IEmergencyContact, useAuthStore } from "@/src/core/models/User/User";
 import { toDateOrNull } from '@/src/core/utility/date';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export interface HikerBookingDetails {
     phone: string;
@@ -95,6 +107,14 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     if (isMinor && !activeDocuments.includes('Parent/Guardian Valid ID')) {
         activeDocuments.push('Parent/Guardian Valid ID');
     }
+
+    const prevDocsLengthRef = useRef(activeDocuments.length);
+    useEffect(() => {
+        if (prevDocsLengthRef.current !== activeDocuments.length) {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            prevDocsLengthRef.current = activeDocuments.length;
+        }
+    }, [activeDocuments.length]);
 
     const isPhoneSet = !!formData.phone && cleanPhoneNumber(formData.phone).length >= 10;
     const isEmergencySet = !!formData.emergencyContact.name && !!formData.emergencyContact.contactNumber && cleanPhoneNumber(formData.emergencyContact.contactNumber).length >= 10;
@@ -348,6 +368,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                                         showDivider={index < activeDocuments.length - 1}
                                         isUploaded={uploadedDocs[doc]} 
                                         onUploadSuccess={(url) => {
+                                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                                             setUploadedDocs(prev => ({ ...prev, [doc]: url }));
                                         }} 
                                     />

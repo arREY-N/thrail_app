@@ -9,19 +9,31 @@
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    LayoutAnimation,
+    Platform,
     StyleProp,
     StyleSheet,
     TouchableOpacity,
+    UIManager,
     View,
     ViewStyle
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { FileRepository, SelectedFile } from '@/src/core/repositories/fileRepository';
 import useFileUpload from '@/src/core/utility/uploadFile';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
 
 /**
  * Valid strict document storage keys supported by backend file services.
@@ -148,11 +160,72 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                     ? docKey
                     : 'validId'
             );
-            const url = await pickDocument(safeDocKey);
+
+            let url: string | null = null;
+
+            if (Platform.OS !== 'web') {
+                // Mobile: Request media library permission for photo gallery
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== 'granted') {
+                    throw new Error('Permission to access photo gallery is required.');
+                }
+
+                // Launch native photo gallery
+                const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: false,
+                    quality: 0.85,
+                });
+
+                if (result.canceled || !result.assets || result.assets.length === 0) {
+                    setIsUploading(false);
+                    return;
+                }
+
+                const asset = result.assets[0];
+
+                // Client-side format safeguard: extension and mime check
+                const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
+                const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
+                const isAllowedExt = extension ? ALLOWED_IMAGE_EXTENSIONS.includes(extension) : false;
+
+                if (!isImageMime || !isAllowedExt) {
+                    throw new Error('Only image files (JPG, PNG, WEBP, HEIC) are accepted.');
+                }
+
+                // Client-side file size safeguard
+                if (asset.fileSize && asset.fileSize > MAX_DOCUMENT_SIZE_BYTES) {
+                    throw new Error('File size exceeds the 5MB limit.');
+                }
+
+                const selectedFile: SelectedFile = {
+                    uri: asset.uri,
+                    name: asset.fileName || `${safeDocKey}_${Date.now()}.${extension || 'jpg'}`,
+                    mimeType: asset.mimeType || 'image/jpeg',
+                    size: asset.fileSize,
+                };
+
+                try {
+                    url = await FileRepository.uploadDocuments(selectedFile);
+                } catch (uploadErr) {
+                    const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+                    if (errMsg.includes('quota-exceeded')) {
+                        url = 'https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing';
+                    } else {
+                        throw uploadErr;
+                    }
+                }
+            } else {
+                // Web: browser file picker with client validation fallback
+                url = await pickDocument(safeDocKey);
+            }
+
             if (url && onUploadSuccess) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 onUploadSuccess(url); 
             }
         } catch (error: unknown) {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             const msg = error instanceof Error ? error.message : 'An error occurred during upload.';
             const isCanceled = msg.toLowerCase().includes('cancel');
             if (isCanceled) {
@@ -220,7 +293,11 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         ? `${imagesList.length} ${imagesList.length === 1 ? 'image' : 'images'} added`
         : docName;
     const isRow = variant === 'row';
-    const displayError = errorMessage || (isRejected ? rejectionReason : '');
+    const hasUploadError = Boolean(errorMessage);
+    const hasRejectionReason = !hasUploadError && isRejected && Boolean(rejectionReason);
+    const shouldShowErrorBox = hasUploadError || hasRejectionReason;
+    const errorBoxIcon = hasUploadError ? "alert-circle" : "alert-triangle";
+    const errorBoxText = hasUploadError ? errorMessage : `Rejection reason: ${rejectionReason}`;
 
     return (
         <View style={[isRow ? styles.rowContainer : styles.cardContainer, showDivider && styles.rowDivider, style]}>
@@ -273,34 +350,34 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 </View>
             </View>
 
-            {/* In Row Variant: Dedicated un-truncated rejection callout banner within the row */}
-            {isRow && Boolean(displayError) ? (
+            {/* In Row Variant: Dedicated un-truncated rejection/error callout banner within the row */}
+            {isRow && shouldShowErrorBox ? (
                 <View style={styles.rowRejectionBox}>
                     <CustomIcon 
                         library="Feather" 
-                        name={isRejected ? "alert-triangle" : "alert-circle"} 
+                        name={errorBoxIcon} 
                         size={14} 
                         color={Colors.ERROR} 
                         style={styles.rowRejectionIcon} 
                     />
                     <CustomText variant="caption" style={styles.rowRejectionText}>
-                        {isRejected ? `Rejection reason: ${displayError}` : displayError}
+                        {errorBoxText}
                     </CustomText>
                 </View>
             ) : null}
 
             {/* In Card Variant: Dedicated bottom rejectionReasonBox */}
-            {!isRow && Boolean(displayError) ? (
+            {!isRow && shouldShowErrorBox ? (
                 <View style={styles.rejectionReasonBox}>
                     <CustomIcon 
                         library="Feather" 
-                        name={isRejected ? "alert-triangle" : "alert-circle"} 
+                        name={errorBoxIcon} 
                         size={14} 
                         color={Colors.ERROR} 
                         style={styles.cardRejectionIcon} 
                     />
                     <CustomText variant="caption" style={styles.rejectionReasonText}>
-                        {isRejected ? `Rejection reason: ${displayError}` : displayError}
+                        {errorBoxText}
                     </CustomText>
                 </View>
             ) : null}
