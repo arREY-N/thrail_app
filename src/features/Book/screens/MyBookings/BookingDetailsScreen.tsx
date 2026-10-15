@@ -4,8 +4,8 @@
  */
 
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutAnimation, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -497,6 +497,7 @@ const BookingDetailsScreen = ({
                         isCancelled={isCancelled}
                         rejectionReason={booking.cancellationReason}
                         onUploadSuccess={(idx, url, docName) => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setStagedReplacements(prev => ({
                                 ...prev,
                                 [idx]: url,
