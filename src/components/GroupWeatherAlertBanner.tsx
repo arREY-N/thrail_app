@@ -198,18 +198,6 @@ function getDynamicPhaseLabel(
 }
 
 /**
- * Formats target hike date as a readable short string, e.g. "Sun, Oct 19".
- */
-function formatHikeDate(dateVal: unknown): string | null {
-    const ms = parseDateToMs(dateVal);
-    if (!ms) return null;
-    const d = new Date(ms);
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
-}
-
-/**
  * Strips redundant phase descriptions (e.g. "(7-Day Forecast)") from the alert headline.
  */
 function cleanHeadline(headline?: string): string {
@@ -220,7 +208,7 @@ function cleanHeadline(headline?: string): string {
 }
 
 /**
- * Produces a concise summary string for the collapsed second row, e.g. "27°C • 💨 18 km/h".
+ * Produces a concise summary string for the collapsed second row, e.g. "27°C • 💨 17 km/h".
  */
 function getQuickStats(metrics?: { temperature?: number; precipitationProbability?: number; windSpeed?: number }): string | null {
     if (!metrics) return null;
@@ -234,18 +222,6 @@ function getQuickStats(metrics?: { temperature?: number; precipitationProbabilit
         parts.push(`🌧️ ${metrics.precipitationProbability}%`);
     }
     return parts.length > 0 ? parts.join(' • ') : null;
-}
-
-/**
- * Formats UV Index with standard WHO rating labels.
- */
-function formatUvIndex(uv?: number): string {
-    if (uv == null || isNaN(uv)) return 'N/A';
-    if (uv <= 2) return `${uv} (Low)`;
-    if (uv <= 5) return `${uv} (Mod)`;
-    if (uv <= 7) return `${uv} (High)`;
-    if (uv <= 10) return `${uv} (V.High)`;
-    return `${uv} (Ext)`;
 }
 
 export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
@@ -338,7 +314,6 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
     };
 
     const dynamicPhase = getDynamicPhaseLabel(resolvedHikeDate, currentTime, latestAlert.phase);
-    const targetDateFormatted = formatHikeDate(resolvedHikeDate);
     const cleanedHeadline = cleanHeadline(latestAlert.headline);
     const quickStatsText = getQuickStats(latestAlert.metrics);
 
@@ -350,7 +325,7 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                 onPress={toggleExpand}
                 style={styles.headerPressable}
             >
-                {/* Row 1: Status Pill + Dynamic Countdown on left, Target Hike Date + Chevron on right */}
+                {/* Row 1: Status Pill + Dynamic Countdown on left, Forecast stats + Chevron on right */}
                 <View style={styles.topRow}>
                     <View style={styles.badgeCluster}>
                         <View style={[styles.statusBadge, { backgroundColor: theme.badgeBg }]}>
@@ -365,17 +340,10 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                     </View>
 
                     <View style={styles.rightCluster}>
-                        {targetDateFormatted ? (
-                            <View style={styles.dateTag}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="calendar"
-                                    size={11}
-                                    color={Colors.TEXT_SECONDARY}
-                                    style={styles.dateIcon}
-                                />
-                                <CustomText variant="caption" style={styles.dateText}>
-                                    {targetDateFormatted}
+                        {quickStatsText ? (
+                            <View style={[styles.quickStatsPill, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
+                                <CustomText variant="caption" style={[styles.quickStatsText, { color: theme.accent }]}>
+                                    {quickStatsText}
                                 </CustomText>
                             </View>
                         ) : null}
@@ -388,80 +356,41 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                     </View>
                 </View>
 
-                {/* Row 2: Direct trail condition summary on left, Compact weather metrics on right */}
+                {/* Row 2: Headline when expanded, or Direct Trail Safety Advisory text when collapsed */}
                 <View style={styles.bottomRow}>
-                    <CustomText
-                        variant="label"
-                        style={styles.headlineText}
-                        numberOfLines={isExpanded ? 2 : 1}
-                    >
-                        {cleanedHeadline}
-                    </CustomText>
-
-                    {quickStatsText ? (
-                        <View style={[styles.quickStatsPill, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
-                            <CustomText variant="caption" style={[styles.quickStatsText, { color: theme.accent }]}>
-                                {quickStatsText}
+                    {isExpanded ? (
+                        <CustomText
+                            variant="label"
+                            style={styles.headlineText}
+                            numberOfLines={1}
+                        >
+                            {cleanedHeadline}
+                        </CustomText>
+                    ) : (
+                        <>
+                            <CustomIcon
+                                library="Feather"
+                                name="info"
+                                size={12}
+                                color={theme.accent}
+                                style={styles.advisoryRowIcon}
+                            />
+                            <CustomText
+                                variant="caption"
+                                style={styles.collapsedAdvisoryText}
+                                numberOfLines={2}
+                            >
+                                {latestAlert.message || cleanedHeadline}
                             </CustomText>
-                        </View>
-                    ) : null}
+                        </>
+                    )}
                 </View>
             </TouchableOpacity>
 
-            {/* Expandable Bento Metrics & Safety Advisory */}
+            {/* Inverted Expandable Layout: Advisory UP, 3-Card Metrics BOTTOM (Option A) */}
             {isExpanded && (
                 <View style={styles.expandedContent}>
-                    <CustomText variant="caption" style={styles.sectionHeaderTitle}>
-                        METRICS BREAKDOWN
-                    </CustomText>
-
-                    <View style={styles.bentoGrid}>
-                        {/* Rain */}
-                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
-                            <View style={styles.bentoChipTop}>
-                                <CustomIcon library="Feather" name="cloud-rain" size={12} color={theme.iconColor} />
-                                <CustomText variant="caption" style={styles.bentoChipLabel}>Rain</CustomText>
-                            </View>
-                            <CustomText variant="label" style={styles.bentoChipValue}>
-                                {latestAlert.metrics?.precipitationProbability != null ? `${latestAlert.metrics.precipitationProbability}%` : '0%'}
-                            </CustomText>
-                        </View>
-
-                        {/* Temp */}
-                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
-                            <View style={styles.bentoChipTop}>
-                                <CustomIcon library="Feather" name="thermometer" size={12} color={theme.iconColor} />
-                                <CustomText variant="caption" style={styles.bentoChipLabel}>Temp</CustomText>
-                            </View>
-                            <CustomText variant="label" style={styles.bentoChipValue}>
-                                {latestAlert.metrics?.temperature != null && latestAlert.metrics.temperature > 0 ? `${Math.round(latestAlert.metrics.temperature)}°C` : 'N/A'}
-                            </CustomText>
-                        </View>
-
-                        {/* Wind */}
-                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
-                            <View style={styles.bentoChipTop}>
-                                <CustomIcon library="Feather" name="wind" size={12} color={theme.iconColor} />
-                                <CustomText variant="caption" style={styles.bentoChipLabel}>Wind</CustomText>
-                            </View>
-                            <CustomText variant="label" style={styles.bentoChipValue}>
-                                {latestAlert.metrics?.windSpeed != null && latestAlert.metrics.windSpeed > 0 ? `${Math.round(latestAlert.metrics.windSpeed)} km/h` : 'N/A'}
-                            </CustomText>
-                        </View>
-
-                        {/* UV Index */}
-                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
-                            <View style={styles.bentoChipTop}>
-                                <CustomIcon library="Feather" name="sun" size={12} color={theme.iconColor} />
-                                <CustomText variant="caption" style={styles.bentoChipLabel}>UV Index</CustomText>
-                            </View>
-                            <CustomText variant="label" style={styles.bentoChipValue}>
-                                {formatUvIndex(latestAlert.metrics?.uvIndex)}
-                            </CustomText>
-                        </View>
-                    </View>
-
-                    {/* Trail Safety Advisory */}
+                    {/* UP: Trail Safety Advisory Box */}
                     {latestAlert.message ? (
                         <View style={[styles.advisoryBox, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
                             <View style={styles.advisoryHeaderRow}>
@@ -481,6 +410,46 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                             </CustomText>
                         </View>
                     ) : null}
+
+                    {/* BOTTOM: Metrics Breakdown (Option A: 3 Cards - Rain, Temp, Wind) */}
+                    <CustomText variant="caption" style={styles.sectionHeaderTitle}>
+                        METRICS BREAKDOWN
+                    </CustomText>
+
+                    <View style={styles.bentoGrid}>
+                        {/* 1. Rain Probability */}
+                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
+                            <View style={styles.bentoChipTop}>
+                                <CustomIcon library="Feather" name="cloud-rain" size={13} color={theme.iconColor} />
+                                <CustomText variant="caption" style={styles.bentoChipLabel}>Rain</CustomText>
+                            </View>
+                            <CustomText variant="label" style={styles.bentoChipValue}>
+                                {latestAlert.metrics?.precipitationProbability != null ? `${latestAlert.metrics.precipitationProbability}%` : '0%'}
+                            </CustomText>
+                        </View>
+
+                        {/* 2. Temperature */}
+                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
+                            <View style={styles.bentoChipTop}>
+                                <CustomIcon library="Feather" name="thermometer" size={13} color={theme.iconColor} />
+                                <CustomText variant="caption" style={styles.bentoChipLabel}>Temp</CustomText>
+                            </View>
+                            <CustomText variant="label" style={styles.bentoChipValue}>
+                                {latestAlert.metrics?.temperature != null && latestAlert.metrics.temperature > 0 ? `${Math.round(latestAlert.metrics.temperature)}°C` : 'N/A'}
+                            </CustomText>
+                        </View>
+
+                        {/* 3. Wind Speed */}
+                        <View style={[styles.bentoChip, { backgroundColor: theme.chipBg, borderColor: theme.chipBorder }]}>
+                            <View style={styles.bentoChipTop}>
+                                <CustomIcon library="Feather" name="wind" size={13} color={theme.iconColor} />
+                                <CustomText variant="caption" style={styles.bentoChipLabel}>Wind</CustomText>
+                            </View>
+                            <CustomText variant="label" style={styles.bentoChipValue}>
+                                {latestAlert.metrics?.windSpeed != null && latestAlert.metrics.windSpeed > 0 ? `${Math.round(latestAlert.metrics.windSpeed)} km/h` : 'N/A'}
+                            </CustomText>
+                        </View>
+                    </View>
                 </View>
             )}
         </View>
@@ -536,33 +505,7 @@ const styles = StyleSheet.create({
     rightCluster: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-    },
-    dateTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginRight: 4,
-    },
-    dateIcon: {
-        marginRight: 3,
-    },
-    dateText: {
-        fontSize: 10,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500',
-    },
-    bottomRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 4,
-    },
-    headlineText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: Colors.TEXT_PRIMARY,
-        flex: 1,
-        marginRight: 8,
+        gap: 8,
     },
     quickStatsPill: {
         paddingHorizontal: 6,
@@ -575,54 +518,39 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
     },
+    bottomRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginTop: 5,
+        gap: 4,
+    },
+    advisoryRowIcon: {
+        marginTop: 1,
+    },
+    collapsedAdvisoryText: {
+        fontSize: 11,
+        lineHeight: 15,
+        color: Colors.TEXT_PRIMARY,
+        flex: 1,
+    },
+    headlineText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+        flex: 1,
+    },
     expandedContent: {
         marginTop: 8,
         paddingTop: 8,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: 'rgba(0, 0, 0, 0.06)',
     },
-    sectionHeaderTitle: {
-        fontSize: 9,
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-        letterSpacing: 0.6,
-        marginBottom: 6,
-    },
-    bentoGrid: {
-        flexDirection: 'row',
-        gap: 6,
-        marginBottom: 8,
-    },
-    bentoChip: {
-        flex: 1,
-        minWidth: 64,
-        paddingVertical: 7,
-        paddingHorizontal: 4,
-        borderRadius: 8,
-        borderWidth: StyleSheet.hairlineWidth,
-        alignItems: 'center',
-    },
-    bentoChipTop: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        marginBottom: 3,
-    },
-    bentoChipLabel: {
-        fontSize: 10,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500',
-    },
-    bentoChipValue: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-    },
     advisoryBox: {
         borderRadius: 8,
         borderWidth: StyleSheet.hairlineWidth,
         paddingHorizontal: 10,
         paddingVertical: 8,
+        marginBottom: 8,
     },
     advisoryHeaderRow: {
         flexDirection: 'row',
@@ -641,6 +569,41 @@ const styles = StyleSheet.create({
     advisoryMessage: {
         fontSize: 11,
         lineHeight: 16,
+        color: Colors.TEXT_PRIMARY,
+    },
+    sectionHeaderTitle: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: Colors.TEXT_SECONDARY,
+        letterSpacing: 0.6,
+        marginBottom: 6,
+    },
+    bentoGrid: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    bentoChip: {
+        flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 6,
+        borderRadius: 8,
+        borderWidth: StyleSheet.hairlineWidth,
+        alignItems: 'center',
+    },
+    bentoChipTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 3,
+    },
+    bentoChipLabel: {
+        fontSize: 10,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+    },
+    bentoChipValue: {
+        fontSize: 12,
+        fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
     },
 });
