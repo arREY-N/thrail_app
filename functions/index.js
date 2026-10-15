@@ -1498,9 +1498,19 @@ async function resolveGroupCoordinates(db, group, trailName) {
     return resolveMountainCoords(trailName, null);
 }
 
-function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0) {
-    // Determine the target index in the forecast arrays based on hours until the hike
-    const targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
+function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hikeDate = null) {
+    // Determine the target index in the forecast arrays by exact calendar date if available
+    let targetDayIndex = -1;
+    if (hikeDate && typeof hikeDate.toISODate === 'function') {
+        const hikeIso = hikeDate.toISODate();
+        if (Array.isArray(weatherData.daily?.time)) {
+            targetDayIndex = weatherData.daily.time.indexOf(hikeIso);
+        }
+    }
+    // Fallback to bounded hours estimation if exact date was not matched
+    if (targetDayIndex < 0) {
+        targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
+    }
     const targetHourIndex = Math.min(Math.max(0, Math.floor(diffHours)), 167);
 
     let weatherCode = 0;
@@ -1698,7 +1708,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
 
     const roundLat = coords.lat.toFixed(4);
     const roundLon = coords.lon.toFixed(4);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=7`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=7&models=best_match`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -1707,7 +1717,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     }
 
     const weatherData = await res.json();
-    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase, diffHours);
+    const evaluation = evaluateWeatherSafety(weatherData, trailName, currentPhase, diffHours, hikeDate);
 
     // Save alert document to /groups/{groupId}/alerts/{alertId}
     const alertRef = await db.collection('groups').doc(groupId).collection('alerts').add({
@@ -1918,7 +1928,7 @@ exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
 
         // Direct test by trail & user
         const coords = resolveMountainCoords(trailName, null) || MOUNTAIN_COORDINATES.batulao;
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1&models=best_match`;
         
         const weatherRes = await fetch(url);
         const weatherData = await weatherRes.json();
