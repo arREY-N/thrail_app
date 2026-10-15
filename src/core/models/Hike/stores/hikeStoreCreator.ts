@@ -372,7 +372,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             const profile = get().profile;
             if (profile?.id) {
                 HikeRepo.deleteLocation(profile.id, groupId).catch((error) => {
-                    console.error('Error deleting location on stopShareLocation: ', error);
+                    console.warn('Notice: Could not delete remote location pin on stopShareLocation: ', error);
                 });
             }
 

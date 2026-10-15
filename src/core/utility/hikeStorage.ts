@@ -44,6 +44,21 @@ export const saveLocalTrackPoint = async (
 export const saveToCSV = saveLocalTrackPoint;
 
 /**
+ * Clears and resets the local CSV track file for session reset / discard.
+ */
+export const clearLocalTrack = async (): Promise<void> => {
+  try {
+    await writeAsStringAsync(
+      CSV_FILE_URI,
+      "timestamp,latitude,longitude,altitude\n"
+    );
+    console.log("🧹 [LocalTrack] Cleared local track CSV");
+  } catch (error) {
+    console.warn("Error clearing local track CSV:", error);
+  }
+};
+
+/**
  * Loads and parses the latest continuous session recorded in the CSV.
  * Returns an array of [longitude, latitude] coordinates.
  */

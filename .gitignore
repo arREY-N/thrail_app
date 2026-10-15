@@ -9,14 +9,20 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native & Signing Credentials
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.pem
+*.cer
+*.crt
+*.pfx
+credentials.json
 
 # Metro
 .metro-health-check*
@@ -30,18 +36,38 @@ yarn-error.*
 *.exe
 pmtiles.exe
 
-
 # macOS
 .DS_Store
-*.pem
 
 # Environment & Secrets
 .env
 .env.*
 .env*.local
-.env.preview
-.env.productionw
-.env*
+!.env.example
+!.env*.example
+.secret.local
+*.secret.local
+.secrets/
+
+# Firebase & Cloud Credentials
+*firebase*-adminsdk*.json
+*service-account*.json
+*serviceAccountKey*.json
+thrail-firebase-adminsdk-*.json
+google-services.json
+GoogleService-Info.plist
+.runtimeconfig.json
+firebase-messaging-sw.js
+firebase-export-*/
+*-debug.log
+firebase-debug.*.log
+.firebase/
+
+# Project specific
+setSuperAdmin.js
+eas.json
+desktop.ini
+.agents/
 
 # typescript
 *.tsbuildinfo
@@ -52,30 +78,11 @@ app-example
 /ios
 /android
 
-thrail-firebase-adminsdk-fbsvc-eb6a55392a.json
-thrail-firebase-adminsdk-fbsvc-33f49603dc.json
-setSuperAdmin.js
-
-firebase-export-*/
-*-debug.log
-firebase-debug.*.log
-
-.firebase/
-
-eas.json
-desktop.ini
-.agents/
-
-/google-services.json
-firebase-messaging-sw.js
-
 # Python virtual environment
 recommendation_engine/venv/
 venv/
 .venv/
 env/
-.env/
-.env*
 
 # Python compiled files / cache
 __pycache__/
@@ -86,12 +93,8 @@ __pycache__/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
-.agents/
 
 # SecureCoder & personal tooling
 .securecoderignore
 .securecoder/
 .ignore
-
-
-.env.local

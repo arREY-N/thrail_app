@@ -1,2 +1,8 @@
 node_modules/
 *.local
+.env*
+!.env.example
+.runtimeconfig.json
+*firebase*-adminsdk*.json
+*service-account*.json
+*serviceAccountKey*.json

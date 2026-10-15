@@ -76,6 +76,7 @@ This tracker monitors all historical fixes, identified bugs in recent commits, a
 | **T-28** | Active Hike Resume Banner on Navigation Lobby | Add floating "Hike in Progress" pill on NavigationScreen to easily resume an active session without re-bypassing date lock. | ✅ **Finished** | Rendered floating glassmorphic resume pill on `NavigationScreen.tsx` when an active session exists; preserved 100% of date locks and bypass modals. |
 | **T-29** | Map Compass Repositioning Under Center Button | Move MapLibre compass from top-right (behind Emergency SOS) to directly under the center/locate button (`compassPosition={{ bottom: 175, right: 18 }}`). | ✅ **Finished** | Relocated compass to right edge beneath locate FAB in `TrailMap.native.tsx`; clears SOS header overlap completely. |
 | **T-30** | Field-Test Session Reset Floating Action Button | Add temporary amber reset FAB (`rotate-ccw`) on `HikeRecordingScreen` to instantly discard test hikes without holding finish button. | ✅ **Finished** | Added reset FAB to `mapControls` in `HikeRecordingScreen.tsx`, wired `onResetHike` to stop tracking, delete live pin, wipe store, and return to lobby. |
+| **T-31 / TD-02** | Official Production "Discard Hike" Feature | Official 2-step pause-state Discard button with dynamic safeguard confirmation modal and atomic 5-step teardown. | ✅ **Finished** | Replaced dev FAB with subtle [Discard Hike] button in pause action dashboard. Implemented dynamic safeguard modal (<100m false start vs. long hike warning) and atomic sensor, storage, Firestore live pin, and store cleanup. |
 | **TD-01** | Guide / Admin Group Hike Session Completion | Enable guides/admins to officially end the hike for the entire group and synchronize member timers and completion state. | 💡 **Proposal Only (To-Do / Not Verified by Team)** | Feature proposal only. Currently timers are 100% individual; guides have no group master completion action. |
 
 
@@ -692,3 +693,152 @@ This section provides comprehensive root cause investigations, technical mechani
   3. Resets Zustand store and AsyncStorage back to lobby state.
   4. Navigates cleanly back to the navigation lobby via `router.back()` (with fallback to `/(app)/(tabs)/hike`).
 - Protected with a native confirmation alert to prevent accidental data loss.
+
+---
+
+### 8.12 Task TD-02: Official Production "Discard / Reset Hike" Feature Architecture & UX Design
+
+#### 1. Strategic Motivation & User Need
+In production outdoor tracking (Strava, AllTrails, Garmin, Nike Run Club), users frequently encounter scenarios requiring an intentional abort or restart of an active hike recording:
+1. **Accidental Tap / False Start:** A user taps "Start Recording" prematurely (in the car, parking lot, or at home) and needs to exit cleanly without creating an empty 0-meter activity record on their profile or feed.
+2. **Trail Switch Midway:** The hiker decides to abandon a specific trail and switch to another route or mode without saving partial noise.
+3. **Emergency / Early Abort:** Extreme weather, exhaustion, or injury forces the hiker to turn back, and they prefer to discard the incomplete recording rather than submitting an incomplete hike record.
+4. **Restart from Trailhead:** The user walked around the campsite warming up and wants to reset their distance/duration to zero right at the trailhead marker.
+
+---
+
+#### 2. Nomenclature & Mental Model (Industry Analysis)
+Calling the action purely "Reset" creates user confusion in production:
+- In user testing, "Reset" often implies *"set timer to 0:00 and stay on the map to start over"*.
+- When users want to quit without saving, the industry standard term is **"Discard Hike"** or **"Cancel Hike"**.
+
+**Recommended Nomenclature:**
+- Primary Action: **"Discard Hike"** (Red / Destructive styling)
+- Confirmation Prompt Options:
+  1. **"Discard & Exit"**: Erases telemetry and returns to the hike lobby.
+  2. **"Restart Session"**: Clears telemetry back to 0:00 and 0.00 km, keeping the map and current trail open.
+  3. **"Cancel"**: Closes modal and returns safely to the active/paused session.
+
+---
+
+#### 3. UI Placement & Visual Hierarchy (Trade-Off Comparison)
+
+| Approach | Location | UX Pros | UX Cons | Recommendation |
+|---|---|---|---|:---:|
+| **Option A: Map FAB Column** *(Current Test)* | Amber FAB in right vertical controls stack | Immediate 1-tap visibility | High danger of accidental pocket/sweaty finger taps while hiking; clutters map | ❌ *Dev/Test Only* |
+| **Option B: Pause State Action Row** | Revealed only when hiker presses **[PAUSE]** | **Zero accidental taps while moving**; matches Strava/AllTrails mental model; keeps active screen clean | Requires pausing first (intentional 2-step friction) | ⭐ **Recommended (Gold Standard)** |
+| **Option C: Top Header Action Sheet** | Accessible via `...` or Settings icon in top header | Out of the way; preserves full map space | Lower discoverability when in distress or needing quick exit | ⚠️ *Secondary Alternative* |
+
+#### Proposed UI Workflow for Option B (Pause State Integration):
+1. **During Active Tracking (`status === 'started'`):**
+   - Bottom dashboard displays: `[ ⏸️ Pause Hike ]` (Large yellow/amber button spanning full width).
+   - No destructive discard button is visible on the active map.
+2. **During Paused State (`status === 'paused'`):**
+   - Bottom dashboard reveals two primary buttons side by side:
+     - `[ ▶️ Resume ]` (Green primary button)
+     - `[ ⏹️ Hold to Finish ]` (Red outline button, 1.5s press)
+   - Directly beneath the action row, a subtle tertiary text action appears:
+     - `[ 🗑️ Discard Session ]` (Subtle muted red text link with trash icon).
+3. **If Hike Has Zero Activity (< 50 meters, < 1 minute):**
+   - The user can tap `[ ✕ Cancel ]` directly without extra friction.
+
+---
+
+#### 4. Safeguard Thresholds & Prevention of Data Loss
+Accidentally losing an 8-hour, 15-kilometer mountain hike due to a single misclick is catastrophic. The confirmation modal must feature dynamic, context-aware friction:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Discard Hike?                          │
+│                                                             │
+│   ⚠️ You have recorded 4.82 km over 2h 15m.                 │
+│                                                             │
+│   Discarding will permanently erase all GPS breadcrumbs,   │
+│   elevation stats, and live telemetry. This activity will   │
+│   NOT be saved to your profile or hike history.             │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │         🗑️ Hold to Discard (1.5 seconds)              │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                Cancel (Keep Recording)                │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+- **Dynamic Safeguard Logic:**
+  - **Threshold 1 (Minor / False Start — Distance < 100m AND Duration < 2 min):**
+    - Standard confirmation dialog: *"Discard this recording? No hike data will be saved."* -> Immediate `[Discard]` button.
+  - **Threshold 2 (Significant Effort — Distance $\ge$ 100m OR Duration $\ge$ 2 min):**
+    - Highlights recorded stats (`4.82 km`, `2h 15m`) in bold warning text.
+    - Requires **Hold-to-Discard (1.5s progress ring)** or two-step explicit confirmation to prevent accidental loss.
+
+---
+
+#### 5. Architectural Teardown & Data Integrity Pipeline
+Executing an official Discard must follow an atomic 5-step teardown sequence:
+
+```mermaid
+graph TD
+    A["User Confirms 'Discard Hike'"] --> B["Step 1: Sensor & Background Teardown"]
+    B --> C["Step 2: Remote Live Location Cleanup"]
+    C --> D["Step 3: Local Offline Storage Truncation"]
+    D --> E["Step 4: Zustand Store & Cache Reset"]
+    E --> F["Step 5: Seamless Lobby Navigation"]
+
+    subgraph Details
+        B -.-> B1["stopBackgroundTracking() & remove TaskManager listener"]
+        C -.-> C1["HikeRepo.deleteLocation(userId, groupId)"]
+        D -.-> D1["Clear/Reset thrail_current_hike.csv local storage"]
+        E -.-> E1["Clear walkedRoute, coordinates, currentHike, active: false"]
+        F -.-> F1["router.back() with fallback to /(app)/(tabs)/hike"]
+    end
+```
+
+1. **Step 1: Background & Sensor Teardown**
+   - `mapRef.current?.stopBackgroundTracking()` terminates `Location.stopLocationUpdatesAsync(LOCATION_TASK)`.
+   - Clears foreground GPS subscriptions and signal-loss heartbeat timers (`clearTimeout(globalGpsTimeoutTimer)`).
+2. **Step 2: Remote Live Location Marker Cleanup**
+   - If an active group exists, calls `HikeRepo.deleteLocation(userId, groupId)` to instantly purge the user's live marker from `groups/{groupId}/liveLocations/{userId}`.
+   - Wrapped with silent error handling so network errors or mock groups in testing do not block completion.
+3. **Step 3: Local Offline File Truncation (`saveLocalTrackPoint`)**
+   - Overwrites or empties `thrail_current_hike.csv` in `documentDirectory` so discarded coordinates do not leak into future sessions.
+4. **Step 4: Store & AsyncStorage Cache Reset**
+   - Resets Zustand state: `currentHike: null`, `active: false`, `walkedRoute: []`, `coordinates: []`, `totalDistance: 0`, `totalElevationGain: 0`, `elapsedTime: 0`, `timerStartTime: 0`.
+   - Clears persisted keys in AsyncStorage so the "Resume Active Hike" banner disappears immediately upon returning to the lobby.
+5. **Step 5: Clean Navigation Transition**
+   - Navigates via `router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/hike')`.
+
+---
+
+#### 6. Multiplayer & Group Hike Considerations
+1. **Personal Session Isolation:**
+   - Discarding is strictly an individual device operation. It only resets the current user's local GPS telemetry and stops broadcasting their own coordinates.
+   - The user's underlying booking in `bookings/{bookingId}` remains active and untouched for the scheduled hike date.
+   - Other group members' tracking sessions, statistics, and trail lines are completely unaffected.
+2. **Remote Live Pin Purge:**
+   - The user's live pin is removed from `groups/{groupId}/liveLocations/{userId}` so other group members see them transition to offline/inactive immediately rather than appearing stuck in place.
+3. **Offline / Mountain Dead Zone Discard:**
+   - If the user discards while in a cellular dead zone:
+     - Local GPS engines, timers, and storage (`thrail_current_hike.csv`) are wiped immediately.
+     - A pending delete task is flagged in the local queue so the remote pin is cleanly removed from Firestore as soon as cellular connectivity returns.
+
+---
+
+#### 7. Implementation Status & Code References (Completed)
+- **Status:** ✅ **Fully Implemented in Production**
+- **UI Architecture:** Option B (Pause State Action Row)
+  - Removed temporary amber `devResetFab` from the map controls stack in [HikeRecordingScreen.tsx](file:///d:/thrail_app/src/features/Navigation/screens/HikeRecordingScreen.tsx).
+  - Added a solid, theme-matched `[ 🗑️ Discard Hike ]` pill button below `[ Resume ]` and `[ Hold to Finish ]` during `isPaused` state (`height: 52`, `borderRadius: 16`, `backgroundColor: Colors.ERROR_BG`, `borderWidth: 1, borderColor: Colors.ERROR_BORDER`, and `GlobalStyles.dropShadow`).
+  - Solid surface completely covers map tiles, perfectly complementing `Resume`'s soft green `STATUS_APPROVED_BG` styling.
+- **Dynamic Safeguard Confirmation:**
+  - Integrated [ConfirmationModal.tsx](file:///d:/thrail_app/src/components/ConfirmationModal.tsx) with `isDestructive={true}` and Feather `trash-2` badge icon.
+  - Threshold 1 (False Start: $<100\text{m}$ & $<2\text{m}$): Low-friction alert prompting *"Discard Session"*.
+  - Threshold 2 (Significant Effort: $\ge 100\text{m}$ or $\ge 2\text{m}$): Displays bold recorded distance and duration warning with *"Discard Anyway"*.
+- **Atomic 5-Step Teardown Pipeline:**
+  1. `mapRef.current?.stopBackgroundTracking?.()` terminates foreground and TaskManager location updates.
+  2. `HikeRepo.deleteLocation(userId, groupId)` deletes user marker from `groups/{groupId}/liveLocations/{userId}` with guarded permission error handling.
+  3. `clearLocalTrack()` in [hikeStorage.ts](file:///d:/thrail_app/src/core/utility/hikeStorage.ts) truncates `thrail_current_hike.csv` back to clean CSV header.
+  4. `onResetHike()` in [CreateHikeFlow.ts](file:///d:/thrail_app/src/core/flows/CreateHikeFlow.ts) resets Zustand store and AsyncStorage persist cache to 0.
+  5. Navigates cleanly back via `router.back()` (with fallback to `/(app)/(tabs)/hike`).
+
