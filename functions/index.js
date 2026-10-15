@@ -1457,6 +1457,47 @@ function resolveMountainCoords(trailName, customCoords) {
     return null;
 }
 
+async function resolveGroupCoordinates(db, group, trailName) {
+    // 1. Direct coordinates on group.trail
+    const directCoords = group.trail?.coordinates || group.trail?.general?.coordinates;
+    const resolvedDirect = resolveMountainCoords(trailName, directCoords);
+    if (resolvedDirect) return resolvedDirect;
+
+    // 2. Fetch from Firestore /trails/{trailId}
+    const trailId = group.trail?.id;
+    if (trailId && db) {
+        try {
+            const trailDoc = await db.collection('trails').doc(trailId).get();
+            if (trailDoc.exists) {
+                const trailData = trailDoc.data() || {};
+                // Check geography.start (GeoPoint or object with latitude/longitude)
+                const geoStart = trailData.geography?.start;
+                if (geoStart && typeof geoStart.latitude === 'number' && typeof geoStart.longitude === 'number') {
+                    return { lat: geoStart.latitude, lon: geoStart.longitude };
+                }
+                // Check geography startLat / startLong
+                if (typeof trailData.geography?.startLat === 'number' && typeof trailData.geography?.startLong === 'number') {
+                    return { lat: trailData.geography.startLat, lon: trailData.geography.startLong };
+                }
+                // Check direct coordinates or general.coordinates on trail doc
+                const trailCoords = trailData.coordinates || trailData.general?.coordinates;
+                if (trailCoords) {
+                    const lat = typeof trailCoords.latitude === 'number' ? trailCoords.latitude : trailCoords.lat;
+                    const lon = typeof trailCoords.longitude === 'number' ? trailCoords.longitude : trailCoords.lon;
+                    if (typeof lat === 'number' && typeof lon === 'number') {
+                        return { lat, lon };
+                    }
+                }
+            }
+        } catch (trailErr) {
+            console.warn(`[checkGroupWeatherAlerts] Could not fetch trail document ${trailId}:`, trailErr.message);
+        }
+    }
+
+    // 3. Fallback to mountain name keyword matching in MOUNTAIN_COORDINATES
+    return resolveMountainCoords(trailName, null);
+}
+
 function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0) {
     // Determine the target index in the forecast arrays based on hours until the hike
     const targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
@@ -1545,7 +1586,21 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     if (rawDate?.toDate) {
         hikeDate = DateTime.fromJSDate(rawDate.toDate()).setZone('Asia/Manila');
     } else if (typeof rawDate === 'string') {
-        hikeDate = DateTime.fromISO(rawDate).setZone('Asia/Manila');
+        const trimmed = rawDate.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            // If date-only string (YYYY-MM-DD), default to morning departure 05:00 AM Manila time
+            hikeDate = DateTime.fromISO(`${trimmed}T05:00:00`, { zone: 'Asia/Manila' });
+        } else {
+            hikeDate = DateTime.fromISO(trimmed).setZone('Asia/Manila');
+        }
+    } else if (typeof rawDate === 'number') {
+        hikeDate = DateTime.fromMillis(rawDate).setZone('Asia/Manila');
+    }
+
+    // If timestamp was stored with midnight (00:00:00), adjust to standard 05:00 AM departure
+    // to prevent the day of the hike from being evaluated as already finished at 6:00 AM
+    if (hikeDate && hikeDate.isValid && hikeDate.hour === 0 && hikeDate.minute === 0 && hikeDate.second === 0) {
+        hikeDate = hikeDate.set({ hour: 5, minute: 0, second: 0, millisecond: 0 });
     }
 
     let diffHours = hikeDate && hikeDate.isValid ? hikeDate.diff(nowManila, 'hours').hours : null;
@@ -1571,13 +1626,16 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     }
 
     if (!currentPhase) {
-        // Expiration/Cleanup: If hike is over (diffHours < -24), delete stale alerts
-        if (diffHours != null && diffHours < -24) {
+        // Expiration/Cleanup: If hike is over (diffHours < -6), delete stale alerts
+        if (diffHours != null && diffHours < -6) {
             console.log(`[checkGroupWeatherAlerts] Hike for group ${groupId} ended. Cleaning up alerts.`);
             const oldAlerts = await db.collection('groups').doc(groupId).collection('alerts').get();
-            const batch = db.batch();
-            oldAlerts.docs.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
+            if (!oldAlerts.empty) {
+                const batch = db.batch();
+                oldAlerts.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                console.log(`[checkGroupWeatherAlerts] Cleaned up ${oldAlerts.size} alerts for group ${groupId}`);
+            }
             return { skipped: true, reason: 'Hike has passed. Cleaned up alerts.' };
         }
 
@@ -1632,7 +1690,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     }
 
     // Resolve mountain coordinates
-    const coords = resolveMountainCoords(trailName, group.trail?.coordinates || group.trail?.general?.coordinates);
+    const coords = await resolveGroupCoordinates(db, group, trailName);
     if (!coords) {
         console.log(`[checkGroupWeatherAlerts] No coordinates resolved for ${trailName}`);
         return null;
@@ -1806,6 +1864,25 @@ exports.checkHikeWeatherAlerts = functions.pubsub
             console.log(`[checkHikeWeatherAlerts] Evaluating ${activeGroupsSnap.size} active groups...`);
             for (const doc of activeGroupsSnap.docs) {
                 await processGroupWeatherAlert(db, doc);
+            }
+
+            // Also clean up alerts from archived groups that have concluded
+            try {
+                const archivedGroupsSnap = await db.collection('groups')
+                    .where('status', '==', 'archived')
+                    .limit(25)
+                    .get();
+
+                for (const aDoc of archivedGroupsSnap.docs) {
+                    const oldAlerts = await db.collection('groups').doc(aDoc.id).collection('alerts').get();
+                    if (!oldAlerts.empty) {
+                        const batch = db.batch();
+                        oldAlerts.docs.forEach(alertDoc => batch.delete(alertDoc.ref));
+                        await batch.commit();
+                    }
+                }
+            } catch (archiveErr) {
+                console.warn('[checkHikeWeatherAlerts] Error cleaning up archived groups:', archiveErr.message);
             }
 
             console.log('[checkHikeWeatherAlerts] Completed cycle.');

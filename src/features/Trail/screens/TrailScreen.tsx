@@ -43,6 +43,7 @@ export interface TrailScreenProps {
     onWriteReviewPress: (review: IReview) => void;
     isOwned: (review: IReview) => boolean;
     offersCount?: number;
+    initialTab?: string;
 }
 
 const TrailScreen: React.FC<TrailScreenProps> = ({
@@ -62,9 +63,10 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     onWriteReviewPress,
     isOwned,
     offersCount = 0,
+    initialTab,
 }) => {
     const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
-    const [activeTab, setActiveTab] = useState('Details');
+    const [activeTab, setActiveTab] = useState(initialTab || 'Details');
     const insets = useSafeAreaInsets();
 
     const mountainName = Array.isArray(trail?.general?.mountain)

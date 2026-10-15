@@ -10,7 +10,7 @@ export const useNotifications = () => {
     const onViewNotification = (notificationId: string) => {
         if (notificationId) {
             router.push({
-                pathname: '/(main)/notification/view',
+                pathname: '/(app)/(main)/notification/view',
                 params: {
                     notificationId,
                 },

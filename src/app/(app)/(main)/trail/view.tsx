@@ -13,8 +13,9 @@ import React, { useMemo } from "react";
 import { View } from "react-native";
 
 export default function ViewTrail() {
-    const { trailId } = useLocalSearchParams();
+    const { trailId, tab } = useLocalSearchParams();
     const tId = (Array.isArray(trailId) ? trailId[0] : trailId) as string;
+    const initialTab = (Array.isArray(tab) ? tab[0] : tab) as string | undefined;
 
     const { onBackPress, onDownloadPress } = useAppNavigation();
 
@@ -82,6 +83,7 @@ export default function ViewTrail() {
                 isOwned={isOwned}
                 isLiked={isLiked}
                 offersCount={offersCount}
+                initialTab={initialTab}
             />
         </View>
     )

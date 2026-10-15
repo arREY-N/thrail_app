@@ -6,6 +6,7 @@ import { useOfferItem } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary, newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { catchError } from "@/src/core/utility/errorFormatter";
+import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -241,12 +242,13 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         //router.replace('/');
     }
 
-    const onResetHike = () => {
+    const onResetHike = async () => {
         stopBackgroundTracking();
         const targetGroup = groupId || useHikeStore.getState().activeGroupId;
         if (targetGroup) {
             stopSharingLocation(targetGroup);
         }
+        await clearLocalTrack();
         updateHikeStore({
             currentHike: null,
             active: false,

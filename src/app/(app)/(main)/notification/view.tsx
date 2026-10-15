@@ -1,47 +1,31 @@
-import { Notification, useViewNotification } from "@/src/core/models/Notification/Notification";
-import getSearchParam from "@/src/core/utility/getSearchParam";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { Text, View } from "react-native";
+/**
+ * @file view.tsx
+ * @description Controller route for viewing notification details.
+ * Binds useViewNotification hook directly to NotificationDetailScreen with real Firestore data.
+ */
 
-export default function ViewNotification() {
+import { Stack, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useViewNotification } from '@/src/core/models/Notification/Notification';
+import getSearchParam from '@/src/core/utility/getSearchParam';
+import { NotificationDetailScreen } from '@/src/features/Notification/screens/NotificationDetailScreen';
+
+export default function ViewNotification(): React.JSX.Element {
+    const { onBackPress } = useAppNavigation();
     const { notificationId: rawId } = useLocalSearchParams();
-
     const notificationId = getSearchParam(rawId);
 
-    const {
-        notification
-    } = useViewNotification(notificationId);
+    const { notification } = useViewNotification(notificationId);
 
     return (
         <>
-            <Stack.Screen options={{ headerShown: true }} />
-            <TESTNOTIFICATION
+            <Stack.Screen options={{ headerShown: false }} />
+            <NotificationDetailScreen
                 notification={notification}
+                onBackPress={onBackPress}
             />
         </>
-    )
-}
-
-export interface NotificationParams {
-    notification: Notification | null;
-}
-
-export const TESTNOTIFICATION = (params: NotificationParams) => {
-
-    if (params.notification === null) {
-        return (
-            <View>
-                <Text>Notification not found</Text>
-            </View>
-        )
-    }
-
-    return (
-        <View>
-            <Text>Notification Screen</Text>
-            <Text>Title: {params.notification.title}</Text>
-            <Text>Message: {params.notification.message}</Text>
-            <Text>Read: {params.notification.read ? 'Yes' : 'No'}</Text>
-        </View>
-    )
+    );
 }
