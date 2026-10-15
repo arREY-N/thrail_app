@@ -80,6 +80,10 @@ export function useGroupLocation(groupId: string) {
 
     const onSendPicture = async () => {
         try {
+            if (!profile) return;
+
+            const chatId = profile.emergencyContact.chatId;
+
             let documentUrl: string | null = null;
 
             if (Platform.OS === 'web') {
@@ -98,7 +102,21 @@ export function useGroupLocation(groupId: string) {
                 timesent: new Date(),
             });
 
-            GroupRepo.sendMessage(groupId, msg);
+            logger('useGroupLocation', 'sending picture', groupId);
+
+            if (groupId) {
+                logger('useGroupLocation', 'Sending to group: ', groupId)
+                await GroupRepo.sendMessage(groupId, msg);
+                return;
+            }
+
+            if (chatId) {
+                logger('useGroupLocation', 'Sending to chat: ', chatId)
+                await GroupRepo.sendMessage(chatId, msg);
+                return;
+            }
+
+            throw new Error('Cannot send a picture to non-app users. If this is an independent hike, please check if you have set an emergency contact that has an active Thrail account');
         } catch (error) {
             console.log(error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sending picture.");
