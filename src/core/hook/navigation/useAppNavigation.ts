@@ -31,8 +31,8 @@ export function useAppNavigation() {
 
 
     const onNotificationPress = () => {
-        router.push('/home/notification');
-    }
+        router.push('/(app)/(main)/notification');
+    };
 
     const onBookingPress = () => {
         router.push('/book/list');

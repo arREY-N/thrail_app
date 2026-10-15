@@ -6,7 +6,7 @@ export interface INotificationBase<T> {
     message: string;
     createdAt: T;
     read: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export type INotificationDB = INotificationBase<FieldValue | Timestamp>;
