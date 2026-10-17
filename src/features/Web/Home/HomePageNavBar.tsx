@@ -136,7 +136,7 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
       },
       {
         id: "recommendation",
-        label: "recommendations",
+        label: "Recommendations",
         icon: "sliders",
         library: "Feather",
         route: "/(app)/(main)/superadmin/recommendation",
