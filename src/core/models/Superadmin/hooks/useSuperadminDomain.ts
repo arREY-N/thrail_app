@@ -67,6 +67,12 @@ export function useSuperadminDomain(params: SuperadminParams | null) {
         })
     }
 
+    const onManageRecommendationPress = () => {
+        router.push({
+            pathname: '/(main)/superadmin/recommendation',
+        })
+    }
+
     const onViewApplicationPress = (applicationId: string) => {
         router.push({
             pathname: '/(main)/superadmin/application/view',
@@ -90,6 +96,7 @@ export function useSuperadminDomain(params: SuperadminParams | null) {
         onManageUsersPress,
         onManageMountainPress,
         onManageApplicationPress,
+        onManageRecommendationPress,
         onViewApplicationPress,
     }
 }

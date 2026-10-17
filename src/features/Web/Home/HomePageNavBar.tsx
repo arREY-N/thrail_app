@@ -10,7 +10,8 @@ import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
 import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
-import { useState } from "react";
+import React, { useState } from "react";
+
 
 interface NavItemConfig {
   id: string;
@@ -132,6 +133,13 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         icon: "users",
         library: "Feather",
         route: "/(app)/(main)/superadmin/user/list",
+      },
+      {
+        id: "recommendation",
+        label: "recommendations",
+        icon: "sliders",
+        library: "Feather",
+        route: "/(app)/(main)/superadmin/recommendation",
       },
     ],
   },

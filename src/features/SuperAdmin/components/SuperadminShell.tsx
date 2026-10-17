@@ -60,6 +60,7 @@ const TAB_TITLES: Record<SuperadminTab, string> = {
     trail: 'Trails & Routes',
     mountain: 'Mountains Database',
     user: 'User Accounts',
+    recommendation: 'recommendations',
 };
 
 /**

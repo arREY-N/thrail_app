@@ -16,7 +16,7 @@ import { useAuthStore } from '@/src/core/models/User/stores/authStore';
 import { IconLibrary } from '@/src/types/ui.types';
 import { getInitials } from '@/src/utils/dateFormatter';
 
-export type SuperadminTab = 'dashboard' | 'application' | 'business' | 'trail' | 'mountain' | 'user';
+export type SuperadminTab = 'dashboard' | 'application' | 'business' | 'trail' | 'mountain' | 'user' | 'recommendation';
 export type AdminTab = SuperadminTab;
 
 /**
@@ -65,6 +65,7 @@ const NAV_SECTIONS: NavSection[] = [
             { id: 'trail', label: 'Trails & Routes', icon: 'map', library: 'Feather' },
             { id: 'mountain', label: 'Mountains Database', icon: 'mountain', library: 'FontAwesome5' },
             { id: 'user', label: 'User Accounts', icon: 'users', library: 'Feather' },
+            { id: 'recommendation', label: 'recommendations', icon: 'sliders', library: 'Feather' },
         ],
     },
 ];
