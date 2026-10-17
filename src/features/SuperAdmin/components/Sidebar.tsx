@@ -65,7 +65,7 @@ const NAV_SECTIONS: NavSection[] = [
             { id: 'trail', label: 'Trails & Routes', icon: 'map', library: 'Feather' },
             { id: 'mountain', label: 'Mountains Database', icon: 'mountain', library: 'FontAwesome5' },
             { id: 'user', label: 'User Accounts', icon: 'users', library: 'Feather' },
-            { id: 'recommendation', label: 'recommendations', icon: 'sliders', library: 'Feather' },
+            { id: 'recommendation', label: 'Recommendations', icon: 'sliders', library: 'Feather' },
         ],
     },
 ];
