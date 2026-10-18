@@ -329,18 +329,22 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
 
             {/* 3. BOTTOM FULL-WIDTH EXPAND / COLLAPSE BUTTON */}
             <TouchableOpacity 
-                style={[styles.expandButton, { marginTop: isExpanded ? 10 : 14 }]} 
+                style={[
+                    styles.expandButton, 
+                    !isExpanded ? styles.expandButtonProminent : styles.expandButtonSubtle,
+                    { marginTop: isExpanded ? 10 : 14 }
+                ]} 
                 onPress={() => setIsExpanded(!isExpanded)}
                 activeOpacity={0.7}
             >
-                <CustomText style={styles.expandButtonText}>
+                <CustomText style={!isExpanded ? styles.expandButtonProminentText : styles.expandButtonText}>
                     {isExpanded ? "Hide Calendar" : "Show Calendar"}
                 </CustomText>
                 <CustomIcon 
                     library="Feather" 
                     name={isExpanded ? "chevron-up" : "chevron-down"} 
                     size={16} 
-                    color={Colors.PRIMARY} 
+                    color={!isExpanded ? Colors.WHITE : Colors.PRIMARY} 
                 />
             </TouchableOpacity>
         </View>
@@ -405,30 +409,30 @@ const styles = StyleSheet.create({
         gap: 5,
     },
     statusBadgeSuccess: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
+        backgroundColor: Colors.CHIP_PRIMARY_BG,
+        borderColor: Colors.CHIP_PRIMARY_BORDER,
     },
     statusBadgeMuted: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderColor: Colors.GRAY_LIGHT,
     },
     badgeDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
     },
     badgeDotSuccess: {
-        backgroundColor: Colors.SUCCESS,
+        backgroundColor: Colors.PRIMARY,
     },
     badgeDotMuted: {
         backgroundColor: Colors.GRAY_MEDIUM,
     },
     statusBadgeText: {
         fontSize: 11,
-        fontWeight: '700',
+        fontWeight: '600',
     },
     statusBadgeTextSuccess: {
-        color: Colors.STATUS_APPROVED_TEXT,
+        color: Colors.PRIMARY,
     },
     statusBadgeTextMuted: {
         color: Colors.TEXT_SECONDARY,
@@ -563,17 +567,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 10,
-        backgroundColor: Colors.BACKGROUND,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
         gap: 6,
         width: '100%',
+    },
+    expandButtonProminent: {
+        backgroundColor: Colors.PRIMARY,
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+        ...GlobalStyles.dropShadow(2),
+    },
+    expandButtonSubtle: {
+        backgroundColor: Colors.BACKGROUND,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
     expandButtonText: {
         fontSize: 13,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+    expandButtonProminentText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
     },
 });
 
