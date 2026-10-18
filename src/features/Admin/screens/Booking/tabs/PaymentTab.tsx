@@ -43,11 +43,11 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     isCancelledStatus,
     onConfirmPaymentClick 
 }) => {
-    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
 
     const getLockedMessage = () => {
-        if (hasRefundedPayment || currentStatus === 'refunded') {
+        if (hasRefundedPayment || currentStatus === 'refunded' || currentStatus === 'refund') {
             return "Payment actions are locked because this booking has been explicitly Refunded.";
         }
         switch (currentStatus) {
@@ -149,7 +149,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                 badgeBg = Colors.STATUS_APPROVED_BG;
                                 badgeText = Colors.SUCCESS;
                                 badgeIcon = "check-circle";
-                            } else if (dbStatus === 'refunded' || hasRefundedPayment) {
+                            } else if (dbStatus === 'refunded' || dbStatus === 'refund' || hasRefundedPayment) {
                                 badgeLabel = "Refunded";
                                 badgeBg = Colors.STATUS_CANCELLED_BG;
                                 badgeText = Colors.STATUS_CANCELLED_TEXT;
@@ -247,8 +247,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                         </CustomText>
                                     </View>
                                 )}
-                                
-                                {/* Status Row */}
+                                                          {/* Status Row */}
                                 <View style={styles.paymentRow}>
                                     <CustomText style={styles.paymentLabel}>Status</CustomText>
                                     <CustomText 
@@ -257,9 +256,12 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                             { color: statusColor, textTransform: 'uppercase' }
                                         ]}
                                     >
-                                        {paymentRecord.status === 'refunded' && paymentRecord.refundedAmount && paymentRecord.amount > 0
-                                            ? `${paymentRecord.status} (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)`
-                                            : paymentRecord.status}
+                                        {paymentRecord.status === 'refunded'
+                                            ? `REFUNDED${paymentRecord.refundedAmount && paymentRecord.amount > 0 ? ` (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)` : ''}`
+                                            : (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0
+                                                ? `PARTIALLY REFUNDED (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)`
+                                                : paymentRecord.status)
+                                        }
                                     </CustomText>
                                 </View>
 
@@ -269,7 +271,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                     <CustomText 
                                         style={[
                                             styles.paymentValue, 
-                                            paymentRecord.status === 'refunded' ? styles.strikethroughAmount : styles.totalValue
+                                            (paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) ? styles.strikethroughAmount : styles.totalValue
                                         ]}
                                     >
                                         ₱{paymentRecord.amount.toFixed(2)}
@@ -277,17 +279,17 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                 </View>
 
                                 {/* Refunded Amount Row (if refunded) */}
-                                {paymentRecord.status === 'refunded' && paymentRecord.refundedAmount && (
+                                {(paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) && (
                                     <View style={styles.paymentRow}>
                                         <CustomText style={styles.paymentLabel}>Amount Refunded</CustomText>
                                         <CustomText style={[styles.paymentValue, styles.errorText]}>
-                                            ₱{paymentRecord.refundedAmount.toFixed(2)}
+                                            ₱{(paymentRecord.refundedAmount || paymentRecord.amount).toFixed(2)}
                                         </CustomText>
                                     </View>
                                 )}
 
                                 {/* Refund Reason (if refunded) */}
-                                {paymentRecord.status === 'refunded' && paymentRecord.refundReason && (
+                                {(paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) && paymentRecord.refundReason && (
                                     <View style={styles.paymentRow}>
                                         <CustomText style={styles.paymentLabel}>Refund Reason</CustomText>
                                         <CustomText style={[styles.paymentValue, { textTransform: 'capitalize' }]}>
