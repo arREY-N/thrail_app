@@ -1,5 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo, useRef, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+import { useScrollFades } from '@/src/hooks/useScrollFades';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -143,6 +147,24 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
 
+    const forecastScrollRef = useRef<ScrollView>(null);
+    const hourlyScrollRef = useRef<ScrollView>(null);
+
+    const {
+        showLeftFade: showForecastLeftFade,
+        showRightFade: showForecastRightFade,
+        scrollProps: forecastScrollProps,
+    } = useScrollFades();
+
+    const {
+        showLeftFade: showHourlyLeftFade,
+        showRightFade: showHourlyRightFade,
+        scrollProps: hourlyScrollProps,
+    } = useScrollFades();
+
+    useWebDragScroll(forecastScrollRef, !!data?.forecast?.length);
+    useWebDragScroll(hourlyScrollRef, !!data?.forecast?.length);
+
     const lastUpdatedLabel = useMemo(
         () => formatLastUpdatedLabel(data?.lastUpdated),
         [data?.lastUpdated]
@@ -281,40 +303,64 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                             {'7-Day Forecast'}
                         </CustomText>
                     </View>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
-                        contentContainerStyle={styles.forecastContent}
-                    >
-                        {weatherData.forecast.map((day, index) => {
-                            const { icon, library } = getWeatherInfoUI(day.weatherCode);
-                            const isToday = index === 0;
-                            const isSelected = selectedDayIndex === index;
-                            return (
-                                <TouchableOpacity 
-                                    key={index} 
-                                    style={[
-                                        styles.forecastItem, 
-                                        isSelected ? styles.forecastItemSelected : (isToday ? styles.forecastItemToday : undefined)
-                                    ]}
-                                    onPress={() => setSelectedDayIndex(index)}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomText variant="label" style={[styles.forecastDate, (isSelected || isToday) && styles.forecastDateActive]}>
-                                        {isToday ? "Today" : formatForecastDay(day.date, index)}
-                                    </CustomText>
-                                    <View style={styles.fIconWrapper}>
-                                        <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
-                                    </View>
-                                    <View style={styles.forecastTempRow}>
-                                        <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>
-                                        <CustomText style={styles.fTempSeparator}> / </CustomText>
-                                        <CustomText variant="caption" style={styles.forecastTempLow}>{Math.round(day.temperatureMin)}°</CustomText>
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
+                    <View style={styles.scrollWrapper}>
+                        <ScrollView 
+                            ref={forecastScrollRef}
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={styles.forecastContent}
+                            {...forecastScrollProps}
+                        >
+                            {weatherData.forecast.map((day, index) => {
+                                const { icon, library } = getWeatherInfoUI(day.weatherCode);
+                                const isToday = index === 0;
+                                const isSelected = selectedDayIndex === index;
+                                return (
+                                    <TouchableOpacity 
+                                        key={index} 
+                                        style={[
+                                            styles.forecastItem, 
+                                            isSelected ? styles.forecastItemSelected : (isToday ? styles.forecastItemToday : undefined)
+                                        ]}
+                                        onPress={() => setSelectedDayIndex(index)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomText variant="label" style={[styles.forecastDate, (isSelected || isToday) && styles.forecastDateActive]}>
+                                            {isToday ? "Today" : formatForecastDay(day.date, index)}
+                                        </CustomText>
+                                        <View style={styles.fIconWrapper}>
+                                            <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
+                                        </View>
+                                        <View style={styles.forecastTempRow}>
+                                            <CustomText variant="label" style={styles.forecastTempHigh}>{Math.round(day.temperatureMax)}°</CustomText>
+                                            <CustomText style={styles.fTempSeparator}> / </CustomText>
+                                            <CustomText variant="caption" style={styles.forecastTempLow}>{Math.round(day.temperatureMin)}°</CustomText>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {showForecastLeftFade && (
+                            <LinearGradient
+                                colors={[Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.scrollFadeLeft}
+                                pointerEvents="none"
+                            />
+                        )}
+
+                        {showForecastRightFade && (
+                            <LinearGradient
+                                colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.scrollFadeRight}
+                                pointerEvents="none"
+                            />
+                        )}
+                    </View>
                 </View>
             )}
 
@@ -329,35 +375,59 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                                 : `Hourly Forecast (${new Date(activeDay?.date || '').toLocaleDateString('en-US', { weekday: 'long' })})`}
                         </CustomText>
                     </View>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
-                        contentContainerStyle={styles.hourlyContent}
-                    >
-                        {activeHourlyList.map((hour, hIdx) => {
-                            const { icon, library } = getWeatherInfoUI(hour.weatherCode);
-                            const isNow = hour.hourLabel === 'Now';
-                            return (
-                                <View key={hIdx} style={[styles.hourlyPill, isNow && styles.hourlyPillNow]}>
-                                    <CustomText variant="label" style={[styles.hourlyTime, isNow && styles.hourlyTimeNow]}>
-                                        {hour.hourLabel}
-                                    </CustomText>
-                                    <View style={styles.hourlyIconWrapper}>
-                                        <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
-                                    </View>
-                                    <View style={styles.hourlyBottomCol}>
-                                        <CustomText variant="label" style={styles.hourlyTemp}>{hour.temperature}°</CustomText>
-                                        <View style={styles.hourlyPrecip}>
-                                            <CustomIcon library="Ionicons" name="water-outline" size={11} color={hour.precipitationProbability > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} />
-                                            <CustomText variant="caption" style={[styles.hourlyPrecipText, hour.precipitationProbability > 30 && { color: Colors.ERROR, fontWeight: '700' }]}>
-                                                {hour.precipitationProbability}%
-                                            </CustomText>
+                    <View style={styles.scrollWrapper}>
+                        <ScrollView 
+                            ref={hourlyScrollRef}
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={styles.hourlyContent}
+                            {...hourlyScrollProps}
+                        >
+                            {activeHourlyList.map((hour, hIdx) => {
+                                const { icon, library } = getWeatherInfoUI(hour.weatherCode);
+                                const isNow = hour.hourLabel === 'Now';
+                                return (
+                                    <View key={hIdx} style={[styles.hourlyPill, isNow && styles.hourlyPillNow]}>
+                                        <CustomText variant="label" style={[styles.hourlyTime, isNow && styles.hourlyTimeNow]}>
+                                            {hour.hourLabel}
+                                        </CustomText>
+                                        <View style={styles.hourlyIconWrapper}>
+                                            <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
+                                        </View>
+                                        <View style={styles.hourlyBottomCol}>
+                                            <CustomText variant="label" style={styles.hourlyTemp}>{hour.temperature}°</CustomText>
+                                            <View style={styles.hourlyPrecip}>
+                                                <CustomIcon library="Ionicons" name="water-outline" size={11} color={hour.precipitationProbability > 30 ? Colors.ERROR : Colors.TEXT_SECONDARY} />
+                                                <CustomText variant="caption" style={[styles.hourlyPrecipText, hour.precipitationProbability > 30 && { color: Colors.ERROR, fontWeight: '700' }]}>
+                                                    {hour.precipitationProbability}%
+                                                </CustomText>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            );
-                        })}
-                    </ScrollView>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {showHourlyLeftFade && (
+                            <LinearGradient
+                                colors={[Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.scrollFadeLeft}
+                                pointerEvents="none"
+                            />
+                        )}
+
+                        {showHourlyRightFade && (
+                            <LinearGradient
+                                colors={[Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.scrollFadeRight}
+                                pointerEvents="none"
+                            />
+                        )}
+                    </View>
                 </View>
             )}
 
@@ -629,6 +699,31 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
         paddingVertical: 4,
+    },
+    scrollWrapper: {
+        position: 'relative',
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                isolation: 'isolate',
+            },
+        }),
+    },
+    scrollFadeLeft: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 32,
+        zIndex: 2,
+    },
+    scrollFadeRight: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 32,
+        zIndex: 2,
     },
     hourlyPill: {
         alignItems: 'center',

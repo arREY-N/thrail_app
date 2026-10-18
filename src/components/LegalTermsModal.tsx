@@ -5,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { CustomToast } from '@/src/components/Toast/Toast';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -131,6 +131,29 @@ const LegalTermsModal = ({
         }
     }, [visible, animValue, renderModal]);
 
+    const handleDismiss = useCallback(() => {
+        if (!isAlreadyAcknowledged && onDismissWithStatus) {
+            onDismissWithStatus({ readCount, hasReadAll });
+        }
+        onClose();
+    }, [isAlreadyAcknowledged, onDismissWithStatus, readCount, hasReadAll, onClose]);
+
+    // Physical Escape key dismissal on Web
+    useEffect(() => {
+        if (Platform.OS !== 'web' || !visible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleDismiss();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, handleDismiss]);
+
+    // Toast offset calculation: guarantee clean 12px floating headroom above CTA button
+    const footerPadding = isWideScreen ? 24 : Math.max(insets.bottom + 16, 20);
+    const toastBottomOffset = footerPadding + 52 + 12;
+
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
         const paddingToBottom = 20;
@@ -150,13 +173,6 @@ const LegalTermsModal = ({
         setIsAtBottom(false);
         setHasAttemptedAcknowledge(false);
         setToastMessage(null);
-    };
-
-    const handleDismiss = () => {
-        if (!isAlreadyAcknowledged && onDismissWithStatus) {
-            onDismissWithStatus({ readCount, hasReadAll });
-        }
-        onClose();
     };
 
     const handleAcknowledgePress = () => {
@@ -287,6 +303,9 @@ const LegalTermsModal = ({
                                     ]}
                                     onPress={() => handleTabChange(tab.key)}
                                     activeOpacity={0.7}
+                                    accessibilityRole="tab"
+                                    accessibilityState={{ selected: isActive }}
+                                    accessibilityLabel={tab.label}
                                 >
                                     <View style={styles.tabInnerRow}>
                                         <CustomIcon
@@ -342,7 +361,7 @@ const LegalTermsModal = ({
                         )}
                     </View>
 
-                    {/* Interactive Action Button with Error / Incomplete Feedback */}
+                    {/* Interactive Action Button with Encapsulated Validation State */}
                     <CustomButton
                         title={
                             isAlreadyAcknowledged
@@ -353,24 +372,18 @@ const LegalTermsModal = ({
                         }
                         onPress={isAlreadyAcknowledged ? onClose : handleAcknowledgePress}
                         variant={isAlreadyAcknowledged || canAcknowledge ? "primary" : "outline"}
+                        validationState={
+                            isAlreadyAcknowledged || canAcknowledge
+                                ? 'valid'
+                                : (hasAttemptedAcknowledge ? 'error' : 'idle')
+                        }
+                        isIdleDisabled={false}
                         icon={isAlreadyAcknowledged ? "check" : undefined}
                         iconLibrary={isAlreadyAcknowledged ? "Feather" : undefined}
-                        style={[
-                            styles.closeBtnWrapper,
-                            !isAlreadyAcknowledged && !canAcknowledge && (
-                                hasAttemptedAcknowledge 
-                                    ? styles.closeBtnError 
-                                    : styles.closeBtnIncomplete
-                            ),
-                        ]}
-                        textStyle={
-                            !isAlreadyAcknowledged && !canAcknowledge
-                                ? (hasAttemptedAcknowledge ? styles.closeBtnTextError : styles.closeBtnTextIncomplete)
-                                : undefined
-                        }
+                        style={styles.closeBtnWrapper}
                     />
 
-                    {/* Floating Toast Alert inside Modal */}
+                    {/* Floating Toast Alert inside Modal with Responsive Docking */}
                     <CustomToast
                         visible={!!toastMessage}
                         message={toastMessage || ''}
@@ -381,7 +394,7 @@ const LegalTermsModal = ({
                         type="warning"
                         mode="simple"
                         position="floating"
-                        bottomOffset={82}
+                        bottomOffset={toastBottomOffset}
                     />
                 </Animated.View>
             </KeyboardAvoidingView>
@@ -420,7 +433,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 520,
+        width: '92%',
+        maxWidth: 520,
         height: 620,
         maxHeight: '85%',
         borderRadius: 24,
@@ -430,7 +444,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 640,
+        width: '92%',
+        maxWidth: 640,
         height: 660,
         maxHeight: '85%',
         borderRadius: 24,
@@ -532,24 +547,6 @@ const styles = StyleSheet.create({
     closeBtnWrapper: {
         marginTop: 14,
         borderRadius: 16,
-    },
-    closeBtnIncomplete: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderColor: Colors.GRAY_LIGHT,
-        borderWidth: 1.5,
-    },
-    closeBtnTextIncomplete: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-    },
-    closeBtnError: {
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
-        borderColor: Colors.STATUS_CANCELLED_TEXT,
-        borderWidth: 1.5,
-    },
-    closeBtnTextError: {
-        color: Colors.STATUS_CANCELLED_TEXT,
-        fontWeight: 'bold',
     },
 });
 

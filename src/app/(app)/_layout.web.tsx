@@ -37,39 +37,43 @@ export default function WebAppLayout() {
 
   useEffect(() => {
     if (isDrawerOpen) {
-      setShouldRender(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
           duration: 260,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 1,
           duration: 260,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]).start();
-    } else {
+    } else if (shouldRender) {
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -DRAWER_WIDTH,
           duration: 220,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 0,
           duration: 220,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]).start(() => {
         setShouldRender(false);
       });
     }
-  }, [backdropAnim, isDrawerOpen, slideAnim]);
+  }, [backdropAnim, isDrawerOpen, shouldRender, slideAnim]);
 
   const closeDrawer = () => setIsDrawerOpen(false);
-  const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
+  const toggleDrawer = () => {
+    setIsDrawerOpen((prev) => {
+      if (!prev) setShouldRender(true);
+      return !prev;
+    });
+  };
 
   if (isLoading) return <LoadingScreen />;
 

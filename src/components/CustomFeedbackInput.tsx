@@ -181,6 +181,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                 multiline={true}
                 numberOfLines={4}
                 inputStyle={styles.textArea}
+                containerStyle={isDanger ? styles.inputContainerDanger : undefined}
                 style={styles.noMarginBottom}
             />
 
@@ -278,6 +279,10 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
         paddingTop: 16,
         paddingBottom: 16,
+    },
+    inputContainerDanger: {
+        borderColor: Colors.ERROR,
+        borderWidth: 1.5,
     },
     noMarginBottom: {
         marginBottom: 0,
