@@ -26,7 +26,9 @@ const ReceiptScreen = ({
         ? bookingData.payment.filter((p: IPayment<Date>) => p.status !== 'abandoned')
         : [];
     const capturedPayments = payments.filter((p: IPayment<Date>) => p.status === 'captured');
-    const refundedPayments = payments.filter((p: IPayment<Date>) => p.status === 'refunded');
+    const refundedPayments = payments.filter((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const totalRefunded = payments.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0);
+    const hasRefund = totalRefunded > 0 || refundedPayments.length > 0;
     
     const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || refundedPayments[refundedPayments.length - 1] || payments[0];
     
@@ -52,13 +54,12 @@ const ReceiptScreen = ({
     const paymentMethod = formatMethod(latestPayment?.method, latestPayment?.gateway);
     
     const totalAmount = bookingData?.offer?.price || 0;
-    const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || refundedPayments.length > 0;
+    const isRefunded = bookingData?.status === 'refunded' || bookingData?.status === 'refund' || hasRefund;
     
     const totalPaid = capturedPayments.length > 0 
         ? capturedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0) 
         : (isRefunded ? 0 : totalAmount);
         
-    const totalRefunded = refundedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || 0), 0);
     const hasUnrecordedRefund = refundedPayments.some((p: IPayment<Date>) => p.refundedAmount === undefined || p.refundedAmount === null);
 
     const totalOriginalAmountForRefunded = refundedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0);
@@ -182,7 +183,7 @@ const ReceiptScreen = ({
                                 </>
                             )}
 
-                            {refundedPayments.length > 0 && (
+                            {(totalRefunded > 0 || refundedPayments.length > 0) && (
                                 <>
                                     <View style={styles.dataRow}>
                                         <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
@@ -201,10 +202,10 @@ const ReceiptScreen = ({
 
                             <View style={styles.totalRow}>
                                 <CustomText variant="body" style={styles.totalLabel}>
-                                    {isRefunded ? "Net Amount Paid" : "Amount Paid"}
+                                    {isRefunded && totalRefunded > 0 ? "Net Amount Paid" : (isRefunded ? "Amount Paid" : "Amount Paid")}
                                 </CustomText>
                                 <CustomText variant="h2" style={[styles.totalValue, { color: isRefunded ? Colors.TEXT_PRIMARY : headerColor }]}>
-                                    ₱{totalPaid.toFixed(2)}
+                                    ₱{(isRefunded && totalRefunded > 0 ? Math.max(0, totalPaid - totalRefunded) : totalPaid).toFixed(2)}
                                 </CustomText>
                             </View>
                         </View>
