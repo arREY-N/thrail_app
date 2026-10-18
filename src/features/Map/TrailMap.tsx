@@ -21,6 +21,7 @@ export interface TrailMapProps {
     showRecenter?: boolean;
     bottomInset?: number;
     compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
+    attributionPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
     hikerLocations?: HikerLocation[];
     currentUserId?: string;
 }

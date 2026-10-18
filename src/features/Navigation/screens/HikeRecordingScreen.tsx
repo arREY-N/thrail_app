@@ -131,6 +131,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [isDiscarding, setIsDiscarding] = useState(false);
+    const [dashboardHeight, setDashboardHeight] = useState(250);
 
     const handleDiscardPrompt = () => {
         setShowDiscardConfirm(true);
@@ -337,8 +338,9 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 ref={mapRef}
                 initialLon={lon}
                 initialLat={lat}
-                bottomInset={210}
-                compassPosition={{ bottom: 245, left: 16 }}
+                bottomInset={dashboardHeight + 16}
+                attributionPosition={{ bottom: dashboardHeight + 8, left: 16 }}
+                compassPosition={{ bottom: dashboardHeight + 40, left: 16 }}
                 hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
@@ -364,7 +366,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.mapControls, { bottom: 230 }]}>
+            <View style={[styles.mapControls, { bottom: dashboardHeight + 16 }]}>
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
                         <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -393,7 +395,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.dashboardWrapper, { paddingBottom: insets.bottom + 16 }]}>
+            <View 
+                style={[styles.dashboardWrapper, { paddingBottom: insets.bottom + 16 }]}
+                onLayout={(e) => {
+                    const h = Math.round(e.nativeEvent.layout.height);
+                    if (h > 0 && Math.abs(h - dashboardHeight) > 2) {
+                        setDashboardHeight(h);
+                    }
+                }}
+            >
                 {localError && (
                     <TouchableOpacity style={styles.errorBox} onPress={() => setLocalError(null)}>
                         <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.ERROR} />

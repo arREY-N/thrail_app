@@ -54,6 +54,55 @@ export function useCancellationAdmin(bookingId: string) {
 
     const revertAdminCancellation = useCancellationStore(s => s.delete);
 
+    const retrieveDocuments = async (offerId: string, bookingId: string) => {
+        const offer: Offer | null = await getBusinessOfferItem(offerId);
+
+        if (!offer)
+            throw new Error("Offer not found for the provided offer ID.");
+
+        const booking: Booking | null = await getUserBookingItem(bookingId);
+
+        if (!booking)
+            throw new Error("Booking not found for the provided booking ID.");
+
+        const group: Group | void = await getGroup(booking.offer.id);
+
+        if (!group)
+            throw new Error("Group chat not found for the provided offer ID.");
+
+        return { offer, group, booking }
+    }
+
+    const processRefund = async (
+        refundType: 'full' | 'partial' | 'custom',
+        customAmount: number | undefined,
+        updatedBooking: Booking,
+        totalPaid: number,
+        refund?: number,
+    ) => {
+        let determinedType: 'full' | 'partial' | 'custom' = refundType;
+        let determinedCustom: number | undefined = customAmount;
+        if (refund !== undefined && refundType === 'full' && customAmount === undefined) {
+            if (refund === 1 || refund === 100) {
+                determinedType = 'full';
+            } else if (refund === 0.1 || refund === 10) {
+                determinedType = 'partial';
+            } else if (refund > 0) {
+                determinedType = 'custom';
+                determinedCustom = Math.round((totalPaid * (refund <= 1 ? refund : refund / 100)) * 100) / 100;
+            }
+        }
+        await onRefund(updatedBooking, determinedType, determinedCustom);
+
+        // Sync local payment records so createBooking doesn't overwrite backend with stale captured state
+        updatedBooking.payment = (updatedBooking.payment || []).map(p => {
+            if (p.status === 'captured') {
+                return { ...p, status: 'refunded' };
+            }
+            return p;
+        });
+    }
+
     /**
      * Approves of rejects a cancellation request and updates the associated booking, offer, and group chat accordingly.
      * If approved, it will also initiate a refund process for the booking.
@@ -91,20 +140,7 @@ export function useCancellationAdmin(bookingId: string) {
             if (approved) {
                 const { bookingId, offerId } = request;
 
-                const offer: Offer | null = await getBusinessOfferItem(offerId);
-
-                if (!offer)
-                    throw new Error("Offer not found for the provided offer ID.");
-
-                const booking: Booking | null = await getUserBookingItem(bookingId);
-
-                if (!booking)
-                    throw new Error("Booking not found for the provided booking ID.");
-
-                const group: Group | void = await getGroup(booking.offer.id);
-
-                if (!group)
-                    throw new Error("Group chat not found for the provided offer ID.");
+                const { offer, group, booking } = await retrieveDocuments(offerId, bookingId);
 
                 const updatedOffer: Offer = subtractReservedPaxOnOffer(offer, booking);
 
@@ -116,38 +152,19 @@ export function useCancellationAdmin(bookingId: string) {
                 ) || 0;
 
                 if (totalPaid > 0) {
-                    let determinedType: 'full' | 'partial' | 'custom' = refundType;
-                    let determinedCustom: number | undefined = customAmount;
-                    if (refund !== undefined && refundType === 'full' && customAmount === undefined) {
-                        if (refund === 1 || refund === 100) {
-                            determinedType = 'full';
-                        } else if (refund === 0.1 || refund === 10) {
-                            determinedType = 'partial';
-                        } else if (refund > 0) {
-                            determinedType = 'custom';
-                            determinedCustom = Math.round((totalPaid * (refund <= 1 ? refund : refund / 100)) * 100) / 100;
-                        }
-                    }
-                    await onRefund(updatedBooking, determinedType, determinedCustom);
-
-                    // Sync local payment records so createBooking doesn't overwrite backend with stale captured state
-                    updatedBooking.payment = (updatedBooking.payment || []).map(p => {
-                        if (p.status === 'captured') {
-                            return { ...p, status: 'refunded' };
-                        }
-                        return p;
-                    });
+                    await processRefund(
+                        refundType,
+                        customAmount,
+                        updatedBooking,
+                        totalPaid,
+                        refund,
+                    );
                     updatedBooking.status = 'refunded';
                 } else {
                     updatedBooking.status = 'cancelled';
                 }
 
-                try {
-                    await onRemoveMemberToGroup({ userId: booking.user.id, groupId: booking.offer.id });
-                } catch (groupError) {
-                    logger('useCancellationAdmin', 'Failed to remove user from group (non-fatal): ', groupError);
-                }
-
+                await onRemoveMemberToGroup({ userId: booking.user.id, groupId: group.id });
                 await createBooking(updatedBooking, true, true);
                 await createOffer(updatedOffer);
             } else {

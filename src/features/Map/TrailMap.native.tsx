@@ -287,6 +287,7 @@ export interface TrailMapProps {
   showRecenter?: boolean;
   bottomInset?: number;
   compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
+  attributionPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
   hikerLocations?: HikerLocation[];
   currentUserId?: string;
 }
@@ -308,10 +309,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   showRecenter = false,
   bottomInset = 280,
   compassPosition,
+  attributionPosition,
   hikerLocations = [],
   currentUserId
 }, ref) => {
-  const resolvedCompassPosition = compassPosition || { bottom: bottomInset + 32, left: 16 };
+  const resolvedAttributionPosition = attributionPosition || { bottom: bottomInset, left: 16 };
+  const resolvedCompassPosition = compassPosition || { bottom: bottomInset + 36, left: 16 };
   const {
     userLocation,
     routeCoordinates,
@@ -603,8 +606,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     <View style={styles.page}>
       <Map
         style={styles.map}
-        logoPosition={{ bottom: bottomInset, left: 16 }}
-        attributionPosition={{ bottom: bottomInset, left: 100 }}
+        logo={false}
+        attribution={true}
+        attributionPosition={resolvedAttributionPosition}
+        compass={true}
         compassPosition={resolvedCompassPosition}
         compassHiddenFacingNorth={true}
         mapStyle={activeStyle}
