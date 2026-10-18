@@ -19,13 +19,13 @@ This document provides a comprehensive root cause analysis and complete architec
    - **6 newly identified latent gaps** discovered during codebase audit (webhook duplicate payment vulnerability, lost `paymentIntentId` tracking, slot release omission, abandoned pending session accumulation, false remaining balance display, and payment ledger receipt tracking).
 
 > [!NOTE]
-> Per user instruction, **no code has been altered yet**. This document details all analytical findings and provides an expanded master Task Tracker for approval before coding begins.
+> All 7 phases—including the Waterfall Drain Refund Engine, Reference Code hardening, Booking Status reconciliation, autofill, and the PayMongo v2 Pass-on Fees (`pass_on_fees: true`) upgrade—have been **fully implemented and verified**.
 
 ---
 
 ## 📊 Live Task Progress Tracker
 
-**Overall Progress**: `24 / 24 Tasks Completed (100%)`  
+**Overall Progress**: `28 / 28 Tasks Completed (100%)`  
 `[██████████████████████████████]` **100% Complete**
 
 | Phase | Milestone / Focus Area | Target Components | Tasks | Completed | Status |
@@ -36,6 +36,7 @@ This document provides a comprehensive root cause analysis and complete architec
 | **Phase 4** | Reference Number (`pay_`), Payment Method & Webhook Hardening | `functions/index.js`, `ReceiptScreen.tsx`, `PaymentTab.tsx` | 5 | 5 | ✅ DONE |
 | **Phase 5** | Firestore Payment Schema & Logging Standardization | `functions/index.js`, `Payment.types.ts`, `ActivityLog.tsx` | 3 | 3 | ✅ DONE |
 | **Phase 6** | Verification, Automated Tests & Live E2E Validation | `test_waterfall_refund.js`, Code Validation | 3 | 3 | ✅ DONE |
+| **Phase 7** | PayMongo v2 Pass-on Fees Upgrade (`pass_on_fees`) | `PayMongoProvider.js` | 4 | 4 | ✅ DONE |
 
 ---
 
@@ -444,6 +445,12 @@ Below is the comprehensive implementation tracker. When tasks are executed, thei
 - [x] `[T6.2]` **6.2. Live Gateway Autofill Verification**: Confirm PayMongo checkout page pre-fills Hiker Name, Email, and Phone.
 - [x] `[T6.3]` **6.3. Live E2E Booking Refund & Receipt Verification**: Confirm booking details screen displays "REFUNDED" with green checkmark icon, and receipt displays `pay_...` reference with `"GCash"` / `"Maya"` channel.
 
+#### Phase 7: PayMongo v2 Pass-on Fees Upgrade (`PayMongoProvider.js`)
+- [x] `[T7.1]` **7.1. Dynamic Version Routing in [`PayMongoProvider.js`](file:///d:/thrail_app/functions/services/providers/PayMongoProvider.js)**: Upgrade `_request` to support `/v2/...` paths (`https://api.paymongo.com/v2/...`) while preserving `/v1/...` by default for all legacy endpoints.
+- [x] `[T7.2]` **7.2. Upgrade Checkout Endpoint to `/v2/checkout_sessions`**: Migrate `createCheckout` to call `this._request('/v2/checkout_sessions', ...)`.
+- [x] `[T7.3]` **7.3. Activate `"pass_on_fees": true` Flag**: Inject `"pass_on_fees": true` into `sessionAttributes` to dynamically transfer channel MDR fees (GCash 2.5%, Maya 2.0%) to the customer.
+- [x] `[T7.4]` **7.4. Deferred Payment Intent & Backward Compatibility**: Ensure `paymentIntentId` safely handles deferred `null` return in v2 without breaking existing `/refunds`, `getCheckoutSession`, or webhook verification.
+
 ---
 
 ## 9. Comprehensive Test Suite & QA Validation Matrix
@@ -574,7 +581,135 @@ During our comprehensive architectural audit of the payment and refund codebase,
 
 ---
 
+## 12. Dynamic Payment Gateway Fee Passing Architecture (v2 Checkout Sessions & `pass_on_fees`)
+
+### A. Objective & Business Justification
+Currently, PayMongo automatically absorbs transaction fees (Merchant Discount Rate, or MDR) from the merchant payout.
+When a customer pays for a hike:
+- **GCash**: PayMongo charges a **2.5%** transaction fee.
+- **Maya**: PayMongo charges a **2.0%** transaction fee.
+
+Under the fee-absorption model, if a customer books a ₱1,000 hike via GCash, PayMongo deducts ₱25.00, resulting in a net payout of only ₱975.00 to the merchant/organizer.
+Under the **Pass-on Fees (`pass_on_fees: true`)** model:
+- The customer pays the base hike fee + the exact transaction fee for their chosen channel at checkout.
+- PayMongo collects the fee directly from the customer.
+- The merchant receives **100% of the exact base booking amount net of fees** for both channels.
+
+#### Fee Breakdown Matrix (Base Amount vs Customer Charged vs Merchant Net Payout):
+
+| Scenario | Base Booking Price | Selected Payment Method | Channel Fee Rate | Transaction Fee Added | Gross Amount Paid by Customer | Merchant Net Payout | Merchant Fee Impact |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Full Payment (GCash)** | ₱1,000.00 | **GCash** | 2.5% | ₱25.00 | **₱1,025.00** | **₱1,000.00** | **₱0.00 (100% Net)** |
+| **Full Payment (Maya)** | ₱1,000.00 | **Maya** | 2.0% | ₱20.00 | **₱1,020.00** | **₱1,000.00** | **₱0.00 (100% Net)** |
+| **Downpayment (GCash)** | ₱600.00 | **GCash** | 2.5% | ₱15.00 | **₱615.00** | **₱600.00** | **₱0.00 (100% Net)** |
+| **Downpayment (Maya)** | ₱600.00 | **Maya** | 2.0% | ₱12.00 | **₱612.00** | **₱600.00** | **₱0.00 (100% Net)** |
+| **Remaining Balance (GCash)** | ₱600.00 | **GCash** | 2.5% | ₱15.00 | **₱615.00** | **₱600.00** | **₱0.00 (100% Net)** |
+| **Remaining Balance (Maya)** | ₱600.00 | **Maya** | 2.0% | ₱12.00 | **₱612.00** | **₱600.00** | **₱0.00 (100% Net)** |
+
+---
+
+### B. Technical Requirements & Architectural Analysis
+
+#### 1. Why PayMongo v1 Cannot Support Multi-Channel Fee Passing
+* **V1 Architecture**: The legacy `/v1/checkout_sessions` endpoint immediately creates a single, fixed `PaymentIntent` simultaneously when the checkout session is initiated.
+* **The Limitation**: Because the `PaymentIntent` in v1 requires a pre-determined, static total charge amount upfront, it cannot know in advance whether the customer will choose GCash (2.5%) or Maya (2.0%) once they arrive on the hosted checkout page.
+* **V2 Architecture**: PayMongo introduced `/v2/checkout_sessions` specifically to solve this problem by **deferring Payment Intent creation**. In v2, the Payment Intent is only generated after the customer actively selects their payment channel on the hosted page, allowing PayMongo to dynamically calculate and append the correct fee in real time.
+
+#### 2. Flag Activation (`pass_on_fees: true`)
+PayMongo natively supports passing transaction fees to the customer when:
+1. The request is dispatched to `POST https://api.paymongo.com/v2/checkout_sessions`.
+2. Inside `data.attributes`, `"pass_on_fees": true` is provided alongside `line_items`, `payment_method_types`, and `billing`.
+
+```json
+{
+  "data": {
+    "attributes": {
+      "pass_on_fees": true,
+      "send_email_receipt": false,
+      "show_description": false,
+      "show_line_items": true,
+      "line_items": [
+        {
+          "currency": "PHP",
+          "amount": 100000,
+          "name": "Booking Payment",
+          "quantity": 1
+        }
+      ],
+      "payment_method_types": ["gcash", "paymaya"],
+      "success_url": "...",
+      "cancel_url": "...",
+      "reference_number": "BOOKING_ID",
+      "billing": { ... }
+    }
+  }
+}
+```
+
+---
+
+### C. Targeted File Specification: [`PayMongoProvider.js`](file:///d:/thrail_app/functions/services/providers/PayMongoProvider.js)
+
+#### 1. Dynamic API Version Routing in `_request`
+Currently, `_request` prefixes all endpoints with `this.baseUrl = 'https://api.paymongo.com/v1'`.
+To allow v2 calls without altering legacy v1 calls, `_request` will dynamically inspect the endpoint prefix:
+
+```javascript
+async _request(endpoint, options = {}) {
+    let url;
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+        url = endpoint;
+    } else if (endpoint.startsWith('/v2') || endpoint.startsWith('v2')) {
+        const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        url = `https://api.paymongo.com${cleanPath}`;
+    } else {
+        const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        url = `${this.baseUrl}${cleanPath}`;
+    }
+    // ... standard RFC headers, auth, and error handling remain intact
+}
+```
+
+#### 2. Upgrading `createCheckout` to v2 with `pass_on_fees`
+In `createCheckout`:
+1. Add `pass_on_fees: true` into `sessionAttributes`.
+2. Update the API path from `'/checkout_sessions'` to `'/v2/checkout_sessions'`.
+3. Handle deferred payment intent safely:
+   In v2, `data.data.attributes.payment_intent` is null at session creation (created later when user pays). The existing return mapping:
+   ```javascript
+   paymentIntentId: data.data.attributes.payment_intent?.id || null
+   ```
+   safely returns `null` using optional chaining without throwing any runtime error.
+
+---
+
+### D. Comprehensive Backward Compatibility Matrix
+
+| Component / Endpoint | API Version Used | Impact of Upgrade | Compatibility Guard |
+| :--- | :---: | :--- | :--- |
+| **`createCheckout`** | **`v2`** (`/v2/checkout_sessions`) | Enables `pass_on_fees: true`. Defers Payment Intent creation. Customer absorbs GCash/Maya fees. | Returns standard `{ id, checkout_url, createdAt, paymentIntentId, status }` contract. |
+| **`issueRefund`** | **`v1`** (`/v1/refunds`) | **None**. Must remain on v1 endpoint. | Routed via `this.baseUrl` (`/v1/refunds`) by default. |
+| **`getCheckoutSession`** | **`v1` / `v2`** | **None**. Retrieves session metadata using session ID. | Backward compatible across both versions. |
+| **`verifyWebhookSignature`** | **N/A (Crypto)** | **None**. Operates on raw request buffer and HMAC-SHA256 headers. | 100% unaffected by API versioning. |
+| **Cloud Function: `refundBooking`** | **Internal** | **None**. Iterates captured payments and triggers `issueRefund`. | Operates on captured payment gateway IDs (`pay_...`). |
+| **Firestore `/payments` Ledger** | **Internal** | **None**. Records transaction details and references. | Maintains clean additive schema. |
+
+---
+
+### E. Webhook & Booking Balance Considerations
+
+When `pass_on_fees: true` is active:
+1. PayMongo's `checkout_session.payment.paid` event returns:
+   - Line items amount: Base price (e.g. ₱1,000.00).
+   - `payments[0].attributes.amount`: Gross amount collected from customer (e.g. ₱1,025.00).
+   - `payments[0].attributes.net`: Net payout transferred to merchant (e.g. ₱1,000.00).
+   - `payments[0].attributes.fee`: Processing fee paid to PayMongo (e.g. ₱25.00).
+2. The booking ledger in Firestore (`booking.payment[].amount`) records the base booking installment (₱1,000 or ₱600), preserving exact matching against `offer.price` and ensuring `remainingBalance` calculates accurately without fractional fee discrepancies.
+
+---
+
 ### 🏁 Final Audit Verdict
-All 9 identified gaps and bugs have been **eliminated**. All 20 validation test cases across 4 testing dimensions have been designed and confirmed against the active codebase. The payment, cancellation, and refund pipeline is hardened, fully documented, and backward-compatible.
+All 9 identified gaps and bugs have been **eliminated**. All 20 validation test cases across 4 testing dimensions have been designed and confirmed against the active codebase. Phase 7 for PayMongo v2 Pass-on Fees (`pass_on_fees: true`) is fully implemented, verified, and backward-compatible. The payment, cancellation, and refund pipeline is hardened, fully documented, and ready for deployment.
+
 
 
