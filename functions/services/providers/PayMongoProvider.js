@@ -35,16 +35,7 @@ class PayMongoProvider {
      * @throws {Error} If the API request fails.
      */
     async _request(endpoint, options = {}) {
-        let url;
-        if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
-            url = endpoint;
-        } else if (endpoint.startsWith('/v2') || endpoint.startsWith('v2')) {
-            const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-            url = `https://api.paymongo.com${cleanPath}`;
-        } else {
-            const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-            url = `${this.baseUrl}${cleanPath}`;
-        }
+        const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
         const headers = {
             'Accept': 'application/json, application/vnd.api+json',
             'Content-Type': 'application/json',
@@ -108,18 +99,14 @@ class PayMongoProvider {
      */
     async createCheckout(amount, type, redirectUrl, metadata, customerInfo = null) {
         console.log(`[PayMongoProvider] Creating checkout session for amount: ${amount}, method: ${type}`);
-        const supportedMethods = ['gcash', 'paymaya'];
-        const primaryMethod = type === 'maya' ? 'paymaya' : type;
-        const paymentMethodTypes = [
-            primaryMethod,
-            ...supportedMethods.filter((m) => m !== primaryMethod)
-        ];
+        const primaryMethod = (type === 'maya' || type === 'paymaya') ? 'paymaya' : 'gcash';
+        // Auto-choose: only provide the user's selected method to bypass channel re-selection on PayMongo page
+        const paymentMethodTypes = [primaryMethod];
 
         const sessionAttributes = {
             send_email_receipt: false,
             show_description: false,
             show_line_items: true,
-            pass_on_fees: true, // Pass payment processing fees (GCash 2.5%, Maya 2.0%) to the customer
             line_items: [
                 {
                     currency: 'PHP',
@@ -168,7 +155,7 @@ class PayMongoProvider {
             }
         }
 
-        const data = await this._request('/v2/checkout_sessions', {
+        const data = await this._request('/checkout_sessions', {
             method: 'POST',
             body: {
                 data: {
