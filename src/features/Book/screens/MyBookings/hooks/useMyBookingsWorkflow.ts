@@ -6,6 +6,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
+import { useToast } from '@/src/components/Toast/Toast';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
@@ -33,20 +34,12 @@ export function useMyBookingsWorkflow({
     onRescheduleBooking,
     onRefundBookingPress,
 }: UseMyBookingsWorkflowParams) {
+    const { showToast } = useToast();
+
     const initialKey = `${initialView || 'list'}_${initialBookingId || ''}`;
     const [prevInitialKey, setPrevInitialKey] = useState<string>(initialKey);
     const [currentView, setCurrentView] = useState<MyBookingsView>(initialView || 'list');
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId || null);
-
-    const [toastConfig, setToastConfig] = useState<{
-        visible: boolean;
-        type: 'success' | 'error';
-        message: string;
-    }>({
-        visible: false,
-        type: 'success',
-        message: '',
-    });
 
     // Sync external navigation search params during render
     if (initialKey !== prevInitialKey) {
@@ -69,18 +62,6 @@ export function useMyBookingsWorkflow({
         if (!selectedBookingId || !userCancellations) return null;
         return userCancellations.find(c => c.bookingId === selectedBookingId) || null;
     }, [userCancellations, selectedBookingId]);
-
-    const showToast = useCallback((type: 'success' | 'error', message: string) => {
-        setToastConfig({
-            visible: true,
-            type,
-            message,
-        });
-    }, []);
-
-    const hideToast = useCallback(() => {
-        setToastConfig(prev => ({ ...prev, visible: false }));
-    }, []);
 
     const handleHeaderBackPress = useCallback(() => {
         if (currentView === 'overview') {
@@ -117,13 +98,12 @@ export function useMyBookingsWorkflow({
             await onCancelBookingPress(booking, reason);
             if (isDraft) {
                 setCurrentView('list');
-                showToast('success', 'Reservation cancelled successfully.');
+                showToast.success('Reservation cancelled successfully.');
             }
         } catch (err: unknown) {
             if (isDraft) {
                 setCurrentView('list');
-                showToast(
-                    'error',
+                showToast.error(
                     err instanceof Error ? err.message : 'Failed to cancel reservation.'
                 );
             }
@@ -136,11 +116,10 @@ export function useMyBookingsWorkflow({
         try {
             await onRescheduleBooking(booking, newOffer);
             setCurrentView('list');
-            showToast('success', 'Booking rescheduled successfully.');
+            showToast.success('Booking rescheduled successfully.');
         } catch (err: unknown) {
             setCurrentView('list');
-            showToast(
-                'error',
+            showToast.error(
                 err instanceof Error ? err.message : 'Failed to reschedule booking.'
             );
         }
@@ -157,9 +136,7 @@ export function useMyBookingsWorkflow({
         selectedBookingId, setSelectedBookingId,
         selectedBooking,
         selectedBookingCancellation,
-        toastConfig,
         showToast,
-        hideToast,
         handleHeaderBackPress,
         handleBookingSelectPress,
         handleProceedToPaymentPress,

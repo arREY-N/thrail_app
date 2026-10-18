@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -56,6 +56,31 @@ export interface OfferListScreenProps {
     onBackPress: () => void;
 }
 
+const EMPTY_BOOKINGS: Booking[] = [];
+
+const STATUS_DETAILS = {
+    cancelled: { 
+        label: 'Cancelled', 
+        color: Colors.ERROR, 
+        bg: Colors.ERROR_BG 
+    },
+    rescheduled: { 
+        label: 'Rescheduled', 
+        color: Colors.WARNING, 
+        bg: Colors.STATUS_WARNING_BG 
+    },
+    expired: { 
+        label: 'Expired', 
+        color: Colors.TEXT_SECONDARY, 
+        bg: Colors.GRAY_ULTRALIGHT 
+    },
+    active: { 
+        label: 'Active', 
+        color: Colors.SUCCESS, 
+        bg: Colors.STATUS_APPROVED_BG 
+    }
+} as const;
+
 /**
  * OfferListScreen — Admin screen displaying a list of created offers and basic booking stats.
  */
@@ -107,10 +132,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     };
 
-    const handleEditPress = (offerId: string) => {
+    const handleEditPress = useCallback((offerId: string) => {
         setSelectedEditId(offerId);
         setShowEditModal(true);
-    };
+    }, []);
 
     const confirmEdit = () => {
         setShowEditModal(false);
@@ -137,7 +162,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         </TouchableOpacity>
     );
 
-    const getOfferStatusDetails = (offer: Offer) => {
+    const getOfferStatusDetails = useCallback((offer: Offer) => {
         const status = (offer.status || '').toString().toLowerCase();
         const offerDate = safeParseDateString((offer.date || offer.hikeDate) as DateInput);
         offerDate.setHours(0, 0, 0, 0);
@@ -145,79 +170,72 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (status === 'cancelled') {
-            return { 
-                label: 'Cancelled', 
-                color: Colors.ERROR, 
-                bg: Colors.ERROR_BG 
-            };
-        }
-        if (status === 'rescheduled') {
-            return { 
-                label: 'Rescheduled', 
-                color: Colors.WARNING, 
-                bg: Colors.STATUS_WARNING_BG 
-            };
-        }
-        if (offerDate < today) {
-            return { 
-                label: 'Expired', 
-                color: Colors.TEXT_SECONDARY, 
-                bg: Colors.GRAY_ULTRALIGHT 
-            };
-        }
-        return { 
-            label: 'Active', 
-            color: Colors.SUCCESS, 
-            bg: Colors.STATUS_APPROVED_BG 
-        };
-    };
+        if (status === 'cancelled') return STATUS_DETAILS.cancelled;
+        if (status === 'rescheduled') return STATUS_DETAILS.rescheduled;
+        if (offerDate < today) return STATUS_DETAILS.expired;
+        return STATUS_DETAILS.active;
+    }, []);
 
-    const getActionableBookingsCount = (offerId: string) => {
-        const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offerId))
-            ? bookingByOffer[offerId] || []
-            : [];
+    const actionableCountsByOffer = useMemo(() => {
+        const counts: Record<string, number> = {};
 
-        // Build a lookup of relevant cancellations for this offer
-        const offerCancellations = (cancellations || []).filter(c => c.offerId === offerId);
-        const cancellationByBooking = new Map<string, Cancellation>();
-        offerCancellations.forEach(c => {
-            cancellationByBooking.set(c.bookingId, c);
+        // 1. Group cancellations by offerId
+        const cancellationsByOffer = new Map<string, Cancellation[]>();
+        (cancellations || []).forEach(c => {
+            if (!cancellationsByOffer.has(c.offerId)) {
+                cancellationsByOffer.set(c.offerId, []);
+            }
+            cancellationsByOffer.get(c.offerId)!.push(c);
         });
 
-        const actionableBookingIds = new Set<string>();
-        list.forEach(b => {
-            const cancellation = cancellationByBooking.get(b.id);
-            // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
-            if (cancellation?.status === 'approved' || b.status === 'cancelled') {
-                return;
-            }
-            // If cancellation was initiated by admin, admin is waiting on hiker action
-            if (cancellation && cancellation.cancelledBy === 'admin') {
-                return;
-            }
+        // 2. Compute actionable count for each offer in a single pass
+        (offers || []).forEach(offer => {
+            const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id))
+                ? bookingByOffer[offer.id] || []
+                : [];
+            const offerCancellations = cancellationsByOffer.get(offer.id) || [];
 
-            const status = (b.status as string) || '';
-            if (
-                status === 'for-reservation' || 
-                status === 'paid' || 
-                status === 'downpayment' ||
-                status === 'for-cancellation' ||
-                status === 'for-reschedule'
-            ) {
-                actionableBookingIds.add(b.id);
-            }
+            const cancellationByBooking = new Map<string, Cancellation>();
+            offerCancellations.forEach(c => {
+                cancellationByBooking.set(c.bookingId, c);
+            });
+
+            const actionableBookingIds = new Set<string>();
+            list.forEach(b => {
+                const cancellation = cancellationByBooking.get(b.id);
+                // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
+                if (cancellation?.status === 'approved' || b.status === 'cancelled') {
+                    return;
+                }
+                // If cancellation was initiated by admin, admin is waiting on hiker action
+                if (cancellation && cancellation.cancelledBy === 'admin') {
+                    return;
+                }
+
+                const status = (b.status as string) || '';
+                if (
+                    status === 'for-reservation' || 
+                    status === 'paid' || 
+                    status === 'downpayment' ||
+                    status === 'for-cancellation' ||
+                    status === 'for-reschedule'
+                ) {
+                    actionableBookingIds.add(b.id);
+                }
+            });
+
+            // Also count pending cancellation requests submitted by hikers
+            offerCancellations.forEach(c => {
+                if (c.status === 'pending' && c.cancelledBy !== 'admin') {
+                    actionableBookingIds.add(c.bookingId);
+                }
+            });
+
+            counts[offer.id] = actionableBookingIds.size;
         });
 
-        // Also count pending cancellation requests submitted by hikers
-        offerCancellations.forEach(c => {
-            if (c.status === 'pending' && c.cancelledBy !== 'admin') {
-                actionableBookingIds.add(c.bookingId);
-            }
-        });
-
-        return actionableBookingIds.size;
-    };
+        return counts;
+    }, [offers, bookingByOffer, cancellations]);
 
     const filterSections = [
         {
@@ -277,7 +295,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                     <View style={styles.constrainer}>
                         <ErrorMessage error={error} />
 
-                        {isLoading && (
+                        {isLoading && (!offers || offers.length === 0) && (
                             <View style={styles.centerContent}>
                                 <ActivityIndicator 
                                     size="large" 
@@ -286,7 +304,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && offers?.length === 0 && (
+                        {!isLoading && (!offers || offers.length === 0) && (
                             <View style={styles.emptyState}>
                                 <CustomIcon 
                                     library="Feather" 
@@ -303,7 +321,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
+                        {offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
                             <View style={styles.emptyState}>
                                 <CustomIcon 
                                     library="Feather" 
@@ -320,16 +338,16 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && filteredAndSortedOffers.length > 0 && (
+                        {filteredAndSortedOffers.length > 0 && (
                             <>
                                 <View style={styles.listContainer}>
                                     {filteredAndSortedOffers.map((offer: Offer) => (
                                         <OfferCard 
                                             key={offer.id}
                                             offer={offer}
-                                            bookings={Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id) ? bookingByOffer[offer.id] : []}
+                                            bookings={(bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id)) ? bookingByOffer[offer.id] : EMPTY_BOOKINGS}
                                             statusDetails={getOfferStatusDetails(offer)}
-                                            actionableCount={getActionableBookingsCount(offer.id)}
+                                            actionableCount={actionableCountsByOffer[offer.id] ?? 0}
                                             onViewBookings={onViewOfferBookings}
                                             onEditPress={handleEditPress}
                                             style={{ width: cardWidth }}

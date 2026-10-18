@@ -116,6 +116,8 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     innerRightElement?: ReactNode;
     suffix?: string;
     allowEmojis?: boolean;
+    containerStyle?: StyleProp<ViewStyle>;
+    hasError?: boolean;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -148,6 +150,8 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     onFocus,
     onBlur,
     allowEmojis = false,
+    containerStyle,
+    hasError = false,
     ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
@@ -283,10 +287,11 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 styles.inputContainer,
                 Boolean(suffix) && styles.inputContainerWithSuffix,
                 { 
-                    borderColor: isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT,
+                    borderColor: hasError ? Colors.ERROR : (isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT),
                     backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
                 },
-                multiline && { height: 'auto', alignItems: 'flex-start' }
+                multiline && { height: 'auto', alignItems: 'flex-start' },
+                containerStyle,
             ]}>
                 
                 {icon && (
@@ -331,7 +336,8 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                         setIsFocused(false);
                         onBlur?.(e);
                     }}
-                    multiline={multiline}
+                    multiline={Boolean(multiline)}
+                    numberOfLines={multiline ? undefined : 1}
                     {...props} 
                 />
 
@@ -441,6 +447,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.TEXT_PRIMARY,
         height: '100%',
+        paddingVertical: 0,
         ...Platform.select({
             web: { outlineStyle: 'none' as unknown as TextStyle['outlineStyle'] }
         })

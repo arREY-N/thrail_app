@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
     GestureResponderEvent,
+    LayoutChangeEvent,
     StyleProp,
     StyleSheet,
     TextStyle,
@@ -9,12 +10,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import CustomButton from '@/src/components/CustomButton';
+import CustomButton, { ButtonValidationState } from '@/src/components/CustomButton';
 import CustomText from '@/src/components/CustomText';
+import { ToastContext, ToastType } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
-interface FooterButtonConfig {
+export interface FooterButtonConfig {
     title: string;
     onPress: (event: GestureResponderEvent) => void;
     variant?: 'primary' | 'secondary' | 'outline' | 'destructive';
@@ -24,6 +26,11 @@ interface FooterButtonConfig {
     isLoading?: boolean;
     showIndicator?: boolean;
     badgeCount?: number;
+    disabledToastMessage?: string;
+    disabledToastType?: ToastType;
+    validationState?: ButtonValidationState;
+    hasError?: boolean;
+    isIdleDisabled?: boolean;
 }
 
 /**
@@ -34,6 +41,7 @@ interface CustomStickyFooterProps {
     secondaryButton?: FooterButtonConfig;
     layout?: 'row' | 'column';
     style?: StyleProp<ViewStyle>;
+    enableToastDock?: boolean;
 }
 
 /**
@@ -52,14 +60,38 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
     secondaryButton,
     layout = 'row',
     style,
+    enableToastDock = false,
 }) => {
     const insets = useSafeAreaInsets();
+    const toastContext = useContext(ToastContext);
     const safeBottomPadding = Math.max(insets.bottom + 16, 16);
+
+    const unregisterFooterHeight = toastContext?.unregisterFooterHeight;
+
+    useEffect(() => {
+        return () => {
+            if (enableToastDock && unregisterFooterHeight) {
+                unregisterFooterHeight();
+            }
+        };
+    }, [enableToastDock, unregisterFooterHeight]);
+
+    const handleLayout = (event: LayoutChangeEvent) => {
+        if (enableToastDock && toastContext) {
+            const { height } = event.nativeEvent.layout;
+            if (height > 0) {
+                toastContext.registerFooterHeight(height);
+            }
+        }
+    };
 
     if (!primaryButton) return null;
 
     return (
-        <View style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}>
+        <View 
+            onLayout={enableToastDock ? handleLayout : undefined}
+            style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}
+        >
             {secondaryButton ? (
                 layout === 'column' ? (
                     <View style={styles.buttonColumn}>
@@ -71,6 +103,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                             textStyle={primaryButton.textStyle}
                             disabled={primaryButton.disabled}
                             isLoading={primaryButton.isLoading}
+                            disabledToastMessage={primaryButton.disabledToastMessage}
+                            disabledToastType={primaryButton.disabledToastType}
+                            validationState={primaryButton.validationState}
+                            hasError={primaryButton.hasError}
+                            isIdleDisabled={primaryButton.isIdleDisabled}
                         />
                         <CustomButton 
                             title={secondaryButton.title}
@@ -80,6 +117,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                             textStyle={secondaryButton.textStyle}
                             disabled={secondaryButton.disabled}
                             isLoading={secondaryButton.isLoading}
+                            disabledToastMessage={secondaryButton.disabledToastMessage}
+                            disabledToastType={secondaryButton.disabledToastType}
+                            validationState={secondaryButton.validationState}
+                            hasError={secondaryButton.hasError}
+                            isIdleDisabled={secondaryButton.isIdleDisabled}
                         />
                     </View>
                 ) : (
@@ -93,6 +135,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 textStyle={secondaryButton.textStyle}
                                 disabled={secondaryButton.disabled}
                                 isLoading={secondaryButton.isLoading}
+                                disabledToastMessage={secondaryButton.disabledToastMessage}
+                                disabledToastType={secondaryButton.disabledToastType}
+                                validationState={secondaryButton.validationState}
+                                hasError={secondaryButton.hasError}
+                                isIdleDisabled={secondaryButton.isIdleDisabled}
                             />
                         </View>
                         <View style={styles.buttonWrapper}>
@@ -104,6 +151,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 textStyle={primaryButton.textStyle}
                                 disabled={primaryButton.disabled}
                                 isLoading={primaryButton.isLoading}
+                                disabledToastMessage={primaryButton.disabledToastMessage}
+                                disabledToastType={primaryButton.disabledToastType}
+                                validationState={primaryButton.validationState}
+                                hasError={primaryButton.hasError}
+                                isIdleDisabled={primaryButton.isIdleDisabled}
                             />
                             {primaryButton.showIndicator && (
                                 <View style={[
@@ -135,6 +187,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                         textStyle={primaryButton.textStyle}
                         disabled={primaryButton.disabled}
                         isLoading={primaryButton.isLoading}
+                        disabledToastMessage={primaryButton.disabledToastMessage}
+                        disabledToastType={primaryButton.disabledToastType}
+                        validationState={primaryButton.validationState}
+                        hasError={primaryButton.hasError}
+                        isIdleDisabled={primaryButton.isIdleDisabled}
                     />
                     {primaryButton.showIndicator && (
                         <View style={[

@@ -7,6 +7,7 @@ import { Colors } from '@/src/constants/colors';
 
 import PostCard from '@/src/components/PostCard';
 
+import { Layout } from '@/src/constants/layout';
 import { IReview } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
@@ -65,14 +66,15 @@ const TrailReviewsTab: React.FC<TrailReviewsTabProps> = ({
 
 const styles = StyleSheet.create({
     tabContent: {
-        gap: 20,
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
     },
     feedWrapper: {
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 40,
-        gap: 16,
+        gap: 20,
     },
     emptyStateContainer: {
         alignItems: 'center',

@@ -14,18 +14,18 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { IOfflinePoint, Trail } from '@/src/core/models/Trail/Trail';
-import StaticTrailMap from '@/src/features/Map/StaticTrailMap';
+import StaticTrailMap from '@/src/features/Map/components/StaticTrailMap';
+import { IWaypointPoint } from '@/src/features/Map/interfaces/Map.types';
 import { SuperadminTab } from '@/src/features/SuperAdmin/components/Sidebar';
 import SuperadminShell from '@/src/features/SuperAdmin/components/SuperadminShell';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -49,9 +49,9 @@ export interface TrailMapEditorScreenProps {
     activeTrail: Trail | null;
     isLoading?: boolean;
     isSaving?: boolean;
-    offlinePoints: IOfflinePoint[];
-    onPointsChange: (points: IOfflinePoint[]) => void;
-    onSave: (showToast: (message: string, type?: 'success' | 'warning' | 'info' | 'error') => void) => Promise<void>;
+    offlinePoints: (IOfflinePoint | IWaypointPoint)[];
+    onPointsChange: (points: (IOfflinePoint | IWaypointPoint)[]) => void;
+    onSave: (showToast: (message: string, type?: 'success' | 'warning' | 'info' | 'error') => void) => Promise<boolean | void>;
     onBackPress: () => void;
     isSuperadminShell?: boolean;
     pendingCount?: number;
@@ -79,30 +79,15 @@ const TrailMapEditorScreen = ({
     onBackToSettings,
 }: TrailMapEditorScreenProps): React.JSX.Element => {
     const { isMobile } = useBreakpoints();
+    const { showToast } = useToast();
     const [isDirty, setIsDirty] = useState<boolean>(false);
+    const [hasAttemptedSave, setHasAttemptedSave] = useState<boolean>(false);
     const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
+    const [showSaveConfirmModal, setShowSaveConfirmModal] = useState<boolean>(false);
 
-    // CustomToast state
-    const [toastState, setToastState] = useState<{
-        visible: boolean;
-        message: string;
-        type: 'success' | 'warning' | 'info' | 'error';
-    }>({
-        visible: false,
-        message: '',
-        type: 'info',
-    });
-
-    const showToast = (message: string, type: 'success' | 'warning' | 'info' | 'error' = 'info') => {
-        setToastState({
-            visible: true,
-            message,
-            type,
-        });
-    };
-
-    const handlePointsModified = (updatedPoints: IOfflinePoint[]) => {
+    const handlePointsModified = (updatedPoints: IWaypointPoint[]) => {
         setIsDirty(true);
+        setHasAttemptedSave(false);
         onPointsChange(updatedPoints);
     };
 
@@ -119,9 +104,27 @@ const TrailMapEditorScreen = ({
         onBackPress();
     };
 
-    const handleSavePress = async () => {
-        await onSave(showToast);
+    const handleInitiateSave = () => {
+        if (isSaving) return;
+        if (!isDirty) {
+            setHasAttemptedSave(true);
+            showToast.error("No changes to save. Tap on the map to add or edit waypoints first.", {
+                mode: 'dismissible',
+                position: isMobile ? 'sticky_footer' : undefined,
+                onHide: () => {
+                    setHasAttemptedSave(false);
+                },
+            });
+            return;
+        }
+        setShowSaveConfirmModal(true);
+    };
+
+    const handleConfirmSave = async () => {
+        setShowSaveConfirmModal(false);
+        await onSave((msg, type) => showToast(msg, type));
         setIsDirty(false);
+        setHasAttemptedSave(false);
     };
 
     const trailName = activeTrail?.general?.name || 'Trail Route Map';
@@ -153,13 +156,31 @@ const TrailMapEditorScreen = ({
         <View style={styles.headerRightRow}>
             {pinBadge}
             <TouchableOpacity
-                style={[styles.saveHeaderBtn, isSaving && styles.saveHeaderBtnDisabled]}
-                onPress={handleSavePress}
+                style={[
+                    styles.saveHeaderBtn,
+                    !isDirty && (hasAttemptedSave ? styles.saveHeaderBtnError : styles.saveHeaderBtnDisabled),
+                ]}
+                onPress={handleInitiateSave}
                 disabled={isSaving}
                 activeOpacity={0.7}
             >
-                <CustomIcon library="Feather" name="save" size={16} color={Colors.WHITE} />
-                <CustomText variant="caption" style={styles.saveHeaderBtnText}>
+                <CustomIcon
+                    library="Feather"
+                    name="save"
+                    size={16}
+                    color={
+                        isDirty
+                            ? Colors.WHITE
+                            : (hasAttemptedSave ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY)
+                    }
+                />
+                <CustomText
+                    variant="caption"
+                    style={[
+                        styles.saveHeaderBtnText,
+                        !isDirty && (hasAttemptedSave ? styles.saveHeaderBtnTextError : styles.saveHeaderBtnTextDisabled),
+                    ]}
+                >
                     {isSaving ? 'Saving...' : 'Save'}
                 </CustomText>
             </TouchableOpacity>
@@ -193,7 +214,7 @@ const TrailMapEditorScreen = ({
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
                 <View style={styles.stateContainer}>
                     <CustomIcon library="Feather" name="alert-circle" size={48} color={Colors.ERROR} />
-                    <CustomText variant="subtitle" style={[styles.stateText, { color: Colors.ERROR }]}>
+                    <CustomText variant="subtitle" style={[styles.stateText, styles.stateTextError]}>
                         Trail details not found.
                     </CustomText>
                     <CustomButton
@@ -218,7 +239,7 @@ const TrailMapEditorScreen = ({
             </View>
 
             {/* Map Canvas Viewport */}
-            <View style={[styles.mapViewport, isMobile && styles.mapViewportMobile]}>
+            <View style={styles.mapViewport}>
                 <StaticTrailMap
                     trailId={activeTrail.id}
                     trailName={trailName}
@@ -231,13 +252,27 @@ const TrailMapEditorScreen = ({
             {/* Mobile Sticky Footer for Thumb-Friendly Save Action */}
             {isMobile && (
                 <CustomStickyFooter
+                    enableToastDock={true}
                     primaryButton={{
                         title: isSaving ? 'Saving Changes...' : 'Save Offline Points',
-                        onPress: handleSavePress,
+                        onPress: handleInitiateSave,
                         disabled: isSaving,
+                        validationState: isDirty ? 'valid' : (hasAttemptedSave ? 'error' : 'idle'),
                     }}
                 />
             )}
+
+            {/* Save Confirmation Modal */}
+            <ConfirmationModal
+                visible={showSaveConfirmModal}
+                title="Save Offline Points?"
+                message={`Are you sure you want to save ${pointCount} offline map ${pointCount === 1 ? 'point' : 'points'} for "${trailName}"?`}
+                confirmText="Save Points"
+                cancelText="Keep Editing"
+                iconName="map-pin"
+                onConfirm={handleConfirmSave}
+                onClose={() => setShowSaveConfirmModal(false)}
+            />
 
             {/* Discard Unsaved Changes Confirmation Modal */}
             <ConfirmationModal
@@ -250,15 +285,6 @@ const TrailMapEditorScreen = ({
                 iconName="alert-triangle"
                 onConfirm={handleConfirmDiscard}
                 onClose={() => setShowDiscardModal(false)}
-            />
-
-            {/* Status Feedback Toast */}
-            <CustomToast
-                message={toastState.message}
-                visible={toastState.visible}
-                onHide={() => setToastState((prev) => ({ ...prev, visible: false }))}
-                type={toastState.type}
-                position="floating"
             />
         </View>
     );
@@ -353,14 +379,28 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: Colors.PRIMARY,
     },
     saveHeaderBtnDisabled: {
-        opacity: 0.6,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    saveHeaderBtnError: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.STATUS_CANCELLED_TEXT,
+        borderWidth: 1.5,
     },
     saveHeaderBtnText: {
         fontSize: 13,
         fontWeight: '600',
         color: Colors.WHITE,
+    },
+    saveHeaderBtnTextDisabled: {
+        color: Colors.TEXT_SECONDARY,
+    },
+    saveHeaderBtnTextError: {
+        color: Colors.STATUS_CANCELLED_TEXT,
     },
     tipBanner: {
         flexDirection: 'row',
@@ -380,9 +420,6 @@ const styles = StyleSheet.create({
     mapViewport: {
         flex: 1,
     },
-    mapViewportMobile: {
-        paddingBottom: 80, // Reserve space for CustomStickyFooter on mobile
-    },
     backHeaderButton: {
         padding: 6,
         marginLeft: -6,
@@ -394,17 +431,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     headerTitle: {
-        fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
+        textAlign: 'center',
         marginBottom: 0,
-        fontSize: 16,
-        lineHeight: 20,
     },
     headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        marginTop: 2,
         marginBottom: 0,
-        fontSize: 11,
-        lineHeight: 14,
+    },
+    stateTextError: {
+        color: Colors.ERROR,
     },
 });
 

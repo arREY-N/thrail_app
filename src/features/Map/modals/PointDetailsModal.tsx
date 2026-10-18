@@ -11,6 +11,7 @@ import {
     Dimensions,
     Modal,
     Platform,
+    StatusBar,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -23,7 +24,8 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IOfflinePoint } from '@/src/core/models/Trail/Trail';
-import { PIN_TYPES } from '@/src/features/Map/map.types';
+import { IWaypointPoint } from '@/src/features/Map/interfaces/Map.types';
+import { getPinConfig } from '@/src/features/Map/utils/pinConfig';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -40,11 +42,11 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
  */
 interface PointDetailsModalProps {
     visible: boolean;
-    point: IOfflinePoint | null;
+    point: (IOfflinePoint | IWaypointPoint) | null;
     isEditable?: boolean;
     onClose: () => void;
-    onEdit: (point: IOfflinePoint) => void;
-    onDelete: (point: IOfflinePoint) => void;
+    onEdit: (point: IWaypointPoint) => void;
+    onDelete: (point: IWaypointPoint) => void;
 }
 
 /**
@@ -89,15 +91,16 @@ const PointDetailsModal = ({
 
     if (!renderModal || !point) return null;
 
-    const pinConfig = PIN_TYPES.find((t) => t.value === point.type) || PIN_TYPES[1];
+    const waypoint = point as IWaypointPoint;
+    const pinConfig = getPinConfig(waypoint.type, waypoint.color, waypoint.customCategory, waypoint.icon);
 
     const handleEditPress = () => {
-        onEdit(point);
+        onEdit(waypoint);
         onClose();
     };
 
     const handleDeletePress = () => {
-        onDelete(point);
+        onDelete(waypoint);
         onClose();
     };
 
@@ -107,7 +110,9 @@ const PointDetailsModal = ({
             visible={renderModal}
             animationType="none"
             onRequestClose={onClose}
+            statusBarTranslucent={true}
         >
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
             <View style={styles.modalContainer}>
                 {/* Animated Backdrop */}
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>

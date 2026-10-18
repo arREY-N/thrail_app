@@ -19,7 +19,6 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -137,8 +136,6 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
         currentView, setCurrentView,
         selectedBooking,
         selectedBookingCancellation,
-        toastConfig,
-        hideToast,
         handleHeaderBackPress,
         handleBookingSelectPress,
         handleProceedToPaymentPress,
@@ -303,15 +300,6 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                             setFilterBy(values.filterBy as import('@/src/features/Book/hooks/useBookingFilters').FilterBy);
                         }
                     }}
-                />
-
-                <CustomToast
-                    visible={toastConfig.visible}
-                    type={toastConfig.type}
-                    message={toastConfig.message}
-                    mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
-                    position="tabbar"
-                    onHide={hideToast}
                 />
             </ScreenWrapper>
         );

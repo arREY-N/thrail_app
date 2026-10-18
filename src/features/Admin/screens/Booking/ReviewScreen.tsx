@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Linking,
     ScrollView,
     StyleSheet,
@@ -19,7 +18,7 @@ import CustomLoading from '@/src/components/CustomLoading';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -158,24 +157,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isConfirmRevertVisible, setIsConfirmRevertVisible] = useState(false);
 
-    const [toastConfig, setToastConfig] = useState<{
-        visible: boolean;
-        message: string;
-        type: 'info' | 'warning' | 'error' | 'success';
-    }>({
-        visible: false,
-        message: '',
-        type: 'info',
-    });
+    const { showToast } = useToast();
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
     const isRejecting = hasRejections || isRejectingBooking;
 
     const hasUnverifiedPhone = personalStatus !== 'verified' || (emergencyStatus !== 'verified' && !!booking?.emergencyContact);
-    const isSecondaryVisible = isRejecting 
-        ? true 
-        : (hasInteracted || hasUnverifiedPhone || docStates.length === 0);
+    const isSecondaryVisible = isRejecting || hasUnverifiedPhone || hasRejections || docStates.length === 0;
 
     const dynamicSuggestions = useMemo(
         () => getDynamicRejectionSuggestions(docStates.length, hasRejections),
@@ -189,18 +177,16 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     const handleLockedVerifyPress = useCallback((vStatus: VerificationStatus) => {
         const message = getLockedVerificationToastMessage(currentStatus, vStatus);
-        setToastConfig({
-            visible: true,
-            message,
-            type: 'info',
-        });
-    }, [currentStatus]);
+        showToast.info(message);
+    }, [currentStatus, showToast]);
 
     const handleViewFile = async (url: string, index: number) => {
-        if (!url) return Alert.alert("Notice", "No file uploaded.");
+        if (!url) {
+            showToast.info("No file uploaded.");
+            return;
+        }
 
         setViewedDocs((prev: Record<number, boolean>) => ({ ...prev, [index]: true }));
-        setHasInteracted(true);
 
         if (url.toLowerCase().includes('.pdf')) {
             if (await Linking.canOpenURL(url)) {
@@ -249,10 +235,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             const hasReason = rejectionReason.trim().length > 0;
             if (!hasReason) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: REVIEW_TOASTS.REASON_REQUIRED,
-                    type: 'error',
+                showToast.error(REVIEW_TOASTS.REASON_REQUIRED, {
+                    onHide: () => setHasAttemptedSubmit(false),
                 });
                 return;
             }
@@ -263,16 +247,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         if (isDecisionIncomplete) {
             const pendingCount = docStates.filter((d: DocState) => d.valid === 'pending').length;
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: REVIEW_TOASTS.DOCS_INCOMPLETE(pendingCount),
-                type: 'error',
+            showToast.error(REVIEW_TOASTS.DOCS_INCOMPLETE(pendingCount), {
+                onHide: () => setHasAttemptedSubmit(false),
             });
             return;
         }
 
         setIsConfirmVisible(true);
-    }, [isRejecting, rejectionReason, isDecisionIncomplete, docStates]);
+    }, [isRejecting, rejectionReason, isDecisionIncomplete, docStates, showToast]);
 
     const handleSecondaryPress = useCallback(() => {
         if (isRejecting) {
@@ -280,11 +262,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             setRejectionReason('');
             setIsRejectingBooking(false);
             setHasAttemptedSubmit(false);
-            setToastConfig(prev => ({ ...prev, visible: false }));
             return;
         }
 
-        setHasInteracted(true);
         setIsRejectingBooking(true);
         setHasAttemptedSubmit(false);
     }, [isRejecting, setDocStates, setRejectionReason]);
@@ -296,28 +276,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Submit Rejection",
                 variant: 'destructive' as const,
                 disabled: isProcessingAction,
-                style: hasReason ? {
-                    backgroundColor: Colors.ERROR,
-                    borderColor: Colors.ERROR,
-                } : (hasAttemptedSubmit ? {
-                    backgroundColor: Colors.STATUS_CANCELLED_BG,
-                    borderColor: Colors.STATUS_CANCELLED_TEXT,
-                    borderWidth: 1.5,
-                } : {
-                    backgroundColor: Colors.GRAY_ULTRALIGHT,
-                    borderColor: Colors.GRAY_LIGHT,
-                    borderWidth: 1.5,
-                }),
-                textStyle: hasReason ? {
-                    color: Colors.WHITE,
-                    fontWeight: 'bold' as const,
-                } : (hasAttemptedSubmit ? {
-                    color: Colors.STATUS_CANCELLED_TEXT,
-                    fontWeight: 'bold' as const,
-                } : {
-                    color: Colors.TEXT_SECONDARY,
-                    fontWeight: 'bold' as const,
-                }),
+                validationState: hasReason ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 onPress: handlePrimaryPress,
             };
         }
@@ -328,28 +288,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Approve Booking",
             variant: 'primary' as const,
             disabled: isProcessingAction,
-            style: isReady ? {
-                backgroundColor: Colors.PRIMARY,
-                borderColor: Colors.PRIMARY,
-            } : (hasAttemptedSubmit ? {
-                backgroundColor: Colors.STATUS_CANCELLED_BG,
-                borderColor: Colors.STATUS_CANCELLED_TEXT,
-                borderWidth: 1.5,
-            } : {
-                backgroundColor: Colors.GRAY_ULTRALIGHT,
-                borderColor: Colors.GRAY_LIGHT,
-                borderWidth: 1.5,
-            }),
-            textStyle: isReady ? {
-                color: Colors.WHITE,
-                fontWeight: 'bold' as const,
-            } : (hasAttemptedSubmit ? {
-                color: Colors.STATUS_CANCELLED_TEXT,
-                fontWeight: 'bold' as const,
-            } : {
-                color: Colors.TEXT_SECONDARY,
-                fontWeight: 'bold' as const,
-            }),
+            validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+            isIdleDisabled: false,
             onPress: handlePrimaryPress,
         };
     }, [isRejecting, rejectionReason, isProcessingAction, hasAttemptedSubmit, isDecisionIncomplete, docStates.length, handlePrimaryPress]);
@@ -360,11 +300,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Cancel Rejection",
                 variant: 'outline' as const,
                 disabled: isProcessingAction,
-                textStyle: { color: Colors.TEXT_PRIMARY },
-                style: {
-                    borderColor: Colors.GRAY_LIGHT,
-                    backgroundColor: Colors.WHITE,
-                },
                 onPress: handleSecondaryPress,
             };
         }
@@ -377,11 +312,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Reject Booking",
             variant: 'outline' as const,
             disabled: isProcessingAction,
+            style: { borderColor: Colors.ERROR },
             textStyle: { color: Colors.ERROR },
-            style: {
-                borderColor: Colors.GRAY_LIGHT,
-                backgroundColor: Colors.WHITE,
-            },
             onPress: handleSecondaryPress,
         };
     }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
@@ -393,27 +325,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Submit Decline",
                 variant: 'destructive' as const,
                 disabled: isProcessingAction,
-                style: hasReason ? {
-                    backgroundColor: Colors.ERROR,
-                    borderColor: Colors.ERROR,
-                } : {
-                    backgroundColor: Colors.GRAY_ULTRALIGHT,
-                    borderColor: Colors.GRAY_LIGHT,
-                    borderWidth: 1.5,
-                },
-                textStyle: hasReason ? {
-                    color: Colors.WHITE,
-                    fontWeight: 'bold' as const,
-                } : {
-                    color: Colors.TEXT_SECONDARY,
-                    fontWeight: 'bold' as const,
-                },
+                validationState: hasReason ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 onPress: () => {
                     if (cancellationDeclineReason.trim().length === 0) {
-                        setToastConfig({
-                            visible: true,
-                            message: REVIEW_TOASTS.REASON_REQUIRED,
-                            type: 'error',
+                        setHasAttemptedSubmit(true);
+                        showToast.error(REVIEW_TOASTS.REASON_REQUIRED, {
+                            onHide: () => setHasAttemptedSubmit(false),
                         });
                         return;
                     }
@@ -426,14 +344,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: totalAmountPaid > 0 ? "Approve & Refund" : "Approve Cancellation",
             variant: 'destructive' as const,
             disabled: isProcessingAction,
-            style: {
-                backgroundColor: Colors.ERROR,
-                borderColor: Colors.ERROR,
-            },
-            textStyle: {
-                color: Colors.WHITE,
-                fontWeight: 'bold' as const,
-            },
             onPress: () => {
                 if (totalAmountPaid > 0) {
                     setShowRefundModal(true);
@@ -442,7 +352,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 }
             },
         };
-    }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, totalAmountPaid]);
+    }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, hasAttemptedSubmit, showToast, totalAmountPaid]);
 
     const cancellationSecondaryConfig = useMemo(() => {
         if (isDecliningCancellation) {
@@ -450,11 +360,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Cancel Decline",
                 variant: 'outline' as const,
                 disabled: isProcessingAction,
-                textStyle: { color: Colors.TEXT_PRIMARY },
-                style: {
-                    borderColor: Colors.GRAY_LIGHT,
-                    backgroundColor: Colors.WHITE,
-                },
                 onPress: () => {
                     setIsDecliningCancellation(false);
                     setCancellationDeclineReason('');
@@ -466,11 +371,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Decline Cancellation",
             variant: 'outline' as const,
             disabled: isProcessingAction,
+            style: { borderColor: Colors.ERROR },
             textStyle: { color: Colors.ERROR },
-            style: {
-                borderColor: Colors.ERROR,
-                backgroundColor: Colors.WHITE,
-            },
             onPress: () => {
                 setIsDecliningCancellation(true);
             },
@@ -687,14 +589,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     setRejectionReason={handleRejectionReasonChange}
                                     suggestions={dynamicSuggestions}
                                     onAttachmentRequired={() => {
-                                        setToastConfig({
-                                            visible: true,
-                                            message: REVIEW_TOASTS.ATTACHMENT_REQUIRED,
-                                            type: 'error',
-                                        });
+                                        showToast.error(REVIEW_TOASTS.ATTACHMENT_REQUIRED);
                                     }}
                                     onInteraction={() => {
-                                        setHasInteracted(true);
                                         if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
                                     }}
                                     onViewFile={handleViewFile}
@@ -723,6 +620,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             {isHikerCancellationPending ? (
                 <View style={styles.footerWrapper}>
                     <CustomStickyFooter
+                        enableToastDock={true}
                         primaryButton={cancellationPrimaryConfig}
                         secondaryButton={cancellationSecondaryConfig}
                     />
@@ -730,24 +628,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             ) : (!isReviewComplete && activeTab === 'documents' && (
                 <View style={styles.footerWrapper}>
                     <CustomStickyFooter
+                        enableToastDock={true}
                         primaryButton={primaryButtonConfig}
                         secondaryButton={secondaryButtonConfig}
                     />
                 </View>
             ))}
-
-            {/* Custom Toast above Sticky Footer */}
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type={toastConfig.type}
-                mode="dismissible"
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
-                }}
-            />
 
             <ConfirmationModal
                 visible={isConfirmVisible}
@@ -790,17 +676,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onAdminCancelBooking(booking, selectedReason);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.ORGANIZER_CANCELLED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.ORGANIZER_CANCELLED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : "Failed to cancel booking",
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : "Failed to cancel booking");
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -824,17 +702,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onApproveCancellation(cancellationRequest, booking);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_APPROVED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_APPROVED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to approve cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to approve cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -859,17 +729,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
                             setIsDecliningCancellation(false);
                             setCancellationDeclineReason('');
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_DECLINED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_DECLINED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to decline cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to decline cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -892,17 +754,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onRevertCancellation(cancellationRequest);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_REVERTED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_REVERTED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to revert cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to revert cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -951,18 +805,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         try {
                             if (isHikerCancellationPending && onApproveCancellation) {
                                 await onApproveCancellation(cancellationRequest, booking, refundType, customAmount);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Cancellation approved and refund processed successfully via PayMongo.',
-                                    type: 'success',
-                                });
+                                showToast.success('Cancellation approved and refund processed successfully via PayMongo.');
                             } else if (onRefund) {
                                 await onRefund(booking, refundType, customAmount);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Refund processed successfully via PayMongo.',
-                                    type: 'success',
-                                });
+                                showToast.success('Refund processed successfully via PayMongo.');
                             }
                         } catch (err: unknown) {
                                 const rawMessage = err instanceof Error ? err.message : String(err || '');
@@ -976,11 +822,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
                                 }
 
-                                setToastConfig({
-                                    visible: true,
-                                    message: displayMessage,
-                                    type: 'error',
-                                });
+                                showToast.error(displayMessage);
                             } finally {
                                 setIsProcessingAction(false);
                             }

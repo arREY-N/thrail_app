@@ -3,13 +3,13 @@
  * @description Screen displaying organization profile details, admin staff details, and action buttons.
  */
 
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
-    TouchableOpacity,
     View
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -22,6 +22,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { Business } from '@/src/core/models/Business/Business';
+import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
@@ -39,11 +41,11 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param onRetryPress - Callback when retry button is pressed in error state.
  */
 export interface DashboardScreenProps {
-    businessAccount?: any; 
+    businessAccount?: Business | null; 
     onManageAdminsPress: () => void; 
     onManageOffersPress: () => void;
     onManageTrailsPress: () => void;
-    adminProfile?: any; 
+    adminProfile?: User | null; 
     error?: string | null;
     onBackPress: () => void; 
     isLoading?: boolean;
@@ -53,7 +55,7 @@ export interface DashboardScreenProps {
 /**
  * DashboardScreen — Main admin dashboard displaying business profile, admin info, and quick actions.
  */
-const DashboardScreen: React.FC<DashboardScreenProps> = ({ 
+const DashboardScreen = ({ 
     businessAccount, 
     onManageAdminsPress, 
     onManageOffersPress,
@@ -62,11 +64,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
     error,
     onBackPress,
     isLoading = false,
-    onRetryPress
-}) => {
+    onRetryPress,
+}: DashboardScreenProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
     const insets = useSafeAreaInsets();
+
+    const isNavigatingRef = useRef<boolean>(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            isNavigatingRef.current = false;
+        }, [])
+    );
+
+    const handleNavPress = (action: () => void) => {
+        if (isNavigatingRef.current) return;
+        isNavigatingRef.current = true;
+        action();
+    };
 
     const InfoRow = ({ label, value, noMargin }: { label: string, value: string | undefined | null, noMargin?: boolean }) => {
         const displayValue = value || 'N/A';
@@ -84,7 +100,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
         return fullName.length > 0 ? fullName : 'N/A';
     };
 
-    const formatLocation = (locationData: string | string[]) => {
+    const formatLocation = (locationData?: string | string[] | null) => {
         if (!locationData) return 'N/A';
         if (Array.isArray(locationData)) {
             return locationData.join(', ');
@@ -185,7 +201,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Trails"
-                        onPress={onManageTrailsPress}
+                        onPress={() => handleNavPress(onManageTrailsPress)}
                         variant="secondary"
                         icon="map"
                         iconLibrary="Feather"
@@ -194,7 +210,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Offers"
-                        onPress={onManageOffersPress}
+                        onPress={() => handleNavPress(onManageOffersPress)}
                         variant="primary"
                         icon="pricetags"
                         iconLibrary="Ionicons"
@@ -203,7 +219,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 <View style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Personnel"
-                        onPress={onManageAdminsPress}
+                        onPress={() => handleNavPress(onManageAdminsPress)}
                         variant="secondary" 
                         icon="users"
                         iconLibrary="Feather"
@@ -222,32 +238,44 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     Quick Actions
                 </CustomText>
                 <View style={styles.stickyButtonRow}>
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.secondaryStickyBtn]} 
-                        onPress={onManageTrailsPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="map" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Trails</CustomText>
-                    </TouchableOpacity>
+                    <View style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Trails"
+                            onPress={() => handleNavPress(onManageTrailsPress)}
+                            variant="secondary"
+                            icon="map"
+                            iconLibrary="Feather"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
 
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.primaryStickyBtn]} 
-                        onPress={onManageOffersPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Ionicons" name="pricetags" size={16} color={Colors.WHITE} />
-                        <CustomText style={styles.primaryStickyBtnText} numberOfLines={1}>Offers</CustomText>
-                    </TouchableOpacity>
+                    <View style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Offers"
+                            onPress={() => handleNavPress(onManageOffersPress)}
+                            variant="primary"
+                            icon="pricetags"
+                            iconLibrary="Ionicons"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
 
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.secondaryStickyBtn]} 
-                        onPress={onManageAdminsPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="users" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Personnel</CustomText>
-                    </TouchableOpacity>
+                    <View style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Personnel"
+                            onPress={() => handleNavPress(onManageAdminsPress)}
+                            variant="secondary" 
+                            icon="users"
+                            iconLibrary="Feather"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
                 </View>
             </View>
         );
@@ -552,33 +580,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    stickyActionBtn: {
+    stickyButtonWrapper: {
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+    },
+    mobileCustomButton: {
         paddingVertical: 12,
         paddingHorizontal: 8,
-        borderRadius: 16,
-        gap: 6,
-        height: 48,
     },
-    primaryStickyBtn: {
-        backgroundColor: Colors.PRIMARY,
-    },
-    secondaryStickyBtn: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.PRIMARY,
-    },
-    primaryStickyBtnText: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
-    secondaryStickyBtnText: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
+    mobileButtonText: {
         fontSize: 12,
     },
 });

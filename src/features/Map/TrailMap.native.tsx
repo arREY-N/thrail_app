@@ -17,8 +17,8 @@ import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } fro
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
-import { buildOfflineStyle } from "./offlineStyle";
-import { onlineStyle } from "./onlineStyle";
+import { buildOfflineStyle } from "./styles/offlineStyle";
+import { onlineStyle } from "./styles/onlineStyle";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");

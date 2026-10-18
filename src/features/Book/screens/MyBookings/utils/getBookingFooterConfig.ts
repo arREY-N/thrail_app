@@ -82,6 +82,8 @@ export const getBookingFooterConfig = ({
                 title: buttonTitle,
                 variant: "primary" as const,
                 disabled: isSubmittingDocs,
+                validationState: canResubmitAll ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 style: {
                     borderRadius: 12,
                     backgroundColor: canResubmitAll
