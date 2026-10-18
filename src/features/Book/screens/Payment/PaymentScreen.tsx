@@ -253,6 +253,16 @@ const PaymentScreen = ({
                             }, 3000);
                         } else {
                             setIsWaitingForVerification(true);
+                            // Safety fallback: if verification takes longer than 15s, release spinner and notify user
+                            setTimeout(() => {
+                                setIsWaitingForVerification(prev => {
+                                    if (prev) {
+                                        setPaymentError("We are finalizing your payment with the provider. If your payment was completed, your booking status will update automatically in a few moments.");
+                                        return false;
+                                    }
+                                    return prev;
+                                });
+                            }, 15000);
                         }
                     }
 

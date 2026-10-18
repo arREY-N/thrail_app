@@ -223,8 +223,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
         });
     }
 
+    const hasRefund = booking.payment?.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+
     // 7. Cancellation transitions
-    if (booking.status === 'cancelled') {
+    if (booking.status === 'cancelled' && !hasRefund) {
         const isUserCancelled = booking.cancelledBy === 'user' || hasRejectedDocs || !booking.cancellationReason || booking.cancelledBy !== 'admin';
         timelineEvents.push({
             title: "Booking Cancelled",
@@ -258,14 +260,17 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
     }
 
     // 8. Explicit Refund Status
-    if (booking.status === 'refund' || booking.status === 'refunded') {
+    if (booking.status === 'refund' || booking.status === 'refunded' || hasRefund) {
+        const totalRefunded = booking.payment?.reduce((sum, p) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0;
         timelineEvents.push({
             title: "Booking Refunded",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
-            desc: "Booking has been explicitly refunded by the admin.",
+            desc: totalRefunded > 0 
+                ? `Refund of ₱${totalRefunded.toFixed(2)} processed via PayMongo.` 
+                : "Booking has been refunded.",
             reason: booking.cancellationReason || undefined,
-            status: getStatusConfig(booking.status, 'admin').label,
-            color: getStatusThemeColor(booking.status),
+            status: getStatusConfig('refunded', 'admin').label,
+            color: getStatusThemeColor('refunded'),
             sortDate: getEventDate(booking.updatedAt)
         });
     }

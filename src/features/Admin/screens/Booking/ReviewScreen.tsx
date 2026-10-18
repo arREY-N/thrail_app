@@ -171,7 +171,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
-    const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => p.status === 'refunded' ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
+    const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => (p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
     const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
     const paymentCapturedAt = lastCapturedPayment?.createdAt || null;
 

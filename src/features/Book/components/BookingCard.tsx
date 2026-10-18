@@ -84,8 +84,13 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     let displayStatus = booking?.status;
 
+    const payments = booking?.payment || [];
+    const hasRefund = payments.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
+    } else if (cancellation?.status === 'approved') {
+        displayStatus = (hasRefund || booking?.status === 'refunded') ? 'refunded' : (payments.length > 0 ? 'refund' : 'cancelled');
     } else if (
         cancellation?.status === 'rejected' &&
         booking?.status !== 'cancelled' &&
@@ -95,11 +100,9 @@ const BookingCard: React.FC<BookingCardProps> = ({
         displayStatus = 'cancellation-rejected';
     }
 
-    if (displayStatus === 'for-cancellation') {
-        const payments = booking?.payment || [];
-        const hasRefund = payments.some(p => p.status === 'refunded');
-        if (hasRefund) {
-            displayStatus = 'refund';
+    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
+        if (hasRefund || booking?.status === 'refunded') {
+            displayStatus = 'refunded';
         }
     }
 
