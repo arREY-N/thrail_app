@@ -11,6 +11,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
+import React from 'react';
 
 export interface ReceiptScreenProps {
     bookingData: Booking;

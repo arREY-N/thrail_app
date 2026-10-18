@@ -7,6 +7,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { IconLibrary } from '@/src/types/ui.types';
+import React from 'react';
 
 export interface PaymentMethodOption {
     id: string;

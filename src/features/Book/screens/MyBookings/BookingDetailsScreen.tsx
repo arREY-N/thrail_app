@@ -13,7 +13,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -111,6 +111,7 @@ const BookingDetailsScreen = ({
     onUpdateCancellationReason,
     onAcceptAdminCancellation,
 }: BookingDetailsScreenProps): React.JSX.Element => {
+    const { showToast } = useToast();
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
     const [showCancelDraftModal, setShowCancelDraftModal] = useState<boolean>(false);
     const [isCancelingDraft, setIsCancelingDraft] = useState<boolean>(false);
@@ -314,7 +315,6 @@ const BookingDetailsScreen = ({
         isSubmittingDocs,
         confirmResubmitModalVisible, setConfirmResubmitModalVisible,
         hasAttemptedSubmit, setHasAttemptedSubmit,
-        toastConfig, setToastConfig,
         originalRejectedIndices,
         totalRejectedCount,
         stagedCount,
@@ -438,17 +438,9 @@ const BookingDetailsScreen = ({
                             if (onWithdrawCancellation) {
                                 try {
                                     await onWithdrawCancellation(item);
-                                    setToastConfig({
-                                        visible: true,
-                                        message: 'Cancellation request withdrawn successfully.',
-                                        type: 'success',
-                                    });
+                                    showToast.success('Cancellation request withdrawn successfully.');
                                 } catch (err: unknown) {
-                                    setToastConfig({
-                                        visible: true,
-                                        message: err instanceof Error ? err.message : 'Failed to withdraw cancellation request.',
-                                        type: 'error',
-                                    });
+                                    showToast.error(err instanceof Error ? err.message : 'Failed to withdraw cancellation request.');
                                 }
                             }
                         }}
@@ -461,17 +453,9 @@ const BookingDetailsScreen = ({
                             if (onAcceptAdminCancellation) {
                                 try {
                                     await onAcceptAdminCancellation(item);
-                                    setToastConfig({
-                                        visible: true,
-                                        message: 'Cancellation confirmed successfully.',
-                                        type: 'success',
-                                    });
+                                    showToast.success('Cancellation confirmed successfully.');
                                 } catch (err: unknown) {
-                                    setToastConfig({
-                                        visible: true,
-                                        message: err instanceof Error ? err.message : 'Failed to confirm cancellation.',
-                                        type: 'error',
-                                    });
+                                    showToast.error(err instanceof Error ? err.message : 'Failed to confirm cancellation.');
                                 }
                             }
                         }}
@@ -515,7 +499,6 @@ const BookingDetailsScreen = ({
                                 })
                             );
                             setHasAttemptedSubmit(false);
-                            setToastConfig(prev => ({ ...prev, visible: false }));
                         }}
                         onPreviewDoc={(url) => setPreviewDocUrl(url || null)}
                     />
@@ -590,6 +573,7 @@ const BookingDetailsScreen = ({
 
             {footerConfig && (
                 <CustomStickyFooter
+                    enableToastDock={true}
                     primaryButton={footerConfig.primaryButton}
                     secondaryButton={footerConfig.secondaryButton}
                 />
@@ -614,38 +598,24 @@ const BookingDetailsScreen = ({
                         if (activeCancelModal === 'cancel') {
                             await onCancelConfirm(booking, reason);
                             setActiveCancelModal(null);
-                            setToastConfig({
-                                visible: true,
-                                message: 'Cancellation request submitted successfully.',
-                                type: 'success',
-                            });
+                            showToast.success('Cancellation request submitted successfully.');
                         } else if (activeCancelModal === 'refund') {
                             await onRefundConfirm(booking, reason);
                             setActiveCancelModal(null);
                             const isPaid = ['paid', 'downpayment'].includes(booking.status);
-                            setToastConfig({
-                                visible: true,
-                                message: isPaid
+                            showToast.success(
+                                isPaid
                                     ? 'Cancellation & refund request submitted successfully.'
-                                    : 'Cancellation request submitted successfully.',
-                                type: 'success',
-                            });
+                                    : 'Cancellation request submitted successfully.'
+                            );
                         } else if (activeCancelModal === 'update' && cancellation && onUpdateCancellationReason) {
                             try {
                                 await onUpdateCancellationReason({ reason, oldRequest: cancellation });
                                 setActiveCancelModal(null);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Cancellation appeal submitted successfully.',
-                                    type: 'success',
-                                });
+                                showToast.success('Cancellation appeal submitted successfully.');
                             } catch (err: unknown) {
                                 setActiveCancelModal(null);
-                                setToastConfig({
-                                    visible: true,
-                                    message: err instanceof Error ? err.message : 'Failed to submit cancellation appeal.',
-                                    type: 'error',
-                                });
+                                showToast.error(err instanceof Error ? err.message : 'Failed to submit cancellation appeal.');
                             }
                         }
                     } catch (err: unknown) {
@@ -696,28 +666,16 @@ const BookingDetailsScreen = ({
 
                     if (displayStatus === 'reservation-rejected') {
                         setHasStagedContactChanges(true);
-                        setToastConfig({
-                            visible: true,
-                            message: RESUBMIT_TOASTS.STAGED_CONTACTS_SUCCESS,
-                            type: 'success',
-                        });
+                        showToast.success(RESUBMIT_TOASTS.STAGED_CONTACTS_SUCCESS);
                         return;
                     }
 
                     if (onUpdateContacts) {
                         const ok = await onUpdateContacts(booking, data.phone, data.emergencyContact);
                         if (ok) {
-                            setToastConfig({
-                                visible: true,
-                                message: 'Contact details updated successfully.',
-                                type: 'success',
-                            });
+                            showToast.success('Contact details updated successfully.');
                         } else {
-                            setToastConfig({
-                                visible: true,
-                                message: 'Failed to update contact details.',
-                                type: 'error',
-                            });
+                            showToast.error('Failed to update contact details.');
                         }
                     }
                 }}
@@ -747,11 +705,7 @@ const BookingDetailsScreen = ({
                         setShowCancelDraftModal(false);
                     } catch (err: unknown) {
                         setShowCancelDraftModal(false);
-                        setToastConfig({
-                            visible: true,
-                            message: err instanceof Error ? err.message : 'Failed to cancel reservation.',
-                            type: 'error',
-                        });
+                        showToast.error(err instanceof Error ? err.message : 'Failed to cancel reservation.');
                     } finally {
                         setIsCancelingDraft(false);
                     }
@@ -778,19 +732,6 @@ const BookingDetailsScreen = ({
                 iconName={resubmitModalContent.iconName}
                 iconLibrary={resubmitModalContent.iconLibrary}
                 iconColor={resubmitModalContent.iconColor}
-            />
-
-            {/* Custom Toast above Sticky Footer for document validation feedback */}
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type={toastConfig.type}
-                mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
-                }}
             />
 
             {/* Modal Image Preview for uploaded/approved documents */}
