@@ -805,12 +805,13 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
         updatedPayments.push(newPaymentRecord);
 
         // Update booking with payment records and paymentIntentIds array
-        await bookingRef.update({
+        const updateBookingData = {
             payment: updatedPayments,
-            paymentIntentId: session.paymentIntentId, // Root-level for backwards compatibility
+            paymentIntentId: session.paymentIntentId,
             paymentIntentIds: admin.firestore.FieldValue.arrayUnion(session.paymentIntentId),
             updatedAt: FieldValue.serverTimestamp()
-        });
+        };
+        await bookingRef.update(updateBookingData);
 
         const response = {
             gateway: 'paymongo',
@@ -928,120 +929,204 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
     }
 
     const event = req.body;
-    if (event?.data?.attributes?.type === 'payment.paid') {
-        const paymentData = event.data.attributes.data.attributes;
-        
-        const gatewayId = event.data.attributes.data.id;
-        // Prioritize official Payment ID (pay_...) over internal ledger ID (bal_...)
-        const referenceCode = event.data.attributes.data.id || paymentData.balance_transaction_id;
-        const amount = paymentData.amount / 100;
+    const eventType = event?.data?.attributes?.type;
+    console.log(`[paymentWebhook] Received PayMongo webhook event: ${eventType}`);
 
-        // Use payment_intent_id to find the booking.
-        // We store paymentIntentId and paymentIntentIds on the booking document when creating the checkout session.
-        const paymentIntentId = paymentData.payment_intent_id;
-        console.log(`[paymentWebhook] Looking up booking with paymentIntentId: ${paymentIntentId}, amount: ${amount}`);
+    if (eventType === 'checkout_session.payment.paid' || eventType === 'payment.paid') {
+        let gatewayId;
+        let referenceCode;
+        let baseAmount = 0;
+        let paymentIntentId = null;
+        let sessionId = null;
+        let bookingId = null;
+        let userId = null;
+        let rawMethod = null;
 
-        if (paymentIntentId) {
-            const db = admin.firestore();
-            let bookingsSnapshot = await db.collectionGroup('bookings')
-                .where('paymentIntentId', '==', paymentIntentId)
-                .get();
+        if (eventType === 'checkout_session.payment.paid') {
+            const sessionData = event.data.attributes.data;
+            const sessionAttrs = sessionData.attributes || {};
+            sessionId = sessionData.id;
+            bookingId = sessionAttrs.reference_number || sessionAttrs.metadata?.bookingId;
+            userId = sessionAttrs.metadata?.userId;
 
-            // Fallback: Check paymentIntentIds array
-            if (bookingsSnapshot.empty) {
-                bookingsSnapshot = await db.collectionGroup('bookings')
-                    .where('paymentIntentIds', 'array-contains', paymentIntentId)
-                    .get();
+            const paymentObj = sessionAttrs.payments?.[0];
+            const paymentAttrs = paymentObj?.attributes || {};
+            gatewayId = paymentObj?.id;
+            referenceCode = gatewayId || paymentAttrs.balance_transaction_id;
+
+            // Payment amount in PHP
+            baseAmount = (sessionAttrs.line_items?.[0]?.amount || paymentAttrs.amount || 0) / 100;
+
+            paymentIntentId = sessionAttrs.payment_intent?.id || paymentAttrs.payment_intent_id || null;
+            rawMethod = paymentAttrs.source?.type || paymentAttrs.payment_method_type || sessionAttrs.payment_method_types?.[0];
+        } else {
+            // eventType === 'payment.paid'
+            const paymentData = event.data.attributes.data.attributes || {};
+            gatewayId = event.data.attributes.data.id;
+            referenceCode = gatewayId || paymentData.balance_transaction_id;
+            baseAmount = (paymentData.amount || 0) / 100;
+
+            paymentIntentId = paymentData.payment_intent_id || null;
+            bookingId = paymentData.metadata?.bookingId || null;
+            userId = paymentData.metadata?.userId || null;
+            rawMethod = paymentData.source?.type || paymentData.payment_method_type;
+        }
+
+        console.log(`[paymentWebhook] Extracted payment details: gatewayId=${gatewayId}, amount=${baseAmount}, bookingId=${bookingId}, userId=${userId}, sessionId=${sessionId}, paymentIntentId=${paymentIntentId}`);
+
+        const db = admin.firestore();
+        let bookingDoc = null;
+
+        // Strategy 1: Direct Doc lookup via metadata { userId, bookingId } (O(1) direct document access)
+        if (userId && bookingId) {
+            try {
+                const directRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+                const directSnap = await directRef.get();
+                if (directSnap.exists) {
+                    bookingDoc = directSnap;
+                    console.log(`[paymentWebhook] Matched booking via direct metadata path: users/${userId}/bookings/${bookingId}`);
+                }
+            } catch (err) {
+                console.warn(`[paymentWebhook] Direct metadata lookup error:`, err.message);
+            }
+        }
+
+        // Strategy 2: Lookup by paymentIntentId (standard v1 checkout)
+        if (!bookingDoc && paymentIntentId) {
+            let snap = await db.collectionGroup('bookings').where('paymentIntentId', '==', paymentIntentId).get();
+            if (snap.empty) {
+                snap = await db.collectionGroup('bookings').where('paymentIntentIds', 'array-contains', paymentIntentId).get();
+            }
+            if (!snap.empty) {
+                bookingDoc = snap.docs[0];
+                console.log(`[paymentWebhook] Matched booking via paymentIntentId query: ${paymentIntentId}`);
+            }
+        }
+
+        // Strategy 4: Fallback scan of pending/downpayment bookings by sessionId inside payment[] array
+        if (!bookingDoc && sessionId) {
+            const pendingSnaps = await db.collectionGroup('bookings').where('status', 'in', ['pending', 'downpayment']).get();
+            for (const doc of pendingSnaps.docs) {
+                const docPayments = doc.data()?.payment || [];
+                if (docPayments.some(p => p.sessionId === sessionId)) {
+                    bookingDoc = doc;
+                    console.log(`[paymentWebhook] Matched booking via deep payment[].sessionId scan: ${doc.id}`);
+                    break;
+                }
+            }
+        }
+
+        // Strategy 5: Fallback scan by bookingId document ID
+        if (!bookingDoc && bookingId) {
+            const pendingSnaps = await db.collectionGroup('bookings').where('status', 'in', ['pending', 'downpayment']).get();
+            for (const doc of pendingSnaps.docs) {
+                if (doc.id === bookingId) {
+                    bookingDoc = doc;
+                    console.log(`[paymentWebhook] Matched booking via documentId fallback: ${doc.id}`);
+                    break;
+                }
+            }
+        }
+
+        if (!bookingDoc) {
+            console.error(`[paymentWebhook] Unable to match booking for gatewayId: ${gatewayId}, sessionId: ${sessionId}, paymentIntentId: ${paymentIntentId}, bookingId: ${bookingId}`);
+            return res.status(200).send('Booking Not Found (Logged for Investigation)');
+        }
+
+        const bookingData = bookingDoc.data();
+        console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
+
+        const payments = bookingData.payment || [];
+
+        // Idempotency guard: prevent duplicate captured payments if webhook is retried
+        if (payments.some(p => p.gatewayId === gatewayId && p.status === 'captured')) {
+            console.log(`[paymentWebhook] Payment ${gatewayId} already captured for booking ${bookingDoc.id}. Skipping duplicate webhook.`);
+            return res.status(200).send('Already Processed');
+        }
+
+        const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
+        const existingSessionId = (pendingIdx >= 0 && payments[pendingIdx].sessionId) ? payments[pendingIdx].sessionId : sessionId;
+        const method = rawMethod === 'paymaya' ? 'maya' : (rawMethod || (pendingIdx >= 0 ? payments[pendingIdx].method : 'gcash'));
+
+        // Ensure amount strictly reflects the pending booking installment if already recorded
+        const finalAmount = (pendingIdx >= 0 && payments[pendingIdx].amount && payments[pendingIdx].amount > 0)
+            ? payments[pendingIdx].amount
+            : baseAmount;
+
+        if (bookingData.status !== 'cancelled') {
+            // 10 days before hike for refund policy
+            const refundableUntil = new Date(bookingData.offer.date.toDate());
+            refundableUntil.setDate(refundableUntil.getDate() - 10);
+
+            const capturedPayment = {
+                gateway: 'paymongo',
+                gatewayId: gatewayId,
+                method: method,
+                sessionId: existingSessionId,
+                referenceCode: referenceCode,
+                status: 'captured',
+                refundableUntil: Timestamp.fromDate(refundableUntil),
+                amount: finalAmount,
+                createdAt: pendingIdx >= 0 && payments[pendingIdx].createdAt ? payments[pendingIdx].createdAt : Timestamp.now(),
+                capturedAt: Timestamp.now()
+            };
+
+            if (pendingIdx >= 0) {
+                payments[pendingIdx] = capturedPayment;
+            } else {
+                payments.push(capturedPayment);
             }
 
-            if (!bookingsSnapshot.empty) {
-                const bookingDoc = bookingsSnapshot.docs[0];
-                const bookingData = bookingDoc.data();
-                console.log(`[paymentWebhook] Found matching booking: ${bookingDoc.id} with status: ${bookingData.status}`);
-
-                const payments = bookingData.payment || [];
-
-                // Idempotency guard: prevent duplicate captured payments if webhook is retried
-                if (payments.some(p => p.gatewayId === gatewayId && p.status === 'captured')) {
-                    console.log(`[paymentWebhook] Payment ${gatewayId} already captured for booking ${bookingDoc.id}. Skipping duplicate webhook.`);
-                    return res.status(200).send('Already Processed');
+            // Determine the new booking status based on total paid vs offer price
+            const totalPaid = payments.reduce((sum, p) => {
+                if (p.status === 'captured') {
+                    return sum + (p.amount || 0);
                 }
+                return sum;
+            }, 0);
+            const offerPrice = bookingData.offer?.price || 0;
+            const newBookingStatus = totalPaid >= (offerPrice - 0.01) ? 'paid' : 'downpayment';
 
-                if (bookingData.status !== 'cancelled') {
-                    // 10 days before hike for refund policy
-                    const refundableUntil = new Date(bookingData.offer.date.toDate());
-                    refundableUntil.setDate(refundableUntil.getDate() - 10);
+            const updateBookingPayload = {
+                payment: payments,
+                status: newBookingStatus,
+                updatedAt: FieldValue.serverTimestamp()
+            };
+            if (paymentIntentId) {
+                updateBookingPayload.paymentIntentId = paymentIntentId;
+                updateBookingPayload.paymentIntentIds = admin.firestore.FieldValue.arrayUnion(paymentIntentId);
+            }
 
-                    const pendingIdx = payments.findLastIndex(p => p.status === 'pending');
-                    const existingSessionId = pendingIdx >= 0 ? payments[pendingIdx].sessionId : null;
-                    const rawMethod = paymentData.source?.type || paymentData.payment_method_type || (pendingIdx >= 0 ? payments[pendingIdx].method : 'gcash');
-                    const method = rawMethod === 'paymaya' ? 'maya' : rawMethod;
+            await bookingDoc.ref.update(updateBookingPayload);
 
-                    const capturedPayment = {
-                        gateway: 'paymongo',
-                        gatewayId: gatewayId,
-                        method: method,
-                        sessionId: existingSessionId,
-                        referenceCode: referenceCode,
-                        status: 'captured',
-                        refundableUntil: Timestamp.fromDate(refundableUntil),
-                        amount: amount,
-                        createdAt: pendingIdx >= 0 && payments[pendingIdx].createdAt ? payments[pendingIdx].createdAt : Timestamp.now(),
-                        capturedAt: Timestamp.now()
-                    };
-
-                    if (pendingIdx >= 0) {
-                        payments[pendingIdx] = capturedPayment;
-                    } else {
-                        payments.push(capturedPayment);
-                    }
-
-                    // Determine the new booking status based on total paid vs offer price
-                    const totalPaid = payments.reduce((sum, p) => {
-                        if (p.status === 'captured') {
-                            return sum + (p.amount || 0);
-                        }
-                        return sum;
-                    }, 0);
-                    const offerPrice = bookingData.offer?.price || 0;
-                    const newBookingStatus = totalPaid >= (offerPrice - 0.01) ? 'paid' : 'downpayment';
-
-                    await bookingDoc.ref.update({
-                        payment: payments,
-                        status: newBookingStatus,
-                        updatedAt: FieldValue.serverTimestamp()
-                    });
-
-                    // Create Payment Receipt Record in global /payments collection
-                    await db.collection('payments').add({
-                        bookingId: bookingDoc.id,
-                        gatewayId: gatewayId,
-                        gateway: 'paymongo',
-                        method: method,
-                        status: 'captured',
-                        createdAt: FieldValue.serverTimestamp(),
-                        updatedAt: FieldValue.serverTimestamp(),
-                        receipt: {
-                            amount: amount,
-                            date: FieldValue.serverTimestamp(),
-                            gateway: 'paymongo',
-                            referenceCode: referenceCode
-                        },
-                        offer: bookingData.offer,
-                        business: bookingData.business,
-                        user: bookingData.user
-                    });
-                    
-                    console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${bookingDoc.id}`);
-                } else {
-                    // Booking was already cancelled, issue automatic refund!
-                    try {
-                        await provider.issueRefund(gatewayId, amount, 'others', 'Auto-refund for cancelled booking');
-                        console.log(`Auto-refunded late payment for cancelled booking: ${bookingDoc.id}`);
-                    } catch (e) {
-                        console.error("Failed to auto-refund cancelled booking", e);
-                    }
-                }
+            // Create Payment Receipt Record in global /payments collection
+            await db.collection('payments').add({
+                bookingId: bookingDoc.id,
+                gatewayId: gatewayId,
+                gateway: 'paymongo',
+                method: method,
+                status: 'captured',
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+                receipt: {
+                    amount: finalAmount,
+                    date: FieldValue.serverTimestamp(),
+                    gateway: 'paymongo',
+                    referenceCode: referenceCode
+                },
+                offer: bookingData.offer,
+                business: bookingData.business,
+                user: bookingData.user
+            });
+            
+            console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${bookingDoc.id}`);
+        } else {
+            // Booking was already cancelled, issue automatic refund!
+            try {
+                await provider.issueRefund(gatewayId, finalAmount, 'others', 'Auto-refund for cancelled booking');
+                console.log(`Auto-refunded late payment for cancelled booking: ${bookingDoc.id}`);
+            } catch (e) {
+                console.error("Failed to auto-refund cancelled booking", e);
             }
         }
     }
@@ -1311,9 +1396,8 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         });
 
         // Phase 1 / T1.6: Finalize booking status in Firestore
-        // If all captured payments are fully refunded or target was a 100% full refund, status is 'refunded'
-        const hasRemainingUnrefunded = payments.some(p => p.status === 'captured' && ((p.amount || 0) - (p.refundedAmount || 0)) > 0.01);
-        const finalBookingStatus = hasRemainingUnrefunded ? 'cancelled' : 'refunded';
+        // Any successfully processed refund (whether partial or full) marks the booking as refunded
+        const finalBookingStatus = 'refunded';
 
         await bookingRef.update({
             status: finalBookingStatus,
@@ -1352,7 +1436,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
                 const batch = db.batch();
                 paymentsQuery.docs.forEach(docSnap => {
                     batch.update(docSnap.ref, {
-                        status: finalBookingStatus === 'refunded' ? 'refunded' : 'captured',
+                        status: 'refunded',
                         'receipt.refundedAmount': FieldValue.increment(refundAmount),
                         refundedAt: FieldValue.serverTimestamp(),
                         refundReason: sanitizedReason,
