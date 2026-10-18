@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ImageSourcePropType,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     Platform,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -22,6 +25,7 @@ import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
 import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
+import { ScrollToTopPill } from '@/src/features/Community/components/ScrollToTopPill';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
@@ -70,6 +74,35 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
     const [activeTab, setActiveTab] = useState(initialTab || 'Details');
     const insets = useSafeAreaInsets();
+
+    const scrollViewRef = useRef<ScrollView>(null);
+    const isScrollingToTop = useRef<boolean>(false);
+    const [showScrollTopPill, setShowScrollTopPill] = useState<boolean>(false);
+
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (isScrollingToTop.current) return;
+        const currentOffsetY = event.nativeEvent.contentOffset.y;
+
+        if (activeTab === 'Reviews' && currentOffsetY > 350) {
+            setShowScrollTopPill(true);
+        } else {
+            setShowScrollTopPill(false);
+        }
+    }, [activeTab]);
+
+    const handleScrollToTop = useCallback(() => {
+        isScrollingToTop.current = true;
+        setShowScrollTopPill(false);
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        setTimeout(() => {
+            isScrollingToTop.current = false;
+        }, 800);
+    }, []);
+
+    const handleTabChange = useCallback((tab: string) => {
+        setActiveTab(tab);
+        setShowScrollTopPill(false);
+    }, []);
 
     // Fast path: If curated length and gain/elevation are already provided, skip heavy GeoJSON parsing
     const hasCuratedMetrics = Boolean(
@@ -208,11 +241,14 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             )}
 
             <ResponsiveScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 style={[styles.container, { marginTop: -insets.top }]}
                 bounces={true}
                 overScrollMode="auto"
+                scrollEventThrottle={16}
+                onScroll={handleScroll}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
@@ -272,7 +308,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                             <TouchableOpacity
                                 key={tab}
                                 style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-                                onPress={() => setActiveTab(tab)}
+                                onPress={() => handleTabChange(tab)}
                             >
                                 <CustomText style={[
                                     styles.tabText,
@@ -316,6 +352,12 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
                 </View>
             </ResponsiveScrollView>
+
+            <ScrollToTopPill
+                visible={showScrollTopPill}
+                onPress={handleScrollToTop}
+                topOffset={27}
+            />
 
             <CustomStickyFooter
                 primaryButton={{
