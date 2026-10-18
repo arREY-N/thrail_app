@@ -4,9 +4,6 @@
  * Handles section validation, missing field summarization, options parsing, and numeric conversions.
  */
 
-import { TextStyle, ViewStyle } from 'react-native';
-
-import { Colors } from '@/src/constants/colors';
 import { Trail } from '@/src/core/models/Trail/Trail';
 
 export interface AmenityConfig {
@@ -168,61 +165,6 @@ export const getSaveButtonTitle = (
     return isEditMode ? 'Save Changes' : 'Save Trail';
 };
 
-/**
- * Returns dynamic container styling for the primary save button.
- */
-export const getSaveButtonStyle = (
-    isLoading: boolean,
-    formValid: boolean,
-    isButtonError: boolean
-): ViewStyle => {
-    if (isLoading || formValid) {
-        return {
-            backgroundColor: Colors.PRIMARY,
-            borderColor: Colors.PRIMARY,
-            borderWidth: 1.5,
-        };
-    }
-    if (isButtonError) {
-        return {
-            backgroundColor: Colors.STATUS_CANCELLED_BG,
-            borderColor: Colors.STATUS_CANCELLED_TEXT,
-            borderWidth: 1.5,
-        };
-    }
-    return {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderColor: Colors.GRAY_LIGHT,
-        borderWidth: 1.5,
-    };
-};
-
-/**
- * Returns dynamic typography styling for the primary save button.
- */
-export const getSaveButtonTextStyle = (
-    formValid: boolean,
-    isLoading: boolean,
-    isButtonError: boolean
-): TextStyle => {
-    if (formValid || isLoading) {
-        return {
-            color: Colors.WHITE,
-            fontWeight: 'bold',
-        };
-    }
-    if (isButtonError) {
-        return {
-            color: Colors.STATUS_CANCELLED_TEXT,
-            fontWeight: 'bold',
-        };
-    }
-    return {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-    };
-};
-
 export interface ModalConfirmConfig {
     title: string;
     message: string;
@@ -277,27 +219,5 @@ export const getDeleteConfirmConfig = (
     };
 };
 
-export interface FormToastConfig {
-    visible: boolean;
-    message: string;
-    type?: 'error' | 'warning' | 'info' | 'success';
-    mode?: 'simple' | 'dismissible';
-    triggerKey?: number | string;
-}
-
-/**
- * Generates toast configuration for form validation or system errors.
- */
-export const getErrorToastConfig = (
-    message: string, 
-    mode: 'simple' | 'dismissible' = 'dismissible',
-    triggerKey: number | string = Date.now()
-): FormToastConfig => ({
-    visible: true,
-    message,
-    type: 'error',
-    mode,
-    triggerKey,
-});
 
 

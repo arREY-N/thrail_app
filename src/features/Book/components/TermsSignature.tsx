@@ -9,7 +9,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import LegalTermsModal, { LegalTabType } from '@/src/components/LegalTermsModal';
 import { Colors } from '@/src/constants/colors';
 
@@ -44,11 +44,11 @@ const TermsSignature = ({
     onBookingTermsPress,
     onShowToast,
 }: TermsSignatureProps): React.JSX.Element => {
+    const { showToast } = useToast();
     const [signature, setSignature] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalTab, setModalTab] = useState<LegalTabType>('terms');
     const [hasReadPolicies, setHasReadPolicies] = useState(!requireReadToAgree);
-    const [localToastMessage, setLocalToastMessage] = useState<string | null>(null);
 
     const isPoliciesAcknowledged = !requireReadToAgree || hasReadPolicies;
 
@@ -80,7 +80,7 @@ const TermsSignature = ({
             if (onShowToast) {
                 onShowToast(msg);
             } else {
-                setLocalToastMessage(msg);
+                showToast.info(msg);
             }
         }
     };
@@ -208,16 +208,6 @@ const TermsSignature = ({
                 onAcknowledgeAll={() => {
                     setHasReadPolicies(true);
                 }}
-            />
-
-            {/* Fallback Local Toast when onShowToast is not supplied */}
-            <CustomToast
-                visible={!!localToastMessage}
-                message={localToastMessage || ''}
-                onHide={() => setLocalToastMessage(null)}
-                type="info"
-                mode="dismissible"
-                position="floating"
             />
         </View>
     );

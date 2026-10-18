@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
     Animated,
+    Dimensions,
     Keyboard,
     KeyboardAvoidingView,
     Modal,
@@ -13,13 +13,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import { CustomToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface CancelBookingModalProps {
     /** Whether the modal is visible */
@@ -43,7 +47,7 @@ export interface CancelBookingModalProps {
 /**
  * Universal Responsive Modal for booking cancellations, refund requests, and appeals.
  * Displays centered with breathable adaptive width on desktop/web,
- * and slides up as an interactive bottom sheet on mobile screens.
+ * and slides up as an interactive bottom sheet with physical keyboard lifting on mobile.
  */
 const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     visible,
@@ -68,6 +72,23 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 
     const [reason, setReason] = useState<string>(isUpdate ? '' : (initialReason || ''));
     const [animValue] = useState(() => new Animated.Value(0));
+    const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+    const [toastConfig, setToastConfig] = useState<{
+        message: string | null;
+        type: 'error' | 'warning' | 'info' | 'success';
+    }>({
+        message: null,
+        type: 'error',
+    });
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+
+    const showModalToast = (
+        message: string,
+        type: 'error' | 'warning' | 'info' | 'success' = 'error'
+    ) => {
+        setToastConfig({ message, type });
+    };
 
     const [prevVisible, setPrevVisible] = useState(visible);
     if (visible !== prevVisible) {
@@ -75,6 +96,17 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         if (visible) {
             setRenderModal(true);
             setReason(isUpdate ? '' : (initialReason || ''));
+            setToastConfig({ message: null, type: 'error' });
+            setHasAttemptedSubmit(false);
+        }
+    }
+
+    // Sync external error messages into in-modal toast
+    const [prevErrorMessage, setPrevErrorMessage] = useState(errorMessage);
+    if (errorMessage !== prevErrorMessage) {
+        setPrevErrorMessage(errorMessage);
+        if (errorMessage) {
+            showModalToast(errorMessage, 'error');
         }
     }
 
@@ -96,7 +128,6 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 
     const isSubmittingRef = useRef(false);
     const scrollViewRef = useRef<ScrollView>(null);
-    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
     useEffect(() => {
         if (!visible) {
@@ -104,18 +135,19 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         }
     }, [visible]);
 
+    // Keyboard listener: tracks exact pixel height for physical bottom sheet lift on mobile
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
         const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-        const showSub = Keyboard.addListener(showEvent, () => {
-            setIsKeyboardVisible(true);
+        const showSub = Keyboard.addListener(showEvent, (e) => {
+            setKeyboardHeight(e.endCoordinates.height);
             setTimeout(() => {
                 scrollViewRef.current?.scrollToEnd({ animated: true });
             }, 100);
         });
         const hideSub = Keyboard.addListener(hideEvent, () => {
-            setIsKeyboardVisible(false);
+            setKeyboardHeight(0);
         });
 
         return () => {
@@ -123,6 +155,24 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
             hideSub.remove();
         };
     }, []);
+
+    // Physical Escape key dismissal on Web
+    const handleClose = useCallback(() => {
+        setToastConfig({ message: null, type: 'error' });
+        setHasAttemptedSubmit(false);
+        onClose();
+    }, [onClose]);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || !visible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, handleClose]);
 
     const isRefund = actionType === 'refund';
 
@@ -161,13 +211,24 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         ];
     }
 
-    const isConfirmDisabled = !reason.trim() || isSubmitting;
+    const isReasonValid = reason.trim().length >= 5;
 
     const handleConfirm = async () => {
-        if (isConfirmDisabled || isSubmittingRef.current) return;
+        if (isSubmittingRef.current || isSubmitting) return;
+
+        if (!isReasonValid) {
+            setHasAttemptedSubmit(true);
+            showModalToast('Please provide a reason with at least 5 characters.', 'error');
+            return;
+        }
+
         isSubmittingRef.current = true;
         try {
             await onConfirm(reason.trim());
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to submit request. Please try again.';
+            showModalToast(msg, 'error');
+            setHasAttemptedSubmit(true);
         } finally {
             isSubmittingRef.current = false;
         }
@@ -175,51 +236,62 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 
     if (!renderModal) return null;
 
+    // Toast offset calculation: guarantee clean 12px floating headroom above action buttons
+    const footerHeight = 52 + 16;
+    const baseBottomPadding = isWideScreen ? 24 : Math.max(insets.bottom + 16, 24);
+    const toastBottomOffset = (keyboardHeight > 0 ? keyboardHeight + 16 : baseBottomPadding) + footerHeight + 12;
+
     return (
         <Modal
             transparent={true}
             visible={renderModal}
             animationType="none"
-            onRequestClose={onClose}
+            onRequestClose={handleClose}
             statusBarTranslucent={true}
         >
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={[
-                    styles.modalContainer,
-                    {
-                        justifyContent: isKeyboardVisible ? 'flex-start' : 'center',
-                        paddingTop: isKeyboardVisible ? Math.max(insets.top + 16, 24) : 16,
-                        paddingBottom: isKeyboardVisible ? 16 : Math.max(insets.bottom + 16, 16),
-                    },
-                ]}
+                behavior={undefined}
+                style={styles.modalContainer}
             >
                 <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
                     <TouchableOpacity
                         style={styles.backdropTouch}
                         activeOpacity={1}
-                        onPress={onClose}
+                        onPress={handleClose}
                     />
                 </Animated.View>
 
                 <Animated.View
                     style={[
                         styles.modalContent,
+                        isWideScreen ? styles.modalContentDesktop : styles.modalContentMobile,
                         {
-                            maxWidth: isWideScreen ? 540 : 420,
-                            maxHeight: isKeyboardVisible ? '62%' : '88%',
-                            opacity: animValue,
+                            paddingBottom: keyboardHeight > 0
+                                ? keyboardHeight + 16
+                                : isWideScreen
+                                ? 24
+                                : Math.max(insets.bottom + 16, 24),
+                            maxHeight: isWideScreen
+                                ? '85%'
+                                : keyboardHeight > 0
+                                ? Math.round((SCREEN_HEIGHT - keyboardHeight - insets.top) * 0.88) + keyboardHeight + 16
+                                : '90%',
+                        },
+                        {
                             transform: [
                                 {
-                                    scale: animValue.interpolate({
+                                    translateY: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: [0.95, 1],
+                                        outputRange: isWideScreen ? [40, 0] : [SCREEN_HEIGHT, 0],
                                     }),
                                 },
                             ],
+                            opacity: isWideScreen ? animValue : 1,
                         },
                     ]}
                 >
+                    {!isWideScreen && <View style={styles.sheetHandle} />}
+
                     <View style={styles.header}>
                         <View style={styles.headerSide} />
                         <CustomText variant="h3" style={styles.headerTitle}>
@@ -227,10 +299,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                         </CustomText>
                         <View style={[styles.headerSide, styles.headerSideRight]}>
                             <TouchableOpacity
-                                onPress={onClose}
+                                onPress={handleClose}
                                 activeOpacity={0.7}
                                 style={styles.closeBtn}
                                 accessibilityLabel="Close modal"
+                                disabled={isSubmitting}
                             >
                                 <CustomIcon
                                     library="Feather"
@@ -261,20 +334,6 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                 {warningText}
                             </CustomText>
                         </View>
-
-                        {errorMessage ? (
-                            <View style={styles.errorBox}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="alert-circle"
-                                    size={16}
-                                    color={Colors.ERROR}
-                                />
-                                <CustomText variant="caption" style={styles.errorText}>
-                                    {errorMessage}
-                                </CustomText>
-                            </View>
-                        ) : null}
 
                         {isUpdate && Boolean(previousReason) ? (
                             <View style={styles.previousReasonBox}>
@@ -309,40 +368,42 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                     </ScrollView>
 
                     <View style={styles.footer}>
-                        <TouchableOpacity
-                            style={styles.cancelBtn}
-                            onPress={onClose}
-                            activeOpacity={0.7}
+                        <CustomButton
+                            title={isUpdate ? 'Cancel' : 'Keep Booking'}
+                            onPress={handleClose}
+                            variant="outline"
                             disabled={isSubmitting}
-                        >
-                            <CustomText style={styles.cancelBtnText}>
-                                {isUpdate ? 'Cancel' : 'Keep Booking'}
-                            </CustomText>
-                        </TouchableOpacity>
+                            style={styles.cancelBtn}
+                        />
 
-                        <TouchableOpacity
-                            style={[
-                                styles.confirmBtn,
-                                isConfirmDisabled && styles.confirmBtnDisabled,
-                            ]}
+                        <CustomButton
+                            title={confirmLabel}
                             onPress={handleConfirm}
-                            disabled={isConfirmDisabled}
-                            activeOpacity={0.8}
-                        >
-                            {isSubmitting ? (
-                                <ActivityIndicator size="small" color={Colors.WHITE} />
-                            ) : (
-                                <CustomText
-                                    style={[
-                                        styles.confirmBtnText,
-                                        isConfirmDisabled && styles.confirmBtnTextDisabled,
-                                    ]}
-                                >
-                                    {confirmLabel}
-                                </CustomText>
-                            )}
-                        </TouchableOpacity>
+                            variant={isUpdate ? 'primary' : 'destructive'}
+                            isLoading={isSubmitting}
+                            disabled={isSubmitting}
+                            validationState={
+                                isReasonValid
+                                    ? 'valid'
+                                    : (hasAttemptedSubmit ? 'error' : 'idle')
+                            }
+                            isIdleDisabled={false}
+                            style={styles.confirmBtn}
+                        />
                     </View>
+
+                    <CustomToast
+                        visible={!!toastConfig.message}
+                        message={toastConfig.message || ''}
+                        onHide={() => {
+                            setToastConfig({ message: null, type: 'error' });
+                            setHasAttemptedSubmit(false);
+                        }}
+                        type={toastConfig.type}
+                        mode="simple"
+                        position="floating"
+                        bottomOffset={toastBottomOffset}
+                    />
                 </Animated.View>
             </KeyboardAvoidingView>
         </Modal>
@@ -352,8 +413,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
 const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
-        alignItems: 'center',
-        paddingHorizontal: 16,
+        justifyContent: 'flex-end',
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
@@ -364,17 +424,36 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         backgroundColor: Colors.WHITE,
+        ...GlobalStyles.dropShadow(5, 0.15, Colors.SHADOW, { radius: 16 }),
+    },
+    modalContentMobile: {
         width: '100%',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+    },
+    modalContentDesktop: {
+        alignSelf: 'center',
+        marginBottom: 'auto',
+        marginTop: 'auto',
+        width: '92%',
+        maxWidth: 540,
         borderRadius: 24,
-        paddingBottom: 20,
-        ...GlobalStyles.dropShadow(5, 0.1, Colors.SHADOW, { radius: 12 }),
+    },
+    sheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: Colors.GRAY_LIGHT,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 0,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 24,
-        paddingTop: 20,
+        paddingTop: 16,
         paddingBottom: 16,
     },
     headerSide: {
@@ -422,23 +501,6 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontSize: 13,
     },
-    errorBox: {
-        flexDirection: 'row',
-        backgroundColor: Colors.ERROR_BG,
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-        gap: 8,
-        marginBottom: 16,
-        alignItems: 'center',
-    },
-    errorText: {
-        flex: 1,
-        color: Colors.ERROR,
-        fontSize: 12,
-        fontWeight: '500',
-    },
     previousReasonBox: {
         backgroundColor: Colors.BACKGROUND,
         borderRadius: 12,
@@ -479,37 +541,11 @@ const styles = StyleSheet.create({
     },
     cancelBtn: {
         flex: 1,
-        paddingVertical: 14,
         borderRadius: 14,
-        borderWidth: 1.5,
-        borderColor: Colors.GRAY_LIGHT,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: Colors.WHITE,
-    },
-    cancelBtnText: {
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 14,
     },
     confirmBtn: {
-        flex: 1.2,
-        paddingVertical: 14,
+        flex: 1.25,
         borderRadius: 14,
-        backgroundColor: Colors.ERROR,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    confirmBtnDisabled: {
-        backgroundColor: Colors.BUTTON_DISABLED_BG,
-    },
-    confirmBtnText: {
-        fontWeight: 'bold',
-        color: Colors.WHITE,
-        fontSize: 14,
-    },
-    confirmBtnTextDisabled: {
-        color: Colors.BUTTON_DISABLED_TEXT,
     },
 });
 
