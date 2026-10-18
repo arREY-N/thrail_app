@@ -25,8 +25,8 @@ const AdminBookingCard = ({
     onViewBooking,
     isOfferLocked = false
 }: AdminBookingCardProps) => {
-    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded');
-    const displayStatus = hasRefundedPayment ? 'refunded' : booking.status;
+    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded') ? 'refunded' : booking.status;
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
     

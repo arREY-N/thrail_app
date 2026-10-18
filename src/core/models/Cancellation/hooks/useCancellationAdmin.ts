@@ -94,10 +94,17 @@ export function useCancellationAdmin(bookingId: string) {
         }
         await onRefund(updatedBooking, determinedType, determinedCustom);
 
-        // Sync local payment records so createBooking doesn't overwrite backend with stale captured state
+        const refundAmt = determinedCustom ?? (determinedType === 'full' ? totalPaid : Math.round(totalPaid * 0.1 * 100) / 100);
+
+        // Sync local payment records so createBooking doesn't overwrite backend with stale captured state or missing refundedAmount
         updatedBooking.payment = (updatedBooking.payment || []).map(p => {
             if (p.status === 'captured') {
-                return { ...p, status: 'refunded' };
+                return { 
+                    ...p, 
+                    status: refundAmt >= (p.amount - 0.01) ? 'refunded' : 'captured',
+                    refundedAmount: (p.refundedAmount || 0) + refundAmt,
+                    refundedAt: new Date(),
+                };
             }
             return p;
         });

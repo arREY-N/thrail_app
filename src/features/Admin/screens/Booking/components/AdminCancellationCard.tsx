@@ -59,12 +59,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? cancellation.status === 'rejected'
         : status === 'cancellation-rejected';
     const isRefunded =
-        (cancellation?.status === 'approved' && totalAmountPaid > 0) ||
+        (cancellation?.status === 'approved' && (totalAmountPaid > 0 || totalRefundedAmount > 0)) ||
+        totalRefundedAmount > 0 ||
         status === 'refund' ||
         status === 'refunded';
     const isCancelled =
-        status === 'cancelled' ||
-        (cancellation?.status === 'approved' && totalAmountPaid === 0);
+        (status === 'cancelled' && totalRefundedAmount === 0) ||
+        (cancellation?.status === 'approved' && totalAmountPaid === 0 && totalRefundedAmount === 0);
 
     if (!isPending && !isDeclined && !isRefunded && !isCancelled) {
         return null;
@@ -208,13 +209,26 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         PAYMENT CAPTURED
                     </CustomText>
                     <CustomText style={styles.impactValue}>
-                        {isPaid 
+                        {totalAmountPaid > 0 
                             ? `₱${totalAmountPaid.toFixed(2)}` 
                             : (totalRefundedAmount > 0 
                                 ? `₱${totalRefundedAmount.toFixed(2)} (Refunded)` 
                                 : '₱0.00 (Unpaid)')}
                     </CustomText>
                 </View>
+                {totalRefundedAmount > 0 && (
+                    <>
+                        <View style={styles.impactDivider} />
+                        <View style={styles.impactItem}>
+                            <CustomText variant="caption" style={[styles.impactLabel, { color: Colors.ERROR }]}>
+                                AMOUNT REFUNDED
+                            </CustomText>
+                            <CustomText style={[styles.impactValue, { color: Colors.ERROR }]}>
+                                ₱{totalRefundedAmount.toFixed(2)}
+                            </CustomText>
+                        </View>
+                    </>
+                )}
                 <View style={styles.impactDivider} />
                 <View style={styles.impactItem}>
                     <CustomText variant="caption" style={styles.impactLabel}>
