@@ -97,6 +97,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const isConfirmingRef = useRef(false);
+    const scrollViewRef = useRef<ScrollView>(null);
 
     const isMinor = checkIfMinor(profile?.birthday);
 
@@ -196,7 +197,12 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
 
     return (
         <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView 
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.constrainer}>
                     
                     {/* Section 1: Contact Details */}
@@ -385,6 +391,11 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                             }}
                             onShowToast={(message) => {
                                 showToast.info(message);
+                            }}
+                            onSignatureFocus={() => {
+                                setTimeout(() => {
+                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                }, 150);
                             }}
                         />
                     </View>
